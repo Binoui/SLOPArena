@@ -261,7 +261,13 @@ Read the report and contact sheet and spot-check at least one asset from each im
 
 Reject or revise the profile when assets are clipped, invisible, badly framed, visually duplicated, magenta, or conceptually wrong. A visual warning can trigger human review, but must not change the semantic shortlist or substitute a different category. Metadata-only technical success is not visual suitability.
 
-Record verification in the repository's gitignored `TESTING-UNITY.md` when this workflow changes or when a new concept workset is accepted. This evidence does not validate stage placement, gameplay, or camera composition.
+File each human check with `python3 tools/factory.py check add`.
+Pass your T3 thread id from `t3_thread_configuration` when you are in T3.
+Retire your own superseded checks with `check drop`.
+Answer redo notes with `check ready`.
+Keep automated verification in the task report when this workflow changes or a new concept
+workset is accepted. This evidence does not validate stage placement, gameplay, or camera
+composition.
 
 ## Handoff to stage authoring
 

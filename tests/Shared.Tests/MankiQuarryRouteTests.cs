@@ -115,7 +115,10 @@ public sealed class MankiQuarryRouteTests
             {
                 var s = S; float d = Vector2.Distance(new(s.PX, s.PZ), new(x, z));
                 if (i > eTick + 30 && s.IsGrounded && d < 1.6f) { Stop(); return; }
-                var input = Toward(x, z); input.Jump = i == 0; input.JumpHeld = i < 24;
+                var input = Toward(x, z);
+                input.Jump = i == 0 || i > eTick + 3 && i < eTick + 39 && (i - eTick - 3) % 12 == 0;
+                input.JumpHeld = i < 24;
+                if (i == eTick + 40) input.ActiveSlot = AbilitySlots.E;
                 if (i == eTick) input.ActiveSlot = AbilitySlots.E;
                 Tick(input);
             }
@@ -145,23 +148,15 @@ public sealed class MankiQuarryRouteTests
             return ids.All(Broken);
         }
 
-        /// <summary>
-        /// A Round Bomb aimed like the client's ground cursor: at a point on a surface, sending the
-        /// foot-height distance whose arc passes through it (CombatMath.LobDistanceThrough).
-        /// </summary>
+        /// <summary>Use the hop-and-drop nearby and the homing rocket for distant course targets.</summary>
         public void Bomb(float x, float y, float z, params string[] crates)
         {
             WaitReady(AbilitySlots.A);
-            var s = S; float horizontal = Vector2.Distance(new(s.PX, s.PZ), new(x, z));
-            float sent = CombatMath.LobDistanceThrough(horizontal, y - (s.PY + MankiRoundBomb.LaunchOffsetY), BombLaunch,
-                -Body - MankiRoundBomb.LaunchOffsetY);
-            Assert.True(sent <= 12f, $"bomb at {x},{y},{z} needs a {sent:F2} m throw from {Where()}");
-            short yaw = Yaw(x - s.PX, z - s.PZ);
-            ushort distance = (ushort)MathF.Round(sent * 100f);
-            Press(AbilitySlots.A, new() { IsAiming = true, AimYaw = yaw, FacingYaw = yaw, AimDistance = distance });
-            for (int i = 1; i < 12; i++)
-                Tick(new() { IsAiming = true, AimYaw = yaw, FacingYaw = yaw, AimDistance = distance });
-            if (!WaitBreak(crates, 150)) throw new Exception($"bomb at {x},{y},{z} missed {string.Join(",", crates.Where(c => !Broken(c)))} from {Where()}");
+            var s = S;
+            float horizontal = Vector2.Distance(new(s.PX, s.PZ), new(x, z));
+            if (horizontal > 2f) { Rocket(x, y, z, crates); return; }
+            Press(AbilitySlots.A, default);
+            if (!WaitBreak(crates, 400)) throw new Exception($"bomb at {x},{y},{z} missed {string.Join(",", crates.Where(c => !Broken(c)))} from {Where()}");
         }
 
         /// <summary>Press Bazooka with the course crate selected as the soft target.</summary>
@@ -325,12 +320,16 @@ public sealed class MankiQuarryRouteTests
         r.Rocket(30f, 4.1f, 2f, "crate_16");                  // far stack
         r.Walk(14.8f, 6.9f);
         r.Jump(13f, -3f, runUp: 4);                           // hopper
-        r.Bomb(8f, .6f, -13f, "crate_15");                    // dive-bomb the low islet
-        r.Walk(14.1f, -5.6f);
-        r.Jump(20f, -14f, runUp: 4);                          // dump truck
-        r.Rocket(24f, .6f, -24f, "crate_17", "crate_18");     // one rocket blast, both raft crates
-        r.Walk(18.4f, -15.6f);
-        r.Jump(15f, -22f);                                    // gravel pile
+        r.Walk(12f, -5.4f);
+        r.Jump(8.4f, -12.4f);
+        r.Punch("crate_15");
+        r.Walk(9f, -13.9f);
+        r.Jump(14.5f, -21.5f, secondJumpTick: 20);
+        r.Walk(16.2f, -22f);
+        r.Jump(23f, -24f);
+        r.Punch("crate_17"); r.Punch("crate_18");
+        r.Walk(25.8f, -24f);
+        r.Jump(15f, -22f, secondJumpTick: 22, runUp: 6);
         r.Walk(15f, -23.4f);
         r.Jump(14f, -30f);                                    // loading dock
         r.Finish(10f, -34f);
@@ -532,8 +531,15 @@ public sealed class MankiQuarryRouteTests
                 case "double jump then E": input.Jump = i == 0 || i == 22; input.JumpHeld = i < 40; if (i == 40) input.ActiveSlot = AbilitySlots.E; break;
                 case "jump then E": input.Jump = i == 0; input.JumpHeld = i < 24; if (i == 22) input.ActiveSlot = AbilitySlots.E; break;
             }
+            int ignition = attempt == "jump then E" ? 22 : attempt == "double jump then E" ? 40 : -1;
+            if (ignition >= 0)
+            {
+                input.Jump |= i > ignition + 3 && i < ignition + 39 && (i - ignition - 3) % 12 == 0;
+                if (i == ignition + 40) input.ActiveSlot = AbilitySlots.E;
+            }
             r.Tick(input);
             onBench |= r.S.IsGrounded && r.S.PY > 7f;
+            if (onBench) break;
         }
         Assert.Equal(reaches, onBench);
     }

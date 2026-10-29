@@ -131,11 +131,11 @@ public class FightGuyNormalTuningTests : KitScenarioTests
     }
 
     [Fact]
-    public void A3_HighKick_DealsAuthoredDamage()
+    public void A3_FlipKick_DealsAuthoredDamage()
     {
         AssertScenario(new KitScenario
         {
-            Name = "FightGuy A3 High Kick Hit Confirm",
+            Name = "FightGuy A3 Flip Kick Hit Confirm",
             Def = Def,
             Setup = AirbornePlayer,
             Inputs = new InputSequence().Press(0, 8),

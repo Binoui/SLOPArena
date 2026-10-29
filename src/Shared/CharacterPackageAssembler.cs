@@ -257,8 +257,13 @@ public static class CharacterPackageAssembler
             PoseData poses = ParsePoses(input.PoseBytes, d);
             HashSet<string> required = RequiredAnimations(input.CookedPackage, d);
             if (binding == null || poses == null) return;
+            foreach (var bone in input.CookedPackage.Definition.HurtboxBoneDefs)
+            {
+                ValidateHurtboxPoint(bone.BoneId, poses, d);
+                if (bone.EndBoneId != null) ValidateHurtboxPoint(bone.EndBoneId, poses, d);
+            }
             ValidateReferences(required, input.CookedPackage.Definition.PresentationIds,
-                input.CookedPackage.Definition.Slots.Select(slot => slot.HitPresentationId).Where(id => !string.IsNullOrEmpty(id)).Select(id => id!),
+                input.CookedPackage.Definition.AllSlots.Select(slot => slot.HitPresentationId).Where(id => !string.IsNullOrEmpty(id)).Select(id => id!),
                 binding, poses, d);
             if (binding.PackageId != input.PackageId || binding.SourceHash != input.SourceHash || binding.BindingSchemaVersion != input.BindingSchemaVersion || binding.PoseFormat != input.PoseFormat || binding.PoseVersion != input.PoseVersion || binding.SampleRate != input.SampleRate)
                 d.Add(Error("package.binding.metadata-mismatch", BindingPath, "Binding metadata does not match assembly input."));
@@ -304,11 +309,11 @@ public static class CharacterPackageAssembler
                 EnsureFields(metadata, new[] { "packageId", "version", "cookedSchemaVersion", "compatibility" }, RuntimePath + ".metadata", d);
                 if (HasObject(metadata, "compatibility"))
                     EnsureFields(metadata.GetProperty("compatibility"), new[] { "runtimeApiMin", "runtimeApiMax" }, RuntimePath + ".metadata.compatibility", d);
-                EnsureFieldsOptional(root.GetProperty("character"), new[] { "displayName", "weight", "movement", "presentation", "capsuleRadius", "capsuleHeight", "hipHeight", "hurtboxRadius", "shieldRadius", "captureGeometry", "hurtboxCapsules", "hurtboxBoneDefs", "attachmentBoneIds", "presentationIds", "capabilityRequirements", "shell", "slots" }, RuntimePath + ".character", d);
+                EnsureFieldsOptional(root.GetProperty("character"), new[] { "displayName", "weight", "movement", "presentation", "capsuleRadius", "capsuleHeight", "hipHeight", "hurtboxRadius", "shieldRadius", "captureGeometry", "hurtboxCapsules", "hurtboxBoneDefs", "attachmentBoneIds", "presentationIds", "capabilityRequirements", "shell", "slots", "alternateForm" }, RuntimePath + ".character", d);
                 if (!root.GetProperty("character").TryGetProperty("shieldRadius", out _))
                     d.Add(Error("package.runtime.schema", RuntimePath + ".character.shieldRadius", "Shield radius is required."));
                 if (HasObject(root.GetProperty("character"), "presentation"))
-                    EnsureFields(root.GetProperty("character").GetProperty("presentation"), new[] { "idle", "run", "dash", "jump", "fall", "hitSmall", "hitMedium", "hitHard", "tumble", "crouch", "slide", "shield", "grab", "grabbed", "throwForward", "airDodge", "shell", "landStartOffsetSeconds", "modelResourcePath", "visualScale", "hurtboxBoneScale", "modelYOffset", "modelSoleOffset", "autoModelYOffset" }, RuntimePath + ".character.presentation", d);
+                    EnsureFields(root.GetProperty("character").GetProperty("presentation"), new[] { "idle", "run", "dash", "jump", "fall", "hitSmall", "hitMedium", "hitHard", "tumble", "crouch", "slide", "shield", "grab", "grabbed", "throwForward", "airDodge", "shell", "flying", "mayhemLaugh", "landStartOffsetSeconds", "modelResourcePath", "visualScale", "hurtboxBoneScale", "modelYOffset", "modelSoleOffset", "autoModelYOffset" }, RuntimePath + ".character.presentation", d);
                 if (!HasObject(root.GetProperty("character"), "captureGeometry"))
                     d.Add(Error("package.runtime.schema", RuntimePath + ".character.captureGeometry", "Capture geometry is required."));
                 else
@@ -331,6 +336,11 @@ public static class CharacterPackageAssembler
             {
                 HashSet<string> required = RequiredAnimations(root, d);
                 ValidateReferences(required, RequiredPresentations(root, d), RequiredHitPresentations(root, d), binding, pose, d);
+                if (root.GetProperty("character").TryGetProperty("hurtboxBoneDefs", out var hurtboxes) && hurtboxes.ValueKind == JsonValueKind.Array)
+                    foreach (var bone in hurtboxes.EnumerateArray())
+                        foreach (string field in new[] { "boneId", "endBoneId" })
+                            if (bone.TryGetProperty(field, out var id) && id.ValueKind == JsonValueKind.String)
+                                ValidateHurtboxPoint(id.GetString()!, pose, d);
                 if (root.GetProperty("character").TryGetProperty("attachmentBoneIds", out var attachmentIds) && attachmentIds.ValueKind == JsonValueKind.Array)
                     foreach (var id in attachmentIds.EnumerateArray())
                         if (id.ValueKind != JsonValueKind.String || !pose.BoneNames.Contains(id.GetString() ?? ""))
@@ -340,6 +350,12 @@ public static class CharacterPackageAssembler
             }
         }
         catch (Exception ex) { d.Add(Error("package.runtime.malformed", RuntimePath, ex.Message)); }
+    }
+
+    private static void ValidateHurtboxPoint(string id, PoseData pose, List<CharacterDiagnostic> d)
+    {
+        if (!pose.BoneNames.Contains(CharacterBoneRegistry.BakedName(id)!))
+            d.Add(Error("package.pose.hurtbox-missing", "character.hurtboxBoneDefs", $"Hurtbox bone '{id}' is missing from poses.bin."));
     }
 
     private static HashSet<string> RequiredAnimations(CookedCharacterPackage package, List<CharacterDiagnostic> d)
@@ -362,7 +378,12 @@ public static class CharacterPackageAssembler
         AddOptional(required, package.Definition.Presentation.ThrowForward, d, "character.presentation");
         AddOptional(required, package.Definition.Presentation.AirDodge, d, "character.presentation");
         AddOptional(required, package.Definition.Presentation.Shell, d, "character.presentation");
-        foreach (var slot in package.Definition.Slots)
+        AddOptional(required, package.Definition.Presentation.Flying, d, "character.presentation");
+        AddOptional(required, package.Definition.Presentation.MayhemLaugh, d, "character.presentation");
+        if (package.Definition.AlternateForm is { } form)
+            foreach (var (_, id) in form.Presentation.Roles)
+                AddOptional(required, id, d, "character.alternateForm.presentation");
+        foreach (var slot in package.Definition.AllSlots)
         {
             if (!string.IsNullOrEmpty(slot.AimAnimationId))
                 Add(required, slot.AimAnimationId, d, "character.slots.aimAnimationId");
@@ -387,11 +408,25 @@ public static class CharacterPackageAssembler
                 AddOptional(required, crouch.GetString() ?? "", d, "character.presentation");
             if (presentation.TryGetProperty("slide", out var slide) && slide.ValueKind == JsonValueKind.String)
                 AddOptional(required, slide.GetString() ?? "", d, "character.presentation");
-            foreach (string name in new[] { "shield", "grab", "grabbed", "throwForward", "airDodge", "shell" })
+            foreach (string name in new[] { "shield", "grab", "grabbed", "throwForward", "airDodge", "shell", "flying", "mayhemLaugh" })
                 if (presentation.TryGetProperty(name, out var role) && role.ValueKind == JsonValueKind.String)
                     AddOptional(required, role.GetString() ?? "", d, "character.presentation");
         }
-        if (character.TryGetProperty("slots", out var slots) && slots.ValueKind == JsonValueKind.Array)
+        AddSlots(character);
+        if (HasObject(character, "alternateForm"))
+        {
+            var form = character.GetProperty("alternateForm");
+            if (HasObject(form, "presentation"))
+                foreach (var role in form.GetProperty("presentation").EnumerateObject())
+                    if (role.Value.ValueKind == JsonValueKind.String)
+                        AddOptional(required, role.Value.GetString() ?? "", d, "character.alternateForm.presentation");
+            AddSlots(form);
+        }
+        return required;
+
+        void AddSlots(JsonElement grid)
+        {
+            if (!grid.TryGetProperty("slots", out var slots) || slots.ValueKind != JsonValueKind.Array) return;
             foreach (var slot in slots.EnumerateArray())
             {
                 if (slot.TryGetProperty("aimAnimationId", out var aim) && aim.ValueKind == JsonValueKind.String)
@@ -401,7 +436,7 @@ public static class CharacterPackageAssembler
                         if (stage.TryGetProperty("animationIds", out var ids) && ids.ValueKind == JsonValueKind.Array)
                             foreach (var id in ids.EnumerateArray()) Add(required, id.GetString() ?? "", d, "character.timeline.animationIds");
             }
-        return required;
+        }
     }
     private static HashSet<string> RequiredPresentations(JsonElement root, List<CharacterDiagnostic> d)
     {
@@ -418,7 +453,13 @@ public static class CharacterPackageAssembler
         var required = new HashSet<string>(StringComparer.Ordinal);
         if (!HasObject(root, "character")) return required;
         var character = root.GetProperty("character");
-        if (character.TryGetProperty("slots", out var slots) && slots.ValueKind == JsonValueKind.Array)
+        AddSlots(character);
+        if (HasObject(character, "alternateForm")) AddSlots(character.GetProperty("alternateForm"));
+        return required;
+
+        void AddSlots(JsonElement grid)
+        {
+            if (!grid.TryGetProperty("slots", out var slots) || slots.ValueKind != JsonValueKind.Array) return;
             foreach (var slot in slots.EnumerateArray())
                 if (slot.TryGetProperty("hitPresentationId", out var hit))
                 {
@@ -427,7 +468,7 @@ public static class CharacterPackageAssembler
                     else
                         AddOptional(required, hit.GetString() ?? "", d, "character.slots.hitPresentationId");
                 }
-        return required;
+        }
     }
 
 

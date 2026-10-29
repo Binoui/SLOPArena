@@ -206,6 +206,24 @@ such a mesh joined the Torso, and her first run keys swung an arm 10 cm into the
 checked against the torso they join at the shoulder. Helper joints that share a mesh with the body, such as Manki's
 arm stretch and offset controls, stay in the body's regions.
 
+**One skeleton, several bodies (Nyx, 2026-10-29).** `--meshes` builds one pack per form, and each pack lists every
+renderer its form draws: `Nyx_Real,Nyx_Real_Tights,Nyx_Real_Dress` and `Nyx_Fake,Nyx_Backpack,Nyx_BackpackPole,Nyx_Phone`.
+A brief's `meshes_shown` gives the other form's meshes, and props that change places, their tick windows. When her model
+was rebuilt mid-session, these held:
+
+- **Mapped toes are always kept.** A pack keeps only weighted joints and their ancestors, and the rebuilt boots were
+  weighted to the feet alone, so `LeftToeBase` and `RightToeBase`, which briefs plant and floor-check, dropped out.
+- **Added subtrees load.** `Clip.load` puts an older clip onto a pack that has gained joints hanging off its own (a held
+  prop, the dress's 48 spring-chain joints under Hips) and leaves those joints at their bind locals.
+- **Unposed helpers are not held to the keys.** The approved-keys check skips joints outside the Humanoid that stay at
+  their bind rotation in both the keys and the take. Riding the hips, the dress chains' tips swung 3 cm within the
+  allowed overlap and failed keys the animator had kept.
+- **A pole is at least 0.3 m long.** A rigid skinned mesh in one hand gets `bladeHilt`/`bladeEnd` only if its ends lie
+  0.3 m or more apart. Without this the phone took the anchors, which the keys check holds to the exact tick.
+- **Rebuild packs when the prefab changes.** Compare the prefab's hash before rendering. `write` names a changed vertex
+  count (`meshChanged`) but not new bones: a re-export that gave the fake body 115 bindposes for 67 bones drew garbage
+  and made sole grounding read nonsense, with matching vertex counts.
+
 `manki-sr199` is the experiment-time Manki rig from 14 October, built through Blender. It is
 used only by the aerial benchmark.
 
@@ -252,6 +270,12 @@ $PY tools/genra/unity_clip.py render --brief BRIEF.json --result RESULT.json \
   `--asset` names a new path (default `Assets/Art/Experiments/GenRA/<package>/<name>.anim`),
   and nothing is bound.
 - Judge written clips with `render`, `timeline`, the Ability Lab or Training, not Unity's Inspector preview.
+  For grounded locomotion, set `"grounding": "reference-sole"` in the brief. The writer
+  measures the lowest foot-weighted skinned vertex on the entry reference, then changes
+  only `RootT.y` to keep one sole at that height every tick. It verifies the result through
+  Animancer and reports each vertical correction and residual. This is for walks without
+  flight, not jumps or runs with airborne phases. Character-frame up is relative to the
+  entry hips, so a prose floor height must not be mistaken for the prefab's world floor.
   The clips name no preview model, so the Inspector shows them broken on its default mannequin
   (Wibou's R charge loop, 2026-10-18), and plain sampling applies the prefab's root motion.
 - Unity loops only a whole clip. A loop from tick 0 (an aim hold) is saved looping, and the
@@ -553,6 +577,13 @@ Squire's Cut and Barn Door on 97-99% of cells. Use it on key poses and sketched 
 motion, and check the bound move with the report. On Sunrise's first keys it showed what the owner saw: the plank held
 still overhead for most of the window covered 151 FightGuy positions (23 behind him) against the old hand-made rising
 slash's 266 (front to back).
+
+A kick or punch whose limb is the hitbox sweeps a joint line instead: `--joints RightFoot,RightToeBase` on the
+command line, or `"joints": ["RightFoot", "RightToeBase"]` in a brief's `arc` target. For an aerial the grid's heights
+are relative to its feet. FightGuy's Flip Kick (2026-10-29) was briefed against the old aerial High Kick's 51 positions
+and estimated at 124 on its keys. The cooked move, a 0.5 m sphere on the foot of the game's model, reached 86. Without
+a calibration, read the estimate as an upper bound. `report_spheres` reads each target volume as a sphere at its
+start point, so recheck it once a report's targets are capsule hurtboxes.
 
 ## Visual references
 

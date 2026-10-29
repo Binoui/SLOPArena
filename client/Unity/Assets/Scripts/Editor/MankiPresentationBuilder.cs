@@ -22,12 +22,8 @@ namespace SlopArena.EditorTools
     /// jetpack, a backblast that singes his fur, a rattling spray can. Workflow and readability
     /// rules are in skills/sloparena-character-vfx-pass; plumbing is in <see cref="PresentationBuilderKit"/>.
     /// </summary>
-    public static class MankiPresentationBuilder
+    public static partial class MankiPresentationBuilder
     {
-        private const string BombModelPath = "Assets/Art/Characters/manki/Models/bomb.fbx";
-        // The bomb model's import needs 80x, turned upright; the fuse tip sits here (measured).
-        private const float BombModelScale = 80f;
-        private static readonly Vector3 FuseTip = new(0.204f, 0.4f, 0.01f);
         // The bazooka's barrel runs along the muzzle cue's +Y; its back end is this far behind.
         private const float BarrelLength = 1.62f;
         // From the spray can's nozzle (the charge cue) back to the middle of the can, hand +Z.
@@ -66,7 +62,7 @@ namespace SlopArena.EditorTools
         private sealed class Materials
         {
             public Material Glow, SoftGlow, Fireball, Flash, Pow, Puff, Soot, Mist, Junk, Ring, Scorch, Spark, Flame,
-                FlameJet, FlameJetHot, Grin, Ribbon, RibbonHeavy, Rattle, Rocket;
+                FlameJet, FlameJetHot, Grin, Ribbon, RibbonHeavy, Rattle, Rocket, BombShell, BombTrim, Mushroom, CometFlame;
             public Mesh RocketMesh, LighterMesh;
         }
 
@@ -85,6 +81,8 @@ namespace SlopArena.EditorTools
                 ("presentation.manki.normal.heavy-hit", NormalHit(heavy: true)),
                 ("presentation.manki.blast.hit", BlastHit()),
                 ("presentation.manki.round-bomb.explosion", Boom("MankiRoundBombExplosion", big: false)),
+                ("presentation.manki.kamikaze.explosion", KamikazeBlast()),
+                ("presentation.manki.kamikaze.trail", KamikazeTrail()),
                 ("presentation.manki.jetpack-boost.ignition", Ignition()),
                 ("presentation.manki.jetpack-boost.exhaust", Exhaust()),
                 ("presentation.manki.jetpack-boost.trail", ExhaustTrail()),
@@ -126,7 +124,7 @@ namespace SlopArena.EditorTools
             var frame = Frame(root);
             Ribbon(frame, "Ribbon", heavy ? _m.RibbonHeavy : _m.Ribbon, width, emitFor);
             SmokePuffs(frame, puffs, heavy ? 0.24f : 0.16f, 1f);
-            return _kit.Save(root);
+            return Save(root);
         }
 
         /// <summary>A soot-rimmed orange "pow" with sparks; heavies add a flash behind and a nut flying off.</summary>
@@ -140,7 +138,7 @@ namespace SlopArena.EditorTools
             Sparks(root, heavy ? 7 : 4, scaled);
             Puffs(root, "Puffs", heavy ? 3 : 2, 0.2f, 0.3f, 1.5f, scaled);
             if (heavy) Junk(root, "Nut", Nut, 1, 3f, 4.5f, 0.17f, 0.8f, scaled, floor: null);
-            return _kit.Save(root);
+            return Save(root);
         }
 
         // ── Blasts ───────────────────────────────────────────────────────────────
@@ -155,7 +153,7 @@ namespace SlopArena.EditorTools
             Pop(root, "Pow", _m.Pow, 0.7f, 0.14f, scaled, spin: true);
             Puffs(root, "Puffs", 3, 0.26f, 0.36f, 2f, scaled);
             Sparks(root, 6, scaled);
-            return _kit.Save(root);
+            return Save(root);
         }
 
         /// <summary>
@@ -188,7 +186,7 @@ namespace SlopArena.EditorTools
             Sparks(root, big ? 14 : 10, local, 0.3f, 4f, 8f);
             Grin(root, big ? 2f : 1.65f, 0.22f);
             _kit.Sound(root, big ? "manki_boom_big" : "manki_boom", big ? 0.9f : 0.8f, 1f);
-            return _kit.Save(root);
+            return Save(root);
         }
 
         /// <summary>His winking, tongue-out grin in the smoke: rises out of the blast after the fireball.</summary>
@@ -255,7 +253,7 @@ namespace SlopArena.EditorTools
             Junk(root, "Bolt", Bolt, 1, 4.5f, 6f, 0.3f, 1.3f, local, floor.transform);
             Sparks(feet, 6, local, 0.3f, 3f, 6f);
             _kit.Sound(root, "manki_jet_ignite", 0.75f, 1f);
-            return _kit.Save(root);
+            return Save(root);
         }
 
         /// <summary>A flaring toon jet under each can of the jetpack while he rises; it ends with the move at the apex.</summary>
@@ -297,7 +295,7 @@ namespace SlopArena.EditorTools
                 SizeOverLife(flame, Curve((0f, 0.55f), (0.3f, 1f), (1f, 0.7f)));
             }
             _kit.Sound(root, "manki_jet_sputter", 0.55f, 1f);
-            return _kit.Save(root);
+            return Save(root);
         }
 
         /// <summary>
@@ -344,7 +342,7 @@ namespace SlopArena.EditorTools
                 Spin(embers, 300f);
                 Fade(embers, 0.5f);
             }
-            return _kit.Save(root);
+            return Save(root);
         }
 
         /// <summary>At the apex the jetpack coughs: a ring of puffs, a "pff" and a bolt dropping off.</summary>
@@ -382,7 +380,7 @@ namespace SlopArena.EditorTools
             Junk(frame, "Bolt", Bolt, 1, 0.3f, 0.8f, 0.2f, 0.85f, ParticleSystemScalingMode.Local, floor: null, gravity: 1.5f, upward: false);
             Sparks(frame, 3, ParticleSystemScalingMode.Local, 0.1f, 1.5f, 3f);
             _kit.Sound(root, "manki_jet_cough", 0.7f, 1f);
-            return _kit.Save(root);
+            return Save(root);
         }
 
         // ── Bazooka (R) ──────────────────────────────────────────────────────────
@@ -400,7 +398,7 @@ namespace SlopArena.EditorTools
             Spin(glint, 220f);
             InFront(glint);
             _kit.Sound(root, "manki_bazooka_ready", 0.6f, 1f);
-            return _kit.Save(root);
+            return Save(root);
         }
 
         /// <summary>
@@ -444,7 +442,7 @@ namespace SlopArena.EditorTools
             main.startSpeed = new ParticleSystem.MinMaxCurve(3.5f, 6f);
             puffs.GetComponent<ParticleSystemRenderer>().sortingFudge = 8f;
             _kit.Sound(root, "manki_bazooka_fire", 0.8f, 1f);
-            return _kit.Save(root);
+            return Save(root);
         }
 
         /// <summary>The backblast singes his fur: wisps of smoke and embers curl off his head.</summary>
@@ -478,7 +476,7 @@ namespace SlopArena.EditorTools
             main.startSpeed = new ParticleSystem.MinMaxCurve(0.5f, 1.2f);
             Sphere(embers, 0.08f);
             Fade(embers, 0.5f);
-            return _kit.Save(root);
+            return Save(root);
         }
 
         /// <summary>
@@ -532,84 +530,10 @@ namespace SlopArena.EditorTools
             Sphere(embers, 0.1f);
             Fade(embers, 0.5f);
             _kit.Sound(root, "manki_rocket_whistle", 0.45f, 1f);
-            return _kit.Save(root);
+            return Save(root);
         }
 
         // ── Round Bomb (A) ───────────────────────────────────────────────────────
-
-        /// <summary>
-        /// The lit bomb, held and thrown: the fuse fizzes with sparks, the bomb pulses red, and a
-        /// dotted trail of puffs follows the lob and fades after the blast.
-        /// </summary>
-        private static GameObject LitBomb()
-        {
-            var root = _kit.NewRoot("MankiLitBomb", attackBound: false);
-            var model = _kit.NestModel(root, BombModelPath, "Bomb");
-            if (model != null)
-            {
-                model.transform.localScale = Vector3.one * BombModelScale;
-                model.transform.localRotation = Quaternion.Euler(-90f, 0f, 0f);
-            }
-            var danger = Particles(root, "Danger", _m.SoftGlow, 1f, ParticleSystemSimulationSpace.Local);
-            var main = danger.main;
-            main.loop = true;
-            main.startLifetime = 0.25f;
-            main.startSize = 1.15f;
-            main.startColor = new Color(MaskRed.r, MaskRed.g, MaskRed.b, 0.6f);
-            var emission = danger.emission;
-            emission.rateOverTime = 4f;
-            SizeOverLife(danger, Curve((0f, 0.75f), (0.5f, 1f), (1f, 0.8f)));
-            var color = danger.colorOverLifetime;
-            color.enabled = true;
-            color.color = GradientOf(new[] { (0f, Color.white), (1f, Color.white) }, new[] { (0f, 0.2f), (0.4f, 1f), (1f, 0.1f) });
-            Behind(danger);
-
-            var fuse = new GameObject("Fuse");
-            fuse.transform.SetParent(root.transform, false);
-            fuse.transform.localPosition = FuseTip;
-            var glow = Particles(fuse, "Fuse glow", _m.Glow, 1f, ParticleSystemSimulationSpace.Local);
-            main = glow.main;
-            main.loop = true;
-            main.startLifetime = 0.16f;
-            main.startSize = new ParticleSystem.MinMaxCurve(0.35f, 0.5f);
-            main.startColor = new Color(1f, 0.75f, 0.3f, 0.8f);
-            emission = glow.emission;
-            emission.rateOverTime = 10f;
-            Behind(glow);
-            var sparks = Particles(fuse, "Fuse sparks", _m.Spark, 1f);
-            main = sparks.main;
-            main.loop = true;
-            main.startLifetime = new ParticleSystem.MinMaxCurve(0.12f, 0.22f);
-            main.startSize = new ParticleSystem.MinMaxCurve(0.08f, 0.17f);
-            main.startSpeed = new ParticleSystem.MinMaxCurve(0.8f, 2.2f);
-            main.gravityModifier = 0.6f;
-            main.startRotation = new ParticleSystem.MinMaxCurve(0f, Mathf.PI * 2f);
-            emission = sparks.emission;
-            emission.rateOverTime = 28f;
-            Sphere(sparks, 0.02f);
-            Spin(sparks, 400f);
-            Fade(sparks, 0.5f);
-            InFront(sparks);
-
-            var trail = new GameObject("Trail");
-            trail.transform.SetParent(root.transform, false);
-            trail.AddComponent<LingerAfterProjectile>().Seconds = 0.7f;
-            var puffs = Particles(trail, "Puffs", _m.Puff, 1f);
-            main = puffs.main;
-            main.loop = true;
-            main.startLifetime = new ParticleSystem.MinMaxCurve(0.45f, 0.65f);
-            main.startSize = new ParticleSystem.MinMaxCurve(0.2f, 0.28f);
-            main.startRotation = new ParticleSystem.MinMaxCurve(0f, Mathf.PI * 2f);
-            main.maxParticles = 48;
-            emission = puffs.emission;
-            emission.rateOverDistance = 2.2f;
-            Sphere(puffs, 0.15f);
-            RandomFrame(puffs, 2, 2);
-            SizeOverLife(puffs, Curve((0f, 0.6f), (0.3f, 1f), (1f, 1.15f)));
-            Fade(puffs, 0.4f);
-            _kit.Sound(root, "manki_fuse", 0.4f, 1f);
-            return _kit.Save(root);
-        }
 
         // ── Aerosol Inferno (F) ──────────────────────────────────────────────────
 
@@ -737,7 +661,7 @@ namespace SlopArena.EditorTools
             feedback.Slot = AbilitySlots.F;
             feedback.Marks = rattle;
             _kit.Sound(root, "manki_can_rattle", 0.35f, 0.9f);
-            return _kit.Save(root);
+            return Save(root);
         }
 
         // The held lighter's grip in the left hand's bone space (bone units, 1.2487 m each on Manki): inside the
@@ -764,7 +688,7 @@ namespace SlopArena.EditorTools
             root.transform.Find("LighterBase").localPosition = new Vector3(0f, LighterBottom, 0f);
             new GameObject("LighterHood").transform.SetParent(root.transform, false);
             root.transform.Find("LighterHood").localPosition = new Vector3(0f, LighterTop, 0f);
-            return _kit.Save(root);
+            return Save(root);
         }
 
         /// <summary>
@@ -869,7 +793,7 @@ namespace SlopArena.EditorTools
             Fade(flare, 0.5f);
             InFront(flare);
             _kit.Sound(root, "manki_lighter", 0.6f, 1f);
-            return _kit.Save(root);
+            return Save(root);
         }
 
         /// <summary>
@@ -965,7 +889,7 @@ namespace SlopArena.EditorTools
             variant.Regular = regular;
             variant.Heavy = torch;
             _kit.Sound(root, "manki_spray_flame", 0.8f, 1f);
-            return _kit.Save(root);
+            return Save(root);
         }
 
         /// <summary>A victim caught in the flame: a soot puff, licks of flame and rising embers.</summary>
@@ -995,7 +919,7 @@ namespace SlopArena.EditorTools
             main.gravityModifier = -0.3f;
             Sphere(embers, 0.25f);
             Fade(embers, 0.5f);
-            return _kit.Save(root);
+            return Save(root);
         }
 
         // ── Shared layers ────────────────────────────────────────────────────────
@@ -1290,6 +1214,10 @@ namespace SlopArena.EditorTools
             FlameJet = Mat("MankiFlameJet", 256, 128, (u, v) => FlameJetPixel(u, v, hot: false)),
             FlameJetHot = Mat("MankiFlameJetHot", 256, 128, (u, v) => FlameJetPixel(u, v, hot: true)),
             Grin = Mat("MankiGrin", 512, 512, (u, v) => GrinPixel(P(u, v))),
+            CometFlame = Mat("MankiKamikazeFlame", 256, 128, (u, v) => CometPixel(u, v)),
+            Mushroom = Mat("MankiKamikazeGrin", 512, 512, (u, v) => GrinPixel(P(u, v), mushroom: true)),
+            BombShell = BombMaterial("MankiBombShell", 1024, 512, BombPixel),
+            BombTrim = BombMaterial("MankiBombTrim", 32, 32, (u, v) => u < .5f ? new Color(.19f, .20f, .21f) : new Color(1f, .56f, .14f)),
             Ribbon = Mat("MankiRibbon", 128, 64, (u, v) => RibbonPixel(u, v, Soot, Blast, Fuse)),
             RibbonHeavy = Mat("MankiRibbonHeavy", 128, 64, (u, v) => RibbonPixel(u, v, Soot, Blast, Cream)),
             Rattle = Mat("MankiRattle", 256, 128, RattlePixel),
@@ -1616,19 +1544,28 @@ namespace SlopArena.EditorTools
         /// embers, a wide eye and a wink, a toothy grin and the tongue out. Drawn in his own face
         /// coordinates (y down, head radius 1) and fitted into the texture.
         /// </summary>
-        private static Color GrinPixel(Vector2 p)
+        private static Color GrinPixel(Vector2 p, bool mushroom = false)
         {
-            const float fit = 1f / 1.55f, lift = 0.23f, s = 256f * fit;
+            float fit = mushroom ? 1f / 2.6f : 1f / 1.55f, lift = mushroom ? 0f : 0.23f, s = 256f * fit;
             var q = new Vector2(p.x / fit, -p.y / fit - lift);
             float silhouette = Mathf.Min(Mathf.Min(Mathf.Min(Circle(q, Vector2.zero, 1f), Circle(q, new Vector2(-0.7f, 0.4f), 0.5f)),
                     Mathf.Min(Circle(q, new Vector2(0.7f, 0.4f), 0.5f), Circle(q, new Vector2(0f, 0.62f), 0.6f))),
                 Mathf.Min(Mathf.Min(Circle(q, new Vector2(-1.12f, -0.06f), 0.34f), Circle(q, new Vector2(1.12f, -0.06f), 0.34f)),
                     Mathf.Min(Mathf.Min(Circle(q, new Vector2(-0.52f, -0.74f), 0.34f), Circle(q, new Vector2(0f, -0.9f), 0.36f)),
                         Mathf.Min(Circle(q, new Vector2(0.52f, -0.74f), 0.34f), Mathf.Min(Circle(q, new Vector2(-0.95f, 0.5f), 0.3f), Circle(q, new Vector2(0.95f, 0.52f), 0.28f))))));
-            foreach (float side in new[] { -1f, 1f })
+            if (mushroom)
+            {
+                silhouette = Ellipse(q, new Vector2(0f, -.12f), 2.25f, 1.08f);
+                for (int i = -3; i <= 3; i++)
+                    silhouette = Mathf.Min(silhouette, Circle(q, new Vector2(i * .58f, .2f + .13f * Mathf.Abs(i)), .64f));
+            }
+            foreach (float side in mushroom ? System.Array.Empty<float>() : new[] { -1f, 1f })
                 silhouette = Mathf.Min(silhouette, Polyline(q, new[] { new Vector2(0.5f * side, -0.7f), new Vector2(0.78f * side, -1.12f),
                     new Vector2(0.92f * side, -1.42f), new Vector2(0.82f * side, -1.68f) }, 0.2f, 0.05f));
-            Color color = ToonShapes.Bands(silhouette * s, 0.05f * s, 0.14f * s, SmokeRim, Smoke, SmokeLight);
+            Color color = ToonShapes.Bands(silhouette * s, 0.05f * s, 0.14f * s,
+                mushroom ? new Color(.055f, .06f, .065f) : SmokeRim,
+                mushroom ? new Color(.12f, .13f, .14f) : Smoke,
+                mushroom ? new Color(.23f, .25f, .27f) : SmokeLight);
 
             float shade = Mathf.Max(silhouette + 0.05f, SilhouetteShift(q));
             const float period = 0.11f;

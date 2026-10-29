@@ -17,8 +17,8 @@ python3 - "$D/clips.json" > /tmp/salamander-promote.txt <<'EOF'
 import json, sys
 clips = json.load(open(sys.argv[1]))
 exp = 'Assets/Art/Experiments/GenRA/salamander/'
-src = {'idle': 'salamander-idle-r2-slow3', 'run': 'salamander-run-r1', 'g1': 'salamander-g1-backhand-slap',
-       'g3': 'salamander-g3-uppercut', 'g4': 'salamander-g4-tail-spin', 'a1': 'salamander-a1-double-tap',
+src = {'idle': 'salamander-idle-r2-slow3', 'run': 'salamander-run-r1', 'g1': 'salamander-g1-haymaker-r1',
+       'g3': 'salamander-g3-jumping-uppercut-r2', 'g4': 'salamander-g4-tail-spin', 'a1': 'salamander-a1-double-tap',
        'a3': 'salamander-a3-tail-whip', 'a4': 'salamander-a4-spur-stomp', 'ga': 'salamander-ga-finger-gun-shot-r2b',
        'ga-reload': 'salamander-ga-finger-gun-reload-a1', 'ge': 'salamander-ge-sombrero-copter',
        'gr': 'salamander-gr-tumbleweed', 'gf-loop': 'salamander-gf-big-iron-aim', 'gf': 'salamander-gf-big-iron-blast-r'}

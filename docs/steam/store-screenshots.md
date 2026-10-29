@@ -52,7 +52,8 @@ with `final --image <file>`.
 `shield`, `grab`, `move` and `face` as world yaw in degrees). Cameras are free (`pos`,
 `look`, `fov`, `roll`, `ortho`) or follow a fighter (`follow`, `lookOffset`, `move`, `ease`).
 `capture` sets the tick window, step, size (up to 3840×2160) and JPG quality; `hud` renders
-the real match HUD for one local fighter into a transparent layer. One tick runs per
+the real match HUD for one local fighter into a transparent layer (`"prompts": "gamepad"`
+shows the move deck's controller prompts, with a virtual pad if none is plugged in). One tick runs per
 rendered frame, so frame N is the state after N ticks. Each run also writes `states.jsonl`
 and `survey.json` (collision bounds, kill lines, spawns, camera poses and the bounds of
 stage objects matching `landmarks`). The shoot switches to the Ultra preset and restores
@@ -84,8 +85,9 @@ gives 60 fps, so a 5-second clip is a 300-tick window. Encode it with
 which writes H.264 yuv420p for phones and browsers (`--hud` composites the HUD layer;
 `--fps 30` for step-2 live captures). Each shoot also writes `audio.wav`: the game's own
 sound for the captured ticks, recorded frame-locked with `AudioRenderer` and without music.
-Vertical social clips, their tested specs and the idea queue live under `scenarios/social/`;
-see `skills/social-clips/SKILL.md` and `tools/social_clip.py`.
+Vertical social clips keep their tested specs under `scenarios/social/specs/`; the ideas, takes
+and the owner's verdicts live in the content factory on alfred. See `skills/social-clips/SKILL.md`,
+`tools/social_clip.py` and `tools/factory.py`.
 
 - One move fills about 2.5 seconds, so script a short exchange: lead-in, hit, payoff.
 - A press lands only on the first tick of its input step. A press during another move is

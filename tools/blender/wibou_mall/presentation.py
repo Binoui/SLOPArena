@@ -1,6 +1,6 @@
 """Neo Mall in Unity: materials, shadows, lights and atmosphere for sloparena.stage.art-apply.
-A course has no review cameras: sloparena.stage.views.* refuses courses, so review captures come
-from the course replay runner (docs/testing/course-replay.md).
+Gameplay captures use the course replay runner (docs/testing/course-replay.md).
+The named overview camera can be captured with sloparena.stage.views.cameras inside that replay.
 
 Night inside the closed mall: cool moonlight falls through the glass vault, the galleries' LED
 strips, downlights and the shop signs are StageNeon glow that the match camera's bloom picks up,
@@ -54,6 +54,9 @@ PRESENTATION = {
     "model": "NeoMall.fbx",
     "stamp": "NeoMall.layout.json",
     "root": "Neo Mall",
+    "cameras": [
+        {"name": "racing-overview", "position": [4.5, 22, -27], "target": [4.5, 4, -26.5], "fov": 65},
+    ],
     "textures": [
         {"file": GROUND, "srgb": True, "wrap": "clamp", "maxSize": 4096, "aniso": 8},
         {"file": ATLAS, "srgb": True, "wrap": "clamp", "maxSize": 4096, "aniso": 8},

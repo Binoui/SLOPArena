@@ -74,6 +74,7 @@ MonoBehaviour:
     FollowAnimatedHeading: 0
   HoldAnimationIds:
   - anim.bashie.a4
+  HoldWhileTucked: 0
   InSeconds: 0.1
   OutSeconds: 0.12
   Overshoot: 1.7
@@ -162,6 +163,13 @@ MonoBehaviour:
     m_PostInfinity: 2
     m_RotationOrder: 4
   ReachDirection: {x: 0, y: 0.8333333, z: 1}
+  Flip:
+    rid: -2
+  references:
+    version: 2
+    RefIds:
+    - rid: -2
+      type: {class: , ns: , asm: }
 --- !u!82 &9050524382634767613
 AudioSource:
   m_ObjectHideFlags: 0

@@ -23,6 +23,7 @@
     <ui:ScrollView name="diagnostics-panel" class="diagnostics-panel" />
     <ui:VisualElement name="moves-page" class="page moves-page">
       <ui:VisualElement name="move-selector" class="move-selector">
+        <ui:DropdownField name="form-selector" label="Form" />
         <ui:VisualElement name="ground-air-selector" class="ground-air-selector">
           <ui:Button name="ground-moves-button" text="Ground" class="ground-air-button" />
           <ui:Button name="air-moves-button" text="Air" class="ground-air-button" />

@@ -16,7 +16,8 @@ namespace SlopArena.Shared
         // 5 was Nilus, retired: old match requests still carry it, so it must never parse again.
         Bashie = 6,
         // Working name until the fighter #6 salamander gunslinger has his own (2026-10-26).
-        Salamander = 7
+        Salamander = 7,
+        Nyx = 8
     }
 
     [Serializable]
@@ -96,7 +97,7 @@ namespace SlopArena.Shared
 
         /// <summary>
         /// Bone-attached hurtboxes (ServerSkeleton-based). Replaces HurtboxCapsules when loaded.
-        /// Each entry defines a sphere at a bone position with an offset.
+        /// Each entry defines a sphere or a capsule between named pose points.
         /// </summary>
         private IReadOnlyList<HurtboxBoneDef>? _hurtboxBoneDefs;
         public IReadOnlyList<HurtboxBoneDef>? HurtboxBoneDefs
@@ -110,8 +111,7 @@ namespace SlopArena.Shared
         /// <summary>Unity Resources path for the model prefab. E.g. "Characters/Manki"</summary>
         public string ModelResourcePath { get; init; } = "";
         /// <summary>
-        /// Scale factor for baked bone positions. Mixamo GLBs are in cm (0.01),
-        /// Blender/Maya exports with meters are 1.0. Default: 1.0
+        /// Body-bone attack reach retains the authored shrink. Fitted hurtboxes use scale 1.
         /// </summary>
         public float HurtboxBoneScale { get; init; } = 1.0f;
         /// <summary>
@@ -173,6 +173,8 @@ namespace SlopArena.Shared
         public string AirDodgeAnim { get; init; } = "";
         /// <summary>The pose, and hurtbox, while in <see cref="ActionState.Shell"/> (ADR-0045).</summary>
         public string ShellAnim { get; init; } = "";
+        public string FlyingAnim { get; init; } = "";
+        public string MayhemLaughAnim { get; init; } = "";
         /// <summary>The shell stance (ADR-0045), or null for fighters without one.</summary>
         public CookedShellDefinition? Shell { get; init; }
         /// <summary>Landing uses JumpAnim clip with this start offset (seconds). Default: 0.49f</summary>
@@ -197,6 +199,30 @@ namespace SlopArena.Shared
             if (CookedSlots == null || !CanonicalSlotProjection.TryGet(wireSlot, airborne, out var address))
                 return null;
             return address.Ordinal < CookedSlots.Count ? CookedSlots[address.Ordinal] : null;
+        }
+
+        /// <summary>The form this definition plays (ADR-0051): 0 is the package's top-level kit, 1 its alternateForm.</summary>
+        public byte Form { get; private init; }
+        private CharacterDefinition? _realForm;
+        private CharacterDefinition? _alternateForm;
+        /// <summary>The form-1 definition of a two-form fighter; null for fighters without forms.</summary>
+        public CharacterDefinition? AlternateForm => (_realForm ?? this)._alternateForm;
+        /// <summary>The definition of <paramref name="form"/>, from either form's definition. A fighter without forms
+        /// always returns its one definition.</summary>
+        public CharacterDefinition ForForm(byte form)
+            => form == 1 && AlternateForm is { } alternate ? alternate : _realForm ?? this;
+
+        /// <summary>Links a fighter's two forms and returns form 0. They share identity and body, and differ in
+        /// movement, presentation roles and slots.</summary>
+        public static CharacterDefinition WithForms(CharacterDefinition real, CharacterDefinition alternate)
+        {
+            var linkedReal = real with { Form = 0 };
+            var linkedAlternate = alternate with { Form = 1 };
+            linkedReal._realForm = null;
+            linkedReal._alternateForm = linkedAlternate;
+            linkedAlternate._realForm = linkedReal;
+            linkedAlternate._alternateForm = null;
+            return linkedReal;
         }
 
         private static IReadOnlyList<T>? Copy<T>(IReadOnlyList<T>? values)

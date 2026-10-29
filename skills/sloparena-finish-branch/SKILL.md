@@ -44,8 +44,12 @@ investigation; it is not automatic permission to force push. Use force-with-leas
 only for an explicitly approved rewrite after verifying the remote expectation.
 
 For an authorized PR, write a concrete title and body: behavior change and reason,
-relevant issue closure if established, checks/results, and any Unity checklist
-from ignored `TESTING-UNITY.md`. Keep diffstats fenced if included. Prefer a
+relevant issue closure if established, checks/results, and links to the human checks on Slop Factory.
+File each human check with `python3 tools/factory.py check add`.
+Pass your T3 thread id from `t3_thread_configuration` when you are in T3.
+Retire your own superseded checks with `check drop`.
+Answer redo notes with `check ready`.
+Keep diffstats fenced if included. Prefer a
 structured host tool; with `gh`, write actual newlines to a temporary body file
 and pass `--body-file`. Check existing PRs to avoid duplicates. Do not install or
 start authentication without permission. Register the URL with the current app

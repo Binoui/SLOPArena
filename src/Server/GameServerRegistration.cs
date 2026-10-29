@@ -29,7 +29,7 @@ namespace SlopArena.Server
         private RegistrationSession? _session;
         private int _running;
         private sealed record RegistrationSession(Guid Id, string Token, ulong? SteamId, Guid InstanceId, string CatalogHash, long AcknowledgedAt);
-        private sealed record PendingReport(Guid MatchId, long? WinnerSteamId, string? CancellationReason);
+        private sealed record PendingReport(Guid MatchId, MatchResultReport? Result, string? CancellationReason);
         private enum RegistrationOutcome { Success, Retry, Fatal }
 
         public Guid InstanceId { get; } = Guid.NewGuid();
@@ -248,10 +248,10 @@ namespace SlopArena.Server
             }
         }
 
-        public Task ReportMatchResultAsync(Guid matchId, long winnerSteamId, CancellationToken ct = default)
+        public Task ReportMatchResultAsync(MatchResultReport result, CancellationToken ct = default)
         {
-            if (matchId != Guid.Empty)
-                _pendingReports.TryAdd(matchId, new PendingReport(matchId, winnerSteamId, null));
+            if (result.MatchId != Guid.Empty)
+                _pendingReports.TryAdd(result.MatchId, new PendingReport(result.MatchId, result, null));
             return DrainPendingReportsAsync(ct);
         }
 
@@ -273,12 +273,10 @@ namespace SlopArena.Server
                 {
                     var session = Volatile.Read(ref _session);
                     if (session is null) return;
-                    string path = report.CancellationReason is null ? "match/result" : "match/cancel";
-                    object payload;
-                    if (report.CancellationReason is null)
-                        payload = new { matchId = report.MatchId, winnerSteamId = report.WinnerSteamId ?? 0 };
-                    else
-                        payload = new { matchId = report.MatchId, reason = report.CancellationReason };
+                    string path = report.Result is null ? "match/cancel" : "match/result";
+                    object payload = report.Result is { } result
+                        ? new { matchId = report.MatchId, winnerSteamId = result.WinnerSteamId, players = result.Players }
+                        : new { matchId = report.MatchId, reason = report.CancellationReason };
                     using var request = new HttpRequestMessage(HttpMethod.Post, path)
                     {
                         Content = new StringContent(JsonSerializer.Serialize(payload, _jsonOptions),

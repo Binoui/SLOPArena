@@ -18,10 +18,10 @@ namespace SlopArena.Client.World
     /// <summary>
     /// Tucks its owner into her shell through the model's <see cref="ShellTuckRig"/>: while the attack shows one of
     /// <see cref="HoldAnimationIds"/>, or, with <see cref="HoldWhileTucked"/>, for as long as the simulation says she
-    /// is in the shell (<see cref="SlopArena.Shared.Shell.IsTucked"/>, ADR-0045), across her tuck moves and the skate
-    /// between them. The tuck eases in over <see cref="InSeconds"/> and out over <see cref="OutSeconds"/>,
-    /// overshooting a little each way. One tuck per cue: once out, it stays out. Emit it on the attack at the tick
-    /// she tucks. Cosmetic only.
+    /// is in the shell (<see cref="SlopArena.Shared.Shell.IsTucked"/>, ADR-0050), across her tuck moves and her ride.
+    /// The tuck eases in over <see cref="InSeconds"/> and out over <see cref="OutSeconds"/>, overshooting a little
+    /// each way. One tuck per cue: once out, it stays out. Emit it on the attack at the tick she tucks; a held cue
+    /// emitted by a ride move waits out that move for the ride it starts. Cosmetic only.
     /// </summary>
     [DefaultExecutionOrder(700)] // asks before ShellTuckRig (800) applies
     public sealed class ShellTuck : MonoBehaviour, IPresentationOwnerReceiver
@@ -53,7 +53,7 @@ namespace SlopArena.Client.World
         private ShellTuckRig? _rig;
         private byte _sequence;
         private float _in, _out, _outFrom;
-        private bool _leaving, _done;
+        private bool _leaving, _done, _held;
 
         public void BindOwner(PlayerRenderer owner)
         {
@@ -93,10 +93,15 @@ namespace SlopArena.Client.World
             }
             if (!_leaving && Holding())
             {
+                _held = true;
                 _in += Time.deltaTime;
                 _rig.Request(Pose, Ease(_in / InSeconds));
                 return;
             }
+            // Wave Pool's whistle is untucked; its cue folds her in when the ride starts.
+            if (!_held && HoldWhileTucked && PresentationLifetime.IsCurrentAttack(_owner.CurrentActionState,
+                    _owner.CurrentAttackSequence, _sequence))
+                return;
             if (!_leaving)
             {
                 _leaving = true;

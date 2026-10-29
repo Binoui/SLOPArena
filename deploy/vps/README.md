@@ -25,8 +25,9 @@ authorize passwordless status/deploy/rollback or arbitrary Docker commands.
 4. Publish compatible GameServer, Master and EF migration images under one release ID through their explicit workflows. Pin image digests and source revisions. An upload alone never deploys the VPS.
 5. Keep database, JWT, registration/control, registry and storage credentials in private operator files outside Git. Use only credentials created for this environment. Store runtime files with restrictive permissions and grant only required read access to containers. Never put keys or runtime configuration in a release record, image, log, or chat.
 
-The [hosted owner console](../../docs/systems/owner-console.md) uses the dedicated
-`/console/` route, password login and a backend-held Master key. The local console
+The owner console runs on alfred behind the [Slop Factory](../../docs/systems/slop-factory.md#run-it-on-alfred)
+and reaches Master through a forward-only SSH key. The VPS `/console/` route is
+retired; see [owner console](../../docs/systems/owner-console.md). The local console
 remains available for development and authorized diagnostics through a loopback-bound
 SSH forward to Master's private address. Keep Master's `/owner` routes excluded from
 public Caddy ingress, including case and encoded-path variants; the dedicated
@@ -393,11 +394,9 @@ A database restore does not undo schema migrations or reissue credentials. Resto
 
 ### Match diagnostics
 
-The hosted owner console at
-`https://master-test.sloparena.barakaslurp.fr/console/` uses password login and a
-backend-managed Master key. See [Hosted owner console](../../docs/systems/owner-console.md)
-for its independent deployment and access boundary. The local path below remains
-available for development and authorized agent automation.
+The owner console is at `http://100.68.254.9:8765/console/` on the tailnet, served
+from alfred with a backend-managed Master key. See [owner console](../../docs/systems/owner-console.md).
+The local path below remains available for development and authorized agent automation.
 
 The local MasterConsole at `http://127.0.0.1:4173` reaches Master through the
 existing private SSH forward on `127.0.0.1:18080`. Its code/run instructions live

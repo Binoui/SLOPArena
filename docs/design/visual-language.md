@@ -123,15 +123,26 @@ fallback styles until an asset-distribution plan is agreed.
   row at roughly 16:9. Fighter portraits use crops of the supplied splash
   illustrations, not prefab renders.
 - **Recovery:** focus is visible; controller Back closes address entry before leaving the
-  browser. Escape, gamepad Start, or the top-right gear opens the frontend menu on any
-  pre-match page, including over address entry and chat. Resume or a second Escape/Start
-  returns to the same page; Settings returns to the menu when closed; Quit Game exits
-  immediately. Mandatory identity entry and active Settings confirmations/remaps keep
-  their own cancel behavior. Directory, host, and room failures present a retry or a
+  browser. Escape, gamepad View/Select, or the MENU trigger opens the frontend menu.
+  View/Select again or B closes it. Start activates the page's forward action, or the
+  focused mode card on Home and Local Play Mode Select. LB/RB cycle Training, Local Play,
+  and Online with wrapping; in Settings they cycle the five categories. Up at the page's
+  upper focus edge enters the top bar; Down returns to remembered page focus. Keyboard E
+  toggles top-bar focus, Y switches Social, and X has no global menu action. Modal entry,
+  text editing, Social focus, native overlays, and rebinding retain input ownership.
+  Settings returns to the menu when opened there; Quit Game exits immediately.
+  Mandatory identity entry and active Settings confirmations/remaps keep their own
+  cancel behavior. Directory, host, and room failures present a retry or a
   route back rather than an indefinite connecting label. Empty player slots are not
   presented as connected players.
 
-Results and in-match HUD presentation are outside this pre-match refresh.
+Controller menu prompts use Paper discs with a 3 px Ink border, rotated about -8 degrees
+and attached to button corners without changing label widths. Xbox face glyphs retain
+colour; monochrome glyphs use Ink. LB/RB discs flank the section and Settings tab rows.
+Prompts appear only after pad input and have text fallbacks when the local sheet is absent.
+The same shared prompt module supplies B on the in-match pause card's Resume action.
+
+Results and other in-match HUD presentation are outside this pre-match refresh.
 
 ## One-sentence definition
 
@@ -411,7 +422,7 @@ Player cards use portraits, identity badges/edges, large readable percentages, a
 
 The 330×120 fight cards give portraits and percentages more weight while keeping their alignment stable. Stock loss slams a small fight-flyer card (heavy Ink frame, hard shadow, yellow tape, Orange print registration) beside the affected card: Paper KO!, or the reversed Ink OUT! for its last life, replacing the duplicate particle-text/toast broadcast. Its accent comes from the card's roster identity. Reduced flashing also suppresses damage kicks and tile/stock-stamp scaling; the status text remains. Training defaults to a compact behavior/shortcut strip during play. Pause expands the full controls in place, with a session toggle to keep them visible after resuming.
 
-Kenney Input Prompts 1.5 (CC0) supplies optional controller face-button and non-shoulder artwork. For a local build, copy `Xbox Series/xbox-series_sheet_default.{png,xml}` to `client/Unity/Assets/Resources/InputPrompts/xbox.{png,xml}`. The `InputPrompts` directory and its Unity metadata are gitignored; a clean checkout uses controller text until those assets are provisioned. Keyboard tabs and LB/RB shoulder cues are live text and need no sprite sheet. The atlas is loaded only when controller artwork is requested. Its supplied PNG rows are inverted relative to the XML rows; `InputPromptAtlas` accounts for this in its UVs. Import the sheet without NPOT scaling. Gameplay authority, camera/stage art, chat, remain presentation concerns; the only move-source change is FightGuy ground `3`'s display name/description, not its timeline or mechanics.
+Move-deck prompts are live text chips in the Paper and Ink style, so every build shows the same art: keys and shoulder or trigger buttons are square tabs (3 px Ink border, Archivo Black), face buttons are discs in their pad colours (A green, B red, X blue, Y yellow) with an Ink letter, and a right-stick flick is a Paper pill reading R and an Ink arrow toward the flick. No sprite sheet is loaded. Gameplay authority, camera/stage art, chat, remain presentation concerns; the only move-source change is FightGuy ground `3`'s display name/description, not its timeline or mechanics.
 
 **The Solo Beat Rule.** Let the existing Solo timer own each start beat; fit one crisp stamp clear of player cards, keep its words visible with reduced flashing, and clear the final declaration while play proceeds. Every mode (Solo, couch, online PvP, Slopball, Character Course) prints the same fight flyer: Paper READY and 3/2/1 cards in a heavy Ink frame with a hard Ink shadow, yellow tape and Orange print registration, slammed in with a slight overshoot, then the Action Yellow SLOP IT OUT poster with the bomb as its O (picked 2026-10-26). Slopball and the Character Course keep their simulation-timed 3-2-1 without a READY beat; a Course retry prints READY then SLOP IT OUT. Pause freezes its display and reduced flashing retains static lettering without the slam. Every match ends on the matching finish poster: a taped portrait slip of the winner beside a yellow declaration (BEST SLOPPER, DOUBLE K.O.!, COURSE CLEARED. or RUN OVER.) over an Ink outcome bar. Online matches read it from the result snapshot, and team results (Slopball) drop the portrait. The Results page headline repeats the poster (BEST SLOPPER, DOUBLE K.O.!, TEAL WINS!, COURSE CLEARED., RUN OVER.). Course and Slopball toasts are small taped Paper cards with a jade (clear) or Orange (warning) misprint title. The particle-text broadcast is retired. The 300-tick admission delay remains. Native evidence and the ship review live in `.impeccable/review/solo-countdown-20261014/`; physical audio output and packaged-player behavior remain unverified.
 

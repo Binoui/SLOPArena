@@ -730,6 +730,45 @@
     border-color: #FFCC22;
 }
 
+/* Hold-to-charge specials: empty diamonds on the bottom edge, one per charge step, lit while charging. */
+.charge-pips {
+    position: absolute;
+    left: -3px;
+    right: -3px;
+    bottom: -11px;
+    flex-direction: row;
+    justify-content: center;
+}
+
+.charge-pip {
+    width: 13px;
+    height: 13px;
+    margin: 0 3px;
+    rotate: 45deg;
+    background-color: #161513;
+    border-width: 3px;
+    border-color: #FFCC22;
+}
+
+.charge-pips.many .charge-pip {
+    width: 10px;
+    height: 10px;
+    margin: 0 2px;
+    border-width: 2px;
+}
+
+.charge-pip.lit {
+    background-color: #FFCC22;
+}
+
+.special-slot.on-cooldown .charge-pips {
+    opacity: 0.45;
+}
+
+.special-slot.charge-full .slot-face {
+    border-color: #FFCC22;
+}
+
 .slot.quiet-feedback .slot-face {
     transition-duration: 0s;
 }
@@ -821,30 +860,75 @@
     rotate: -4deg;
 }
 
-.slot-prompt-image {
-    display: none;
-    width: 28px;
-    height: 28px;
-}
-
+/* Every prompt is a chip in the HUD's ink-on-paper style: keys and shoulders are tabs,
+   face buttons are discs in their pad colours, a stick flick is an R disc with a wedge. */
 .slot-key-label {
-    min-width: 22px;
-    height: 22px;
+    min-width: 28px;
+    height: 28px;
     margin: 0;
-    padding: 0 4px;
-    font-size: 13px;
-    -unity-font-style: bold;
+    padding: 0 5px;
+    font-size: 15px;
+    -unity-font-definition: url("../Fonts/ArchivoBlack.asset");
     -unity-text-align: middle-center;
     white-space: nowrap;
-    color: #1B1A18;
+    color: #161513;
     background-color: #F0EEE8;
-    border-width: 2px;
+    border-width: 3px;
     border-color: #161513;
 }
 
-.normal-slot .slot-prompt-image {
-    width: 24px;
+.prompt-a .slot-key-label,
+.prompt-b .slot-key-label,
+.prompt-x .slot-key-label,
+.prompt-y .slot-key-label {
+    width: 30px;
+    height: 30px;
+    padding: 0;
+    border-radius: 15px;
+}
+
+.prompt-a .slot-key-label { background-color: #7BC043; }
+.prompt-b .slot-key-label { background-color: #F0503C; }
+.prompt-x .slot-key-label { background-color: #39A9FF; }
+.prompt-y .slot-key-label { background-color: #FFCC22; }
+
+/* A right-stick flick is one pill: R, then an Ink arrow on the flick side (drawn by HUDManager). */
+.stick-up,
+.stick-down,
+.stick-left,
+.stick-right {
+    flex-direction: row-reverse;
+    height: 30px;
+    padding: 0 7px 0 5px;
+    background-color: #F0EEE8;
+    border-width: 3px;
+    border-color: #161513;
+    border-radius: 15px;
+}
+
+.stick-up .slot-key-label,
+.stick-down .slot-key-label,
+.stick-left .slot-key-label,
+.stick-right .slot-key-label {
+    min-width: 0;
     height: 24px;
+    padding: 0;
+    background-color: rgba(0, 0, 0, 0);
+    border-width: 0;
+}
+
+.slot-prompt-arrow {
+    display: none;
+    width: 12px;
+    height: 12px;
+    margin-left: 3px;
+}
+
+.stick-up .slot-prompt-arrow,
+.stick-down .slot-prompt-arrow,
+.stick-left .slot-prompt-arrow,
+.stick-right .slot-prompt-arrow {
+    display: flex;
 }
 
 /* Beeline: a round badge whose ring refills over the shared cooldown (drawn by HUDManager). */
@@ -881,13 +965,8 @@
     bottom: 0;
 }
 
-.beeline-slot .slot-content,
-.beeline-slot .slot-cooldown {
+.beeline-slot .slot-content {
     display: none;
-}
-
-.beeline-slot .slot-timer {
-    font-size: 30px;
 }
 
 .beeline-slot.air-used .slot-timer {
@@ -913,15 +992,15 @@
     -unity-text-align: middle-center;
 }
 
-.beeline-slot.on-cooldown .beeline-tag,
 .beeline-slot.air-used .beeline-tag {
     background-color: #3A3833;
     color: #CFC9BB;
 }
 
 .beeline-slot .slot-prompt {
-    left: 30px;
-    top: 78px;
+    left: 0;
+    right: 0;
+    top: 76px;
     rotate: 0deg;
 }
 

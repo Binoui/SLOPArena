@@ -64,6 +64,13 @@ correction. Hurtboxes and bone hitboxes follow the drawn hips through the cooked
 `_hips_offset`, not `hipHeight`. Measure with the
 [character size tools](../../tools/character_sizes/README.md).
 
+After a model swap or visual-scale change, run the
+[hurtbox fitter](../../tools/character_sizes/README.md#fit-and-check-hurtboxes) for that package.
+It changes only `hurtboxBoneDefs` and cooks the result through the gateway.
+Inspect the resulting capsules in idle, an attack mid-swing, and hit-hard from front and side.
+Exclude cosmetic cloth and hats. Include tails and body shells.
+Re-run coverage and the cooker and Rendered Pose Alignment self-tests before accepting the model.
+
 Import the rig as Humanoid when the character is an ordinary humanoid fighter. Inspect the
 Avatar before binding clips. Reject invalid orientation, scale, root motion, required-bone,
 or non-finite-pose diagnostics. Do not remap a bad rig at runtime or own a standalone
@@ -124,6 +131,12 @@ rejects it. Physical controls are input adapters,
 not alternate move identity. Author fixed timelines in 60 Hz ticks with engine-owned
 operations. Define damage, hitboxes, recovery, movement, and capability values only from the
 approved kit specification.
+
+When you add or retime a move, add or update its entry in
+`scenarios/moves/<package>.json`. The
+[move review recipe guide](../../scenarios/moves/README.md) covers semantic and pad
+inputs, forms, dummy arrangement, and phase anchors. Each form board shows coverage
+of the fourteen canonical slots, including aliases and slots without a recipe.
 
 `allowSlideCarry` defaults false. Only grounded normals may opt in, without aiming,
 recovery designation, SetVelocity, ForwardLunge, SetAimState or
@@ -281,6 +294,15 @@ preview identity, and diagnostics. Exercise affected behavior in Editor Training
 Ordinary Lab refresh compiles the current workspace into a live draft; Editor Training
 and Solo Play compile source into a transient development catalog. Even a clean
 **Cooked** status and matching disk hashes do not prove that saved gameplay ran.
+
+Review animation and VFX from every direction with
+`python3 tools/move_review.py run <package>`. Each recipe move runs once in Training;
+all view cameras render each frame at the same Shared tick. Inspect the sheets,
+clips, mosaics, form montages, `summary.json`, and `media/board/form-<n>.html`.
+For selection, media rebuilds, native commands, and restoration, see
+[Move review](../contributing/unity-cli.md#move-review).
+These captures use Editor development content and do not replace the saved-package
+acceptance check below.
 
 ### Verify persisted gameplay
 

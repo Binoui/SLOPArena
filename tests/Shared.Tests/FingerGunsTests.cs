@@ -288,6 +288,17 @@ public sealed class FingerGunsTests
             JsonNode.Parse("""{"kind":"completeTimeline","tick":1,"unit":"ticks"}"""))), "capability.ambiguous");
     }
 
+    [Theory]
+    [InlineData("none")]
+    [InlineData("cameraForward3D")]
+    [InlineData("groundVector")]
+    public void CompilerAdmitsAutoCameraAndStickAim(string aimMode)
+        => Assert.NotNull(Compile(slot: s => s["aimMode"] = aimMode).CookedPackage);
+
+    [Fact]
+    public void CompilerRejectsGroundCursorAim()
+        => AssertError(Compile(slot: s => s["aimMode"] = "groundCursor"), "capability.ambiguous");
+
     [Fact]
     public void PublicCapabilityCooksAtApi111AndRoundTripsSource()
     {
@@ -339,7 +350,7 @@ public sealed class FingerGunsTests
         foreach (var address in CanonicalSlotProjection.All.Where(a => a.Id.EndsWith(".A", StringComparison.Ordinal)))
             slots[address.Ordinal] = new CookedSlotDefinition(address.Ordinal, address.Id, address.IsAirborne,
                 "Finger Guns", "", "icon.a", AuthoringAbilityBehavior.MeleeCombo,
-                manualAim ? AuthoringAimMode.CameraForward3D : AuthoringAimMode.None, 0, false, false,
+                manualAim ? AuthoringAimMode.GroundVector : AuthoringAimMode.None, 0, false, false,
                 new CookedTimeline(new[] { new CookedStage(2, 0, 0, 0, 0,
                     new[] { "anim.fire", "anim.reload" }, new CookedTimelineOperation[]
                     {

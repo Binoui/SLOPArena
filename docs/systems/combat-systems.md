@@ -34,15 +34,16 @@ Camera aim input cannot put these slots into an aiming stance.
 - Automatic ledge grabs and LedgeHang are disabled for the friends demo. Fighters fall past stage edges; return with jumps, movement, and kit recovery moves.
 - Each ability entry can be limited to one use per flight. Landing resets air-use counters.
 - RecoveryMove is the per-character return-to-stage move. It is the only ordinary move that resets the FloatWindow mid-air.
+- A RecoveryMove goes where the stick points, not where the fighter faces, like a Melee up-B reversal in 360°. The stick held on the press tick or either of the next two ticks turns the fighter and the move (`RecoveryTurn`); a later turn wins. A neutral stick keeps the current facing; the camera does not aim it. Moves that read the stick later still do so (Manki's ignition, Salamander's launch). Cursor-aimed recoveries such as Sir Bonk's Targeted Jump Slam keep their cursor.
 
 All gameplay timing uses 60 Hz ticks. Values are authored in package data and resolved by Shared simulation.
 
 ### Ground Run
 
 Every simulation uses the same immutable `GroundSpeedTuning` constants, including online prediction and replay playback.
-The first moving tick sets speed to 40% of RunSpeed. The next 20 linear increments each add 3% of RunSpeed.
-Full speed arrives on completed tick 21, 350 ms at 60 Hz. Tilt magnitude is ignored.
-Turns and Turnaround redirect immediately at retained speed and continue acceleration, with the same 40% floor.
+The first moving tick sets speed to 60% of RunSpeed. The next 12 linear increments each add RunSpeed/30.
+Full speed arrives on completed tick 13, about 217 ms at 60 Hz. Tilt magnitude is ignored.
+Turns and Turnaround redirect immediately at retained speed and continue acceleration, with the same 60% floor.
 Facing follows input. Release removes RunSpeed/20 along the velocity vector per tick, so full-speed stopping takes 20 ticks.
 Dash overspeed retains its shipped coast, release braking, and pivot behavior until ordinary Run resumes.
 Rush, its dash-dance window, and its instant tap-release stop are retired.
@@ -146,22 +147,33 @@ The report's historical-fall and 3× slide-friction controls do not change these
 
 ### Shell
 
-Bashie's shell ([ADR-0045](../adr/0045-bashie-shell-state.md)) is a fighter state beside Slide,
-`ActionState.Shell`, entered when a tuck move (Shell Shift, Shell Dive, Hydro Jet) completes or
-touches down. "In the shell" is `Shell.IsTucked`: that state, or attacking in a tuck move. On the
-ground she skates straight along her facing on her velocity, with no steering or friction; in the
-air she coasts ballistically. `StateTicks` is the skate clock: it starts at a grounded hand-off or
-her first touchdown, keeps running through walk-off coasts, and its expiry pops her up into Idle.
-A landing adds `landingSpeedRatio` × the downward speed, so a higher dive skates faster; speeds stay
-within the shell's minimum and maximum. She may act from the shell: a grounded normal pops her out
-at skate speed (carry origin `Shell`: no RunSpeed cap, braking at `popOutDeceleration`, kept through
-a vertical-only hop), a grounded jump takes off uncapped (`JumpTakeoff.Shell`), an air jump hops her
-out, and shield, grab, air dodge and homing dash leave through their own admission. While she is in
-the state an engine-owned bowling hitbox (`Hitbox.OwnerWindow`) follows her and hits each fighter
-once per stay, freezing both, and she skates under the fighters she bowls (pushboxes skipped). A
-head-on wall (a side contact that would keep under 60% of her forward speed, including runtime
-walls and the Slopball net) or a shield pops her up bouncing back at `blockedRecoilSpeed` with no
-recovery lock. Any hit pops her out (no armour) and drops her later bowling contacts in that batch.
+Bashie's shell ([ADR-0045](../adr/0045-bashie-shell-state.md), reshaped by
+[ADR-0050](../adr/0050-bashie-cannonball-and-wave-pool.md)) owns a splash and a ride. "In the shell"
+is `Shell.IsTucked`: riding (`ActionState.Shell`) or attacking in a tuck move.
+
+- **Splash.** A tuck move (Cannonball, Cannonball Dive, Hydro Jet) that touches down ends there: its
+  cooldown starts, she pops up in place in landing lag for `popUpTicks`, and a still root-relative hitbox
+  at her feet, credited to the move, resolves in that tick's hit pass. It is an ordinary strike (shields
+  block it, each fighter once). A tuck move that ends in the air untucks into an ordinary fall.
+- **Ride.** A slot with `shellPolicy: ride` (Wave Pool) starts it when it completes: `ActionState.Shell`
+  heading for her current target's ground point (else her facing) at the ride speed, with no friction.
+  Grounded, `StateTicks` is the ride clock and the heading turns toward her current target by at most
+  `turnDegreesPerSecond` (not toward a fighter she already carries); in the air she coasts and the clock
+  starts on landing. A grounded step that would leave her support puts her back on the lip and pops her
+  up. A head-on wall (a side contact that would keep under 60% of her forward speed, including runtime
+  walls and the Slopball net) pops her up bouncing back at `blockedRecoilSpeed`. She may act from the
+  ride: a grounded normal starts at ride speed (carry origin `Shell`, braking at `popOutDeceleration`),
+  a grounded jump takes off uncapped (`JumpTakeoff.Shell`), and shield, grab, air dodge and homing dash
+  leave through their own admission. Any hit pops her out (no armour).
+- **Wave.** While she rides, an engine-owned unblockable window (`Hitbox.OwnerWindow`) follows her and
+  never freezes her. A new contact on a fighter is a catch, not a hit: it is refused (and forgotten, so
+  it can catch them later) for a fighter in a pair, one already Swept or one damaged earlier in the batch;
+  otherwise their move and reaction end, they take the wave's damage once (credit, friendly fire and
+  Mayhem shoves apply) and become `ActionState.Swept`. Each tick she carries every Swept fighter in her
+  window's hit set at her horizontal velocity and renews a two-tick lease, skipping fighters in hitstop.
+  When the ride ends by any path the window goes and the leases expire into Idle with that speed. Any
+  other hit replaces Swept with its own reaction. She rides under the fighters she carries (pushboxes
+  skipped). Objects (the Slopball ball, course targets) take the window's push or hit once.
 
 ### Settled CrouchBrace
 
@@ -187,64 +199,124 @@ ownership controls, ten-cycle resource routes and 1,152 finite response scenario
 `aerialAccepted` and `slideStartTick` to distinguish a full aerial/slide route from
 interruption or a crouched landing. These are scenario measurements, not balance proof.
 
-### Ground grab, held movement, and forward throw
+### Stationary grab and directional throws
 
-Grab uses C on keyboard (rebindable) or LB on controller; with the right stick set to
-Camera, LB is the special modifier and grab is the LB+RT chord (ADR-0042 amendment). It takes priority
-over grounded movement and snapshots facing. Incoming horizontal momentum carries
-briefly, capped at run speed and braked to a stop within 6 ticks (100 ms), before
-the active window; held movement cannot steer or add speed. Stationary grabs stay in place.
-`GrabAttempt` commits to 7 startup, 3 front-only active, and 36 whiff-recovery
-ticks; the 46-tick total matches the 23-frame `grab.fbx` at 30 fps. Block stun
-prevents admission. Cooked per-character `captureGeometry` defines the forward
-volume and restraint anchors. Hurtbox overlap and stage collision determine
-capture. Reciprocal active grabs clash with 10 recovery ticks; damaging contact
-resolves before capture and can interrupt either side of a linked pair.
+Grab uses C on keyboard or LB on controller. With the right stick set to Camera,
+LB is the special modifier and LB+RT grabs. Bindings are rebindable.
+`GrabAttempt` has 7 startup ticks, 3 active ticks and 36 whiff-recovery ticks.
+Incoming momentum is capped at run speed and braked to a stop within 6 ticks.
+Block stun prevents admission. Cooked `captureGeometry` defines the forward box
+and restraint anchors. Reciprocal grabs clash with 10 recovery ticks.
+Damage resolves before capture and before throw release, so a damaging hit can
+interrupt either participant without producing a throw.
 
-Successful capture enters `Grabbing` for the grabber and `Grabbed` for the victim.
-The grabber walks forward/backward along its facing at 25% of run speed. Sideways
-movement input (Q/D or the stick's horizontal axis) rotates the pair at 60°/second
-instead of strafing. Camera azimuth recovers the original control axes from the
-world-space movement input; camera rotation alone does not turn the pair. The
-victim faces the same direction, away from the grabber, follows its restraint
-anchor, and cannot move, jump, attack, or shield independently. Stage collision
-limits both bodies; movement or rotation that would pull the victim through a wall is stopped.
-Any attack-slot press from the grabber starts the throw, including an empty or
-cooling-down slot, without activating or buffering that ability. Otherwise the
-throw starts automatically after 180 simulation ticks (three seconds).
+At the grab press, startup aim captures one selected or locked target when valid,
+otherwise the nearest eligible enemy. Acquisition uses a 4 m sphere and the full
+circle. Only fighters can supply grab correction. The existing normal aim rule
+turns at 720 degrees per second with a 90-degree cap. Seven startup steps can
+reach 84 degrees. `CapturedYaw` follows the correction, so the box turns too.
+There is no correction during active contact or recovery, late acquisition or
+retargeting. Hitstop pauses correction, including the last frozen tick.
 
-The shared animation config binds the paired clips independently of character
-package catalogs. `grab_idle_a`/`grab_idle_b` play while stationary;
-`Grab_Walk_F_A`/`Grab_Walk_F_B` and `Grab_Walk_B_A`/`Grab_Walk_B_B` play during
-forward and backward held movement. Velocity is evaluated against captured facing,
-so the victim's movement input cannot select its animation. Shared state ticks
-sample each clip, including recorded previews and rollback rewinds; animation
-callbacks never decide movement, capture, damage, or release.
+A grab pressed during a Beeline waits for arrival. The latest attack or grab
+press replaces the held press. An attack wins a same-tick tie. A press on the
+movement tick that reaches arrival still waits until the following tick.
+Grounded arrival attempts the grab with ordinary startup and aim. Airborne
+arrival drops it. Accepted hits, misses and resets clear either kind of press.
+A fresh arrival attack clears the old press even when its slot is unavailable.
 
-A throw starts `throw.fbx` for the grabber and `Grab_Throw_B.fbx` for the victim
-on the same clock. Both clips are authored at 30 fps. At frame 11 (22 simulation
-ticks), the server releases the pair, deals 6 damage, and enters `Thrown` for
-the victim. The grabber finishes its 29-frame clip in `Throwing`, retaining 36
-recovery ticks after release. Horizontal launch retains ordinary percent, weight,
-and match-tuning scaling with base 5 and growth 26; the vertical arc is timed for
-landing at victim frame 34 (68 ticks after throw start) on level ground. The
-victim completes eight more frames of grounded recovery, through frame 42.
-Stage collision remains authoritative: a higher or lower landing surface starts
-the frame-34 landing segment at actual ground contact. A missing or invalid
-partner, damage, or death ends the interaction without an extra throw.
+Capture enters `Grabbing` and `Grabbed`. Neither participant can move or turn
+with input while held. The victim follows the existing restraint anchor and
+faces away from the holder. Third-party pushbox separation retains its existing
+behavior. Any attack-slot press starts a throw, including empty and cooling
+slots, without activating the slot. The 180-tick timeout starts a throw too.
 
-Training and the GameServer share these rules. Online `RollbackSimulationBridge`
-uses `NetplaySession` to predict the full world, including both sides of grab
-capture, hold, throw, and release. Authoritative World Frames restore and replay
-the interaction when prediction differs. The earlier capture/release barrier
-belongs to the retired three-track model; see [ADR-0039](../adr/0039-full-world-rollback.md)
-and [`NetplayPredictorTests.GrabAndThrowArePredictedForTheGrabber`](../../tests/Shared.Tests/NetplayPredictorTests.cs).
+Only the stick on that throw-start tick chooses the throw. The input adapter has
+already transformed movement into world space. A stick outside the 0.2 deadzone
+turns the pair instantly and flings along the reached heading. The turn checks
+stage placement in substeps of at most 15 degrees, stopping at the last legal
+heading. A blocked first step still throws along the current heading.
+Neutral input selects a vertical up toss. Later stick changes do not alter either
+throw. The timeout reads its own tick's stick with the same rule.
 
-Scene/Game **Gizmos** show the cooked forward box during `GrabAttempt`: yellow
-startup, orange active contact, gray whiff recovery. The Edit Mode menu
-**Tools → SLOPArena → Tests → Grab Animation Presentation** checks held loops,
-both walk directions and roles, throw frame 11, victim landing frame 34, recorded
-poses, replay/Hitstop, attack cleanup, and interruption on an isolated rig.
+| Throw | Damage | Angle | Base / growth knockback | Recovery after freeze |
+| --- | ---: | ---: | --- | ---: |
+| Up toss | 4 | 90 degrees | 34 / 10 | 3 ticks |
+| Fling | 8 | 35 degrees | 10 / 32 | 12 ticks |
+
+Both release 22 ticks after the throw press. Release clears the victim's old
+reaction, applies damage, freezes both fighters with the ordinary hitstop rule,
+and queues the ordinary formula launch. Mayhem shoves deal zero damage and retain
+the source hit's freeze. SDI during freeze and DI at expiry use ordinary reaction
+code. Percent, weight and match tuning affect the launch. The victim enters
+ordinary `Hitstun`, can act when it ends, and has no scripted landing or extra
+throw recovery. Fling retains percent-scaled KO potential. Low-percent toss
+recovery permits a jump and aerial chase.
+
+Shared state supplies one slot-zero `HitResult` for release feedback and an
+attributed terminal outcome for Tutorial and Ability Lab. An interruption supplies
+neither a release outcome nor a throw contact. Both kinds retain their terminal
+identity across respawn. Full-world rollback predicts and restores the pair,
+windup, freeze, launch and detached recovery without changing snapshot layout.
+Action wire value 21 is reserved for the retired scripted throw flight.
+
+Shared clips `grab_idle_a` and `grab_idle_b` present the stationary hold. `throw`
+and `Grab_Throw_B` share natural time during windup. The thrower samples tick 22
+through the release freeze, then continues at natural speed until recovery ends.
+The victim leaves the paired animation for its ordinary hit reaction after freeze.
+No clip, animation callback or root motion decides gameplay.
+
+Scene/Game **Gizmos** show the corrected box during `GrabAttempt`. The Edit Mode
+menu **Tools > SLOPArena > Tests > Grab Animation Presentation** checks both
+windups, release freeze, recovery, ordinary victim reaction and recorded poses.
+[`GrabThrowMeasurementTests`](../../tests/Shared.Tests/GrabThrowMeasurementTests.cs)
+measures real launch milestones, installed roster aerial contact and edge agency.
+See [ADR-0054](../adr/0054-grab-aim-and-directional-throws.md).
+
+### Held cut
+
+A flash cut ([ADR-0052](../adr/0052-wibou-quick-draw-and-flash-cut.md)) that lands unblocked and unarmoured holds its
+victim: `ActionState.CutHeld` with `HitstopTicks` running to the cutter's pop tick and the cut's launch in the ordinary
+`QueuedKB*` fields. The victim's move retires on the next ability tick. While held, SDI is off (DI is captured), the
+body is fixed in pushbox resolution, and grabs, tether rings and Bashie's wave refuse it. Another fighter's hit adds
+damage and its presentation and freezes its attacker as usual; the hold, the queued launch and the KO credit stay the
+cut's. On the pop tick, before movement, the queued direction is re-aimed away from the cutter while he is still in
+that flash, so a low-percent pop never launches the victim into him; an interrupted cutter leaves the cut's
+direction. When the freeze ends Simulation returns the victim to `Idle` before the launch applies, and any `CutHeld`
+fighter without a freeze converges to `Idle`. `ServerSimulation` keeps one release record per held victim (World
+Snapshot v16) and emits the cutter's pop cue when the victim leaves the hold on its pop tick; a death, respawn or reset
+drops the record silently.
+
+### Tether
+
+A tether ([ADR-0048](../adr/0048-bashie-rescue-ring-tether.md), Bashie's Rescue Ring) is a thrown line that
+delivers the first fighter it meets to the thrower's feet. It is the second kind of paired interaction. A catch writes
+the same pair fields as a capture, with phase `Reeling`, and the victim enters `ActionState.Reeled`. Deaths, removal,
+mode resets and damaging hits therefore end it through the grab path, and a fighter already in a pair cannot be
+grabbed or caught (a ring that meets one bounces).
+
+- **Thrower:** stays `Attacking` from the throw to the end, so clips, cooldown and interruption follow her move. The
+  ring is an ordinary projectile of her activation that leaves with an interrupted move. It flies straight, aimed once
+  by the auto-target projectile aim. Each tick she checks its next travel against the stage and stops it there.
+- **Catch:** a ring contact after the shield, invincibility and mode-target rules. It supersedes the victim's move and
+  any reaction in progress, deals the ring's damage with no launch, hitstop or DI, and credits the hit. Armour does not
+  resist it. Two rings that meet each other's throwers in one batch clash and both come back empty. A fighter already
+  hit in that batch bounces the ring.
+- **Reel:** once per thrower ability tick, `ReelTether` steps the victim toward an anchor in front of her feet. Height
+  and ground distance close separately, so a victim below a ledge lip rises over it, and the body mover slides it
+  along walls. The victim's own movement step and the pushbox pass skip a paired `Reeled` fighter. A step that gains
+  too little (a head-on wall) or the reel running out of time snaps the line and frees the victim.
+- **Arrival:** the pair ends, the victim stays `Reeled` for the authored window facing her, under ordinary gravity with
+  no launch or DI, then becomes Idle. She acts on the next tick. Any hit in the window gives its own reaction.
+- **Miss:** range, a wall, a shield, a ball or a course target spends the ring. The empty ring has no body: its retract
+  time is fixed at the miss and drawn from a `TetherRetract` presentation event, then a short recovery locks her.
+- **Validator:** every pair pass checks both sides. The thrower must be `Attacking` with her tether reeling, the victim
+  `Reeled`, both naming each other, and neither carrying a hit reaction. Anything else interrupts the pair: a hit on
+  her drops the line with the victim free and unstunned, a hit on the victim breaks it and she reels back empty.
+
+World Snapshots carry the tether's phase, clocks and ring position; the pair lives in the fighter states. Coverage:
+[`TetherTests`](../../tests/Shared.Tests/TetherTests.cs) and the ring restores in
+[`WorldSnapshotTests`](../../tests/Shared.Tests/WorldSnapshotTests.cs).
 
 ## Damage and hit response
 
@@ -330,6 +402,8 @@ the throw itself, so it bonks him. Rules and limits:
 No Unity physics query or client-only trajectory determines gameplay.
 
 ## Targeting and aiming
+
+Universal grab startup reuses the normal aim rule with fighter-only acquisition and zero pitch, as described above.
 
 The client may provide camera-derived aim and target intent. The Shared simulation validates targetability and range and owns the selected target. Target lock is passive while moving: it does not steer facing outside attacks. Ordinary stages do not continuously track targets. `startupAimCorrection` is an explicit cooked timeline operation available to any slot. Normals and selected specials opt in through their package's `character.json`; read that source for current coverage and tuning. When opted in, the simulation captures one eligible target at activation, even if the operation's correction tick is later. It prefers the currently selected/locked target when valid in the acquisition envelope; otherwise it picks the nearest eligible enemy, breaking distance ties by entity ID. RetargetPressed keeps its existing nearest-valid-enemy semantics; correction never switches target after capture.
 

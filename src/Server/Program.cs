@@ -52,8 +52,7 @@ namespace SlopArena.Server
             var registration = new GameServerRegistration(config, orchestrator,
                 getSteamId: steamHost is null ? null : () => steamHost.IsReady ? steamHost.CurrentSteamId : 0);
 
-            orchestrator.ReportMatchResult = (matchId, winner) =>
-                _ = registration.ReportMatchResultAsync(matchId, winner);
+            orchestrator.ReportMatchResult = result => _ = registration.ReportMatchResultAsync(result);
             orchestrator.ReportMatchCancellation = registration.QueueMatchCancellation;
 
             using var control = new MatchControlServer(orchestrator, config.Port,

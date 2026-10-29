@@ -506,7 +506,7 @@
 }
 
 /* The visible top-bar route (issue #220): text is set by the focus router
-   ("E/X // TOP BAR"); hidden while a text field is editing or a modal is
+   ("E // TOP BAR"); hidden while a text field is editing or a modal is
    presented. */
 /* A readable key chip on a paper plate rather than 10px grey on the wallpaper. */
 .shell-topbar-hint {

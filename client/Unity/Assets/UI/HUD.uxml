@@ -67,7 +67,7 @@
                     <ui:Label name="ab-dash-timer" class="slot-timer" />
                     <ui:Label text="BEELINE" class="beeline-tag" />
                     <ui:VisualElement class="slot-prompt">
-                        <ui:Image name="ab-dash-button" class="slot-prompt-image" />
+                        <ui:VisualElement class="slot-prompt-arrow" />
                         <ui:Label name="ab-dash-key" class="slot-key-label" />
                     </ui:VisualElement>
                 </ui:VisualElement>
@@ -84,7 +84,7 @@
                                 <ui:Label name="ab-1-timer" class="slot-timer" />
                             </ui:VisualElement>
                             <ui:VisualElement class="slot-prompt">
-                                <ui:Image name="ab-1-button" class="slot-prompt-image" />
+                                <ui:VisualElement class="slot-prompt-arrow" />
                                 <ui:Label name="ab-1-key" class="slot-key-label" />
                             </ui:VisualElement>
                         </ui:VisualElement>
@@ -99,7 +99,7 @@
                                 <ui:Label name="ab-3-timer" class="slot-timer" />
                             </ui:VisualElement>
                             <ui:VisualElement class="slot-prompt">
-                                <ui:Image name="ab-3-button" class="slot-prompt-image" />
+                                <ui:VisualElement class="slot-prompt-arrow" />
                                 <ui:Label name="ab-3-key" class="slot-key-label" />
                             </ui:VisualElement>
                         </ui:VisualElement>
@@ -114,7 +114,7 @@
                                 <ui:Label name="ab-4-timer" class="slot-timer" />
                             </ui:VisualElement>
                             <ui:VisualElement class="slot-prompt">
-                                <ui:Image name="ab-4-button" class="slot-prompt-image" />
+                                <ui:VisualElement class="slot-prompt-arrow" />
                                 <ui:Label name="ab-4-key" class="slot-key-label" />
                             </ui:VisualElement>
                         </ui:VisualElement>
@@ -131,7 +131,7 @@
                                 <ui:Label name="ab-a-timer" class="slot-timer" />
                             </ui:VisualElement>
                             <ui:VisualElement class="slot-prompt">
-                                <ui:Image name="ab-a-button" class="slot-prompt-image" />
+                                <ui:VisualElement class="slot-prompt-arrow" />
                                 <ui:Label name="ab-a-key" class="slot-key-label" />
                             </ui:VisualElement>
                         </ui:VisualElement>
@@ -146,7 +146,7 @@
                                 <ui:Label name="ab-r-timer" class="slot-timer" />
                             </ui:VisualElement>
                             <ui:VisualElement class="slot-prompt">
-                                <ui:Image name="ab-r-button" class="slot-prompt-image" />
+                                <ui:VisualElement class="slot-prompt-arrow" />
                                 <ui:Label name="ab-r-key" class="slot-key-label" />
                             </ui:VisualElement>
                         </ui:VisualElement>
@@ -161,7 +161,7 @@
                                 <ui:Label name="ab-e-timer" class="slot-timer" />
                             </ui:VisualElement>
                             <ui:VisualElement class="slot-prompt">
-                                <ui:Image name="ab-e-button" class="slot-prompt-image" />
+                                <ui:VisualElement class="slot-prompt-arrow" />
                                 <ui:Label name="ab-e-key" class="slot-key-label" />
                             </ui:VisualElement>
                         </ui:VisualElement>
@@ -176,7 +176,7 @@
                                 <ui:Label name="ab-f-timer" class="slot-timer" />
                             </ui:VisualElement>
                             <ui:VisualElement class="slot-prompt">
-                                <ui:Image name="ab-f-button" class="slot-prompt-image" />
+                                <ui:VisualElement class="slot-prompt-arrow" />
                                 <ui:Label name="ab-f-key" class="slot-key-label" />
                             </ui:VisualElement>
                         </ui:VisualElement>

@@ -9,7 +9,7 @@ namespace SlopArena.Shared.Abilities;
 /// With RiseSteerAcceleration the stick keeps steering after launch, toward stick × HorizontalSpeed;
 /// a neutral stick keeps the current drift.
 /// </summary>
-public sealed class AimedRecoveryAbility : ServerAbility
+public sealed class AimedRecoveryAbility : ServerAbility, IRecoveryTurnCapability
 {
     private readonly CookedAimedRecoveryCapabilityParameters _parameters;
     private ushort _elapsedTicks;
@@ -82,6 +82,11 @@ public sealed class AimedRecoveryAbility : ServerAbility
         // Ordinary ballistic gravity from launch, matching normal jumps and the old recovery.
         // Activation's recovery-designated FloatWindow reset remains simulation-owned.
         s.AirTimeTicks = def.Movement.FloatWindowTicks;
+    }
+
+    public void OnRecoveryTurn(ref CharacterState s, in InputState input)
+    {
+        if (!_launched) _hopYaw = s.FacingYaw;
     }
 
     private void Steer(ref CharacterState s, InputState input)

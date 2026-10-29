@@ -42,7 +42,7 @@ namespace SlopArena.Shared
         public ulong LastTerminalInteractionId;
         /// <summary>Authoritative tick at which the last terminal interaction was committed.</summary>
         public uint InteractionTerminalTick;
-        /// <summary>Pair heading in signed degrees × 100; steered during the hold, frozen when throwing starts.</summary>
+        /// <summary>Pair heading in signed degrees × 100; corrected during startup and committed at the throw press.</summary>
         public short CapturedYaw;
         /// <summary>Match lifecycle state (Waiting, Countdown, Playing, Ended).</summary>
         public MatchState MatchState;
@@ -106,7 +106,7 @@ namespace SlopArena.Shared
         public ushort AttackElapsedTicks;  // elapsed ticks since attack start
         /// <summary>Which ability slot this attack uses (1-6). 0 = none.</summary>
         public byte AttackSlot;
-        /// <summary>Buffered input slot (general buffer during any lock). 0 = none.</summary>
+        /// <summary>Buffered press. 0 = none; attack slots or the private HeldPress grab marker.</summary>
         public byte BufferedSlot;
         /// <summary>
         /// 0 = none, 1-3 = stage
@@ -134,17 +134,31 @@ namespace SlopArena.Shared
         /// aimed charge progress (0 = none, >0 = charging)
         /// </summary>
         public ushort ChargeTicks;
-        /// <summary>
-        /// ── Charge-stock pool (regenerating ability charges, e.g. Wibou Rising Slash) ──
-        /// Number of charges currently spent/unavailable (0 = full pool). The pool max
-        /// and regen cadence come from the ability spec's "max_charges"/"charge_regen_ticks"
-        /// params. Spent charges return only through regen. Server-sim only (not on the wire).
-        /// </summary>
+        public FlyingState Flight;
+        /// <summary>Spent charges in the cooked, bounded three-charge pool.</summary>
         public byte ChargeStockSpent;
-        /// <summary>Ticks until the next spent charge regenerates. 0 when nothing is regenerating.</summary>
         public ushort ChargeStockRegenTicks;
-        /// <summary>Full regen period for one charge, cached from the ability spec at spend time.</summary>
+        public ushort ChargeStockRegenTicks2;
+        public ushort ChargeStockRegenTicks3;
         public ushort ChargeStockRegenPeriod;
+
+        internal void SpendCharge(ushort period)
+        {
+            if (ChargeStockRegenTicks == 0) ChargeStockRegenTicks = period;
+            else if (ChargeStockRegenTicks2 == 0) ChargeStockRegenTicks2 = period;
+            else if (ChargeStockRegenTicks3 == 0) ChargeStockRegenTicks3 = period;
+            else throw new InvalidOperationException("Charge pool is full.");
+            ChargeStockSpent++;
+            ChargeStockRegenPeriod = period;
+        }
+
+        internal void RegenerateCharges()
+        {
+            if (ChargeStockSpent == 0) return;
+            if (ChargeStockRegenTicks > 0 && --ChargeStockRegenTicks == 0) ChargeStockSpent--;
+            if (ChargeStockRegenTicks2 > 0 && --ChargeStockRegenTicks2 == 0) ChargeStockSpent--;
+            if (ChargeStockRegenTicks3 > 0 && --ChargeStockRegenTicks3 == 0) ChargeStockSpent--;
+        }
 
         /// <summary>Finger Guns rounds spent since the last completed reload. Zero is a full cylinder,
         /// including on spawn; cancellation and idle time never reset this resource.</summary>
@@ -278,6 +292,9 @@ namespace SlopArena.Shared
         /// </summary>
         public ushort Cooldown0, Cooldown1, Cooldown2, Cooldown3, Cooldown4, Cooldown5,
             Cooldown6, Cooldown7, Cooldown8, Cooldown9, Cooldown10;
+        /// <summary>The live form and the other form's cooldown bank (ADR-0051). It survives every state; only the
+        /// swapForm operation changes it.</summary>
+        public FormState Form;
 
         /// <summary>
         /// Wire slot whose returning projectile (Sir Bonk's pot lid) is still out, 0 when none. Mirrored
@@ -328,7 +345,19 @@ namespace SlopArena.Shared
         Attempt = 1,
         Captured = 2,
         Throwing = 3,
-        Terminal = 4
+        Terminal = 4,
+        /// <summary>A tether holds the pair (ADR-0048): the thrower is Attacking in her tether, the victim Reeled.</summary>
+        Reeling = 5,
+        /// <summary>A clinch holds the pair (ADR-0053): the holder is Attacking in its clinch, the victim Clinched.</summary>
+        Clinching = 6,
+        /// <summary>A command grab holds the pair (ADR-0051): the grabber is Attacking in its grab, the victim Grabbed.</summary>
+        CommandHold = 7,
+        /// <summary>The universal grab's neutral up-toss windup (ADR-0054); a stick fling winds up in Throwing.</summary>
+        UpTossing = 8,
+        /// <summary>A released fling (ADR-0054): the holder's terminal phase is the release witness.</summary>
+        FlingReleased = 9,
+        /// <summary>A released up toss (ADR-0054): the holder's terminal phase is the release witness.</summary>
+        UpTossReleased = 10,
     }
 
     /// <summary>Hitstop reason for defensive block contacts.</summary>

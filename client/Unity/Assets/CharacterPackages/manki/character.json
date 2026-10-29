@@ -38,6 +38,8 @@
     "hitMedium": "anim.manki.hit-medium",
     "hitHard": "anim.manki.hit-hard",
     "tumble": "anim.manki.tumble",
+    "flying": "anim.manki.fly-loop",
+    "mayhemLaugh": "anim.manki.gf-loop",
     "crouch": "anim.manki.crouch",
     "slide": "anim.manki.slide",
     "landStartOffsetSeconds": 0.49,
@@ -128,58 +130,209 @@
   "hurtboxBoneDefs": [
     {
       "boneId": "bone.head",
-      "offsetX": 0,
-      "offsetY": 0,
-      "offsetZ": 0,
-      "radius": 0.22
-    },
-    {
-      "boneId": "bone.spine2",
-      "offsetX": 0,
-      "offsetY": 0,
-      "offsetZ": 0,
-      "radius": 0.26
+      "offsetX": 0.0,
+      "offsetY": 0.0,
+      "offsetZ": 0.0,
+      "radius": 0.2511,
+      "endBoneId": "bone.head",
+      "endOffsetX": 0.0,
+      "endOffsetY": 0.1203,
+      "endOffsetZ": 0.0
     },
     {
       "boneId": "bone.hips",
-      "offsetX": 0,
-      "offsetY": 0,
-      "offsetZ": 0,
-      "radius": 0.26
+      "offsetX": 0.0,
+      "offsetY": 0.0,
+      "offsetZ": 0.0,
+      "radius": 0.2782,
+      "endBoneId": "bone.neck",
+      "endOffsetX": 0.0,
+      "endOffsetY": 0.0,
+      "endOffsetZ": 0.0
+    },
+    {
+      "boneId": "bone.right-upper-arm",
+      "offsetX": 0.0,
+      "offsetY": 0.0,
+      "offsetZ": 0.0,
+      "radius": 0.0877,
+      "endBoneId": "bone.right-lower-arm",
+      "endOffsetX": 0.0,
+      "endOffsetY": 0.0,
+      "endOffsetZ": 0.0
+    },
+    {
+      "boneId": "bone.right-lower-arm",
+      "offsetX": 0.0,
+      "offsetY": 0.0,
+      "offsetZ": 0.0,
+      "radius": 0.0613,
+      "endBoneId": "bone.right-hand",
+      "endOffsetX": 0.0,
+      "endOffsetY": 0.0,
+      "endOffsetZ": 0.0
     },
     {
       "boneId": "bone.right-hand",
-      "offsetX": 0,
-      "offsetY": 0,
-      "offsetZ": 0,
-      "radius": 0.12
+      "offsetX": 0.0,
+      "offsetY": 0.0,
+      "offsetZ": 0.0,
+      "radius": 0.0861,
+      "endBoneId": "bone.right-hand-end",
+      "endOffsetX": 0.0,
+      "endOffsetY": 0.0,
+      "endOffsetZ": 0.0
     },
     {
-      "boneId": "bone.left-hand",
-      "offsetX": 0,
-      "offsetY": 0,
-      "offsetZ": 0,
-      "radius": 0.12
+      "boneId": "bone.right-upper-leg",
+      "offsetX": 0.0,
+      "offsetY": 0.0,
+      "offsetZ": 0.0,
+      "radius": 0.0761,
+      "endBoneId": "bone.right-lower-leg",
+      "endOffsetX": 0.0,
+      "endOffsetY": 0.0,
+      "endOffsetZ": 0.0
+    },
+    {
+      "boneId": "bone.right-lower-leg",
+      "offsetX": 0.0,
+      "offsetY": 0.0,
+      "offsetZ": 0.0,
+      "radius": 0.0612,
+      "endBoneId": "bone.right-foot",
+      "endOffsetX": 0.0,
+      "endOffsetY": 0.0,
+      "endOffsetZ": 0.0
     },
     {
       "boneId": "bone.right-foot",
-      "offsetX": 0,
-      "offsetY": 0,
-      "offsetZ": 0,
-      "radius": 0.16
+      "offsetX": 0.0,
+      "offsetY": 0.0,
+      "offsetZ": 0.0,
+      "radius": 0.1187,
+      "endBoneId": "bone.right-toes",
+      "endOffsetX": 0.0,
+      "endOffsetY": 0.0,
+      "endOffsetZ": 0.0
+    },
+    {
+      "boneId": "bone.left-upper-arm",
+      "offsetX": 0.0,
+      "offsetY": 0.0,
+      "offsetZ": 0.0,
+      "radius": 0.0953,
+      "endBoneId": "bone.left-lower-arm",
+      "endOffsetX": 0.0,
+      "endOffsetY": 0.0,
+      "endOffsetZ": 0.0
+    },
+    {
+      "boneId": "bone.left-lower-arm",
+      "offsetX": 0.0,
+      "offsetY": 0.0,
+      "offsetZ": 0.0,
+      "radius": 0.0605,
+      "endBoneId": "bone.left-hand",
+      "endOffsetX": 0.0,
+      "endOffsetY": 0.0,
+      "endOffsetZ": 0.0
+    },
+    {
+      "boneId": "bone.left-hand",
+      "offsetX": 0.0,
+      "offsetY": 0.0,
+      "offsetZ": 0.0,
+      "radius": 0.0996,
+      "endBoneId": "bone.left-hand-end",
+      "endOffsetX": 0.0,
+      "endOffsetY": 0.0,
+      "endOffsetZ": 0.0
+    },
+    {
+      "boneId": "bone.left-upper-leg",
+      "offsetX": 0.0,
+      "offsetY": 0.0,
+      "offsetZ": 0.0,
+      "radius": 0.1354,
+      "endBoneId": "bone.left-lower-leg",
+      "endOffsetX": 0.0,
+      "endOffsetY": 0.0,
+      "endOffsetZ": 0.0
+    },
+    {
+      "boneId": "bone.left-lower-leg",
+      "offsetX": 0.0,
+      "offsetY": 0.0,
+      "offsetZ": 0.0,
+      "radius": 0.0597,
+      "endBoneId": "bone.left-foot",
+      "endOffsetX": 0.0,
+      "endOffsetY": 0.0,
+      "endOffsetZ": 0.0
     },
     {
       "boneId": "bone.left-foot",
-      "offsetX": 0,
-      "offsetY": 0,
-      "offsetZ": 0,
-      "radius": 0.16
+      "offsetX": 0.0,
+      "offsetY": 0.0,
+      "offsetZ": 0.0,
+      "radius": 0.1205,
+      "endBoneId": "bone.left-toes",
+      "endOffsetX": 0.0,
+      "endOffsetY": 0.0,
+      "endOffsetZ": 0.0
+    },
+    {
+      "boneId": "rig:Tail1",
+      "offsetX": 0.0,
+      "offsetY": 0.0,
+      "offsetZ": 0.0,
+      "radius": 0.0281,
+      "endBoneId": "rig:Tail2",
+      "endOffsetX": 0.0,
+      "endOffsetY": 0.0,
+      "endOffsetZ": 0.0
+    },
+    {
+      "boneId": "rig:Tail2",
+      "offsetX": 0.0,
+      "offsetY": 0.0,
+      "offsetZ": 0.0,
+      "radius": 0.0334,
+      "endBoneId": "rig:Tail3",
+      "endOffsetX": 0.0,
+      "endOffsetY": 0.0,
+      "endOffsetZ": 0.0
+    },
+    {
+      "boneId": "rig:Tail3",
+      "offsetX": 0.0,
+      "offsetY": 0.0,
+      "offsetZ": 0.0,
+      "radius": 0.0348,
+      "endBoneId": "rig:Tail4",
+      "endOffsetX": 0.0,
+      "endOffsetY": 0.0,
+      "endOffsetZ": 0.0
+    },
+    {
+      "boneId": "rig:Tail4",
+      "offsetX": 0.0,
+      "offsetY": 0.0,
+      "offsetZ": 0.0,
+      "radius": 0.0448,
+      "endBoneId": "rig:Tail5",
+      "endOffsetX": 0.0,
+      "endOffsetY": 0.0,
+      "endOffsetZ": 0.0
     }
   ],
   "attachmentBoneIds": [],
   "presentationIds": [
     "presentation.manki.aerosol-inferno.start",
     "presentation.manki.round-bomb.explosion",
+    "presentation.manki.kamikaze.explosion",
+    "presentation.manki.kamikaze.trail",
     "presentation.manki.jetpack-boost.ignition",
     "presentation.manki.jetpack-boost.exhaust",
     "presentation.manki.bazooka.explosion",
@@ -200,11 +353,11 @@
   ],
   "capabilityRequirements": [
     {
-      "capabilityId": "slop.internal.manki.round-bomb.v1",
+      "capabilityId": "slop.internal.manki.round-bomb.v3",
       "capabilityVersion": "1"
     },
     {
-      "capabilityId": "slop.internal.manki.jetpack-boost.v1",
+      "capabilityId": "slop.internal.manki.jetpack-boost.v3",
       "capabilityVersion": "1"
     },
     {
@@ -212,7 +365,7 @@
       "capabilityVersion": "1"
     },
     {
-      "capabilityId": "slop.internal.manki.aerosol-inferno.v1",
+      "capabilityId": "slop.internal.manki.kamikaze.v1",
       "capabilityVersion": "1"
     }
   ],
@@ -823,22 +976,21 @@
     },
     {
       "id": "ground.A",
-      "name": "Round Bomb",
-      "description": "Hold to aim a ground cursor, release to lob an explosive round bomb",
+      "name": "Bombs Away",
+      "description": "Drop a bomb in flight. Otherwise hop backward and leave a short-fuse bomb.",
       "iconId": "icon.a",
-      "behavior": "aimedProjectile",
-      "aimMode": "groundCursor",
+      "behavior": "projectile",
+      "aimMode": "none",
       "aimMovement": "fixed",
-      "aimAnimationId": "anim.manki.ga-loop",
-      "cooldownTicks": 240,
+      "cooldownTicks": 18,
       "isRecoveryMove": false,
-      "preserveMomentumOnStart": false,
+      "preserveMomentumOnStart": true,
       "allowSlideCarry": false,
       "timeline": {
         "stages": [
           {
-            "durationTicks": 600,
-            "iasaTicks": 0,
+            "durationTicks": 12,
+            "iasaTicks": 10,
             "landingLagTicks": 0,
             "autoCancelBeforeTicks": 0,
             "autoCancelAfterTicks": 0,
@@ -855,25 +1007,23 @@
                 "kind": "startCapability",
                 "tick": 0,
                 "unit": "ticks",
-                "capabilityId": "slop.internal.manki.round-bomb.v1",
+                "capabilityId": "slop.internal.manki.round-bomb.v3",
                 "capabilityVersion": "1",
                 "parameters": {
-                  "throwTriggerTick": 10,
-                  "maxRange": 12,
-                  "launchAngle": 30,
-                  "gravity": 30,
+                  "fuseTicks": 60,
+                  "maxFlightTicks": 180,
+                  "gravity": 9,
                   "hitboxRadius": 0.6,
-                  "damage": 6,
-                  "stunTicks": 22,
-                  "maxFlightTicks": 90,
-                  "kbAngle": 30,
+                  "hopBackSpeed": 7,
+                  "hopUpSpeed": 7,
                   "explosionDamage": 10,
-                  "explosionRadius": 3,
+                  "explosionRadius": 4,
                   "explosionKbBase": 2.4,
                   "explosionKbGrowth": 24,
                   "explosionStunTicks": 18,
                   "explosionDurationTicks": 8,
                   "explosionKbAngle": 30,
+                  "selfPushSpeed": 8,
                   "explosionPresentationId": "presentation.manki.round-bomb.explosion"
                 }
               }
@@ -881,12 +1031,16 @@
           }
         ]
       },
-      "hitPresentationId": "presentation.manki.blast.hit"
+      "hitPresentationId": "presentation.manki.blast.hit",
+      "chargePool": {
+        "maxCharges": 3,
+        "regenTicks": 360
+      }
     },
     {
       "id": "ground.E",
-      "name": "Jetpack Boost",
-      "description": "Explode upward with a strong vertical boost; drift after reaching the apex.",
+      "name": "Jetpack Flight",
+      "description": "Enter Flying for 180 fuel ticks. Stick steers, jump bursts lift, E cuts flight. Refuel on landing.",
       "iconId": "icon.e",
       "behavior": "meleeCombo",
       "aimMode": "none",
@@ -898,7 +1052,7 @@
       "timeline": {
         "stages": [
           {
-            "durationTicks": 60,
+            "durationTicks": 4,
             "iasaTicks": 0,
             "landingLagTicks": 0,
             "autoCancelBeforeTicks": 0,
@@ -916,12 +1070,12 @@
                 "kind": "startCapability",
                 "tick": 0,
                 "unit": "ticks",
-                "capabilityId": "slop.internal.manki.jetpack-boost.v1",
+                "capabilityId": "slop.internal.manki.jetpack-boost.v3",
                 "capabilityVersion": "1",
                 "parameters": {
                   "startupTicks": 3,
-                  "verticalSpeed": 15,
-                  "horizontalSpeed": 3.5,
+                  "verticalSpeed": 8,
+                  "horizontalSpeed": 12,
                   "explosionRadius": 1.5,
                   "explosionDamage": 10,
                   "explosionKbAngle": 30,
@@ -929,67 +1083,11 @@
                   "explosionKbGrowth": 24,
                   "explosionStunTicks": 18,
                   "explosionDurationTicks": 8,
-                  "explosionPresentationId": "presentation.manki.jetpack-boost.ignition"
-                }
-              },
-              {
-                "kind": "emitPresentation",
-                "tick": 3,
-                "unit": "ticks",
-                "presentationId": "presentation.manki.jetpack-boost.exhaust",
-                "placement": {
-                  "attachmentMode": "bone",
-                  "boneId": "bone.spine2",
-                  "localPositionX": 0,
-                  "localPositionY": -0.13,
-                  "localPositionZ": -0.15,
-                  "localRotationX": 0,
-                  "localRotationY": 0,
-                  "localRotationZ": 0,
-                  "localScaleX": 1,
-                  "localScaleY": 1,
-                  "localScaleZ": 1,
-                  "durationTicks": 57
-                }
-              },
-              {
-                "kind": "emitPresentation",
-                "tick": 3,
-                "unit": "ticks",
-                "presentationId": "presentation.manki.jetpack-boost.trail",
-                "placement": {
-                  "attachmentMode": "bone",
-                  "boneId": "bone.spine2",
-                  "localPositionX": 0,
-                  "localPositionY": -0.13,
-                  "localPositionZ": -0.15,
-                  "localRotationX": 0,
-                  "localRotationY": 0,
-                  "localRotationZ": 0,
-                  "localScaleX": 1,
-                  "localScaleY": 1,
-                  "localScaleZ": 1,
-                  "durationTicks": 80
-                }
-              },
-              {
-                "kind": "emitPresentation",
-                "tick": 38,
-                "unit": "ticks",
-                "presentationId": "presentation.manki.jetpack-boost.cough",
-                "placement": {
-                  "attachmentMode": "bone",
-                  "boneId": "bone.spine2",
-                  "localPositionX": 0,
-                  "localPositionY": -0.13,
-                  "localPositionZ": -0.15,
-                  "localRotationX": 0,
-                  "localRotationY": 0,
-                  "localRotationZ": 0,
-                  "localScaleX": 1,
-                  "localScaleY": 1,
-                  "localScaleZ": 1,
-                  "durationTicks": 45
+                  "explosionPresentationId": "presentation.manki.jetpack-boost.ignition",
+                  "fuelTicks": 180,
+                  "sinkSpeed": 1.2,
+                  "jumpBurstSpeed": 10,
+                  "jumpBurstTicks": 12
                 }
               }
             ]
@@ -1122,21 +1220,20 @@
     },
     {
       "id": "ground.F",
-      "name": "Aerosol Inferno",
-      "description": "Shake and point an aerosol can, then project a forward fire column",
+      "name": "Kamikaze",
+      "description": "Lock onto the current target and rocket into an explosive finisher. Facing run with no target.",
       "iconId": "icon.f",
-      "behavior": "areaDenial",
-      "aimMode": "cameraForward3D",
+      "behavior": "meleeCombo",
+      "aimMode": "none",
       "aimMovement": "fixed",
-      "aimAnimationId": "anim.manki.gf-loop",
-      "cooldownTicks": 600,
+      "cooldownTicks": 420,
       "isRecoveryMove": false,
-      "preserveMomentumOnStart": false,
+      "preserveMomentumOnStart": true,
       "allowSlideCarry": false,
       "timeline": {
         "stages": [
           {
-            "durationTicks": 62,
+            "durationTicks": 55,
             "iasaTicks": 0,
             "landingLagTicks": 0,
             "autoCancelBeforeTicks": 0,
@@ -1147,136 +1244,55 @@
             "rotateTowardTarget": false,
             "trackingStrength": 0,
             "animationIds": [
-              "anim.manki.gf-atk"
+              "anim.manki.gf-kamikaze"
             ],
             "operations": [
-              {
-                "kind": "startupAimCorrection",
-                "tick": 0,
-                "unit": "ticks",
-                "endTick": 8,
-                "acquisitionRange": 4,
-                "acquisitionHalfAngleDegrees": 180,
-                "maxYawDegrees": 90,
-                "maxPitchDegrees": 0,
-                "yawDegreesPerSecond": 720,
-                "pitchDegreesPerSecond": 0
-              },
               {
                 "kind": "startCapability",
                 "tick": 0,
                 "unit": "ticks",
-                "capabilityId": "slop.internal.manki.aerosol-inferno.v1",
+                "capabilityId": "slop.internal.manki.kamikaze.v1",
                 "capabilityVersion": "1",
                 "parameters": {
-                  "minimumChargeTicks": 18,
-                  "chargeTiers": [
-                    {
-                      "chargeTicks": 18,
-                      "damage": 10,
-                      "reachScale": 0.6
-                    },
-                    {
-                      "chargeTicks": 30,
-                      "damage": 14,
-                      "reachScale": 0.8
-                    },
-                    {
-                      "chargeTicks": 42,
-                      "damage": 18,
-                      "reachScale": 1
-                    },
-                    {
-                      "chargeTicks": 54,
-                      "damage": 22,
-                      "reachScale": 1.25
-                    },
-                    {
-                      "chargeTicks": 66,
-                      "damage": 26,
-                      "reachScale": 1.5
-                    }
-                  ],
-                  "fireTriggerTick": 8,
-                  "fireDurationTicks": 62,
-                  "hitboxDurationTicks": 44,
-                  "hitboxRadius": 0.7,
-                  "offsetY": 0.25,
-                  "offsetZ": 1.25,
-                  "endOffsetZ": 3,
-                  "damage": 15,
-                  "knockbackAngle": 30,
-                  "knockbackBase": 12,
-                  "knockbackGrowth": 20,
-                  "stunTicks": 30,
-                  "hitGroup": 1
+                  "runTicks": 54,
+                  "speed": 18,
+                  "contactRadius": 1.1,
+                  "explosionDamage": 24,
+                  "explosionRadius": 4,
+                  "explosionKbBase": 8,
+                  "explosionKbGrowth": 65,
+                  "explosionStunTicks": 32,
+                  "explosionDurationTicks": 8,
+                  "explosionKbAngle": 35,
+                  "selfPushSpeed": 12,
+                  "explosionPresentationId": "presentation.manki.kamikaze.explosion"
                 }
               },
               {
                 "kind": "emitPresentation",
                 "tick": 0,
                 "unit": "ticks",
-                "presentationId": "presentation.manki.aerosol-inferno.charge",
+                "presentationId": "presentation.manki.kamikaze.trail",
                 "placement": {
                   "attachmentMode": "bone",
-                  "boneId": "bone.right-hand",
+                  "boneId": "bone.spine2",
                   "localPositionX": 0,
-                  "localPositionY": 0.139,
-                  "localPositionZ": -0.225,
+                  "localPositionY": -0.13,
+                  "localPositionZ": -0.15,
                   "localRotationX": 0,
                   "localRotationY": 0,
                   "localRotationZ": 0,
-                  "localScaleX": 1,
-                  "localScaleY": 1,
-                  "localScaleZ": 1,
-                  "durationTicks": 600
-                }
-              },
-              {
-                "kind": "emitPresentation",
-                "tick": 1,
-                "unit": "ticks",
-                "presentationId": "presentation.manki.aerosol-inferno.lighter",
-                "placement": {
-                  "attachmentMode": "bone",
-                  "boneId": "bone.left-hand",
-                  "localPositionX": 0.155,
-                  "localPositionY": 0.11,
-                  "localPositionZ": 0.014,
-                  "localRotationX": 0,
-                  "localRotationY": 0,
-                  "localRotationZ": 0,
-                  "localScaleX": 1,
-                  "localScaleY": 1,
-                  "localScaleZ": 1,
-                  "durationTicks": 51
-                }
-              },
-              {
-                "kind": "emitPresentation",
-                "tick": 8,
-                "unit": "ticks",
-                "presentationId": "presentation.manki.aerosol-inferno.start",
-                "placement": {
-                  "attachmentMode": "world",
-                  "boneId": null,
-                  "localPositionX": 0,
-                  "localPositionY": 0.25,
-                  "localPositionZ": 0.55,
-                  "localRotationX": 0,
-                  "localRotationY": 0,
-                  "localRotationZ": 0,
-                  "localScaleX": 1,
-                  "localScaleY": 1,
-                  "localScaleZ": 1,
-                  "durationTicks": 44
+                  "localScaleX": 1.5,
+                  "localScaleY": 1.5,
+                  "localScaleZ": 1.5,
+                  "durationTicks": 54
                 }
               }
             ]
           }
         ]
       },
-      "hitPresentationId": "presentation.manki.aerosol-inferno.hit"
+      "hitPresentationId": "presentation.manki.blast.hit"
     }
   ],
   "aliases": [

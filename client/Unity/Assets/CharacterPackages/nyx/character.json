@@ -1,0 +1,2181 @@
+{
+  "authoringSchemaVersion": 3,
+  "displayName": "Nyx",
+  "weight": 100,
+  "movement": {
+    "runSpeed": 10,
+    "runAccelerationA": 18,
+    "runAccelerationB": 10,
+    "dashSpeed": 18,
+    "airDodgeSpeed": 11,
+    "airSpeedMax": 7,
+    "airAccelStick": 16,
+    "airAccelBase": 3.2,
+    "jumpForce": 10,
+    "shortHopForce": 6,
+    "airJumpVMultiplier": 0.85,
+    "airJumpHMultiplier": 0.85,
+    "gravity": 20,
+    "airFloatGravity": 0,
+    "dashDurationTicks": 20,
+    "dashCooldownTicks": 48,
+    "groundFriction": 8,
+    "airFriction": 6,
+    "maxFallSpeed": 9.5,
+    "fastFallSpeed": 15,
+    "maxJumps": 2,
+    "jumpSquatTicks": 4,
+    "floatWindowTicks": 40,
+    "rushTicks": 10
+  },
+  "presentation": {
+    "idle": "anim.nyx.idle",
+    "run": "anim.nyx.run",
+    "dash": "anim.nyx.dash",
+    "jump": "anim.nyx.jump",
+    "fall": "anim.nyx.fall",
+    "hitSmall": "anim.nyx.hit-light",
+    "hitMedium": "anim.nyx.hit-medium",
+    "hitHard": "anim.nyx.hit-hard",
+    "tumble": "anim.nyx.tumble",
+    "crouch": "anim.nyx.crouch",
+    "slide": "anim.nyx.slide",
+    "landStartOffsetSeconds": 0.49,
+    "modelResourcePath": "",
+    "visualScale": 1.0375,
+    "hurtboxBoneScale": 1,
+    "modelYOffset": -0.85,
+    "modelSoleOffset": 0,
+    "autoModelYOffset": false
+  },
+  "capsuleRadius": 0.35,
+  "capsuleHeight": 1.7,
+  "hipHeight": 0.832,
+  "hurtboxRadius": 1,
+  "shieldRadius": 1.05,
+  "captureGeometry": {
+    "reach": 1.8,
+    "width": 0.68,
+    "height": 1.15,
+    "offsetY": 0.57,
+    "attackerAnchor": {
+      "x": 0,
+      "y": 0.57,
+      "z": 0.25
+    },
+    "victimAnchor": {
+      "x": 0,
+      "y": 0.57,
+      "z": 0.39
+    }
+  },
+  "hurtboxCapsules": [
+    {
+      "startX": 0,
+      "startY": 0.2,
+      "startZ": 0,
+      "endX": 0,
+      "endY": 0.9,
+      "endZ": 0,
+      "radius": 0.3
+    },
+    {
+      "startX": 0,
+      "startY": 1.2,
+      "startZ": 0,
+      "endX": 0,
+      "endY": 1.2,
+      "endZ": 0,
+      "radius": 0.22
+    },
+    {
+      "startX": 0.3,
+      "startY": 0.8,
+      "startZ": 0,
+      "endX": 0.6,
+      "endY": 0.6,
+      "endZ": 0.2,
+      "radius": 0.12
+    },
+    {
+      "startX": -0.3,
+      "startY": 0.8,
+      "startZ": 0,
+      "endX": -0.6,
+      "endY": 0.6,
+      "endZ": 0.2,
+      "radius": 0.12
+    },
+    {
+      "startX": 0.15,
+      "startY": 0,
+      "startZ": 0,
+      "endX": 0.15,
+      "endY": -0.8,
+      "endZ": 0,
+      "radius": 0.16
+    },
+    {
+      "startX": -0.15,
+      "startY": 0,
+      "startZ": 0,
+      "endX": -0.15,
+      "endY": -0.8,
+      "endZ": 0,
+      "radius": 0.16
+    }
+  ],
+  "hurtboxBoneDefs": [
+    {
+      "boneId": "bone.head",
+      "offsetX": 0.0,
+      "offsetY": 0.0,
+      "offsetZ": 0.0,
+      "radius": 0.1377,
+      "endBoneId": "bone.head",
+      "endOffsetX": 0.0,
+      "endOffsetY": 0.1075,
+      "endOffsetZ": 0.0
+    },
+    {
+      "boneId": "bone.hips",
+      "offsetX": 0.0,
+      "offsetY": 0.0,
+      "offsetZ": 0.0,
+      "radius": 0.1464,
+      "endBoneId": "bone.neck",
+      "endOffsetX": 0.0,
+      "endOffsetY": 0.0,
+      "endOffsetZ": 0.0
+    },
+    {
+      "boneId": "bone.right-upper-arm",
+      "offsetX": 0.0,
+      "offsetY": 0.0,
+      "offsetZ": 0.0,
+      "radius": 0.0869,
+      "endBoneId": "bone.right-lower-arm",
+      "endOffsetX": 0.0,
+      "endOffsetY": 0.0,
+      "endOffsetZ": 0.0
+    },
+    {
+      "boneId": "bone.right-lower-arm",
+      "offsetX": 0.0,
+      "offsetY": 0.0,
+      "offsetZ": 0.0,
+      "radius": 0.0503,
+      "endBoneId": "bone.right-hand",
+      "endOffsetX": 0.0,
+      "endOffsetY": 0.0,
+      "endOffsetZ": 0.0
+    },
+    {
+      "boneId": "bone.right-hand",
+      "offsetX": 0.0,
+      "offsetY": 0.0,
+      "offsetZ": 0.0,
+      "radius": 0.0677,
+      "endBoneId": "bone.right-hand-end",
+      "endOffsetX": 0.0,
+      "endOffsetY": 0.0,
+      "endOffsetZ": 0.0
+    },
+    {
+      "boneId": "bone.right-upper-leg",
+      "offsetX": 0.0,
+      "offsetY": 0.0,
+      "offsetZ": 0.0,
+      "radius": 0.0905,
+      "endBoneId": "bone.right-lower-leg",
+      "endOffsetX": 0.0,
+      "endOffsetY": 0.0,
+      "endOffsetZ": 0.0
+    },
+    {
+      "boneId": "bone.right-lower-leg",
+      "offsetX": 0.0,
+      "offsetY": 0.0,
+      "offsetZ": 0.0,
+      "radius": 0.0733,
+      "endBoneId": "bone.right-foot",
+      "endOffsetX": 0.0,
+      "endOffsetY": 0.0,
+      "endOffsetZ": 0.0
+    },
+    {
+      "boneId": "bone.right-foot",
+      "offsetX": 0.0,
+      "offsetY": 0.0,
+      "offsetZ": 0.0,
+      "radius": 0.1032,
+      "endBoneId": "bone.right-toes",
+      "endOffsetX": 0.0,
+      "endOffsetY": 0.0,
+      "endOffsetZ": 0.0
+    },
+    {
+      "boneId": "bone.left-upper-arm",
+      "offsetX": 0.0,
+      "offsetY": 0.0,
+      "offsetZ": 0.0,
+      "radius": 0.0684,
+      "endBoneId": "bone.left-lower-arm",
+      "endOffsetX": 0.0,
+      "endOffsetY": 0.0,
+      "endOffsetZ": 0.0
+    },
+    {
+      "boneId": "bone.left-lower-arm",
+      "offsetX": 0.0,
+      "offsetY": 0.0,
+      "offsetZ": 0.0,
+      "radius": 0.0486,
+      "endBoneId": "bone.left-hand",
+      "endOffsetX": 0.0,
+      "endOffsetY": 0.0,
+      "endOffsetZ": 0.0
+    },
+    {
+      "boneId": "bone.left-hand",
+      "offsetX": 0.0,
+      "offsetY": 0.0,
+      "offsetZ": 0.0,
+      "radius": 0.0679,
+      "endBoneId": "bone.left-hand-end",
+      "endOffsetX": 0.0,
+      "endOffsetY": 0.0,
+      "endOffsetZ": 0.0
+    },
+    {
+      "boneId": "bone.left-upper-leg",
+      "offsetX": 0.0,
+      "offsetY": 0.0,
+      "offsetZ": 0.0,
+      "radius": 0.0891,
+      "endBoneId": "bone.left-lower-leg",
+      "endOffsetX": 0.0,
+      "endOffsetY": 0.0,
+      "endOffsetZ": 0.0
+    },
+    {
+      "boneId": "bone.left-lower-leg",
+      "offsetX": 0.0,
+      "offsetY": 0.0,
+      "offsetZ": 0.0,
+      "radius": 0.0754,
+      "endBoneId": "bone.left-foot",
+      "endOffsetX": 0.0,
+      "endOffsetY": 0.0,
+      "endOffsetZ": 0.0
+    },
+    {
+      "boneId": "bone.left-foot",
+      "offsetX": 0.0,
+      "offsetY": 0.0,
+      "offsetZ": 0.0,
+      "radius": 0.1,
+      "endBoneId": "bone.left-toes",
+      "endOffsetX": 0.0,
+      "endOffsetY": 0.0,
+      "endOffsetZ": 0.0
+    }
+  ],
+  "attachmentBoneIds": [],
+  "capabilityRequirements": [
+    {
+      "capabilityId": "slop.ability.forms.v1",
+      "capabilityVersion": "1"
+    },
+    {
+      "capabilityId": "slop.ability.thrust.v1",
+      "capabilityVersion": "1"
+    },
+    {
+      "capabilityId": "slop.ability.aimed-recovery.v1",
+      "capabilityVersion": "1"
+    },
+    {
+      "capabilityId": "slop.ability.tether.v1",
+      "capabilityVersion": "1"
+    },
+    {
+      "capabilityId": "slop.ability.command-grab.v1",
+      "capabilityVersion": "1"
+    }
+  ],
+  "slots": [
+    {
+      "id": "ground.1",
+      "name": "Shadow Flick",
+      "description": "Shadow Flick.",
+      "iconId": "icon.2",
+      "behavior": "meleeCombo",
+      "aimMode": "none",
+      "aimMovement": "fixed",
+      "cooldownTicks": 0,
+      "isRecoveryMove": false,
+      "preserveMomentumOnStart": false,
+      "allowSlideCarry": true,
+      "timeline": {
+        "stages": [
+          {
+            "durationTicks": 41,
+            "iasaTicks": 32,
+            "landingLagTicks": 0,
+            "autoCancelBeforeTicks": 0,
+            "autoCancelAfterTicks": 0,
+            "attackRange": 0,
+            "warpRange": 0,
+            "useTargetLock": false,
+            "rotateTowardTarget": false,
+            "trackingStrength": 0,
+            "animationIds": [
+              "anim.nyx.g1"
+            ],
+            "operations": [
+              {
+                "kind": "startupAimCorrection",
+                "tick": 0,
+                "unit": "ticks",
+                "endTick": 11,
+                "acquisitionRange": 5,
+                "acquisitionHalfAngleDegrees": 180,
+                "maxYawDegrees": 90,
+                "maxPitchDegrees": 0,
+                "yawDegreesPerSecond": 720,
+                "pitchDegreesPerSecond": 0
+              },
+              {
+                "kind": "spawnHitbox",
+                "tick": 11,
+                "unit": "meters",
+                "hitbox": {
+                  "shape": "capsule",
+                  "radius": 0.6,
+                  "offsetX": 0,
+                  "offsetY": 0.05,
+                  "offsetZ": 0.6,
+                  "endOffsetX": 0,
+                  "endOffsetY": 0.05,
+                  "endOffsetZ": 1.45,
+                  "startBoneId": null,
+                  "endBoneId": null,
+                  "damage": 7,
+                  "angle": 25,
+                  "baseKnockback": 5,
+                  "knockbackGrowth": 24,
+                  "stunTicks": 18,
+                  "durationTicks": 8,
+                  "interruptible": true,
+                  "hitGroup": 1,
+                  "knockbackDirection": "awayFromOwner"
+                }
+              },
+              {
+                "kind": "emitPresentation",
+                "tick": 11,
+                "unit": "ticks",
+                "presentationId": "presentation.nyx.shadow-claws",
+                "placement": {
+                  "attachmentMode": "bone",
+                  "boneId": "bone.hips",
+                  "durationTicks": 8
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "hitPresentationId": "presentation.nyx.shadow-hit"
+    },
+    {
+      "id": "air.1",
+      "name": "Shadow Ring",
+      "description": "Shadow Ring.",
+      "iconId": "icon.2",
+      "behavior": "meleeCombo",
+      "aimMode": "none",
+      "aimMovement": "fixed",
+      "cooldownTicks": 0,
+      "isRecoveryMove": false,
+      "preserveMomentumOnStart": false,
+      "allowSlideCarry": false,
+      "timeline": {
+        "stages": [
+          {
+            "durationTicks": 50,
+            "iasaTicks": 43,
+            "landingLagTicks": 9,
+            "autoCancelBeforeTicks": 0,
+            "autoCancelAfterTicks": 0,
+            "attackRange": 0,
+            "warpRange": 0,
+            "useTargetLock": false,
+            "rotateTowardTarget": false,
+            "trackingStrength": 0,
+            "animationIds": [
+              "anim.nyx.a1"
+            ],
+            "operations": [
+              {
+                "kind": "spawnHitbox",
+                "tick": 10,
+                "unit": "meters",
+                "hitbox": {
+                  "shape": "sphere",
+                  "radius": 1.35,
+                  "offsetX": 0,
+                  "offsetY": 0,
+                  "offsetZ": 0,
+                  "endOffsetX": 0,
+                  "endOffsetY": 0,
+                  "endOffsetZ": 0,
+                  "startBoneId": null,
+                  "endBoneId": null,
+                  "damage": 8,
+                  "angle": 30,
+                  "baseKnockback": 5,
+                  "knockbackGrowth": 24,
+                  "stunTicks": 18,
+                  "durationTicks": 14,
+                  "interruptible": true,
+                  "hitGroup": 1,
+                  "knockbackDirection": "awayFromOwner"
+                }
+              },
+              {
+                "kind": "emitPresentation",
+                "tick": 10,
+                "unit": "ticks",
+                "presentationId": "presentation.nyx.shadow-ring",
+                "placement": {
+                  "attachmentMode": "bone",
+                  "boneId": "bone.hips",
+                  "durationTicks": 14
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "hitPresentationId": "presentation.nyx.shadow-hit"
+    },
+    {
+      "id": "ground.3",
+      "name": "Grasping Hands",
+      "description": "Grasping Hands.",
+      "iconId": "icon.3",
+      "behavior": "meleeCombo",
+      "aimMode": "none",
+      "aimMovement": "fixed",
+      "cooldownTicks": 0,
+      "isRecoveryMove": false,
+      "preserveMomentumOnStart": false,
+      "allowSlideCarry": true,
+      "timeline": {
+        "stages": [
+          {
+            "durationTicks": 55,
+            "iasaTicks": 45,
+            "landingLagTicks": 0,
+            "autoCancelBeforeTicks": 0,
+            "autoCancelAfterTicks": 0,
+            "attackRange": 0,
+            "warpRange": 0,
+            "useTargetLock": false,
+            "rotateTowardTarget": false,
+            "trackingStrength": 0,
+            "animationIds": [
+              "anim.nyx.g3"
+            ],
+            "operations": [
+              {
+                "kind": "startupAimCorrection",
+                "tick": 0,
+                "unit": "ticks",
+                "endTick": 18,
+                "acquisitionRange": 5,
+                "acquisitionHalfAngleDegrees": 180,
+                "maxYawDegrees": 90,
+                "maxPitchDegrees": 0,
+                "yawDegreesPerSecond": 720,
+                "pitchDegreesPerSecond": 0
+              },
+              {
+                "kind": "spawnHitbox",
+                "tick": 18,
+                "unit": "meters",
+                "hitbox": {
+                  "shape": "sphere",
+                  "radius": 0.65,
+                  "offsetX": -0.65,
+                  "offsetY": 0.7,
+                  "offsetZ": 0.55,
+                  "endOffsetX": 0,
+                  "endOffsetY": 0,
+                  "endOffsetZ": 0,
+                  "startBoneId": null,
+                  "endBoneId": null,
+                  "damage": 9,
+                  "angle": 80,
+                  "baseKnockback": 5,
+                  "knockbackGrowth": 28,
+                  "stunTicks": 18,
+                  "durationTicks": 14,
+                  "interruptible": true,
+                  "hitGroup": 1,
+                  "knockbackDirection": "awayFromOwner"
+                }
+              },
+              {
+                "kind": "spawnHitbox",
+                "tick": 18,
+                "unit": "meters",
+                "hitbox": {
+                  "shape": "sphere",
+                  "radius": 0.65,
+                  "offsetX": 0.65,
+                  "offsetY": 0.7,
+                  "offsetZ": 0.55,
+                  "endOffsetX": 0,
+                  "endOffsetY": 0,
+                  "endOffsetZ": 0,
+                  "startBoneId": null,
+                  "endBoneId": null,
+                  "damage": 9,
+                  "angle": 80,
+                  "baseKnockback": 5,
+                  "knockbackGrowth": 28,
+                  "stunTicks": 18,
+                  "durationTicks": 14,
+                  "interruptible": true,
+                  "hitGroup": 1,
+                  "knockbackDirection": "awayFromOwner"
+                }
+              },
+              {
+                "kind": "emitPresentation",
+                "tick": 18,
+                "unit": "ticks",
+                "presentationId": "presentation.nyx.rising-hands",
+                "placement": {
+                  "attachmentMode": "bone",
+                  "boneId": "bone.hips",
+                  "durationTicks": 14
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "hitPresentationId": "presentation.nyx.shadow-hit"
+    },
+    {
+      "id": "air.3",
+      "name": "Up Claw",
+      "description": "Up Claw.",
+      "iconId": "icon.3",
+      "behavior": "meleeCombo",
+      "aimMode": "none",
+      "aimMovement": "fixed",
+      "cooldownTicks": 0,
+      "isRecoveryMove": false,
+      "preserveMomentumOnStart": false,
+      "allowSlideCarry": false,
+      "timeline": {
+        "stages": [
+          {
+            "durationTicks": 53,
+            "iasaTicks": 45,
+            "landingLagTicks": 9,
+            "autoCancelBeforeTicks": 0,
+            "autoCancelAfterTicks": 0,
+            "attackRange": 0,
+            "warpRange": 0,
+            "useTargetLock": false,
+            "rotateTowardTarget": false,
+            "trackingStrength": 0,
+            "animationIds": [
+              "anim.nyx.a3"
+            ],
+            "operations": [
+              {
+                "kind": "spawnHitbox",
+                "tick": 13,
+                "unit": "meters",
+                "hitbox": {
+                  "shape": "sphere",
+                  "radius": 0.7,
+                  "offsetX": 0,
+                  "offsetY": 1.1,
+                  "offsetZ": 0.3,
+                  "endOffsetX": 0,
+                  "endOffsetY": 0,
+                  "endOffsetZ": 0,
+                  "startBoneId": null,
+                  "endBoneId": null,
+                  "damage": 9,
+                  "angle": 85,
+                  "baseKnockback": 5,
+                  "knockbackGrowth": 28,
+                  "stunTicks": 18,
+                  "durationTicks": 10,
+                  "interruptible": true,
+                  "hitGroup": 1,
+                  "knockbackDirection": "awayFromOwner"
+                }
+              },
+              {
+                "kind": "emitPresentation",
+                "tick": 13,
+                "unit": "ticks",
+                "presentationId": "presentation.nyx.up-claw",
+                "placement": {
+                  "attachmentMode": "bone",
+                  "boneId": "bone.hips",
+                  "durationTicks": 10
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "hitPresentationId": "presentation.nyx.shadow-hit"
+    },
+    {
+      "id": "ground.4",
+      "name": "Shadow Lash",
+      "description": "Shadow Lash.",
+      "iconId": "icon.4",
+      "behavior": "meleeCombo",
+      "aimMode": "none",
+      "aimMovement": "fixed",
+      "cooldownTicks": 0,
+      "isRecoveryMove": false,
+      "preserveMomentumOnStart": false,
+      "allowSlideCarry": true,
+      "timeline": {
+        "stages": [
+          {
+            "durationTicks": 80,
+            "iasaTicks": 70,
+            "landingLagTicks": 0,
+            "autoCancelBeforeTicks": 0,
+            "autoCancelAfterTicks": 0,
+            "attackRange": 0,
+            "warpRange": 0,
+            "useTargetLock": false,
+            "rotateTowardTarget": false,
+            "trackingStrength": 0,
+            "animationIds": [
+              "anim.nyx.g4"
+            ],
+            "operations": [
+              {
+                "kind": "startupAimCorrection",
+                "tick": 0,
+                "unit": "ticks",
+                "endTick": 30,
+                "acquisitionRange": 5,
+                "acquisitionHalfAngleDegrees": 180,
+                "maxYawDegrees": 90,
+                "maxPitchDegrees": 0,
+                "yawDegreesPerSecond": 720,
+                "pitchDegreesPerSecond": 0
+              },
+              {
+                "kind": "spawnHitbox",
+                "tick": 30,
+                "unit": "meters",
+                "hitbox": {
+                  "shape": "capsule",
+                  "radius": 0.35,
+                  "offsetX": 0,
+                  "offsetY": -0.55,
+                  "offsetZ": 0.8,
+                  "endOffsetX": 0,
+                  "endOffsetY": -0.55,
+                  "endOffsetZ": 4.0,
+                  "startBoneId": null,
+                  "endBoneId": null,
+                  "damage": 14,
+                  "angle": 25,
+                  "baseKnockback": 8,
+                  "knockbackGrowth": 38,
+                  "stunTicks": 18,
+                  "durationTicks": 10,
+                  "interruptible": true,
+                  "hitGroup": 1,
+                  "knockbackDirection": "awayFromOwner"
+                }
+              },
+              {
+                "kind": "emitPresentation",
+                "tick": 30,
+                "unit": "ticks",
+                "presentationId": "presentation.nyx.floor-lash",
+                "placement": {
+                  "attachmentMode": "bone",
+                  "boneId": "bone.hips",
+                  "durationTicks": 10
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "hitPresentationId": "presentation.nyx.shadow-hit"
+    },
+    {
+      "id": "air.4",
+      "name": "Shadow Fist",
+      "description": "Shadow Fist.",
+      "iconId": "icon.4",
+      "behavior": "meleeCombo",
+      "aimMode": "none",
+      "aimMovement": "fixed",
+      "cooldownTicks": 0,
+      "isRecoveryMove": false,
+      "preserveMomentumOnStart": false,
+      "allowSlideCarry": false,
+      "timeline": {
+        "stages": [
+          {
+            "durationTicks": 70,
+            "iasaTicks": 63,
+            "landingLagTicks": 12,
+            "autoCancelBeforeTicks": 0,
+            "autoCancelAfterTicks": 0,
+            "attackRange": 0,
+            "warpRange": 0,
+            "useTargetLock": false,
+            "rotateTowardTarget": false,
+            "trackingStrength": 0,
+            "animationIds": [
+              "anim.nyx.a4"
+            ],
+            "operations": [
+              {
+                "kind": "spawnHitbox",
+                "tick": 25,
+                "unit": "meters",
+                "hitbox": {
+                  "shape": "sphere",
+                  "radius": 0.7,
+                  "offsetX": 0,
+                  "offsetY": -0.9,
+                  "offsetZ": 0.25,
+                  "endOffsetX": 0,
+                  "endOffsetY": 0,
+                  "endOffsetZ": 0,
+                  "startBoneId": null,
+                  "endBoneId": null,
+                  "damage": 12,
+                  "angle": -80,
+                  "baseKnockback": 7,
+                  "knockbackGrowth": 32,
+                  "stunTicks": 18,
+                  "durationTicks": 10,
+                  "interruptible": true,
+                  "hitGroup": 1,
+                  "knockbackDirection": "awayFromOwner"
+                }
+              },
+              {
+                "kind": "emitPresentation",
+                "tick": 25,
+                "unit": "ticks",
+                "presentationId": "presentation.nyx.spike-fist",
+                "placement": {
+                  "attachmentMode": "bone",
+                  "boneId": "bone.hips",
+                  "durationTicks": 10
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "hitPresentationId": "presentation.nyx.shadow-hit"
+    },
+    {
+      "id": "ground.A",
+      "name": "Hex Crow",
+      "description": "Hex Crow.",
+      "iconId": "icon.a",
+      "behavior": "meleeCombo",
+      "aimMode": "none",
+      "aimMovement": "fixed",
+      "cooldownTicks": 120,
+      "isRecoveryMove": false,
+      "preserveMomentumOnStart": false,
+      "allowSlideCarry": false,
+      "timeline": {
+        "stages": [
+          {
+            "durationTicks": 50,
+            "iasaTicks": 40,
+            "landingLagTicks": 0,
+            "autoCancelBeforeTicks": 0,
+            "autoCancelAfterTicks": 0,
+            "attackRange": 0,
+            "warpRange": 0,
+            "useTargetLock": false,
+            "rotateTowardTarget": false,
+            "trackingStrength": 0,
+            "animationIds": [
+              "anim.nyx.ga"
+            ],
+            "operations": [
+              {
+                "kind": "startupAimCorrection",
+                "tick": 0,
+                "unit": "ticks",
+                "endTick": 20,
+                "acquisitionRange": 12,
+                "acquisitionHalfAngleDegrees": 180,
+                "maxYawDegrees": 180,
+                "maxPitchDegrees": 0,
+                "yawDegreesPerSecond": 1440,
+                "pitchDegreesPerSecond": 0
+              },
+              {
+                "kind": "spawnProjectile",
+                "tick": 20,
+                "unit": "meters",
+                "projectile": {
+                  "launchOffsetX": 0,
+                  "launchOffsetY": 0.45,
+                  "launchOffsetZ": 0.6,
+                  "speed": 9,
+                  "gravity": 0,
+                  "radius": 0.4,
+                  "damage": 0,
+                  "angle": 0,
+                  "baseKnockback": 0,
+                  "knockbackGrowth": 0,
+                  "stunTicks": 0,
+                  "maxFlightTicks": 150,
+                  "yawOffsetDegrees": 0,
+                  "homing": {
+                    "turnDegreesPerTick": 3
+                  },
+                  "perch": {
+                    "perchTicks": 480,
+                    "pop": {
+                      "damage": 6,
+                      "angle": 70,
+                      "baseKnockback": 8,
+                      "knockbackGrowth": 25,
+                      "stunTicks": 18,
+                      "presentationId": "presentation.nyx.crow-pop"
+                    }
+                  }
+                }
+              },
+              {
+                "kind": "emitPresentation",
+                "tick": 20,
+                "unit": "ticks",
+                "presentationId": "presentation.nyx.crow-launch",
+                "placement": {
+                  "attachmentMode": "bone",
+                  "boneId": "bone.hips",
+                  "durationTicks": 15
+                }
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "ground.E",
+      "name": "Bat Scatter",
+      "description": "Bat Scatter.",
+      "iconId": "icon.e",
+      "behavior": "meleeCombo",
+      "aimMode": "none",
+      "aimMovement": "fixed",
+      "cooldownTicks": 240,
+      "isRecoveryMove": true,
+      "preserveMomentumOnStart": false,
+      "allowSlideCarry": false,
+      "timeline": {
+        "stages": [
+          {
+            "durationTicks": 63,
+            "iasaTicks": 0,
+            "landingLagTicks": 0,
+            "autoCancelBeforeTicks": 0,
+            "autoCancelAfterTicks": 0,
+            "attackRange": 0,
+            "warpRange": 0,
+            "useTargetLock": false,
+            "rotateTowardTarget": false,
+            "trackingStrength": 0,
+            "animationIds": [
+              "anim.nyx.ge"
+            ],
+            "operations": [
+              {
+                "kind": "startCapability",
+                "tick": 0,
+                "unit": "ticks",
+                "capabilityId": "slop.ability.thrust.v1",
+                "capabilityVersion": "1",
+                "parameters": {
+                  "aim": "stick",
+                  "neutralPitchDegrees": 90,
+                  "stickPitchDegrees": 35,
+                  "speed": 17,
+                  "acceleration": 0,
+                  "maxSpeed": 17,
+                  "keepIncomingSpeed": false,
+                  "thrustTicks": 30
+                }
+              },
+              {
+                "kind": "emitPresentation",
+                "tick": 0,
+                "unit": "ticks",
+                "presentationId": "presentation.nyx.bat-scatter",
+                "placement": {
+                  "attachmentMode": "bone",
+                  "boneId": "bone.hips",
+                  "durationTicks": 63
+                }
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "ground.R",
+      "name": "Grasp",
+      "description": "Grasp.",
+      "iconId": "icon.r",
+      "behavior": "meleeCombo",
+      "aimMode": "none",
+      "aimMovement": "fixed",
+      "cooldownTicks": 240,
+      "isRecoveryMove": false,
+      "preserveMomentumOnStart": false,
+      "allowSlideCarry": false,
+      "timeline": {
+        "stages": [
+          {
+            "durationTicks": 105,
+            "iasaTicks": 0,
+            "landingLagTicks": 0,
+            "autoCancelBeforeTicks": 0,
+            "autoCancelAfterTicks": 0,
+            "attackRange": 0,
+            "warpRange": 0,
+            "useTargetLock": false,
+            "rotateTowardTarget": false,
+            "trackingStrength": 0,
+            "animationIds": [
+              "anim.nyx.gr"
+            ],
+            "operations": [
+              {
+                "kind": "startCapability",
+                "tick": 0,
+                "unit": "ticks",
+                "capabilityId": "slop.ability.tether.v1",
+                "capabilityVersion": "1",
+                "parameters": {
+                  "throwTick": 15,
+                  "reelSpeed": 18,
+                  "anchorDistance": 0.9,
+                  "arrivalStunTicks": 30,
+                  "maxReelTicks": 75,
+                  "missRecoveryTicks": 54,
+                  "airGravityScale": 0.5,
+                  "atTarget": {
+                    "warningTicks": 15,
+                    "catchTicks": 6,
+                    "radius": 0.9,
+                    "height": 2.2,
+                    "damage": 5,
+                    "maxRange": 9,
+                    "noTargetDistance": 4,
+                    "warningPresentationId": "presentation.nyx.grasp-warning",
+                    "catchPresentationId": "presentation.nyx.grasp-catch"
+                  }
+                }
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "ground.F",
+      "name": "Going Live",
+      "description": "A white and pink flash swaps to Nyxxie and pulls nearby enemies in.",
+      "iconId": "icon.f",
+      "behavior": "meleeCombo",
+      "aimMode": "none",
+      "aimMovement": "fixed",
+      "cooldownTicks": 300,
+      "isRecoveryMove": false,
+      "preserveMomentumOnStart": false,
+      "allowSlideCarry": false,
+      "timeline": {
+        "stages": [
+          {
+            "durationTicks": 38,
+            "iasaTicks": 23,
+            "landingLagTicks": 0,
+            "autoCancelBeforeTicks": 0,
+            "autoCancelAfterTicks": 0,
+            "animationIds": [
+              "anim.nyx.gf"
+            ],
+            "operations": [
+              {
+                "kind": "emitPresentation",
+                "tick": 0,
+                "unit": "ticks",
+                "presentationId": "presentation.nyx.props.phone-raise",
+                "placement": {
+                  "attachmentMode": "bone",
+                  "boneId": "bone.hips",
+                  "durationTicks": 11
+                }
+              },
+              {
+                "kind": "swapForm",
+                "tick": 11,
+                "unit": "ticks"
+              },
+              {
+                "kind": "spawnHitbox",
+                "tick": 11,
+                "unit": "meters",
+                "hitbox": {
+                  "shape": "sphere",
+                  "radius": 3.0,
+                  "offsetX": 0,
+                  "offsetY": 0,
+                  "offsetZ": 0.6,
+                  "endOffsetX": 0,
+                  "endOffsetY": 0,
+                  "endOffsetZ": 0,
+                  "startBoneId": null,
+                  "endBoneId": null,
+                  "damage": 3,
+                  "angle": 10,
+                  "baseKnockback": 24.0,
+                  "knockbackGrowth": 0,
+                  "stunTicks": 20,
+                  "durationTicks": 4,
+                  "interruptible": false,
+                  "hitGroup": 0,
+                  "knockbackDirection": "towardOwner",
+                  "fixedHitstunTicks": 20
+                }
+              },
+              {
+                "kind": "emitPresentation",
+                "tick": 11,
+                "unit": "ticks",
+                "presentationId": "presentation.nyx.going-live",
+                "placement": {
+                  "attachmentMode": "bone",
+                  "boneId": "bone.hips",
+                  "durationTicks": 18
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "hitPresentationId": "presentation.nyx.pink-hit"
+    }
+  ],
+  "aliases": [
+    {
+      "from": "air.A",
+      "to": "ground.A"
+    },
+    {
+      "from": "air.E",
+      "to": "ground.E"
+    },
+    {
+      "from": "air.R",
+      "to": "ground.R"
+    },
+    {
+      "from": "air.F",
+      "to": "ground.F"
+    }
+  ],
+  "presentationIds": [
+    "presentation.nyx.props.pole-held",
+    "presentation.nyx.props.phone-raise",
+    "presentation.nyx.props.phone-drop",
+    "presentation.nyx.shadow-claws",
+    "presentation.nyx.rising-hands",
+    "presentation.nyx.floor-lash",
+    "presentation.nyx.shadow-ring",
+    "presentation.nyx.up-claw",
+    "presentation.nyx.spike-fist",
+    "presentation.nyx.phone-slaps",
+    "presentation.nyx.pole-uppercut",
+    "presentation.nyx.stomp-impact",
+    "presentation.nyx.spin-arc",
+    "presentation.nyx.pole-overhead",
+    "presentation.nyx.dropkick-spike",
+    "presentation.nyx.crow-launch",
+    "presentation.nyx.bat-scatter",
+    "presentation.nyx.grasp-warning",
+    "presentation.nyx.going-live",
+    "presentation.nyx.ring-light",
+    "presentation.nyx.rotor-arcs",
+    "presentation.nyx.selfie-pop",
+    "presentation.nyx.logging-off",
+    "presentation.nyx.grasp-catch",
+    "presentation.nyx.grasp-drag",
+    "presentation.nyx.crow",
+    "presentation.nyx.crow-pop",
+    "presentation.nyx.shadow-hit",
+    "presentation.nyx.pink-hit",
+    "presentation.nyx.selfie-release"
+  ],
+  "alternateForm": {
+    "id": "fake",
+    "displayName": "Nyxxie",
+    "movement": {
+      "runSpeed": 13,
+      "runAccelerationA": 24,
+      "runAccelerationB": 14,
+      "dashSpeed": 23,
+      "airDodgeSpeed": 11.5,
+      "airSpeedMax": 8,
+      "airAccelStick": 18,
+      "airAccelBase": 3.6,
+      "jumpForce": 13,
+      "shortHopForce": 7.8,
+      "airJumpVMultiplier": 0.8,
+      "airJumpHMultiplier": 0.85,
+      "gravity": 38,
+      "airFloatGravity": 0,
+      "dashDurationTicks": 18,
+      "dashCooldownTicks": 48,
+      "groundFriction": 10,
+      "airFriction": 6,
+      "maxFallSpeed": 16,
+      "fastFallSpeed": 24,
+      "maxJumps": 2,
+      "jumpSquatTicks": 3,
+      "floatWindowTicks": 30,
+      "rushTicks": 10
+    },
+    "presentation": {
+      "idle": "anim.nyx.fake.idle",
+      "run": "anim.nyx.fake.run"
+    },
+    "slots": [
+      {
+        "id": "ground.1",
+        "name": "Phone Slaps",
+        "description": "Phone Slaps.",
+        "iconId": "icon.2",
+        "behavior": "meleeCombo",
+        "aimMode": "none",
+        "aimMovement": "fixed",
+        "cooldownTicks": 0,
+        "isRecoveryMove": false,
+        "preserveMomentumOnStart": false,
+        "allowSlideCarry": true,
+        "timeline": {
+          "stages": [
+            {
+              "durationTicks": 59,
+              "iasaTicks": 51,
+              "landingLagTicks": 0,
+              "autoCancelBeforeTicks": 0,
+              "autoCancelAfterTicks": 0,
+              "attackRange": 0,
+              "warpRange": 0,
+              "useTargetLock": false,
+              "rotateTowardTarget": false,
+              "trackingStrength": 0,
+              "animationIds": [
+                "anim.nyx.fake.g1"
+              ],
+              "operations": [
+                {
+                  "kind": "startupAimCorrection",
+                  "tick": 0,
+                  "unit": "ticks",
+                  "endTick": 11,
+                  "acquisitionRange": 5,
+                  "acquisitionHalfAngleDegrees": 180,
+                  "maxYawDegrees": 90,
+                  "maxPitchDegrees": 0,
+                  "yawDegreesPerSecond": 720,
+                  "pitchDegreesPerSecond": 0
+                },
+                {
+                  "kind": "spawnHitbox",
+                  "tick": 11,
+                  "unit": "meters",
+                  "hitbox": {
+                    "shape": "sphere",
+                    "radius": 0.5,
+                    "offsetX": 0.15,
+                    "offsetY": 0.1,
+                    "offsetZ": 0.9,
+                    "endOffsetX": 0,
+                    "endOffsetY": 0,
+                    "endOffsetZ": 0,
+                    "startBoneId": null,
+                    "endBoneId": null,
+                    "damage": 3,
+                    "angle": 25,
+                    "baseKnockback": 0,
+                    "knockbackGrowth": 0,
+                    "stunTicks": 18,
+                    "durationTicks": 5,
+                    "interruptible": true,
+                    "hitGroup": 1,
+                    "knockbackDirection": "awayFromOwner",
+                    "fixedHitstunTicks": 14
+                  }
+                },
+                {
+                  "kind": "emitPresentation",
+                  "tick": 11,
+                  "unit": "ticks",
+                  "presentationId": "presentation.nyx.phone-slaps",
+                  "placement": {
+                    "attachmentMode": "bone",
+                    "boneId": "bone.hips",
+                    "durationTicks": 5
+                  }
+                },
+                {
+                  "kind": "spawnHitbox",
+                  "tick": 22,
+                  "unit": "meters",
+                  "hitbox": {
+                    "shape": "sphere",
+                    "radius": 0.5,
+                    "offsetX": -0.15,
+                    "offsetY": 0.1,
+                    "offsetZ": 0.9,
+                    "endOffsetX": 0,
+                    "endOffsetY": 0,
+                    "endOffsetZ": 0,
+                    "startBoneId": null,
+                    "endBoneId": null,
+                    "damage": 3,
+                    "angle": 25,
+                    "baseKnockback": 0,
+                    "knockbackGrowth": 0,
+                    "stunTicks": 18,
+                    "durationTicks": 5,
+                    "interruptible": true,
+                    "hitGroup": 2,
+                    "knockbackDirection": "awayFromOwner",
+                    "fixedHitstunTicks": 14
+                  }
+                },
+                {
+                  "kind": "emitPresentation",
+                  "tick": 22,
+                  "unit": "ticks",
+                  "presentationId": "presentation.nyx.phone-slaps",
+                  "placement": {
+                    "attachmentMode": "bone",
+                    "boneId": "bone.hips",
+                    "durationTicks": 5
+                  }
+                },
+                {
+                  "kind": "spawnHitbox",
+                  "tick": 35,
+                  "unit": "meters",
+                  "hitbox": {
+                    "shape": "sphere",
+                    "radius": 0.5,
+                    "offsetX": 0.15,
+                    "offsetY": 0.1,
+                    "offsetZ": 0.9,
+                    "endOffsetX": 0,
+                    "endOffsetY": 0,
+                    "endOffsetZ": 0,
+                    "startBoneId": null,
+                    "endBoneId": null,
+                    "damage": 5,
+                    "angle": 25,
+                    "baseKnockback": 5,
+                    "knockbackGrowth": 28,
+                    "stunTicks": 18,
+                    "durationTicks": 7,
+                    "interruptible": true,
+                    "hitGroup": 3,
+                    "knockbackDirection": "awayFromOwner"
+                  }
+                },
+                {
+                  "kind": "emitPresentation",
+                  "tick": 35,
+                  "unit": "ticks",
+                  "presentationId": "presentation.nyx.phone-slaps",
+                  "placement": {
+                    "attachmentMode": "bone",
+                    "boneId": "bone.hips",
+                    "durationTicks": 7
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        "hitPresentationId": "presentation.nyx.pink-hit"
+      },
+      {
+        "id": "air.1",
+        "name": "Spinning Slap",
+        "description": "Spinning Slap.",
+        "iconId": "icon.2",
+        "behavior": "meleeCombo",
+        "aimMode": "none",
+        "aimMovement": "fixed",
+        "cooldownTicks": 0,
+        "isRecoveryMove": false,
+        "preserveMomentumOnStart": false,
+        "allowSlideCarry": false,
+        "timeline": {
+          "stages": [
+            {
+              "durationTicks": 45,
+              "iasaTicks": 39,
+              "landingLagTicks": 9,
+              "autoCancelBeforeTicks": 0,
+              "autoCancelAfterTicks": 0,
+              "attackRange": 0,
+              "warpRange": 0,
+              "useTargetLock": false,
+              "rotateTowardTarget": false,
+              "trackingStrength": 0,
+              "animationIds": [
+                "anim.nyx.fake.a1"
+              ],
+              "operations": [
+                {
+                  "kind": "spawnHitbox",
+                  "tick": 9,
+                  "unit": "meters",
+                  "hitbox": {
+                    "shape": "sphere",
+                    "radius": 1.0,
+                    "offsetX": 0,
+                    "offsetY": 0.1,
+                    "offsetZ": 0,
+                    "endOffsetX": 0,
+                    "endOffsetY": 0,
+                    "endOffsetZ": 0,
+                    "startBoneId": null,
+                    "endBoneId": null,
+                    "damage": 8,
+                    "angle": 30,
+                    "baseKnockback": 5,
+                    "knockbackGrowth": 26,
+                    "stunTicks": 18,
+                    "durationTicks": 13,
+                    "interruptible": true,
+                    "hitGroup": 1,
+                    "knockbackDirection": "awayFromOwner"
+                  }
+                },
+                {
+                  "kind": "emitPresentation",
+                  "tick": 9,
+                  "unit": "ticks",
+                  "presentationId": "presentation.nyx.spin-arc",
+                  "placement": {
+                    "attachmentMode": "bone",
+                    "boneId": "bone.hips",
+                    "durationTicks": 13
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        "hitPresentationId": "presentation.nyx.pink-hit"
+      },
+      {
+        "id": "ground.3",
+        "name": "Ring Light Uppercut",
+        "description": "Ring Light Uppercut.",
+        "iconId": "icon.3",
+        "behavior": "meleeCombo",
+        "aimMode": "none",
+        "aimMovement": "fixed",
+        "cooldownTicks": 0,
+        "isRecoveryMove": false,
+        "preserveMomentumOnStart": false,
+        "allowSlideCarry": true,
+        "timeline": {
+          "stages": [
+            {
+              "durationTicks": 60,
+              "iasaTicks": 50,
+              "landingLagTicks": 0,
+              "autoCancelBeforeTicks": 0,
+              "autoCancelAfterTicks": 0,
+              "attackRange": 0,
+              "warpRange": 0,
+              "useTargetLock": false,
+              "rotateTowardTarget": false,
+              "trackingStrength": 0,
+              "animationIds": [
+                "anim.nyx.fake.g3"
+              ],
+              "operations": [
+                {
+                  "kind": "emitPresentation",
+                  "tick": 0,
+                  "unit": "ticks",
+                  "presentationId": "presentation.nyx.props.pole-held",
+                  "placement": {
+                    "attachmentMode": "bone",
+                    "boneId": "bone.hips",
+                    "durationTicks": 60
+                  }
+                },
+                {
+                  "kind": "startupAimCorrection",
+                  "tick": 0,
+                  "unit": "ticks",
+                  "endTick": 20,
+                  "acquisitionRange": 5,
+                  "acquisitionHalfAngleDegrees": 180,
+                  "maxYawDegrees": 90,
+                  "maxPitchDegrees": 0,
+                  "yawDegreesPerSecond": 720,
+                  "pitchDegreesPerSecond": 0
+                },
+                {
+                  "kind": "spawnHitbox",
+                  "tick": 20,
+                  "unit": "meters",
+                  "hitbox": {
+                    "shape": "capsule",
+                    "radius": 0.4,
+                    "offsetX": 0,
+                    "offsetY": -0.1,
+                    "offsetZ": 0.75,
+                    "endOffsetX": 0,
+                    "endOffsetY": 1.15,
+                    "endOffsetZ": 0.85,
+                    "startBoneId": null,
+                    "endBoneId": null,
+                    "damage": 11,
+                    "angle": 82,
+                    "baseKnockback": 6,
+                    "knockbackGrowth": 34,
+                    "stunTicks": 18,
+                    "durationTicks": 11,
+                    "interruptible": true,
+                    "hitGroup": 1,
+                    "knockbackDirection": "awayFromOwner"
+                  }
+                },
+                {
+                  "kind": "emitPresentation",
+                  "tick": 20,
+                  "unit": "ticks",
+                  "presentationId": "presentation.nyx.pole-uppercut",
+                  "placement": {
+                    "attachmentMode": "bone",
+                    "boneId": "bone.hips",
+                    "durationTicks": 11
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        "hitPresentationId": "presentation.nyx.pink-hit"
+      },
+      {
+        "id": "air.3",
+        "name": "Ring Light Overhead",
+        "description": "Ring Light Overhead.",
+        "iconId": "icon.3",
+        "behavior": "meleeCombo",
+        "aimMode": "none",
+        "aimMovement": "fixed",
+        "cooldownTicks": 0,
+        "isRecoveryMove": false,
+        "preserveMomentumOnStart": false,
+        "allowSlideCarry": false,
+        "timeline": {
+          "stages": [
+            {
+              "durationTicks": 55,
+              "iasaTicks": 48,
+              "landingLagTicks": 10,
+              "autoCancelBeforeTicks": 0,
+              "autoCancelAfterTicks": 0,
+              "attackRange": 0,
+              "warpRange": 0,
+              "useTargetLock": false,
+              "rotateTowardTarget": false,
+              "trackingStrength": 0,
+              "animationIds": [
+                "anim.nyx.fake.a3"
+              ],
+              "operations": [
+                {
+                  "kind": "emitPresentation",
+                  "tick": 0,
+                  "unit": "ticks",
+                  "presentationId": "presentation.nyx.props.pole-held",
+                  "placement": {
+                    "attachmentMode": "bone",
+                    "boneId": "bone.hips",
+                    "durationTicks": 55
+                  }
+                },
+                {
+                  "kind": "spawnHitbox",
+                  "tick": 15,
+                  "unit": "meters",
+                  "hitbox": {
+                    "shape": "capsule",
+                    "radius": 0.45,
+                    "offsetX": -0.8,
+                    "offsetY": 0.9,
+                    "offsetZ": 0.25,
+                    "endOffsetX": 0.8,
+                    "endOffsetY": 0.9,
+                    "endOffsetZ": 0.25,
+                    "startBoneId": null,
+                    "endBoneId": null,
+                    "damage": 10,
+                    "angle": 80,
+                    "baseKnockback": 6,
+                    "knockbackGrowth": 30,
+                    "stunTicks": 18,
+                    "durationTicks": 14,
+                    "interruptible": true,
+                    "hitGroup": 1,
+                    "knockbackDirection": "awayFromOwner"
+                  }
+                },
+                {
+                  "kind": "emitPresentation",
+                  "tick": 15,
+                  "unit": "ticks",
+                  "presentationId": "presentation.nyx.pole-overhead",
+                  "placement": {
+                    "attachmentMode": "bone",
+                    "boneId": "bone.hips",
+                    "durationTicks": 14
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        "hitPresentationId": "presentation.nyx.pink-hit"
+      },
+      {
+        "id": "ground.4",
+        "name": "Platform Stomp-Kick",
+        "description": "Platform Stomp-Kick.",
+        "iconId": "icon.4",
+        "behavior": "meleeCombo",
+        "aimMode": "none",
+        "aimMovement": "fixed",
+        "cooldownTicks": 0,
+        "isRecoveryMove": false,
+        "preserveMomentumOnStart": false,
+        "allowSlideCarry": true,
+        "timeline": {
+          "stages": [
+            {
+              "durationTicks": 65,
+              "iasaTicks": 58,
+              "landingLagTicks": 0,
+              "autoCancelBeforeTicks": 0,
+              "autoCancelAfterTicks": 0,
+              "attackRange": 0,
+              "warpRange": 0,
+              "useTargetLock": false,
+              "rotateTowardTarget": false,
+              "trackingStrength": 0,
+              "animationIds": [
+                "anim.nyx.fake.g4"
+              ],
+              "operations": [
+                {
+                  "kind": "startupAimCorrection",
+                  "tick": 0,
+                  "unit": "ticks",
+                  "endTick": 20,
+                  "acquisitionRange": 5,
+                  "acquisitionHalfAngleDegrees": 180,
+                  "maxYawDegrees": 90,
+                  "maxPitchDegrees": 0,
+                  "yawDegreesPerSecond": 720,
+                  "pitchDegreesPerSecond": 0
+                },
+                {
+                  "kind": "spawnHitbox",
+                  "tick": 20,
+                  "unit": "meters",
+                  "hitbox": {
+                    "shape": "capsule",
+                    "radius": 0.45,
+                    "offsetX": 0,
+                    "offsetY": -0.45,
+                    "offsetZ": 0.6,
+                    "endOffsetX": 0,
+                    "endOffsetY": -0.15,
+                    "endOffsetZ": 1.4,
+                    "startBoneId": null,
+                    "endBoneId": null,
+                    "damage": 13,
+                    "angle": 28,
+                    "baseKnockback": 8,
+                    "knockbackGrowth": 38,
+                    "stunTicks": 18,
+                    "durationTicks": 9,
+                    "interruptible": true,
+                    "hitGroup": 1,
+                    "knockbackDirection": "awayFromOwner"
+                  }
+                },
+                {
+                  "kind": "emitPresentation",
+                  "tick": 20,
+                  "unit": "ticks",
+                  "presentationId": "presentation.nyx.stomp-impact",
+                  "placement": {
+                    "attachmentMode": "bone",
+                    "boneId": "bone.hips",
+                    "durationTicks": 9
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        "hitPresentationId": "presentation.nyx.pink-hit"
+      },
+      {
+        "id": "air.4",
+        "name": "Double Dropkick",
+        "description": "Double Dropkick.",
+        "iconId": "icon.4",
+        "behavior": "meleeCombo",
+        "aimMode": "none",
+        "aimMovement": "fixed",
+        "cooldownTicks": 0,
+        "isRecoveryMove": false,
+        "preserveMomentumOnStart": false,
+        "allowSlideCarry": false,
+        "timeline": {
+          "stages": [
+            {
+              "durationTicks": 60,
+              "iasaTicks": 53,
+              "landingLagTicks": 12,
+              "autoCancelBeforeTicks": 0,
+              "autoCancelAfterTicks": 0,
+              "attackRange": 0,
+              "warpRange": 0,
+              "useTargetLock": false,
+              "rotateTowardTarget": false,
+              "trackingStrength": 0,
+              "animationIds": [
+                "anim.nyx.fake.a4"
+              ],
+              "operations": [
+                {
+                  "kind": "spawnHitbox",
+                  "tick": 15,
+                  "unit": "meters",
+                  "hitbox": {
+                    "shape": "capsule",
+                    "radius": 0.45,
+                    "offsetX": -0.2,
+                    "offsetY": -0.45,
+                    "offsetZ": 0.3,
+                    "endOffsetX": 0.2,
+                    "endOffsetY": -1.0,
+                    "endOffsetZ": 0.6,
+                    "startBoneId": null,
+                    "endBoneId": null,
+                    "damage": 12,
+                    "angle": -70,
+                    "baseKnockback": 7,
+                    "knockbackGrowth": 34,
+                    "stunTicks": 18,
+                    "durationTicks": 16,
+                    "interruptible": true,
+                    "hitGroup": 1,
+                    "knockbackDirection": "awayFromOwner"
+                  }
+                },
+                {
+                  "kind": "emitPresentation",
+                  "tick": 15,
+                  "unit": "ticks",
+                  "presentationId": "presentation.nyx.dropkick-spike",
+                  "placement": {
+                    "attachmentMode": "bone",
+                    "boneId": "bone.hips",
+                    "durationTicks": 16
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        "hitPresentationId": "presentation.nyx.pink-hit"
+      },
+      {
+        "id": "ground.A",
+        "name": "Ring Light",
+        "description": "Ring Light.",
+        "iconId": "icon.a",
+        "behavior": "meleeCombo",
+        "aimMode": "none",
+        "aimMovement": "fixed",
+        "cooldownTicks": 120,
+        "isRecoveryMove": false,
+        "preserveMomentumOnStart": false,
+        "allowSlideCarry": false,
+        "timeline": {
+          "stages": [
+            {
+              "durationTicks": 45,
+              "iasaTicks": 38,
+              "landingLagTicks": 0,
+              "autoCancelBeforeTicks": 0,
+              "autoCancelAfterTicks": 0,
+              "attackRange": 0,
+              "warpRange": 0,
+              "useTargetLock": false,
+              "rotateTowardTarget": false,
+              "trackingStrength": 0,
+              "animationIds": [
+                "anim.nyx.fake.ga"
+              ],
+              "operations": [
+                {
+                  "kind": "startupAimCorrection",
+                  "tick": 0,
+                  "unit": "ticks",
+                  "endTick": 10,
+                  "acquisitionRange": 5,
+                  "acquisitionHalfAngleDegrees": 180,
+                  "maxYawDegrees": 180,
+                  "maxPitchDegrees": 0,
+                  "yawDegreesPerSecond": 1440,
+                  "pitchDegreesPerSecond": 0
+                },
+                {
+                  "kind": "forwardLunge",
+                  "tick": 10,
+                  "unit": "metersPerSecond",
+                  "speed": 24,
+                  "durationTicks": 3,
+                  "stopInAttackRange": true
+                },
+                {
+                  "kind": "spawnHitbox",
+                  "tick": 13,
+                  "unit": "meters",
+                  "hitbox": {
+                    "shape": "sphere",
+                    "radius": 0.5,
+                    "offsetX": 0,
+                    "offsetY": 0.1,
+                    "offsetZ": 0.8,
+                    "endOffsetX": 0,
+                    "endOffsetY": 0,
+                    "endOffsetZ": 0,
+                    "startBoneId": null,
+                    "endBoneId": null,
+                    "damage": 0,
+                    "angle": 30,
+                    "baseKnockback": 0,
+                    "knockbackGrowth": 0,
+                    "stunTicks": 18,
+                    "durationTicks": 6,
+                    "interruptible": true,
+                    "hitGroup": 1,
+                    "knockbackDirection": "awayFromOwner",
+                    "fixedHitstunTicks": 36,
+                    "requiresFacingOwner": true
+                  }
+                },
+                {
+                  "kind": "spawnHitbox",
+                  "tick": 13,
+                  "unit": "meters",
+                  "hitbox": {
+                    "shape": "sphere",
+                    "radius": 0.65,
+                    "offsetX": 0,
+                    "offsetY": 0.1,
+                    "offsetZ": 1.5,
+                    "endOffsetX": 0,
+                    "endOffsetY": 0,
+                    "endOffsetZ": 0,
+                    "startBoneId": null,
+                    "endBoneId": null,
+                    "damage": 0,
+                    "angle": 30,
+                    "baseKnockback": 0,
+                    "knockbackGrowth": 0,
+                    "stunTicks": 18,
+                    "durationTicks": 6,
+                    "interruptible": true,
+                    "hitGroup": 1,
+                    "knockbackDirection": "awayFromOwner",
+                    "fixedHitstunTicks": 36,
+                    "requiresFacingOwner": true
+                  }
+                },
+                {
+                  "kind": "spawnHitbox",
+                  "tick": 13,
+                  "unit": "meters",
+                  "hitbox": {
+                    "shape": "sphere",
+                    "radius": 0.55,
+                    "offsetX": -0.65,
+                    "offsetY": 0.1,
+                    "offsetZ": 1.8,
+                    "endOffsetX": 0,
+                    "endOffsetY": 0,
+                    "endOffsetZ": 0,
+                    "startBoneId": null,
+                    "endBoneId": null,
+                    "damage": 0,
+                    "angle": 30,
+                    "baseKnockback": 0,
+                    "knockbackGrowth": 0,
+                    "stunTicks": 18,
+                    "durationTicks": 6,
+                    "interruptible": true,
+                    "hitGroup": 1,
+                    "knockbackDirection": "awayFromOwner",
+                    "fixedHitstunTicks": 36,
+                    "requiresFacingOwner": true
+                  }
+                },
+                {
+                  "kind": "spawnHitbox",
+                  "tick": 13,
+                  "unit": "meters",
+                  "hitbox": {
+                    "shape": "sphere",
+                    "radius": 0.55,
+                    "offsetX": 0.65,
+                    "offsetY": 0.1,
+                    "offsetZ": 1.8,
+                    "endOffsetX": 0,
+                    "endOffsetY": 0,
+                    "endOffsetZ": 0,
+                    "startBoneId": null,
+                    "endBoneId": null,
+                    "damage": 0,
+                    "angle": 30,
+                    "baseKnockback": 0,
+                    "knockbackGrowth": 0,
+                    "stunTicks": 18,
+                    "durationTicks": 6,
+                    "interruptible": true,
+                    "hitGroup": 1,
+                    "knockbackDirection": "awayFromOwner",
+                    "fixedHitstunTicks": 36,
+                    "requiresFacingOwner": true
+                  }
+                },
+                {
+                  "kind": "emitPresentation",
+                  "tick": 13,
+                  "unit": "ticks",
+                  "presentationId": "presentation.nyx.ring-light",
+                  "placement": {
+                    "attachmentMode": "bone",
+                    "boneId": "bone.hips",
+                    "durationTicks": 6
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        "hitPresentationId": "presentation.nyx.pink-hit"
+      },
+      {
+        "id": "ground.E",
+        "name": "Ring Light Rise",
+        "description": "Ring Light Rise.",
+        "iconId": "icon.e",
+        "behavior": "meleeCombo",
+        "aimMode": "none",
+        "aimMovement": "fixed",
+        "cooldownTicks": 240,
+        "isRecoveryMove": true,
+        "preserveMomentumOnStart": false,
+        "allowSlideCarry": false,
+        "timeline": {
+          "stages": [
+            {
+              "durationTicks": 63,
+              "iasaTicks": 0,
+              "landingLagTicks": 0,
+              "autoCancelBeforeTicks": 0,
+              "autoCancelAfterTicks": 0,
+              "attackRange": 0,
+              "warpRange": 0,
+              "useTargetLock": false,
+              "rotateTowardTarget": false,
+              "trackingStrength": 0,
+              "animationIds": [
+                "anim.nyx.fake.ge"
+              ],
+              "operations": [
+                {
+                  "kind": "startCapability",
+                  "tick": 0,
+                  "unit": "ticks",
+                  "capabilityId": "slop.ability.aimed-recovery.v1",
+                  "capabilityVersion": "1",
+                  "parameters": {
+                    "startupTicks": 15,
+                    "verticalSpeed": 18,
+                    "directionalVerticalSpeed": 16,
+                    "horizontalSpeed": 9,
+                    "preparationRiseSpeed": 0,
+                    "riseSteerAcceleration": 30
+                  }
+                },
+                {
+                  "kind": "emitPresentation",
+                  "tick": 0,
+                  "unit": "ticks",
+                  "presentationId": "presentation.nyx.rotor-arcs",
+                  "placement": {
+                    "attachmentMode": "bone",
+                    "boneId": "bone.hips",
+                    "durationTicks": 63
+                  }
+                }
+              ]
+            }
+          ]
+        }
+      },
+      {
+        "id": "ground.R",
+        "name": "Selfie Grab",
+        "description": "Selfie Grab.",
+        "iconId": "icon.r",
+        "behavior": "meleeCombo",
+        "aimMode": "none",
+        "aimMovement": "fixed",
+        "cooldownTicks": 240,
+        "isRecoveryMove": false,
+        "preserveMomentumOnStart": false,
+        "allowSlideCarry": false,
+        "timeline": {
+          "stages": [
+            {
+              "durationTicks": 95,
+              "iasaTicks": 85,
+              "landingLagTicks": 0,
+              "autoCancelBeforeTicks": 0,
+              "autoCancelAfterTicks": 0,
+              "attackRange": 0,
+              "warpRange": 0,
+              "useTargetLock": false,
+              "rotateTowardTarget": false,
+              "trackingStrength": 0,
+              "animationIds": [
+                "anim.nyx.fake.gr"
+              ],
+              "operations": [
+                {
+                  "kind": "startCapability",
+                  "tick": 0,
+                  "unit": "ticks",
+                  "capabilityId": "slop.ability.command-grab.v1",
+                  "capabilityVersion": "1",
+                  "parameters": {
+                    "lungeTicks": 13,
+                    "lungeSpeed": 14,
+                    "stopDistance": 1.1,
+                    "captureTick": 13,
+                    "capture": {
+                      "shape": "sphere",
+                      "radius": 0.75,
+                      "offsetX": 0,
+                      "offsetY": 0,
+                      "offsetZ": 0.85,
+                      "endOffsetX": 0,
+                      "endOffsetY": 0,
+                      "endOffsetZ": 0,
+                      "startBoneId": null,
+                      "endBoneId": null,
+                      "damage": 0,
+                      "angle": 0,
+                      "baseKnockback": 0,
+                      "knockbackGrowth": 0,
+                      "stunTicks": 0,
+                      "durationTicks": 6,
+                      "interruptible": true,
+                      "hitGroup": 0,
+                      "knockbackDirection": "awayFromOwner"
+                    },
+                    "releaseTick": 65,
+                    "launch": {
+                      "damage": 10,
+                      "angle": 40,
+                      "baseKnockback": 8,
+                      "knockbackGrowth": 48,
+                      "stunTicks": 20
+                    },
+                    "releasePresentationId": "presentation.nyx.selfie-release"
+                  }
+                },
+                {
+                  "kind": "emitPresentation",
+                  "tick": 55,
+                  "unit": "ticks",
+                  "presentationId": "presentation.nyx.selfie-pop",
+                  "placement": {
+                    "attachmentMode": "bone",
+                    "boneId": "bone.hips",
+                    "durationTicks": 10
+                  }
+                }
+              ]
+            }
+          ]
+        }
+      },
+      {
+        "id": "ground.F",
+        "name": "Logging Off",
+        "description": "A violet shard burst swaps to Nyx and pushes nearby enemies away.",
+        "iconId": "icon.f",
+        "behavior": "meleeCombo",
+        "aimMode": "none",
+        "aimMovement": "fixed",
+        "cooldownTicks": 300,
+        "isRecoveryMove": false,
+        "preserveMomentumOnStart": false,
+        "allowSlideCarry": false,
+        "timeline": {
+          "stages": [
+            {
+              "durationTicks": 41,
+              "iasaTicks": 25,
+              "landingLagTicks": 0,
+              "autoCancelBeforeTicks": 0,
+              "autoCancelAfterTicks": 0,
+              "animationIds": [
+                "anim.nyx.fake.gf"
+              ],
+              "operations": [
+                {
+                  "kind": "emitPresentation",
+                  "tick": 0,
+                  "unit": "ticks",
+                  "presentationId": "presentation.nyx.props.phone-drop",
+                  "placement": {
+                    "attachmentMode": "bone",
+                    "boneId": "bone.hips",
+                    "durationTicks": 13
+                  }
+                },
+                {
+                  "kind": "swapForm",
+                  "tick": 13,
+                  "unit": "ticks"
+                },
+                {
+                  "kind": "spawnHitbox",
+                  "tick": 13,
+                  "unit": "meters",
+                  "hitbox": {
+                    "shape": "sphere",
+                    "radius": 3.0,
+                    "offsetX": 0,
+                    "offsetY": 0,
+                    "offsetZ": 0.6,
+                    "endOffsetX": 0,
+                    "endOffsetY": 0,
+                    "endOffsetZ": 0,
+                    "startBoneId": null,
+                    "endBoneId": null,
+                    "damage": 4,
+                    "angle": 25,
+                    "baseKnockback": 40.0,
+                    "knockbackGrowth": 0.3,
+                    "stunTicks": 20,
+                    "durationTicks": 4,
+                    "interruptible": false,
+                    "hitGroup": 0,
+                    "knockbackDirection": "awayFromOwner",
+                    "fixedHitstunTicks": 0
+                  }
+                },
+                {
+                  "kind": "emitPresentation",
+                  "tick": 13,
+                  "unit": "ticks",
+                  "presentationId": "presentation.nyx.logging-off",
+                  "placement": {
+                    "attachmentMode": "bone",
+                    "boneId": "bone.hips",
+                    "durationTicks": 18
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        "hitPresentationId": "presentation.nyx.shadow-hit"
+      }
+    ],
+    "aliases": [
+      {
+        "from": "air.A",
+        "to": "ground.A"
+      },
+      {
+        "from": "air.E",
+        "to": "ground.E"
+      },
+      {
+        "from": "air.R",
+        "to": "ground.R"
+      },
+      {
+        "from": "air.F",
+        "to": "ground.F"
+      }
+    ]
+  }
+}

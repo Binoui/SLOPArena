@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
 """HUD move icons in the glyph style, from the live models (see the AbilityCards README).
 
-decks.json holds, per package, the HUD folder, accent and fighter description, and per canonical slot the
+decks.json holds, per package (optionally under forms 0/1), the HUD folder, accent and fighter description, and per canonical slot the
 frame to draw from, the move's subject and direction, plus optional clip, ticks and rig pack overrides.
-Work happens in tmp/hud-icons/<package>/.
+Work happens in tmp/hud-icons/<package>/, or <package>.form<N>/ with --form.
+Use --form 0 or --form 1 for Nyx. Both decks use borrowed placeholder icons until her own clips are approved.
 
     hud_icons.py render manki [--slots 13A]   # Unity: render each move on magenta, write sheet.png
     hud_icons.py refs manki                   # cut each move's decks.json frame into refs/<slot>.png
@@ -65,14 +66,26 @@ STYLE_ANCHOR = CARDS / 'FightGuy/icon.r.png'
 
 
 def deck(pkg):
-    if pkg not in DECKS:
-        raise SystemExit(f'{pkg} is not in decks.json ({", ".join(DECKS)})')
-    return DECKS[pkg]
+    package, marker, form_text = pkg.partition('.form')
+    if package not in DECKS:
+        raise SystemExit(f'{package} is not in decks.json ({", ".join(DECKS)})')
+    spec = DECKS[package]
+    form = int(form_text) if marker else 0
+    if 'forms' in spec:
+        if str(form) not in spec['forms']:
+            raise SystemExit(f'{package} has no form {form}')
+        return dict(spec['forms'][str(form)], package=package, form=form)
+    if form != 0:
+        raise SystemExit(f'{package} has no form {form}')
+    return dict(spec, package=package, form=0)
 
 
 def character_slots(pkg) -> dict:
     """Canonical grounded slot -> {clip, ticks, iconId} from the package's character.json."""
-    data = json.loads((REPO / f'client/Unity/Assets/CharacterPackages/{pkg}/character.json').read_text())
+    spec = deck(pkg)
+    data = json.loads((REPO / f'client/Unity/Assets/CharacterPackages/{spec["package"]}/character.json').read_text())
+    if spec['form'] == 1:
+        data = data['alternateForm']
     slots = {}
     for spec in data['slots']:
         if not spec['id'].startswith('ground.'):
@@ -272,10 +285,13 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__.split('\n')[0])
     parser.add_argument('command', choices=['render', 'refs', 'job', 'prep', 'board', 'install'])
     parser.add_argument('packages', nargs='+')
+    parser.add_argument('--form', type=int, choices=[0, 1], help='form index, default 0; work is kept per form')
     parser.add_argument('--slots', help='canonical slots, e.g. 13AF (default: all seven)')
     parser.add_argument('--source', choices=['prepped', 'installed'], default='prepped', help='board: which icons to show')
     parser.add_argument('--out', help='board: output PNG')
     args = parser.parse_args()
+    if args.form is not None:
+        args.packages = [f'{pkg}.form{args.form}' for pkg in args.packages]
     if args.command == 'board':
         return board(args.packages, args.source, args.out)
     for pkg in args.packages:

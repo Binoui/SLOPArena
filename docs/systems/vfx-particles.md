@@ -356,6 +356,27 @@ crescents turn about the dodge to face whichever camera draws them. The landing 
 every touchdown spawns also covers a dodge into the ground. `tools/sfx/air_dodge_clips.py`
 regenerates the sound from seeded noise; `--out` writes the three candidates for review.
 
+## KO flyer burst
+
+Crossing a blast line plays a flyer burst (direction 1 of three painted concepts, picked by the
+owner on 2026-10-28). It replaced the vendor `CFXR4 Wave Explosion Purple` test effect.
+`PlayerRenderer.PresentStockTransition` spawns `KnockoutBurst` at the clamped blast-line
+position with the fighter's seat colour (white when `PlayerNumber` is 0). It is
+presentation-only, lasts 0.8 s and never shakes the camera.
+
+| Layer | Behaviour |
+|-------|-----------|
+| Burst | An Orange jagged star with an ink rim, a Paper core, a hard ink shadow and an out-of-register Action Yellow copy. It pops to 115% in 0.07 s, settles, holds and snaps shut by 0.56 s. |
+| Trail | Halftone dots in alternating ink and seat-colour rows point toward the middle of the screen, where the camera frames the fight. They grow out over 0.12 s and shrink away from 0.22 s. |
+| Scraps | Twelve Paper, Action Yellow and seat-colour scraps with ink rims and shadows fly out from behind the burst against drag and gravity, then shrink out. |
+
+`KnockoutBurst` builds every shape as a function of the burst's age. `Resources/Shaders/KnockoutBurst.shader`
+places them for each camera. A crossing behind the camera is reflected in front of it, the
+burst radius stays between 8% and 13% of the screen height (size B, picked 2026-10-28), and the whole burst stays inside
+the screen edge, so a KO far away or out of view still reads. It draws over the world
+(`ZTest Always`). Its material is checked by value, because Play Mode without a domain reload
+destroys a material made in Edit Mode.
+
 ## Homing dash lock-on
 
 The universal homing dash ([ADR-0042](../adr/0042-controller-layout-three-normals-homing-dash.md))
@@ -489,16 +510,19 @@ The general rules still apply:
 | Solo countdown | Implemented | `SoloCountdownView.cs` |
 | Fighter hit feel (shake, flash, squash/lean, launch smoke) | Implemented; strengths under review | `FighterHitFeel.cs` + `GraphicCharacter.shader` |
 | Jump, double-jump and landing effects | Implemented from presented state transitions | `MovementFeedbackEffect.cs` + `PlayerRenderer.cs` |
-| KO, respawn and respawn invincibility | Implemented from presented state transitions | `MovementFeedbackEffect.cs` + `PlayerRenderer.cs` |
+| KO flyer burst: Orange print star, seat-colour halftone trail, paper scraps, pinned on screen | Implemented 2026-10-28; concept 1 picked, in-game owner check pending | `KnockoutBurst.cs` + `Resources/Shaders/KnockoutBurst.shader`; see [KO flyer burst](#ko-flyer-burst) |
+| Respawn and respawn invincibility | Implemented from presented state transitions | `MovementFeedbackEffect.cs` + `PlayerRenderer.cs` |
 | Air dodge print slip: paper swooshes, misprint while invulnerable, printed bars, fwip | Implemented 2026-10-18; concept approved, in-game check pending | `AirDodgePresentation.cs` + `Resources/Shaders/AirDodgePrint*.shader`; see [Air dodge print slip](#air-dodge-print-slip) |
 | Homing dash lock-on: outline, afterimages, dotted line, chevrons, reticle, "!", lock/whoosh/ding | Implemented 2026-10-27; concept C approved, in-game check pending | `HomingDashPresentation.cs`, `HomingDashLockOn.cs`, `HomingDashSprites.cs`, `Resources/Shaders/HomingDash*.shader`; see [Homing dash lock-on](#homing-dash-lock-on) |
 | Wibou pixel trail, glints, code rain, crescents, kunai and hit bursts | Implemented; owner-approved 2026-10-17 | `WibouPresentationBuilder.cs`; see [Wibou](../characters/wibou.md#combat-presentation--2026-10-16) |
+| Wibou Quick Draw steel and flash code dissolve, held scanlines and pixel shatter | Direction A approved 2026-10-29; in-game acceptance pending | `WibouPresentationBuilder.cs`, `FlashDissolvePresentation.cs`, `HeldCutPresentation.cs`; see [Wibou](../characters/wibou.md#combat-presentation--2026-10-16) |
 | FightGuy "Champ's Show": ki, champion gold, 肉 brand, chalk and gags | Implemented; owner-approved 2026-10-17 | `FightGuyPresentationBuilder.cs`; see [FightGuy](../characters/fightguy.md#combat-presentation--2026-10-17) |
-| Manki "Controlled Chaos": toon blasts, gadget junk, his grin in the smoke, flame and backfiring gadgets | Implemented 2026-10-17; G4 ribbon timing/placement corrected 2026-10-22; in-game owner check pending | `MankiPresentationBuilder.cs`; see [Manki](../characters/manki.md#combat-presentation--2026-10-17) |
+| Manki "Controlled Chaos": toon blasts, gadget junk, his grin in the smoke, flame and backfiring gadgets | Implemented 2026-10-17; G4 ribbon corrected 2026-10-22; flying-bomber Masked Classic bomb, Grin Mushroom and Fire Comet added 2026-10-29; in-game owner check pending | `MankiPresentationBuilder.cs`; see [Manki](../characters/manki.md#combat-presentation--2026-10-17) |
 | Bonk "BONK!": bucket-red smear, blunt thunks, a comic BONK! on big hits, armour glow, snort, dust, cracks and rubble | Implemented 2026-10-17; concepts approved, in-game check pending | `BonkPresentationBuilder.cs`; see [Bonk](../characters/bonk.md#combat-presentation--2026-10-17) |
 | Sir Bonk: wood splinters, Leap of Faith's holy light and POP!, Blade Storm's wind stripes and dust ring (sails until 2026-10-22) and tiny windmill | Implemented 2026-10-21; concepts approved, in-game check pending | `BonkPresentationBuilder.cs`; see [Bonk](../characters/bonk.md#sir-bonk-effects--2026-10-21) |
 | Sir Bonk's Joust: straw poofs for the hobby horse, NEIGH!, a pennant on the lance, clip-clop hooves, heel gouges in the skid, the look-down gag | Implemented 2026-10-21; concepts approved, in-game check pending | `BonkPresentationBuilder.cs`; see [Bonk](../characters/bonk.md#the-jousts-effects) |
 | Sir Bonk's Pot-Lid Throw: a cream wake and flat spin rings on the flying lid, a whirr, a tink and a wobbly DOOOONG on each hit, a gleam and clank on the catch, a ringing bucket, "?" and "hm?" on a self-hit | Implemented 2026-10-22; concepts approved, in-game check pending | `BonkPresentationBuilder.cs`; see [Bonk](../characters/bonk.md#the-pot-lid-throws-effects) |
+| Nyx violet paper shadows, perched crow, bats and Grasp; Nyxxie pink prop arcs, hearts, flashes and swaps | Concepts approved 2026-10-29; built and cooked, in-game acceptance pending | `NyxPresentationBuilder.cs`, `NyxPaperCue.cs`, `YawBillboard.cs`, `PlacedTetherVisual.cs`; open light rays, camera-facing hands/scraps and reduced flashes; see [Nyx](../characters/nyx.md#combat-presentation-2026-10-29) |
 | Character-specific hit layers | Authored per package and slot | Per-slot `hitPresentationId` |
 | Character Course feel (Sanctuary): paper-lantern targets, breaks, checkpoint frames, missed-target pillars, ALL CLEAR! and the finish | Implemented 2026-10-18; concepts approved, in-game check pending | `SanctuaryCoursePresentationBuilder.cs` + `CharacterCoursePresentation.cs`; see [Phase 4](../design/arcade-phase-4.md#feel-pass--2026-10-18) |
 

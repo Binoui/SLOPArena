@@ -1,0 +1,147 @@
+{
+  "description": "Tripo v1 only. Visual anatomical centres selected on calibrated orthographic renders. No bone fitting or shape correction. x is positive half-span; z is source height above the sole. Crown, crotch and sole are sampled by prepare.py.",
+  "real": {
+    "expected_vertices": 25702,
+    "expected_faces": 27257,
+    "crown_component": 1,
+    "legs_component": 4,
+    "ground_origin_y": 0.017,
+    "landmarks": {
+      "eye": {
+        "z": 0.935,
+        "uncertainty_cm": 0.5,
+        "method": "mean pupil line in textured front view"
+      },
+      "chin": {
+        "z": 0.875,
+        "uncertainty_cm": 0.7,
+        "method": "lower jaw tip, above choker"
+      },
+      "shoulder": {
+        "x": 0.126,
+        "z": 0.792,
+        "uncertainty_cm": 2.0,
+        "method": "estimated arm socket centres under puff sleeves; excludes outer sleeve padding"
+      },
+      "elbow": {
+        "x": 0.15375,
+        "z": 0.682,
+        "uncertainty_cm": 1.5,
+        "method": "estimated joint centres under sleeves; lateral centre checked against front ray-sampled silhouette interval midpoint at this estimated height (0.0005 raw-metre sampling)"
+      },
+      "wrist": {
+        "x": 0.2535,
+        "z": 0.568,
+        "uncertainty_cm": 1.0,
+        "method": "hand/forearm transition under bracelets; lateral centre checked against front ray-sampled silhouette interval midpoint at this estimated height (0.0005 raw-metre sampling)"
+      },
+      "hip": {
+        "x": 0.06,
+        "z": 0.56,
+        "uncertainty_cm": 2.0,
+        "method": "estimated hip joint centres from exposed hidden trouser mesh, not belt height"
+      },
+      "knee": {
+        "x": 0.075,
+        "z": 0.31,
+        "uncertainty_cm": 1.5,
+        "method": "estimated patella centres from hidden trouser mesh front and side; lateral centre checked against front ray-sampled silhouette interval midpoint at this estimated height (0.0005 raw-metre sampling)"
+      },
+      "ankle": {
+        "x": 0.0935,
+        "z": 0.09,
+        "uncertainty_cm": 1.5,
+        "method": "estimated joint centres inside boots, not boot cuff; lateral centre checked against front ray-sampled silhouette interval midpoint at this estimated height (0.0005 raw-metre sampling)"
+      }
+    }
+  },
+  "fake": {
+    "expected_vertices": 26109,
+    "expected_faces": 25276,
+    "crown_component": 2,
+    "legs_component": 3,
+    "ground_origin_y": 0.02,
+    "prop_components": [
+      8,
+      11,
+      12,
+      13,
+      14,
+      15,
+      16,
+      28,
+      30,
+      36,
+      39,
+      41,
+      64,
+      104,
+      116,
+      117,
+      135,
+      139,
+      145,
+      147,
+      150,
+      153,
+      155,
+      177,
+      241,
+      250,
+      252,
+      259,
+      260,
+      264,
+      265,
+      266
+    ],
+    "landmarks": {
+      "eye": {
+        "z": 0.846,
+        "uncertainty_cm": 0.5,
+        "method": "mean pupil line in textured front view"
+      },
+      "chin": {
+        "z": 0.794,
+        "uncertainty_cm": 0.7,
+        "method": "lower jaw tip, above choker"
+      },
+      "shoulder": {
+        "x": 0.105,
+        "z": 0.727,
+        "uncertainty_cm": 1.5,
+        "method": "estimated arm socket centres below exposed shoulder contour"
+      },
+      "elbow": {
+        "x": 0.151,
+        "z": 0.622,
+        "uncertainty_cm": 1.0,
+        "method": "estimated joint centres from arm contour; lateral centre checked against front ray-sampled silhouette interval midpoint at this estimated height (0.0005 raw-metre sampling)"
+      },
+      "wrist": {
+        "x": 0.23500000000000001,
+        "z": 0.527,
+        "uncertainty_cm": 1.0,
+        "method": "hand/forearm transition under bracelets; lateral centre checked against front ray-sampled silhouette interval midpoint at this estimated height (0.0005 raw-metre sampling)"
+      },
+      "hip": {
+        "x": 0.06,
+        "z": 0.499,
+        "uncertainty_cm": 2.0,
+        "method": "estimated hip joint centres from exposed shorts/leg mesh, not belt height"
+      },
+      "knee": {
+        "x": 0.079,
+        "z": 0.31,
+        "uncertainty_cm": 1.5,
+        "method": "estimated patella centres from exposed legs front and side; lateral centre checked against front ray-sampled silhouette interval midpoint at this estimated height (0.0005 raw-metre sampling)"
+      },
+      "ankle": {
+        "x": 0.12025,
+        "z": 0.1,
+        "uncertainty_cm": 1.5,
+        "method": "estimated joint centres inside platform boots, not boot cuff; lateral centre checked against front ray-sampled silhouette interval midpoint at this estimated height (0.0005 raw-metre sampling)"
+      }
+    }
+  }
+}

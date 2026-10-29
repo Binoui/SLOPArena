@@ -61,16 +61,15 @@ namespace SlopArena.EditorTools
 
         private sealed class Fighter
         {
-            public ulong Id, Target;
+            public ulong Id;
             public MatchContentEntry Entry;
             public PlayerRenderer Renderer;
             // Policies cache character-specific reach/pose data: do not share one across kits.
             public readonly HeuristicBotPolicy Policy = new();
             public readonly BotMemory Memory = new();
             public System.Random Random;
-            public uint NextTargetTick;
-            public byte LastDeaths, TargetDeaths;
-            public int Hits, TargetChanges;
+            public byte LastDeaths;
+            public int Hits;
             public readonly int[] Presses = new int[AbilitySlots.Count];
         }
 
@@ -169,12 +168,15 @@ namespace SlopArena.EditorTools
             foreach (var fighter in _fighters)
             {
                 var self = _bridge.GetState(fighter.Id);
-                SelectTarget(fighter, self);
-                var target = _bridge.GetState(fighter.Target);
-                var input = fighter.Policy.Decide(self, target, fighter.Entry.Definition,
+                foreach (var other in _fighters)
+                    if (other.Id != fighter.Id)
+                        fighter.Policy.ObserveOpponent(fighter.Memory, _bridge.GetState(other.Id),
+                            _bridge.InternalSim.GetDefinition(other.Id));
+                fighter.Memory.ChooseOpponent(self);
+                var input = fighter.Policy.Decide(self, fighter.Entry.Definition.ForForm(self.Form.Active),
                     fighter.Random, fighter.Memory, _arena, fighter.Entry.BakedAnimation,
-                    activeMove: _bridge.GetActiveMove(fighter.Id)?.Slot);
-                input.TargetEntityId = (byte)fighter.Target;
+                    activeMove: _bridge.GetActiveMove(fighter.Id)?.Slot,
+                    canSwapCancel: _bridge.InternalSim.CanSwapCancel(fighter.Id));
                 _inputs[fighter.Id] = input;
                 if (input.ActiveSlot > 0 && input.ActiveSlot <= fighter.Presses.Length)
                     fighter.Presses[input.ActiveSlot - 1]++;
@@ -188,15 +190,13 @@ namespace SlopArena.EditorTools
                 {
                     fighter.LastDeaths = state.Deaths;
                     fighter.Memory.Reset();
-                    fighter.Target = 0;
                 }
                 foreach (var hit in _bridge.LastTickHits)
                 {
                     if (hit.OwnerEntityId != fighter.Id) continue;
                     if (hit.Blocked) { _blocks++; continue; }
                     fighter.Hits++; _acceptedHits++;
-                    // A hit on a third party must not become a combo observation about this target.
-                    if (hit.TargetEntityId != fighter.Target) continue;
+                    // BotMemory keeps only hits on the opponent it chose.
                     var opponent = _bridge.GetState(hit.TargetEntityId);
                     fighter.Memory.RecordOpponentHit(hit.AttackSlot, !opponent.IsGrounded,
                         opponent, opponent.HitstunTicks, hit.HitstopTicks);
@@ -208,36 +208,6 @@ namespace SlopArena.EditorTools
             UpdateSwordTrailsFromResolver(_bridge.Resolver);
             PresentTimelineEvents();
             if (!Recording && Tick >= _runUntil) Frozen = true;
-        }
-
-        private void SelectTarget(Fighter fighter, CharacterState self)
-        {
-            // Hold a target through an attack/charge and for at least two seconds. Prefer a
-            // substantially nearer fighter afterwards, with stable roster-order tie breaks.
-            bool valid = fighter.Target != 0
-                && _bridge.GetState(fighter.Target).Deaths == fighter.TargetDeaths;
-            if (valid && (Tick < fighter.NextTargetTick || self.State is ActionState.Attacking or ActionState.Aiming
-                || self.InteractionId != 0 || self.HitstunTicks > 0 || self.HitstopTicks > 0)) return;
-            ulong nearest = 0;
-            float best = float.MaxValue;
-            foreach (var candidate in _fighters)
-            {
-                if (candidate.Id == fighter.Id) continue;
-                var other = _bridge.GetState(candidate.Id);
-                float dx = self.PX - other.PX, dz = self.PZ - other.PZ;
-                // Prefer fighters still near roof height over following a falling knockout.
-                float score = dx * dx + dz * dz + (other.PY < -3f ? 1600f : 0f);
-                if (candidate.Id == fighter.Target) score *= .65f;
-                if (score >= best) continue;
-                best = score; nearest = candidate.Id;
-            }
-            fighter.NextTargetTick = Tick + 120;
-            if (fighter.Target == nearest && valid) return;
-            fighter.Target = nearest;
-            fighter.TargetDeaths = _bridge.GetState(nearest).Deaths;
-            fighter.TargetChanges++;
-            // Observation history and pending follow-ups belong to the previous opponent.
-            fighter.Memory.Reset();
         }
 
         private void LateUpdate()
@@ -301,8 +271,8 @@ namespace SlopArena.EditorTools
             fighters = _fighters.Select(f => new
             {
                 entity = f.Id.ToString(), package = f.Entry.Identity.PackageId, version = f.Entry.Identity.Version,
-                cookedHash = f.Entry.Identity.CookedContentHash, hits = f.Hits, target = f.Target.ToString(),
-                targetChanges = f.TargetChanges, presses = f.Presses, state = _bridge.GetState(f.Id)
+                cookedHash = f.Entry.Identity.CookedContentHash, hits = f.Hits, target = f.Memory.OpponentId.ToString(),
+                targetChanges = f.Memory.OpponentSwitches, presses = f.Presses, state = _bridge.GetState(f.Id)
             }).ToArray()
         };
 

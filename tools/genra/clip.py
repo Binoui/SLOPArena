@@ -364,16 +364,17 @@ class Clip:
 
     @classmethod
     def load(cls, rig: Rig, path, frame=None) -> 'Clip':
-        """A saved clip on `rig`. A clip saved before a held prop joined the pack (unity_rigpack.py --prop) loads with
-        that prop's fixed joints (Weapon<k> and its anchors) at their bind locals; any other difference is another rig."""
+        """A saved clip on `rig`. A clip saved before the pack gained joints that hang off its own as new subtrees (a held
+        prop's Weapon<k> and anchors, unity_rigpack.py --prop; Nyx's v3 dress spring chains under Hips, 2026-10-29) loads
+        with those joints at their bind locals; any other difference is another rig."""
         data = json.loads(Path(path).read_text())
         if data.get('format') != 'genra-clip-1':
             raise ValueError('Not a genra-clip-1 file for this rig')
         t, q, s = (np.array(data[k], float) for k in ('t', 'q', 's'))
         if data['joints'] != rig.names:
             known = {n: k for k, n in enumerate(data['joints'])}
-            props = {d for j, n in enumerate(rig.names) if n.startswith('Weapon') for d in rig.descendants(j)}
-            if not set(known) <= set(rig.names) or any(j not in props for j, n in enumerate(rig.names) if n not in known):
+            added = [j for j, n in enumerate(rig.names) if n not in known]
+            if not set(known) <= set(rig.names) or any(rig.names[d] in known for j in added for d in rig.descendants(j)):
                 raise ValueError('Not a genra-clip-1 file for this rig')
 
             def fill(values, bind):

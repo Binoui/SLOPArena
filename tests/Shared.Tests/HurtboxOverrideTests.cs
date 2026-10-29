@@ -40,6 +40,15 @@ public class HurtboxOverrideTests
     }
 
     [Fact]
+    public void CapsuleOverrideKeepsItsEndpointAndOffset()
+    {
+        var capsule = new HurtboxBoneDef("start", .1f, .2f, .3f, .2f, "end", -.1f, .4f, .6f);
+        string json = HurtboxOverride.Serialize(CharacterClass.Manki, new[] { capsule });
+        Assert.True(HurtboxOverride.TryParse(json, out _, out var parsed));
+        Assert.Equal(capsule, Assert.Single(parsed!));
+    }
+
+    [Fact]
     public void SerializeParse_RoundTrips()
     {
         string json = HurtboxOverride.Serialize(CharacterClass.Manki, Defs);

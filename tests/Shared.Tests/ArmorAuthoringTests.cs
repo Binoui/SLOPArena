@@ -147,7 +147,7 @@ public sealed class ArmorAuthoringTests
         throw new InvalidDataException("ground.1 fixture has no hitbox operation.");
     }
 
-    private static CharacterPackageAssemblyInput BuildInput(CookedCharacterPackage package)
+    internal static CharacterPackageAssemblyInput BuildInput(CookedCharacterPackage package)
     {
         const string sourceHash = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
         var names = new HashSet<string>(StringComparer.Ordinal)
@@ -202,14 +202,19 @@ public sealed class ArmorAuthoringTests
         }
         binding.Append("]}");
 
+        var bones = new[] { "root" }.Concat(package.Definition.AttachmentBoneIds)
+            .Concat(package.Definition.HurtboxBoneDefs.SelectMany(b => new[] { b.BoneId, b.EndBoneId })
+                .Where(b => b != null).Select(b => CharacterBoneRegistry.BakedName(b)!))
+            .Distinct(StringComparer.Ordinal).ToArray();
         using var poses = new MemoryStream();
-        WriteUInt32(poses, 0x4C454B53); WriteUInt32(poses, 1); WriteUInt32(poses, 1);
+        WriteUInt32(poses, 0x4C454B53); WriteUInt32(poses, 1); WriteUInt32(poses, (uint)bones.Length);
         WriteUInt32(poses, (uint)names.Count);
-        WriteString(poses, "root");
+        foreach (string bone in bones) WriteString(poses, bone);
         foreach (var name in names.OrderBy(name => name, StringComparer.Ordinal))
         {
             WriteString(poses, name);
-            WriteUInt32(poses, 1); WriteUInt32(poses, 0); WriteUInt32(poses, 0); WriteUInt32(poses, 0);
+            WriteUInt32(poses, 1);
+            foreach (string _ in bones) { WriteUInt32(poses, 0); WriteUInt32(poses, 0); WriteUInt32(poses, 0); }
         }
         return new CharacterPackageAssemblyInput(
             package.Metadata.PackageId, package.Metadata.Version, "Binoui", "MIT", "SlopArena", 3,

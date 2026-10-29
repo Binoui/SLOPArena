@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
-"""Compose a 9:16 explainer or teaser from queue clips, images and text plates with HyperFrames.
+"""Compose a 9:16 explainer or teaser from factory clips, images and text plates with HyperFrames.
 
-An explainer is a queue entry (scenarios/social/queue/<id>.json) with `"format": "explainer"` and beats:
+An explainer is a factory idea (tools/factory.py) with `"format": "explainer"` and beats:
 
     {"type": "shot", "clip": "20a-beeline-ground", "from": 0.4, "to": 3.2, "text": "LOCKS ON\\nCHASES IN 3D"}
     {"type": "image", "src": "tmp/content/21-bashie-teaser/concept-1.png", "seconds": 2.0, "text": "NEW FIGHTER?"}
@@ -9,7 +9,7 @@ An explainer is a queue entry (scenarios/social/queue/<id>.json) with `"format":
 
     {"type": "compare", "seconds": 3, "top": "<old still>", "topText": "OLD", "bottom": "<new still>", "bottomText": "NEW"}
 
-`clip` names a rendered queue entry (its vertical MP4 and game sound); a card holds what the beat before
+`clip` names a rendered `shot` idea (its chosen or latest take, with its game sound); a card holds what the beat before
 it showed (a shot's last frame, an image or a pair). Put the first beat's text at `at` 0: frame 0 is the thumbnail and the hook. Optional per beat: `at` (plate
 delay in s), `pos` (`top`, `middle` or `bottom` of the band), `size` (font px), `focus` (0-1, which
 height of a 1080x1920 clip the 1350 px gameplay band shows), `fit` (`contain` shows a whole image
@@ -17,8 +17,8 @@ on paper instead of filling the band). The look is the trailer's: paper ground,
 torn gameplay band, yellow Archivo Black plates that slam in. Text stays inside the platform-safe
 band (y 168-1330, left of x 930). Music is left for CapCut.
 
-    python3 tools/social_explainer.py <explainer.json>              # build, check, render
-    python3 tools/social_explainer.py <explainer.json> --snapshot   # build + PNG frames, no render
+    python3 tools/social_explainer.py <explainer>              # build, check, render, upload a take
+    python3 tools/social_explainer.py <explainer> --snapshot   # build + PNG frames, no render
 """
 from __future__ import annotations
 
@@ -31,7 +31,8 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from social_clip import QUEUE, ROOT, normalize, rel, set_status  # noqa: E402
+import factory  # noqa: E402
+from social_clip import ROOT, normalize, rel  # noqa: E402
 
 HF = "hyperframes@0.8.210"
 FONT = ROOT / "client/Unity/Assets/Fonts/ArchivoBlack-Regular.ttf"
@@ -63,6 +64,12 @@ def sound(clip: Path) -> str:
     streams = subprocess.run(["ffprobe", "-v", "error", "-select_streams", "a", "-show_entries", "stream=index",
                               "-of", "csv=p=0", str(clip)], capture_output=True, text=True, check=True).stdout
     return 'data-has-audio="true"' if streams.strip() else "muted"
+
+
+def shot_clip(idea: str) -> Path:
+    """A shot rendered on this desk is still in tmp/content; otherwise download its take from the factory."""
+    local = ROOT / f"tmp/content/{idea}/{idea}-vertical.mp4"
+    return local if local.is_file() else factory.fetch(idea, local)
 
 
 def font_size(lines: list[str], size: int | None) -> int:
@@ -99,7 +106,7 @@ def build(job: dict, project: Path) -> float:
     for i, beat in enumerate(job["beats"]):
         kind = beat["type"]
         if kind == "shot":
-            clip = ROOT / json.loads((QUEUE / f"{beat['clip']}.json").read_text())["clip"]
+            clip = shot_clip(beat["clip"])
             start, end = beat.get("from", 0.0), beat.get("to", duration(clip))
             length = end - start
             name = f"b{i}-{clip.name}"
@@ -213,7 +220,7 @@ def main() -> None:
     parser.add_argument("job")
     parser.add_argument("--snapshot", action="store_true", help="build and save PNG frames instead of rendering")
     args = parser.parse_args()
-    job = json.loads(Path(args.job).read_text())
+    job = factory.get(Path(args.job).stem)
     out = ROOT / "tmp/content" / job["id"]
     project = out / "hf"
     seconds = build(job, project)
@@ -229,8 +236,7 @@ def main() -> None:
         raise SystemExit("render failed")
     final = out / f"{job['id']}-vertical.mp4"
     normalize(raw, final)
-    set_status(args.job, "rendered", clip=rel(final))
-    print(final)
+    factory.take(job["id"], final)
 
 
 if __name__ == "__main__":

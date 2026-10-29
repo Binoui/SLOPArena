@@ -376,6 +376,7 @@ public sealed class CharacterPackageCompilerTests
     {
         var result = CompileCharacter(character =>
         {
+            FightGuyFixture.WithoutTitleMatch(character);
             character["slots"]![0]!["allowSlideCarry"] = false;
             character["slots"]![0]!["aimMovement"] = "mobile";
             character["slots"]![0]!["aimMovementSpeedScale"] = 0.4;
@@ -487,7 +488,7 @@ public sealed class CharacterPackageCompilerTests
         Assert.True(SlopArena.Shared.AI.HeuristicBotPolicy.ForwardReach(def, AbilitySlots.Slot1, false, baked) >= hitbox.EndZ);
     }
     [Fact]
-    public void Wibou_Package_CooksCanonicalSlotsAttachmentsSpreadAndChargePool()
+    public void Wibou_Package_CooksCanonicalSlotsAttachmentsAndSpread()
     {
         var result = CharacterPackageCompiler.Compile(
             File.ReadAllText(FindRepoFile("client/Unity/Assets/CharacterPackages/wibou/package.json")),
@@ -499,110 +500,54 @@ public sealed class CharacterPackageCompilerTests
         Assert.Equal(new[] { "_weapon_hilt", "_weapon_tip" }, package.Definition.AttachmentBoneIds.OrderBy(x => x).ToArray());
         var shuriken = package.Definition.Slots.Single(x => x.Id == "ground.A").Timeline.Stages.Single().Operations.OfType<CookedSpawnProjectileOperation>().ToArray();
         Assert.Equal(new[] { -15f, 0f, 15f }, shuriken.Select(x => x.Projectile.YawOffsetDegrees).OrderBy(x => x).ToArray());
-        Assert.Equal((2, (ushort)240), (package.Definition.Slots.Single(x => x.Id == "ground.E").ChargePool!.MaxCharges, package.Definition.Slots.Single(x => x.Id == "ground.E").ChargePool!.RegenTicks));
+        // Rising Slash is a plain cooldown move: Wibou has no stored uses.
+        Assert.Null(package.Definition.Slots.Single(x => x.Id == "ground.E").ChargePool);
     }
     [Fact]
-    public void ChargedDirectionalDash_IsPublicRoundTripAndValidatesBounds()
+    public void DashStrike_IsPublicRoundTripAndValidatesCoverageAndLifecycle()
     {
-        string packagePath = FindRepoFile("client/Unity/Assets/CharacterPackages/wibou/package.json");
-        string characterPath = FindRepoFile("client/Unity/Assets/CharacterPackages/wibou/character.json");
-        string manifest = File.ReadAllText(packagePath);
-        var character = JsonNode.Parse(File.ReadAllText(characterPath))!.AsObject();
-        var workshop = CharacterPackageCompiler.Compile(manifest, character.ToJsonString(), CharacterCookProfile.TrustedBuiltIn);
-        CharacterCompileResult publicWorkshop = CompileCharacter(fightGuy =>
+        string manifest = File.ReadAllText(FindRepoFile("client/Unity/Assets/CharacterPackages/wibou/package.json"));
+        var character = JsonNode.Parse(File.ReadAllText(FindRepoFile("client/Unity/Assets/CharacterPackages/wibou/character.json")))!.AsObject();
+        var publicResult = CompileCharacter(fixture =>
         {
-            fightGuy["capabilityRequirements"] = new JsonArray(new JsonObject
-            {
-                ["capabilityId"] = CharacterPackageCompiler.ChargedDirectionalDashCapabilityId,
-                ["capabilityVersion"] = CharacterPackageCompiler.ChargedDirectionalDashCapabilityVersion,
-            });
-            foreach (JsonObject slot in fightGuy["slots"]!.AsArray())
-                foreach (JsonObject otherStage in slot["timeline"]!["stages"]!.AsArray())
+            fixture["capabilityRequirements"] = new JsonArray(new JsonObject {
+                ["capabilityId"] = "slop.ability.dash-strike.v1", ["capabilityVersion"] = "1" });
+            foreach (var slot in fixture["slots"]!.AsArray())
+                foreach (var stage in slot!["timeline"]!["stages"]!.AsArray())
                 {
-                    var otherOperations = otherStage["operations"]!.AsArray();
-                    for (int i = otherOperations.Count - 1; i >= 0; i--)
-                        if ((string?)otherOperations[i]!["kind"] == "startCapability")
-                            otherOperations.RemoveAt(i);
+                    var operations = stage!["operations"]!.AsArray();
+                    for (int i = operations.Count - 1; i >= 0; i--)
+                        if ((string?)operations[i]!["kind"] == "startCapability") operations.RemoveAt(i);
                 }
-            JsonObject operation = (JsonObject)DashOperation(character).DeepClone();
-            operation["parameters"]!["traversalHitbox"]!["startBoneId"] = null;
-            operation["parameters"]!["finisherHitbox"]!["startBoneId"] = null;
-            operation["parameters"]!["finisherHitbox"]!["endBoneId"] = null;
-            var dashSlot = fightGuy["slots"]![0]!.AsObject();
-            dashSlot["allowSlideCarry"] = false;
-            dashSlot["behavior"] = "directionalDash";
-            dashSlot["aimMode"] = "groundVector";
-            dashSlot["aimMovement"] = "mobile";
-            JsonObject stage = fightGuy["slots"]![0]!["timeline"]!["stages"]![0]!.AsObject();
-            stage["durationTicks"] = 80;
-            stage["iasaTicks"] = 0;
-            stage["operations"] = new JsonArray(operation);
+            var op = DashOperation(character).DeepClone(); op["parameters"]!["tipPresentationId"] = "";
+            var move = fixture["slots"]![0]!;
+            move["behavior"] = "meleeCombo"; move["aimMode"] = "none"; move["allowSlideCarry"] = false;
+            var phase = move["timeline"]!["stages"]![0]!;
+            phase["durationTicks"] = 80; phase["iasaTicks"] = 0; phase["operations"] = new JsonArray(op);
         }, CharacterCookProfile.Workshop);
-        Assert.True(publicWorkshop.CookedPackage != null,
-            string.Join("; ", publicWorkshop.Diagnostics.Select(d => d.Code + ": " + d.Message)));
-        var capability = Assert.IsType<CookedChargedDirectionalDashCapabilityParameters>(
-            workshop.CookedPackage!.Definition.Slots.Single(x => x.Id == "ground.R")
-                .Timeline.Stages.Single().Operations.OfType<CookedStartCapabilityOperation>().Single().Parameters);
-        Assert.Equal((byte)0, capability.GetChargeTier((ushort)(capability.Tier2Ticks - 1)));
-        Assert.Equal((byte)1, capability.GetChargeTier(capability.Tier2Ticks));
-        Assert.Equal((byte)1, capability.GetChargeTier((ushort)(capability.Tier3Ticks - 1)));
-        Assert.Equal((byte)2, capability.GetChargeTier(capability.Tier3Ticks));
-        Assert.Equal(capability.MinDistance, capability.GetDashDistance(0));
-        Assert.Equal(capability.MaxDistance, capability.GetDashDistance(capability.MaxChargeTicks));
-        ushort midpoint = (ushort)(capability.MaxChargeTicks / 2);
-        TestHelpers.AssertNear(capability.MinDistance +
-            (capability.MaxDistance - capability.MinDistance) * midpoint / capability.MaxChargeTicks,
-            capability.GetDashDistance(midpoint));
-        Assert.Equal(capability.MaxDistance, capability.GetDashDistance(ushort.MaxValue));
-        Assert.Equal(capability.Tier3Damage, capability.GetFinisherDamage(capability.Tier3Ticks));
-        Assert.Equal(capability.FinisherHitbox.Damage, capability.GetFinisherDamage(0));
-        Assert.Equal(capability.Tier2Damage, capability.GetFinisherDamage(capability.Tier2Ticks));
-        var canonical = workshop.CookedPackage.CanonicalBytes;
-        var loadedSource = CharacterPackageSourceCodec.Load(manifest, character.ToJsonString());
-        Assert.True(loadedSource.IsValid, string.Join("; ", loadedSource.Diagnostics.Select(x => x.Message)));
-        string roundTrippedCharacter = CharacterPackageSourceCodec.SerializeCharacter(loadedSource.Source!.Character);
-        Assert.Equal(canonical, CharacterPackageCompiler.Compile(manifest, roundTrippedCharacter,
-            CharacterCookProfile.TrustedBuiltIn).CookedPackage!.CanonicalBytes);
-
-        var badThreshold = (JsonObject)character.DeepClone();
-        DashOperation(badThreshold)["parameters"]!["tier3Ticks"] = capability.Tier2Ticks;
-        AssertError(CharacterPackageCompiler.Compile(manifest, badThreshold.ToJsonString(), CharacterCookProfile.Workshop),
-            "value.out-of-range");
-
-        var badGeometry = (JsonObject)character.DeepClone();
-        DashOperation(badGeometry)["parameters"]!["traversalHitbox"]!["startBoneId"] = "_unknown";
-        AssertError(CharacterPackageCompiler.Compile(manifest, badGeometry.ToJsonString(), CharacterCookProfile.Workshop),
-            "reference.unresolved");
-
-        var badDuration = (JsonObject)character.DeepClone();
-        DashSlot(badDuration)["timeline"]!["stages"]![0]!["durationTicks"] = 20;
-        AssertError(CharacterPackageCompiler.Compile(manifest, badDuration.ToJsonString(), CharacterCookProfile.Workshop),
-            "value.out-of-range");
-        var unsupportedVersion = (JsonObject)character.DeepClone();
-        DashOperation(unsupportedVersion)["capabilityVersion"] = "2";
-        AssertError(CharacterPackageCompiler.Compile(manifest, unsupportedVersion.ToJsonString(),
-            CharacterCookProfile.Workshop), "capability.version-mismatch");
-        var badTierOneDamage = (JsonObject)character.DeepClone();
-        DashOperation(badTierOneDamage)["parameters"]!["tier2Damage"] = 5;
-        AssertError(CharacterPackageCompiler.Compile(manifest, badTierOneDamage.ToJsonString(),
-            CharacterCookProfile.Workshop), "value.out-of-range");
-        var badSeek = (JsonObject)character.DeepClone();
-        DashOperation(badSeek)["parameters"]!["finisherSeekTick"] = 0;
-        AssertError(CharacterPackageCompiler.Compile(manifest, badSeek.ToJsonString(), CharacterCookProfile.Workshop),
-            "value.out-of-range");
-
-        var earlyCancel = (JsonObject)character.DeepClone();
-        DashSlot(earlyCancel)["timeline"]!["stages"]![0]!["iasaTicks"] = 1;
-        AssertError(CharacterPackageCompiler.Compile(manifest, earlyCancel.ToJsonString(),
-            CharacterCookProfile.Workshop), "capability.ambiguous");
-        var unholdable = (JsonObject)character.DeepClone();
-        DashSlot(unholdable)["aimMode"] = "none";
-        AssertError(CharacterPackageCompiler.Compile(manifest, unholdable.ToJsonString(),
-            CharacterCookProfile.Workshop), "capability.ambiguous");
-        var sharedHistory = (JsonObject)character.DeepClone();
-        DashOperation(sharedHistory)["parameters"]!["traversalHitbox"]!["hitGroup"] = 1;
-        AssertError(CharacterPackageCompiler.Compile(manifest, sharedHistory.ToJsonString(),
-            CharacterCookProfile.Workshop), "value.out-of-range");
+        Assert.True(publicResult.CookedPackage != null, string.Join("; ", publicResult.Diagnostics.Select(x => x.Message)));
+        var parsed = CharacterPackageSourceCodec.Load(manifest, character.ToJsonString());
+        Assert.True(parsed.IsValid);
+        var result = CharacterPackageCompiler.Compile(parsed.Source!, CharacterCookProfile.TrustedBuiltIn);
+        Assert.True(result.CookedPackage != null, string.Join("; ", result.Diagnostics.Select(x => x.Message)));
+        Assert.True(CharacterPackageCompiler.IsPublicCapability("slop.ability.dash-strike.v1", "1"));
+        Assert.Equal("1.15.0", result.CookedPackage!.Metadata.RuntimeApiMin);
+        Assert.Equal(result.CookedPackage.CanonicalBytes, CharacterPackageCompiler.Compile(manifest,
+            CharacterPackageSourceCodec.SerializeCharacter(parsed.Source!.Character), CharacterCookProfile.TrustedBuiltIn).CookedPackage!.CanonicalBytes);
+        foreach (var field in new[] { "speed", "distance" })
+        {
+            var copy = (JsonObject)character.DeepClone();
+            DashOperation(copy)["parameters"]![field] = 0;
+            AssertError(CharacterPackageCompiler.Compile(manifest, copy.ToJsonString(), CharacterCookProfile.TrustedBuiltIn), "value.out-of-range");
+        }
+        var gap = (JsonObject)character.DeepClone();
+        DashOperation(gap)["parameters"]!["lightHitbox"]!["radius"] = .1;
+        AssertError(CharacterPackageCompiler.Compile(manifest, gap.ToJsonString(), CharacterCookProfile.TrustedBuiltIn), "value.out-of-range");
+        var hold = (JsonObject)character.DeepClone();
+        DashSlot(hold)["aimMode"] = "groundVector";
+        AssertError(CharacterPackageCompiler.Compile(manifest, hold.ToJsonString(), CharacterCookProfile.TrustedBuiltIn), "capability.ambiguous");
+        var retired = character.ToJsonString().Replace("slop.ability.dash-strike.v1", "slop.ability.charged-directional-dash.v1");
+        AssertError(CharacterPackageCompiler.Compile(manifest, retired, CharacterCookProfile.TrustedBuiltIn), "capability.retired");
     }
 
     private static JsonObject DashSlot(JsonObject character)

@@ -1,0 +1,248 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6e24271275a4fc0af82df0240843b6bf, type: 3}
+  m_Name: CharacterAssetCatalog
+  m_EditorClassIdentifier: 
+  _packageId: nyx
+  _catalogSchemaVersion: 2
+  _rig: {fileID: 798405274654581072, guid: 200098506fbae44e2bfeeae62a0e130d, type: 3}
+  _weaponConfig: {fileID: 0}
+  _sampleRate: 60
+  _bindings:
+  - _semanticId: anim.nyx.a1
+    _clip: {fileID: 7400000, guid: e0eff7833b6d5bf68b991b9eabd06314, type: 2}
+    _extrapolation: 0
+    _poseTrackId: anim.nyx.a1
+  - _semanticId: anim.nyx.a3
+    _clip: {fileID: 7400000, guid: 285e8c201a9155d88f17892773836172, type: 2}
+    _extrapolation: 0
+    _poseTrackId: anim.nyx.a3
+  - _semanticId: anim.nyx.a4
+    _clip: {fileID: 7400000, guid: 6e1094e8f8195788a698f0c6cae53b3a, type: 2}
+    _extrapolation: 0
+    _poseTrackId: anim.nyx.a4
+  - _semanticId: anim.nyx.crouch
+    _clip: {fileID: 7400000, guid: 5fc84b08ad506d917b6e6a0e840b8145, type: 2}
+    _extrapolation: 0
+    _poseTrackId: anim.nyx.crouch
+  - _semanticId: anim.nyx.dash
+    _clip: {fileID: 7400000, guid: 3597512105879eaf3960b9cb14ff9a5e, type: 2}
+    _extrapolation: 0
+    _poseTrackId: anim.nyx.dash
+  - _semanticId: anim.nyx.fake.a1
+    _clip: {fileID: 7400000, guid: 19f0cbe3fe6a56e0bc436b07d64661c2, type: 2}
+    _extrapolation: 0
+    _poseTrackId: anim.nyx.fake.a1
+  - _semanticId: anim.nyx.fake.a3
+    _clip: {fileID: 7400000, guid: 4d335bcbbad453b68f3085b811b16ffe, type: 2}
+    _extrapolation: 0
+    _poseTrackId: anim.nyx.fake.a3
+  - _semanticId: anim.nyx.fake.a4
+    _clip: {fileID: 7400000, guid: 647a8915dd925c97a93bb1160978b115, type: 2}
+    _extrapolation: 0
+    _poseTrackId: anim.nyx.fake.a4
+  - _semanticId: anim.nyx.fake.g1
+    _clip: {fileID: 7400000, guid: 890793cf86865367a637841e561dec74, type: 2}
+    _extrapolation: 0
+    _poseTrackId: anim.nyx.fake.g1
+  - _semanticId: anim.nyx.fake.g3
+    _clip: {fileID: 7400000, guid: 9f81a53094c1540996c1fb073bf08b71, type: 2}
+    _extrapolation: 0
+    _poseTrackId: anim.nyx.fake.g3
+  - _semanticId: anim.nyx.fake.g4
+    _clip: {fileID: 7400000, guid: 01e45ac572085bca84120d65039b36ed, type: 2}
+    _extrapolation: 0
+    _poseTrackId: anim.nyx.fake.g4
+  - _semanticId: anim.nyx.fake.ga
+    _clip: {fileID: 7400000, guid: 7107268ae90853559bc004acf24f3abc, type: 2}
+    _extrapolation: 0
+    _poseTrackId: anim.nyx.fake.ga
+  - _semanticId: anim.nyx.fake.ge
+    _clip: {fileID: 7400000, guid: d4dd778229775016a7ee995f6d98a76c, type: 2}
+    _extrapolation: 0
+    _poseTrackId: anim.nyx.fake.ge
+  - _semanticId: anim.nyx.fake.gf
+    _clip: {fileID: 7400000, guid: c900c6ca3337ab968a6e0ea097fb958c, type: 2}
+    _extrapolation: 0
+    _poseTrackId: anim.nyx.fake.gf
+  - _semanticId: anim.nyx.fake.gr
+    _clip: {fileID: 7400000, guid: 1a6bf7eee1e253ee89756a56e8ea2473, type: 2}
+    _extrapolation: 0
+    _poseTrackId: anim.nyx.fake.gr
+  - _semanticId: anim.nyx.fake.idle
+    _clip: {fileID: 7400000, guid: 4ab3a108853f56e089395405a81b021c, type: 2}
+    _extrapolation: 0
+    _poseTrackId: anim.nyx.fake.idle
+  - _semanticId: anim.nyx.fake.run
+    _clip: {fileID: 7400000, guid: a0e5981acce0589f986505d6e7f46877, type: 2}
+    _extrapolation: 0
+    _poseTrackId: anim.nyx.fake.run
+  - _semanticId: anim.nyx.fall
+    _clip: {fileID: 7400000, guid: f74c3fa9e403d556c9c97e30645fd031, type: 2}
+    _extrapolation: 0
+    _poseTrackId: anim.nyx.fall
+  - _semanticId: anim.nyx.g1
+    _clip: {fileID: 7400000, guid: 4c0ad3415c2b5c7d9ce114e97f7be6fd, type: 2}
+    _extrapolation: 0
+    _poseTrackId: anim.nyx.g1
+  - _semanticId: anim.nyx.g3
+    _clip: {fileID: 7400000, guid: a9b84b9c9aa65ba994fc84d6a3c39c3c, type: 2}
+    _extrapolation: 0
+    _poseTrackId: anim.nyx.g3
+  - _semanticId: anim.nyx.g4
+    _clip: {fileID: 7400000, guid: 70db66201e3f5c59ac26d7e6991751b0, type: 2}
+    _extrapolation: 0
+    _poseTrackId: anim.nyx.g4
+  - _semanticId: anim.nyx.ga
+    _clip: {fileID: 7400000, guid: ec0fd4b34b7d5408b4365cdb99d57370, type: 2}
+    _extrapolation: 0
+    _poseTrackId: anim.nyx.ga
+  - _semanticId: anim.nyx.ge
+    _clip: {fileID: 7400000, guid: 6c67882bb4467051eb81655738a8e6a5, type: 2}
+    _extrapolation: 0
+    _poseTrackId: anim.nyx.ge
+  - _semanticId: anim.nyx.gf
+    _clip: {fileID: 7400000, guid: b1536288d3970345eabbd40e3e8effb3, type: 2}
+    _extrapolation: 0
+    _poseTrackId: anim.nyx.gf
+  - _semanticId: anim.nyx.gr
+    _clip: {fileID: 7400000, guid: 167d8838a91558689c93868dd4c2a18b, type: 2}
+    _extrapolation: 0
+    _poseTrackId: anim.nyx.gr
+  - _semanticId: anim.nyx.hit-hard
+    _clip: {fileID: 7400000, guid: f01f3f70676745fc7b6f9165bb3fdcaf, type: 2}
+    _extrapolation: 0
+    _poseTrackId: anim.nyx.hit-hard
+  - _semanticId: anim.nyx.hit-light
+    _clip: {fileID: 7400000, guid: a9c3e083b1f85e1d8a8a02b5d22218eb, type: 2}
+    _extrapolation: 0
+    _poseTrackId: anim.nyx.hit-light
+  - _semanticId: anim.nyx.hit-medium
+    _clip: {fileID: 7400000, guid: 94bd4d002ab2f6a08b6da7891ef9793b, type: 2}
+    _extrapolation: 0
+    _poseTrackId: anim.nyx.hit-medium
+  - _semanticId: anim.nyx.idle
+    _clip: {fileID: 7400000, guid: fc86c7ca721455a4ab696f239d8db880, type: 2}
+    _extrapolation: 0
+    _poseTrackId: anim.nyx.idle
+  - _semanticId: anim.nyx.jump
+    _clip: {fileID: 7400000, guid: 5ce4a8f78d1730216a9d4e6a37ebd9bf, type: 2}
+    _extrapolation: 0
+    _poseTrackId: anim.nyx.jump
+  - _semanticId: anim.nyx.run
+    _clip: {fileID: 7400000, guid: 54b4371ede91522d847547430784e740, type: 2}
+    _extrapolation: 0
+    _poseTrackId: anim.nyx.run
+  - _semanticId: anim.nyx.slide
+    _clip: {fileID: 7400000, guid: 5fc84b08ad506d917b6e6a0e840b8145, type: 2}
+    _extrapolation: 0
+    _poseTrackId: anim.nyx.slide
+  - _semanticId: anim.nyx.tumble
+    _clip: {fileID: 7400000, guid: 0fae26af212816884a6cc8b74c84fa07, type: 2}
+    _extrapolation: 0
+    _poseTrackId: anim.nyx.tumble
+  _presentations:
+  - _semanticId: presentation.nyx.props.pole-held
+    _prefab: {fileID: 5221491064675687420, guid: 647ff8d1ceb878cb2a6952dc33e84f24, type: 3}
+  - _semanticId: presentation.nyx.props.phone-raise
+    _prefab: {fileID: 8701925135717160470, guid: eb30edb1f54d5882cacdc667f44d5ac8, type: 3}
+  - _semanticId: presentation.nyx.props.phone-drop
+    _prefab: {fileID: 4954783108484666326, guid: 845dd2a0056649314865144d01dc37b6, type: 3}
+  - _semanticId: presentation.nyx.shadow-claws
+    _prefab: {fileID: 1576329824242846858, guid: 1843d891e2144cc62a53f8129b5790f9, type: 3}
+  - _semanticId: presentation.nyx.rising-hands
+    _prefab: {fileID: 3112815276242745620, guid: 9ae5a99166ea750728675db90f8d81b0, type: 3}
+  - _semanticId: presentation.nyx.floor-lash
+    _prefab: {fileID: 4089753878477145146, guid: 499b2be7ad4de06f9b06183dda21f39e, type: 3}
+  - _semanticId: presentation.nyx.shadow-ring
+    _prefab: {fileID: 5752954923704839926, guid: 0174d862300cad9308ae9cbd2b4f7a8c, type: 3}
+  - _semanticId: presentation.nyx.up-claw
+    _prefab: {fileID: 3763837632754161298, guid: 88399539865ffdc95b68cbbfd02a3815, type: 3}
+  - _semanticId: presentation.nyx.spike-fist
+    _prefab: {fileID: 5339677886043839634, guid: ddbb7d65ce18fb5978cf9b0728e0742f, type: 3}
+  - _semanticId: presentation.nyx.phone-slaps
+    _prefab: {fileID: 1323560745279168241, guid: ec5b8655d785181f995d33aa40a30ea2, type: 3}
+  - _semanticId: presentation.nyx.pole-uppercut
+    _prefab: {fileID: 5375959283369652458, guid: 1de51fc460168d22984343bab5208888, type: 3}
+  - _semanticId: presentation.nyx.stomp-impact
+    _prefab: {fileID: 3115663801735761239, guid: 79678ed327366a57cb3be7d71ab22dc1, type: 3}
+  - _semanticId: presentation.nyx.spin-arc
+    _prefab: {fileID: 4821089849112621050, guid: 61ad14c2f650ae2c5a561d2c70288d25, type: 3}
+  - _semanticId: presentation.nyx.pole-overhead
+    _prefab: {fileID: 4035881067627415843, guid: 9fcc514be3add798c96abfab9f711414, type: 3}
+  - _semanticId: presentation.nyx.dropkick-spike
+    _prefab: {fileID: 2010176586185493520, guid: 8e419f0820b1b0aba9cf9674616e945f, type: 3}
+  - _semanticId: presentation.nyx.ring-light
+    _prefab: {fileID: 4069924589956657962, guid: 6c482d88bd2774bffa05ccc68cf17664, type: 3}
+  - _semanticId: presentation.nyx.rotor-arcs
+    _prefab: {fileID: 631910263223024884, guid: a8a4c0a579629d319bd03d9cdf1124c4, type: 3}
+  - _semanticId: presentation.nyx.selfie-pop
+    _prefab: {fileID: 3098619972461289785, guid: 73a80c1244fe73f9597711b7393878a2, type: 3}
+  - _semanticId: presentation.nyx.selfie-release
+    _prefab: {fileID: 1961740670762370150, guid: 22b8a06ec961e7379b05ff866cd39215, type: 3}
+  - _semanticId: presentation.nyx.shadow-hit
+    _prefab: {fileID: 7792985148091195292, guid: ff99fed3d58810effaf98b15ce7c234e, type: 3}
+  - _semanticId: presentation.nyx.pink-hit
+    _prefab: {fileID: 2694738838867806668, guid: 26273d2fbc1884d54b57fc678c6c1f86, type: 3}
+  - _semanticId: presentation.nyx.crow-pop
+    _prefab: {fileID: 6668716205312011973, guid: 8b0709c0279dbf40d8d45709e0df1733, type: 3}
+  - _semanticId: presentation.nyx.crow-launch
+    _prefab: {fileID: 4281422132899575391, guid: 865d046e59f88c025a21616b5ccc6065, type: 3}
+  - _semanticId: presentation.nyx.crow
+    _prefab: {fileID: 2138707077541557979, guid: 16e7cfac6f5dc9a7aa0a48b94b71fee7, type: 3}
+  - _semanticId: presentation.nyx.bat-scatter
+    _prefab: {fileID: 147615454451348102, guid: 2ff0bd92e18a5fec6b71f09c7c229456, type: 3}
+  - _semanticId: presentation.nyx.going-live
+    _prefab: {fileID: 3318018998172257718, guid: cb9d01b2c110396dfbd08a9454416a10, type: 3}
+  - _semanticId: presentation.nyx.logging-off
+    _prefab: {fileID: 8587875674521906963, guid: 486d83db9c14cc8858e0fa71ad530d81, type: 3}
+  - _semanticId: presentation.nyx.grasp-drag
+    _prefab: {fileID: 2542167021418792844, guid: 419a866019a82cd49a437be2435cb781, type: 3}
+  - _semanticId: presentation.nyx.grasp-catch
+    _prefab: {fileID: 3397696530358282907, guid: 8949d5c6489e993c0ac8f00bb2ba0bb8, type: 3}
+  - _semanticId: presentation.nyx.grasp-warning
+    _prefab: {fileID: 5339044014489459797, guid: 3ad5268e03c1adb20948e326e2dcdab4, type: 3}
+  _presentationProfile:
+    _respawnTint: {r: 1, g: 1, b: 1, a: 0.95}
+    _swing:
+      _selection: 0
+      _clips: []
+      _clipObjectIds: []
+    _lightImpact:
+      _selection: 0
+      _clips:
+      - {fileID: 0}
+      _clipObjectIds: []
+    _mediumImpact:
+      _selection: 0
+      _clips:
+      - {fileID: 0}
+      _clipObjectIds: []
+    _heavyImpact:
+      _selection: 0
+      _clips:
+      - {fileID: 0}
+      _clipObjectIds: []
+    _suppressRemovalExplosion: 0
+    _projectiles:
+    - _slotId: ground.A
+      _prefab: {fileID: 2138707077541557979, guid: 16e7cfac6f5dc9a7aa0a48b94b71fee7, type: 3}
+      _scale: 1
+      _orientation: 0
+      _heldBoneId: 
+      _prefabObjectId: 
+    - _slotId: air.A
+      _prefab: {fileID: 2138707077541557979, guid: 16e7cfac6f5dc9a7aa0a48b94b71fee7, type: 3}
+      _scale: 1
+      _orientation: 0
+      _heldBoneId: 
+      _prefabObjectId: 

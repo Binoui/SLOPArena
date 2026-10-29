@@ -27,6 +27,13 @@
       every clip's foot contact with [`tools/character_sizes`](../../tools/character_sizes/README.md).
       Resize with `presentation.visualScale`; fix a single floating or sinking clip with its
       root Y offset rather than `modelYOffset`.
+- [ ] When several meshes share one skeleton (forms, outfits), fit every mesh to that
+      skeleton's measured joint pivots, the torso and spine included. Nyx's first fit kept the
+      real form's torso as modelled: her knees spread 8.8 cm under the dress and her spine
+      pivots sat 2 to 6 cm in front of her body, so she bent like a broken spine.
+- [ ] Skin a long skirt or dress to spring bone chains (`BoneChainSpring`) with leg capsules,
+      not Unity Cloth. Two Cloth attempts on Nyx's dress rested as a lampshade, collapsed
+      between the legs and swung the hem 1.6 m on turns.
 - [ ] Bind every required semantic animation ID to its exact intended imported clip.
 - [ ] Set **Import Materials** to None on animation-only FBX sources. Otherwise Unity resolves their embedded texture names against unrelated project textures, and the cook source hash differs between your Editor and the isolated release import.
 - [ ] Assign one unique deterministic pose-track ID to each semantic binding.

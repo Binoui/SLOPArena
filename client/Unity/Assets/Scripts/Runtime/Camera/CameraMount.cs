@@ -56,6 +56,8 @@ namespace SlopArena.Client.Camera
         private const float SteadyHeightBand = 3f;
         private const float SteadyHeightFollow = 1f;
         private const float SteadyLaunchSeconds = 6f;
+        // Owner 2026-10-28: drift around walls and platforms, slower than the Calm turn.
+        private const float AvoidTurnSpeed = 12f;
 
         [Header("Lock Camera Assistance")]
         [SerializeField] private bool _assistLockedTarget = true;
@@ -116,6 +118,7 @@ namespace SlopArena.Client.Camera
         private float _steadyRaise;
         private float _yawVelocity;
         private bool _steadyTurning;
+        private float _avoidBlockedSeconds;
         private OffscreenBubbles? _bubbles;
         public bool HoldsMoveDirection => _mode == CameraMode.Normal && Couch == CouchCamera.Off
             && _style == CameraStyle.Steady && ClientSettingsService.Instance.HoldRunDirection;
@@ -127,8 +130,6 @@ namespace SlopArena.Client.Camera
             _inputAxisController = GetComponent<CinemachineInputAxisController>();
             if (_inputAxisController != null)
                 _inputAxisController.enabled = false;
-            if (!TryGetComponent<CameraObstruction>(out _))
-                gameObject.AddComponent<CameraObstruction>();
             // Clamp pitch so camera stays above the stage floor level
             if (_orbital != null)
             {
@@ -139,8 +140,11 @@ namespace SlopArena.Client.Camera
             }
         }
 
+        private void OnDisable() => StageSightHoles.Clear();
+
         private void OnDestroy()
         {
+            StageSightHoles.Clear();
             _cameraNote?.RemoveFromHierarchy();
             _bubbles?.Dispose();
             if (_framingAnchor != null)
@@ -313,6 +317,7 @@ namespace SlopArena.Client.Camera
                     RenderCamera != null ? RenderCamera.aspect : 16f / 9f);
                 _framingAnchor.position = show.center;
                 UpdateBubbles();
+                if (_player != null) StageSightHoles.Publish(PlayerCentre, _subjects);
                 return;
             }
 
@@ -332,6 +337,7 @@ namespace SlopArena.Client.Camera
                 SetCameraYawDeg(_chatSuppressedYaw);
                 SetCameraPitchDeg(_chatSuppressedPitch);
                 _orbital.RadialAxis.Value = _chatSuppressedRadial;
+                if (_player != null) StageSightHoles.Publish(PlayerCentre, _subjects);
                 return;
             }
 
@@ -340,6 +346,7 @@ namespace SlopArena.Client.Camera
             _lastStablePitch = GetCameraPitchDeg();
             _lastStableRadial = _orbital.RadialAxis.Value;
             _hasStableAngles = true;
+            if (_player != null) StageSightHoles.Publish(PlayerCentre, _subjects);
         }
         public void SetMode(CameraMode mode)
         {
@@ -435,6 +442,7 @@ namespace SlopArena.Client.Camera
             _hasGroundY = false;
             _yawVelocity = 0f;
             _steadyTurning = false;
+            _avoidBlockedSeconds = 0f;
             _steadyRaise = 0f;
             _manualOrbitGraceRemaining = 0f;
             _settleArenaPitch = style == CameraStyle.Arena;
@@ -466,7 +474,8 @@ namespace SlopArena.Client.Camera
                 UpdateSteadyFraming(deltaTime, allowRecenter);
                 return;
             }
-            // Arena: frame every fighter from a settled, elevated pitch; the direction stays the player's.
+            // Arena: frame every fighter from a settled, elevated pitch; the direction stays the player's
+            // except for the slow drift around a wall that blocks the view.
             Vector3 player = _player.position;
             var bounds = _hasFramingSubjects
                 ? new Bounds(player + _fighterBounds.center, _fighterBounds.size) : new Bounds(player, Vector3.zero);
@@ -495,6 +504,14 @@ namespace SlopArena.Client.Camera
             // Zoom out promptly for launches; ease back in after fighters close the gap.
             _orbital.Radius = Mathf.Lerp(_orbital.Radius, radius,
                 1f - Mathf.Exp(-(radius > _orbital.Radius ? 10f : 2f) * deltaTime));
+            float yaw = GetCameraYawDeg();
+            float? avoidYaw = allowRecenter && !_courtNetZ.HasValue
+                ? AvoidObstruction(player, _lockPlayer != null ? _lockTargetPosition : _combatTargetPosition, yaw, deltaTime)
+                : ResetAvoidance();
+            float wanted = avoidYaw.HasValue
+                ? Mathf.Clamp(Mathf.DeltaAngle(yaw, avoidYaw.Value) * 1.5f, -AvoidTurnSpeed, AvoidTurnSpeed) : 0f;
+            _yawVelocity = allowRecenter ? Mathf.Lerp(_yawVelocity, wanted, 1f - Mathf.Exp(-3f * deltaTime)) : 0f;
+            SetCameraYawDeg(yaw + _yawVelocity * deltaTime);
         }
 
         /// <summary>
@@ -502,6 +519,8 @@ namespace SlopArena.Client.Camera
         /// the target leaves a wide cone, with eased speed; on a Slopball court it looks down the
         /// court instead. Height follows landings, not ordinary jumps; a launched fighter or a high
         /// ball lifts the focus, and off-screen bubbles cover what the view still cannot hold.
+        /// Walls never pull it in: stage shaders open sight holes (StageSightHoles), and a view
+        /// blocked for half a second slowly turns toward the nearest clear angle.
         /// </summary>
         private void UpdateSteadyFraming(float deltaTime, bool allowRecenter)
         {
@@ -553,8 +572,12 @@ namespace SlopArena.Client.Camera
                 }
             }
             if (!allowRecenter) _steadyTurning = false;
+            float? avoidYaw = !court && allowRecenter && !desiredYaw.HasValue && !_steadyTurning
+                ? AvoidObstruction(player, focus, yaw, deltaTime) : ResetAvoidance();
+            bool avoiding = avoidYaw.HasValue;
+            desiredYaw ??= avoidYaw;
             float turnSpeed = ClientSettingsService.Instance.CameraTurnSpeed;
-            float rate = court ? Mathf.Max(turnSpeed, 90f) : turnSpeed;
+            float rate = avoiding ? AvoidTurnSpeed : court ? Mathf.Max(turnSpeed, 90f) : turnSpeed;
             float wanted = desiredYaw.HasValue
                 ? Mathf.Clamp(Mathf.DeltaAngle(yaw, desiredYaw.Value) * 1.5f, -rate, rate) : 0f;
             // Ease in and out: the turn speed itself is smoothed.
@@ -570,6 +593,62 @@ namespace SlopArena.Client.Camera
             // the fighter's root sits near its chest, so this centres the body on screen.
             _framingOffset = new Vector3(0f, _groundY + .2f + _steadyRaise - player.y, 0f);
             _orbital.Radius = Mathf.Lerp(_orbital.Radius, _manualRadius, 1f - Mathf.Exp(-1.5f * deltaTime));
+        }
+
+        /// <summary>The rendered player's capsule centre, the reference Shared positions use.</summary>
+        private Vector3 PlayerCentre => _player.position - Vector3.up * (_playerRenderer != null ? _playerRenderer.ModelYOffset : 0f);
+
+        private float? ResetAvoidance()
+        {
+            _avoidBlockedSeconds = 0f;
+            return null;
+        }
+
+        /// <summary>
+        /// The yaw to drift toward when stage geometry has blocked the sight line from the player
+        /// to the camera for half a second: the nearest clear angle within 90° that keeps the focus
+        /// in view, continuing the current turn's side. Null while the view is clear.
+        /// </summary>
+        private float? AvoidObstruction(Vector3 player, Vector3? focus, float yaw, float deltaTime)
+        {
+            Vector3 body = PlayerCentre;
+            Vector3 anchor = player + _framingOffset;
+            float pitch = GetCameraPitchDeg();
+            float distance = _orbital.Radius * _orbital.RadialAxis.Value;
+            bool Blocked(float probeYaw)
+            {
+                Vector3 camera = anchor + Quaternion.Euler(pitch, probeYaw, 0f) * new Vector3(0f, 0f, -distance);
+                Vector3 ray = camera - body;
+                return Physics.Raycast(body, ray.normalized, ray.magnitude,
+                    Physics.IgnoreRaycastLayer, QueryTriggerInteraction.Ignore);
+            }
+
+            _avoidBlockedSeconds = Blocked(yaw) ? _avoidBlockedSeconds + deltaTime : 0f;
+            if (_avoidBlockedSeconds < 0.5f) return null;
+            Vector3 focusOffset = focus.HasValue ? focus.Value - player : Vector3.zero;
+            bool constrainFocus = focusOffset.x * focusOffset.x + focusOffset.z * focusOffset.z > 9f;
+            float focusYaw = Mathf.Atan2(focusOffset.x, focusOffset.z) * Mathf.Rad2Deg;
+            float? left = null;
+            float? right = null;
+            for (int angle = 10; angle <= 90 && !(left.HasValue && right.HasValue); angle += 10)
+            {
+                for (int side = -1; side <= 1; side += 2)
+                {
+                    if (side < 0 ? left.HasValue : right.HasValue) continue;
+                    float offset = side * angle;
+                    if (constrainFocus && Mathf.Abs(Mathf.DeltaAngle(yaw + offset + side * 8f, focusYaw)) > SteadyTurnCone * 0.8f)
+                        continue;
+                    if (Blocked(yaw + offset)) continue;
+                    if (side < 0) left = offset;
+                    else right = offset;
+                }
+            }
+            float? chosen = _yawVelocity < 0f && left.HasValue ? left
+                : _yawVelocity > 0f && right.HasValue ? right
+                : !left.HasValue ? right
+                : !right.HasValue ? left
+                : Mathf.Abs(left.Value) <= Mathf.Abs(right.Value) ? left : right;
+            return chosen.HasValue ? yaw + chosen.Value + Mathf.Sign(chosen.Value) * 8f : null;
         }
 
         private void UpdateBubbles()
@@ -711,6 +790,7 @@ namespace SlopArena.Client.Camera
             _hasGroundY = false;
             _yawVelocity = 0f;
             _steadyTurning = false;
+            _avoidBlockedSeconds = 0f;
             _launchStarted.Clear();
             if (_framingAnchor != null) _framingAnchor.position = target.position;
             _orbital.Radius = _manualRadius;

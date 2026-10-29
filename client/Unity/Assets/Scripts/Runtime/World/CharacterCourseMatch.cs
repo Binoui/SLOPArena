@@ -157,7 +157,8 @@ namespace SlopArena.Client.World
             _bridge.RegisterEntity(PlayerEntityId, _playerDef, new CharacterState
             {
                 PX = spawn.X, PY = spawn.Y, PZ = spawn.Z, FacingYaw = spawn.Yaw, AimYaw = spawn.Yaw,
-                JumpsLeft = _playerDef.Movement.MaxJumps, AirDodgesLeft = 1,
+                JumpsLeft = _playerDef.ForForm(MatchConfig.PlayerForm).Movement.MaxJumps, AirDodgesLeft = 1,
+                Form = new FormState { Active = MatchConfig.PlayerForm },
             }, _baked);
             _bridge.SetRespawnPosition(PlayerEntityId, spawn.X, spawn.Y, spawn.Z, spawn.Yaw);
             _playerRenderer.transform.SetPositionAndRotation(new(spawn.X, spawn.Y, spawn.Z), Quaternion.Euler(0, spawn.Yaw * Mathf.Rad2Deg, 0));

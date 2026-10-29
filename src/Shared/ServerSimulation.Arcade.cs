@@ -71,7 +71,7 @@ namespace SlopArena.Shared
             float direction = CampOf(id) == SlopballCamp.Teal ? 1f : -1f;
             float floor = _arena.Arcade!.Slopball!.FloorY;
             float height = MathF.Max(floor + _arcadeBall!.State.Radius + .15f,
-                floor + _defs[id].CapsuleHeight * .5f + .35f);
+                floor + Def(id).CapsuleHeight * .5f + .35f);
             return new(start.X, height, start.Z + direction * 1.1f);
         }
 
@@ -80,7 +80,7 @@ namespace SlopArena.Shared
             var ids = SortedEntityIds();
             var start = MatchFormat.SlopballVersus.StartFor(_arena, ids.IndexOf(id), ids.Count,
                 ids.Select(CampOf).ToArray());
-            start.Y = _arena.Arcade!.Slopball!.FloorY + _defs[id].CapsuleHeight * .5f;
+            start.Y = _arena.Arcade!.Slopball!.FloorY + Def(id).CapsuleHeight * .5f;
             return start;
         }
 
@@ -96,11 +96,12 @@ namespace SlopArena.Shared
                 {
                     EntityId = id, PX = start.X, PY = start.Y, PZ = start.Z, FacingYaw = start.Yaw,
                     IsGrounded = true, State = ActionState.Idle, MatchState = previous.MatchState,
-                    JumpsLeft = _defs[id].Movement.MaxJumps, AirDodgesLeft = 1,
+                    JumpsLeft = Def(id).Movement.MaxJumps, AirDodgesLeft = 1,
                     AttackSequence = previous.AttackSequence,
                     AutoLockSuppressed = previous.AutoLockSuppressed,
                     LastTerminalInteractionId = previous.LastTerminalInteractionId,
                     InteractionTerminalTick = previous.InteractionTerminalTick,
+                    Form = new FormState { Active = previous.Form.Active },
                 };
                 _animFrames[id] = 0; _prevAnimIndex[id] = -1;
                 SetRespawnPosition(id, start.X, start.Y, start.Z, start.Yaw);
@@ -245,7 +246,7 @@ namespace SlopArena.Shared
 
         private byte CombatTargetDeaths(ulong id) => _states.TryGetValue(id, out var state) ? state.Deaths : (byte)0;
         private float CombatTargetAimY(ulong id, float y)
-            => _defs.TryGetValue(id, out var def) ? y + def.CapsuleHeight * .25f : y;
+            => TryDef(id, out var def) ? y + def.CapsuleHeight * .25f : y;
 
         private void ResolveArcadeBallHit(in SpellResolver.HitResult hit,
             Dictionary<ulong, InputState> inputs, int operationIndex)
@@ -259,11 +260,11 @@ namespace SlopArena.Shared
             float force = forceDefault;
             bool ownerExists = _states.TryGetValue(hit.OwnerEntityId, out var owner);
             CookedSlotDefinition? spec = null;
-            if (ownerExists && _defs.TryGetValue(hit.OwnerEntityId, out var def))
+            if (ownerExists && TryDef(hit.OwnerEntityId, out var def))
             {
-                if (hit.AttackSlot > 0) spec = def.GetCookedSlotAbility(hit.AttackSlot, hit.Airborne);
+                if (hit.AttackSlot > 0) spec = def.ForForm(hit.Form).GetCookedSlotAbility(hit.AttackSlot, hit.Airborne);
                 if (ContactAbility(hit) is { } ability)
-                    ability.OnHitObject(ref owner, def, ref damage, ref force);
+                    ability.OnHitObject(ref owner, ability.CharacterDef ?? def, ref damage, ref force);
             }
             if (force == forceDefault)
             {
@@ -319,7 +320,7 @@ namespace SlopArena.Shared
                 var state = _states[id];
                 bool clay = CampOf(id) == SlopballCamp.Clay;
                 float sign = clay ? -1f : 1f;
-                float limit = rules.NetZ - sign * (rules.NetHalfThickness + _defs[id].CapsuleRadius);
+                float limit = rules.NetZ - sign * (rules.NetHalfThickness + Def(id).CapsuleRadius);
                 if (sign * (state.PZ - limit) <= 0f) continue;
                 var before = state;
                 state.PZ = limit;
@@ -335,13 +336,13 @@ namespace SlopArena.Shared
         {
             course ??= _course!;
             if (course.IsBroken(index) || hit.Damage <= 0f || !_states.TryGetValue(hit.OwnerEntityId, out var owner)) return;
-            var definition = _defs[hit.OwnerEntityId];
+            var definition = Def(hit.OwnerEntityId);
             float damage = hit.Damage, force = hit.BaseKnockback;
             if (ContactAbility(hit) is { } ability)
-                ability.OnHitObject(ref owner, definition, ref damage, ref force);
+                ability.OnHitObject(ref owner, ability.CharacterDef ?? definition, ref damage, ref force);
             if (damage <= 0f) { _states[hit.OwnerEntityId] = owner; return; }
             if (!(_onlineCourse != null ? _onlineCourse.Hit(hit.OwnerEntityId, index) : course.Hit(index))) return;
-            var spec = hit.AttackSlot > 0 ? definition.GetCookedSlotAbility(hit.AttackSlot, hit.Airborne) : null;
+            var spec = hit.AttackSlot > 0 ? definition.ForForm(hit.Form).GetCookedSlotAbility(hit.AttackSlot, hit.Airborne) : null;
             ushort freeze = ComputeHitstopTicks(damage);
             if (hit.FreezesOwner) owner.HitstopTicks = freeze;
             // A bonus target that still needs hits keeps the lock; a broken one releases it.

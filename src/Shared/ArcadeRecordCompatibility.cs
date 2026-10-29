@@ -18,14 +18,16 @@ public static class ArcadeRecordCompatibility
     // 9: Slopball keeps each hit's launch direction and angle without automatic return assistance (2026-10-19).
     // 10: Wibou's Rising Slash no longer refunds its charge on a hit (2026-10-20).
     // 11: universal Progressive ground movement (2026-10-27).
-    public const uint RulesRevision = 11;
+    // 12: ground movement starts at 60% and ramps over 12 ticks (2026-10-28).
+    public const uint RulesRevision = 12;
     public const ushort SlopballCountdownTicks = 180;
     public const ushort CourseCountdownTicks = 180;
     // 2: melee hitboxes keep their active ticks through the owner's hitstop (2026-10-18).
     // 3: the air dodge follows the stick, front-loads its burst and glides out (2026-10-18).
     // 4: Wibou's Rising Slash no longer refunds its charge on a hit (2026-10-20).
     // 5: universal Progressive ground movement (2026-10-27).
-    public const uint CourseRulesRevision = 5;
+    // 6: ground movement starts at 60% and ramps over 12 ticks (2026-10-28).
+    public const uint CourseRulesRevision = 6;
 
     public static string Slopball(in ArenaDefinition arena, MatchContentEntry fighter,
         uint rulesRevision = RulesRevision, CombatTuning? tuning = null)
@@ -94,7 +96,13 @@ public static class ArcadeRecordCompatibility
             {
                 fighter.Identity.PackageId, c.Weight, c.Movement, c.CapsuleRadius, c.CapsuleHeight,
                 c.HipHeight, c.HurtboxRadius, c.ShieldRadius, c.CaptureGeometry,
-                c.HurtboxCapsules, c.HurtboxBoneDefs, d.HurtboxBoneScale,
+                c.HurtboxCapsules,
+                HurtboxBoneDefs = c.HurtboxBoneDefs.Select(x => new
+                {
+                    x.BoneId, x.OffsetX, x.OffsetY, x.OffsetZ, x.Radius,
+                    x.EndBoneId, x.EndOffsetX, x.EndOffsetY, x.EndOffsetZ,
+                }).ToArray(),
+                d.HurtboxBoneScale,
                 Capabilities = c.CapabilityRequirements.OrderBy(x => x.CapabilityId, StringComparer.Ordinal).ToArray(),
                 Bones = bones,
                 LowPosture = new { Crouch = baked != null && !string.IsNullOrEmpty(d.CrouchAnim) && baked.FindAnimIndex(d.CrouchAnim) >= 0,
@@ -126,11 +134,15 @@ public static class ArcadeRecordCompatibility
         if (course && stage.Course!.HasMultiHitTargets)
             bytes = bytes.Concat(JsonSerializer.SerializeToUtf8Bytes(
                 new { TargetHits = stage.Course.Targets.Select(t => (int)t.Hits).ToArray() })).ToArray();
-        // The shell stance (ADR-0045) joins only for fighters that have one, so other fighters keep their records.
+        // The shell (ADR-0045, ADR-0050) joins only for fighters that have one, so other fighters keep their records.
         if (c.Shell != null || c.Slots.Any(slot => slot.ShellPolicy != ShellPolicy.PopOut))
             bytes = bytes.Concat(JsonSerializer.SerializeToUtf8Bytes(new
             {
-                Shell = c.Shell == null ? null : c.Shell with { HitPresentationId = null },
+                Shell = c.Shell == null ? null : c.Shell with
+                {
+                    Splash = c.Shell.Splash == null ? null : c.Shell.Splash with { PresentationId = null },
+                    Ride = c.Shell.Ride == null ? null : c.Shell.Ride with { HitPresentationId = null },
+                },
                 ShellPose = Pose(d.ShellAnim),
                 Tucks = c.Slots.Where(slot => slot.ShellPolicy != ShellPolicy.PopOut).Select(slot => slot.Ordinal).ToArray(),
             }, new JsonSerializerOptions { IncludeFields = true })).ToArray();
@@ -154,6 +166,7 @@ public static class ArcadeRecordCompatibility
             CookedStartCapabilityOperation c => new { c.CapabilityId, c.CapabilityVersion,
                 Parameters = Parameters(c.Parameters) },
             CookedCompleteTimelineOperation => null,
+            CookedSwapFormOperation => null,
             _ => throw new ArgumentException("Update the Arcade comparison policy for this operation."),
         };
         return new { op.Tick, op.Unit, op.Kind, Data = data };
@@ -164,7 +177,14 @@ public static class ArcadeRecordCompatibility
     /// order, so content without a return keeps its fingerprint. A return block joins it, minus its
     /// presentation IDs.
     /// </summary>
-    private static object Projectile(CookedProjectile x) => x.Return == null
+    private static object Projectile(CookedProjectile x) => x.Homing != null || x.Perch != null
+        ? new
+        {
+            x.LaunchOffsetX, x.LaunchOffsetY, x.LaunchOffsetZ, x.Speed, x.Gravity, x.Radius, x.Damage, x.Angle,
+            x.BaseKnockback, x.KnockbackGrowth, x.StunTicks, x.MaxFlightTicks, x.YawOffsetDegrees,
+            x.Homing, Perch = x.Perch == null ? null : x.Perch with { Pop = x.Perch.Pop with { PresentationId = "" } },
+        }
+        : x.Return == null
         ? new
         {
             x.LaunchOffsetX, x.LaunchOffsetY, x.LaunchOffsetZ, x.Speed, x.Gravity, x.Radius, x.Damage, x.Angle,
@@ -188,6 +208,13 @@ public static class ArcadeRecordCompatibility
         CookedMankiRoundBombCapabilityParameters x => x with { ExplosionPresentationId = "" },
         CookedMankiJetpackBoostCapabilityParameters x => x with { ExplosionPresentationId = "" },
         CookedMankiBazookaCapabilityParameters x => x with { ExplosionPresentationId = "" },
+        CookedMankiKamikazeCapabilityParameters x => x with { ExplosionPresentationId = "" },
+        CookedTetherCapabilityParameters x => x with
+        {
+            ThrowPresentationId = "", RetractPresentationId = "",
+            AtTarget = x.AtTarget == null ? null : x.AtTarget with { WarningPresentationId = "", CatchPresentationId = "" },
+        },
+        CookedCannonballCapabilityParameters x => x with { LaunchPresentationId = "" },
         CookedChargedProjectileCapabilityParameters x => new
         {
             x.MaxChargeTicks, x.Tier2Ticks, x.Tier3Ticks, x.FireTriggerTick, x.Tier2Radius, x.Tier3Radius,
@@ -198,11 +225,21 @@ public static class ArcadeRecordCompatibility
             x.FireTriggerTick, x.RecoveryTicks, x.ShotsPerReload, x.ReloadTicks,
             x.AirMaxFallSpeed, x.AirRecoilSpeed, Projectile = Projectile(x.Projectile),
         },
+        CookedDashStrikeCapabilityParameters x => new
+        {
+            x.Distance, x.Speed, x.TipPoseTick, x.RecoveryTicks, x.LightHitbox, x.TipHitbox,
+        },
+        CookedClinchCapabilityParameters x => x,
+        CookedCommandGrabCapabilityParameters x => x with { CatchPresentationId = "", ReleasePresentationId = "" },
+        CookedFlashCutCapabilityParameters x => new
+        {
+            x.StanceTicks, x.LockRange, x.MaxTargets, x.LegTicks, x.PassThroughDistance, x.SheatheTicks,
+            x.RecoveryTicks, x.WhiffTicks, x.CutHitbox,
+        },
         CookedAimedRecoveryCapabilityParameters or CookedThrustCapabilityParameters
             or CookedRisingDragonCapabilityParameters or CookedChargedStreamCapabilityParameters
-            or CookedCycloneKickCapabilityParameters or CookedChargedDirectionalDashCapabilityParameters
-            or CookedWibouRisingSlashCapabilityParameters or CookedWibouBladeFlurryCapabilityParameters
-            or CookedMankiAerosolInfernoCapabilityParameters => p,
+            or CookedCycloneKickCapabilityParameters
+            or CookedWibouRisingSlashCapabilityParameters => p,
         _ => throw new ArgumentException("Update the Arcade comparison policy for this capability."),
     };
 }

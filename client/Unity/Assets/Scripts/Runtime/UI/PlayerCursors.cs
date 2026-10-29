@@ -1,7 +1,6 @@
 #nullable enable
 using System.Collections.Generic;
 using UnityEngine;
-using UnityEngine.InputSystem;
 using UnityEngine.UIElements;
 using SlopArena.Client.World;
 
@@ -15,7 +14,6 @@ namespace SlopArena.Client.UI
         private readonly Tag[] _tags = new Tag[4];
         private readonly List<UIDocument> _documents = new();
         private float _nextScan;
-        private bool _mouseMode;
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
         private static void Create()
@@ -36,7 +34,6 @@ namespace SlopArena.Client.UI
         private void Update()
         {
             if (_tags[0] == null) return;
-            TrackInputMode();
             if (Time.unscaledTime >= _nextScan)
             {
                 _nextScan = Time.unscaledTime + 0.5f;
@@ -45,7 +42,7 @@ namespace SlopArena.Client.UI
             }
 
             float bob = -10f * (0.5f + 0.5f * Mathf.Sin(Time.unscaledTime * 7f));
-            var focused = _mouseMode || !MenuOpen() ? null : FocusedElement();
+            var focused = !MenuInputMode.PadActive || !MenuOpen() ? null : FocusedElement();
             if (focused != null) _tags[0].Show(focused, 0f, bob);
             else _tags[0].Hide();
 
@@ -86,19 +83,6 @@ namespace SlopArena.Client.UI
                 }
             }
             return best;
-        }
-
-        private void TrackInputMode()
-        {
-            var mouse = Mouse.current;
-            if (mouse != null && (mouse.delta.ReadValue().sqrMagnitude > 4f || mouse.leftButton.wasPressedThisFrame))
-                _mouseMode = true;
-            if (Keyboard.current?.anyKey.wasPressedThisFrame == true)
-                _mouseMode = false;
-            foreach (var pad in Gamepad.all)
-                if (pad.buttonSouth.wasPressedThisFrame || pad.buttonEast.wasPressedThisFrame
-                    || pad.dpad.ReadValue().sqrMagnitude > 0.25f || pad.leftStick.ReadValue().sqrMagnitude > 0.25f)
-                    _mouseMode = false;
         }
 
         private sealed class Tag

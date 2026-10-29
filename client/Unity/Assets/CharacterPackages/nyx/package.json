@@ -1,0 +1,9 @@
+{
+  "manifestSchemaVersion": 1,
+  "packageId": "nyx",
+  "version": "0.0.0-dev",
+  "creator": "Binoui",
+  "license": "MIT",
+  "attribution": "Original Nyx models generated with Tripo, rigged by Binoui with Mixamo. Placeholder animation copies from FightGuy retain their original project and vendor provenance.",
+  "dependencies": []
+}

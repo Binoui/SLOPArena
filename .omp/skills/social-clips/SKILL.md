@@ -1,6 +1,6 @@
 ---
 name: social-clips
-description: "Propose, stage and render SLOPArena short-form clips (TikTok, YouTube Shorts, X) from the scenarios/social queue: vertical photo-mode shoots with the game's own sound, delivered to the owner for CapCut and manual posting."
+description: "Propose, stage and render SLOPArena short-form clips (TikTok, YouTube Shorts, X) through the content factory on alfred: vertical photo-mode shoots with the game's own sound and explainers, reviewed by the owner on the board and posted by hand."
 metadata: {"invocation": "explicit"}
 disable-model-invocation: true
 ---

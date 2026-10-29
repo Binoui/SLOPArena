@@ -65,6 +65,9 @@ class PrepareTests(unittest.TestCase):
                                     version="0.2.0-playtest.42", endpoint=controller.ENDPOINT, migration_from="")
         self.master_protocol = 8
         self.contract = 1
+        self.released = ""
+        self.previous_protocol = 8
+        self.shared_changes = ""
         self.inputs = {"client/Unity/Assets/rig.fbx": "d" * 64}
         patches = [
             mock.patch.object(controller, "main_revision", side_effect=lambda root: "b" * 40 if root == self.master else "a" * 40),
@@ -83,8 +86,14 @@ class PrepareTests(unittest.TestCase):
             return "git@github.com:" + repository + ".git"
         if arguments[0] in ("merge-base", "cat-file"):
             return ""
+        if arguments[0] == "ls-remote":
+            return self.released
+        if arguments[0] == "diff":
+            return self.shared_changes
         if arguments[0] == "show":
-            path = arguments[1].split(":", 1)[1]
+            revision, path = arguments[1].split(":", 1)
+            if revision == "e" * 40:
+                return f"public const byte Version = {self.previous_protocol};"
             values = {
                 controller.playtest_protocol.GAME_FILES[0]: "public const byte Version = 8;",
                 controller.playtest_protocol.GAME_FILES[1]: "public const int CurrentProtocolVersion = SimulationProtocol.Version;",
@@ -121,6 +130,33 @@ class PrepareTests(unittest.TestCase):
         self.patches[2].assert_not_called()
         self.patches[3].assert_not_called()
         self.assertFalse(self.path.exists())
+
+    def release_history(self, previous_protocol, shared_changes):
+        # playtest.41 is the previous release; playtest.9 is older and must not be the baseline.
+        self.released = ("f" * 40 + "\trefs/tags/playtest-client-0.2.0-playtest.9\n"
+                         + "e" * 40 + "\trefs/tags/playtest-client-0.2.0-playtest.41\n")
+        self.previous_protocol = previous_protocol
+        self.shared_changes = shared_changes
+
+    def test_shared_change_without_protocol_bump_refuses_before_unity_work(self):
+        self.release_history(8, "src/Shared/Simulation.cs")
+        with self.assertRaisesRegex(ValueError, "changed since playtest-client-0.2.0-playtest.41 but the protocol is still 8"):
+            controller.prepare(self.args, self.root, self.path)
+        self.patches[2].assert_not_called()
+        self.assertFalse(self.path.exists())
+
+    def test_one_bump_since_the_previous_release_covers_every_shared_change(self):
+        self.release_history(7, "src/Shared/Simulation.cs\nsrc/Shared/WorldFramePacket.cs")
+        self.assertEqual(controller.prepare(self.args, self.root, self.path)["compatibility"]["game_protocol"], 8)
+
+    def test_release_without_shared_changes_keeps_the_protocol(self):
+        self.release_history(8, "")
+        controller.prepare(self.args, self.root, self.path)
+
+    def test_protocol_can_never_move_backwards(self):
+        self.release_history(9, "")
+        with self.assertRaisesRegex(ValueError, "lower than"):
+            controller.prepare(self.args, self.root, self.path)
 
     def test_old_pipeline_refuses_before_expensive_local_work(self):
         self.contract = 0

@@ -1,24 +1,21 @@
 namespace SlopArena.Shared
 {
-    /// <summary>
-    /// Defines a hurtbox sphere attached to a skeleton bone.
-    /// The server samples the animation, gets the bone world position,
-    /// adds the offset, and creates a sphere hurtbox.
-    /// </summary>
     public struct HurtboxBoneDef
     {
-        /// <summary>Bone name in the skeleton (e.g. "mixamorig:Spine2", "mixamorig:Head").</summary>
         public string BoneName;
-        /// <summary>Local offset from the bone origin (in bone-local space).</summary>
         public float OffX, OffY, OffZ;
-        /// <summary>Sphere radius.</summary>
         public float Radius;
+        public string? EndBoneName;
+        public float EndOffX, EndOffY, EndOffZ;
 
-        public HurtboxBoneDef(string bone, float ox, float oy, float oz, float r)
+        public HurtboxBoneDef(string bone, float ox, float oy, float oz, float r,
+            string? endBone = null, float endOx = 0f, float endOy = 0f, float endOz = 0f)
         {
             BoneName = bone;
             OffX = ox; OffY = oy; OffZ = oz;
             Radius = r;
+            EndBoneName = endBone;
+            EndOffX = endOx; EndOffY = endOy; EndOffZ = endOz;
         }
     }
 }

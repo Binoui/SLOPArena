@@ -403,6 +403,7 @@ namespace SlopArena.EditorTools
                         ActivationId = DecimalId(hit.ActivationId),
                         AttackSequence = hit.AttackSequence,
                         AttackSlot = hit.AttackSlot,
+                        Form = hit.Form,
                         Blocked = hit.Blocked,
                         Damage = hit.Damage,
                         ImpactForce = hit.ImpactForce,
@@ -463,6 +464,7 @@ namespace SlopArena.EditorTools
                         HitstunTicks = state.HitstunTicks,
                         HitstopTicks = state.HitstopTicks,
                         JumpsLeft = state.JumpsLeft,
+                        Form = state.Form.Active,
                         AirDodgesLeft = state.AirDodgesLeft,
                         ChargeTicks = state.ChargeTicks,
                         TargetEntityId = DecimalId(state.TargetEntityId),
@@ -695,6 +697,7 @@ namespace SlopArena.EditorTools
         [JsonProperty("hitstunTicks")] public ushort HitstunTicks { get; set; }
         [JsonProperty("hitstopTicks")] public ushort HitstopTicks { get; set; }
         [JsonProperty("jumpsLeft")] public byte JumpsLeft { get; set; }
+        [JsonProperty("form")] public byte Form { get; set; }
         [JsonProperty("airDodgesLeft")] public byte AirDodgesLeft { get; set; }
         [JsonProperty("chargeTicks")] public ushort ChargeTicks { get; set; }
         [JsonProperty("targetEntityId")] public string TargetEntityId { get; set; }
@@ -711,6 +714,7 @@ namespace SlopArena.EditorTools
         [JsonProperty("activationId")] public string ActivationId { get; set; }
         [JsonProperty("attackSequence")] public byte AttackSequence { get; set; }
         [JsonProperty("attackSlot")] public byte AttackSlot { get; set; }
+        [JsonProperty("form")] public byte Form { get; set; }
         [JsonProperty("blocked")] public bool Blocked { get; set; }
         [JsonProperty("damage")] public float Damage { get; set; }
         [JsonProperty("impactForce")] public float ImpactForce { get; set; }

@@ -71,19 +71,41 @@ A grounded low posture that spends existing horizontal momentum without an entry
 An ordinary grounded jump accepted from Slide. It preserves remaining momentum through the normal jump squat without refilling speed or changing jump cost, vertical force or ShortHop timing.
 
 **Shell**:
-Bashie's fighter state between her tuck moves (ADR-0045): she is in it in `ActionState.Shell`, or while attacking in a tuck move. It holds the Skate on the ground and the Coast in the air, bowls fighters over, and admits actions like Idle.
+Bashie's shell (ADR-0045, reshaped by ADR-0050): she is in it while riding her wave (`ActionState.Shell`), or while attacking in a Tuck move. It owns two things, the Splash and the Ride. Replaces the retired Skate, Coast and bowl.
 
-**Skate**:
-The Shell on the ground: she travels straight along her facing at her carried speed, with no steering or friction, until the skate clock runs out (she pops up), a head-on wall or a shield stops her, or she acts.
+**Splash**:
+What every tucked landing does: the Tuck move ends there (its cooldown starts), she pops up in place, and a wide hitbox at her feet launches everyone around upward. A hit and a miss pop her up for the same time.
 
-**Coast**:
-The Shell in the air, after a jet or a walk-off: ballistic, with no air control. Landing turns it into the Skate, faster from higher.
+**Cannonball**:
+Bashie's ground R (`slop.ability.cannonball.v1`): she takes her current target on her first tick, hops on one solved arc onto where they stood, and the Splash lands it. A target that moved is missed.
+
+**Ride**:
+Wave Pool's ride on her wave: when the ride move's whistle completes she travels in `ActionState.Shell` toward her current target at the ride speed, turning toward it at a capped rate, until its clock runs out, the wave breaks at the lip, a head-on wall stops her, she is hit or she acts. In the air it coasts until she lands.
+
+**Swept**:
+A fighter her wave carries (`ActionState.Swept`): caught once, it takes no input and moves at her speed while a short lease is renewed each tick. When the Ride ends it is let go with that speed; any other hit ends it with that hit's own reaction.
 
 **Tuck move**:
-A special whose slot declares `shellPolicy: tuck` (Shell Shift, Shell Dive, Hydro Jet). It runs in the Shell, tucking her if she was not, and hands her back to it when it ends or touches down.
+A special whose slot declares `shellPolicy: tuck` (Cannonball, Cannonball Dive, Hydro Jet). It runs tucked; touching down ends it with the Splash. A slot that declares `shellPolicy: ride` (Wave Pool) starts the Ride when it completes.
 
 **Pop out**:
-Leaving the Shell into an action: a grounded normal starts at skate speed, a jump keeps her speed; hits, shield, grab, air dodge and homing dash leave it too. Popping up is the skate running out, or a wall or shield stopping it.
+Leaving the Ride into an action: a grounded normal starts at ride speed, a jump keeps her speed; hits, shield, grab, air dodge and homing dash leave it too. Popping up is the end of a Splash or of the Ride.
+
+**Grab**:
+The universal grounded capture. Startup turns toward one captured fighter target under the normal aim rule. A Beeline can hold the press for grounded arrival. The held pair takes no input-driven movement or turns. Any attack press or the three-second timeout starts a throw.
+
+**Fling**:
+A grab throw chosen by a held world-space movement stick on the throw-start tick. The pair turns through legal stage placements and launches along its reached heading. Percent scaling makes it the positioning and kill throw.
+
+**Up toss**:
+A grab throw chosen by a neutral stick on the throw-start tick. It launches vertically through ordinary freeze, DI and Hitstun. Short thrower recovery permits a low-percent jump and aerial chase. Release has no scripted landing clock.
+
+**Tether**:
+A thrown line that catches the first fighter it meets and reels them to the thrower's feet (ADR-0048, `slop.ability.tether.v1`, Bashie's Rescue Ring). It is a paired interaction like a Grab, with phase `Reeling`, so deaths, resets and damaging hits end it the same way. A miss (range, a wall, a shield) reels the empty ring back, and that wait is the punish.
+_Avoid_: hook, pull, ranged grab
+
+**Reeled**:
+The caught fighter's state on a Tether. While the line holds, the thrower's tether is its only mover and it takes no input. Delivered, it stays Reeled for a short arrival window with ordinary gravity and no launch, then becomes Idle. Any hit ends it with that hit's own reaction.
 
 **CrouchBrace**:
 Reduced ordinary launch strength for a fighter already settled motionless in Crouch when a hit connects. The contact snapshot survives Hitstop and release; damage, freeze and Hitstun remain unchanged. Sliding, entry/braking crouch and fixed/custom forces do not qualify.
@@ -128,7 +150,7 @@ punishable miss. Shared cooldown, one use per airtime.
 _Avoid_: super dash, homing dash (in player-facing text)
 
 **RecoveryMove**:
-The per-character dedicated upward/diagonal burst used to return to the stage after being knocked out — one Slot per kit, long cooldown. The only move that resets the FloatWindow; normal air attacks no longer do (ADR-0015).
+The per-character dedicated upward/diagonal burst used to return to the stage after being knocked out — one Slot per kit, long cooldown. The only move that resets the FloatWindow; normal air attacks no longer do (ADR-0015). Unless it is cursor-aimed, it goes where the stick points during its first three input ticks, even behind the fighter; a neutral stick keeps facing.
 _Avoid_: up-B, getup move, escape move
 
 **Clash**:
@@ -153,6 +175,10 @@ The victim-side no-action lock after a damaging hit. Inputs buffer according to 
 **Hitstop**:
 The brief per-pair freeze when an attack connects or is blocked — not global; the match clock keeps running. Damaging knockback launches only when its freeze ends. Block hitstop does not queue damaging launch or DI effects.
 _Avoid_: hitlag (Melee connotation), freeze, hit pause
+
+**Held cut**:
+A flash cut's hit (ADR-0052): its victim stays in Hitstop (`ActionState.CutHeld`) until the cutter's pop tick, then takes the ordinary queued launch, so every held victim pops on one tick. While held it has no SDI (DI still counts), an immovable body and refuses grabs, tether rings and waves; other hits add damage only.
+_Avoid_: stun, freeze, delayed hit
 
 **Duration Lock**:
 A fixed-tick state during which a character cannot act. Two kinds: the attacker's attack commitment (`AnimLockTicks`, from startup through recovery) and the victim's Hitstun or block stun.
@@ -455,7 +481,7 @@ An opponent rendered from received state rather than local re-simulation while i
 _Avoid_: unpredicted entity, fallback display, snap-only entity
 
 **Predictable ActionState**:
-An action whose movement can be reproduced from confirmed state and exact input history. Idle, JumpSquat, Run, Sliding, Crouching, Shielding, ShieldDrop, GrabAttempt, detached Throwing recovery, Thrown flight/recovery and the air-dodge movement/recovery phases qualify only without active Hitstop, block-hitstop or a coupled interaction. Protocol 9 track model (ADR-0011), retired online by full-world rollback (ADR-0039); see Anchor and Prediction Window.
+An action whose movement can be reproduced from confirmed state and exact input history. Idle, JumpSquat, Run, Sliding, Crouching, Shielding, ShieldDrop, GrabAttempt, detached Throwing recovery and the air-dodge movement/recovery phases qualify only without active Hitstop, block-hitstop or a coupled interaction. The historical model also listed scripted Thrown flight, whose action wire value 21 is now reserved. Protocol 9 track model (ADR-0011), retired online by full-world rollback (ADR-0039); see Anchor and Prediction Window.
 _Avoid_: safe state, simple state, movement state
 
 **Complex ActionState**:

@@ -1,5 +1,6 @@
 #if UNITY_EDITOR
 using SlopArena.Client.Animation;
+using SlopArena.Client.World;
 using System.Collections.Generic;
 using SlopArena.Shared;
 using Unity.Pipeline.Commands;
@@ -43,7 +44,8 @@ namespace SlopArena.EditorTools
 
         private sealed class Materials
         {
-            public Material Glow, Glint, Pixel, Glyphs, Slash, Ring, Burst, Edge, TrailBand;
+            public Material Glow, Glint, Pixel, Glyphs, Slash, Ring, Burst, Edge, TrailBand, Nani;
+            public Material InkDraw, InkLight, InkTip, InkSeal, InkChin;
             public Mesh Crescent;
         }
 
@@ -62,12 +64,24 @@ namespace SlopArena.EditorTools
                 ("presentation.wibou.kunai.hit", KunaiHit()),
                 ("presentation.wibou.code-rain", CodeRain()),
                 ("presentation.wibou.rising.crescent", RisingCrescent()),
-                ("presentation.wibou.skyfall.draw", SkyfallDraw()),
-                ("presentation.wibou.skyfall.launch", SkyfallLaunch()),
-                ("presentation.wibou.skyfall.spike", SkyfallSpike()),
-                ("presentation.wibou.dash.charge", DashCharge()),
-                ("presentation.wibou.dash.cut", DashCut()),
+                ("presentation.wibou.flash.stance", FlashStance()),
+                ("presentation.wibou.flash.lock", FlashLock()),
+                ("presentation.wibou.flash.cut", FlashCut()),
+                ("presentation.wibou.flash.click", FlashClick()),
+                ("presentation.wibou.flash.pop", FlashPop()),
+                ("presentation.wibou.flash.nani", FlashNani()),
+                ("presentation.wibou.quick.draw", QuickDraw()),
+                ("presentation.wibou.quick.sheathe", QuickSheathe()),
+                ("presentation.wibou.quick.contact", QuickContact()),
+                ("presentation.wibou.quick.tip", QuickTip()),
             };
+            foreach (string retired in new[] { "WibouSkyfallDraw", "WibouDashCharge", "WibouDashCut" })
+                AssetDatabase.DeleteAsset($"{kit.Root}/{retired}.prefab");
+            foreach (string retired in new[] { "WibouSteelDraw", "WibouSteelSlash", "WibouSteelGlint" })
+            {
+                AssetDatabase.DeleteAsset($"{kit.Root}/{retired}.mat");
+                AssetDatabase.DeleteAsset($"{kit.Root}/{retired}.png");
+            }
             var trail = PixelTrail();
             var kunai = KunaiProjectile();
             kit.BindWeaponTrail(trail);
@@ -264,207 +278,184 @@ namespace SlopArena.EditorTools
             return _kit.Save(root);
         }
 
-        /// <summary>
-        /// Skyfall startup: a curtain of code rain falling around Wibou, a pixel ring bursting from
-        /// the feet, a big glint and the blade-draw sting.
-        /// </summary>
-        private static GameObject SkyfallDraw()
+        private static GameObject FlashStance()
         {
-            var root = _kit.NewRoot("WibouSkyfallDraw", attackBound: false);
-            var curtain = Particles(root, "Code curtain", _materials.Glyphs, 0.3f);
-            var main = curtain.main;
-            main.startLifetime = new ParticleSystem.MinMaxCurve(0.4f, 0.55f);
-            main.startSize = new ParticleSystem.MinMaxCurve(0.18f, 0.26f);
-            main.startColor = new ParticleSystem.MinMaxGradient(Green, Pale);
-            main.maxParticles = 80;
-            var emission = curtain.emission;
-            emission.rateOverTime = 120f;
-            var shape = curtain.shape;
-            shape.enabled = true;
-            shape.shapeType = ParticleSystemShapeType.Circle;
-            shape.radius = 0.85f;
-            shape.radiusThickness = 0f;
-            shape.rotation = new Vector3(-90f, 0f, 0f);
-            curtain.transform.localPosition = new Vector3(0f, 1.9f, 0f);
-            Fall(curtain, 3f, 4.2f);
-            GlyphFrames(curtain);
-            Fade(curtain, 0.6f);
-            var ring = Particles(root, "Pixel ring", _materials.Pixel, 0.3f);
-            Burst(ring, 22);
-            main = ring.main;
-            main.startLifetime = new ParticleSystem.MinMaxCurve(0.3f, 0.45f);
-            main.startSize = new ParticleSystem.MinMaxCurve(0.07f, 0.12f);
-            main.startSpeed = new ParticleSystem.MinMaxCurve(1.6f, 2.6f);
-            shape = ring.shape;
-            shape.enabled = true;
-            shape.shapeType = ParticleSystemShapeType.Circle;
-            shape.radius = 0.3f;
-            shape.radiusThickness = 0f;
-            shape.rotation = new Vector3(-90f, 0f, 0f);
-            ring.transform.localPosition = new Vector3(0f, 0.08f, 0f);
-            PixelFrames(ring);
-            SizeOverLife(ring, Steps(1f, 1f, 0.7f, 0.7f, 0.4f, 0f));
-            var glint = Star(root, 0.9f, 0.24f, 160f);
-            glint.transform.localPosition = new Vector3(0f, 1.2f, 0.15f);
-            var halo = Halo(root, 0.9f, 0.18f);
-            halo.transform.localPosition = glint.transform.localPosition;
-            _kit.Sound(root, "wibou_draw_01", 0.7f, 0.92f);
-            return _kit.Save(root);
-        }
-
-        /// <summary>Skyfall launch: a vertical blade column, upward speed lines and shards.</summary>
-        private static GameObject SkyfallLaunch()
-        {
-            var root = _kit.NewRoot("WibouSkyfallLaunch", attackBound: false);
-            var column = Particles(root, "Column", _materials.Slash, 0.3f);
-            Burst(column, 2);
-            var main = column.main;
-            main.startLifetime = new ParticleSystem.MinMaxCurve(0.18f, 0.24f);
-            // The slash runs along the quad's X; a quarter turn stands it upright.
-            main.startSize3D = true;
-            main.startSizeX = new ParticleSystem.MinMaxCurve(2.8f, 3.4f);
-            main.startSizeY = new ParticleSystem.MinMaxCurve(0.3f, 0.4f);
-            main.startSizeZ = 1f;
-            main.startRotation = Mathf.PI * 0.5f;
-            var shape = column.shape;
-            shape.enabled = true;
-            shape.shapeType = ParticleSystemShapeType.Sphere;
-            shape.radius = 0.15f;
-            column.transform.localPosition = new Vector3(0f, 1.2f, 0f);
-            SizeOverLife(column, Curve((0f, 0.5f), (0.25f, 1f), (1f, 1.05f)), Curve((0f, 1f), (0.5f, 1f), (1f, 0.15f)));
-            Fade(column, 0.6f);
-            var lines = Particles(root, "Speed lines", _materials.Slash, 0.3f);
-            Burst(lines, 14);
-            main = lines.main;
-            main.startLifetime = new ParticleSystem.MinMaxCurve(0.18f, 0.28f);
-            main.startSize = 0.09f;
-            main.startSpeed = 0f;
-            shape = lines.shape;
-            shape.enabled = true;
-            shape.shapeType = ParticleSystemShapeType.Circle;
-            shape.radius = 0.6f;
-            shape.rotation = new Vector3(-90f, 0f, 0f);
-            var velocity = lines.velocityOverLifetime;
-            velocity.enabled = true;
-            velocity.space = ParticleSystemSimulationSpace.Local;
-            velocity.x = new ParticleSystem.MinMaxCurve(0f, 0f);
-            velocity.y = new ParticleSystem.MinMaxCurve(14f, 20f);
-            velocity.z = new ParticleSystem.MinMaxCurve(0f, 0f);
-            Stretch(lines, 0.06f, 2f);
-            Fade(lines, 0.5f);
-            Shards(root, 18, 0.55f, 0.13f, 7f, 30f, ParticleSystemScalingMode.Local, upward: true);
-            _kit.Sound(root, "wibou_slice_02", 0.65f, 1.05f);
-            return _kit.Save(root);
-        }
-
-        /// <summary>Skyfall spike: a big crescent cutting forward and down, downward lines and a heavy slice.</summary>
-        private static GameObject SkyfallSpike()
-        {
-            var root = _kit.NewRoot("WibouSkyfallSpike", attackBound: false);
-            // As the Rising Slash crescent, then tipped 35° so the apex cuts forward and down.
-            Crescent(root, "Crescent", 0.28f, 1.8f, Quaternion.AngleAxis(35f, Vector3.right) * Quaternion.Euler(0f, 90f, 90f));
-            var lines = Particles(root, "Down lines", _materials.Slash, 0.3f);
-            Burst(lines, 12);
-            var main = lines.main;
-            main.startLifetime = new ParticleSystem.MinMaxCurve(0.14f, 0.24f);
-            main.startSize = 0.09f;
-            main.startSpeed = new ParticleSystem.MinMaxCurve(12f, 18f);
-            var shape = lines.shape;
-            shape.enabled = true;
-            shape.shapeType = ParticleSystemShapeType.Cone;
-            shape.angle = 10f;
-            shape.radius = 0.5f;
-            shape.rotation = new Vector3(90f, 0f, 0f);
-            Stretch(lines, 0.06f, 2f);
-            Fade(lines, 0.5f);
-            Shards(root, 20, 0.5f, 0.15f, 7.5f, 80f, ParticleSystemScalingMode.Local);
-            _kit.Sound(root, "wibou_slice_01", 0.8f, 0.86f);
-            return _kit.Save(root);
-        }
-
-        /// <summary>Dash Slash charge: a hilt glint, pixels rising off the blade and a quick draw.</summary>
-        private static GameObject DashCharge()
-        {
-            var root = _kit.NewRoot("WibouDashCharge", attackBound: true);
-            Halo(root, 0.6f, 0.16f, ParticleSystemSimulationSpace.Local);
-            Star(root, 0.6f, 0.2f, 220f);
-            var embers = Particles(root, "Embers", _materials.Pixel, 1f);
-            var main = embers.main;
+            var root = _kit.NewRoot("WibouFlashStance", attackBound: true);
+            var code = root.AddComponent<FlashDissolvePresentation>();
+            var pixels = Particles(root, "Dissolving pixels", _materials.Pixel, 1f);
+            var main = pixels.main;
             main.loop = true;
-            main.startLifetime = new ParticleSystem.MinMaxCurve(0.35f, 0.6f);
-            main.startSize = new ParticleSystem.MinMaxCurve(0.05f, 0.09f);
-            main.startSpeed = new ParticleSystem.MinMaxCurve(0.2f, 0.6f);
-            main.gravityModifier = -0.7f;
-            main.maxParticles = 60;
-            var emission = embers.emission;
-            emission.rateOverTime = 18f;
-            Sphere(embers, 0.12f);
-            PixelFrames(embers);
-            SizeOverLife(embers, Steps(1f, 1f, 0.6f, 0.6f, 0.3f, 0f));
-            _kit.Sound(root, "wibou_draw_03", 0.42f, 1.22f);
+            main.startLifetime = new ParticleSystem.MinMaxCurve(0.16f, 0.32f);
+            main.startSize = new ParticleSystem.MinMaxCurve(0.035f, 0.075f);
+            main.maxParticles = 800;
+            Drift(pixels, 0.8f, 0.3f, 1.2f);
+            PixelFrames(pixels);
+            SizeOverLife(pixels, Steps(1f, 1f, 0.7f, 0.4f, 0f));
+            InFront(pixels);
+            code.Pixels = pixels;
+            var glyphs = Particles(root, "Dissolving code", _materials.Glyphs, 1f);
+            main = glyphs.main;
+            main.loop = true;
+            main.startLifetime = new ParticleSystem.MinMaxCurve(0.18f, 0.35f);
+            main.startSize = new ParticleSystem.MinMaxCurve(0.08f, 0.13f);
+            main.startColor = Green;
+            main.maxParticles = 200;
+            GlyphFrames(glyphs);
+            Fall(glyphs, 0.2f, 0.6f);
+            Fade(glyphs, 0.55f);
+            code.Glyphs = glyphs;
+            _kit.Sound(root, "wibou_flash_dropout", 0.6f, 1f);
             return _kit.Save(root);
         }
 
-        /// <summary>
-        /// Dash Slash release: thin streaks behind Wibou during the dash, then sharp diagonal cuts
-        /// left along the path pop a beat after Wibou passes each one (the delayed iaido cut),
-        /// synced to a click-then-slice sound.
-        /// </summary>
-        private static GameObject DashCut()
+        private static GameObject FlashLock()
         {
-            var root = _kit.NewRoot("WibouDashCut", attackBound: true);
-            // A pixel "blink" where Wibou vanishes.
-            var blink = Particles(root, "Blink", _materials.Pixel, 0.3f);
-            Burst(blink, 18);
-            var main = blink.main;
-            main.startLifetime = new ParticleSystem.MinMaxCurve(0.25f, 0.4f);
-            main.startSize = new ParticleSystem.MinMaxCurve(0.06f, 0.11f);
-            main.startSpeed = new ParticleSystem.MinMaxCurve(1f, 2.6f);
-            Sphere(blink, 0.45f);
-            PixelFrames(blink);
-            SizeOverLife(blink, Steps(1f, 1f, 0.7f, 0.7f, 0.4f, 0f));
-
-            var streaks = Particles(root, "Streaks", _materials.Slash, 1f);
-            main = streaks.main;
-            main.loop = true;
+            var root = _kit.NewRoot("WibouFlashLock", attackBound: false);
+            var ring = Particles(root, "Scan lock", _materials.Ring, 0.18f);
+            Burst(ring, 1);
+            var main = ring.main;
             main.startLifetime = 0.16f;
-            main.startSize = 0.07f;
-            main.maxParticles = 60;
-            main.emitterVelocityMode = ParticleSystemEmitterVelocityMode.Transform;
-            var emission = streaks.emission;
-            emission.rateOverDistance = 4f;
-            Sphere(streaks, 0.4f);
-            var inherit = streaks.inheritVelocity;
-            inherit.enabled = true;
-            inherit.mode = ParticleSystemInheritVelocityMode.Initial;
-            inherit.curve = 0.1f;
-            Stretch(streaks, 0f, 14f);
-            Fade(streaks, 0.3f);
-
-            // Hidden for the first 0.17 s of each cut's life, then a hard pop that thins away.
-            var cuts = Particles(root, "Delayed cuts", _materials.Slash, 1f);
-            main = cuts.main;
-            main.loop = true;
-            main.startLifetime = 0.5f;
-            main.startSize3D = true;
-            main.startSizeX = new ParticleSystem.MinMaxCurve(1.2f, 1.6f);
-            main.startSizeY = new ParticleSystem.MinMaxCurve(0.16f, 0.22f);
-            main.startSizeZ = 1f;
-            main.startRotation = new ParticleSystem.MinMaxCurve(20f * Mathf.Deg2Rad, 160f * Mathf.Deg2Rad);
-            main.maxParticles = 24;
-            emission = cuts.emission;
-            emission.rateOverDistance = 1.5f;
-            emission.SetBursts(new[] { new ParticleSystem.Burst(0f, 3) });
-            Sphere(cuts, 0.35f);
-            var color = cuts.colorOverLifetime;
-            color.enabled = true;
-            color.color = GradientOf(new[] { (0f, Color.white), (1f, Color.white) },
-                new[] { (0f, 0f), (0.33f, 0f), (0.34f, 1f), (0.75f, 1f), (1f, 0f) });
-            SizeOverLife(cuts, Curve((0f, 0.3f), (0.33f, 0.3f), (0.4f, 1.1f), (1f, 1.15f)),
-                Curve((0f, 1f), (0.4f, 1f), (1f, 0.15f)));
-            InFront(cuts);
-            _kit.Sound(root, "wibou_iaido_late", 0.75f, 1f);
+            main.startSize = 0.55f;
+            Fade(ring, 0.4f);
             return _kit.Save(root);
+        }
+
+        private static GameObject FlashCut()
+        {
+            var root = _kit.NewRoot("WibouFlashCut", attackBound: false);
+            InFront(Shards(root, 9, 0.22f, 0.055f, 2f, 65f, ParticleSystemScalingMode.Hierarchy));
+            _kit.Sound(root, "wibou_flash_blip", 0.65f, 1f);
+            return _kit.Save(root);
+        }
+
+        private static GameObject FlashClick()
+        {
+            var root = _kit.NewRoot("WibouFlashClick", attackBound: false);
+            root.AddComponent<SnapToOwnerBone>().BoneId = "_weapon_hilt";
+            var click = Particles(root, "Code click", _materials.Pixel, 0.12f);
+            Burst(click, 4);
+            var main = click.main;
+            main.startLifetime = 0.1f;
+            main.startSize = 0.06f;
+            Sphere(click, 0.1f);
+            PixelFrames(click);
+            _kit.Sound(root, "wibou_flash_click", 0.65f, 1f);
+            return _kit.Save(root);
+        }
+
+        private static GameObject FlashPop()
+        {
+            var root = _kit.NewRoot("WibouFlashPop", attackBound: false);
+            var pixels = Shards(root, 80, 0.38f, 0.075f, 3.5f, 180f, ParticleSystemScalingMode.Hierarchy);
+            Sphere(pixels, 0.62f);
+            InFront(pixels);
+
+            _kit.Sound(root, "wibou_flash_pop", 0.75f, 1f);
+            return _kit.Save(root);
+        }
+
+        /// <summary>
+        /// The flash's reveal over each still-held victim (ADR-0052):
+        /// NANI?! pops in his lettering (pale faces, a green extrusion, his dark rim) and drifts up.
+        /// </summary>
+        private static GameObject FlashNani()
+        {
+            var root = _kit.NewRoot("WibouFlashNani", attackBound: false);
+            var word = Particles(root, "NANI?!", _materials.Nani, 0.95f);
+            Burst(word, 1);
+            var main = word.main;
+            main.startLifetime = 0.9f;
+            main.startSize3D = true;
+            main.startSizeX = 1.3f;
+            var lettering = _materials.Nani.GetTexture("_BaseMap");
+            main.startSizeY = 1.3f * lettering.height / lettering.width;
+            main.startSizeZ = 1f;
+            main.startRotation = new ParticleSystem.MinMaxCurve(0.1f);
+            var velocity = word.velocityOverLifetime;
+            velocity.enabled = true;
+            velocity.space = ParticleSystemSimulationSpace.World;
+            velocity.x = new ParticleSystem.MinMaxCurve(0f, 0f);
+            velocity.y = new ParticleSystem.MinMaxCurve(0.25f, 0.25f);
+            velocity.z = new ParticleSystem.MinMaxCurve(0f, 0f);
+            word.transform.localPosition = new Vector3(0f, 0.05f, 0f);
+            SizeOverLife(word, Curve((0f, 0.2f), (0.12f, 1.18f), (0.24f, 0.96f), (0.34f, 1f), (1f, 1.03f)));
+            Fade(word, 0.75f);
+            var renderer = word.GetComponent<ParticleSystemRenderer>();
+            renderer.sortingFudge = -18f;
+            // Toward the camera, so the word sits in front of the frozen fighter.
+            renderer.pivot = new Vector3(0f, 0f, 1f);
+            return _kit.Save(root);
+        }
+
+        private static GameObject QuickDraw()
+        {
+            var root = _kit.NewRoot("WibouQuickDraw", attackBound: true);
+            var draw = InkMark(root, "Draw brush", _materials.InkDraw, 1.1f, 0.26f, 0.18f,
+                ParticleSystemScalingMode.Local, ParticleSystemSimulationSpace.Local);
+            draw.transform.localPosition = new Vector3(0f, 0.25f, 0f);
+            Fade(draw, 0.5f);
+            _kit.Sound(root, "wibou_quick_shing", 0.65f, 1f);
+            return _kit.Save(root);
+        }
+
+        private static GameObject QuickSheathe()
+        {
+            var root = _kit.NewRoot("WibouQuickSheathe", attackBound: true);
+            var word = InkMark(root, "Chin lettering", _materials.InkChin, 0.65f, 0.325f, 0.2f,
+                ParticleSystemScalingMode.Local, ParticleSystemSimulationSpace.Local);
+            var main = word.main;
+            main.startRotation = -8f * Mathf.Deg2Rad;
+            word.GetComponent<ParticleSystemRenderer>().pivot = new Vector3(0.65f, -0.8f, 1.2f);
+            SizeOverLife(word, Curve((0f, 0.85f), (0.15f, 1f), (1f, 1f)));
+            Fade(word, 0.8f);
+            _kit.Sound(root, "wibou_quick_tick", 0.7f, 1f);
+            return _kit.Save(root);
+        }
+
+        private static GameObject QuickContact()
+        {
+            var root = _kit.NewRoot("WibouQuickContact", attackBound: false);
+            var flick = InkMark(root, "Passing ink flick", _materials.InkLight, 0.85f, 0.3f, 0.16f);
+            flick.GetComponent<ParticleSystemRenderer>().pivot = new Vector3(0f, 0f, 0.65f);
+            var main = flick.main;
+            main.startRotation = 25f * Mathf.Deg2Rad;
+            Fade(flick, 0.65f);
+            return _kit.Save(root);
+        }
+
+        private static GameObject QuickTip()
+        {
+            var root = _kit.NewRoot("WibouQuickTip", attackBound: false);
+            var slash = InkMark(root, "Tip ink slash", _materials.InkTip, 3.1f, 1.05f, 0.28f);
+            var main = slash.main;
+            main.startRotation = -22f * Mathf.Deg2Rad;
+            SizeOverLife(slash, Curve((0f, 0.9f), (0.12f, 1f), (0.8f, 1.03f), (1f, 1.03f)));
+            Fade(slash, 0.8f);
+            var seal = InkMark(root, "Zan seal", _materials.InkSeal, 0.58f, 0.58f, 0.3f);
+            main = seal.main;
+            main.startRotation = 8f * Mathf.Deg2Rad;
+            seal.GetComponent<ParticleSystemRenderer>().pivot = new Vector3(-1.3f, 0.85f, 1.1f);
+            SizeOverLife(seal, Curve((0f, 1.18f), (0.16f, 1f), (1f, 1f)));
+            Fade(seal, 0.85f);
+            return _kit.Save(root);
+        }
+
+        private static ParticleSystem InkMark(GameObject root, string name, Material material,
+            float width, float height, float lifetime,
+            ParticleSystemScalingMode scaling = ParticleSystemScalingMode.Hierarchy,
+            ParticleSystemSimulationSpace space = ParticleSystemSimulationSpace.World)
+        {
+            var mark = Particles(root, name, material, lifetime, space, scaling);
+            Burst(mark, 1);
+            var main = mark.main;
+            main.startLifetime = lifetime;
+            main.startSize3D = true;
+            main.startSizeX = width;
+            main.startSizeY = height;
+            main.startSizeZ = 1f;
+            InFront(mark);
+            mark.GetComponent<ParticleSystemRenderer>().pivot = new Vector3(0f, 0f, 0.15f);
+            return mark;
         }
 
         /// <summary>
@@ -652,8 +643,15 @@ namespace SlopArena.EditorTools
 
         // ── Assets ───────────────────────────────────────────────────────────────
 
+        private const string NaniMaskPath = "Assets/CharacterPackages/wibou/Presentation/Source/Nani.png";
+
         private static Materials BuildMaterials() => new()
         {
+            InkDraw = InkStrokeMaterial("Draw", 2f),
+            InkLight = InkStrokeMaterial("Light", 3f),
+            InkTip = InkStrokeMaterial("Tip", 7f),
+            InkSeal = InkSealMaterial(),
+            InkChin = InkLetterMaterial(),
             Glow = _kit.ParticleMaterial("WibouGlowAdd", _kit.BakeTexture("WibouGlow", 128, 128,
                 (u, v) => Alpha(Mathf.Pow(Mathf.Clamp01(1f - Radius(u, v)), 2.2f))), new Color(0.9f, 1.6f, 0.7f), additive: true),
             Glint = _kit.ParticleMaterial("WibouGlint", _kit.BakeTexture("WibouGlint", 128, 128, GlintPixel)),
@@ -666,7 +664,112 @@ namespace SlopArena.EditorTools
             Burst = _kit.ParticleMaterial("WibouBurst", _kit.BakeTexture("WibouBurst", 256, 256, BurstPixel)),
             Edge = _kit.ParticleMaterial("WibouCrescentEdge", _kit.BakeTexture("WibouCrescentEdge", 64, 64, EdgePixel)),
             Crescent = CrescentMesh("WibouCrescent"),
+            Nani = WordMaterial("WibouNani", NaniMaskPath, 512, 4.5f, 2.2f),
         };
+
+        private static readonly Color BrushInk = new(20f / 255f, 20f / 255f, 22f / 255f);
+        private static readonly Color BrushEdge = new(145f / 255f, 1f, 105f / 255f);
+        private static readonly Color BrushPaper = new(240f / 255f, 238f / 255f, 232f / 255f);
+        private const string InkSource = "Assets/CharacterPackages/wibou/Presentation/Source/QuickInk";
+
+        private static Material InkStrokeMaterial(string beat, float edgeWidth)
+        {
+            var brush = new MaskField($"{InkSource}{beat}.png");
+            var outline = new MaskField($"{InkSource}{beat}Outline.png");
+            return _kit.ParticleMaterial($"WibouInk{beat}", _kit.BakeTexture($"WibouInk{beat}", 1024, 384, (u, v) =>
+            {
+                float silhouette = outline.Sample(u, v);
+                // Edge only outside the silhouette; dry bristles remain open instead of glowing green.
+                Color edge = Ink(silhouette - edgeWidth - 1.2f, BrushPaper);
+                edge = Layer(edge, Ink(silhouette - edgeWidth, BrushEdge));
+                edge.a *= Mathf.Clamp01(silhouette + 0.5f);
+                return Layer(edge, Ink(brush.Sample(u, v), BrushInk));
+            }), Color.white);
+        }
+
+        private static Material InkSealMaterial()
+        {
+            var glyph = new MaskField($"{InkSource}Zan.png");
+            return _kit.ParticleMaterial("WibouInkSeal", _kit.BakeTexture("WibouInkSeal", 256, 256, (u, v) =>
+            {
+                float rough = (ValueNoise(u, v, 60f, 9) - 0.5f) * 3f;
+                float square = Box(new Vector2(u - 0.5f, v - 0.5f), new Vector2(0.43f, 0.43f)) * 256f + rough;
+                Color color = Ink(square - 4f, BrushPaper);
+                color = Layer(color, Ink(square - 3f, BrushEdge));
+                color = Layer(color, Ink(square, BrushInk));
+                color = Layer(color, Ink(Mathf.Abs(square + 8f) - 0.9f, BrushEdge));
+                return Layer(color, Ink(glyph.Sample(u, v), BrushPaper));
+            }), Color.white);
+        }
+
+        private static Material InkLetterMaterial()
+        {
+            var glyph = new MaskField($"{InkSource}Chin.png");
+            return _kit.ParticleMaterial("WibouInkChin", _kit.BakeTexture("WibouInkChin", 512, 256, (u, v) =>
+            {
+                float distance = glyph.Sample(u, v);
+                Color color = Ink(distance - 6f, BrushPaper);
+                color = Layer(color, Ink(distance - 4f, BrushEdge));
+                return Layer(color, Ink(distance, BrushInk));
+            }), Color.white);
+        }
+
+        /// <summary>
+        /// Lettering from a glyph mask, cropped to its ink, as Bonk's words are: pale faces with a rim line, a green
+        /// extrusion that darkens with depth and his dark rim around both. Widths are in texels.
+        /// </summary>
+        private static Material WordMaterial(string name, string maskPath, int width, float outline, float faceLine)
+        {
+            var mask = new MaskField(maskPath);
+            float u0 = 1f, u1 = 0f, v0 = 1f, v1 = 0f;
+            const int grid = 256;
+            for (int y = 0; y < grid; y++)
+                for (int x = 0; x < grid; x++)
+                {
+                    float u = (x + 0.5f) / grid, v = (y + 0.5f) / grid;
+                    if (mask.Sample(u, v) >= 0f) continue;
+                    u0 = Mathf.Min(u0, u); u1 = Mathf.Max(u1, u);
+                    v0 = Mathf.Min(v0, v); v1 = Mathf.Max(v1, v);
+                }
+            float ink = v1 - v0;
+            var extrude = new Vector2(0.055f * ink, -0.085f * ink);
+            const float pad = 0.025f;
+            float bandU0 = Mathf.Max(0f, u0 - pad), bandU1 = Mathf.Min(1f, u1 + pad + extrude.x);
+            float bandV0 = Mathf.Max(0f, v0 - pad + extrude.y), bandV1 = Mathf.Min(1f, v1 + pad);
+            int height = Mathf.Max(8, Mathf.RoundToInt(width * (bandV1 - bandV0) / (bandU1 - bandU0)));
+            float texels = width / ((bandU1 - bandU0) * mask.Width);
+            return _kit.ParticleMaterial(name, _kit.BakeTexture(name, width, height, (u, v) =>
+            {
+                float mu = Mathf.Lerp(bandU0, bandU1, u), mv = Mathf.Lerp(bandV0, bandV1, v);
+                float face = mask.Sample(mu, mv) * texels;
+                float extrusion = float.MaxValue, depth = 1f;
+                const int steps = 12;
+                for (int k = 1; k <= steps; k++)
+                {
+                    float t = k / (float)steps;
+                    float d = mask.Sample(mu - extrude.x * t, mv - extrude.y * t) * texels;
+                    if (d < 0f && depth >= 1f) depth = t;
+                    extrusion = Mathf.Min(extrusion, d);
+                }
+                Color color = Ink(Mathf.Min(face, extrusion) - outline, Rim);
+                color = Layer(color, Ink(extrusion, Color.Lerp(Green, Rim, depth * 0.6f)));
+                color = Layer(color, Ink(face - faceLine, Rim));
+                return Layer(color, Ink(face, Pale));
+            }));
+        }
+
+        /// <summary>A flat fill inside a signed distance, antialiased over one texel.</summary>
+        private static Color Ink(float distance, Color color)
+            => new(color.r, color.g, color.b, Mathf.Clamp01(0.5f - distance));
+
+        private static Color Layer(Color under, Color over)
+        {
+            float a = over.a + under.a * (1f - over.a);
+            if (a <= 0f) return new Color(0f, 0f, 0f, 0f);
+            return new Color((over.r * over.a + under.r * under.a * (1f - over.a)) / a,
+                (over.g * over.a + under.g * under.a * (1f - over.a)) / a,
+                (over.b * over.a + under.b * under.a * (1f - over.a)) / a, a);
+        }
 
         /// <summary>Toon bands with Wibou's dark green rim.</summary>
         private static Color Bands(float distance, float rimWidth, float accentWidth, Color accent, Color core)

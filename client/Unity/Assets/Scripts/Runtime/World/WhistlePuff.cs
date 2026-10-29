@@ -8,21 +8,38 @@ namespace SlopArena.Client.World
     {
         public enum Phase { Idle, Inhaling, Blown, Deflating, Done }
 
+        // The accepted puff was timed on a whistle blown at tick 48; a move that blows sooner plays it faster.
+        private const float AcceptedBlowTick = 48f;
+
         public AudioSource? Inhale;
         public AudioSource? Deflate;
+        [Tooltip("The move's blow cue: its tick is where the puff empties into the whistle.")]
+        public string BlowPresentationId = "presentation.bashie.whistle.blow";
         public Phase State { get; private set; }
 
         private PlayerRenderer? _owner;
         private WhistlePuffRig? _rig;
         private byte _sequence;
-        private float _puff, _whistle, _deflateFrom, _whistleFrom, _deflateTime;
+        private float _puff, _whistle, _deflateFrom, _whistleFrom, _deflateTime, _pace = 1f;
 
         public void BindOwner(PlayerRenderer owner)
         {
             _owner = owner;
             _sequence = owner.CurrentAttackSequence;
             _rig = WhistlePuffRig.For(owner);
+            _pace = BlowTick(owner.CurrentMove) / AcceptedBlowTick;
             State = _rig != null && CurrentAttack() ? Phase.Inhaling : Phase.Done;
+        }
+
+        private float BlowTick(SlopArena.Shared.CookedSlotDefinition? move)
+        {
+            if (move != null)
+                foreach (var stage in move.Timeline.Stages)
+                    foreach (var operation in stage.Operations)
+                        if (operation is SlopArena.Shared.CookedEmitPresentationOperation emit
+                            && emit.PresentationId == BlowPresentationId && emit.Tick > 0)
+                            return emit.Tick;
+            return AcceptedBlowTick;
         }
 
         private void LateUpdate()
@@ -52,8 +69,8 @@ namespace SlopArena.Client.World
                 return;
             }
 
-            float tick = _owner.CurrentAttackElapsedTicks;
-            if (tick >= 48 && State == Phase.Inhaling)
+            float tick = _owner.CurrentAttackElapsedTicks / _pace;
+            if (tick >= AcceptedBlowTick && State == Phase.Inhaling)
             {
                 State = Phase.Blown;
                 if (Inhale != null) Inhale.Stop();

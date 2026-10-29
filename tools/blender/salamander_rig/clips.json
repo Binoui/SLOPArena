@@ -1,8 +1,8 @@
 {
  "anim.salamander.idle": "Assets/CharacterPackages/salamander/Animations/salamander_idle.anim",
  "anim.salamander.run": "Assets/CharacterPackages/salamander/Animations/salamander_run.anim",
- "anim.salamander.g1": "Assets/CharacterPackages/salamander/Animations/salamander_g1_backhand_slap.anim",
- "anim.salamander.g3": "Assets/CharacterPackages/salamander/Animations/salamander_g3_uppercut.anim",
+ "anim.salamander.g1": "Assets/CharacterPackages/salamander/Animations/salamander_g1_haymaker.anim",
+ "anim.salamander.g3": "Assets/CharacterPackages/salamander/Animations/salamander_g3_jumping_uppercut.anim",
  "anim.salamander.g4": "Assets/CharacterPackages/salamander/Animations/salamander_g4_tail_spin.anim",
  "anim.salamander.a1": "Assets/CharacterPackages/salamander/Animations/salamander_a1_double_tap.anim",
  "anim.salamander.a3": "Assets/CharacterPackages/salamander/Animations/salamander_a3_tail_whip.anim",

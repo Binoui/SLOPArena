@@ -8,6 +8,9 @@ see [Fighter hit feel](../systems/vfx-particles.md#fighter-hit-feel). Wibou's ef
 section 3 are implemented; on 2026-10-17 the owner kept the hit effects and green pixels,
 replaced the sword trail with pixels, dropped the flames and asked for louder kunai. See
 [Wibou's combat presentation](../characters/wibou.md#combat-presentation--2026-10-16).
+The 2026-10-29 Wibou follow-up implements the approved "glitch vs blade" direction.
+Quick Draw uses steel and a visible body; the flash uses a code dissolve, hidden travel,
+held scanline outlines and a pixel release. Its in-game look-and-sound check remains with the owner.
 Before the other characters, the Wibou builder was split into a reusable
 `PresentationBuilderKit`, with the workflow in the
 [character VFX pass](../../skills/sloparena-character-vfx-pass/SKILL.md) skill and the
@@ -15,11 +18,15 @@ review tooling in `tools/presentation_review.py`. FightGuy followed on 2026-10-1
 "The Champ's Show" (see [FightGuy](../characters/fightguy.md#combat-presentation--2026-10-17)),
 replacing the FightGuy ideas in section 3 below. Manki followed the same day with
 "Controlled Chaos" (see [Manki](../characters/manki.md#combat-presentation--2026-10-17)):
-concepts approved, built and captured; the in-game check is pending. It replaces the Manki
+concepts approved, built and captured; the in-game check is pending. The 2026-10-29
+flying-bomber follow-up adds the owner-picked Masked Classic bomb, Grin Mushroom
+Kamikaze blast and Fire Comet pack trail. Final visual acceptance remains with the owner.
+It replaces the Manki
 ideas in section 3 below. Bonk followed with "BONK!" (see
 [Bonk](../characters/bonk.md#combat-presentation--2026-10-17)): a bucket-red identity, a comic
 BONK! on his big hits, the armour read from section 2 and a "?" when armour shrugs off a hit.
 Concepts were approved and it is built and captured; the in-game check is pending.
+Nyx's approved 2026-10-29 pass adds violet cut-paper shadows, a flying/perched crow, bats and a placed shadow hand. Nyxxie uses pink and white prop arcs, hearts and flashes. A direction-readability revision uses open Ring Light rays, yaw-facing palms/bats/feathers/scraps, a single thin Going Live hoop and smaller contact peaks; eight-view Training comparisons live in `tmp/nyx-model/vfx-direction-fix/REPORT.md`. Both forms' 24 approved clips are integrated. Native Training captures and the three combos are under `tmp/nyx-model/integration/`; final in-game visual acceptance remains with the owner. See [Nyx](../characters/nyx.md#combat-presentation-2026-10-29).
 Everything is presentation-only and follows accepted hits
 and semantic events, like `CombatFeedback`. The one item that needs a Shared
 contract change is listed under [open decisions](#open-decisions) and needs its
@@ -126,12 +133,8 @@ Normals stay restrained. Every special gets:
 - **Shuriken Toss:** a "shing" and glint on release, flat spinning additive discs
   instead of a modeled spin, a "thunk" on hit, and sparks on block.
 - **Rising Slash:** a vertical crescent arc with code rain trailing the rise.
-- **Dash Slash:** a slash that lands after Wibou passes through. While charging,
-  show a sheath glint and tier pings. During the dash, leave a thin line and
-  afterimages. Then near-silence, a sheath click, and the slash lines burst along
-  the path. The engine already times the finisher with `finisherLeadTicks`.
-- **Skyfall:** vertical speed lines while Wibou follows, a sphere of crescent cuts
-  around the airborne victim, and a crater where they land.
+- **Quick Draw:** one white-steel draw streak, a visible Wibou, one steel tip cut and a small sheathe glint. No pixels. A metallic shing and soft tick.
+- **The flash:** feet-up code dissolve, invisible travel with a pixel streak, reassembly at each endpoint, green held scanlines, "NANI?!", and a pixel shatter at the click. Bit-crushed dropout, data blips, dry click and digital pop. No screen shake.
 
 ### FightGuy (superseded on 2026-10-17 by the Champ's Show)
 
@@ -240,8 +243,6 @@ custom shake.
   Inferno, radius 1.05 m) gets its hit effect up to a metre away. Clamping the offset to the
   axis-to-target distance would fix every capsule; it is a Shared change, so it needs
   approval first.
-- **Dash Slash charge pings:** FightGuy's Ki Shot now shows tier pings with the client-only
-  `ChargeTierCues`, which reads the replicated charge. Wibou's Dash Slash can reuse it
-  without a Shared change.
+- **Wibou R/F acceptance:** the approved split replaces the old charged Dash Slash and Skyfall cues. Judge the steel and code presentation in Training after capture review.
 - Later: once Replay v1 is implemented, a slow-motion replay of the match-ending
   hit.

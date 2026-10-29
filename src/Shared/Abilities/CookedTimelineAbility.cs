@@ -22,6 +22,7 @@ public sealed class CookedTimelineAbility : ServerAbility
     private readonly bool _timelineOwnsVerticalMotion;
     private readonly CookedStartupAimCorrectionOperation? _startupCorrection;
     private readonly int _startupCorrectionStage;
+    private readonly bool _turnsWithStick;
     internal bool UsesStartupAimCorrection { get; }
 
     public override float GravityMultiplier
@@ -59,6 +60,43 @@ public sealed class CookedTimelineAbility : ServerAbility
             return false;
         }
     }
+    public override TetherAbility? Tether
+    {
+        get
+        {
+            for (var i = 0; i < _capabilities.Count; i++)
+                if (_capabilities[i].Tether is { } tether)
+                    return tether;
+            return null;
+        }
+    }
+    public override ClinchAbility? Clinch
+    {
+        get
+        {
+            for (var i = 0; i < _capabilities.Count; i++)
+                if (_capabilities[i].Clinch is { } clinch)
+                    return clinch;
+            return null;
+        }
+    }
+    public override CommandGrabAbility? CommandGrab
+    {
+        get
+        {
+            for (var i = 0; i < _capabilities.Count; i++)
+                if (_capabilities[i].CommandGrab is { } grab)
+                    return grab;
+            return null;
+        }
+    }
+    public override HeldCutRelease? HeldCutFor(ulong victimId)
+    {
+        for (var i = 0; i < _capabilities.Count; i++)
+            if (_capabilities[i].HeldCutFor(victimId) is { } hold)
+                return hold;
+        return null;
+    }
     public override bool IgnoresFighterPushboxes
     {
         get
@@ -90,6 +128,9 @@ public sealed class CookedTimelineAbility : ServerAbility
 
 
     public override CookedSlotDefinition Move => _slot;
+    internal bool Connected { get; private set; }
+    // A confirmed hit from a hitbox naming its own hit presentation (ADR-0053) unlocks sweetspot-only presentations.
+    private bool _sweetspotConnected;
 
     public CookedTimelineAbility(CookedSlotDefinition slot)
     {
@@ -115,6 +156,7 @@ public sealed class CookedTimelineAbility : ServerAbility
             }
         }
         _timelineOwnsVerticalMotion = ownsVerticalMotion;
+        _turnsWithStick = RecoveryTurn.Applies(slot);
     }
     internal ActiveMoveView GetMoveView(in CharacterState owner)
         => new(_slot, _stageIndex, _stageTick, AirborneAtStart, AnimIndex,
@@ -160,6 +202,8 @@ public sealed class CookedTimelineAbility : ServerAbility
                 throw new InvalidOperationException("Startup correction requires a registered simulation.");
             OwnerSimulation.BeginStartupAimCorrection(ref s, _startupCorrection, ActivationInput);
         }
+        if (_turnsWithStick && RecoveryTurn.TryStickYaw(ActivationInput, out float yaw))
+            s.FacingYaw = yaw;
         ExecuteOperations(ref s, def);
         if (_completed)
             return;
@@ -185,10 +229,20 @@ public sealed class CookedTimelineAbility : ServerAbility
             // Validate the captured target while held without fighting manual aim.
             OwnerSimulation!.UpdateStartupAimCorrection(ref s, _startupCorrection, applyPose: false);
         }
+        // The activation tick also ticks once (stage tick 1), so ticks 1-3 are the three input ticks.
+        if (_turnsWithStick && _stageIndex == 0 && _stageTick <= RecoveryTurn.WindowTicks
+            && RecoveryTurn.TryStickYaw(input, out float yaw))
+        {
+            s.FacingYaw = yaw;
+            for (var i = 0; i < _capabilities.Count; i++)
+                if (_capabilities[i] is IRecoveryTurnCapability turning)
+                    turning.OnRecoveryTurn(ref s, input);
+        }
         ExecuteOperations(ref s, def);
         if (_completed)
             return;
 
+        bool stageHeld = false;
         for (var i = 0; i < _capabilities.Count; i++)
         {
             var capability = _capabilities[i];
@@ -196,6 +250,7 @@ public sealed class CookedTimelineAbility : ServerAbility
             capability.Tick(ref s, ref input, def);
             if (capability.AnimIndex != previousClip)
                 AnimIndex = capability.AnimIndex;
+            stageHeld |= capability.HoldsStage;
         }
 
         // Aim-hold capabilities freeze stage time during aiming; reset the clock on release.
@@ -215,7 +270,7 @@ public sealed class CookedTimelineAbility : ServerAbility
         // Landing-continuation capabilities own their end: landing re-seeks animation time,
         // and impact plus recovery may outlast the authored stage duration.
         // Unrelated capabilities retain the ordinary stage clock.
-        if (_stageTick >= CurrentStage.DurationTicks && !ContinuesThroughLanding)
+        if (_stageTick >= CurrentStage.DurationTicks && !ContinuesThroughLanding && !stageHeld)
         {
             if (_stageIndex + 1 >= _slot.Timeline.Stages.Count)
             {
@@ -261,6 +316,13 @@ public sealed class CookedTimelineAbility : ServerAbility
         for (var i = 0; i < _capabilities.Count; i++)
             _capabilities[i].OnHitEntity(ref attacker, ref target, attackerDef, targetDef, ref damage, ref knockbackForce);
     }
+    public override void OnHitConfirmed(in SpellResolver.HitResult hit, in CharacterState target, int operationIndex)
+    {
+        Connected = true;
+        if (hit.HitPresentationId != null) _sweetspotConnected = true;
+        foreach (var capability in _capabilities) capability.OnHitConfirmed(in hit, in target, operationIndex);
+    }
+
     public override void OnShieldBlock(ref CharacterState attacker, ref CharacterState defender)
     {
         for (var i = 0; i < _capabilities.Count; i++)
@@ -362,15 +424,19 @@ public sealed class CookedTimelineAbility : ServerAbility
                     StartCapability(ref s, def, capability, flattenedOperationIndex);
                     break;
                 case CookedEmitPresentationOperation presentation:
+                    if (presentation.Condition == AuthoringPresentationCondition.SweetspotHit && !_sweetspotConnected)
+                        break;
+                    if (presentation.PresentationId == FightGuyCycloneKick.DizzyPresentationId
+                        && _capabilities.Exists(c => c is FightGuyCycloneKick { ShowsDizzy: false }))
+                        break;
                     var placement = presentation.Placement;
-                    if (presentation.PresentationId == "presentation.manki.aerosol-inferno.start")
-                        foreach (var activeCapability in _capabilities)
-                            if (activeCapability is MankiAerosolInferno aerosol)
-                                placement = aerosol.ScaleFlamePresentation(s.ChargeTicks, placement);
                     PresentationSink?.Invoke(new TimelinePresentationEvent(0, s.EntityId, presentation.OperationIndex, presentation.PresentationId, PresentationAttackSequence, PresentationEventSource.Timeline, s.PX, s.PY, s.PZ, s.FacingYaw)
                     {
                         Placement = placement,
                     });
+                    break;
+                case CookedSwapFormOperation:
+                    Forms.Swap(ref s, CharacterDef ?? def);
                     break;
                 case CookedCompleteTimelineOperation:
                     Complete(ref s);
@@ -522,6 +588,8 @@ public sealed class CookedTimelineAbility : ServerAbility
         w.WriteInt(_stageIndex);
         w.WriteInt(_operationCursor);
         w.WriteBool(_completed);
+        w.WriteBool(Connected);
+        w.WriteBool(_sweetspotConnected);
         w.WriteBool(_unlimitedAimHold);
         w.WriteFloat(_forwardLungeSpeed);
         w.WriteFloat(_forwardLungeYaw);
@@ -552,6 +620,8 @@ public sealed class CookedTimelineAbility : ServerAbility
         if (_operationCursor < 0 || _operationCursor > CurrentStage.Operations.Count)
             throw SnapshotReader.Malformed("timeline operation cursor");
         _completed = r.ReadBool();
+        Connected = r.ReadBool();
+        _sweetspotConnected = r.ReadBool();
         _unlimitedAimHold = r.ReadBool();
         _forwardLungeSpeed = r.ReadFloat();
         _forwardLungeYaw = r.ReadFloat();

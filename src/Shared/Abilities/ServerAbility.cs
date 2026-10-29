@@ -37,6 +37,17 @@ namespace SlopArena.Shared.Abilities
         public virtual bool IgnoresFighterPushboxes => false;
         /// <summary>Whether body overlap moves only the other fighter during this activation.</summary>
         public virtual bool HoldsFighterPushboxPosition => false;
+        /// <summary>The tether this activation runs, if any (ADR-0048): its contacts catch instead of hitting.</summary>
+        public virtual TetherAbility? Tether => null;
+        /// <summary>The clinch this activation runs, if any (ADR-0053): its lunge catches and it holds the caught fighter.</summary>
+        public virtual ClinchAbility? Clinch => null;
+        /// <summary>The command grab this activation runs, if any (ADR-0051): its capture holds instead of hitting.</summary>
+        public virtual CommandGrabAbility? CommandGrab => null;
+        /// <summary>A capability that keeps its timeline in the current stage past the stage's length (a clinch's whiff).</summary>
+        internal virtual bool HoldsStage => false;
+
+        /// <summary>The hold this activation's contact puts on that victim (ADR-0052), or null for an ordinary hit.</summary>
+        public virtual HeldCutRelease? HeldCutFor(ulong victimId) => null;
 
         /// <summary>
         /// True while this activation's authored armor window remains active. A capability may report
@@ -103,6 +114,8 @@ namespace SlopArena.Shared.Abilities
             ref float damage, ref float knockbackForce)
         {
         }
+        public virtual void OnHitConfirmed(in SpellResolver.HitResult hit, in CharacterState target, int operationIndex) { }
+
         /// <summary>Accepted nonfighter contact; owner effects do not require a fake fighter target.</summary>
         public virtual void OnHitObject(ref CharacterState attacker, CharacterDefinition attackerDef,
             ref float damage, ref float knockbackForce) { }
@@ -172,7 +185,8 @@ namespace SlopArena.Shared.Abilities
         /// When evt.BoneName is set and baked data is available, positions at the
         /// bone's world position instead of the fixed OffX/Y/Z offset.
         /// </summary>
-        protected HashSet<ulong> SpawnHitbox(ref CharacterState s, HitboxEvent evt, bool followOwner = false)
+        protected HashSet<ulong> SpawnHitbox(ref CharacterState s, HitboxEvent evt, bool followOwner = false, bool freezesOwner = true,
+            ulong onlyTargetId = 0)
         {
             // Position resolution is shared with the Ability Lab preview + tests
             // (spec #119) — one implementation, previews cannot drift from the server.
@@ -225,7 +239,8 @@ namespace SlopArena.Shared.Abilities
                 ActivationId = ActivationId,
                 ActivationAirborne = AirborneAtStart,
                 AttackSequence = PresentationAttackSequence,
-                FreezesOwner = true,
+                FreezesOwner = freezesOwner,
+                OnlyTargetId = onlyTargetId,
                 CancelWithAbility = true,
                 HitsMultipleOpponents = true,
                 HitEntities = sharedHitEntities ??= new HashSet<ulong>(),
@@ -237,6 +252,7 @@ namespace SlopArena.Shared.Abilities
                 Slot = Slot,
                 AttackSlot = (byte)(Slot + 1),
                 Airborne = AirborneAtStart,
+                Form = CharacterDef?.Form ?? 0,
             };
             Resolver.Spawn(hitbox);
             return sharedHitEntities;
@@ -253,8 +269,12 @@ namespace SlopArena.Shared.Abilities
             s.VZ = vz;
         }
 
-        /// <summary>Spawn an authored projectile using launch-time targeting or the locked aim; returns it as spawned.</summary>
-        protected Hitbox SpawnCookedProjectile(ref CharacterState s, CookedProjectile projectile, int operationIndex, bool autoTarget)
+        /// <summary>
+        /// Spawn an authored projectile using launch-time targeting or the locked aim; returns it as spawned.
+        /// One that cancels with its ability leaves with an interrupted move instead of flying on.
+        /// </summary>
+        protected Hitbox SpawnCookedProjectile(ref CharacterState s, CookedProjectile projectile, int operationIndex, bool autoTarget,
+            bool cancelWithAbility = false)
         {
             float aimYaw;
             float aimPitch;
@@ -299,6 +319,7 @@ namespace SlopArena.Shared.Abilities
                 AttackSlot = (byte)(Slot + 1),
                 VisualOperationIndex = operationIndex,
                 Gravity = projectile.Gravity,
+                CancelWithAbility = cancelWithAbility,
             };
             if (projectile.Return is { } back)
             {
@@ -317,6 +338,19 @@ namespace SlopArena.Shared.Abilities
                 spawned.HitEntities = new HashSet<ulong>();
                 spawned.Gravity = 0f;
             }
+            // Homing takes the current target at spawn and never reacquires (ADR-0051).
+            if (projectile.Homing is { } homing && OwnerSimulation != null
+                && OwnerSimulation.TryGetCurrentTarget(in s, out ulong homingTarget, out _))
+            {
+                spawned.HomingTargetEntityId = homingTarget;
+                spawned.HomingTurnCos = homing.TurnCos;
+                spawned.HomingTurnSin = homing.TurnSin;
+            }
+            if (projectile.Perch is { } perch)
+            {
+                spawned.StickyFuseTicks = perch.PerchTicks;
+                spawned.Perch = ProjectilePerch.From(perch.Pop);
+            }
             SpawnResolverHitbox(spawned);
             return spawned;
         }
@@ -327,6 +361,7 @@ namespace SlopArena.Shared.Abilities
             hitbox.ActivationId = ActivationId;
             hitbox.ActivationAirborne = AirborneAtStart;
             hitbox.AttackSequence = PresentationAttackSequence;
+            hitbox.Form = CharacterDef?.Form ?? 0;
             Resolver.Spawn(hitbox);
         }
 

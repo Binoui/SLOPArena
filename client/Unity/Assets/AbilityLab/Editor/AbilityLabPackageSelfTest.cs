@@ -33,34 +33,32 @@ public static class AbilityLabPackageSelfTest
                 lunge.DurationTicks != 6)
                 throw new InvalidOperationException("Forward lunge source edit did not add the default typed operation.");
 
-            if (!workspace.AddChargedDirectionalDash("ground.E", 0) ||
+            if (!workspace.AddDashStrike("ground.E", 0) ||
                 workspace.LiveDraftInvalid || workspace.LiveDraftPackage == null)
-                throw new InvalidOperationException("Charged directional dash primitive did not compile into the live preview: " +
+                throw new InvalidOperationException("Dash strike primitive did not compile into the live preview: " +
                     string.Join("; ", workspace.Diagnostics.Select(d => $"{d.Code} {d.Path}: {d.Message}")));
             if (!workspace.TryResolveCanonicalSlot("ground.E", out int dashSlotIndex, out var dashSlot))
-                throw new InvalidOperationException("Charged directional dash slot did not resolve.");
+                throw new InvalidOperationException("Dash strike slot did not resolve.");
             int dashOperationIndex = dashSlot.Timeline.Stages[0].Operations
                 .Select((operation, index) => (operation, index))
                 .First(item => item.operation is StartCapabilityOperationSource
-                    { Parameters: ChargedDirectionalDashCapabilityParameters }).index;
+                    { Parameters: DashStrikeCapabilityParameters }).index;
             var dashOperation = (StartCapabilityOperationSource)dashSlot.Timeline.Stages[0].Operations[dashOperationIndex];
-            var dashParameters = (ChargedDirectionalDashCapabilityParameters)dashOperation.Parameters;
+            var dashParameters = (DashStrikeCapabilityParameters)dashOperation.Parameters;
             float SampleDashEndpoint()
             {
                 var definition = CookedCharacterRuntimeAdapter.ToCharacterDefinition(workspace.LiveDraftPackage!);
                 var scenario = new AbilityLabSimulationController().RunScenario(
                     definition, null, new AbilityLabScenarioOptions("ground.E",
-                        dashParameters.MaxChargeTicks +
-                        (int)Math.Ceiling(dashParameters.MaxDistance / (dashParameters.DashSpeed / 60d)) +
-                        dashParameters.RecoveryTicks + 2, 20f, chargeTicks: dashParameters.MaxChargeTicks),
+                        60, 20f),
                     Vector3.zero, 0f);
                 return scenario.Frames.Max(frame => frame.Actor.PZ);
             }
             float originalDashEndpoint = SampleDashEndpoint();
             if (!workspace.ReplaceOperation(dashSlotIndex, 0, dashOperationIndex,
-                    dashOperation with { Parameters = dashParameters with { MaxDistance = 5.8f } }) ||
+                    dashOperation with { Parameters = dashParameters with { Distance = 2.8f } }) ||
                 workspace.LiveDraftInvalid || SampleDashEndpoint() >= originalDashEndpoint - 0.4f)
-                throw new InvalidOperationException("Editing charged dash distance did not change the Shared scenario endpoint.");
+                throw new InvalidOperationException("Editing dash strike distance did not change the Shared scenario endpoint.");
             workspace.Undo();
             if (Math.Abs(SampleDashEndpoint() - originalDashEndpoint) > 0.01f)
                 throw new InvalidOperationException("Undo did not restore the prior Shared dash endpoint.");

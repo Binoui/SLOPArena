@@ -98,7 +98,7 @@ public static class UnityCharacterAssetCooker
     public const int BindingSchemaVersion = 2;
     public const int PoseVersion = 1;
     public const int SampleRate = 60;
-    public const string CookerVersion = "package-presentation-2";
+    public const string CookerVersion = "bone-capsules-1";
 
     public static CharacterAssetCookResult Cook(string packageRoot, CharacterAssetCatalog catalog, CharacterCookOutput output, CharacterCookProfile profile)
     {
@@ -172,7 +172,8 @@ public static class UnityCharacterAssetCooker
                 SampleRate,
                 catalog.WeaponConfig,
                 presentation.VisualScale,
-                presentation.ModelYOffset);
+                presentation.ModelYOffset,
+                compiled.CookedPackage.Definition.HurtboxBoneDefs);
         }
         catch (Exception ex)
         {
@@ -529,7 +530,7 @@ public static class UnityCharacterAssetCooker
         {
             foreach (string id in package.Definition.PresentationIds)
                 diagnostics.Add(Error("reference.presentation.unresolved", "character.presentationIds", $"Presentation ID '{id}' is not bound by the catalog."));
-            foreach (var slot in package.Definition.Slots)
+            foreach (var slot in package.Definition.AllSlots)
                 if (!string.IsNullOrEmpty(slot.HitPresentationId))
                     diagnostics.Add(Error("reference.presentation.unresolved",
                         $"character.slots[{slot.Ordinal}].hitPresentationId",
@@ -631,11 +632,16 @@ public static class UnityCharacterAssetCooker
         Add(p.Crouch, "character.presentation.crouch");
         Add(p.Slide, "character.presentation.slide");
         Add(p.Shell, "character.presentation.shell");
+        Add(p.Flying, "character.presentation.flying");
+        Add(p.MayhemLaugh, "character.presentation.mayhemLaugh");
         Add(p.Tumble, "character.presentation.tumble");
         Add(p.HitSmall, "character.presentation.hitSmall");
         Add(p.HitMedium, "character.presentation.hitMedium");
         Add(p.HitHard, "character.presentation.hitHard");
-        foreach (var slot in package.Definition.Slots)
+        if (package.Definition.AlternateForm is { } form)
+            foreach (var (name, id) in form.Presentation.Roles)
+                Add(id, $"character.alternateForm.presentation.{name}");
+        foreach (var slot in package.Definition.AllSlots)
         {
             if (!string.IsNullOrEmpty(slot.AimAnimationId))
                 Add(slot.AimAnimationId, $"character.slots[{slot.Ordinal}].aimAnimationId");

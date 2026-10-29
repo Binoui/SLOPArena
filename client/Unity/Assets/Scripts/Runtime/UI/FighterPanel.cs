@@ -7,7 +7,7 @@ namespace SlopArena.Client.UI
     internal static class FighterPanel
     {
         public static VisualElement Build(int playerNumber, string name, string role, CharacterClass? fighter,
-            string status, bool interactive = false, bool compact = false)
+            string status, bool interactive = false, bool compact = false, byte form = 0)
         {
             VisualElement panel = interactive ? new Button() : new VisualElement();
             panel.AddToClassList("fighter-panel");
@@ -26,7 +26,8 @@ namespace SlopArena.Client.UI
                 panel.AddToClassList($"fighter-panel--{fighter.Value}");
                 var art = new VisualElement { pickingMode = PickingMode.Ignore };
                 art.AddToClassList("fighter-panel__art");
-                var portrait = Resources.Load<Texture2D>($"UI/Portraits/{fighter.Value}");
+                var portrait = Resources.Load<Texture2D>(MenuRoster.PortraitPath(fighter.Value, form))
+                    ?? Resources.Load<Texture2D>(MenuRoster.PortraitPath(fighter.Value, 0));
                 if (portrait != null) art.style.backgroundImage = new StyleBackground(portrait);
                 // Splash images are stylesheet dependencies, so they ship without Resources copies.
                 if (fighter.Value is CharacterClass.Manki or CharacterClass.FightGuy or CharacterClass.Wibou or CharacterClass.Bonk)
@@ -34,7 +35,7 @@ namespace SlopArena.Client.UI
                 if (portrait == null && fighter.Value is not (CharacterClass.Manki or CharacterClass.FightGuy or CharacterClass.Wibou or CharacterClass.Bonk))
                     art.Add(Text("?", "fighter-panel__placeholder"));
                 panel.Add(art);
-                panel.Add(Text(MenuRoster.Name(fighter.Value).ToUpperInvariant(), "fighter-panel__fighter"));
+                panel.Add(Text(MenuRoster.Name(fighter.Value, form).ToUpperInvariant(), "fighter-panel__fighter"));
                 if (!compact) panel.Add(Text(MenuRoster.Description(fighter.Value), "fighter-panel__description"));
             }
             else

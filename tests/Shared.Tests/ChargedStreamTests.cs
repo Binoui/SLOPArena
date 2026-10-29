@@ -250,6 +250,7 @@ public sealed class ChargedStreamTests
     /// <summary>FightGuy with a charged stream in place of Ki Shot (A), on his clips: the stage's own clip sorts first.</summary>
     internal static void UseStream(JsonObject character, Action<JsonObject>? edit = null)
     {
+        FightGuyFixture.WithoutTitleMatch(character);
         var slots = character["slots"]!.AsArray();
         int index = slots.Select((slot, i) => (slot, i)).Single(x => x.slot!["id"]!.GetValue<string>() == "ground.A").i;
         var stream = JsonNode.Parse($$$"""

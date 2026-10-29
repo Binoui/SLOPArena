@@ -6,7 +6,7 @@
 
 **A free, open-source 3D platform fighter**
 
-[Discord](https://discord.gg/VvfaxDCF6Z) · [Play it](#play-it) · [Try it in five minutes](#try-it-in-five-minutes-no-unity-needed) · [Make stuff](#make-stuff) · [Docs](docs/README.md)
+[Discord](https://discord.gg/VvfaxDCF6Z) · [X](https://x.com/SLOPArena) · [TikTok](https://www.tiktok.com/@sloparena) · [YouTube](https://www.youtube.com/@SLOPArena) · [Play it](#play-it) · [Try it in five minutes](#try-it-in-five-minutes-no-unity-needed) · [Make stuff](#make-stuff) · [Docs](docs/README.md)
 
 ## Hi!
 

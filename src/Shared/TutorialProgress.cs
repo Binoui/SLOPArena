@@ -317,8 +317,8 @@ namespace SlopArena.Shared
                     return after.State == ActionState.Grabbing && before.State != ActionState.Grabbing
                         && after.InteractionPartnerId == f.Dummy.EntityId ? amount + 1f : amount;
                 case TutorialObjectiveId.Throw:
-                    return f.Dummy.State == ActionState.Thrown
-                        && f.DummyBefore.State != ActionState.Thrown ? amount + 1f : amount;
+                    return GrabThrow.WasReleased(in f.PlayerBefore, in f.DummyBefore, in f.Player, in f.Dummy)
+                        ? amount + 1f : amount;
                 case TutorialObjectiveId.Combo: return Math.Max(amount, _comboHits);
                 case TutorialObjectiveId.Knockout:
                     return f.Dummy.Deaths > f.DummyBefore.Deaths ? amount + 1f : amount;
@@ -353,7 +353,7 @@ namespace SlopArena.Shared
         /// </summary>
         private static bool Reeling(in CharacterState s)
             => s.HitstunTicks > 0 || s.HitstopTicks > 0 || !s.IsGrounded
-                || s.State is ActionState.Hitstun or ActionState.Thrown;
+                || s.State == ActionState.Hitstun;
 
         private static int BitCount(int value)
         {

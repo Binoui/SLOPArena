@@ -71,6 +71,30 @@ gameplay checks, and exact admitted roster pins. Cook automatically refreshes an
 existing roster entry before acceptance checks. New admission remains a separate
 step after the required kit and presentation checks.
 
+## A new fighter, end to end
+
+Nyx went from approved concept sheets to a fully playable two-form fighter, with 24 own
+animations and 27 effects, in about 15 hours on 2026-10-29
+([nyx.md](../../docs/characters/nyx.md)). The speed came from decisions made before
+anything was built. The costly misses came from briefs that guessed instead of measuring.
+
+1. **Lock the look and the kit first.** Run concept rounds until the owner approves front,
+   back and face sheets per outfit. Pitch the kit with one concept frame per special, and
+   get the owner's answers to the ADR's open questions before engine work starts.
+2. **Write one move spec.** One file lists every move with its clock. It drives the pose
+   sheets, the GenRA briefs and the engine's move timings, specials and form swaps included.
+   Nyx's normals shared one clock and dropped in unchanged. Her swaps were briefed at
+   48 ticks against a 30-tick game clock and had to be remapped.
+3. **Make it playable on day one.** Scaffold the package with borrowed clips so the whole
+   kit runs in Training while the model, engine and animation work proceed in parallel.
+4. **Split parallel work by file.** Engine phases that share sim files run one after
+   another. One task owns `character.json` and the catalog during integration.
+5. **Fit, don't protect.** Fit every mesh to the shared skeleton's measured pivots
+   ([import checklist](../../docs/characters/character-import-checklist.md#rig-and-semantic-bindings)).
+6. **Animate, then effects.** Owner review of unbound candidates, then binding, then effect
+   concepts painted on her own frames, then the
+   [VFX pass](../sloparena-character-vfx-pass/SKILL.md).
+
 ## Workflow
 
 For new or substantially reworked move motion, follow the
@@ -97,7 +121,13 @@ Use Humanoid for ordinary humanoid fighters when built-in retargeting helps. Cus
 
 For generated-model cleanup or replacement, use the [character model polish guide](../../docs/characters/character-model-polish.md) and `blender-character-polish`. Keep surface polish separate from approved rig changes.
 
-After structural repairs, check the candidate early in Unity with target-material backface culling, relevant raised-arm/underside/rear views and actual bound clips. Use the installed Unity CLI/Pipeline on the main checkout. Validate attachments, animation-aware bounds, skin influences and gameplay-distance appearance; maintain `TESTING-UNITY.md`. Controlled Blender poses are not runtime acceptance.
+After structural repairs, check the candidate early in Unity with target-material backface culling, relevant raised-arm/underside/rear views and actual bound clips. Use the installed Unity CLI/Pipeline on the main checkout. Validate attachments, animation-aware bounds, skin influences and gameplay-distance appearance.
+
+File each human check with `python3 tools/factory.py check add`.
+Pass your T3 thread id from `t3_thread_configuration` when you are in T3.
+Retire your own superseded checks with `check drop`.
+Answer redo notes with `check ready`.
+Controlled Blender poses are not runtime acceptance.
 
 When the rig, rest transforms or import/binding settings change, compare old/new retargeted output at matching clip times, including relevant attachment and authoritative pose tracks. A valid Avatar, unchanged bone names or byte-identical gameplay JSON does not prove pose equivalence. If presentation-only scope is required, investigate differences before promotion; otherwise obtain explicit approval for changed authoritative content and verify affected behavior. Report changed cooked poses without calling them cosmetic or hand-editing them. Local preview does not require a publishing cook on every iteration; accepted integration still follows the persistence boundary below.
 

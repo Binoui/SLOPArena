@@ -48,6 +48,17 @@ public sealed class CharacterPackageSourceCodecTests
     }
 
     [Fact]
+    public void CapsuleHurtbox_RoundTripKeepsBothBonesAndOffsets()
+    {
+        var source = CharacterPackageSourceCodec.Load(Fixture("package.json"), Fixture("character.json")).Source!;
+        var bone = new HurtboxBoneSource("bone.head", .1f, .2f, .3f, .15f, "bone.neck", -.1f, -.2f, -.3f);
+        source = source with { Character = source.Character with { HurtboxBoneDefs = new[] { bone } } };
+        var loaded = CharacterPackageSourceCodec.Load(Fixture("package.json"), CharacterPackageSourceCodec.SerializeCharacter(source.Character));
+        Assert.True(loaded.IsValid, string.Join("\n", loaded.Diagnostics));
+        Assert.Equal(bone, Assert.Single(loaded.Source!.Character.HurtboxBoneDefs));
+    }
+
+    [Fact]
     public void FightGuy_RoundTripsDeterministically()
     {
         var first = CharacterPackageSourceCodec.Load(Fixture("package.json"), Fixture("character.json"));

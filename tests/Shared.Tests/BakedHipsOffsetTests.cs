@@ -162,7 +162,7 @@ public class BakedHipsOffsetTests
         var hurtboxes = ServerSimulation.BuildEntitiesFromState(s, def, Bake(withHipsOffset: true), "attack", 0, 3);
 
         Assert.Equal(2, hurtboxes.Count);
-        float k = def.HurtboxBoneScale;
+        float k = 1f;
         var hips = World(s, HipsOffset[0], HipsOffset[1], HipsOffset[2]);
         var head = World(s, HipsOffset[0], HipsOffset[1] + 0.9f * k, HipsOffset[2] + 0.1f * k);
         AssertPoint(hips, hurtboxes[0].PosX, hurtboxes[0].PosY, hurtboxes[0].PosZ);

@@ -55,7 +55,7 @@ namespace SlopArena.Client.Combat
                 ImpactTier tier = Classify(in hit);
                 _definitions.TryGetValue(hit.OwnerEntityId, out var definition);
                 var slot = hit.AttackSlot > 0
-                    ? definition?.GetCookedSlotAbility(hit.AttackSlot, hit.Airborne)
+                    ? definition?.ForForm(hit.Form).GetCookedSlotAbility(hit.AttackSlot, hit.Airborne)
                     : null;
                 // Overrides arrive through the authoritative semantic event dispatcher.
                 if (string.IsNullOrEmpty(slot?.HitPresentationId))

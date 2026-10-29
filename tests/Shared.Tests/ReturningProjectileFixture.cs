@@ -19,6 +19,7 @@ internal static class ReturningProjectileFixture
     /// <summary>Drops every lifecycle (so the package fits the Workshop profile) and adds the lid to ground.1.</summary>
     internal static void Apply(JsonObject character)
     {
+        FightGuyFixture.WithoutTitleMatch(character);
         character["capabilityRequirements"] = new JsonArray();
         foreach (JsonObject slot in character["slots"]!.AsArray())
             foreach (JsonObject stage in slot["timeline"]!["stages"]!.AsArray())

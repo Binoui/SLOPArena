@@ -177,6 +177,44 @@ public class ComboInfluenceTests
         Assert.Equal(0f, second.KVY);
         Assert.Equal(0f, second.KVZ);
     }
+
+    private static ServerSimulation LaunchedPastHitstun(float vx)
+    {
+        var state = TestHelpers.PlayerState(x: 50f, z: 50f);
+        state.PY = 60f;
+        state.IsGrounded = false;
+        state.VX = vx;
+        state.State = ActionState.Idle;
+        state.InPostHitstunFlight = true;
+        state.AirTimeTicks = 60;
+        var sim = TestHelpers.MakeSim(TestHelpers.TestArena());
+        sim.RegisterEntity(1, TestHelpers.EngineDef, state);
+        return sim;
+    }
+
+    [Fact]
+    public void PostHitstunFlight_StickAgainstLaunchOnlyBrakes_ThenDriftResumes()
+    {
+        var sim = LaunchedPastHitstun(12f);
+        var back = new InputState { MoveX = -1f };
+
+        sim.Tick(new() { { 1, back } });
+        TestHelpers.AssertNear(12f - Simulation.HeldFlightBrake * Simulation.TickDt, sim.GetState(1).VX, 0.001f);
+
+        for (int i = 0; i < 240 && sim.GetState(1).VX > -TestHelpers.EngineDef.Movement.AirSpeedMax; i++)
+            sim.Tick(new() { { 1, back } });
+        TestHelpers.AssertNear(-TestHelpers.EngineDef.Movement.AirSpeedMax, sim.GetState(1).VX, 0.001f);
+    }
+
+    [Fact]
+    public void PostHitstunFlight_StickWithFastLaunchDoesNotSlowItToAirSpeed()
+    {
+        var sim = LaunchedPastHitstun(12f);
+
+        sim.Tick(new() { { 1, new InputState { MoveX = 1f } } });
+
+        TestHelpers.AssertNear(12f - Simulation.FlightFriction * Simulation.TickDt, sim.GetState(1).VX, 0.001f);
+    }
     [Fact]
     public void DirectionalInfluence_PerpendicularHold_ReachesTurnCapWithoutChangingMagnitude()
     {

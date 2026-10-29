@@ -14,6 +14,7 @@ namespace SlopArena.Client.UI
         private const string Audio = "AUDIO";
         private const string Controls = "CONTROLS";
         private const string Gameplay = "GAMEPLAY";
+        private static readonly string[] Categories = { Audio, Controls, "VIDEO", Gameplay, "ACCESSIBILITY" };
         private static VisualTreeAsset? _layout;
         private static int _closedFrame = -1;
         private VisualElement? _surface;
@@ -38,6 +39,11 @@ namespace SlopArena.Client.UI
 
         private void Update()
         {
+            if (_open && _surface != null)
+            {
+                MenuPrompts.ApplyInputMode(_surface);
+                PollCategories();
+            }
             // The frontend router owns shell input; gameplay settings need
             // the same Back/Done shortcuts without relying on panel focus.
             if (_open && !FrontendController.IsFrontendActive
@@ -95,7 +101,12 @@ namespace SlopArena.Client.UI
             _surface.style.top = 0; _surface.style.bottom = 0;
             _body = _surface.Q<VisualElement>("settings-body");
             _status = _surface.Q<Label>("settings-status");
-            foreach (var name in new[] { Audio, Controls, "VIDEO", Gameplay, "ACCESSIBILITY" })
+            MenuPrompts.ApplyInputMode(_surface);
+            var tabs = _surface.Q<VisualElement>(className: "sa-settings-tabs");
+            MenuPrompts.Flank(tabs, MenuAction.PrevSection, MenuAction.NextSection);
+            tabs?.RegisterCallback<NavigationMoveEvent>(OnTabsNavigate);
+            _body?.RegisterCallback<NavigationMoveEvent>(OnBodyNavigate);
+            foreach (var name in Categories)
             {
                 var tab = _surface.Q<Button>($"settings-tab-{name.ToLowerInvariant()}");
                 tab.clicked += () => SelectCategory(name);
@@ -104,12 +115,74 @@ namespace SlopArena.Client.UI
             reset.clicked += AskReset;
             var back = _surface.Q<Button>("settings-back");
             back.clicked += HandleBack;
+            MenuPrompts.Stick(back, MenuAction.Back);
             _surface.RegisterCallback<ClickEvent>(_ => UISFX.PlayClick());
             _surface.RegisterCallback<NavigationCancelEvent>(OnNavigationCancel);
             host.Add(_surface);
             UiModalState.Push();
             SelectCategory(_category);
-            back.Focus();
+            // The press that opened Settings can also reach the panel a frame
+            // later; landing on BACK would close it at once, the tab is harmless.
+            _surface.Q<Button>($"settings-tab-{_category.ToLowerInvariant()}")?.Focus();
+        }
+
+        private void PollCategories()
+        {
+            if (ChatInputGate.ExternalOverlaySuppressed || HumanInputActions.IsCapturing
+                || _resetConfirmation != null || _displayCountdown != null
+                || _surface?.panel?.focusController?.focusedElement is TextField)
+                return;
+            var pad = CouchPads.MenuPad;
+            int step = pad?.rightShoulder.wasPressedThisFrame == true ? 1
+                : pad?.leftShoulder.wasPressedThisFrame == true ? -1 : 0;
+            if (step == 0) return;
+            int index = (Array.IndexOf(Categories, _category) + step + Categories.Length) % Categories.Length;
+            var tab = _surface?.Q<Button>($"settings-tab-{Categories[index].ToLowerInvariant()}");
+            GamepadUIBridge.Submit(tab);
+            tab?.Focus();
+        }
+
+        // Pad navigation only follows controls overlapping the current one's column,
+        // and setting rows put their control right of the label, so Up/Down walk
+        // the rows in order instead: tabs, each setting, then BACK.
+        private void OnTabsNavigate(NavigationMoveEvent evt)
+        {
+            if (evt.direction == NavigationMoveEvent.Direction.Down && !HumanInputActions.IsCapturing)
+            {
+                var rows = SettingRows();
+                MoveFocus(evt, rows.Count > 0 ? rows[0] : null);
+            }
+        }
+
+        private void OnBodyNavigate(NavigationMoveEvent evt)
+        {
+            bool down = evt.direction == NavigationMoveEvent.Direction.Down;
+            if (!down && evt.direction != NavigationMoveEvent.Direction.Up || HumanInputActions.IsCapturing) return;
+            var rows = SettingRows();
+            var focused = _surface?.focusController?.focusedElement as VisualElement;
+            int index = rows.FindIndex(row => row == focused || row.Contains(focused));
+            if (index < 0) return;
+            int next = index + (down ? 1 : -1);
+            MoveFocus(evt, next < 0 ? _surface?.Q<Button>($"settings-tab-{_category.ToLowerInvariant()}")
+                : next >= rows.Count ? _surface?.Q<Button>("settings-back") : rows[next]);
+        }
+
+        private List<VisualElement> SettingRows()
+        {
+            var rows = new List<VisualElement>();
+            _body?.Query<VisualElement>().ForEach(e =>
+            {
+                if (e.focusable && e.canGrabFocus && !rows.Exists(row => row.Contains(e))) rows.Add(e);
+            });
+            return rows;
+        }
+
+        private void MoveFocus(NavigationMoveEvent evt, VisualElement? target)
+        {
+            if (target == null) return;
+            evt.StopPropagation();
+            _surface?.focusController?.IgnoreEvent(evt);
+            target.Focus();
         }
 
         private void SelectCategory(string category)

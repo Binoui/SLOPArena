@@ -233,7 +233,7 @@ namespace SlopArena.Client.UI
                 ? "There are no ledges to grab. Use your air jump, then hold E, aim at the stage and release."
                 : "There are no ledges to grab. Use your air jump and E to get back."),
             TutorialLessonId.ShieldAndDodge => ("SHIELD & DODGE", "Shield blocks attacks from every side. In the air, the same button dodges the way you push."),
-            TutorialLessonId.GrabAndThrow => ("GRAB & THROW", "Grab from up close, then throw."),
+            TutorialLessonId.GrabAndThrow => ("GRAB & THROW", "Grab turns toward a nearby fighter. Grab during Beeline to catch on grounded arrival."),
             TutorialLessonId.Combo => ("COMBO", ComboHint(gamepad)),
             TutorialLessonId.Knockout => ("KNOCKOUT", "The higher the damage %, the farther they fly. Knock them off the stage to win."),
             _ => (lesson.ToString().ToUpperInvariant(), ""),
@@ -265,7 +265,7 @@ namespace SlopArena.Client.UI
             TutorialObjectiveId.BlockAttacks => "Hold Shield to block the dummy's attacks",
             TutorialObjectiveId.AirDodge => "Press Shield in the air to dodge",
             TutorialObjectiveId.Grab => "Grab the dummy",
-            TutorialObjectiveId.Throw => "Press any attack to throw it",
+            TutorialObjectiveId.Throw => "Attack to throw. Hold a direction to fling, or stay neutral to toss up.",
             TutorialObjectiveId.Combo => "Hit the dummy again before it lands",
             TutorialObjectiveId.Knockout => "Knock the dummy off the stage",
             _ => objective.ToString(),
@@ -349,7 +349,7 @@ namespace SlopArena.Client.UI
             if (index < 0) return "";
             string label = HumanInputActions.BindingLabel(action, group).ToUpperInvariant();
             return gamepad ? label
-                : InputPromptAtlas.KeyboardDisplayLabel(HumanInputActions.Get(action).bindings[index].effectivePath, label);
+                : HumanInputActions.KeyboardDisplayLabel(HumanInputActions.Get(action).bindings[index].effectivePath, label);
         }
 
         private static Label Add(VisualElement parent, string text, string css)

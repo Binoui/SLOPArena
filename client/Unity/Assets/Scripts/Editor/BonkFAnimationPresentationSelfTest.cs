@@ -25,10 +25,10 @@ public static class BonkFAnimationPresentationSelfTest
             "anim.bonk.gr-gallop", "anim.bonk.gr-hit");
         CheckPhases("bonk", CharacterClass.Bonk, "air.R", 1000f,
             "anim.bonk.gr-gallop", "anim.bonk.gr-lookdown");
-        CheckPhases("bashie", CharacterClass.Bashie, "ground.A", 10f,
-            "anim.bashie.hose-spray", "anim.bashie.hose-end");
+        CheckPhases("bashie", CharacterClass.Bashie, "ground.A", 5f, "anim.bashie.ring-reel");
+        CheckPhases("bashie", CharacterClass.Bashie, "ground.A", 30f, "anim.bashie.ring-retract");
         Debug.Log("[CapabilityPhasePresentationSelfTest] Passed real simulation phase playback for leap landing, " +
-            "joust gallop/hit/miss/air endings, and stream spray/recovery.");
+            "joust gallop/hit/miss/air endings, and rescue ring reel/retract.");
     }
 
     private static void CheckPhases(string package, CharacterClass fighter, string action, float distance,

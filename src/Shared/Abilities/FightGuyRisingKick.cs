@@ -40,7 +40,6 @@ namespace SlopArena.Shared.Abilities
 
             _ticks = 0;
             _airborne = !s.IsGrounded;
-            s.FacingYaw = s.AimYaw;
             s.State = ActionState.Attacking;
             s.IsAiming = false;
             AnimIndex = 0;

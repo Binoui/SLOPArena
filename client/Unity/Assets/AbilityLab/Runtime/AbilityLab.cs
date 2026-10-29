@@ -313,6 +313,23 @@ namespace SlopArena.Client.Tools
         private string _trajDirty = "";
 
         // ── Loaded data ──
+        public byte SelectedForm { get; private set; }
+        public void SetForm(byte form)
+        {
+            if (form > 1) throw new ArgumentOutOfRangeException(nameof(form));
+            if (SelectedForm == form) return;
+            SelectedForm = form;
+            ClearScenario();
+            _simulationPreviewer.Clear();
+            if (Def != null)
+            {
+                Def = Def.ForForm(form);
+                DisplayDef = Def;
+                SetSlot(CanonicalSlotProjection.TryGet(SelectedSlotId, out var slot) ? slot : CanonicalSlotProjection.All[0]);
+                RefreshPose();
+            }
+        }
+
         public CharacterDefinition Def { get; private set; } = null!;
         public CharacterDefinition DisplayDef { get; private set; } = null!; // Def + hurtbox override
         public BakedAnimationData? Baked { get; private set; }
@@ -323,7 +340,6 @@ namespace SlopArena.Client.Tools
         private GameObject _previewRig;
         [SerializeField] private PlayerRenderer _previewRenderer;
         [SerializeField] private PlayerRenderer _dummyRenderer;
-        private GroundDestinationIndicator? _scenarioChargeIndicator;
         public PlayerRenderer Renderer
         {
             get
@@ -452,7 +468,6 @@ namespace SlopArena.Client.Tools
             _trajectory.Clear();
             _trajDirty = "";
             Playing = false;
-            _scenarioChargeIndicator?.Clear();
         }
 
         private void RebuildScenarioTrailHistory()
@@ -490,57 +505,10 @@ namespace SlopArena.Client.Tools
             _dummyWeaponAttach?.SetHitboxTrailActive(false);
             _presentationPreviewer.SetSimulationFrame(Scenario.PresentationEvents, frame.MatchTick,
                 _presentationBindings, _previewRenderer, _previewRenderer.transform, _scenarioActorHistory);
-            UpdateScenarioChargeCue(frame.Actor, airborne);
             _weaponAttach?.RefreshPresentation();
             if (ShowDummy) _dummyWeaponAttach?.RefreshPresentation();
             QueueEditorRefresh();
         }
-        private void UpdateScenarioChargeCue(in CharacterState actor, bool airborne)
-        {
-            if (Scenario == null || actor.State != ActionState.Aiming || !actor.IsAiming ||
-                !CanonicalSlotProjection.TryGet(Scenario.Options.Action, out var address))
-            {
-                _scenarioChargeIndicator?.Clear();
-                return;
-            }
-            int index = Array.IndexOf(SlotNames, address.InputLabel);
-            if (index < 0)
-            {
-                _scenarioChargeIndicator?.Clear();
-                return;
-            }
-            var cookedSlot = Def.GetCookedSlotAbility(CanonicalSlotProjection.ToWire(CanonicalSlotProjection.All[index]), airborne);
-            CookedChargedDirectionalDashCapabilityParameters? parameters = null;
-            if (cookedSlot != null)
-                foreach (var stage in cookedSlot.Timeline.Stages)
-                foreach (var operation in stage.Operations)
-                    if (operation is CookedStartCapabilityOperation
-                        { Parameters: CookedChargedDirectionalDashCapabilityParameters charged })
-                    {
-                        parameters = charged;
-                        break;
-                    }
-            if (parameters == null)
-            {
-                _scenarioChargeIndicator?.Clear();
-                return;
-            }
-            if (_scenarioChargeIndicator == null)
-            {
-                var cue = new GameObject("AbilityLabChargedDashCue") { hideFlags = HideFlags.DontSave };
-                cue.transform.SetParent(transform, false);
-                _scenarioChargeIndicator = cue.AddComponent<GroundDestinationIndicator>();
-            }
-            float distance = parameters.GetDashDistance(actor.ChargeTicks);
-            Vector3 direction = new(Mathf.Sin(actor.AimYaw), 0f, Mathf.Cos(actor.AimYaw));
-            Vector3 position = new(actor.PX, actor.PY - Def.CapsuleHeight * 0.5f + 0.06f, actor.PZ);
-            position += direction * distance;
-            float scale = Mathf.Lerp(0.7f, 1.3f,
-                Mathf.InverseLerp(parameters.MinDistance, parameters.MaxDistance, distance));
-            _scenarioChargeIndicator.SetDestination(position, direction, 0.55f,
-                parameters.GetChargeTier(actor.ChargeTicks), scale);
-        }
-
         private static double PreviewClock()
         {
 #if UNITY_EDITOR
@@ -824,13 +792,13 @@ namespace SlopArena.Client.Tools
                 return;
             }
 
-            if (ReferenceEquals(_liveDraftPackage, package) && IsPackagePreview)
+            if (ReferenceEquals(_liveDraftPackage, package) && IsPackagePreview && Def.Form == SelectedForm)
             {
                 RefreshPose();
                 return;
             }
 
-            var definition = CookedCharacterRuntimeAdapter.ToCharacterDefinition(package, CharacterClass.None);
+            var definition = CookedCharacterRuntimeAdapter.ToCharacterDefinition(package, CharacterClass.None).ForForm(SelectedForm);
             string priorSlotId = SelectedSlotId;
             ClearScenario();
             int priorStage = StageIndex;
@@ -908,7 +876,7 @@ namespace SlopArena.Client.Tools
                 _previewAnimationCatalog = animationCatalog;
             }
             _previewRig = rig;
-            var definition = CookedCharacterRuntimeAdapter.ToCharacterDefinition(package, CharacterClass.None);
+            var definition = CookedCharacterRuntimeAdapter.ToCharacterDefinition(package, CharacterClass.None).ForForm(SelectedForm);
             SelectedPackageHash = packageHash;
             Character = CharacterClass.None;
             SelectedPackageId = packageId;
@@ -1500,12 +1468,12 @@ namespace SlopArena.Client.Tools
             var visited = new HashSet<string>(StringComparer.Ordinal);
             while (visited.Add(current))
             {
-                var slot = _sourceDocument.Character.Slots?.FirstOrDefault(candidate => candidate != null && candidate.Id == current);
+                var slot = (SelectedForm == 1 ? _sourceDocument.Character.AlternateForm?.Slots : _sourceDocument.Character.Slots)?.FirstOrDefault(candidate => candidate != null && candidate.Id == current);
                 if (slot != null)
                     return slot.Timeline?.Stages != null && StageIndex >= 0 && StageIndex < slot.Timeline.Stages.Count
                         ? slot.Timeline.Stages[StageIndex]
                         : null;
-                var alias = _sourceDocument.Character.Aliases?.FirstOrDefault(candidate => candidate != null && candidate.From == current);
+                var alias = (SelectedForm == 1 ? _sourceDocument.Character.AlternateForm?.Aliases : _sourceDocument.Character.Aliases)?.FirstOrDefault(candidate => candidate != null && candidate.From == current);
                 if (alias == null) break;
                 current = alias.To;
             }
@@ -1761,7 +1729,9 @@ namespace SlopArena.Client.Tools
                 {
                     var hb = hurtboxes[i];
                     GL.Color(new Color(0f, 1f, 0.35f));
-                    WireSphere(new Vector3(hb.PosX, hb.PosY, hb.PosZ), hb.Radius);
+                    if (hb.Shape == HitboxShape.Capsule)
+                        WireCapsule(new Vector3(hb.PosX, hb.PosY, hb.PosZ), new Vector3(hb.EndX, hb.EndY, hb.EndZ), hb.Radius);
+                    else WireSphere(new Vector3(hb.PosX, hb.PosY, hb.PosZ), hb.Radius);
                 }
             }
             if (ShowHitboxes)
@@ -1926,7 +1896,7 @@ namespace SlopArena.Client.Tools
             if (Mathf.Abs(Vector3.Dot(dir, up)) > 0.99f) up = Vector3.right;
             Vector3 right = Vector3.Cross(dir, up).normalized;
             Vector3 fwd = Vector3.Cross(right, dir).normalized;
-            Vector3 a2 = a + dir * radius, b2 = b - dir * radius;
+            Vector3 a2 = a, b2 = b;
             const int segs = 12;
             for (int i = 0; i < segs; i++)
             {
@@ -1940,10 +1910,6 @@ namespace SlopArena.Client.Tools
                 Line(p0, q0);
             }
 
-            // The collision capsule includes hemispherical ends centered at the
-            // resolved endpoints. The cylinder rings above are inset by one
-            // radius, so draw the endpoint spheres too; without them the
-            // wireframe appears shorter than the actual capsule.
             WireSphere(a, radius);
             WireSphere(b, radius);
         }

@@ -20,6 +20,8 @@ generator writes. These generators show the approach:
 - [Slopball Night Court](slopball/README.md): the enclosed Arcade court as a floodlit
   chain-link cage in a graffiti warehouse, with night light baked into StageNeon
   vertex colours, additive light shafts and a live combo board.
+- [Crash-Test Lab](training/README.md): Training's neutral measurement deck in a bright
+  crash-test hall, with painted calibration targets, depth rulers, and sparse KO curtains.
 - [Fighter's License](license_test/README.md): the Tutorial's rooftop driving-test
   deck with a painted course, a barred fence see-through to the city, a booth and a
   cone cage recessed into the walls, and a broken guardrail over a 60 m drop.

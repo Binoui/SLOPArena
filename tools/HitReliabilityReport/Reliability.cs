@@ -245,6 +245,7 @@ internal static class Reliability
         {
             PX = Origin, PY = attacker.Definition.CapsuleHeight / 2, PZ = Origin,
             State = ActionState.Idle, IsGrounded = true, JumpsLeft = 2,
+            Form = new FormState { Active = attacker.Definition.Form },
         }, attacker.BakedAnimation);
         sim.RegisterEntity(2, target.Definition, new CharacterState
         {
@@ -476,6 +477,7 @@ internal static class Reliability
     {
         PX = Origin, PY = attacker.Definition.CapsuleHeight * 0.5f, PZ = Origin,
         AttackElapsedTicks = (ushort)tick,
+        Form = new FormState { Active = attacker.Definition.Form },
     };
 
     /// <summary>The hitbox at a fractional attack time, for the reference swing path.</summary>

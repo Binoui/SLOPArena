@@ -142,7 +142,8 @@ namespace SlopArena.Client.Entities
         {
             if (_owner == null || _entries == null || _sweepTrails == null)
                 return;
-            if (_owner.CharacterDef != _characterDefinition)
+            // A swap changes the shown form's definition, not the fighter (ADR-0051).
+            if (_owner.CharacterDef?.ForForm(0) != _characterDefinition?.ForForm(0))
             {
                 ClearTrails();
                 _hasAttackIdentity = false;

@@ -1,6 +1,6 @@
 """Write a genra clip into Unity as a hybrid Humanoid .anim on the character's own prefab, measured in Unity.
 
-    <genra python> tools/genra/unity_clip.py roundtrip fightguy idle     # proof: approved clip -> pack -> Unity clip
+    <genra python> tools/genra/unity_clip.py roundtrip fightguy idle [--pack nyx-unity-real]   # proof: clip -> pack -> Unity clip
     <genra python> tools/genra/unity_clip.py write RESULT.json --brief BRIEF.json [--save | --asset Assets/...anim]
     <genra python> tools/genra/unity_clip.py render --brief BRIEF.json --clip new=Assets/...anim --clip current=anim.bonk.a1
     <genra python> tools/genra/unity_clip.py timeline SPEC.json --brief BRIEF.json [--result RESULT.json]
@@ -106,7 +106,7 @@ def fit(data) -> dict:
             'beforeRefinementMetres': float(before.max())}
 
 
-def mesh_vs_toolkit(rig, world, mapping, bakes, offset) -> dict:
+def mesh_vs_toolkit(rig, world, mapping, bakes, offset, grounding=None) -> dict:
     """Max distance (metres) between Unity's skinned vertices as the game plays the clip and the toolkit's own
     skinning of the same ticks (which matches Unity per vertex for the same pose), after the origin offset. A mesh
     whose vertex count no longer matches the pack's (the model was re-exported after the pack was snapshotted, as Sir
@@ -123,6 +123,8 @@ def mesh_vs_toolkit(rig, world, mapping, bakes, offset) -> dict:
             if k is None:
                 continue
             ours = points[k] * [-1.0, 1.0, 1.0] + offset  # pack space mirrors Unity's x
+            if grounding:
+                ours[:, 1] += grounding['translationMetres'][bake['tick']]
             theirs = np.array(renderer['vertices']).reshape(-1, 3)
             if len(theirs) != len(ours):
                 worst.setdefault('meshChanged', {})[renderer['path'].rsplit('/', 1)[-1]] = [len(ours), len(theirs)]
@@ -139,16 +141,22 @@ def pack_prefab(mapping) -> str | None:
     return mapping.get('prefab')
 
 
-def job_for(package, name, paths, local, reference=None, compare=None, asset=None, prefab=None) -> dict:
+def pack_meshes(mapping) -> list[str] | None:
+    """The skinned meshes a rig pack was built with (unity_rigpack.py --meshes, one body per form), or None for all the
+    prefab shows. Unity jobs show the same ones on their temporary instance."""
+    return mapping.get('shownMeshes')
+
+
+def job_for(package, name, paths, local, reference=None, compare=None, asset=None, prefab=None, meshes=None) -> dict:
     ticks = len(local)
     bake = {0, ticks // 2, ticks - 1} if compare else set(range(0, ticks, 4)) | {ticks - 1}  # conversions: whole clip
-    return {'package': package, 'prefab': prefab, 'name': name, 'fps': 60, 'paths': paths, 'local': np.round(local, 7).tolist(),
+    return {'package': package, 'prefab': prefab, 'meshes': meshes, 'name': name, 'fps': 60, 'paths': paths, 'local': np.round(local, 7).tolist(),
             'reference': reference, 'compare': compare, 'asset': asset, 'bakeTicks': sorted(bake)}
 
 
-def roundtrip(package: str, label: str) -> dict:
+def roundtrip(package: str, label: str, pack_name: str | None = None) -> dict:
     from genra.rig import Rig
-    pack = REPO / f'artifacts/genra-rigpacks/{package}-unity'
+    pack = REPO / 'artifacts/genra-rigpacks' / (pack_name or f'{package}-unity')
     mapping = json.loads((pack / 'mapping.json').read_text())
     rig, source = Rig(pack / 'rig.usda'), Rig(pack / 'references' / f'{label}.usda')
     first, last = source.animated_range()
@@ -157,7 +165,7 @@ def roundtrip(package: str, label: str) -> dict:
     semantic = mapping['references'][label]['semanticId']
     run_dir = OUT / f'{time.strftime("%Y%m%d-%H%M%S")}-roundtrip-{package}-{label}'
     data = run_unity(job_for(package, f'genra_roundtrip_{package}_{label}', paths, local,
-                             reference={'semanticId': semantic, 'tick': 0}, compare=semantic, prefab=pack_prefab(mapping)), run_dir)
+                             reference={'semanticId': semantic, 'tick': 0}, compare=semantic, prefab=pack_prefab(mapping), meshes=pack_meshes(mapping)), run_dir)
     new_sample, new_runtime = np.array(data['newSample']), np.array(data['newRuntime'])
     old_sample, old_runtime = np.array(data['compareSample']), np.array(data['compareRuntime'])
     report = {
@@ -179,7 +187,13 @@ def write_flags(brief) -> dict:
     stays where the toolkit put it: moving its centre onto the entry clip's lifted a crouched loop 17-21 cm off the
     floor. Unity can only loop a whole clip: a loop from tick 0 is saved looping (an aim hold plays it as is); a loop
     after a build-up is saved one-shot and the game wraps it (PlayerRenderer's tumble)."""
-    return {'alignOrigin': brief.entry_matches, 'loopTime': brief.loop_from == 0}
+    flags = {'alignOrigin': brief.entry_matches, 'loopTime': brief.loop_from == 0}
+    grounding = brief.get('grounding')
+    if grounding is not None:
+        if grounding != 'reference-sole':
+            raise ValueError('grounding must be "reference-sole" when specified')
+        flags['groundToReference'] = True
+    return flags
 
 
 def phase_check(clip, brief, ticks=None, retime=None) -> dict:
@@ -237,10 +251,16 @@ def write(result: Path, brief_path: Path, asset: str | None, name: str | None, t
     if ticks and ticks[0] > 0:
         flags['alignOrigin'] = False  # the phase does not start on the entry pose
     data = run_unity(job_for(mapping['package'], name, paths, local, reference=reference, asset=asset,
-                             prefab=pack_prefab(mapping)) | flags, run_dir)
+                             prefab=pack_prefab(mapping), meshes=pack_meshes(mapping)) | flags, run_dir)
     runtime = np.array(data['newRuntime'])
     start = np.array(data['reference']['positions'])
-    offset = (runtime[0] - intended[0]).mean(axis=0)  # the constant origin correction, in metres
+    expected = intended.copy()
+    if data.get('grounding'):
+        moving = {mapping['joints'].get(brief.rig.joint_paths[i]) for i in brief.rig.descendants('Hips')}
+        for i, path in enumerate(paths):
+            if path in moving:
+                expected[:, i, 1] += data['grounding']['translationMetres']
+    offset = (runtime[0] - expected[0]).mean(axis=0)  # the constant origin correction, in metres
     if np.linalg.norm(offset) > 0.01:
         print(f'warning: the clip plays {np.linalg.norm(offset) * 100:.1f} cm from where the toolkit put it: tick 0 '
               'misses the entry pose, or the rig pack is older than the prefab', file=sys.stderr)
@@ -248,12 +268,14 @@ def write(result: Path, brief_path: Path, asset: str | None, name: str | None, t
         'package': mapping['package'], 'name': name, 'ticks': data['ticks'], 'humanMotion': data['humanMotion'],
         'curves': data['curves'], 'entryClip': data['reference']['clip'], 'entryTick': reference['tick'], **flags,
         'originOffsetMetres': offset.round(5).tolist(), 'muscleFit': fit(data),
-        'playbackVsToolkit': worst(distances(runtime - offset, intended), paths),
-        'meshVsToolkit': mesh_vs_toolkit(brief.rig, clip.world(), mapping, data['bakes'], offset),
+        'playbackVsToolkit': worst(distances(runtime - offset, expected), paths),
+        'meshVsToolkit': mesh_vs_toolkit(brief.rig, clip.world(), mapping, data['bakes'], offset, data.get('grounding')),
         'entryVsEntryClip': worst(distances(runtime[:1], start[None]), paths),
         'exitVsEntryClip': worst(distances(runtime[-1:], start[None]), paths),
         'playbackVsSampling': worst(distances(runtime, np.array(data['newSample'])), paths),
         'inBetweenJoints': data['inBetween'], 'asset': data['asset'], 'evidence': str(run_dir.relative_to(REPO))}
+    if data.get('grounding'):
+        report['grounding'] = data['grounding']
     if checked:
         report['phaseCheck'] = checked
     if brief.loop_from is not None:  # the last tick replays the loop's first: the seam as the game plays it
@@ -331,10 +353,11 @@ def render(brief_path: Path, clips: list[dict], result: Path | None = None, view
     clock = brief['clock']
     name = name or brief['name']
     run_dir = OUT / f'{time.strftime("%Y%m%d-%H%M%S")}-render-{name}'
-    job = {'package': mapping['package'], 'prefab': pack_prefab(mapping), 'clips': clips, 'ticks': clock['duration_ticks'], 'size': size * 2,
+    job = {'package': mapping['package'], 'prefab': pack_prefab(mapping), 'meshes': pack_meshes(mapping), 'clips': clips, 'ticks': clock['duration_ticks'], 'size': size * 2,
            'frames': str(run_dir / 'frames'), 'background': [c / 255 for c in (background or BACKGROUND)],
            'views': review_cameras(brief, result, views, margin, offset, focus, focus_ticks),
-           'weapons': weapon_attachments(mapping, brief.get('props_shown')), 'springs': springs, 'travel': travel}
+           'weapons': weapon_attachments(mapping, brief.get('props_shown')), 'springs': springs, 'travel': travel,
+           'meshesShown': brief.get('meshes_shown')}
     data = run_unity(job, run_dir, 'render_clip')
     header, font, small = 28, _font(16), _font(13)
     def cell(label, view, tick):
@@ -409,7 +432,7 @@ def timeline(spec_path: Path, brief_path: Path, result: Path | None = None, view
     phases = sorted(spec.get('phases', []))
     name = name or spec.get('name') or Path(spec_path).stem
     run_dir = OUT / f'{time.strftime("%Y%m%d-%H%M%S")}-timeline-{name}'
-    job = {'package': mapping['package'], 'prefab': pack_prefab(mapping), 'rows': rows, 'ticks': ticks, 'size': size * 2, 'frames': str(run_dir / 'frames'),
+    job = {'package': mapping['package'], 'prefab': pack_prefab(mapping), 'meshes': pack_meshes(mapping), 'rows': rows, 'ticks': ticks, 'size': size * 2, 'frames': str(run_dir / 'frames'),
            'background': [c / 255 for c in BACKGROUND], 'views': review_cameras(brief, result, views, margin),
            'weapons': weapon_attachments(mapping), 'springs': springs}
     data = run_unity(job, run_dir, 'render_clip')
@@ -449,6 +472,7 @@ def main(argv=None):
     trip = sub.add_parser('roundtrip', help='rebuild an approved reference clip and compare it with the original')
     trip.add_argument('package')
     trip.add_argument('clip', choices=['idle', 'run', 'jump', 'fall'])
+    trip.add_argument('--pack', help='a labelled rig pack, e.g. nyx-unity-real (default <package>-unity)')
     out = sub.add_parser('write', help='convert a toolkit result into a Unity clip')
     out.add_argument('result')
     out.add_argument('--brief', required=True)
@@ -491,7 +515,7 @@ def main(argv=None):
     args = parser.parse_args(argv)
     sys.path.insert(0, str(HERE.parent))
     if args.command == 'roundtrip':
-        report = roundtrip(args.package, args.clip)
+        report = roundtrip(args.package, args.clip, args.pack)
     elif args.command == 'render':
         clips = []
         for item in args.clip:

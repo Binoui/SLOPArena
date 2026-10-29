@@ -1,0 +1,96 @@
+.menu-prompt-host,
+.menu-prompt-tab-row {
+    overflow: visible;
+}
+
+.menu-prompt-sticker {
+    display: none;
+    position: absolute;
+    left: -28px;
+    top: -26px;
+    width: 52px;
+    height: 52px;
+    border-radius: 50%;
+    border-width: 3px;
+    border-color: #1b1a18;
+    background-color: #f0eee8;
+    rotate: -8deg;
+    align-items: center;
+    justify-content: center;
+}
+
+.pad-prompts .menu-prompt-sticker {
+    display: flex;
+}
+
+.menu-prompt-glyph {
+    width: 112%;
+    height: 112%;
+    flex-shrink: 0;
+    -unity-background-scale-mode: scale-to-fit;
+    -unity-background-image-tint-color: white;
+}
+
+.menu-prompt-glyph--mono {
+    -unity-background-image-tint-color: #1b1a18;
+}
+
+.menu-prompt-fallback {
+    margin: 0;
+    padding: 0;
+    color: #1b1a18;
+    font-size: 17px;
+    -unity-font-definition: url("../../Fonts/ArchivoBlack.asset");
+    -unity-text-align: middle-center;
+}
+
+.shell-top-bar .menu-prompt-sticker,
+.chat-open .menu-prompt-sticker,
+.menu-prompt-sticker--prev,
+.menu-prompt-sticker--next {
+    width: 40px;
+    height: 40px;
+    left: -16px;
+    top: -16px;
+}
+
+.menu-prompt-sticker--prev .menu-prompt-glyph,
+.menu-prompt-sticker--next .menu-prompt-glyph {
+    width: 135%;
+    height: 135%;
+}
+
+.chat-open .menu-prompt-sticker {
+    left: 2px;
+    top: -30px;
+}
+
+.menu-prompt-tab-row > .menu-prompt-sticker--prev {
+    left: -46px;
+    top: 1px;
+}
+
+.menu-prompt-tab-row > .menu-prompt-sticker--next {
+    left: auto;
+    right: -44px;
+    top: 1px;
+}
+
+.shell-top-bar .menu-prompt-fallback,
+.menu-prompt-tab-row .menu-prompt-fallback {
+    font-size: 11px;
+}
+
+.shell-nav.menu-prompt-tab-row {
+    margin-left: 52px;
+    margin-right: 50px;
+}
+
+.sa-settings-tabs.menu-prompt-tab-row {
+    align-self: flex-start;
+    max-width: 100%;
+}
+
+.menu-prompt-sticker .menu-prompt-fallback--word {
+    font-size: 9px;
+}

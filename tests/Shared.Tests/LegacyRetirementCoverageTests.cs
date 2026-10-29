@@ -241,16 +241,16 @@ public class LegacyRetirementCoverageTests
         predictor.IngestFrame(Frame(server));
         Assert.Equal(ActionState.Throwing, predictor.GetState(1).State);
         AssertWorld(server, predictor);
-        bool sawThrown = false;
-        for (int tick = 0; tick < DefenseConfig.ThrownAnimationTicks + 10; tick++)
+        bool sawRelease = false;
+        for (int tick = 0; tick < DefenseConfig.ThrowReleaseTicks + 80; tick++)
         {
             server.Tick(new() { [1] = default, [2] = default });
             Assert.True(predictor.Advance(default));
             AssertWorld(server, predictor);
-            sawThrown |= predictor.GetState(2).State == ActionState.Thrown;
+            sawRelease |= predictor.GetState(2).InteractionPhase == (byte)DefenseInteractionPhase.UpTossReleased;
             if (tick % 12 == 0) predictor.IngestFrame(Frame(server));
         }
-        Assert.True(sawThrown);
+        Assert.True(sawRelease);
         Assert.Equal(ActionState.Idle, predictor.GetState(2).State);
         Assert.Equal(0ul, predictor.GetState(2).InteractionId);
         Assert.Equal(interaction, predictor.GetState(2).LastTerminalInteractionId);

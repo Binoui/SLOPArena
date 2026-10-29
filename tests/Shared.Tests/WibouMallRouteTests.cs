@@ -6,9 +6,9 @@ namespace SlopArena.Shared.Tests;
 
 /// <summary>
 /// Neo Mall (docs/design/stages/wibou_mall.design.md) driven by the cooked Wibou kit on the baked
-/// arena. Protects the course's promises: the specials clear their shapes (one Dash Slash cuts a row,
-/// one Shuriken Toss fans through three agents, Rising Slash cuts the tower's lip, Skyfall and a close
-/// kunai volley break a boss), jumps and slashes alone also finish, the closed skybridge needs E or
+/// arena. Protects the course's promises: the current kit clears the route (Quick Draw and normals clear a row,
+/// one Shuriken Toss fans through three agents, Rising Slash cuts the tower's lip, a close kunai volley and
+/// normals break a boss; the flash is fighter-only), jumps and slashes alone also finish, the closed skybridge needs E or
 /// the hanging planters and the elevator tower needs Jump, jump, E or the hanging signs.
 /// Inputs are ordinary semantic inputs; the times are evidence for these inputs, not records.
 /// Set SLOPARENA_COURSE_SHELL to a <c>layout.py --unity-shell</c> document to calibrate an
@@ -181,18 +181,16 @@ public sealed class WibouMallRouteTests
             Stop();
         }
 
-        /// <summary>A ground Dash Slash toward (x, z), charged <paramref name="charge"/> ticks; it must cut <paramref name="ids"/>.</summary>
-        public void DashSlash(float x, float z, int charge, params string[] ids)
+        /// <summary>Use fixed Quick Draw reach, then ordinary slashes for the rest of the row.</summary>
+        public void QuickDrawRow(float x, float z, params string[] ids)
         {
             WaitReady(AbilitySlots.R);
             TurnTo(x, z);
-            var aim = Facing(x, z); aim.IsAiming = true;
-            Press(AbilitySlots.R, aim);
-            for (int i = 1; i < charge; i++) Tick(aim);
-            Tick(Facing(x, z));
+            Press(AbilitySlots.R, Facing(x, z));
             WaitIdle();
-            Log?.Invoke($"t{Inputs.Count} dash slash -> {Where()}");
-            if (!AllBroken(ids)) throw new Exception($"Dash Slash missed {Missing(ids)} at {Where()}");
+            foreach (string id in ids)
+                if (!Broken(id)) Slash(id);
+            Assert.True(AllBroken(ids), "Quick Draw and normals missed " + Missing(ids));
         }
 
         /// <summary>Shuriken Toss locked on <paramref name="lockId"/>, like the client's lock-on; it must break <paramref name="ids"/>.</summary>
@@ -220,22 +218,15 @@ public sealed class WibouMallRouteTests
             Walk(target.X + away.X, target.Z + away.Y);
         }
 
-        /// <summary>Skyfall then a close kunai volley into a boss: two hits and three.</summary>
+        /// <summary>A close kunai volley then normals into a boss: three hits, then slashes for the rest.</summary>
         public void Boss(string id, float range = 1.6f, Vector2? from = null)
         {
             Approach(id, range, from);
-            var target = Target(id).Position;
-            WaitReady(AbilitySlots.F);
-            TurnTo(target.X, target.Z);
             int before = HitsLeft(id);
-            byte alias = Sim.CourseTargetInputAlias(Index(id));
-            var face = Facing(target.X, target.Z); face.TargetEntityId = alias;
-            Press(AbilitySlots.F, face);
-            WaitIdle();
-            int skyfall = before - HitsLeft(id);
-            if (skyfall != 2) throw new Exception($"Skyfall landed {skyfall} hit(s) on {id} from {Where()}");
-            Approach(id, range, from);
-            Kunai(id, id);
+            Kunai(id);
+            int volley = before - HitsLeft(id);
+            if (volley != 3) throw new Exception($"the kunai volley landed {volley} hit(s) on {id} from {Where()}");
+            Slash(id, range: range, from: from);
             Log?.Invoke($"t{Inputs.Count} boss {id} -> {Where()}");
         }
 
@@ -348,7 +339,7 @@ public sealed class WibouMallRouteTests
     static void KioskRowBySpecials(Run r)
     {
         r.Walk(-10.5f, -36.6f);
-        r.DashSlash(-10.5f, -20f, 60, Row);                             // the gallery row
+        r.QuickDrawRow(-10.5f, -20f, Row);                             // the gallery row
         r.Walk(-9.0f, -34.0f);
         r.Kunai("podium_2", Podium);                                    // the fashion podium fan
         r.Boss("tubeman", 1.6f, new(0, -1));                            // the inflatable tube man
@@ -367,14 +358,14 @@ public sealed class WibouMallRouteTests
         r.Walk(9.0f, 14.2f);
         r.Boss("agent", 1.6f, new(-1, 0));                              // the department store's giant mannequin
         r.Walk(4.6f, 15.0f);
-        r.DashSlash(-8f, 15f, 60, Bridge3);                             // the level-3 bridge row
+        r.QuickDrawRow(-8f, 15f, Bridge3);                             // the level-3 bridge row
         r.Walk(-11f, 15f);                                              // checkpoint 2
     }
 
     static void FoodCourtBySpecials(Run r)
     {
         r.Walk(-11f, 16.4f);
-        r.DashSlash(-11f, 30f, 60, Food);                               // the food court row
+        r.QuickDrawRow(-11f, 30f, Food);                               // the food court row
         r.Boss("hotdog", 1.6f, new(1, 0));                              // the hot dog mascot
         r.Walk(-9.6f, 31.2f);
         r.Kunai("peek_2", Peek);                                        // the agents peeking over level 4
@@ -387,7 +378,7 @@ public sealed class WibouMallRouteTests
     static void LevelFourBySpecials(Run r)
     {
         r.Walk(-0.2f, 23f);
-        r.DashSlash(12f, 23f, 60, Bridge4);                             // the top bridge row
+        r.QuickDrawRow(12f, 23f, Bridge4);                             // the top bridge row
         r.Boss("cop", 1.6f, new(0, -1));                                // the mall cop's cardboard cutout
         r.Finish(12f, 42f);
     }
@@ -463,8 +454,9 @@ public sealed class WibouMallRouteTests
         foreach (var e in r.Events.Where(e => e.Kind == CharacterCourseEventKind.CheckpointSaved))
             _output.WriteLine($"checkpoint {e.Index} saved at t{e.ElapsedTicks}");
         r.AssertCompleted();
-        foreach (var slot in new[] { AbilitySlots.A, AbilitySlots.E, AbilitySlots.R, AbilitySlots.F })
+        foreach (var slot in new[] { AbilitySlots.A, AbilitySlots.E, AbilitySlots.R })
             Assert.Contains(slot, r.UsedSlots);
+        Assert.DoesNotContain(AbilitySlots.F, r.UsedSlots);
         _output.WriteLine($"specials: {r.Sim.Course!.Value.ElapsedTicks} ticks");
         foreach (var e in r.Log != null ? r.Events : new())
             r.Log!($"t{e.ElapsedTicks} {e.Kind} {(e.Index >= 0 && e.Kind is CharacterCourseEventKind.TargetBroken or CharacterCourseEventKind.TargetHit
@@ -545,20 +537,20 @@ public sealed class WibouMallRouteTests
         Assert.Equal(reaches, up);
     }
 
-    /// <summary>Each boss takes five hits: Skyfall lands two and a close kunai volley three.</summary>
+    /// <summary>Each boss takes five hits: a close kunai volley lands three and normals the rest.</summary>
     [Theory]
     [InlineData("tubeman", -12f, 4f, -20.6f)]
     [InlineData("agent", 11.9f, 9f, 15f)]
     [InlineData("hotdog", -11.4f, 9f, 28.5f)]
     [InlineData("cop", 12.5f, 15f, 35.9f)]
-    public void SkyfallAndAKunaiVolleyBreakEachBoss(string id, float x, float y, float z)
+    public void AKunaiVolleyAndNormalsBreakEachBoss(string id, float x, float y, float z)
     {
         var r = new Run(x, y, z, 0f);
         Assert.Equal(BossHits, r.Target(id).Hits);
         var p = r.Target(id).Position;
         r.Boss(id, new Vector2(p.X - x, p.Z - z).Length(), new Vector2(x - p.X, z - p.Z));
         Assert.True(r.Broken(id));
-        Assert.Contains(AbilitySlots.F, r.UsedSlots);
         Assert.Contains(AbilitySlots.A, r.UsedSlots);
+        Assert.DoesNotContain(AbilitySlots.F, r.UsedSlots);
     }
 }

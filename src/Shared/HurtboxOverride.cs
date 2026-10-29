@@ -21,6 +21,10 @@ public static class HurtboxOverride
         [JsonPropertyName("oy")] public float Oy { get; set; }
         [JsonPropertyName("oz")] public float Oz { get; set; }
         [JsonPropertyName("r")] public float R { get; set; }
+        [JsonPropertyName("endBone")] public string? EndBone { get; set; }
+        [JsonPropertyName("endOx")] public float EndOx { get; set; }
+        [JsonPropertyName("endOy")] public float EndOy { get; set; }
+        [JsonPropertyName("endOz")] public float EndOz { get; set; }
     }
 
     private sealed class OverrideDto
@@ -64,6 +68,10 @@ public static class HurtboxOverride
                 Oy = defs[i].OffY,
                 Oz = defs[i].OffZ,
                 R = defs[i].Radius,
+                EndBone = defs[i].EndBoneName,
+                EndOx = defs[i].EndOffX,
+                EndOy = defs[i].EndOffY,
+                EndOz = defs[i].EndOffZ,
             };
         }
         return JsonSerializer.Serialize(dto, Options);
@@ -96,7 +104,7 @@ public static class HurtboxOverride
         {
             var b = dto.BoneDefs[i];
             if (string.IsNullOrEmpty(b.Bone)) return false;
-            result[i] = new HurtboxBoneDef(b.Bone, b.Ox, b.Oy, b.Oz, b.R);
+            result[i] = new HurtboxBoneDef(b.Bone, b.Ox, b.Oy, b.Oz, b.R, b.EndBone, b.EndOx, b.EndOy, b.EndOz);
         }
         character = parsed;
         defs = result;
@@ -115,7 +123,8 @@ public static class HurtboxOverride
         if (baked.BoneNames == null || defs.Length > baked.BoneNames.Count) return false;
         for (int i = 0; i < defs.Length; i++)
         {
-            if (!string.Equals(defs[i].BoneName, baked.BoneNames[i], StringComparison.Ordinal))
+            if (!string.Equals(defs[i].BoneName, baked.BoneNames[i], StringComparison.Ordinal)
+                || (defs[i].EndBoneName != null && baked.FindBoneIndex(defs[i].EndBoneName!) < 0))
                 return false;
         }
         return true;

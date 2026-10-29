@@ -7,7 +7,10 @@ The GameServer owns match time and results. Online clients use
 Current wire versions live in [`SimulationProtocol.Version`](../../src/Shared/SimulationProtocol.cs),
 [`WorldFramePacket.FormatVersion`](../../src/Shared/WorldFramePacket.cs), and
 [`ServerSimulation.SnapshotFormatVersion`](../../src/Shared/ServerSimulation.Snapshot.cs).
-Client, GameServer, and Master admission must agree on the protocol. The operating
+Client, GameServer, and Master admission must agree on the protocol. Bump it once per
+deploy, not per change: simulation work lists itself under `Unreleased` in
+`SimulationProtocol.cs`, and `release.py prepare` refuses a release whose `src/Shared`
+changed since the previous release tag while the protocol did not move. The operating
 contract starts at [Philosophy](#1-philosophy); the records below preserve protocol cutovers.
 
 Match admission pins both the character packages and the exact baked arena bytes.
@@ -30,7 +33,7 @@ zero, duplicate, or out-of-range live emission IDs before applying the world.
 ## Universal ground movement cutover
 
 Simulation protocol 23 applies the fixed Progressive Run rule in every mode.
-Start is 40% of RunSpeed, followed by 20 linear increments. Turnaround retains 100% of current speed.
+Start is 60% of RunSpeed, followed by 12 linear increments (protocol 29; protocol 23 shipped 40% and 20). Turnaround retains 100% of current speed.
 Release brakes the velocity vector by RunSpeed/20 each tick. Dash overspeed keeps its prior coast behavior.
 No packet, World Frame, or World Snapshot layout changes. The former Rush ushort remains reserved and inert.
 The existing source/cooked movement fields remain for content compatibility, without per-character ramp overrides.

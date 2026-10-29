@@ -74,7 +74,7 @@ public partial class ServerSimulation
         var old = _states[id];
         _lastHitCredits.Remove(id); _lastHitContexts.Remove(id);
         _spellResolver.StopHomingAt(id);
-        var definition = _defs[id];
+        var definition = Def(id);
         _states[id] = new CharacterState
         {
             EntityId = id, PX = ground.Position.X, PY = ground.Position.Y, PZ = ground.Position.Z,
@@ -83,6 +83,7 @@ public partial class ServerSimulation
             InvincibilityTicks = RespawnInvincibilityTicks,
             LastTerminalInteractionId = old.LastTerminalInteractionId, InteractionTerminalTick = old.InteractionTerminalTick,
             InteractionPhase = (byte)(old.LastTerminalInteractionId != 0 ? DefenseInteractionPhase.Terminal : DefenseInteractionPhase.None),
+            Form = new FormState { Active = old.Form.Active },
         };
     }
 

@@ -22,8 +22,8 @@ namespace SlopArena.HitReliabilityReport;
 internal static class Program
 {
     private const string Usage = """
-        Usage: dotnet run --project tools/HitReliabilityReport -- [--char all|fightguy|manki|wibou|bonk|bashie]
-               [--slots 1,2,3,4] [--out artifacts/hit-reliability]
+        Usage: dotnet run --project tools/HitReliabilityReport -- [--char all|fightguy|manki|wibou|bonk|bashie|salamander|nyx]
+               [--slots 1,3,4] [--form 0|1] [--content-root content-cooked] [--out artifacts/hit-reliability]
 
         Writes <char>.md and <char>.json per character. Targets are idle, standing FightGuy
         (medium) and Manki (small); measurements read the admitted content-cooked roster.
@@ -37,11 +37,14 @@ internal static class Program
         ["wibou"] = CharacterClass.Wibou, ["bonk"] = CharacterClass.Bonk,
         ["bashie"] = CharacterClass.Bashie,
         ["salamander"] = CharacterClass.Salamander,
+        ["nyx"] = CharacterClass.Nyx,
     };
 
     private static int Main(string[] args)
     {
         string selector = "all";
+        byte form = 0;
+        string cookedRoot = "content-cooked";
         string output = Path.Combine("artifacts", "hit-reliability");
         byte[] wires = Reliability.NormalWires;
         for (int i = 0; i < args.Length; i++)
@@ -50,6 +53,11 @@ internal static class Program
             {
                 case "--help" or "-h": Console.WriteLine(Usage); return 0;
                 case "--char" when i + 1 < args.Length: selector = args[++i].ToLowerInvariant(); break;
+                case "--content-root" when i + 1 < args.Length: cookedRoot = args[++i]; break;
+                case "--form" when i + 1 < args.Length:
+                    if (!byte.TryParse(args[++i], out form) || form > 1)
+                    { Console.Error.WriteLine("form must be 0 or 1."); return 2; }
+                    break;
                 case "--out" when i + 1 < args.Length: output = args[++i]; break;
                 case "--slots" when i + 1 < args.Length:
                     if (Reliability.ParseSlots(args[++i]) is not { } parsed)
@@ -71,11 +79,19 @@ internal static class Program
         }
 
         var arena = Reliability.FlatArena();
-        var targets = new[] { CharacterClass.FightGuy, CharacterClass.Manki }.Select(c => BuiltInContentResolver.Resolve(c)).ToArray();
+        var targets = new[] { CharacterClass.FightGuy, CharacterClass.Manki }.Select(c => BuiltInContentResolver.Resolve(c, cookedRoot)).ToArray();
         Directory.CreateDirectory(output);
         foreach (var (name, cls) in Characters.Where(x => selector == "all" || x.Key == selector))
         {
-            var attacker = BuiltInContentResolver.Resolve(cls);
+            var attacker = BuiltInContentResolver.Resolve(cls, cookedRoot);
+            if (form != 0)
+            {
+                if (attacker.Definition.AlternateForm == null)
+                { Console.Error.WriteLine($"{name} has no alternate form."); return 2; }
+                attacker = new MatchContentEntry(attacker.Handle, attacker.LegacySelector, attacker.Identity,
+                    attacker.DisplayName + " form " + form, attacker.Definition.ForForm(form), attacker.BakedAnimation,
+                    attacker.CookedCharacterPackage);
+            }
             var moves = Reliability.Measure(attacker, targets, arena, wires);
             string markdown = Markdown(attacker, moves);
             File.WriteAllText(Path.Combine(output, name + ".md"), markdown);

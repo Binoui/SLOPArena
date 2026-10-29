@@ -142,7 +142,8 @@ namespace SlopArena.Client.Entities
         private void EnsureOutlines()
         {
             if (_model == null || _outlineMaterial == null || _outlines.Count > 0) return;
-            foreach (var skin in _model.GetComponentsInChildren<SkinnedMeshRenderer>())
+            // Hidden meshes too: each outline lives under its skin and draws only while that form shows (ADR-0051).
+            foreach (var skin in _model.GetComponentsInChildren<SkinnedMeshRenderer>(true))
             {
                 if (skin.sharedMesh == null) continue;
                 _skins.Add(skin);
@@ -181,7 +182,9 @@ namespace SlopArena.Client.Entities
             for (int i = 0; i < ghost.parts.Length && i < _skins.Count; i++)
             {
                 var skin = _skins[i];
-                if (skin == null) continue;
+                bool shown = skin != null && skin.gameObject.activeInHierarchy;
+                ghost.parts[i].gameObject.SetActive(shown);
+                if (!shown) continue;
                 skin.BakeMesh(ghost.meshes[i], false);
                 var part = ghost.parts[i].transform;
                 part.SetPositionAndRotation(skin.transform.position, skin.transform.rotation);

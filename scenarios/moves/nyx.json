@@ -1,0 +1,846 @@
+{
+  "package": "nyx",
+  "stage": "slop_pit",
+  "facing": 0,
+  "dummy": {
+    "package": "fightguy",
+    "behavior": "Idle",
+    "damage": 0
+  },
+  "camera": {
+    "distance": 8,
+    "fov": 40,
+    "look": 0.3,
+    "gameplayPitch": 35
+  },
+  "phases": [
+    {
+      "name": "wind-up",
+      "at": "hit-6"
+    },
+    {
+      "name": "peak",
+      "at": "hit+1"
+    },
+    {
+      "name": "fade",
+      "at": "hit+16"
+    }
+  ],
+  "moves": [
+    {
+      "id": "real-g1",
+      "slot": "ground.1",
+      "form": 0,
+      "dummy": {
+        "distance": 1.2
+      },
+      "input": [
+        {
+          "ticks": 1,
+          "slot": "1"
+        },
+        {
+          "ticks": 89
+        }
+      ]
+    },
+    {
+      "id": "real-g3",
+      "slot": "ground.3",
+      "form": 0,
+      "dummy": {
+        "distance": 1.0
+      },
+      "input": [
+        {
+          "ticks": 1,
+          "slot": "3"
+        },
+        {
+          "ticks": 89
+        }
+      ]
+    },
+    {
+      "id": "real-g4",
+      "slot": "ground.4",
+      "form": 0,
+      "dummy": {
+        "distance": 2.5
+      },
+      "input": [
+        {
+          "ticks": 1,
+          "slot": "4"
+        },
+        {
+          "ticks": 99
+        }
+      ]
+    },
+    {
+      "id": "real-a1",
+      "slot": "air.1",
+      "form": 0,
+      "dummy": {
+        "distance": 1.0
+      },
+      "input": [
+        {
+          "ticks": 1,
+          "jumpPressed": true,
+          "jumpHeld": true
+        },
+        {
+          "ticks": 4,
+          "jumpHeld": true
+        },
+        {
+          "ticks": 1,
+          "slot": "1"
+        },
+        {
+          "ticks": 84
+        }
+      ]
+    },
+    {
+      "id": "real-a3",
+      "slot": "air.3",
+      "form": 0,
+      "dummy": {
+        "distance": 1.0,
+        "input": {
+          "ticks": 100,
+          "space": "camera",
+          "events": [
+            {
+              "tick": 0,
+              "jump": true,
+              "jumpHeld": true
+            },
+            {
+              "tick": 12,
+              "jumpHeld": false
+            }
+          ]
+        }
+      },
+      "pad": {
+        "frames": 100,
+        "events": [
+          {
+            "frame": 0,
+            "down": [
+              "South"
+            ]
+          },
+          {
+            "frame": 4,
+            "up": [
+              "South"
+            ]
+          },
+          {
+            "frame": 5,
+            "down": [
+              "North"
+            ]
+          },
+          {
+            "frame": 6,
+            "up": [
+              "North"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "real-a4",
+      "slot": "air.4",
+      "form": 0,
+      "dummy": {
+        "distance": 1.0
+      },
+      "input": [
+        {
+          "ticks": 1,
+          "jumpPressed": true,
+          "jumpHeld": true
+        },
+        {
+          "ticks": 4,
+          "jumpHeld": true
+        },
+        {
+          "ticks": 1,
+          "slot": "4"
+        },
+        {
+          "ticks": 94
+        }
+      ]
+    },
+    {
+      "id": "real-q",
+      "slot": "ground.A",
+      "form": 0,
+      "dummy": {
+        "distance": 3.0
+      },
+      "input": [
+        {
+          "ticks": 1,
+          "slot": "A"
+        },
+        {
+          "ticks": 99
+        },
+        {
+          "ticks": 1,
+          "slot": "F"
+        },
+        {
+          "ticks": 49
+        },
+        {
+          "ticks": 1,
+          "slot": "R"
+        },
+        {
+          "ticks": 119
+        }
+      ],
+      "phases": [
+        {
+          "name": "flight",
+          "at": "cue:presentation.nyx.crow-launch+1"
+        },
+        {
+          "name": "perched",
+          "at": "start+35"
+        },
+        {
+          "name": "pop",
+          "at": "cue:presentation.nyx.crow-pop"
+        },
+        {
+          "name": "late",
+          "at": "cue:presentation.nyx.crow-pop+16"
+        }
+      ]
+    },
+    {
+      "id": "real-e",
+      "slot": "air.E",
+      "form": 0,
+      "dummy": {
+        "distance": 4.0
+      },
+      "input": [
+        {
+          "ticks": 1,
+          "jumpPressed": true,
+          "jumpHeld": true
+        },
+        {
+          "ticks": 8,
+          "jumpHeld": true
+        },
+        {
+          "ticks": 1,
+          "slot": "E",
+          "moveY": 1
+        },
+        {
+          "ticks": 100
+        }
+      ],
+      "phases": [
+        {
+          "name": "wind-up",
+          "at": "start"
+        },
+        {
+          "name": "peak",
+          "at": "start+18"
+        },
+        {
+          "name": "fade",
+          "at": "start+45"
+        }
+      ]
+    },
+    {
+      "id": "real-ground-e",
+      "slot": "ground.E",
+      "form": 0,
+      "dummy": {
+        "distance": 4
+      },
+      "input": [
+        {
+          "ticks": 1,
+          "slot": "E"
+        },
+        {
+          "ticks": 109
+        }
+      ],
+      "phases": [
+        {
+          "name": "wind-up",
+          "at": "start"
+        },
+        {
+          "name": "peak",
+          "at": "start+18"
+        },
+        {
+          "name": "fade",
+          "at": "start+45"
+        }
+      ]
+    },
+    {
+      "id": "real-r",
+      "slot": "ground.R",
+      "form": 0,
+      "dummy": {
+        "distance": 3.0
+      },
+      "input": [
+        {
+          "ticks": 1,
+          "slot": "R"
+        },
+        {
+          "ticks": 129
+        }
+      ]
+    },
+    {
+      "id": "real-swap",
+      "slot": "ground.F",
+      "form": 0,
+      "dummy": {
+        "distance": 2.0
+      },
+      "input": [
+        {
+          "ticks": 1,
+          "slot": "F"
+        },
+        {
+          "ticks": 89
+        }
+      ],
+      "phases": [
+        {
+          "name": "wind-up",
+          "at": "start+6"
+        },
+        {
+          "name": "peak",
+          "at": "start+10"
+        },
+        {
+          "name": "fade",
+          "at": "start+26"
+        }
+      ]
+    },
+    {
+      "id": "real-air-a",
+      "slot": "air.A",
+      "form": 0,
+      "dummy": {
+        "distance": 3.0
+      },
+      "input": [
+        {
+          "ticks": 1,
+          "jumpPressed": true,
+          "jumpHeld": true
+        },
+        {
+          "ticks": 4,
+          "jumpHeld": true
+        },
+        {
+          "ticks": 1,
+          "slot": "A"
+        },
+        {
+          "ticks": 114
+        }
+      ],
+      "phases": [
+        {
+          "name": "wind-up",
+          "at": "start"
+        },
+        {
+          "name": "flight",
+          "at": "cue:presentation.nyx.crow-launch+1"
+        },
+        {
+          "name": "perched",
+          "at": "start+35"
+        }
+      ]
+    },
+    {
+      "id": "real-air-r",
+      "slot": "air.R",
+      "form": 0,
+      "dummy": {
+        "distance": 3.0
+      },
+      "input": [
+        {
+          "ticks": 1,
+          "jumpPressed": true,
+          "jumpHeld": true
+        },
+        {
+          "ticks": 4,
+          "jumpHeld": true
+        },
+        {
+          "ticks": 1,
+          "slot": "R"
+        },
+        {
+          "ticks": 114
+        }
+      ]
+    },
+    {
+      "id": "real-air-f",
+      "slot": "air.F",
+      "form": 0,
+      "dummy": {
+        "distance": 2.0
+      },
+      "input": [
+        {
+          "ticks": 1,
+          "jumpPressed": true,
+          "jumpHeld": true
+        },
+        {
+          "ticks": 4,
+          "jumpHeld": true
+        },
+        {
+          "ticks": 1,
+          "slot": "F"
+        },
+        {
+          "ticks": 114
+        }
+      ],
+      "phases": [
+        {
+          "name": "wind-up",
+          "at": "start+7"
+        },
+        {
+          "name": "peak",
+          "at": "start+11"
+        },
+        {
+          "name": "fade",
+          "at": "start+27"
+        }
+      ]
+    },
+    {
+      "id": "fake-g1",
+      "slot": "ground.1",
+      "form": 1,
+      "dummy": {
+        "distance": 1.2
+      },
+      "input": [
+        {
+          "ticks": 1,
+          "slot": "1"
+        },
+        {
+          "ticks": 89
+        }
+      ]
+    },
+    {
+      "id": "fake-g3",
+      "slot": "ground.3",
+      "form": 1,
+      "dummy": {
+        "distance": 1.0
+      },
+      "input": [
+        {
+          "ticks": 1,
+          "slot": "3"
+        },
+        {
+          "ticks": 89
+        }
+      ]
+    },
+    {
+      "id": "fake-g4",
+      "slot": "ground.4",
+      "form": 1,
+      "dummy": {
+        "distance": 1.2
+      },
+      "input": [
+        {
+          "ticks": 1,
+          "slot": "4"
+        },
+        {
+          "ticks": 99
+        }
+      ]
+    },
+    {
+      "id": "fake-a1",
+      "slot": "air.1",
+      "form": 1,
+      "dummy": {
+        "distance": 1.0
+      },
+      "input": [
+        {
+          "ticks": 1,
+          "jumpPressed": true,
+          "jumpHeld": true
+        },
+        {
+          "ticks": 4,
+          "jumpHeld": true
+        },
+        {
+          "ticks": 1,
+          "slot": "1"
+        },
+        {
+          "ticks": 84
+        }
+      ]
+    },
+    {
+      "id": "fake-a3",
+      "slot": "air.3",
+      "form": 1,
+      "dummy": {
+        "distance": 1.0,
+        "input": {
+          "ticks": 100,
+          "space": "camera",
+          "events": [
+            {
+              "tick": 0,
+              "jump": true,
+              "jumpHeld": true
+            },
+            {
+              "tick": 12,
+              "jumpHeld": false
+            }
+          ]
+        }
+      },
+      "pad": {
+        "frames": 100,
+        "events": [
+          {
+            "frame": 0,
+            "down": [
+              "South"
+            ]
+          },
+          {
+            "frame": 4,
+            "up": [
+              "South"
+            ]
+          },
+          {
+            "frame": 5,
+            "down": [
+              "North"
+            ]
+          },
+          {
+            "frame": 6,
+            "up": [
+              "North"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "fake-a4",
+      "slot": "air.4",
+      "form": 1,
+      "dummy": {
+        "distance": 1.0
+      },
+      "input": [
+        {
+          "ticks": 1,
+          "jumpPressed": true,
+          "jumpHeld": true
+        },
+        {
+          "ticks": 4,
+          "jumpHeld": true
+        },
+        {
+          "ticks": 1,
+          "slot": "4"
+        },
+        {
+          "ticks": 94
+        }
+      ]
+    },
+    {
+      "id": "fake-q",
+      "slot": "ground.A",
+      "form": 1,
+      "dummy": {
+        "distance": 2.0
+      },
+      "input": [
+        {
+          "ticks": 1,
+          "slot": "A"
+        },
+        {
+          "ticks": 109
+        }
+      ]
+    },
+    {
+      "id": "fake-e",
+      "slot": "air.E",
+      "form": 1,
+      "dummy": {
+        "distance": 4.0
+      },
+      "input": [
+        {
+          "ticks": 1,
+          "jumpPressed": true,
+          "jumpHeld": true
+        },
+        {
+          "ticks": 8,
+          "jumpHeld": true
+        },
+        {
+          "ticks": 1,
+          "slot": "E",
+          "moveY": 1
+        },
+        {
+          "ticks": 100
+        }
+      ],
+      "phases": [
+        {
+          "name": "wind-up",
+          "at": "start"
+        },
+        {
+          "name": "peak",
+          "at": "start+18"
+        },
+        {
+          "name": "fade",
+          "at": "start+45"
+        }
+      ]
+    },
+    {
+      "id": "fake-ground-e",
+      "slot": "ground.E",
+      "form": 1,
+      "dummy": {
+        "distance": 4
+      },
+      "input": [
+        {
+          "ticks": 1,
+          "slot": "E"
+        },
+        {
+          "ticks": 109
+        }
+      ],
+      "phases": [
+        {
+          "name": "wind-up",
+          "at": "start"
+        },
+        {
+          "name": "peak",
+          "at": "start+18"
+        },
+        {
+          "name": "fade",
+          "at": "start+45"
+        }
+      ]
+    },
+    {
+      "id": "fake-r",
+      "slot": "ground.R",
+      "form": 1,
+      "dummy": {
+        "distance": 2.0
+      },
+      "input": [
+        {
+          "ticks": 1,
+          "slot": "R"
+        },
+        {
+          "ticks": 129
+        }
+      ]
+    },
+    {
+      "id": "fake-swap",
+      "slot": "ground.F",
+      "form": 1,
+      "dummy": {
+        "distance": 2.0
+      },
+      "input": [
+        {
+          "ticks": 1,
+          "slot": "F"
+        },
+        {
+          "ticks": 89
+        }
+      ],
+      "phases": [
+        {
+          "name": "wind-up",
+          "at": "start+7"
+        },
+        {
+          "name": "peak",
+          "at": "start+11"
+        },
+        {
+          "name": "fade",
+          "at": "start+27"
+        }
+      ]
+    },
+    {
+      "id": "fake-air-a",
+      "slot": "air.A",
+      "form": 1,
+      "dummy": {
+        "distance": 2.0
+      },
+      "input": [
+        {
+          "ticks": 1,
+          "jumpPressed": true,
+          "jumpHeld": true
+        },
+        {
+          "ticks": 4,
+          "jumpHeld": true
+        },
+        {
+          "ticks": 1,
+          "slot": "A"
+        },
+        {
+          "ticks": 114
+        }
+      ]
+    },
+    {
+      "id": "fake-air-r",
+      "slot": "air.R",
+      "form": 1,
+      "dummy": {
+        "distance": 2.0
+      },
+      "input": [
+        {
+          "ticks": 1,
+          "jumpPressed": true,
+          "jumpHeld": true
+        },
+        {
+          "ticks": 4,
+          "jumpHeld": true
+        },
+        {
+          "ticks": 1,
+          "slot": "R"
+        },
+        {
+          "ticks": 114
+        }
+      ]
+    },
+    {
+      "id": "fake-air-f",
+      "slot": "air.F",
+      "form": 1,
+      "dummy": {
+        "distance": 2.0
+      },
+      "input": [
+        {
+          "ticks": 1,
+          "jumpPressed": true,
+          "jumpHeld": true
+        },
+        {
+          "ticks": 4,
+          "jumpHeld": true
+        },
+        {
+          "ticks": 1,
+          "slot": "F"
+        },
+        {
+          "ticks": 114
+        }
+      ],
+      "phases": [
+        {
+          "name": "wind-up",
+          "at": "start+7"
+        },
+        {
+          "name": "peak",
+          "at": "start+11"
+        },
+        {
+          "name": "fade",
+          "at": "start+27"
+        }
+      ]
+    }
+  ]
+}

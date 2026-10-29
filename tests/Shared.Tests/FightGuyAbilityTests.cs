@@ -111,22 +111,44 @@ public class FightGuyAbilityTests
 
 
     [Fact]
-    public void FightGuyCycloneKick_HitsEachTargetOnceWithModerateKnockback()
+    public void FightGuyCycloneKick_CarriesVictimAndRecoversFirst()
     {
-        var def = TestHelpers.FightGuyDef;
-        var baked = TestHelpers.LoadBakedData(def);
-        var sim = TestHelpers.MakeSim();
-        var player = TestHelpers.PlayerState();
-        player.PY = GroundPY;
-        player.FacingYaw = 0f;
-        sim.RegisterEntity(1, def, player);
+        var (sim, _) = CycloneVersusDummy(3f);
+        int hits = 0, lastPercent = 0, fighterFree = -1, victimFree = -1;
+        for (int i = 0; i < 140; i++)
+        {
+            sim.Tick(new()
+            {
+                { 1, i == 0 ? TestHelpers.Input(activeSlot: 5) : default },
+                { 100, default },
+            });
+            var fighter = sim.GetState(1);
+            var victim = sim.GetState(100);
+            if (victim.DamagePercent != lastPercent)
+            {
+                hits++;
+                lastPercent = victim.DamagePercent;
+                victimFree = -1;
+            }
+            if (hits > 0 && victimFree < 0 && victim.State != ActionState.Hitstun
+                && victim.HitstunTicks == 0 && victim.HitstopTicks == 0)
+                victimFree = i;
+            if (i > 2 && fighterFree < 0 && fighter.State != ActionState.Attacking && fighter.HitstopTicks == 0)
+                fighterFree = i;
+        }
 
-        var npc = TestHelpers.NpcState(0f, 3f);
-        npc.PY = GroundPY;
-        sim.RegisterEntity(100, def, npc, baked);
+        Assert.True(hits >= 4, $"expected the cyclone to keep hitting, got {hits} hits");
+        Assert.True(victimFree > fighterFree,
+            $"Cyclone must be safe on hit: victim free at {victimFree}, FightGuy at {fighterFree}");
+    }
 
-        float maxHorizontalVelocity = 0f;
-        ushort maxStun = 0;
+    [Theory]
+    [InlineData(3f, false)]
+    [InlineData(30f, true)]
+    public void FightGuyCycloneKick_DizzyOnlyOnWhiff(float distance, bool expectDizzy)
+    {
+        var (sim, _) = CycloneVersusDummy(distance);
+        bool dizzy = false;
         for (int i = 0; i < 80; i++)
         {
             sim.Tick(new()
@@ -134,15 +156,25 @@ public class FightGuyAbilityTests
                 { 1, i == 0 ? TestHelpers.Input(activeSlot: 5) : default },
                 { 100, default },
             });
-            var target = sim.GetState(100);
-            maxHorizontalVelocity = MathF.Max(maxHorizontalVelocity,
-                MathF.Sqrt(target.VX * target.VX + target.VZ * target.VZ));
-            maxStun = Math.Max(maxStun, target.HitstunTicks);
+            dizzy |= sim.GetPresentationEvents(clear: true)
+                .Any(e => e.PresentationId == "presentation.fightguy.cyclone-kick.dizzy");
         }
 
-        Assert.Equal((ushort)7, sim.GetState(100).DamagePercent);
-        Assert.True(maxHorizontalVelocity > 0f, "Cyclone must apply nonzero knockback");
-        Assert.True(maxStun > 0 && maxStun <= 6, $"expected short stun, got {maxStun}");
+        Assert.Equal(expectDizzy, dizzy);
+    }
+
+    private static (ServerSimulation sim, CharacterDefinition def) CycloneVersusDummy(float distance)
+    {
+        var def = TestHelpers.FightGuyDef;
+        var sim = TestHelpers.MakeSim();
+        var player = TestHelpers.PlayerState();
+        player.PY = GroundPY;
+        player.FacingYaw = 0f;
+        sim.RegisterEntity(1, def, player);
+        var npc = TestHelpers.NpcState(0f, distance);
+        npc.PY = GroundPY;
+        sim.RegisterEntity(100, def, npc, TestHelpers.LoadBakedData(def));
+        return (sim, def);
     }
 
     [Fact]
@@ -174,25 +206,31 @@ public class FightGuyAbilityTests
             });
         }
 
-        Assert.Equal((ushort)7, sim.GetState(100).DamagePercent);
-        Assert.Equal((ushort)7, sim.GetState(101).DamagePercent);
+        Assert.True(sim.GetState(100).DamagePercent > 0);
+        Assert.True(sim.GetState(101).DamagePercent > 0);
     }
 
-    // ── F (FightGuy Fist of Fury) ──
+    // ── A move that pulls toward its owner (Fist of Fury's retired punches) ──
 
     [Theory]
     [InlineData(1UL, 100UL)]
     [InlineData(100UL, 1UL)]
-    public void FightGuyFistOfFury_BodyContactHoldsCasterOnlyDuringMove(ulong casterId, ulong targetId)
+    public void ATowardOwnerMove_BodyContactHoldsCasterOnlyDuringMove(ulong casterId, ulong targetId)
     {
-        var def = TestHelpers.FightGuyDef;
+        var pull = new HitboxEvent
+        {
+            TriggerTick = 10, DurationTicks = 5, Shape = HitboxShape.Sphere, Radius = .7f, OffZ = .5f, Damage = 2f,
+            Knockback = new KnockbackData { Profile = KnockbackProfile.Custom, BaseKnockback = 20f },
+            StunTicks = 12, KnockbackDirection = AuthoringKnockbackDirection.TowardOwner,
+        };
+        var def = TestHelpers.WithMove(TestHelpers.FightGuyDef, AbilitySlots.F, false, "Pull", 60, hits: new[] { pull });
         var sim = TestHelpers.MakeSim();
         var player = TestHelpers.PlayerState(50f, 50f) with { PY = GroundPY };
         var target = TestHelpers.NpcState(50f, 50.2f) with { PY = GroundPY };
         sim.RegisterEntity(casterId, def, player);
         sim.RegisterEntity(targetId, def, target);
 
-        sim.Tick(new() { { casterId, TestHelpers.Input(activeSlot: 6) }, { targetId, default } });
+        sim.Tick(new() { { casterId, TestHelpers.Input(activeSlot: AbilitySlots.F) }, { targetId, default } });
 
         Assert.Equal(player.PZ, sim.GetState(casterId).PZ, 4);
         Assert.Equal(player.PZ + def.CapsuleRadius * 2f, sim.GetState(targetId).PZ, 4);
@@ -208,89 +246,7 @@ public class FightGuyAbilityTests
             "ordinary body contact must push the caster again after the move ends");
     }
 
-    [Theory]
-    [InlineData(0.9f, 0, 0, CharacterClass.FightGuy)]
-    [InlineData(1.6f, 150, 0, CharacterClass.FightGuy)]
-    [InlineData(1.6f, 0, 20, CharacterClass.FightGuy)]
-    [InlineData(1.6f, 0, 28, CharacterClass.FightGuy)]
-    [InlineData(1.6f, 0, 36, CharacterClass.FightGuy)]
-    [InlineData(1.6f, 0, 44, CharacterClass.FightGuy)]
-    [InlineData(1.6f, 0, 52, CharacterClass.FightGuy)]
-    [InlineData(1.6f, 150, 60, CharacterClass.FightGuy)]
-    [InlineData(1.6f, 0, 70, CharacterClass.FightGuy)]
-    [InlineData(0.9f, 150, 60, CharacterClass.Bonk)]
-    [InlineData(1.6f, 150, 60, CharacterClass.Wibou)]
-    public void FightGuyFistOfFury_PunchCatchRemainsLockedUntilFootFinisher(
-        float distance, ushort startingDamage, ushort entryTick, CharacterClass targetClass)
-    {
-        var def = TestHelpers.FightGuyDef;
-        var baked = TestHelpers.LoadBakedData(def);
-        var targetDef = TestHelpers.ResolveDef(targetClass);
-        var targetBaked = TestHelpers.LoadBakedData(targetDef);
-        var slot = def.GetCookedSlotAbility(AbilitySlots.F, false)!;
-        var finisher = slot.Timeline.Stages.SelectMany(stage => stage.Operations)
-            .OfType<CookedSpawnHitboxOperation>()
-            .Single(operation => operation.Hitbox.StartBoneId == "bone.right-foot");
-        var sim = TestHelpers.MakeSim();
-        // Keep the combo away from the heightmap boundary.
-        var player = TestHelpers.PlayerState(50f, 50f);
-        player.PY = GroundPY;
-        sim.RegisterEntity(1, def, player, baked);
-
-        bool registered = false, caught = false, kicked = false, launched = false;
-        int punchContacts = 0, kickContacts = 0;
-        for (int i = 0; i < 220; i++)
-        {
-            if (!registered && sim.GetState(1).AttackElapsedTicks >= Math.Max(0, entryTick - 1))
-            {
-                var npc = TestHelpers.NpcState(50f, 50f + distance);
-                npc.PY = TestHelpers.GroundPY(targetDef);
-                npc.DamagePercent = startingDamage;
-                sim.RegisterEntity(100, targetDef, npc, targetBaked);
-                registered = true;
-            }
-
-            sim.Tick(new()
-            {
-                { 1, i == 0 ? TestHelpers.Input(activeSlot: 6) : default },
-                { 100, caught ? TestHelpers.Input(moveY: 1f, jump: true, jumpHeld: true) : default },
-            });
-            if (!registered) continue;
-
-            foreach (var hit in sim.LastTickHits.Where(hit => hit.TargetEntityId == 100))
-            {
-                Assert.False(hit.Blocked);
-                if (hit.Damage == finisher.Hitbox.Damage)
-                {
-                    Assert.True(caught, "the foot must finish an opponent caught by a punch");
-                    kicked = true;
-                    kickContacts++;
-                    Assert.Equal(AuthoringKnockbackDirection.AwayFromOwner, hit.KnockbackDirection);
-                }
-                else
-                {
-                    caught = true;
-                    punchContacts++;
-                    Assert.Equal(AuthoringKnockbackDirection.TowardOwner, hit.KnockbackDirection);
-                }
-            }
-
-            var attacker = sim.GetState(1);
-            Assert.InRange(MathF.Abs(attacker.PX - player.PX), 0f, 0.0001f);
-            Assert.InRange(MathF.Abs(attacker.PZ - player.PZ), 0f, 0.0001f);
-
-            var target = sim.GetState(100);
-            if (caught && !kicked)
-                Assert.True(target.HitstopTicks > 0 || target.HitstunTicks > 0,
-                    $"caught opponent escaped before the foot at simulation tick {i}");
-            if (kicked && target.HitstopTicks == 0 && target.KVZ > 0f)
-                launched = true;
-        }
-
-        Assert.True(punchContacts > 0, "the entry must connect with the punch flurry");
-        Assert.Equal(1, kickContacts);
-        Assert.True(launched, "only the foot finisher should launch the victim outward");
-    }
+    // Title Match (F, ADR-0053) is covered through his package in ClinchTests.
 
     // ── Bone-attached hitbox ──
 

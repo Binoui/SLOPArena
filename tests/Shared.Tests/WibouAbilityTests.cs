@@ -7,7 +7,7 @@ namespace SlopArena.Shared.Tests;
 
 /// <summary>
 /// Behaviour tests for Wibou's kit. Normal tier (keys 1-4, ground + air) activation and
-/// damage, plus the specials: E rising recovery, R directional dash, and F skyfall.
+/// damage, plus the specials: E rising recovery, R Quick Draw, and F the flash.
 /// </summary>
 public class WibouAbilityTests
 {
@@ -32,15 +32,14 @@ public class WibouAbilityTests
     [InlineData((byte)8)] // key "3" — Up Slash (normal)
     [InlineData((byte)9)] // key "4" — Heavy Down Slash (normal)
 [InlineData((byte)4)] // E — Rising Slash
-[InlineData((byte)5)] // R — Dash Slash
-[InlineData((byte)6)] // F — Skyfall
+[InlineData((byte)5)] // R — Quick Draw
+[InlineData((byte)6)] // F — the flash
     public void GroundSlot_Activates(byte slot)
     {
         var sim = SimWithPlayer(out _);
         var t0 = TestHelpers.TickN(sim, TestHelpers.Input(activeSlot: slot, aiming: true), 1);
-        // R (slot 5) is a hold-to-aim ability: it enters the Aiming state instead of Attacking.
-        ActionState expected = slot == 5 ? ActionState.Aiming : ActionState.Attacking;
-        Assert.Equal(expected, t0.State);
+        Assert.Equal(ActionState.Attacking, t0.State);
+        if (slot == AbilitySlots.R) Assert.False(t0.IsAiming);
         Assert.Equal(slot, t0.AttackSlot);
     }
 
@@ -98,7 +97,7 @@ public class WibouAbilityTests
     }
 
     [Fact]
-    public void RisingSlashConnectsWithAirborneVictimWithoutRefundingItsCharge()
+    public void RisingSlashConnectsWithAirborneVictim()
     {
         var sim = SimWithPlayer(out _);
         var victim = TestHelpers.NpcState(0f, 4f);
@@ -107,7 +106,6 @@ public class WibouAbilityTests
         victim.DamagePercent = 120;
         sim.RegisterEntity(100, Def, victim, TestHelpers.LoadBakedData(Def));
         sim.Tick(new() { { 1, TestHelpers.Input(activeSlot: AbilitySlots.E) }, { 100, default } });
-        Assert.Equal(1, sim.GetState(1).ChargeStockSpent);
 
         bool connected = false;
         bool launched = false;
@@ -117,38 +115,32 @@ public class WibouAbilityTests
             connected |= sim.LastTickHits.Any(hit => hit.TargetEntityId == 100 && !hit.Blocked);
             var state = sim.GetState(100);
             launched |= state.HitstunTicks > 0 && state.KVY > 0f;
-            // Only regen returns a charge; a connect no longer refunds it.
-            Assert.Equal(1, sim.GetState(1).ChargeStockSpent);
         }
         Assert.True(connected, "The recovery slash should connect with an airborne victim in its path.");
         Assert.True(launched, "The connected recovery slash should retain an upward launch.");
     }
 
     [Fact]
-    public void E_RecoveryUsesCameraDirection_NotTargetDirection()
+    public void E_RecoveryUsesStickDirection_NotTargetOrCamera()
     {
         var sim = SimWithPlayer(out _);
         var target = TestHelpers.NpcState(0f, 4f);
         target.PY = GroundPY;
         TestHelpers.RegisterNpc(sim, Def, target);
 
-        // Camera yaw +90° points along +X; the target is straight ahead on +Z.
-        sim.Tick(new() { { 1, new InputState { ActiveSlot = 4, AimYaw = 9000 } }, { 100, default } });
+        // The stick points along -X, the camera along +X, and the target is straight ahead on +Z.
+        sim.Tick(new() { { 1, new InputState { ActiveSlot = 4, MoveX = -1f, AimYaw = 9000 } }, { 100, default } });
         for (int i = 0; i < 10; i++)
             sim.Tick(new() { { 1, default }, { 100, default } });
 
         var s = sim.GetState(1);
-        Assert.True(s.PX > 1f, $"expected recovery movement along camera +X, got PX={s.PX:F2}");
+        Assert.True(s.PX < -1f, $"expected recovery movement along the stick's -X, got PX={s.PX:F2}");
         Assert.True(MathF.Abs(s.PZ) < 0.1f, $"recovery must not home toward target +Z, got PZ={s.PZ:F2}");
     }
 
     [Theory]
     [InlineData(AbilitySlots.E, 19, false)]
-    [InlineData(AbilitySlots.F, 14, false)]
-    [InlineData(AbilitySlots.F, 60, false)]
     [InlineData(AbilitySlots.E, 19, true)]
-    [InlineData(AbilitySlots.F, 14, true)]
-    [InlineData(AbilitySlots.F, 60, true)]
     public void SpecialSpawnsEachAuthoredHitboxOnce(byte slot, int triggerTick, bool airborne)
     {
         var def = Def;
@@ -171,18 +163,24 @@ public class WibouAbilityTests
     }
 
 
-    // ── F: blade flurry deals damage ──
+    // ── F: the saved flash cuts, holds and launches an enemy in range ──
 
     [Fact]
-    public void F_FlurryDamagesEnemy()
+    public void F_FlashCutsHoldsAndLaunchesAnEnemyInRange()
     {
-        var targetDef = Def;
-        var targetBaked = TestHelpers.LoadBakedData(targetDef);
         var sim = SimWithPlayer(out _);
-        var npc = TestHelpers.NpcState(0f, 1.3f); npc.PY = GroundPY;
-        sim.RegisterEntity(100, targetDef, npc, targetBaked);
-        sim.Tick(new() { { 1, TestHelpers.Input(activeSlot: 6) }, { 100, default } });
-        for (int i = 0; i < 64; i++) sim.Tick(new() { { 1, default }, { 100, default } });
+        var npc = TestHelpers.NpcState(0f, 3f); npc.PY = GroundPY;
+        sim.RegisterEntity(100, Def, npc, TestHelpers.LoadBakedData(Def));
+        sim.Tick(new() { { 1, TestHelpers.Input(activeSlot: AbilitySlots.F) }, { 100, default } });
+        bool held = false, launched = false;
+        for (int i = 0; i < 120; i++)
+        {
+            sim.Tick(new() { { 1, default }, { 100, default } });
+            var victim = sim.GetState(100);
+            held |= victim.State == ActionState.CutHeld;
+            launched |= held && victim.State != ActionState.CutHeld && victim.HitstunTicks > 0;
+        }
+        Assert.True(held && launched, "the flash holds its victim, then launches it");
         Assert.True(sim.GetState(100).DamagePercent > 0);
     }
 }

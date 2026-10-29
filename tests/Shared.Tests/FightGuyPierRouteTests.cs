@@ -438,7 +438,7 @@ public sealed class FightGuyPierRouteTests
         r.JumpPunch("striker_2", attackTick: 12, from: new(0, -1));
         r.JumpPunch("striker_3", attackTick: 30, secondJumpTick: 18, from: new(0, -1));
         r.Walk(-5.5f, -30f);
-        r.Jump(-10.5f, -30f, secondJumpTick: 18, runUp: 2);                                 // dunk buoy
+        r.Jump(-10.5f, -30f, secondJumpTick: 18);                                 // dunk buoy
         r.Walk(-10.2f, -30f);
         r.Jump(-16.5f, -30f, runUp: 1);                                 // the dunk tank
         r.Punch("dunk", range: 1.0f, from: new(1, 0));

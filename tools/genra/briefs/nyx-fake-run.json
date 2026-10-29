@@ -1,0 +1,138 @@
+{
+  "name": "nyx-fake-run",
+  "rigpack": "artifacts/genra-rigpacks/nyx-unity-fake",
+  "character": "Nyx (Mixamo joints in a Humanoid body: Hips, Spine, Spine1, Spine2, Neck, Head, LeftShoulder/LeftArm/LeftForeArm/LeftHand with five full fingers, the same on the right, LeftUpLeg/LeftLeg/LeftFoot/LeftToeBase and the right leg; no tail). An adult woman, about 1.70 m tall in the rig (the game draws her 1.04 times bigger). Measured on the rig: thigh 0.395 m, shin 0.298 m, upper arm 0.223 m, forearm 0.212 m, hand 0.118 m from wrist to middle fingertip, shoulders 0.346 m apart. She wears tall platform boots: with a flat boot the ankle joint (Foot) sits about 0.187 m above the floor and the toe joint about 0.01 m above it; standing straight her hip joint is about 0.88 m above the floor. Her waist-length straight black hair is rigid on her head and hangs down her back: hands swung behind her head or back pass through it, so keep them in front of, beside or above it. Fake form: a backpack sits on her upper back, rigid on joint Nyx_Backpack under Spine2, with a pole rising above her LEFT shoulder that holds a big ring light, its top about 0.51 m above that shoulder. Arms must not pass through the backpack, the pole or the ring.",
+  "notes": "Nyx fake form run (anim.nyx.fake.run), from her pose sheet fake-run (2026-10-29). Proposed game timing: {\"total\": 20, \"model\": \"a sprint cycle (two steps), the roster's runs are 20-26 ticks\"}; authored at 1x. Candidate only: nothing binds before the owner approves.",
+  "description": "Nyxxie's run, 'filming herself': she sprints while filming herself with the phone held out in front.\n\nWho she is. Nyxxie, Nyx's fake form (image 1): the same woman as a parody goth e-girl influencer, with a cat-ear headband, huge lashes, fishnets, a pink-and-black pleated skirt, pink-buckled platform boots, a backpack with a ring light on a pole above her left shoulder, and her phone. She never stops moving: loose and bouncy, a show-off who performs for her phone and films herself, and she fights like a brawler. Weight shifts, hip pops, bouncing knees, a toss of the head; overlap and follow-through everywhere.\n\nThe phone. She always holds one smartphone in her RIGHT hand, but the rig has no phone mesh yet: keep the right hand closed around an invisible phone the whole clip (fingers curled loosely as around a slim 7 x 15 cm slab, thumb on its face), whatever the arm does. It never changes hands. Her LEFT hand is the free one.\n\nHow the game plays it. The match camera sits straight behind her and a little above, so the action must read from behind: gestures out to the side, up or well ahead of her, not hidden in front of her chest. The fighter does not travel in the clip; the game moves her. The game crossfades in and out over about 0.1 s.\n\nThe floor. It is at up = -0.802 m in this character frame (origin: the hips of a borrowed stance at tick 0). With a flat boot the toe joint (ToeBase) sits about 0.01 m above the floor and the ankle (Foot) about 0.187 m above it. Never push a boot through the floor.\n\nThe entry reference is another fighter's idle borrowed onto her body; it only sets the frame and the floor. Tick 0 is free.\n\nThe clip (20 ticks, a loop: the last tick equals the first):\n- Tick 0: Contact: a sprint stride, the right boot landing ahead (about 0.3 m in front of her hips), the left behind pushing; her right arm stretched out in front holding the phone toward her own face (about 0.4 m ahead of her face, a little above it), her left arm pumping back.\n- Tick 3: Down: the weight lands on the front platform boot, knee bent; the phone stays aimed at her face.\n- Tick 6: Passing: the left leg swings through under her; the backpack and ring light bounce with her (her upper spine bobs).\n- Tick 8: Up: pushing off the right toes, both boots off the floor for a moment, still filming, grinning; the left arm swings forward.\n- Tick 10: Contact on the left boot (mirror of tick 0, not an exact copy: the phone arm stays out on the right).\n- Tick 20: Back to the pose of tick 0 (the loop closes).\n\nThe phone arm stays out in front the whole loop, bobbing with her and steadying the shot (it moves less than the body: a small counter-motion). The left arm pumps hard; the hips and chest twist against each other; the head stays aimed at the phone.",
+  "references": {
+    "idle": "references/idle.usda",
+    "run": "references/run.usda",
+    "fall": "references/fall.usda"
+  },
+  "entry": {
+    "reference": "idle",
+    "tick": 0,
+    "match": false
+  },
+  "clock": {
+    "duration_ticks": 20
+  },
+  "timing": {
+    "fixed": [
+      "20 ticks looping"
+    ],
+    "adjustable": [
+      "the beats inside the clip, as long as the sheet poses read"
+    ]
+  },
+  "views": [
+    "gameplay",
+    "profile",
+    "three-quarter-right"
+  ],
+  "images": [
+    "../../../tmp/nyx-model/renders/fake/q3.png",
+    "../../../tmp/nyx-model/anim-sheets/sheets/fake-run.png"
+  ],
+  "image_notes": "1: Nyx's fake form model (three-quarter render). 2: the pose sheet for this move (generated art on her model; she faces LEFT in it, so 'toward the left' on the sheet is straight ahead of her in this frame). Its poses read left to right: pose 1 'contact': a sprint stride, her right arm stretched out in front holding the phone toward her own face, her left arm pumping; pose 2 'down': weight landing on the front platform boot, knee bent, phone still aimed at her face; pose 3 'passing': rear leg passing, the backpack and ring light bouncing; pose 4 'up': pushing off, airborne for a moment, still filming, grinning. Sheet note: She sprints while filming herself. Follow this brief's text and ticks where the sheet differs.",
+  "keys": [
+    0,
+    3,
+    6,
+    8,
+    10,
+    13,
+    16,
+    18,
+    20
+  ],
+  "review_ticks": [
+    0,
+    1,
+    3,
+    4,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    13,
+    14,
+    16,
+    17,
+    18,
+    19,
+    20
+  ],
+  "loop": {
+    "from_tick": 0
+  },
+  "targets": [
+    {
+      "name": "RightToeBase on the floor (landing) at tick 1 (m)",
+      "kind": "char",
+      "a": "RightToeBase",
+      "axis": "up",
+      "tick": 1,
+      "min": -0.812,
+      "max": -0.762
+    },
+    {
+      "name": "LeftToeBase on the floor (landing) at tick 11 (m)",
+      "kind": "char",
+      "a": "LeftToeBase",
+      "axis": "up",
+      "tick": 11,
+      "min": -0.812,
+      "max": -0.762
+    },
+    {
+      "name": "filming: phone far ahead of her face (m)",
+      "kind": "ahead",
+      "a": "RightHand",
+      "b": "Head",
+      "tick": 0,
+      "min": 0.28
+    },
+    {
+      "name": "filming: phone ahead at tick 10 (m)",
+      "kind": "ahead",
+      "a": "RightHand",
+      "b": "Head",
+      "tick": 10,
+      "min": 0.28
+    },
+    {
+      "name": "filming: phone about face height (m)",
+      "kind": "below",
+      "a": "Head",
+      "b": "RightHand",
+      "tick": 5,
+      "min": -0.12,
+      "max": 0.15
+    },
+    {
+      "name": "left arm pumps (m)",
+      "kind": "range",
+      "a": "LeftHand",
+      "axis": "front",
+      "window": [
+        0,
+        20
+      ],
+      "min": 0.25
+    },
+    {
+      "name": "stride: left boot travels (m)",
+      "kind": "range",
+      "a": "LeftFoot",
+      "axis": "front",
+      "window": [
+        0,
+        20
+      ],
+      "min": 0.45
+    }
+  ]
+}

@@ -19,7 +19,10 @@ The routine flow is:
    reachable from its `main`, and a new `0.2.0-playtest.N` version.
 2. Run `scripts/release.py prepare` with the version, exact source pins, explicit
    Master checkout and approved HTTPS endpoint. Read its source/protocol/input
-   summary; do not substitute a different explicitly selected checkout.
+   summary; do not substitute a different explicitly selected checkout. If
+   `src/Shared` changed since the previous release, prepare requires one protocol
+   bump: raise `SimulationProtocol.Version`, fold its `Unreleased` notes into that
+   numbered line, and raise the Master's `Protocol` to match, both published first.
 3. Run `scripts/release.py run` under the existing release authorization. It
    creates a clean checkout, builds/verifies/publishes the client, dispatches one
    correlated workflow, retains receipts and approves the protected VPS job when

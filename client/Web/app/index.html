@@ -1,0 +1,180 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#1b1a18">
+<meta name="description" content="Try SLOPArena in your browser. Pick a fighter, play a Brawl or chase a Slopball streak, then bring your friends to Steam.">
+<title>SLOPArena · browser demo</title>
+<style>
+  :root { --ink: #1b1a18; --deep: #161513; --paper: #f0eee8; --muted: #57544e; --accent: #ffcc22; --orange: #e05c2a; --rule: #b5b0a5; color-scheme: dark; }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; background: var(--deep); color: var(--paper); font: 500 15px/1.4 system-ui, sans-serif; overflow: hidden; }
+  ::selection { color: var(--ink); background: var(--accent); }
+  :focus-visible { outline: 3px solid var(--orange); outline-offset: 4px; }
+  button, a, summary { -webkit-tap-highlight-color: transparent; }
+  button { font: inherit; cursor: pointer; }
+  a { color: inherit; text-underline-offset: 4px; }
+  svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 2; flex-shrink: 0; }
+  canvas { display: block; }
+  .hidden { display: none !important; }
+  .display, h1, .go, .pct, #bannerText { font-family: 'Archivo Black', sans-serif; font-weight: 400; }
+  .overlay { position: fixed; inset: 0; overflow-y: auto; z-index: 5; color: var(--ink); background: var(--paper); background-image: var(--paper-art, none); background-size: cover; background-position: center; padding: 28px clamp(24px, 5vw, 76px); scrollbar-color: var(--muted) var(--paper); scrollbar-width: thin; color-scheme: light; }
+  .menu-inner { width: 100%; max-width: 1200px; min-height: 100%; margin: auto; display: flex; flex-direction: column; justify-content: center; }
+  .masthead { display: flex; align-items: center; gap: 14px; border-bottom: 3px solid var(--ink); padding-bottom: 15px; margin-bottom: 22px; }
+  .brand-icon { width: 62px; height: 62px; object-fit: contain; }
+  h1 { margin: 0; font-size: clamp(34px, 4.8vw, 64px); letter-spacing: -.04em; line-height: 1; }
+  .demo-label { margin-left: auto; margin-right: 125px; font: 12px/1.4 'Space Mono', monospace; }
+  .menu-grid { display: grid; grid-template-columns: 260px minmax(0, 1fr); gap: clamp(28px, 4vw, 56px); align-items: start; }
+  .invite { background: var(--ink); color: var(--paper); padding: 25px 23px; box-shadow: 6px 6px 0 var(--orange); }
+  .invite h2 { font: 400 32px/1.08 'Archivo Black', sans-serif; letter-spacing: -.025em; margin: 0 0 16px; text-wrap: balance; }
+  .invite p { margin: 0 0 22px; color: #d3cfc6; line-height: 1.5; }
+  .steam-link { display: flex; justify-content: center; align-items: center; gap: 9px; min-height: 48px; background: var(--accent); border: 2px solid var(--accent); color: var(--ink); text-decoration: none; font-weight: 800; padding: 10px 12px; text-align: center; }
+  .steam-link:hover { border-color: var(--ink); outline: 2px solid var(--accent); }
+  .discord-link { display: inline-flex; align-items: center; gap: 8px; padding: 12px 0 0; min-height: 44px; font-size: 13px; }
+  .touch-note { display: none; }
+  .session-result { padding-bottom: 17px; margin-bottom: 18px; border-bottom: 1px solid #7b7872; font-weight: 750; }
+  .setup { display: flex; flex-direction: column; gap: 13px; min-width: 0; }
+  .setup section { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+  .setup h2 { margin: 0; font-size: 12px; font-weight: 800; line-height: 1.3; text-transform: uppercase; letter-spacing: .08em; }
+  .row { display: flex; flex-wrap: wrap; gap: 6px; }
+  .pick { min-height: 40px; padding: 7px 12px; border: 1px solid var(--rule); border-bottom: 3px solid var(--rule); background: #f6f3ed; color: var(--ink); font-size: 13px; font-weight: 650; }
+  .pick:hover { border-color: var(--ink); background: #e3dfd5; }
+  .pick.on { border-color: var(--ink); background: var(--accent); }
+  #pickMode .pick { font-size: 16px; min-width: 118px; font-family: 'Archivo Black', sans-serif; font-weight: 400; }
+  #pickStage { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  #pickStage .pick { padding-inline: 5px; font-size: 12px; }
+  .mode-help { margin: 2px 0 0; font-size: 12px; color: var(--muted); }
+  .start-row { display: flex; align-items: center; gap: 18px; margin-top: 1px; padding-top: 13px; border-top: 1px solid var(--rule); }
+  .go { min-height: 52px; min-width: 190px; padding: 8px 30px; font-size: 26px; border: 2px solid var(--ink); border-bottom-width: 5px; background: var(--accent); color: var(--ink); }
+  .go:hover { background: #ffda5b; }
+  .go:disabled { opacity: .5; cursor: not-allowed; }
+  .start-hint { font: 11px/1.5 'Space Mono', monospace; color: var(--muted); }
+  .keys { margin-top: 20px; padding-top: 12px; border-top: 1px solid var(--rule); font-size: 12px; color: var(--muted); }
+  .keys summary { cursor: pointer; min-height: 32px; font-weight: 750; }
+  .keys p { margin: 4px 0 12px; line-height: 1.9; max-width: 100ch; }
+  kbd { background: #dedacf; border: 1px solid var(--rule); padding: 1px 5px; color: var(--ink); font: 700 11px/1.5 system-ui, sans-serif; }
+  #mute { position: fixed; right: 24px; top: 27px; z-index: 8; display: flex; align-items: center; gap: 8px; min-height: 44px; padding: 8px 12px; background: var(--ink); color: var(--paper); border: 1px solid #7b7872; font-size: 12px; }
+  #mute:hover { border-color: var(--accent); }
+  #mute[aria-pressed="true"] .sound-wave { display: none; }
+  #mute[aria-pressed="false"] .sound-cross { display: none; }
+  body.playing #mute { top: 12px; right: 12px; background: #1b1a18e8; }
+  body.playing #mute span { display: none; }
+  #hud { position: fixed; left: 16px; right: 16px; bottom: 18px; display: flex; justify-content: center; gap: 12px; pointer-events: none; z-index: 2; }
+  .card { flex: 0 1 205px; min-width: 0; padding: 9px 15px 11px; background: #1b1a18ed; border: 2px solid var(--deep); border-top: 5px solid var(--seat); box-shadow: 4px 4px 0 #16151390; }
+  .card .who { font-size: 12px; font-weight: 800; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .card .pct { font-size: 46px; line-height: 1.12; letter-spacing: -.03em; font-variant-numeric: tabular-nums; }
+  .card .stocks { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 6px; }
+  .card .stocks i { width: 10px; height: 10px; border: 1px solid var(--seat); background: var(--seat); }
+  .card .stocks i.lost { background: transparent; opacity: .35; }
+  #hud.top { bottom: auto; top: 16px; left: 16px; right: auto; justify-content: flex-start; }
+  .card.score { flex: auto; min-width: 200px; }
+  .card.score .pct { font-size: 62px; color: var(--paper); }
+  .card.score .sub { font-size: 12px; font-weight: 600; }
+  #status { position: fixed; top: 12px; left: 12px; font-size: 11px; color: #e6e1d6; background: #161513b8; padding: 4px 7px; z-index: 2; white-space: pre-wrap; max-width: calc(100% - 90px); font-weight: 500; pointer-events: none; }
+  body:not(.playing) #status { z-index: 6; top: auto; bottom: 3px; left: 5px; background: transparent; color: var(--muted); font-size: 10px; }
+  body.slopball #status { top: auto; bottom: 8px; }
+  #banner { position: fixed; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; padding: 24px; z-index: 3; pointer-events: none; text-align: center; }
+  #bannerText { font-size: clamp(44px, 8vw, 96px); line-height: 1.1; color: var(--accent); text-shadow: 4px 4px 0 var(--ink); letter-spacing: -.035em; }
+  #bannerSub { font-size: 18px; font-weight: 750; color: var(--paper); text-shadow: 0 2px 3px var(--ink); }
+  #banner.is-result { background: #161513df; }
+  #banner.is-result #bannerText { color: var(--paper); }
+  #bannerCta { display: none; margin-top: 22px; max-width: 360px; pointer-events: auto; }
+  #banner.is-result #bannerCta { display: block; }
+  #bannerCta p { font-size: 19px; margin: 0 0 14px; }
+  .pop { position: fixed; z-index: 2; font-family: 'Archivo Black', sans-serif; font-size: 22px; pointer-events: none; text-shadow: 0 2px 0 #000a; transition: transform .6s ease-out, opacity .6s ease-in; }
+  @media (min-width: 1500px) { .menu-grid { grid-template-columns: 300px minmax(0,1fr); } .invite h2 { font-size: 38px; } }
+  @media (min-width: 1001px) and (max-height: 780px) {
+    .overlay { padding-top: 20px; padding-bottom: 20px; }
+    .masthead { padding-bottom: 12px; margin-bottom: 18px; }
+    .brand-icon { width: 54px; height: 54px; }
+    h1 { font-size: 54px; }
+    .setup { gap: 10px; }
+    .pick { min-height: 36px; padding-block: 5px; }
+    .go { min-height: 48px; }
+    .start-row { padding-top: 10px; }
+    .keys { margin-top: 12px; }
+  }
+  @media (max-width: 1000px) { .menu-grid { grid-template-columns: 220px minmax(0,1fr); gap: 24px; } .overlay { padding: 24px; } #pickStage { grid-template-columns: repeat(3,minmax(0,1fr)); } .invite { padding: 20px 18px; } .invite h2 { font-size: 28px; } .pick { padding-inline: 9px; } }
+  @media (max-width: 700px) {
+    .overlay { padding: 22px 18px 30px; }
+    .menu-inner { justify-content: flex-start; }
+    .masthead { gap: 9px; flex-wrap: wrap; padding-bottom: 15px; margin-bottom: 20px; }
+    .brand-icon { width: 42px; height: 42px; }
+    h1 { font-size: clamp(32px, 8.8vw, 52px); }
+    .demo-label { margin: 0; flex-basis: 100%; padding-left: 51px; font-size: 11px; }
+    .menu-grid { grid-template-columns: minmax(0,1fr); gap: 26px; }
+    .invite { padding: 18px; box-shadow: 4px 4px 0 var(--orange); }
+    .invite h2 { font-size: 26px; margin-bottom: 10px; text-wrap: initial; }
+    .invite p { margin-bottom: 14px; font-size: 13px; }
+    .invite .discord-link { font-size: 12px; }
+    .touch-note { display: block; margin: 12px 0 0 !important; font-size: 12px !important; color: #ddd7cb; }
+    #mute { top: 73px; right: 18px; min-height: 36px; padding: 6px 9px; }
+    #mute span { display: none; }
+    .setup { gap: 17px; }
+    .pick { min-height: 44px; padding: 8px 13px; }
+    #pickStage { grid-template-columns: repeat(2,minmax(0,1fr)); }
+    #pickStage .pick { font-size: 13px; }
+    .go { flex: 1; min-width: 0; }
+    .start-hint { max-width: 100px; }
+    #hud { left: 8px; right: 8px; bottom: 12px; gap: 6px; }
+    .card { padding: 7px 8px 10px; border-top-width: 4px; }
+    .card .who { font-size: 10px; }
+    .card .pct { font-size: clamp(22px, 7.5vw, 38px); }
+    .card .stocks { gap: 4px; }
+    .card .stocks i { width: 8px; height: 8px; }
+    #hud.top { top: 12px; left: 12px; right: auto; }
+    .card.score { min-width: 180px; }
+    .card.score .pct { font-size: 52px; }
+    #bannerSub { font-size: 16px; }
+    #bannerCta p { font-size: 17px; }
+    #status { font-size: 9px; }
+  }
+  @media (prefers-reduced-motion: reduce) { *, *::before, *::after { transition: none !important; } }
+  .pad-focus { outline: 4px solid #1a1420; outline-offset: 3px; box-shadow: 0 0 0 9px #ffcf3a99; }
+  #start { position: fixed; inset: 0; z-index: 50; display: flex; flex-direction: column; align-items: center; justify-content: center;
+    background: #120e1cd9; backdrop-filter: blur(3px); cursor: pointer; text-align: center; padding: 20px; }
+  #start .press { font: 900 clamp(24px, 4vw, 44px) 'Archivo Black', system-ui, sans-serif; color: #fff7e8; text-shadow: 0 3px 0 #000a;
+    animation: pulse 1.4s ease-in-out infinite; }
+  #start .sub { margin-top: 8px; color: #fff7e8cc; font-weight: 600; }
+  @keyframes pulse { 50% { opacity: .55; } }
+</style>
+<script type="importmap">{ "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js", "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/" } }</script>
+</head>
+<body>
+<div id="status" role="status">Loading SLOPArena…</div>
+<button id="mute" type="button" aria-label="Mute audio (M)" aria-pressed="false" title="Mute (M)"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M11 5 6 9H3v6h3l5 4Z"/><path class="sound-wave" d="M15 8a6 6 0 0 1 0 8m3-11a10 10 0 0 1 0 14"/><path class="sound-cross" d="m16 9 6 6m0-6-6 6"/></svg><span>Sound on</span></button>
+<main id="menu" class="overlay hidden">
+  <div class="menu-inner">
+    <header class="masthead"><img class="brand-icon" data-ui-asset="SlopArenaIcon.png" alt="" width="62" height="62"><h1>SLOPArena</h1><span class="demo-label">Browser demo</span></header>
+    <div class="menu-grid">
+      <aside class="invite" aria-label="Play SLOPArena on Steam">
+        <div id="sessionResult" class="session-result hidden" role="status"></div>
+        <h2>Play online<br>with friends.</h2>
+        <p>Get the full SLOPArena experience on Steam. Pick your fighter. Settle it together.</p>
+        <a class="steam-link" href="https://store.steampowered.com/app/5324910/" target="_blank" rel="noopener noreferrer">Wishlist on Steam<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 18 18 6M6 6h12v12"/></svg></a>
+        <a class="discord-link" href="https://discord.gg/VvfaxDCF6Z" target="_blank" rel="noopener noreferrer">Join the Discord<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14m-6-6 6 6-6 6"/></svg></a>
+        <p class="touch-note">Best on desktop with a keyboard or gamepad.</p>
+      </aside>
+      <div class="setup" aria-label="Match setup">
+        <section><h2 id="modeLabel">Mode</h2><div class="row" id="pickMode" role="group" aria-labelledby="modeLabel"></div><p id="modeHelp" class="mode-help">Knock out the CPUs. Last fighter standing wins.</p></section>
+        <section><h2 id="youLabel">Your fighter</h2><div class="row" id="pickYou" role="group" aria-labelledby="youLabel"></div></section>
+        <section id="secCpu"><h2 id="cpuLabel">CPU opponents · choose up to 3</h2><div class="row" id="pickCpu" role="group" aria-labelledby="cpuLabel"></div></section>
+        <section id="secStage"><h2 id="stageLabel">Stage</h2><div class="row" id="pickStage" role="group" aria-labelledby="stageLabel"></div></section>
+        <section id="secLevel"><h2 id="levelLabel">CPU level</h2><div class="row" id="pickLevel" role="group" aria-labelledby="levelLabel"></div></section>
+        <div class="start-row"><button class="go" id="go" type="button">FIGHT</button><span class="start-hint" id="startHint">Enter / Start to fight<br>Esc / Start to return</span></div>
+      </div>
+    </div>
+    <details class="keys"><summary>Keyboard &amp; gamepad controls</summary><p>
+      <kbd>WASD</kbd> move · <kbd>Space</kbd> jump · <kbd>1</kbd> <kbd>2</kbd> <kbd>3</kbd> normals · <kbd>Q</kbd> <kbd>E</kbd> <kbd>R</kbd> <kbd>F</kbd> specials ·
+      <kbd>Shift</kbd> shield · <kbd>C</kbd> grab · <kbd>4</kbd> dash · <kbd>X</kbd> down · <kbd>Tab</kbd> retarget · <kbd>Esc</kbd> menu · <kbd>M</kbd> mute<br>
+      Gamepad: stick to move, A jump, X/Y/B normals, LB + face specials, RB dash, RT shield, LB + RT grab, LT down.
+    </p></details>
+  </div>
+</main>
+<div id="hud" aria-label="Match HUD"></div>
+<div id="banner" class="hidden"><div class="big" id="bannerText"></div><div id="bannerSub"></div><aside id="bannerCta" aria-label="Continue on Steam"><p>Play online with friends on Steam.</p><a class="steam-link" href="https://store.steampowered.com/app/5324910/" target="_blank" rel="noopener noreferrer">Wishlist SLOPArena<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 18 18 6M6 6h12v12"/></svg></a><a class="discord-link" href="https://discord.gg/VvfaxDCF6Z" target="_blank" rel="noopener noreferrer">Join the Discord<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14m-6-6 6 6-6 6"/></svg></a></aside></div>
+<script type="module" src="./cta.js"></script>
+<script type="module" src="./main.js"></script>
+</body>
+</html>

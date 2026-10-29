@@ -9,9 +9,9 @@ namespace SlopArena.Shared.Abilities;
 /// Hydro Jet aims with the stick and trails a shove; Shell Dive leans toward a target ahead and keeps a faster
 /// incoming speed (the jet it cancels). A tuck move that lands is retired by the shell, not by the thrust.
 /// </summary>
-public sealed class ThrustAbility : ServerAbility
+public sealed class ThrustAbility : ServerAbility, IRecoveryTurnCapability
 {
-    private const float StickDeadZone = 0.2f;
+    private const float StickDeadZone = RecoveryTurn.StickDeadZone;
 
     private readonly CookedThrustCapabilityParameters _parameters;
     private float _dirX, _dirY, _dirZ;
@@ -30,7 +30,19 @@ public sealed class ThrustAbility : ServerAbility
     public override void OnStart(ref CharacterState s, CharacterDefinition def)
     {
         _ticks = 0;
-        var input = ActivationInput;
+        float incoming = MathF.Sqrt(s.VX * s.VX + s.VY * s.VY + s.VZ * s.VZ);
+        _speed = _parameters.KeepIncomingSpeed ? MathF.Max(_parameters.Speed, incoming) : _parameters.Speed;
+        Aim(ref s, ActivationInput, turn: false);
+    }
+
+    public void OnRecoveryTurn(ref CharacterState s, in InputState input)
+    {
+        if (Thrusting && _parameters.Aim == ThrustAim.Stick)
+            Aim(ref s, input, turn: true);
+    }
+
+    private void Aim(ref CharacterState s, in InputState input, bool turn)
+    {
         float stick = MathF.Min(1f, MathF.Sqrt(input.MoveX * input.MoveX + input.MoveY * input.MoveY));
         float yaw = stick > StickDeadZone ? MathF.Atan2(input.MoveX, input.MoveY) : s.FacingYaw;
         float pitchDegrees = _parameters.NeutralPitchDegrees
@@ -43,15 +55,26 @@ public sealed class ThrustAbility : ServerAbility
         }
         float pitch = pitchDegrees * MathF.PI / 180f;
         float cosPitch = MathF.Cos(pitch), sinPitch = MathF.Sin(pitch);
-        _dirX = cosPitch * MathF.Sin(yaw);
-        _dirY = sinPitch;
-        _dirZ = cosPitch * MathF.Cos(yaw);
+        // A turn never steepens the jet, so a flick released mid-window keeps its low line.
+        if (turn && sinPitch > _dirY)
+        {
+            sinPitch = _dirY;
+            cosPitch = MathF.Sqrt(_dirX * _dirX + _dirZ * _dirZ);
+        }
+        float dirX = cosPitch * MathF.Sin(yaw), dirY = sinPitch, dirZ = cosPitch * MathF.Cos(yaw);
         if (cosPitch > 0.001f) s.FacingYaw = yaw;
-        float incoming = MathF.Sqrt(s.VX * s.VX + s.VY * s.VY + s.VZ * s.VZ);
-        _speed = _parameters.KeepIncomingSpeed ? MathF.Max(_parameters.Speed, incoming) : _parameters.Speed;
+        if (turn && (dirX, dirY, dirZ) == (_dirX, _dirY, _dirZ))
+            return;
+        (_dirX, _dirY, _dirZ) = (dirX, dirY, dirZ);
         if (_parameters.TrailHitbox is { } trail)
+        {
+            // A turn re-lays the trail along the new pitch; whoever it already shoved stays shoved.
+            var hit = _trailHits;
+            RemoveTrail(ref s);
             _trailHits = SpawnHitbox(ref s, TravelFrame(CookedCharacterRuntimeAdapter.ToHitboxEvent(trail), cosPitch, sinPitch)
-                with { DurationTicks = _parameters.ThrustTicks, HitGroup = 0 }, followOwner: true);
+                with { DurationTicks = (ushort)(_parameters.ThrustTicks - _ticks), HitGroup = 0 }, followOwner: true);
+            if (hit != null) _trailHits.UnionWith(hit);
+        }
         Drive(ref s);
         if (_dirY > 0f) s.IsGrounded = false;
     }

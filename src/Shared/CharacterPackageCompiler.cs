@@ -38,17 +38,28 @@ public static class CharacterPackageCompiler
     public const string ChargedStreamCapabilityVersion = "1";
     public const string FingerGunsCapabilityId = "slop.ability.finger-guns.v1";
     public const string FingerGunsCapabilityVersion = "1";
-    public const string ChargedDirectionalDashCapabilityId = "slop.ability.charged-directional-dash.v1";
-    public const string ChargedDirectionalDashCapabilityVersion = "1";
+    public const string DashStrikeCapabilityId = "slop.ability.dash-strike.v1";
+    public const string DashStrikeCapabilityVersion = "1";
+    public const string FlashCutCapabilityId = "slop.ability.flash-cut.v1";
+    public const string FlashCutCapabilityVersion = "1";
     public const string TargetedLeapCapabilityId = "slop.ability.targeted-leap.v1";
     public const string TargetedLeapCapabilityVersion = "1";
     public const string SteeredChargeCapabilityId = "slop.ability.steered-charge.v1";
     public const string SteeredChargeCapabilityVersion = "1";
-    public const string ShellStanceCapabilityId = "slop.ability.shell-stance.v1";
+    public const string ShellStanceCapabilityId = "slop.ability.shell-stance.v2";
     public const string ShellStanceCapabilityVersion = "1";
+    public const string CannonballCapabilityId = "slop.ability.cannonball.v1";
+    public const string CannonballCapabilityVersion = "1";
     public const string ThrustCapabilityId = "slop.ability.thrust.v1";
     public const string ThrustCapabilityVersion = "1";
-    internal const string BladeFlurryCapabilityId = "slop.internal.wibou.blade-flurry.v2";
+    public const string TetherCapabilityId = "slop.ability.tether.v1";
+    public const string TetherCapabilityVersion = "1";
+    public const string ClinchCapabilityId = "slop.ability.clinch.v1";
+    public const string ClinchCapabilityVersion = "1";
+    public const string CommandGrabCapabilityId = "slop.ability.command-grab.v1";
+    public const string CommandGrabCapabilityVersion = "1";
+    public const string FormsCapabilityId = "slop.ability.forms.v1";
+    public const string FormsCapabilityVersion = "1";
     internal const float MaxSteeredChargeTurnDegreesPerSecond = 1440f;
     private const ushort ManifestSchemaVersion = 1;
     private const ushort AuthoringSchemaVersion = 3;
@@ -70,24 +81,29 @@ public static class CharacterPackageCompiler
         ["slop.internal.fightguy.rising-dragon.v1"] = "1",
         ["slop.internal.fightguy.cyclone-kick.v1"] = "1",
         ["slop.internal.wibou.rising-slash.v1"] = "1",
-        [BladeFlurryCapabilityId] = "2",
-        ["slop.internal.manki.round-bomb.v1"] = "1",
-        ["slop.internal.manki.jetpack-boost.v1"] = "1",
+        ["slop.internal.manki.round-bomb.v3"] = "1",
+        ["slop.internal.manki.jetpack-boost.v3"] = "1",
+        ["slop.internal.manki.kamikaze.v1"] = "1",
         ["slop.internal.manki.bazooka.v2"] = "1",
-        ["slop.internal.manki.aerosol-inferno.v1"] = "1",
     };
     internal static bool IsTrustedCapability(string id, string version)
         => TrustedCapabilities.TryGetValue(id, out var supported) && supported == version;
     public static bool IsPublicCapability(string id, string version)
         => id == AimedRecoveryCapabilityId && version == AimedRecoveryCapabilityVersion
             || id == TargetedLeapCapabilityId && version == TargetedLeapCapabilityVersion
-            || id == ChargedDirectionalDashCapabilityId && version == ChargedDirectionalDashCapabilityVersion
+            || id == DashStrikeCapabilityId && version == DashStrikeCapabilityVersion
+            || id == FlashCutCapabilityId && version == FlashCutCapabilityVersion
             || id == ChargedProjectileCapabilityId && version == ChargedProjectileCapabilityVersion
             || id == ChargedStreamCapabilityId && version == ChargedStreamCapabilityVersion
             || id == FingerGunsCapabilityId && version == FingerGunsCapabilityVersion
             || id == SteeredChargeCapabilityId && version == SteeredChargeCapabilityVersion
             || id == ShellStanceCapabilityId && version == ShellStanceCapabilityVersion
-            || id == ThrustCapabilityId && version == ThrustCapabilityVersion;
+            || id == ThrustCapabilityId && version == ThrustCapabilityVersion
+            || id == TetherCapabilityId && version == TetherCapabilityVersion
+            || id == ClinchCapabilityId && version == ClinchCapabilityVersion
+            || id == CommandGrabCapabilityId && version == CommandGrabCapabilityVersion
+            || id == CannonballCapabilityId && version == CannonballCapabilityVersion
+            || id == FormsCapabilityId && version == FormsCapabilityVersion;
 
     internal static bool IsRuntimeCapability(string id, string version)
         => IsPublicCapability(id, version) || IsTrustedCapability(id, version);
@@ -111,10 +127,49 @@ public static class CharacterPackageCompiler
                 || slot.Timeline.Stages.Any(stage => stage.Operations.Any(operation =>
                     operation is StartCapabilityOperationSource { CapabilityId: ThrustCapabilityId }
                         or SetVelocityOperationSource { VelocityMode: AuthoringVelocityMode.Vertical })));
-    private static bool RequiresRuntimeApi15(CharacterAuthoringDocument character)
+    /// <summary>The shell's splash and ride, ride moves and the cannonball (ADR-0050).</summary>
+    private static bool RequiresRuntimeApi114(CharacterAuthoringDocument character)
+        => character.Shell != null
+            || character.Slots.Any(slot => slot.ShellPolicy == ShellPolicy.Ride
+                || slot.Timeline.Stages.Any(stage => stage.Operations.Any(operation =>
+                    operation is StartCapabilityOperationSource { CapabilityId: CannonballCapabilityId })));
+    /// <summary>The tether (ADR-0048).</summary>
+    private static bool RequiresRuntimeApi113(CharacterAuthoringDocument character)
+        => character.Slots.Any(slot => slot.Timeline.Stages.Any(stage => stage.Operations.Any(operation =>
+            operation is StartCapabilityOperationSource { CapabilityId: TetherCapabilityId })));
+    /// <summary>Two forms and the swap (ADR-0051).</summary>
+    private static bool RequiresRuntimeApi116(CharacterAuthoringDocument character)
+        => character.AlternateForm != null
+            || character.CapabilityRequirements.Any(requirement => requirement.CapabilityId == FormsCapabilityId);
+    /// <summary>A hitbox's own hit presentation, a conditioned presentation and the clinch (ADR-0053).</summary>
+    private static bool RequiresRuntimeApi117(CharacterAuthoringDocument character)
+        => AllSlots(character).Any(slot => slot.Timeline.Stages.Any(stage => stage.Operations.Any(operation =>
+            operation is SpawnHitboxOperationSource { Hitbox.HitPresentationId: not null }
+                or EmitPresentationOperationSource { Condition: not AuthoringPresentationCondition.Always }
+                or StartCapabilityOperationSource { CapabilityId: ClinchCapabilityId })));
+    /// <summary>Nyx's specials (ADR-0051): the tether's placed catch, homing and perching projectiles and the command grab.</summary>
+    private static bool RequiresRuntimeApi118(CharacterAuthoringDocument character)
+        => AllSlots(character).Any(slot => slot.Timeline.Stages.Any(stage => stage.Operations.Any(operation =>
+            operation is StartCapabilityOperationSource { Parameters: TetherCapabilityParameters { AtTarget: not null } }
+                or SpawnProjectileOperationSource { Projectile.Homing: not null }
+                or SpawnProjectileOperationSource { Projectile.Perch: not null }
+                or StartCapabilityOperationSource { CapabilityId: CommandGrabCapabilityId })));
+    private static bool RequiresRuntimeApi115(CharacterAuthoringDocument character)
         => character.Slots.Any(slot => slot.Timeline.Stages.Any(stage => stage.Operations.Any(operation =>
             operation is StartCapabilityOperationSource capability &&
-            capability.CapabilityId == ChargedDirectionalDashCapabilityId)));
+            capability.CapabilityId is DashStrikeCapabilityId or FlashCutCapabilityId)));
+
+    private static bool FacingFilteredCapability(TypedCapabilityParameters parameters) => parameters switch
+    {
+        TargetedLeapCapabilityParameters x => x.Hitbox.RequiresFacingOwner,
+        ThrustCapabilityParameters x => x.TrailHitbox?.RequiresFacingOwner == true,
+        DashStrikeCapabilityParameters x => x.LightHitbox.RequiresFacingOwner || x.TipHitbox.RequiresFacingOwner,
+        FlashCutCapabilityParameters x => x.CutHitbox.RequiresFacingOwner,
+        SteeredChargeCapabilityParameters x => x.LanceHitbox.RequiresFacingOwner,
+        CommandGrabCapabilityParameters x => x.Capture.RequiresFacingOwner,
+        ClinchCapabilityParameters x => x.CatchHitbox.RequiresFacingOwner,
+        _ => false,
+    };
 
     public static CharacterCompileResult Compile(string packageManifestJson, string characterJson, CharacterCookProfile profile = CharacterCookProfile.Workshop)
     {
@@ -182,13 +237,19 @@ public static class CharacterPackageCompiler
             }
             else if (requirement.CapabilityId == AimedRecoveryCapabilityId ||
                      requirement.CapabilityId == TargetedLeapCapabilityId ||
-                     requirement.CapabilityId == ChargedDirectionalDashCapabilityId ||
+                     requirement.CapabilityId == DashStrikeCapabilityId ||
+                     requirement.CapabilityId == FlashCutCapabilityId ||
                      requirement.CapabilityId == ChargedProjectileCapabilityId ||
                      requirement.CapabilityId == ChargedStreamCapabilityId ||
                      requirement.CapabilityId == FingerGunsCapabilityId ||
                      requirement.CapabilityId == SteeredChargeCapabilityId ||
                      requirement.CapabilityId == ShellStanceCapabilityId ||
-                     requirement.CapabilityId == ThrustCapabilityId)
+                     requirement.CapabilityId == ThrustCapabilityId ||
+                     requirement.CapabilityId == TetherCapabilityId ||
+                     requirement.CapabilityId == ClinchCapabilityId ||
+                     requirement.CapabilityId == CommandGrabCapabilityId ||
+                     requirement.CapabilityId == CannonballCapabilityId ||
+                     requirement.CapabilityId == FormsCapabilityId)
             {
                 string supportedVersion = requirement.CapabilityId == TargetedLeapCapabilityId
                     ? TargetedLeapCapabilityVersion : "1";
@@ -207,40 +268,35 @@ public static class CharacterPackageCompiler
         ValidateCaptureGeometry(c.CaptureGeometry, d);
         ValidateIds(c, d);
         ValidateShell(c, capabilityMap, d);
-        var explicitSlots = new Dictionary<string, CharacterSlotSource>(StringComparer.Ordinal);
-        for (var i = 0; i < (c.Slots?.Count ?? 0); i++)
-        {
-            var slot = c.Slots[i];
-            if (!CanonicalSlots.Contains(slot.Id)) d.Error("id.invalid", "character.slots[" + i + "].id", "Unknown canonical slot ID.");
-            else if (!explicitSlots.TryAdd(slot.Id, slot)) d.Error("id.duplicate", "character.slots[" + i + "].id", "Duplicate explicit slot.");
-            ValidateSlot(slot, i, capabilityMap, c, d);
-        }
-        var aliases = new Dictionary<string, string>(StringComparer.Ordinal);
-        for (var i = 0; i < (c.Aliases?.Count ?? 0); i++)
-        {
-            var alias = c.Aliases[i];
-            if (!CanonicalSlots.Contains(alias.From) || !CanonicalSlots.Contains(alias.To)) d.Error("id.invalid", "character.aliases[" + i + "]", "Alias IDs must be canonical slot IDs.");
-            if (explicitSlots.ContainsKey(alias.From)) d.Error("id.duplicate", "character.aliases[" + i + "].from", "Alias overwrites an explicit slot.");
-            if (!aliases.TryAdd(alias.From, alias.To)) d.Error("id.duplicate", "character.aliases[" + i + "].from", "Duplicate alias.");
-        }
-        var resolved = new Dictionary<string, CharacterSlotSource>(StringComparer.Ordinal);
-        foreach (var id in CanonicalSlots) ResolveSlot(id, explicitSlots, aliases, resolved, new HashSet<string>(StringComparer.Ordinal), d);
-        var cookedSlots = new List<CookedSlotDefinition>(CanonicalSlots.Length);
+        ValidateAlternateForm(c, capabilityMap, d);
         var stageCount = 0; var operationCount = 0; var hitboxCount = 0; var projectileCount = 0; var capabilityOperationCount = 0; var maxDuration = 0; var operationOrdinal = 0;
-        for (var ordinal = 0; ordinal < CanonicalSlots.Length; ordinal++)
+        var cookedSlots = CookGrid(c, 0, d, out var resolved);
+        CookedAlternateForm? alternateForm = null;
+        if (c.AlternateForm is { } form)
         {
-            if (!resolved.TryGetValue(CanonicalSlots[ordinal], out var slot)) continue;
-            ValidateSlideCarry(CanonicalSlots[ordinal], slot, FindSourceSlotIndex(c.Slots, slot.Id), d);
-            ValidateAimMovementSpeed(CanonicalSlots[ordinal], slot, FindSourceSlotIndex(c.Slots, slot.Id), d);
-            ValidateShellPolicy(CanonicalSlots[ordinal], slot, FindSourceSlotIndex(c.Slots, slot.Id), c, d);
-            var timeline = CookTimeline(slot.Timeline, d, ref stageCount, ref operationCount, ref hitboxCount, ref projectileCount, ref capabilityOperationCount, ref maxDuration, ref operationOrdinal);
-            cookedSlots.Add(new CookedSlotDefinition(ordinal, CanonicalSlots[ordinal], ordinal >= CanonicalSlotProjection.VariantSlotCount, slot.Name, slot.Description, slot.IconId, slot.Behavior, slot.AimMode, slot.CooldownTicks, slot.IsRecoveryMove, slot.PreserveMomentumOnStart, timeline, slot.ChargePool == null ? null : new CookedChargePool(slot.ChargePool.MaxCharges, slot.ChargePool.RegenTicks), slot.AimMovement, slot.AimAnimationId, slot.AllowSlideCarry, slot.HitPresentationId, slot.AimMovementSpeedScale, slot.ShellPolicy));
+            var formDiagnostics = new DiagnosticBag();
+            var formSlots = CookGrid(c with { Movement = form.Movement, Slots = form.Slots, Aliases = form.Aliases }, 1,
+                formDiagnostics, out _);
+            d.AddFrom(formDiagnostics, AlternateFormPath);
+            alternateForm = new CookedAlternateForm(form.Id, form.DisplayName, CookMovement(form.Movement), form.Presentation, formSlots);
         }
-        if (resolved.Count != CanonicalSlots.Length) d.Error("reference.unresolved", "character.slots", "Not all canonical slots resolve.");
+        if (ShellPairingError(c.Shell?.Splash != null, c.Shell?.Ride != null,
+                resolved.Select(pair => (pair.Key, pair.Value.ShellPolicy))) is { } pairing)
+            d.Error("capability.ambiguous", "character.shell", pairing);
         if (d.HasErrors) return;
         var metadata = new CookedPackageMetadata(
             m.PackageId, m.Version, CookedSchemaVersion,
-            RequiresRuntimeApi112(c) ? "1.12.0"
+            c.Shell?.Splash?.Hitbox.RequiresFacingOwner == true || c.Shell?.Ride?.Wave.RequiresFacingOwner == true
+            || AllSlots(c).Any(slot => slot.Timeline.Stages.Any(stage => stage.Operations.Any(op =>
+                op is SpawnHitboxOperationSource { Hitbox.RequiresFacingOwner: true }
+                || op is StartCapabilityOperationSource capability && FacingFilteredCapability(capability.Parameters)))) ? "1.19.0"
+            : RequiresRuntimeApi118(c) ? "1.18.0"
+            : RequiresRuntimeApi117(c) ? "1.17.0"
+            : RequiresRuntimeApi116(c) ? "1.16.0"
+            : RequiresRuntimeApi115(c) ? "1.15.0"
+            : RequiresRuntimeApi114(c) ? "1.14.0"
+            : RequiresRuntimeApi113(c) ? "1.13.0"
+            : RequiresRuntimeApi112(c) ? "1.12.0"
             : c.Slots.Any(slot => slot.Timeline.Stages.Any(stage => stage.Operations.Any(operation =>
                 operation is StartCapabilityOperationSource { CapabilityId: FingerGunsCapabilityId }
                     or StartCapabilityOperationSource { Parameters: AimedRecoveryCapabilityParameters { RiseSteerAcceleration: > 0f } }))) ? "1.11.0"
@@ -252,7 +308,6 @@ public static class CharacterPackageCompiler
             : c.Slots.Any(slot => slot.AimMovementSpeedScale != 1f) ? "1.7.0"
             : c.Slots.Any(slot => slot.Timeline.Stages.Any(stage => stage.Operations.Any(operation =>
                 operation is StartCapabilityOperationSource { Parameters: ChargedProjectileCapabilityParameters }))) ? "1.6.0"
-                : RequiresRuntimeApi15(c) ? "1.5.0"
                 : c.Slots.Any(slot => slot.Timeline.Stages.Any(stage => stage.Operations.Any(operation =>
                     operation is StartupAimCorrectionOperationSource))) ? "1.4.0"
                 : RequiresRuntimeApi13(c) ? "1.3.0" : RuntimeApiMin, RuntimeApiMax);
@@ -268,15 +323,56 @@ public static class CharacterPackageCompiler
             c.ShieldRadius,
             CookCaptureGeometry(c.CaptureGeometry),
             c.HurtboxCapsules.Select(x => new CookedHurtboxCapsule(x.StartX, x.StartY, x.StartZ, x.EndX, x.EndY, x.EndZ, x.Radius)).ToList(),
-            c.HurtboxBoneDefs.Select(x => new CookedHurtboxBone(x.BoneId, x.OffsetX, x.OffsetY, x.OffsetZ, x.Radius)).ToList(),
+            c.HurtboxBoneDefs.Select(x => new CookedHurtboxBone(x.BoneId, x.OffsetX, x.OffsetY, x.OffsetZ, x.Radius, x.EndBoneId, x.EndOffsetX, x.EndOffsetY, x.EndOffsetZ)).ToList(),
             c.AttachmentBoneIds.OrderBy(x => x, StringComparer.Ordinal).ToList(),
             c.PresentationIds.OrderBy(x => x, StringComparer.Ordinal).ToList(),
             c.CapabilityRequirements.OrderBy(x => x.CapabilityId, StringComparer.Ordinal).Select(x => new CookedCapabilityRequirement(x.CapabilityId, x.CapabilityVersion)).ToList(),
             cookedSlots,
-            c.Shell == null ? null : CookShell(c.Shell));
-        var budget = new CookedBudget(cookedSlots.Count, stageCount, operationCount, hitboxCount, projectileCount, capabilityOperationCount, maxDuration);
+            c.Shell == null ? null : CookShell(c.Shell),
+            alternateForm);
+        if (FormsBoundsError(definition) is { } formsError)
+        {
+            d.Error("value.out-of-range", "character.alternateForm", formsError);
+            return;
+        }
+        var budget = new CookedBudget(cookedSlots.Count + (alternateForm?.Slots.Count ?? 0), stageCount, operationCount, hitboxCount, projectileCount, capabilityOperationCount, maxDuration);
         var bytes = WriteCanonical(metadata, definition, budget);
         package = new CookedCharacterPackage(metadata, definition, budget, d.ToList(), bytes);
+
+        List<CookedSlotDefinition> CookGrid(CharacterAuthoringDocument doc, byte form, DiagnosticBag bag,
+            out Dictionary<string, CharacterSlotSource> resolved)
+        {
+            var explicitSlots = new Dictionary<string, CharacterSlotSource>(StringComparer.Ordinal);
+            for (var i = 0; i < (doc.Slots?.Count ?? 0); i++)
+            {
+                var slot = doc.Slots[i];
+                if (!CanonicalSlots.Contains(slot.Id)) bag.Error("id.invalid", "character.slots[" + i + "].id", "Unknown canonical slot ID.");
+                else if (!explicitSlots.TryAdd(slot.Id, slot)) bag.Error("id.duplicate", "character.slots[" + i + "].id", "Duplicate explicit slot.");
+                ValidateSlot(slot, i, capabilityMap, doc, bag);
+            }
+            var aliases = new Dictionary<string, string>(StringComparer.Ordinal);
+            for (var i = 0; i < (doc.Aliases?.Count ?? 0); i++)
+            {
+                var alias = doc.Aliases[i];
+                if (!CanonicalSlots.Contains(alias.From) || !CanonicalSlots.Contains(alias.To)) bag.Error("id.invalid", "character.aliases[" + i + "]", "Alias IDs must be canonical slot IDs.");
+                if (explicitSlots.ContainsKey(alias.From)) bag.Error("id.duplicate", "character.aliases[" + i + "].from", "Alias overwrites an explicit slot.");
+                if (!aliases.TryAdd(alias.From, alias.To)) bag.Error("id.duplicate", "character.aliases[" + i + "].from", "Duplicate alias.");
+            }
+            resolved = new Dictionary<string, CharacterSlotSource>(StringComparer.Ordinal);
+            foreach (var id in CanonicalSlots) ResolveSlot(id, explicitSlots, aliases, resolved, new HashSet<string>(StringComparer.Ordinal), bag);
+            var cookedSlots = new List<CookedSlotDefinition>(CanonicalSlots.Length);
+            for (var ordinal = 0; ordinal < CanonicalSlots.Length; ordinal++)
+            {
+                if (!resolved.TryGetValue(CanonicalSlots[ordinal], out var slot)) continue;
+                ValidateSlideCarry(CanonicalSlots[ordinal], slot, FindSourceSlotIndex(doc.Slots, slot.Id), bag);
+                ValidateAimMovementSpeed(CanonicalSlots[ordinal], slot, FindSourceSlotIndex(doc.Slots, slot.Id), bag);
+                ValidateShellPolicy(CanonicalSlots[ordinal], slot, FindSourceSlotIndex(doc.Slots, slot.Id), doc, bag);
+                var timeline = CookTimeline(slot.Timeline, bag, ref stageCount, ref operationCount, ref hitboxCount, ref projectileCount, ref capabilityOperationCount, ref maxDuration, ref operationOrdinal);
+                cookedSlots.Add(new CookedSlotDefinition(ordinal, CanonicalSlots[ordinal], ordinal >= CanonicalSlotProjection.VariantSlotCount, slot.Name, slot.Description, slot.IconId, slot.Behavior, slot.AimMode, slot.CooldownTicks, slot.IsRecoveryMove, slot.PreserveMomentumOnStart, timeline, slot.ChargePool == null ? null : new CookedChargePool(slot.ChargePool.MaxCharges, slot.ChargePool.RegenTicks), slot.AimMovement, slot.AimAnimationId, slot.AllowSlideCarry, slot.HitPresentationId, slot.AimMovementSpeedScale, slot.ShellPolicy, form));
+            }
+            if (resolved.Count != CanonicalSlots.Length) bag.Error("reference.unresolved", "character.slots", "Not all canonical slots resolve.");
+            return cookedSlots;
+        }
     }
 
 
@@ -292,7 +388,7 @@ public static class CharacterPackageCompiler
         if (slot.Timeline.Stages.Count == 0 || slot.Timeline.Stages.Count > CookedBudget.MaxStagesPerTimeline) d.Error("budget.exceeded", $"character.slots[{index}].timeline.stages", "Timeline stage budget exceeded or empty.");
         if (slot.ChargePool != null)
         {
-            if (slot.ChargePool.MaxCharges <= 0) d.Error("value.out-of-range", $"character.slots[{index}].chargePool.maxCharges", "Max charges must be positive.");
+            if (slot.ChargePool.MaxCharges is < 1 or > 3) d.Error("value.out-of-range", $"character.slots[{index}].chargePool.maxCharges", "Max charges must be between one and three.");
             if (slot.ChargePool.RegenTicks == 0) d.Error("value.out-of-range", $"character.slots[{index}].chargePool.regenTicks", "Regen ticks must be positive.");
         }
         var targetedLeapCount = slot.Timeline.Stages.Sum(stage =>
@@ -381,7 +477,8 @@ public static class CharacterPackageCompiler
             var stage = slot.Timeline.Stages[0];
             if (fingerGuns.Length != 1 || slot.Behavior != AuthoringAbilityBehavior.MeleeCombo ||
                 slot.Timeline.Stages.Count != 1 || stage.IasaTicks != 0 || slot.ChargePool != null ||
-                slot.AllowSlideCarry || slot.AimMode is not (AuthoringAimMode.None or AuthoringAimMode.CameraForward3D) ||
+                slot.AllowSlideCarry ||
+                slot.AimMode is not (AuthoringAimMode.None or AuthoringAimMode.CameraForward3D or AuthoringAimMode.GroundVector) ||
                 stage.Operations.Any(operation => operation != fingerGuns[0] && operation is not EmitPresentationOperationSource))
                 d.Error("capability.ambiguous", $"character.slots[{index}]",
                     "Finger Guns requires one tick-zero meleeCombo lifecycle, no IASA, slide carry or charge pool, and only presentation operations alongside it.");
@@ -398,18 +495,30 @@ public static class CharacterPackageCompiler
         if (targetedLeapCount > 1)
             d.Error("capability.ambiguous", $"character.slots[{index}].timeline",
                 "A slot may contain only one targeted-leap lifecycle.");
-        var chargedDashCount = slot.Timeline.Stages.Sum(stage =>
-            stage.Operations.Count(operation =>
-                operation is StartCapabilityOperationSource capability &&
-                capability.CapabilityId == ChargedDirectionalDashCapabilityId));
-        if (chargedDashCount > 1)
-            d.Error("capability.ambiguous", $"character.slots[{index}].timeline",
-                "A slot may contain only one charged directional dash lifecycle.");
-        if (chargedDashCount > 0 &&
-            (slot.Behavior != AuthoringAbilityBehavior.DirectionalDash || slot.AimMode != AuthoringAimMode.GroundVector ||
-                slot.Timeline.Stages.Count != 1 || slot.Timeline.Stages[0].IasaTicks != 0))
-            d.Error("capability.ambiguous", $"character.slots[{index}]",
-                "Charged directional dash requires directionalDash, groundVector aim, and one stage with IASA disabled.");
+        var dashStrikes = slot.Timeline.Stages.SelectMany(stage => stage.Operations)
+            .OfType<StartCapabilityOperationSource>().Where(x => x.CapabilityId == DashStrikeCapabilityId).ToArray();
+        if (dashStrikes.Length > 0 && dashStrikes[0].Parameters is DashStrikeCapabilityParameters dashStrike)
+        {
+            var stage = slot.Timeline.Stages[0];
+            if (DashStrikeContract.SlotError(dashStrikes.Length, slot.Timeline.Stages.Count, dashStrikes[0].Tick,
+                slot.Behavior, slot.AimMode, stage.IasaTicks,
+                stage.Operations.Any(x => x != dashStrikes[0] && x is not EmitPresentationOperationSource),
+                slot.AllowSlideCarry, slot.ChargePool != null, stage.DurationTicks,
+                (CookedDashStrikeCapabilityParameters)CookParameters(dashStrike)) is { } error)
+                d.Error("capability.ambiguous", $"character.slots[{index}].timeline", error);
+        }
+        var flashCuts = slot.Timeline.Stages.SelectMany(stage => stage.Operations)
+            .OfType<StartCapabilityOperationSource>().Where(x => x.CapabilityId == FlashCutCapabilityId).ToArray();
+        if (flashCuts.Length > 0 && flashCuts[0].Parameters is FlashCutCapabilityParameters flashCut)
+        {
+            var stage = slot.Timeline.Stages[0];
+            if (FlashCutContract.SlotError(flashCuts.Length, slot.Timeline.Stages.Count, flashCuts[0].Tick,
+                slot.Behavior, slot.AimMode, stage.IasaTicks,
+                stage.Operations.Any(x => x != flashCuts[0] && x is not EmitPresentationOperationSource),
+                slot.AllowSlideCarry, slot.ChargePool != null, stage.DurationTicks, stage.AnimationIds,
+                (CookedFlashCutCapabilityParameters)CookParameters(flashCut)) is { } error)
+                d.Error("capability.ambiguous", $"character.slots[{index}].timeline", error);
+        }
         if (slot.Timeline.Stages.SelectMany(stage => stage.Operations)
             .Count(operation => operation is SpawnProjectileOperationSource { Projectile.Return: not null }) > 1)
             d.Error("capability.ambiguous", $"character.slots[{index}].timeline",
@@ -424,6 +533,58 @@ public static class CharacterPackageCompiler
             .Where(operation => operation.CapabilityId == ThrustCapabilityId).ToArray();
         if (thrusts.Length > 0)
             ValidateThrustSlot(slot, index, thrusts, d);
+        var tethers = slot.Timeline.Stages.SelectMany(stage => stage.Operations)
+            .OfType<StartCapabilityOperationSource>()
+            .Where(operation => operation.CapabilityId == TetherCapabilityId).ToArray();
+        if (tethers.Length > 0)
+            ValidateTetherSlot(slot, index, tethers, d);
+        var clinches = slot.Timeline.Stages.SelectMany(stage => stage.Operations)
+            .OfType<StartCapabilityOperationSource>().Where(x => x.CapabilityId == ClinchCapabilityId).ToArray();
+        if (clinches.Length > 0 && clinches[0].Parameters is ClinchCapabilityParameters clinch)
+        {
+            var stages = slot.Timeline.Stages;
+            var lunge = stages[0];
+            var hold = stages.Count > 1 ? stages[1] : null;
+            if (ClinchContract.SlotError(clinches.Length, stages.Count, clinches[0].Tick, slot.Behavior, slot.AimMode,
+                    slot.ShellPolicy, slot.AllowSlideCarry, slot.ChargePool != null,
+                    !lunge.Operations.Contains(clinches[0])
+                        || lunge.Operations.Any(x => x != clinches[0] && x is not EmitPresentationOperationSource),
+                    lunge.DurationTicks, lunge.IasaTicks, hold?.DurationTicks ?? 0, hold?.IasaTicks ?? 0,
+                    (CookedClinchCapabilityParameters)CookParameters(clinch)) is { } error)
+                d.Error("capability.ambiguous", $"character.slots[{index}].timeline", error);
+        }
+        var commandGrabs = slot.Timeline.Stages.SelectMany(stage => stage.Operations)
+            .OfType<StartCapabilityOperationSource>().Where(x => x.CapabilityId == CommandGrabCapabilityId).ToArray();
+        if (commandGrabs.Length > 0 && commandGrabs[0].Parameters is CommandGrabCapabilityParameters commandGrab)
+        {
+            var stage = slot.Timeline.Stages[0];
+            if (CommandGrabContract.SlotError(commandGrabs.Length, slot.Timeline.Stages.Count, commandGrabs[0].Tick,
+                    slot.Behavior, slot.AimMode, slot.ShellPolicy, slot.AllowSlideCarry, slot.ChargePool != null,
+                    !stage.Operations.Contains(commandGrabs[0])
+                        || stage.Operations.Any(x => x != commandGrabs[0] && x is not EmitPresentationOperationSource),
+                    stage.DurationTicks, stage.IasaTicks,
+                    (CookedCommandGrabCapabilityParameters)CookParameters(commandGrab)) is { } error)
+                d.Error("capability.ambiguous", $"character.slots[{index}].timeline", error);
+        }
+        var cannonballs = slot.Timeline.Stages.SelectMany(stage => stage.Operations)
+            .OfType<StartCapabilityOperationSource>()
+            .Where(operation => operation.CapabilityId == CannonballCapabilityId).ToArray();
+        if (cannonballs.Length > 0)
+        {
+            var stage = slot.Timeline.Stages[0];
+            if (CannonballSlotError(cannonballs.Length, slot.Timeline.Stages.Count, cannonballs[0].Tick, slot.Behavior,
+                    slot.AimMode, stage.IasaTicks, slot.ShellPolicy, stage.DurationTicks,
+                    stage.Operations.Any(operation => operation != cannonballs[0] && operation is not EmitPresentationOperationSource),
+                    cannonballs[0].Parameters is CannonballCapabilityParameters x ? (CookedCannonballCapabilityParameters)CookParameters(x) : null)
+                is { } cannonballError)
+                d.Error("capability.ambiguous", $"character.slots[{index}].timeline", cannonballError);
+        }
+        if (slot.ShellPolicy == ShellPolicy.Ride && RideSlotError(slot.Timeline.Stages.Count,
+                slot.Timeline.Stages.Count == 0 ? (ushort)0 : slot.Timeline.Stages[0].IasaTicks,
+                slot.Timeline.Stages.SelectMany(stage => stage.Operations).Any(operation => operation is not
+                    (EmitPresentationOperationSource or StartupAimCorrectionOperationSource or GravityWindowOperationSource)))
+            is { } rideError)
+            d.Error("capability.ambiguous", $"character.slots[{index}].timeline", rideError);
         foreach (var stage in slot.Timeline.Stages)
         {
             if (stage.DurationTicks == 0 || stage.IasaTicks > stage.DurationTicks || stage.LandingLagTicks > stage.DurationTicks || stage.AutoCancelBeforeTicks > stage.DurationTicks || stage.AutoCancelAfterTicks > stage.DurationTicks) d.Error("value.out-of-range", "character.slots[" + index + "].timeline", "Stage timing is outside its duration.");
@@ -465,31 +626,11 @@ public static class CharacterPackageCompiler
                     if (!capabilities.TryGetValue(capability.CapabilityId, out var version)) d.Error("capability.unknown", "character.operation.capabilityId", "Capability is not declared.");
                     else if (version != capability.CapabilityVersion) d.Error("capability.version-mismatch", "character.operation.capabilityVersion", "Capability version does not match its declaration.");
                 }
-                if (operation is StartCapabilityOperationSource chargedDash &&
-                    chargedDash.Parameters is ChargedDirectionalDashCapabilityParameters dash)
-                {
-                    if (operation.Tick != 0 || stage != slot.Timeline.Stages[0])
-                        d.Error("value.out-of-range", "character.operation.tick", "Charged dash lifecycle must start at tick zero in the first stage.");
-                    if (stage.Operations.Any(other => other != operation &&
-                        (other is ForwardLungeOperationSource or SetVelocityOperationSource or SpawnHitboxOperationSource
-                            or StartCapabilityOperationSource or StartupAimCorrectionOperationSource)))
-                        d.Error("capability.ambiguous", "character.operation.parameters",
-                            "Charged dash cannot share its stage with another lifecycle, startup correction, motion, or extra hitboxes.");
-                    double maxTravelTicks = Math.Ceiling(dash.MaxDistance / (dash.DashSpeed / 60d));
-                    if (maxTravelTicks + dash.RecoveryTicks > stage.DurationTicks ||
-                        dash.FinisherSeekTick + dash.FinisherLeadTicks + dash.RecoveryTicks > stage.DurationTicks)
-                        d.Error("value.out-of-range", "character.operation.parameters.recoveryTicks",
-                            "Charged dash travel and finisher recovery must fit within its stage.");
-                }
                 if (operation is StartCapabilityOperationSource targetedLeap &&
                     targetedLeap.Parameters is TargetedLeapCapabilityParameters leap &&
                     (int)leap.LandingSeekTick + leap.RecoveryTicks > stage.DurationTicks)
                     d.Error("value.out-of-range", "character.operation.parameters.recoveryTicks",
                         "Landing seek and recovery must fit within the authored timeline duration.");
-                if (operation is StartCapabilityOperationSource { Parameters: WibouBladeFlurryCapabilityParameters flurry } &&
-                    flurry.DescentStartTick >= stage.DurationTicks)
-                    d.Error("value.out-of-range", "character.operation.parameters.descentStartTick",
-                        "Blade Flurry descent must start inside its authored stage.");
                 ValidateOperation(operation, c, d);
             }
         }
@@ -574,6 +715,100 @@ public static class CharacterPackageCompiler
             d.Error("value.out-of-range", path + ".operations.parameters.thrustTicks", "The thrust must end within its stage.");
     }
 
+    /// <summary>
+    /// A tether owns the end of its move (ADR-0048): one per slot, at tick zero of a single meleeCombo stage with
+    /// no aim and IASA disabled, beside presentation only, and never tucked. Its phase clips sort after the
+    /// stage's first clip, the throw.
+    /// </summary>
+    private static void ValidateTetherSlot(CharacterSlotSource slot, int index,
+        StartCapabilityOperationSource[] tethers, DiagnosticBag d)
+    {
+        string path = $"character.slots[{index}].timeline";
+        var stage = slot.Timeline.Stages[0];
+        if (TetherSlotError(tethers.Length, slot.Timeline.Stages.Count, tethers[0].Tick, slot.Behavior, slot.AimMode,
+                stage.IasaTicks, slot.ShellPolicy,
+                stage.Operations.Any(operation => operation != tethers[0] && operation is not EmitPresentationOperationSource))
+            is { } error)
+            d.Error("capability.ambiguous", path, error);
+        if (tethers[0].Parameters is not TetherCapabilityParameters x)
+            return;
+        var clips = stage.AnimationIds.OrderBy(id => id, StringComparer.Ordinal).ToList();
+        foreach (var (id, field) in new[] { (x.ReelAnimationId, "reelAnimationId"), (x.RetractAnimationId, "retractAnimationId") })
+        {
+            if (string.IsNullOrEmpty(id)) continue;
+            int clip = clips.IndexOf(id);
+            if (clip < 0)
+                d.Error("reference.unresolved", path + ".operations.parameters." + field,
+                    "A tether phase clip must be listed in its stage's animationIds.");
+            else if (clip == 0)
+                d.Error("value.out-of-range", path + ".operations.parameters." + field,
+                    "The stage's first clip is the throw; phase clips sort after it (name them after it).");
+        }
+    }
+
+    /// <summary>The tether slot's shape, shared by the compiler and the cooked loader; null when admissible.</summary>
+    internal static string? TetherSlotError(int tethers, int stages, ushort tick, AuthoringAbilityBehavior behavior,
+        AuthoringAimMode aim, ushort iasaTicks, ShellPolicy shellPolicy, bool otherOperations)
+        => tethers != 1 || stages != 1 || tick != 0 || behavior != AuthoringAbilityBehavior.MeleeCombo
+            || aim != AuthoringAimMode.None || iasaTicks != 0 || otherOperations
+            ? "Tether requires one tick-zero lifecycle in one meleeCombo stage with no aim and IASA disabled, and only presentation alongside it."
+            : shellPolicy == ShellPolicy.Tuck ? "A tether pops her out of the shell; it cannot tuck." : null;
+
+    /// <summary>Bounds shared by the compiler and the cooked loader; null when the tether is admissible.</summary>
+    internal static string? TetherBoundsError(CookedTetherCapabilityParameters x)
+    {
+        if (x.AtTarget is { } at)
+            return x.Projectile != null || x.RetractSpeed != 0f || x.RetractAnimationId.Length > 0
+                || x.RetractPresentationId.Length > 0
+                ? "A placed catch (atTarget) throws no ring: no projectile, retract speed, retract clip or retract presentation."
+                : TetherAtTargetBoundsError(x, at);
+        var ring = x.Projectile;
+        if (ring == null) return "A thrown tether needs its projectile.";
+        if (!AllFinite(x.ReelSpeed, x.AnchorDistance, x.RetractSpeed, x.AirGravityScale, ring.LaunchOffsetX,
+                ring.LaunchOffsetY, ring.LaunchOffsetZ, ring.Speed, ring.Gravity, ring.Radius, ring.Damage, ring.Angle,
+                ring.BaseKnockback, ring.KnockbackGrowth, ring.YawOffsetDegrees))
+            return "Tether values must be finite.";
+        if (x.ThrowTick == 0 || x.ThrowTick > 120) return "throwTick must be 1 to 120.";
+        if (!(ring.Speed > 0f && ring.Speed <= 60f) || !(ring.Radius > 0f && ring.Radius <= 3f)
+            || ring.MaxFlightTicks == 0 || ring.MaxFlightTicks > 240)
+            return "The ring needs 0 < speed <= 60, 0 < radius <= 3 and maxFlightTicks 1 to 240.";
+        if (ring.Gravity != 0f || ring.YawOffsetDegrees != 0f || ring.Return != null)
+            return "The ring flies straight: no gravity, no yaw offset and no return block.";
+        if (ring.Damage < 0f || ring.BaseKnockback != 0f || ring.KnockbackGrowth != 0f || ring.StunTicks != 0)
+            return "The ring catches instead of launching: damage >= 0, no knockback and no stun.";
+        if (!(x.ReelSpeed > 0f && x.ReelSpeed <= 60f) || !(x.RetractSpeed > 0f && x.RetractSpeed <= 60f))
+            return "reelSpeed and retractSpeed must be above 0 and at most 60.";
+        return TetherReelBoundsError(x);
+    }
+
+    private static string? TetherAtTargetBoundsError(CookedTetherCapabilityParameters x, CookedTetherAtTarget at)
+    {
+        if (!AllFinite(x.ReelSpeed, x.AnchorDistance, x.AirGravityScale, at.Radius, at.Height, at.Damage, at.MaxRange,
+                at.NoTargetDistance))
+            return "Tether values must be finite.";
+        if (x.ThrowTick == 0 || x.ThrowTick > 120) return "throwTick must be 1 to 120.";
+        if (at.WarningTicks == 0 || at.WarningTicks > 120) return "atTarget.warningTicks must be 1 to 120.";
+        if (at.CatchTicks == 0 || at.CatchTicks > 60) return "atTarget.catchTicks must be 1 to 60.";
+        if (!(at.Radius > 0f && at.Radius <= 3f) || !(at.Height >= 2f * at.Radius && at.Height <= 6f))
+            return "The catch needs 0 < radius <= 3 and a height of two radii up to 6.";
+        if (!(at.Damage >= 0f && at.Damage <= 100f)) return "atTarget.damage must be 0 to 100.";
+        if (!(at.MaxRange > 0f && at.MaxRange <= MaxStartupAcquisitionRange)
+            || !(at.NoTargetDistance >= 0f && at.NoTargetDistance <= at.MaxRange))
+            return "atTarget needs 0 < maxRange <= 32 and 0 <= noTargetDistance <= maxRange.";
+        if (!(x.ReelSpeed > 0f && x.ReelSpeed <= 60f)) return "reelSpeed must be above 0 and at most 60.";
+        return TetherReelBoundsError(x);
+    }
+
+    private static string? TetherReelBoundsError(CookedTetherCapabilityParameters x)
+    {
+        if (!(x.AnchorDistance >= 0f && x.AnchorDistance <= 3f)) return "anchorDistance must be 0 to 3.";
+        if (x.ArrivalStunTicks == 0 || x.ArrivalStunTicks > 240) return "arrivalStunTicks must be 1 to 240.";
+        if (x.MaxReelTicks == 0 || x.MaxReelTicks > 600) return "maxReelTicks must be 1 to 600.";
+        if (x.MissRecoveryTicks > 240) return "missRecoveryTicks must be 0 to 240.";
+        if (!(x.AirGravityScale >= 0f && x.AirGravityScale <= 1f)) return "airGravityScale must be 0 to 1.";
+        return null;
+    }
+
     private static void ValidateShell(CharacterAuthoringDocument c, Dictionary<string, string> capabilities, DiagnosticBag d)
     {
         bool stance = capabilities.ContainsKey(ShellStanceCapabilityId);
@@ -584,46 +819,165 @@ public static class CharacterPackageCompiler
                 d.Error("capability.unknown", "character.presentation.shell", "A shell pose needs the shell-stance capability and a shell block.");
             return;
         }
-        if (!stance) d.Error("capability.unknown", "character.shell", "A shell block needs the slop.ability.shell-stance.v1 requirement.");
+        if (!stance) d.Error("capability.unknown", "character.shell", "A shell block needs the slop.ability.shell-stance.v2 requirement.");
         if (string.IsNullOrEmpty(c.Presentation.Shell))
             d.Error("schema.missing", "character.presentation.shell", "A shell block needs a shell pose.");
-        ValidateCapabilityHitbox(c.Shell.Hitbox, c, "shell.hitbox", d);
+        if (c.Shell.Splash != null) ValidateCapabilityHitbox(c.Shell.Splash.Hitbox, c, "shell.splash.hitbox", d);
+        if (c.Shell.Ride != null) ValidateCapabilityHitbox(c.Shell.Ride.Wave, c, "shell.ride.wave", d);
         if (ShellBoundsError(CookShell(c.Shell)) is { } error)
             d.Error("value.out-of-range", "character.shell", error);
-        if (c.Shell.HitPresentationId is { } hit && !c.PresentationIds.Contains(hit, StringComparer.Ordinal))
-            d.Error("reference.unresolved", "character.shell.hitPresentationId", "Presentation ID is not declared.");
+        foreach (var (id, field) in new[] { (c.Shell.Splash?.PresentationId, "splash.presentationId"),
+                     (c.Shell.Ride?.HitPresentationId, "ride.hitPresentationId") })
+            if (id != null && !c.PresentationIds.Contains(id, StringComparer.Ordinal))
+                d.Error("reference.unresolved", "character.shell." + field, "Presentation ID is not declared.");
     }
 
-    /// <summary>A tuck move runs in the shell: it needs a shell block, is a special, and does not carry Run or Slide.</summary>
+    /// <summary>The alternateForm block exists exactly when slop.ability.forms.v1 is required (ADR-0051).</summary>
+    private static void ValidateAlternateForm(CharacterAuthoringDocument c, Dictionary<string, string> capabilities, DiagnosticBag d)
+    {
+        bool forms = capabilities.ContainsKey(FormsCapabilityId);
+        if (c.AlternateForm is not { } form)
+        {
+            if (forms) d.Error("schema.missing", "character.alternateForm", "The forms capability needs an alternateForm block.");
+            return;
+        }
+        if (!forms) d.Error("capability.unknown", "character.alternateForm", "An alternateForm block needs the slop.ability.forms.v1 requirement.");
+        ValidateId(form.Id, "character.alternateForm.id", d);
+        if (string.IsNullOrWhiteSpace(form.DisplayName))
+            d.Error("value.out-of-range", "character.alternateForm.displayName", "Value must be non-empty.");
+        foreach (var (name, id) in form.Presentation.Roles)
+            if (!string.IsNullOrEmpty(id)) ValidateId(id, "character.alternateForm.presentation." + name, d);
+    }
+
+    /// <summary>Diagnostics of the alternate grid, validated as a projected document, point into its block.</summary>
+    private static string AlternateFormPath(string path)
+        => path.StartsWith("character.slots", StringComparison.Ordinal) || path.StartsWith("character.aliases", StringComparison.Ordinal)
+            || path.StartsWith("character.movement", StringComparison.Ordinal)
+            ? "character.alternateForm" + path.Substring("character".Length) : path;
+
+    /// <summary>
+    /// The forms rules shared by the compiler and the cooked loader (ADR-0051): the alternate form exists exactly with
+    /// its capability, has its own fourteen canonical form-1 slots, a lowercase ID, a name and a positive air-dodge
+    /// speed; the top-level grid is form 0; a move swaps at most once, and only in a fighter with forms.
+    /// </summary>
+    internal static string? FormsBoundsError(CookedCharacterDefinition x)
+    {
+        bool forms = x.CapabilityRequirements.Any(r => r.CapabilityId == FormsCapabilityId);
+        if (forms != (x.AlternateForm != null))
+            return "An alternateForm block exists exactly when the slop.ability.forms.v1 capability is required.";
+        if (x.Slots.Any(slot => slot.Form != 0))
+            return "The top-level grid is form 0.";
+        foreach (var slot in x.AllSlots)
+            if (slot.Timeline.Stages.SelectMany(stage => stage.Operations).Count(op => op is CookedSwapFormOperation) > (forms ? 1 : 0))
+                return forms ? $"Move {slot.Id} swaps form more than once." : "swapForm needs the forms capability and an alternateForm block.";
+        if (x.AlternateForm is not { } form) return null;
+        if (!IsId(form.Id) || string.IsNullOrWhiteSpace(form.DisplayName))
+            return "The alternate form needs a lowercase ID and a display name.";
+        if (form.Slots.Count != CanonicalSlots.Length
+            || form.Slots.Where((slot, i) => slot.Form != 1 || slot.Ordinal != i || slot.Id != CanonicalSlots[i]).Any())
+            return "The alternate form has its own fourteen canonical slots.";
+        if (!(form.Movement.AirDodgeSpeed > 0f))
+            return "The alternate form's air-dodge speed must be greater than zero.";
+        foreach (var (_, id) in form.Presentation.Roles)
+            if (id.Length > 0 && !IsId(id)) return "Alternate form roles must be lowercase IDs.";
+        return null;
+    }
+
+    /// <summary>A tuck or ride move is a special of a fighter with a shell block; a tuck move does not carry Run or Slide.</summary>
     private static void ValidateShellPolicy(string canonicalId, CharacterSlotSource slot, int sourceIndex,
         CharacterAuthoringDocument c, DiagnosticBag d)
     {
         if (slot.ShellPolicy == ShellPolicy.PopOut) return;
         string path = sourceIndex >= 0 ? $"character.slots[{sourceIndex}].shellPolicy" : $"character.slots.{canonicalId}.shellPolicy";
-        if (slot.ShellPolicy != ShellPolicy.Tuck)
+        if (slot.ShellPolicy is not (ShellPolicy.Tuck or ShellPolicy.Ride))
             d.Error("value.out-of-range", path, "Unknown shell policy.");
         else if (c.Shell == null)
-            d.Error("capability.unknown", path, "A tuck move needs the character's shell block.");
-        else if (!(canonicalId.EndsWith(".A", StringComparison.Ordinal) || canonicalId.EndsWith(".E", StringComparison.Ordinal)
-                || canonicalId.EndsWith(".R", StringComparison.Ordinal) || canonicalId.EndsWith(".F", StringComparison.Ordinal)))
-            d.Error("value.out-of-range", path, "Only specials (A, E, R, F) can tuck.");
-        else if (slot.AllowSlideCarry || slot.PreserveMomentumOnStart)
+            d.Error("capability.unknown", path, "A tuck or ride move needs the character's shell block.");
+        else if (!IsSpecial(canonicalId))
+            d.Error("value.out-of-range", path, "Only specials (A, E, R, F) can tuck or ride.");
+        else if (slot.ShellPolicy == ShellPolicy.Tuck && (slot.AllowSlideCarry || slot.PreserveMomentumOnStart))
             d.Error("capability.ambiguous", path, "A tuck move already keeps her momentum: leave allowSlideCarry and preserveMomentumOnStart off.");
+    }
+
+    internal static bool IsSpecial(string slotId)
+        => slotId.EndsWith(".A", StringComparison.Ordinal) || slotId.EndsWith(".E", StringComparison.Ordinal)
+            || slotId.EndsWith(".R", StringComparison.Ordinal) || slotId.EndsWith(".F", StringComparison.Ordinal);
+
+    /// <summary>
+    /// Shared by the compiler and the cooked loader, over the canonical slots: a splash exists exactly when some slot
+    /// tucks, a ride exactly when some slot rides, and every riding slot is one special with its ground/air variants.
+    /// </summary>
+    internal static string? ShellPairingError(bool hasSplash, bool hasRide, IEnumerable<(string Id, ShellPolicy Policy)> slots)
+    {
+        var list = slots.ToList();
+        if (hasSplash != list.Any(slot => slot.Policy == ShellPolicy.Tuck))
+            return "The shell's splash exists exactly when a slot tucks.";
+        var riders = list.Where(slot => slot.Policy == ShellPolicy.Ride).Select(slot => slot.Id[^1]).Distinct().Count();
+        if (hasRide != riders > 0)
+            return "The shell's ride exists exactly when a slot rides.";
+        return riders > 1 ? "Only one special (and its air or ground variant) can ride." : null;
+    }
+
+    /// <summary>A ride move's shape, shared by the compiler and the cooked loader; null when admissible.</summary>
+    internal static string? RideSlotError(int stages, ushort iasaTicks, bool otherOperations)
+        => stages != 1 || iasaTicks != 0 || otherOperations
+            ? "A ride move is one stage with IASA disabled and only presentation, startup aim correction and gravity windows: the ride is the shell's."
+            : null;
+
+    /// <summary>The cannonball slot's shape, shared by the compiler and the cooked loader; null when admissible.</summary>
+    internal static string? CannonballSlotError(int cannonballs, int stages, ushort tick, AuthoringAbilityBehavior behavior,
+        AuthoringAimMode aim, ushort iasaTicks, ShellPolicy shellPolicy, ushort durationTicks, bool otherOperations,
+        CookedCannonballCapabilityParameters? parameters)
+    {
+        if (cannonballs != 1 || stages != 1 || tick != 0 || behavior != AuthoringAbilityBehavior.MeleeCombo
+            || aim != AuthoringAimMode.None || iasaTicks != 0 || otherOperations)
+            return "Cannonball requires one tick-zero lifecycle in one meleeCombo stage with no aim and IASA disabled, and only presentation alongside it.";
+        if (shellPolicy != ShellPolicy.Tuck)
+            return "A cannonball tucks: the shell's splash lands it.";
+        if (parameters == null)
+            return "Cannonball parameters are missing.";
+        return parameters.TakeoffTick + parameters.MaxFlightTicks >= durationTicks
+            ? "The cannonball's stage must outlast its takeoff and longest flight." : null;
+    }
+
+    /// <summary>Bounds shared by the compiler and the cooked loader; null when the cannonball is admissible.</summary>
+    internal static string? CannonballBoundsError(CookedCannonballCapabilityParameters x)
+    {
+        if (!AllFinite(x.MaxRange, x.NoTargetDistance, x.MaxLaunchSpeed)) return "Cannonball values must be finite.";
+        if (x.TakeoffTick > 60) return "takeoffTick must be 0 to 60.";
+        if (!(x.NoTargetDistance > 0f && x.NoTargetDistance <= x.MaxRange && x.MaxRange <= 30f))
+            return "Ranges need 0 < noTargetDistance <= maxRange <= 30.";
+        if (x.MinFlightTicks < 2 || x.MinFlightTicks > x.MaxFlightTicks || x.MaxFlightTicks > 240)
+            return "Flight ticks need 2 <= minFlightTicks <= maxFlightTicks <= 240.";
+        if (!(x.MaxLaunchSpeed > 0f && x.MaxLaunchSpeed <= 60f)) return "maxLaunchSpeed must be above 0 and at most 60.";
+        return null;
     }
 
     /// <summary>Bounds shared by the compiler and the cooked loader; null when the shell is admissible.</summary>
     internal static string? ShellBoundsError(CookedShellDefinition x)
     {
-        if (!AllFinite(x.MinSkateSpeed, x.MaxSkateSpeed, x.LandingSpeedRatio, x.PopOutDeceleration, x.BlockedRecoilSpeed))
-            return "Shell values must be finite.";
-        if (x.SkateTicks == 0 || x.SkateTicks > 600) return "skateTicks must be 1 to 600.";
-        if (!(x.MinSkateSpeed > 0f && x.MinSkateSpeed <= x.MaxSkateSpeed && x.MaxSkateSpeed <= 60f))
-            return "Skate speeds need 0 < minSkateSpeed <= maxSkateSpeed <= 60.";
-        if (!(x.LandingSpeedRatio >= 0f && x.LandingSpeedRatio <= 2f)) return "landingSpeedRatio must be 0 to 2.";
+        if (!AllFinite(x.PopOutDeceleration, x.BlockedRecoilSpeed)) return "Shell values must be finite.";
         if (!(x.PopOutDeceleration >= 0f && x.PopOutDeceleration <= 600f)) return "popOutDeceleration must be 0 to 600.";
         if (!(x.BlockedRecoilSpeed >= 0f && x.BlockedRecoilSpeed <= 30f)) return "blockedRecoilSpeed must be 0 to 30.";
-        if (x.Hitbox.StartBoneId != null || x.Hitbox.EndBoneId != null || x.Hitbox.HitGroup != 0)
-            return "The bowling hitbox is root-relative with its own hit history (no bones, hitGroup 0).";
+        if (x.Splash == null && x.Ride == null) return "A shell needs a splash, a ride or both.";
+        if (x.Splash is { } splash)
+        {
+            if (splash.Hitbox.StartBoneId != null || splash.Hitbox.EndBoneId != null || splash.Hitbox.HitGroup != 0)
+                return "The splash hitbox is root-relative with its own hit history (no bones, hitGroup 0).";
+            if (splash.PopUpTicks == 0 || splash.PopUpTicks > 240) return "splash.popUpTicks must be 1 to 240.";
+        }
+        if (x.Ride is { } ride)
+        {
+            if (!AllFinite(ride.Speed, ride.TurnDegreesPerSecond)) return "Ride values must be finite.";
+            if (ride.Ticks == 0 || ride.Ticks > 600) return "ride.ticks must be 1 to 600.";
+            if (!(ride.Speed > 0f && ride.Speed <= 60f)) return "ride.speed must be above 0 and at most 60.";
+            if (!(ride.TurnDegreesPerSecond >= 0f && ride.TurnDegreesPerSecond <= 720f))
+                return "ride.turnDegreesPerSecond must be 0 to 720.";
+            if (ride.Wave.StartBoneId != null || ride.Wave.EndBoneId != null || ride.Wave.HitGroup != 0)
+                return "The wave is root-relative with its own hit history (no bones, hitGroup 0).";
+            if (ride.Wave.StunTicks != 0 || ride.Wave.FixedHitstunTicks != 0)
+                return "The wave carries instead of stunning: stunTicks and fixedHitstunTicks are 0.";
+        }
         return null;
     }
 
@@ -650,8 +1004,10 @@ public static class CharacterPackageCompiler
         => values.All(value => !float.IsNaN(value) && !float.IsInfinity(value));
 
     private static CookedShellDefinition CookShell(ShellSource x)
-        => new(x.SkateTicks, x.MinSkateSpeed, x.MaxSkateSpeed, x.LandingSpeedRatio, x.PopOutDeceleration,
-            x.BlockedRecoilSpeed, CookHitbox(x.Hitbox), x.HitPresentationId);
+        => new(x.PopOutDeceleration, x.BlockedRecoilSpeed,
+            x.Splash == null ? null : new CookedShellSplash(CookHitbox(x.Splash.Hitbox), x.Splash.PopUpTicks, x.Splash.PresentationId),
+            x.Ride == null ? null : new CookedShellRide(x.Ride.Ticks, x.Ride.Speed, x.Ride.TurnDegreesPerSecond,
+                CookHitbox(x.Ride.Wave), x.Ride.HitPresentationId));
 
     private static void ValidateStartupAimCorrection(CharacterSlotSource slot, int slotIndex, DiagnosticBag d)
     {
@@ -792,11 +1148,6 @@ public static class CharacterPackageCompiler
         => fire is > 0 and <= 120 && recovery is > 0 and <= 240 && shots is > 0 and <= 24
             && reload is > 0 and <= 600 && fall is >= 0f and <= 30f && recoil is >= 0f and <= 30f;
 
-    internal static bool ValidBladeFlurry(float forward, ushort ascentStart, ushort ascentEnd,
-        ushort descentStart, float rise, float descent)
-        => forward is >= 0f and <= 60f && rise is > 0f and <= 60f && descent is > 0f and <= 60f
-            && ascentStart > 0 && ascentEnd >= ascentStart && descentStart > ascentEnd;
-
     private static bool IsKnownAnimation(string id, CharacterAuthoringDocument c)
         => id.StartsWith("anim.", StringComparison.Ordinal);
 
@@ -804,14 +1155,19 @@ public static class CharacterPackageCompiler
     {
         var expected = operation switch { SetVelocityOperationSource or ForwardLungeOperationSource => AuthoringUnit.MetersPerSecond, GravityWindowOperationSource => AuthoringUnit.Normalized, SpawnHitboxOperationSource => AuthoringUnit.Meters, SpawnProjectileOperationSource => AuthoringUnit.Meters, _ => AuthoringUnit.Ticks };
         if (operation.Unit != expected) d.Error("unit.unknown", "character.operation.unit", "Unit does not match operation contract.");
+        if (operation is StartCapabilityOperationSource { Parameters: var embedded }
+            && embedded switch
+            {
+                ChargedProjectileCapabilityParameters x => x.Projectile,
+                FingerGunsCapabilityParameters x => x.Projectile,
+                ChargedStreamCapabilityParameters x => x.Projectile,
+                TetherCapabilityParameters x => x.Projectile,
+                _ => null,
+            } is { } inner && (inner.Homing != null || inner.Perch != null))
+            d.Error("value.out-of-range", "character.operation.parameters.projectile",
+                "homing and perch belong to spawnProjectile operations, not to a capability's projectile.");
         switch (operation)
         {
-            case StartCapabilityOperationSource { Parameters: WibouBladeFlurryCapabilityParameters flurry }:
-                if (!ValidBladeFlurry(flurry.ForwardSpeed, flurry.AscentStartTick, flurry.AscentEndTick,
-                    flurry.DescentStartTick, flurry.RiseSpeed, flurry.DescentSpeed))
-                    d.Error("value.out-of-range", "character.operation.parameters",
-                        "Blade Flurry requires ordered ascent/descent ticks and finite speeds between zero and 60 metres per second.");
-                break;
             case StartCapabilityOperationSource capability when capability.Parameters is AimedRecoveryCapabilityParameters recovery:
                 ValidateFiniteValues(new[] { recovery.VerticalSpeed, recovery.DirectionalVerticalSpeed,
                     recovery.HorizontalSpeed, recovery.PreparationRiseSpeed, recovery.RiseSteerAcceleration }, "character.operation.parameters", d);
@@ -822,6 +1178,10 @@ public static class CharacterPackageCompiler
                     recovery.HorizontalSpeed, recovery.PreparationRiseSpeed, recovery.Hop, recovery.RiseSteerAcceleration))
                     d.Error("value.out-of-range", "character.operation.parameters",
                         "Aimed recovery needs bounded speeds, rise steering 0–120 m/s² and startup 1–120 ticks. An optional hop requires zero preparation rise, start>0, at least 4 flight ticks, contact before launch, forward/arc distances in (0,3] m and landing lift in [0,1] m.");
+                break;
+            case StartCapabilityOperationSource capability when capability.Parameters is MankiRoundBombCapabilityParameters or MankiJetpackBoostCapabilityParameters or MankiKamikazeCapabilityParameters:
+                if (MankiCapabilityBounds.Error(CookParameters(capability.Parameters)) is { } mankiError)
+                    d.Error("value.out-of-range", "character.operation.parameters", mankiError);
                 break;
             case StartCapabilityOperationSource { Parameters: MankiBazookaCapabilityParameters bazooka }:
                 ValidateFiniteValues(new[] { bazooka.HomingTurnDegPerTick }, "character.operation.parameters.homingTurnDegPerTick", d);
@@ -856,10 +1216,13 @@ public static class CharacterPackageCompiler
                 ValidateFixedHitstun(hitbox.Hitbox.FixedHitstunTicks, hitbox.Hitbox.StunTicks,
                     "character.hitbox.fixedHitstunTicks", d);
                 ValidateBoneReference(hitbox.Hitbox.StartBoneId, c, "character.hitbox.startBoneId", d); ValidateBoneReference(hitbox.Hitbox.EndBoneId, c, "character.hitbox.endBoneId", d);
+                ValidateHitPresentation(hitbox.Hitbox, c, "character.hitbox.hitPresentationId", d);
                 break;
             case SpawnProjectileOperationSource projectile:
                 if (projectile.Projectile.Return != null)
                     ValidateProjectileReturn(projectile.Projectile, c, d);
+                if (projectile.Projectile.Homing != null || projectile.Projectile.Perch != null)
+                    ValidateHomingAndPerch(projectile.Projectile, c, d);
                 ValidateFiniteValues(new[] { projectile.Projectile.LaunchOffsetX, projectile.Projectile.LaunchOffsetY, projectile.Projectile.LaunchOffsetZ, projectile.Projectile.Speed, projectile.Projectile.Gravity, projectile.Projectile.Radius, projectile.Projectile.Damage, projectile.Projectile.Angle, projectile.Projectile.BaseKnockback, projectile.Projectile.KnockbackGrowth, projectile.Projectile.YawOffsetDegrees }, "character.projectile", d);
                 ValidateNonNegative(projectile.Projectile.Speed, "character.projectile.speed", d); ValidateNonNegative(projectile.Projectile.Radius, "character.projectile.radius", d); ValidateNonNegative(projectile.Projectile.Damage, "character.projectile.damage", d); ValidateAngle(projectile.Projectile.Angle, "character.projectile.angle", d); ValidateYaw(projectile.Projectile.YawOffsetDegrees, "character.projectile.yawOffsetDegrees", d);
                 break;
@@ -871,8 +1234,25 @@ public static class CharacterPackageCompiler
             case StartCapabilityOperationSource capability when capability.Parameters is TargetedLeapCapabilityParameters leap:
                 ValidateTargetedLeap(leap, c, d);
                 break;
-            case StartCapabilityOperationSource capability when capability.Parameters is ChargedDirectionalDashCapabilityParameters dash:
-                ValidateChargedDirectionalDash(dash, c, d);
+            case StartCapabilityOperationSource capability when capability.Parameters is DashStrikeCapabilityParameters dash:
+                ValidateDashStrike(dash, c, d);
+                break;
+            case StartCapabilityOperationSource capability when capability.Parameters is CommandGrabCapabilityParameters commandGrab:
+                ValidateCapabilityHitbox(commandGrab.Capture, c, "capture", d);
+                if (CommandGrabContract.BoundsError((CookedCommandGrabCapabilityParameters)CookParameters(commandGrab)) is { } grabError)
+                    d.Error("value.out-of-range", "character.operation.parameters", grabError);
+                foreach (var (id, field) in new[] { (commandGrab.CatchPresentationId, "catchPresentationId"),
+                             (commandGrab.ReleasePresentationId, "releasePresentationId") })
+                    if (!string.IsNullOrEmpty(id) && !c.PresentationIds.Contains(id, StringComparer.Ordinal))
+                        d.Error("reference.unresolved", "character.operation.parameters." + field, "Presentation ID is not declared.");
+                break;
+            case StartCapabilityOperationSource capability when capability.Parameters is ClinchCapabilityParameters clinch:
+                ValidateCapabilityHitbox(clinch.CatchHitbox, c, "catchHitbox", d);
+                if (ClinchContract.BoundsError((CookedClinchCapabilityParameters)CookParameters(clinch)) is { } clinchError)
+                    d.Error("value.out-of-range", "character.operation.parameters", clinchError);
+                break;
+            case StartCapabilityOperationSource capability when capability.Parameters is FlashCutCapabilityParameters flash:
+                ValidateFlashCut(flash, c, d);
                 break;
             case StartCapabilityOperationSource capability when capability.Parameters is SteeredChargeCapabilityParameters charge:
                 ValidateSteeredCharge(charge, c, d);
@@ -881,6 +1261,23 @@ public static class CharacterPackageCompiler
                 if (thrust.TrailHitbox != null) ValidateCapabilityHitbox(thrust.TrailHitbox, c, "trailHitbox", d);
                 if (ThrustBoundsError((CookedThrustCapabilityParameters)CookParameters(thrust)) is { } thrustError)
                     d.Error("value.out-of-range", "character.operation.parameters", thrustError);
+                break;
+            case StartCapabilityOperationSource capability when capability.Parameters is CannonballCapabilityParameters cannonball:
+                if (CannonballBoundsError((CookedCannonballCapabilityParameters)CookParameters(cannonball)) is { } cannonballError)
+                    d.Error("value.out-of-range", "character.operation.parameters", cannonballError);
+                if (!string.IsNullOrEmpty(cannonball.LaunchPresentationId)
+                    && !c.PresentationIds.Contains(cannonball.LaunchPresentationId, StringComparer.Ordinal))
+                    d.Error("reference.unresolved", "character.operation.parameters.launchPresentationId", "Presentation ID is not declared.");
+                break;
+            case StartCapabilityOperationSource capability when capability.Parameters is TetherCapabilityParameters tether:
+                if (TetherBoundsError((CookedTetherCapabilityParameters)CookParameters(tether)) is { } tetherError)
+                    d.Error("value.out-of-range", "character.operation.parameters", tetherError);
+                foreach (var (id, field) in new[] { (tether.ThrowPresentationId, "throwPresentationId"),
+                             (tether.RetractPresentationId, "retractPresentationId"),
+                             (tether.AtTarget?.WarningPresentationId ?? "", "atTarget.warningPresentationId"),
+                             (tether.AtTarget?.CatchPresentationId ?? "", "atTarget.catchPresentationId") })
+                    if (!string.IsNullOrEmpty(id) && !c.PresentationIds.Contains(id, StringComparer.Ordinal))
+                        d.Error("reference.unresolved", "character.operation.parameters." + field, "Presentation ID is not declared.");
                 break;
             case StartCapabilityOperationSource capability when capability.Parameters is ChargedProjectileCapabilityParameters charge:
                 if (charge.MaxChargeTicks == 0 || charge.Tier2Ticks == 0 ||
@@ -928,23 +1325,6 @@ public static class CharacterPackageCompiler
                         "A stream's projectiles need a positive radius, speed and flight lifetime.");
                 ValidateOperation(new SpawnProjectileOperationSource(0, AuthoringUnit.Meters, stream.Projectile), c, d);
                 break;
-            case StartCapabilityOperationSource capability when capability.Parameters is MankiAerosolInfernoCapabilityParameters aerosol:
-                if (aerosol.ChargeTiers != null)
-                {
-                    if (aerosol.ChargeTiers.Count == 0 || aerosol.ChargeTiers[0].ChargeTicks != aerosol.MinimumChargeTicks)
-                        d.Error("value.out-of-range", "character.operation.parameters.chargeTiers", "The first charge tier must start at the minimum charge.");
-                    ushort previousTick = 0;
-                    float previousDamage = -1f, previousScale = 0f;
-                    for (int i = 0; i < aerosol.ChargeTiers.Count; i++)
-                    {
-                        var tier = aerosol.ChargeTiers[i];
-                        ValidateFiniteValues(new[] { tier.Damage, tier.ReachScale }, "character.operation.parameters.chargeTiers", d);
-                        if ((i > 0 && tier.ChargeTicks <= previousTick) || tier.Damage < 0f || tier.Damage <= previousDamage || tier.ReachScale <= previousScale)
-                            d.Error("value.out-of-range", "character.operation.parameters.chargeTiers", "Charge thresholds, damage, and positive reach scales must increase between tiers.");
-                        previousTick = tier.ChargeTicks; previousDamage = tier.Damage; previousScale = tier.ReachScale;
-                    }
-                }
-                break;
             case StartupAimCorrectionOperationSource:
                 break;
         }
@@ -952,7 +1332,7 @@ public static class CharacterPackageCompiler
 
     private static void ValidateBoneReference(string? id, CharacterAuthoringDocument c, string path, DiagnosticBag d)
     {
-        if (id != null && !c.HurtboxBoneDefs.Any(x => x.BoneId == id) && !c.AttachmentBoneIds.Contains(id, StringComparer.Ordinal))
+        if (id != null && CharacterBoneRegistry.Find(id)?.Required != true && !c.HurtboxBoneDefs.Any(x => x.BoneId == id || x.EndBoneId == id) && !c.AttachmentBoneIds.Contains(id, StringComparer.Ordinal))
             d.Error("reference.unresolved", path, "Bone ID is not declared.");
     }
     private static void ValidatePresentationPlacement(PresentationPlacement placement, CharacterAuthoringDocument c, DiagnosticBag d)
@@ -973,38 +1353,53 @@ public static class CharacterPackageCompiler
             d.Error("value.out-of-range", "character.operation.placement.attachmentMode", "Unknown presentation attachment mode.");
         if (placement.AttachmentMode == AuthoringPresentationAttachmentMode.Bone &&
             (string.IsNullOrEmpty(placement.BoneId) ||
-             (placement.BoneId != null && !c.HurtboxBoneDefs.Any(x => x.BoneId == placement.BoneId) &&
+             (placement.BoneId != null && CharacterBoneRegistry.Find(placement.BoneId)?.Required != true && !c.HurtboxBoneDefs.Any(x => x.BoneId == placement.BoneId || x.EndBoneId == placement.BoneId) &&
               !c.AttachmentBoneIds.Contains(placement.BoneId, StringComparer.Ordinal))))
             d.Error("reference.unresolved", "character.operation.placement.boneId", "Presentation bone must be a declared bone.");
     }
-    private static void ValidateChargedDirectionalDash(
-        ChargedDirectionalDashCapabilityParameters x, CharacterAuthoringDocument c, DiagnosticBag d)
+    private static void ValidateDashStrike(
+        DashStrikeCapabilityParameters x, CharacterAuthoringDocument c, DiagnosticBag d)
     {
-        if (x.MaxChargeTicks == 0 || x.Tier2Ticks == 0 ||
-            x.Tier2Ticks >= x.Tier3Ticks || x.Tier3Ticks > x.MaxChargeTicks)
-            d.Error("value.out-of-range", "character.operation.parameters.tier2Ticks",
-                "Charge thresholds must satisfy 0 < tier2Ticks < tier3Ticks <= maxChargeTicks.");
-        ValidateFiniteValues(new[] { x.MinDistance, x.MaxDistance, x.DashSpeed, x.Tier2Damage, x.Tier3Damage },
-            "character.operation.parameters", d);
-        if (x.MinDistance <= 0f || x.MaxDistance < x.MinDistance)
-            d.Error("value.out-of-range", "character.operation.parameters.minDistance",
-                "Distances must satisfy 0 < minDistance <= maxDistance.");
-        if (x.DashSpeed <= 0f)
-            d.Error("value.out-of-range", "character.operation.parameters.dashSpeed", "Dash speed must be positive.");
-        if (x.FinisherLeadTicks == 0 || x.FinisherSeekTick == 0 || x.RecoveryTicks == 0)
-            d.Error("value.out-of-range", "character.operation.parameters.finisherSeekTick",
-                "Finisher seek, lead, and recovery must be positive.");
-        if (x.Tier2Damage < x.FinisherHitbox.Damage || x.Tier3Damage < x.Tier2Damage)
-            d.Error("value.out-of-range", "character.operation.parameters.tier2Damage",
-                "Finisher and tier damage must be non-negative and nondecreasing.");
-        ValidateCapabilityHitbox(x.TraversalHitbox, c, "traversalHitbox", d);
-        if (x.TraversalHitbox.HitGroup != 0 || x.FinisherHitbox.HitGroup != 0)
-            d.Error("value.out-of-range", "character.operation.parameters.hitGroup",
-                "Traversal and finisher require independent hit histories (hitGroup 0).");
-        ValidateCapabilityHitbox(x.FinisherHitbox, c, "finisherHitbox", d);
-        if (x.FinisherHitbox.DurationTicks > (int)x.FinisherLeadTicks + x.RecoveryTicks)
-            d.Error("value.out-of-range", "character.operation.parameters.finisherHitbox.durationTicks",
-                "Finisher hitbox duration must fit within finisher lead and recovery.");
+        ValidateCapabilityHitbox(x.LightHitbox, c, "lightHitbox", d);
+        ValidateCapabilityHitbox(x.TipHitbox, c, "tipHitbox", d);
+        if (DashStrikeContract.BoundsError((CookedDashStrikeCapabilityParameters)CookParameters(x)) is { } error)
+            d.Error("value.out-of-range", "character.operation.parameters", error);
+        if (!string.IsNullOrEmpty(x.TipPresentationId) && !c.PresentationIds.Contains(x.TipPresentationId, StringComparer.Ordinal))
+            d.Error("reference.unresolved", "character.operation.parameters.tipPresentationId", "Tip presentation ID is not declared.");
+    }
+
+    private static void ValidateFlashCut(
+        FlashCutCapabilityParameters x, CharacterAuthoringDocument c, DiagnosticBag d)
+    {
+        ValidateCapabilityHitbox(x.CutHitbox, c, "cutHitbox", d);
+        var cooked = (CookedFlashCutCapabilityParameters)CookParameters(x);
+        if (FlashCutContract.BoundsError(cooked) is { } error)
+            d.Error("value.out-of-range", "character.operation.parameters", error);
+        foreach (var (id, field) in FlashCutContract.PresentationIds(cooked))
+            if (!string.IsNullOrEmpty(id) && !c.PresentationIds.Contains(id, StringComparer.Ordinal))
+                d.Error("reference.unresolved", "character.operation.parameters." + field, "Flash cut presentation ID is not declared.");
+    }
+
+    /// <summary>
+    /// The homing and perch blocks (ADR-0051). A perched projectile pops on a hit from its thrower's other form, so
+    /// it needs the second form; its pop presentation must be declared.
+    /// </summary>
+    private static void ValidateHomingAndPerch(ProjectileSource projectile, CharacterAuthoringDocument c, DiagnosticBag d)
+    {
+        var cooked = new CookedProjectile(projectile.LaunchOffsetX, projectile.LaunchOffsetY, projectile.LaunchOffsetZ,
+            projectile.Speed, projectile.Gravity, projectile.Radius, projectile.Damage, projectile.Angle,
+            projectile.BaseKnockback, projectile.KnockbackGrowth, projectile.StunTicks, projectile.MaxFlightTicks,
+            projectile.YawOffsetDegrees, projectile.Return == null ? null : new CookedProjectileReturn(0, 0f, 0f, 0f, 0),
+            ProjectilePerchContract.Cook(projectile.Homing), ProjectilePerchContract.Cook(projectile.Perch));
+        if (ProjectilePerchContract.BoundsError(cooked) is { } error)
+            d.Error("value.out-of-range", "character.projectile", error);
+        if (projectile.Perch == null) return;
+        if (c.AlternateForm == null)
+            d.Error("capability.ambiguous", "character.projectile.perch",
+                "A perched projectile pops on a hit from the thrower's other form: it needs slop.ability.forms.v1.");
+        string id = projectile.Perch.Pop.PresentationId;
+        if (id.Length > 0 && !c.PresentationIds.Contains(id, StringComparer.Ordinal))
+            d.Error("reference.unresolved", "character.projectile.perch.pop.presentationId", "Presentation ID is not declared.");
     }
 
     private static void ValidateProjectileReturn(ProjectileSource projectile, CharacterAuthoringDocument c, DiagnosticBag d)
@@ -1098,6 +1493,13 @@ public static class CharacterPackageCompiler
             d.Error("value.out-of-range", path + ".knockbackDirection", "Unknown knockback direction.");
         ValidateBoneReference(x.StartBoneId, c, path + ".startBoneId", d);
         ValidateBoneReference(x.EndBoneId, c, path + ".endBoneId", d);
+        ValidateHitPresentation(x, c, path + ".hitPresentationId", d);
+    }
+
+    private static void ValidateHitPresentation(HitboxSource x, CharacterAuthoringDocument c, string path, DiagnosticBag d)
+    {
+        if (x.HitPresentationId != null && !c.PresentationIds.Contains(x.HitPresentationId, StringComparer.Ordinal))
+            d.Error("reference.unresolved", path, "Hit presentation ID is not declared.");
     }
 
 
@@ -1178,7 +1580,17 @@ public static class CharacterPackageCompiler
     private static void ValidateIds(CharacterAuthoringDocument c, DiagnosticBag d)
     {
         var seenHurtboxBones = new HashSet<string>(StringComparer.Ordinal);
-        for (var i = 0; i < c.HurtboxBoneDefs.Count; i++) { var id = c.HurtboxBoneDefs[i].BoneId; ValidateId(id, $"character.hurtboxBoneDefs[{i}].boneId", d); if (!seenHurtboxBones.Add(id)) d.Error("id.duplicate", $"character.hurtboxBoneDefs[{i}].boneId", "Duplicate bone ID."); }
+        for (var i = 0; i < c.HurtboxBoneDefs.Count; i++)
+        {
+            var bone = c.HurtboxBoneDefs[i];
+            string path = $"character.hurtboxBoneDefs[{i}]";
+            ValidateHurtboxBoneId(bone.BoneId, path + ".boneId", d);
+            if (bone.EndBoneId != null) ValidateHurtboxBoneId(bone.EndBoneId, path + ".endBoneId", d);
+            if (!seenHurtboxBones.Add(bone.BoneId)) d.Error("id.duplicate", path + ".boneId", "Duplicate bone ID.");
+            ValidateNonNegative(bone.Radius, path + ".radius", d);
+            if (bone.EndBoneId == null && (bone.EndOffsetX != 0f || bone.EndOffsetY != 0f || bone.EndOffsetZ != 0f))
+                d.Error("reference.unresolved", path + ".endBoneId", "End offsets require an end bone.");
+        }
         var seenAttachmentBones = new HashSet<string>(StringComparer.Ordinal);
         for (var i = 0; i < c.AttachmentBoneIds.Count; i++) { var id = c.AttachmentBoneIds[i]; ValidateAttachmentId(id, $"character.attachmentBoneIds[{i}]", d); if (!seenAttachmentBones.Add(id)) d.Error("id.duplicate", $"character.attachmentBoneIds[{i}]", "Duplicate attachment bone ID."); }
         var seenPresentation = new HashSet<string>(StringComparer.Ordinal);
@@ -1203,7 +1615,9 @@ public static class CharacterPackageCompiler
             (c.Presentation.Grabbed, "grabbed"),
             (c.Presentation.ThrowForward, "throwForward"),
             (c.Presentation.AirDodge, "airDodge"),
-            (c.Presentation.Shell, "shell")
+            (c.Presentation.Shell, "shell"),
+            (c.Presentation.Flying, "flying"),
+            (c.Presentation.MayhemLaugh, "mayhemLaugh")
         })
         {
             if (string.IsNullOrEmpty(id)) continue;
@@ -1214,22 +1628,30 @@ public static class CharacterPackageCompiler
     }
 
     private static bool PresentationUsed(string id, CharacterAuthoringDocument c)
-        => c.Slots.Any(slot => slot.HitPresentationId == id)
-            || c.Shell?.HitPresentationId == id
-            || c.Slots.SelectMany(s => s.Timeline.Stages).SelectMany(s => s.Operations).Any(op =>
+        => AllSlots(c).Any(slot => slot.HitPresentationId == id)
+            || c.Shell?.Splash?.PresentationId == id || c.Shell?.Ride?.HitPresentationId == id
+            || AllSlots(c).SelectMany(s => s.Timeline.Stages).SelectMany(s => s.Operations).Any(op =>
             op is EmitPresentationOperationSource emit && emit.PresentationId == id ||
+            op is SpawnHitboxOperationSource hitbox && hitbox.Hitbox.HitPresentationId == id ||
             op is SpawnProjectileOperationSource { Projectile.Return: { } back }
                 && (back.CatchPresentationId == id || back.SelfHitPresentationId == id) ||
             op is StartCapabilityOperationSource capability && (capability.Parameters switch
             {
                 TargetedLeapCapabilityParameters p => p.LaunchPresentationId == id || p.LandingPresentationId == id,
+                CannonballCapabilityParameters p => p.LaunchPresentationId == id,
+                FlashCutCapabilityParameters p => p.LockPresentationId == id || p.RevealPresentationId == id
+                    || p.SheathePresentationId == id || p.PopPresentationId == id,
                 SteeredChargeCapabilityParameters p => p.GallopPresentationId == id || p.HitEndingPresentationId == id
                     || p.MissEndingPresentationId == id || p.AirEndingPresentationId == id,
                 MankiRoundBombCapabilityParameters p => p.ExplosionPresentationId == id,
                 MankiJetpackBoostCapabilityParameters p => p.ExplosionPresentationId == id,
+                MankiKamikazeCapabilityParameters p => p.ExplosionPresentationId == id,
                 MankiBazookaCapabilityParameters p => p.ExplosionPresentationId == id,
                 _ => false,
             }));
+
+    private static IEnumerable<CharacterSlotSource> AllSlots(CharacterAuthoringDocument c)
+        => c.AlternateForm == null ? c.Slots : c.Slots.Concat(c.AlternateForm.Slots);
 
     private static void ValidateExplosionPresentationId(TypedCapabilityParameters parameters, CharacterAuthoringDocument c, DiagnosticBag d)
     {
@@ -1237,6 +1659,7 @@ public static class CharacterPackageCompiler
         {
             MankiRoundBombCapabilityParameters x => x.ExplosionPresentationId,
             MankiJetpackBoostCapabilityParameters x => x.ExplosionPresentationId,
+            MankiKamikazeCapabilityParameters x => x.ExplosionPresentationId,
             MankiBazookaCapabilityParameters x => x.ExplosionPresentationId,
             _ => "",
         };
@@ -1250,7 +1673,7 @@ public static class CharacterPackageCompiler
     {
         var floats = new List<float> { c.Weight, c.CapsuleRadius, c.CapsuleHeight, c.HipHeight, c.HurtboxRadius, c.ShieldRadius, c.Movement.AirDodgeSpeed, c.Presentation.LandStartOffsetSeconds, c.Presentation.VisualScale, c.Presentation.HurtboxBoneScale, c.Presentation.ModelYOffset, c.Presentation.ModelSoleOffset };
         floats.AddRange(c.HurtboxCapsules.SelectMany(x => new[] { x.StartX, x.StartY, x.StartZ, x.EndX, x.EndY, x.EndZ, x.Radius }));
-        floats.AddRange(c.HurtboxBoneDefs.SelectMany(x => new[] { x.OffsetX, x.OffsetY, x.OffsetZ, x.Radius }));
+        floats.AddRange(c.HurtboxBoneDefs.SelectMany(x => new[] { x.OffsetX, x.OffsetY, x.OffsetZ, x.Radius, x.EndOffsetX, x.EndOffsetY, x.EndOffsetZ }));
         foreach (var value in floats) if (float.IsNaN(value) || float.IsInfinity(value)) d.Error("value.non-finite", "character", "Numeric value must be finite.");
         if (c.Movement.AirDodgeSpeed <= 0f) d.Error("value.out-of-range", "character.movement.airDodgeSpeed", "Air-dodge speed must be greater than zero.");
     }
@@ -1321,7 +1744,8 @@ public static class CharacterPackageCompiler
             EmitPresentationOperationSource x => x with { },
             StartupAimCorrectionOperationSource x => x with { },
             CompleteTimelineOperationSource x => x with { },
-            _ => throw new InvalidDataException("Unknown operation.")
+            SwapFormOperationSource x => x with { },
+        _ => throw new InvalidDataException("Unknown operation.")
         };
 
     private static TypedCapabilityParameters CloneParameters(TypedCapabilityParameters p)
@@ -1333,20 +1757,24 @@ public static class CharacterPackageCompiler
             ChargedStreamCapabilityParameters x => x with { Projectile = x.Projectile with { } },
             FingerGunsCapabilityParameters x => x with { Projectile = x.Projectile with { } },
             CycloneKickCapabilityParameters x => x with { },
-            ChargedDirectionalDashCapabilityParameters x => x with
+            DashStrikeCapabilityParameters x => x with
             {
-                TraversalHitbox = x.TraversalHitbox with { },
-                FinisherHitbox = x.FinisherHitbox with { }
+                LightHitbox = x.LightHitbox with { },
+                TipHitbox = x.TipHitbox with { }
             },
             WibouRisingSlashCapabilityParameters x => x with { },
-            WibouBladeFlurryCapabilityParameters x => x with { },
+            FlashCutCapabilityParameters x => x with { CutHitbox = x.CutHitbox with { } },
             TargetedLeapCapabilityParameters x => x with { Hitbox = x.Hitbox with { } },
             SteeredChargeCapabilityParameters x => x with { LanceHitbox = x.LanceHitbox with { } },
             ThrustCapabilityParameters x => x with { TrailHitbox = x.TrailHitbox == null ? null : x.TrailHitbox with { } },
+            TetherCapabilityParameters x => x with { Projectile = x.Projectile == null ? null : x.Projectile with { }, AtTarget = x.AtTarget == null ? null : x.AtTarget with { } },
+            ClinchCapabilityParameters x => x with { CatchHitbox = x.CatchHitbox with { } },
+            CommandGrabCapabilityParameters x => x with { Capture = x.Capture with { } },
+            CannonballCapabilityParameters x => x with { },
             MankiRoundBombCapabilityParameters x => x with { },
             MankiJetpackBoostCapabilityParameters x => x with { },
+            MankiKamikazeCapabilityParameters x => x with { },
             MankiBazookaCapabilityParameters x => x with { },
-            MankiAerosolInfernoCapabilityParameters x => x with { ChargeTiers = x.ChargeTiers?.Select(tier => tier with { }).ToArray() },
             _ => throw new InvalidDataException("Unknown capability parameters.")
         };
 
@@ -1372,14 +1800,18 @@ public static class CharacterPackageCompiler
                     case ArmorWindowOperationSource x: cookedOps.Add(new CookedArmorWindowOperation(x.Tick, x.Unit, x.DurationTicks)); break;
                     case SpawnHitboxOperationSource x: hitboxes++; cookedOps.Add(new CookedSpawnHitboxOperation(x.Tick, x.Unit, CookHitbox(x.Hitbox))); break;
                     case SpawnProjectileOperationSource x: projectiles++; cookedOps.Add(new CookedSpawnProjectileOperation(x.Tick, x.Unit, new CookedProjectile(x.Projectile.LaunchOffsetX, x.Projectile.LaunchOffsetY, x.Projectile.LaunchOffsetZ, x.Projectile.Speed, x.Projectile.Gravity, x.Projectile.Radius, x.Projectile.Damage, x.Projectile.Angle, x.Projectile.BaseKnockback, x.Projectile.KnockbackGrowth, x.Projectile.StunTicks, x.Projectile.MaxFlightTicks, x.Projectile.YawOffsetDegrees,
-                        x.Projectile.Return is { } back ? new CookedProjectileReturn(back.OutboundTicks, back.ReturnSpeed, back.ReturnAcceleration, back.SelfHitDamage, back.SelfHitStunTicks, back.CatchPresentationId, back.SelfHitPresentationId) : null))); break;
+                        x.Projectile.Return is { } back ? new CookedProjectileReturn(back.OutboundTicks, back.ReturnSpeed, back.ReturnAcceleration, back.SelfHitDamage, back.SelfHitStunTicks, back.CatchPresentationId, back.SelfHitPresentationId) : null,
+                        ProjectilePerchContract.Cook(x.Projectile.Homing), ProjectilePerchContract.Cook(x.Projectile.Perch)))); break;
                     case SetAimStateOperationSource x: cookedOps.Add(new CookedSetAimStateOperation(x.Tick, x.Unit, x.AimState)); break;
                     case StartCapabilityOperationSource x:
                         capabilities++;
                         if (x.Parameters is TargetedLeapCapabilityParameters or SteeredChargeCapabilityParameters
                             or ThrustCapabilityParameters { TrailHitbox: not null }) hitboxes++;
-                        else if (x.Parameters is ChargedDirectionalDashCapabilityParameters) hitboxes += 2;
-                        else if (x.Parameters is ChargedProjectileCapabilityParameters) projectiles++;
+                        else if (x.Parameters is DashStrikeCapabilityParameters) hitboxes += 2;
+                        else if (x.Parameters is FlashCutCapabilityParameters or ClinchCapabilityParameters
+                                 or CommandGrabCapabilityParameters) hitboxes++;
+                        else if (x.Parameters is ChargedProjectileCapabilityParameters or TetherCapabilityParameters { AtTarget: null }) projectiles++;
+                        else if (x.Parameters is TetherCapabilityParameters) hitboxes++;
                         cookedOps.Add(new CookedStartCapabilityOperation(x.Tick, x.Unit, x.CapabilityId, x.CapabilityVersion, CookParameters(x.Parameters)));
                         break;
                     case StartupAimCorrectionOperationSource x:
@@ -1388,8 +1820,9 @@ public static class CharacterPackageCompiler
                             x.AcquisitionHalfAngleDegrees, x.MaxYawDegrees, x.MaxPitchDegrees,
                             x.YawDegreesPerSecond, x.PitchDegreesPerSecond));
                         break;
-                    case EmitPresentationOperationSource x: cookedOps.Add(new CookedEmitPresentationOperation(x.Tick, x.Unit, x.PresentationId, cookedOperationOrdinal, x.Placement)); break;
+                    case EmitPresentationOperationSource x: cookedOps.Add(new CookedEmitPresentationOperation(x.Tick, x.Unit, x.PresentationId, cookedOperationOrdinal, x.Placement, x.Condition)); break;
                     case CompleteTimelineOperationSource x: cookedOps.Add(new CookedCompleteTimelineOperation(x.Tick, x.Unit)); break;
+                    case SwapFormOperationSource x: cookedOps.Add(new CookedSwapFormOperation(x.Tick, x.Unit)); break;
                 }
             }
             cookedStages.Add(new CookedStage(stage.DurationTicks, stage.IasaTicks, stage.LandingLagTicks, stage.AutoCancelBeforeTicks, stage.AutoCancelAfterTicks, stage.AnimationIds.OrderBy(x => x, StringComparer.Ordinal).ToList(), cookedOps, stage.AttackRange, stage.WarpRange, stage.UseTargetLock, stage.RotateTowardTarget, stage.TrackingStrength));
@@ -1401,7 +1834,7 @@ public static class CharacterPackageCompiler
         => new(x.Shape, x.Radius, x.OffsetX, x.OffsetY, x.OffsetZ, x.EndOffsetX, x.EndOffsetY,
             x.EndOffsetZ, x.StartBoneId, x.EndBoneId, x.Damage, x.Angle, x.BaseKnockback,
             x.KnockbackGrowth, x.StunTicks, x.DurationTicks, x.Interruptible, x.HitGroup,
-            x.KnockbackDirection, x.FixedHitstunTicks);
+            x.KnockbackDirection, x.FixedHitstunTicks, x.HitPresentationId, x.RequiresFacingOwner);
 
     private static CookedCapabilityParameters CookParameters(TypedCapabilityParameters p) => p switch
     {
@@ -1430,24 +1863,46 @@ public static class CharacterPackageCompiler
                 x.Projectile.BaseKnockback, x.Projectile.KnockbackGrowth, x.Projectile.StunTicks,
                 x.Projectile.MaxFlightTicks, x.Projectile.YawOffsetDegrees)),
         RisingDragonCapabilityParameters x => new CookedRisingDragonCapabilityParameters(x.RiseSpeed, x.RiseTicks, x.RiseDelay),
-        CycloneKickCapabilityParameters x => new CookedCycloneKickCapabilityParameters(x.ForwardSpeed, x.WindupTicks, x.HitboxEndTick, x.DurationTicks, x.BodyRadius, x.SideRadius, x.SideOffset, x.Damage, x.KnockbackAngle, x.KnockbackBase, x.KnockbackGrowth, x.StunTicks, x.BodyY, x.SideY),
-        ChargedDirectionalDashCapabilityParameters x => new CookedChargedDirectionalDashCapabilityParameters(
-            x.MaxChargeTicks, x.Tier2Ticks, x.Tier3Ticks, x.MinDistance, x.MaxDistance, x.DashSpeed,
-            x.FinisherLeadTicks, x.FinisherSeekTick, x.RecoveryTicks, x.Tier2Damage, x.Tier3Damage,
-            CookHitbox(x.TraversalHitbox), CookHitbox(x.FinisherHitbox)),
+        CycloneKickCapabilityParameters x => new CookedCycloneKickCapabilityParameters(x.ForwardSpeed, x.WindupTicks, x.HitboxEndTick, x.DurationTicks, x.BodyRadius, x.SideRadius, x.SideOffset, x.Damage, x.KnockbackAngle, x.KnockbackBase, x.KnockbackGrowth, x.StunTicks, x.BodyY, x.SideY, x.HitIntervalTicks, x.FixedHitstunTicks, x.FinisherTick, x.FinisherDamage, x.FinisherKnockbackAngle, x.FinisherKnockbackBase, x.FinisherKnockbackGrowth),
+        DashStrikeCapabilityParameters x => new CookedDashStrikeCapabilityParameters(
+            x.Distance, x.Speed, x.TipPoseTick, x.RecoveryTicks,
+            CookHitbox(x.LightHitbox), CookHitbox(x.TipHitbox), x.TipPresentationId),
         WibouRisingSlashCapabilityParameters x => new CookedWibouRisingSlashCapabilityParameters(x.RiseSpeed, x.RiseTicks, x.HomingRange, x.HomingSpeed),
-        WibouBladeFlurryCapabilityParameters x => new CookedWibouBladeFlurryCapabilityParameters(x.ForwardSpeed, x.AscentStartTick, x.AscentEndTick, x.DescentStartTick, x.RiseSpeed, x.DescentSpeed),
+        FlashCutCapabilityParameters x => new CookedFlashCutCapabilityParameters(
+            x.StanceTicks, x.LockRange, x.MaxTargets, x.LegTicks, x.PassThroughDistance, x.SheatheTicks,
+            x.RevealLeadTicks, x.RecoveryTicks, x.WhiffTicks, CookHitbox(x.CutHitbox),
+            x.StanceAnimationId, x.LegAnimationId, x.SheatheAnimationId,
+            x.LockPresentationId, x.RevealPresentationId, x.SheathePresentationId, x.PopPresentationId),
         TargetedLeapCapabilityParameters x => new CookedTargetedLeapCapabilityParameters(x.MaxAimTicks, x.MaxFlightTicks, x.MinRange, x.MaxRange, x.LaunchVerticalSpeed, x.LandingSeekTick, x.RecoveryTicks, CookHitbox(x.Hitbox), x.LaunchPresentationId, x.LandingPresentationId),
+        TetherCapabilityParameters x => new CookedTetherCapabilityParameters(x.ThrowTick,
+            x.Projectile is not { } ring ? null : new CookedProjectile(ring.LaunchOffsetX, ring.LaunchOffsetY, ring.LaunchOffsetZ,
+                ring.Speed, ring.Gravity, ring.Radius, ring.Damage, ring.Angle,
+                ring.BaseKnockback, ring.KnockbackGrowth, ring.StunTicks,
+                ring.MaxFlightTicks, ring.YawOffsetDegrees,
+                ring.Return is { } back ? new CookedProjectileReturn(back.OutboundTicks, back.ReturnSpeed,
+                    back.ReturnAcceleration, back.SelfHitDamage, back.SelfHitStunTicks) : null),
+            x.ReelSpeed, x.AnchorDistance, x.ArrivalStunTicks, x.MaxReelTicks, x.RetractSpeed, x.MissRecoveryTicks,
+            x.AirGravityScale, x.ReelAnimationId, x.RetractAnimationId, x.ThrowPresentationId, x.RetractPresentationId,
+            x.AtTarget is not { } at ? null : new CookedTetherAtTarget(at.WarningTicks, at.CatchTicks, at.Radius,
+                at.Height, at.Damage, at.MaxRange, at.NoTargetDistance, at.WarningPresentationId, at.CatchPresentationId)),
+        ClinchCapabilityParameters x => new CookedClinchCapabilityParameters(x.LungeDistance, x.LungeSpeed,
+            CookHitbox(x.CatchHitbox), x.AnchorDistance, x.WhiffRecoveryTicks, x.ReleaseTick, x.ReleaseLockTicks),
+        CommandGrabCapabilityParameters x => new CookedCommandGrabCapabilityParameters(x.LungeTicks, x.LungeSpeed,
+            x.StopDistance, x.CaptureTick, CookHitbox(x.Capture), x.ReleaseTick,
+            new CookedGrabLaunch(x.Launch.Damage, x.Launch.Angle, x.Launch.BaseKnockback, x.Launch.KnockbackGrowth,
+                x.Launch.StunTicks), x.CatchPresentationId, x.ReleasePresentationId),
+        CannonballCapabilityParameters x => new CookedCannonballCapabilityParameters(x.TakeoffTick, x.MaxRange,
+            x.NoTargetDistance, x.MinFlightTicks, x.MaxFlightTicks, x.MaxLaunchSpeed, x.LaunchPresentationId),
         ThrustCapabilityParameters x => new CookedThrustCapabilityParameters(x.Aim, x.TargetConeDegrees, x.NeutralPitchDegrees,
             x.StickPitchDegrees, x.Speed, x.Acceleration, x.MaxSpeed, x.KeepIncomingSpeed, x.ThrustTicks,
             x.TrailHitbox == null ? null : CookHitbox(x.TrailHitbox)),
         SteeredChargeCapabilityParameters x => new CookedSteeredChargeCapabilityParameters(x.GallopSpeed, x.TurnDegreesPerSecond, x.MaxGallopTicks, x.Armored, CookHitbox(x.LanceHitbox), x.HitEndingTicks, x.MissEndingTicks, x.SkidTicks, x.TurnAroundOnMiss, x.AirStrideTicks, x.LookDownTicks, x.GallopAnimationId, x.GallopLoopTicks, x.HitEndingAnimationId, x.MissEndingAnimationId, x.AirEndingAnimationId, x.GallopPresentationId, x.HitEndingPresentationId, x.MissEndingPresentationId, x.AirEndingPresentationId),
-        MankiRoundBombCapabilityParameters x => new CookedMankiRoundBombCapabilityParameters(x.ThrowTriggerTick, x.MaxRange, x.LaunchAngle, x.Gravity, x.HitboxRadius, x.Damage, x.StunTicks, x.MaxFlightTicks, x.KbAngle, x.ExplosionDamage, x.ExplosionRadius, x.ExplosionKbBase, x.ExplosionKbGrowth, x.ExplosionStunTicks, x.ExplosionDurationTicks, x.ExplosionKbAngle, x.ExplosionPresentationId),
-        MankiJetpackBoostCapabilityParameters x => new CookedMankiJetpackBoostCapabilityParameters(x.StartupTicks, x.VerticalSpeed, x.HorizontalSpeed, x.ExplosionRadius, x.ExplosionDamage, x.ExplosionKbAngle, x.ExplosionKbBase, x.ExplosionKbGrowth, x.ExplosionStunTicks, x.ExplosionDurationTicks, x.ExplosionPresentationId),
+        MankiRoundBombCapabilityParameters x => new CookedMankiRoundBombCapabilityParameters(x.FuseTicks, x.MaxFlightTicks, x.Gravity, x.HitboxRadius, x.HopBackSpeed, x.HopUpSpeed, x.ExplosionDamage, x.ExplosionRadius, x.ExplosionKbBase, x.ExplosionKbGrowth, x.ExplosionStunTicks, x.ExplosionDurationTicks, x.ExplosionKbAngle, x.SelfPushSpeed, x.ExplosionPresentationId),
+        MankiJetpackBoostCapabilityParameters x => new CookedMankiJetpackBoostCapabilityParameters(x.StartupTicks, x.VerticalSpeed, x.HorizontalSpeed, x.ExplosionRadius, x.ExplosionDamage, x.ExplosionKbAngle, x.ExplosionKbBase, x.ExplosionKbGrowth, x.ExplosionStunTicks, x.ExplosionDurationTicks, x.ExplosionPresentationId, x.FuelTicks, x.SinkSpeed, x.JumpBurstSpeed, x.JumpBurstTicks),
+        MankiKamikazeCapabilityParameters x => new CookedMankiKamikazeCapabilityParameters(x.RunTicks, x.Speed, x.ContactRadius, x.ExplosionDamage, x.ExplosionRadius, x.ExplosionKbBase, x.ExplosionKbGrowth, x.ExplosionStunTicks, x.ExplosionDurationTicks, x.ExplosionKbAngle, x.SelfPushSpeed, x.ExplosionPresentationId),
         MankiBazookaCapabilityParameters x => new CookedMankiBazookaCapabilityParameters(x.FireTriggerTick, x.ProjectileSpeed, x.HitboxRadius, x.Damage, x.Gravity, x.MaxFlightTicks, x.StunTicks, x.ExplosionRadius, x.KbAngle, x.ExplosionKbBase, x.ExplosionKbGrowth, x.ExplosionStunTicks, x.ExplosionDurationTicks, x.ExplosionKbAngle, x.CastDuration, x.RecoveryDuration, x.HomingTurnDegPerTick,
             (float)Math.Cos(x.HomingTurnDegPerTick * Math.PI / 180d),
             (float)Math.Sin(x.HomingTurnDegPerTick * Math.PI / 180d), x.ExplosionPresentationId),
-        MankiAerosolInfernoCapabilityParameters x => new CookedMankiAerosolInfernoCapabilityParameters(x.FireTriggerTick, x.FireDurationTicks, x.HitboxDurationTicks, x.HitboxRadius, x.OffsetY, x.OffsetZ, x.EndOffsetZ, x.Damage, x.KnockbackAngle, x.KnockbackBase, x.KnockbackGrowth, x.StunTicks, x.HitGroup, x.MinimumChargeTicks, x.ChargeTiers == null ? null : Array.AsReadOnly(x.ChargeTiers.Select(tier => tier with { }).ToArray())),
         _ => throw new InvalidDataException("Unknown capability parameters.")
     };
 
@@ -1456,7 +1911,7 @@ public static class CharacterPackageCompiler
         => new(x.Idle, x.Run, x.Dash, x.Jump, x.Fall, x.HitSmall, x.HitMedium, x.HitHard,
             x.LandStartOffsetSeconds, x.ModelResourcePath, x.VisualScale, x.HurtboxBoneScale,
             x.ModelYOffset, x.ModelSoleOffset, x.AutoModelYOffset, x.Tumble, x.Crouch, x.Slide,
-            x.Shield, x.Grab, x.Grabbed, x.ThrowForward, x.AirDodge, x.Shell);
+            x.Shield, x.Grab, x.Grabbed, x.ThrowForward, x.AirDodge, x.Shell, x.Flying, x.MayhemLaugh);
     private static CookedCaptureGeometry CookCaptureGeometry(CharacterCaptureGeometrySource x)
         => new(x.Reach, x.Width, x.Height, x.OffsetY,
             new CaptureAnchor(x.AttackerAnchor.X, x.AttackerAnchor.Y, x.AttackerAnchor.Z),
@@ -1472,12 +1927,14 @@ public static class CharacterPackageCompiler
             writer.WritePropertyName("character"); writer.WriteStartObject(); writer.WriteString("displayName", definition.DisplayName); Number(writer, "weight", definition.Weight); WriteMovement(writer, definition.Movement); WritePresentation(writer, definition.Presentation); Number(writer, "capsuleRadius", definition.CapsuleRadius); Number(writer, "capsuleHeight", definition.CapsuleHeight); Number(writer, "hipHeight", definition.HipHeight); Number(writer, "hurtboxRadius", definition.HurtboxRadius); Number(writer, "shieldRadius", definition.ShieldRadius);
             WriteCaptureGeometry(writer, definition.CaptureGeometry);
             writer.WritePropertyName("hurtboxCapsules"); writer.WriteStartArray(); foreach (var x in definition.HurtboxCapsules) { writer.WriteStartObject(); Number(writer, "startX", x.StartX); Number(writer, "startY", x.StartY); Number(writer, "startZ", x.StartZ); Number(writer, "endX", x.EndX); Number(writer, "endY", x.EndY); Number(writer, "endZ", x.EndZ); Number(writer, "radius", x.Radius); writer.WriteEndObject(); } writer.WriteEndArray();
-            writer.WritePropertyName("hurtboxBoneDefs"); writer.WriteStartArray(); foreach (var x in definition.HurtboxBoneDefs.OrderBy(x => x.BoneId, StringComparer.Ordinal)) { writer.WriteStartObject(); writer.WriteString("boneId", x.BoneId); Number(writer, "offsetX", x.OffsetX); Number(writer, "offsetY", x.OffsetY); Number(writer, "offsetZ", x.OffsetZ); Number(writer, "radius", x.Radius); writer.WriteEndObject(); } writer.WriteEndArray();
+            writer.WritePropertyName("hurtboxBoneDefs"); writer.WriteStartArray(); foreach (var x in definition.HurtboxBoneDefs.OrderBy(x => x.BoneId, StringComparer.Ordinal)) { writer.WriteStartObject(); writer.WriteString("boneId", x.BoneId); Number(writer, "offsetX", x.OffsetX); Number(writer, "offsetY", x.OffsetY); Number(writer, "offsetZ", x.OffsetZ); Number(writer, "radius", x.Radius); if (x.EndBoneId != null) writer.WriteString("endBoneId", x.EndBoneId); Number(writer, "endOffsetX", x.EndOffsetX); Number(writer, "endOffsetY", x.EndOffsetY); Number(writer, "endOffsetZ", x.EndOffsetZ); writer.WriteEndObject(); } writer.WriteEndArray();
             writer.WritePropertyName("attachmentBoneIds"); writer.WriteStartArray(); foreach (var x in definition.AttachmentBoneIds) writer.WriteStringValue(x); writer.WriteEndArray();
             writer.WritePropertyName("presentationIds"); writer.WriteStartArray(); foreach (var x in definition.PresentationIds) writer.WriteStringValue(x); writer.WriteEndArray();
             writer.WritePropertyName("capabilityRequirements"); writer.WriteStartArray(); foreach (var x in definition.CapabilityRequirements) { writer.WriteStartObject(); writer.WriteString("capabilityId", x.CapabilityId); writer.WriteString("capabilityVersion", x.CapabilityVersion); writer.WriteEndObject(); } writer.WriteEndArray();
             if (definition.Shell != null) WriteShell(writer, definition.Shell);
-            writer.WritePropertyName("slots"); writer.WriteStartArray(); foreach (var x in definition.Slots.OrderBy(x => x.Ordinal)) WriteSlot(writer, x); writer.WriteEndArray(); writer.WriteEndObject();
+            writer.WritePropertyName("slots"); writer.WriteStartArray(); foreach (var x in definition.Slots.OrderBy(x => x.Ordinal)) WriteSlot(writer, x); writer.WriteEndArray();
+            if (definition.AlternateForm != null) WriteAlternateForm(writer, definition.AlternateForm);
+            writer.WriteEndObject();
             writer.WritePropertyName("budget"); writer.WriteStartObject(); writer.WriteNumber("slotCount", budget.SlotCount); writer.WriteNumber("stageCount", budget.StageCount); writer.WriteNumber("operationCount", budget.OperationCount); writer.WriteNumber("hitboxCount", budget.HitboxCount); writer.WriteNumber("projectileCount", budget.ProjectileCount); writer.WriteNumber("capabilityCount", budget.CapabilityCount); writer.WriteNumber("maxTimelineDurationTicks", budget.MaxTimelineDurationTicks); writer.WriteEndObject(); writer.WriteEndObject(); writer.Flush();
         }
         return stream.ToArray();
@@ -1505,6 +1962,8 @@ public static class CharacterPackageCompiler
         if (!string.IsNullOrEmpty(x.ThrowForward)) w.WriteString("throwForward", x.ThrowForward);
         if (!string.IsNullOrEmpty(x.AirDodge)) w.WriteString("airDodge", x.AirDodge);
         if (!string.IsNullOrEmpty(x.Shell)) w.WriteString("shell", x.Shell);
+        if (!string.IsNullOrEmpty(x.Flying)) w.WriteString("flying", x.Flying);
+        if (!string.IsNullOrEmpty(x.MayhemLaugh)) w.WriteString("mayhemLaugh", x.MayhemLaugh);
         Number(w, "landStartOffsetSeconds", x.LandStartOffsetSeconds);
         w.WriteString("modelResourcePath", x.ModelResourcePath);
         Number(w, "visualScale", x.VisualScale);
@@ -1515,18 +1974,48 @@ public static class CharacterPackageCompiler
         w.WriteEndObject();
     }
 
+    private static void WriteAlternateForm(Utf8JsonWriter w, CookedAlternateForm x)
+    {
+        w.WritePropertyName("alternateForm");
+        w.WriteStartObject();
+        w.WriteString("id", x.Id);
+        w.WriteString("displayName", x.DisplayName);
+        WriteMovement(w, x.Movement);
+        w.WritePropertyName("presentation");
+        w.WriteStartObject();
+        foreach (var (name, id) in x.Presentation.Roles)
+            if (!string.IsNullOrEmpty(id)) w.WriteString(name, id);
+        w.WriteEndObject();
+        w.WritePropertyName("slots"); w.WriteStartArray(); foreach (var slot in x.Slots.OrderBy(slot => slot.Ordinal)) WriteSlot(w, slot); w.WriteEndArray();
+        w.WriteEndObject();
+    }
+
     private static void WriteShell(Utf8JsonWriter w, CookedShellDefinition x)
     {
         w.WritePropertyName("shell");
         w.WriteStartObject();
-        w.WriteNumber("skateTicks", x.SkateTicks);
-        Number(w, "minSkateSpeed", x.MinSkateSpeed);
-        Number(w, "maxSkateSpeed", x.MaxSkateSpeed);
-        Number(w, "landingSpeedRatio", x.LandingSpeedRatio);
         Number(w, "popOutDeceleration", x.PopOutDeceleration);
         Number(w, "blockedRecoilSpeed", x.BlockedRecoilSpeed);
-        WriteHitboxObject(w, x.Hitbox, "hitbox");
-        if (!string.IsNullOrEmpty(x.HitPresentationId)) w.WriteString("hitPresentationId", x.HitPresentationId);
+        if (x.Splash is { } splash)
+        {
+            w.WritePropertyName("splash");
+            w.WriteStartObject();
+            WriteHitboxObject(w, splash.Hitbox, "hitbox");
+            w.WriteNumber("popUpTicks", splash.PopUpTicks);
+            if (!string.IsNullOrEmpty(splash.PresentationId)) w.WriteString("presentationId", splash.PresentationId);
+            w.WriteEndObject();
+        }
+        if (x.Ride is { } ride)
+        {
+            w.WritePropertyName("ride");
+            w.WriteStartObject();
+            w.WriteNumber("ticks", ride.Ticks);
+            Number(w, "speed", ride.Speed);
+            Number(w, "turnDegreesPerSecond", ride.TurnDegreesPerSecond);
+            WriteHitboxObject(w, ride.Wave, "wave");
+            if (!string.IsNullOrEmpty(ride.HitPresentationId)) w.WriteString("hitPresentationId", ride.HitPresentationId);
+            w.WriteEndObject();
+        }
         w.WriteEndObject();
     }
 
@@ -1573,6 +2062,7 @@ public static class CharacterPackageCompiler
         w.WriteBoolean("allowSlideCarry", x.AllowSlideCarry);
         if (!string.IsNullOrEmpty(x.HitPresentationId)) w.WriteString("hitPresentationId", x.HitPresentationId);
         if (x.ShellPolicy != ShellPolicy.PopOut) w.WriteNumber("shellPolicy", (byte)x.ShellPolicy);
+        if (x.Form != 0) w.WriteNumber("form", x.Form);
         if (x.ChargePool == null) w.WriteNull("chargePool");
         else
         {
@@ -1610,6 +2100,7 @@ public static class CharacterPackageCompiler
                 w.WriteNumber("operationIndex", p.OperationIndex);
                 w.WriteString("presentationId", p.PresentationId);
                 WritePlacement(w, p.Placement);
+                if (p.Condition != AuthoringPresentationCondition.Always) w.WriteNumber("condition", (byte)p.Condition);
                 break;
             case CookedSpawnHitboxOperation h:
                 WriteHitbox(w, h.Hitbox);
@@ -1648,6 +2139,7 @@ public static class CharacterPackageCompiler
                 Number(w, "pitchDegreesPerSecond", correction.PitchDegreesPerSecond);
                 break;
             case CookedCompleteTimelineOperation:
+            case CookedSwapFormOperation:
                 break;
         }
         w.WriteEndObject();
@@ -1671,7 +2163,7 @@ public static class CharacterPackageCompiler
         w.WriteNumber("durationTicks", x.DurationTicks);
         w.WriteEndObject();
     }
-    private static void WriteHitbox(Utf8JsonWriter w, CookedHitbox x) { w.WritePropertyName("hitbox"); w.WriteStartObject(); w.WriteNumber("shape", (byte)x.Shape); Number(w, "radius", x.Radius); Number(w, "offsetX", x.OffsetX); Number(w, "offsetY", x.OffsetY); Number(w, "offsetZ", x.OffsetZ); Number(w, "endOffsetX", x.EndOffsetX); Number(w, "endOffsetY", x.EndOffsetY); Number(w, "endOffsetZ", x.EndOffsetZ); if (x.StartBoneId != null) w.WriteString("startBoneId", x.StartBoneId); else w.WriteNull("startBoneId"); if (x.EndBoneId != null) w.WriteString("endBoneId", x.EndBoneId); else w.WriteNull("endBoneId"); Number(w, "damage", x.Damage); Number(w, "angle", x.Angle); Number(w, "baseKnockback", x.BaseKnockback); Number(w, "knockbackGrowth", x.KnockbackGrowth); w.WriteNumber("stunTicks", x.StunTicks); w.WriteNumber("durationTicks", x.DurationTicks); w.WriteBoolean("interruptible", x.Interruptible); w.WriteNumber("hitGroup", x.HitGroup); w.WriteNumber("knockbackDirection", (byte)x.KnockbackDirection); if (x.FixedHitstunTicks > 0) w.WriteNumber("fixedHitstunTicks", x.FixedHitstunTicks); w.WriteEndObject(); }
+    private static void WriteHitbox(Utf8JsonWriter w, CookedHitbox x) { w.WritePropertyName("hitbox"); w.WriteStartObject(); w.WriteNumber("shape", (byte)x.Shape); Number(w, "radius", x.Radius); Number(w, "offsetX", x.OffsetX); Number(w, "offsetY", x.OffsetY); Number(w, "offsetZ", x.OffsetZ); Number(w, "endOffsetX", x.EndOffsetX); Number(w, "endOffsetY", x.EndOffsetY); Number(w, "endOffsetZ", x.EndOffsetZ); if (x.StartBoneId != null) w.WriteString("startBoneId", x.StartBoneId); else w.WriteNull("startBoneId"); if (x.EndBoneId != null) w.WriteString("endBoneId", x.EndBoneId); else w.WriteNull("endBoneId"); Number(w, "damage", x.Damage); Number(w, "angle", x.Angle); Number(w, "baseKnockback", x.BaseKnockback); Number(w, "knockbackGrowth", x.KnockbackGrowth); w.WriteNumber("stunTicks", x.StunTicks); w.WriteNumber("durationTicks", x.DurationTicks); w.WriteBoolean("interruptible", x.Interruptible); w.WriteNumber("hitGroup", x.HitGroup); w.WriteNumber("knockbackDirection", (byte)x.KnockbackDirection); if (x.FixedHitstunTicks > 0) w.WriteNumber("fixedHitstunTicks", x.FixedHitstunTicks); if (x.RequiresFacingOwner) w.WriteBoolean("requiresFacingOwner", true); if (x.HitPresentationId != null) w.WriteString("hitPresentationId", x.HitPresentationId); w.WriteEndObject(); }
     private static void WriteHitboxObject(Utf8JsonWriter w, CookedHitbox x, string name)
     {
         w.WritePropertyName(name); w.WriteStartObject();
@@ -1685,9 +2177,32 @@ public static class CharacterPackageCompiler
         w.WriteNumber("stunTicks", x.StunTicks); w.WriteNumber("durationTicks", x.DurationTicks);
         w.WriteBoolean("interruptible", x.Interruptible); w.WriteNumber("hitGroup", x.HitGroup);
         w.WriteNumber("knockbackDirection", (byte)x.KnockbackDirection);
-        w.WriteNumber("fixedHitstunTicks", x.FixedHitstunTicks); w.WriteEndObject();
+        w.WriteNumber("fixedHitstunTicks", x.FixedHitstunTicks);
+        if (x.RequiresFacingOwner) w.WriteBoolean("requiresFacingOwner", true); if (x.HitPresentationId != null) w.WriteString("hitPresentationId", x.HitPresentationId);
+        w.WriteEndObject();
     }
-    private static void WriteProjectile(Utf8JsonWriter w, CookedProjectile x) { w.WritePropertyName("projectile"); w.WriteStartObject(); Number(w, "launchOffsetX", x.LaunchOffsetX); Number(w, "launchOffsetY", x.LaunchOffsetY); Number(w, "launchOffsetZ", x.LaunchOffsetZ); Number(w, "speed", x.Speed); Number(w, "gravity", x.Gravity); Number(w, "radius", x.Radius); Number(w, "damage", x.Damage); Number(w, "angle", x.Angle); Number(w, "baseKnockback", x.BaseKnockback); Number(w, "knockbackGrowth", x.KnockbackGrowth); w.WriteNumber("stunTicks", x.StunTicks); w.WriteNumber("maxFlightTicks", x.MaxFlightTicks); Number(w, "yawOffsetDegrees", x.YawOffsetDegrees); if (x.Return is { } back) { w.WritePropertyName("return"); w.WriteStartObject(); w.WriteNumber("outboundTicks", back.OutboundTicks); Number(w, "returnSpeed", back.ReturnSpeed); Number(w, "returnAcceleration", back.ReturnAcceleration); Number(w, "selfHitDamage", back.SelfHitDamage); w.WriteNumber("selfHitStunTicks", back.SelfHitStunTicks); OptionalString(w, "catchPresentationId", back.CatchPresentationId); OptionalString(w, "selfHitPresentationId", back.SelfHitPresentationId); w.WriteEndObject(); } w.WriteEndObject(); }
+    private static void WriteProjectile(Utf8JsonWriter w, CookedProjectile x) { w.WritePropertyName("projectile"); w.WriteStartObject(); Number(w, "launchOffsetX", x.LaunchOffsetX); Number(w, "launchOffsetY", x.LaunchOffsetY); Number(w, "launchOffsetZ", x.LaunchOffsetZ); Number(w, "speed", x.Speed); Number(w, "gravity", x.Gravity); Number(w, "radius", x.Radius); Number(w, "damage", x.Damage); Number(w, "angle", x.Angle); Number(w, "baseKnockback", x.BaseKnockback); Number(w, "knockbackGrowth", x.KnockbackGrowth); w.WriteNumber("stunTicks", x.StunTicks); w.WriteNumber("maxFlightTicks", x.MaxFlightTicks); Number(w, "yawOffsetDegrees", x.YawOffsetDegrees); if (x.Return is { } back) { w.WritePropertyName("return"); w.WriteStartObject(); w.WriteNumber("outboundTicks", back.OutboundTicks); Number(w, "returnSpeed", back.ReturnSpeed); Number(w, "returnAcceleration", back.ReturnAcceleration); Number(w, "selfHitDamage", back.SelfHitDamage); w.WriteNumber("selfHitStunTicks", back.SelfHitStunTicks); OptionalString(w, "catchPresentationId", back.CatchPresentationId); OptionalString(w, "selfHitPresentationId", back.SelfHitPresentationId); w.WriteEndObject(); } WriteHomingAndPerch(w, x); w.WriteEndObject(); }
+
+    private static void WriteHomingAndPerch(Utf8JsonWriter w, CookedProjectile x)
+    {
+        if (x.Homing is { } homing)
+        {
+            w.WritePropertyName("homing"); w.WriteStartObject();
+            Number(w, "turnDegreesPerTick", homing.TurnDegreesPerTick);
+            Number(w, "turnCos", homing.TurnCos); Number(w, "turnSin", homing.TurnSin);
+            w.WriteEndObject();
+        }
+        if (x.Perch is not { } perch) return;
+        w.WritePropertyName("perch"); w.WriteStartObject();
+        w.WriteNumber("perchTicks", perch.PerchTicks);
+        w.WritePropertyName("pop"); w.WriteStartObject();
+        Number(w, "damage", perch.Pop.Damage); Number(w, "angle", perch.Pop.Angle);
+        Number(w, "baseKnockback", perch.Pop.BaseKnockback); Number(w, "knockbackGrowth", perch.Pop.KnockbackGrowth);
+        w.WriteNumber("stunTicks", perch.Pop.StunTicks);
+        OptionalString(w, "presentationId", perch.Pop.PresentationId);
+        w.WriteEndObject();
+        w.WriteEndObject();
+    }
     private static void WriteParameters(Utf8JsonWriter w, CookedCapabilityParameters p)
     {
         w.WriteStartObject();
@@ -1721,19 +2236,24 @@ public static class CharacterPackageCompiler
                 Number(w, "airMaxFallSpeed", x.AirMaxFallSpeed); Number(w, "airRecoilSpeed", x.AirRecoilSpeed);
                 WriteProjectile(w, x.Projectile); break;
             case CookedRisingDragonCapabilityParameters x: Number(w, "riseSpeed", x.RiseSpeed); w.WriteNumber("riseTicks", x.RiseTicks); w.WriteNumber("riseDelay", x.RiseDelay); break;
-            case CookedCycloneKickCapabilityParameters x: Number(w, "forwardSpeed", x.ForwardSpeed); w.WriteNumber("windupTicks", x.WindupTicks); w.WriteNumber("hitboxEndTick", x.HitboxEndTick); w.WriteNumber("durationTicks", x.DurationTicks); Number(w, "bodyRadius", x.BodyRadius); Number(w, "sideRadius", x.SideRadius); Number(w, "sideOffset", x.SideOffset); Number(w, "damage", x.Damage); Number(w, "knockbackAngle", x.KnockbackAngle); Number(w, "knockbackBase", x.KnockbackBase); Number(w, "knockbackGrowth", x.KnockbackGrowth); w.WriteNumber("stunTicks", x.StunTicks); Number(w, "bodyY", x.BodyY); Number(w, "sideY", x.SideY); break;
-            case CookedChargedDirectionalDashCapabilityParameters x:
-                w.WriteNumber("maxChargeTicks", x.MaxChargeTicks); w.WriteNumber("tier2Ticks", x.Tier2Ticks);
-                w.WriteNumber("tier3Ticks", x.Tier3Ticks); Number(w, "minDistance", x.MinDistance);
-                Number(w, "maxDistance", x.MaxDistance); Number(w, "dashSpeed", x.DashSpeed);
-                w.WriteNumber("finisherLeadTicks", x.FinisherLeadTicks); w.WriteNumber("finisherSeekTick", x.FinisherSeekTick);
-                w.WriteNumber("recoveryTicks", x.RecoveryTicks); Number(w, "tier2Damage", x.Tier2Damage);
-                Number(w, "tier3Damage", x.Tier3Damage);
-                WriteHitboxObject(w, x.TraversalHitbox, "traversalHitbox");
-                WriteHitboxObject(w, x.FinisherHitbox, "finisherHitbox");
-                break;
+            case CookedCycloneKickCapabilityParameters x: Number(w, "forwardSpeed", x.ForwardSpeed); w.WriteNumber("windupTicks", x.WindupTicks); w.WriteNumber("hitboxEndTick", x.HitboxEndTick); w.WriteNumber("durationTicks", x.DurationTicks); Number(w, "bodyRadius", x.BodyRadius); Number(w, "sideRadius", x.SideRadius); Number(w, "sideOffset", x.SideOffset); Number(w, "damage", x.Damage); Number(w, "knockbackAngle", x.KnockbackAngle); Number(w, "knockbackBase", x.KnockbackBase); Number(w, "knockbackGrowth", x.KnockbackGrowth); w.WriteNumber("stunTicks", x.StunTicks); Number(w, "bodyY", x.BodyY); Number(w, "sideY", x.SideY); WriteCycloneCarry(w, x.HitIntervalTicks, x.FixedHitstunTicks, x.FinisherTick, x.FinisherDamage, x.FinisherKnockbackAngle, x.FinisherKnockbackBase, x.FinisherKnockbackGrowth); break;
+            case CookedDashStrikeCapabilityParameters x:
+                Number(w, "distance", x.Distance); Number(w, "speed", x.Speed);
+                w.WriteNumber("tipPoseTick", x.TipPoseTick); w.WriteNumber("recoveryTicks", x.RecoveryTicks);
+                WriteHitboxObject(w, x.LightHitbox, "lightHitbox"); WriteHitboxObject(w, x.TipHitbox, "tipHitbox");
+                w.WriteString("tipPresentationId", x.TipPresentationId); break;
             case CookedWibouRisingSlashCapabilityParameters x: Number(w, "riseSpeed", x.RiseSpeed); w.WriteNumber("riseTicks", x.RiseTicks); Number(w, "homingRange", x.HomingRange); Number(w, "homingSpeed", x.HomingSpeed); break;
-            case CookedWibouBladeFlurryCapabilityParameters x: Number(w, "forwardSpeed", x.ForwardSpeed); w.WriteNumber("ascentStartTick", x.AscentStartTick); w.WriteNumber("ascentEndTick", x.AscentEndTick); w.WriteNumber("descentStartTick", x.DescentStartTick); Number(w, "riseSpeed", x.RiseSpeed); Number(w, "descentSpeed", x.DescentSpeed); break;
+            case CookedFlashCutCapabilityParameters x:
+                w.WriteNumber("stanceTicks", x.StanceTicks); Number(w, "lockRange", x.LockRange);
+                w.WriteNumber("maxTargets", x.MaxTargets); w.WriteNumber("legTicks", x.LegTicks);
+                Number(w, "passThroughDistance", x.PassThroughDistance); w.WriteNumber("sheatheTicks", x.SheatheTicks);
+                w.WriteNumber("revealLeadTicks", x.RevealLeadTicks); w.WriteNumber("recoveryTicks", x.RecoveryTicks);
+                w.WriteNumber("whiffTicks", x.WhiffTicks); WriteHitboxObject(w, x.CutHitbox, "cutHitbox");
+                w.WriteString("stanceAnimationId", x.StanceAnimationId); w.WriteString("legAnimationId", x.LegAnimationId);
+                w.WriteString("sheatheAnimationId", x.SheatheAnimationId);
+                w.WriteString("lockPresentationId", x.LockPresentationId); w.WriteString("revealPresentationId", x.RevealPresentationId);
+                w.WriteString("sheathePresentationId", x.SheathePresentationId); w.WriteString("popPresentationId", x.PopPresentationId);
+                break;
             case CookedTargetedLeapCapabilityParameters x:
                 w.WriteNumber("maxAimTicks", x.MaxAimTicks);
                 w.WriteNumber("maxFlightTicks", x.MaxFlightTicks);
@@ -1754,6 +2274,53 @@ public static class CharacterPackageCompiler
                 w.WriteBoolean("keepIncomingSpeed", x.KeepIncomingSpeed); w.WriteNumber("thrustTicks", x.ThrustTicks);
                 if (x.TrailHitbox != null) WriteHitboxObject(w, x.TrailHitbox, "trailHitbox");
                 break;
+            case CookedCannonballCapabilityParameters x:
+                w.WriteNumber("takeoffTick", x.TakeoffTick);
+                Number(w, "maxRange", x.MaxRange); Number(w, "noTargetDistance", x.NoTargetDistance);
+                w.WriteNumber("minFlightTicks", x.MinFlightTicks); w.WriteNumber("maxFlightTicks", x.MaxFlightTicks);
+                Number(w, "maxLaunchSpeed", x.MaxLaunchSpeed);
+                OptionalString(w, "launchPresentationId", x.LaunchPresentationId);
+                break;
+            case CookedTetherCapabilityParameters x:
+                w.WriteNumber("throwTick", x.ThrowTick);
+                if (x.Projectile != null) WriteProjectile(w, x.Projectile);
+                Number(w, "reelSpeed", x.ReelSpeed); Number(w, "anchorDistance", x.AnchorDistance);
+                w.WriteNumber("arrivalStunTicks", x.ArrivalStunTicks); w.WriteNumber("maxReelTicks", x.MaxReelTicks);
+                if (x.AtTarget == null) Number(w, "retractSpeed", x.RetractSpeed);
+                w.WriteNumber("missRecoveryTicks", x.MissRecoveryTicks);
+                Number(w, "airGravityScale", x.AirGravityScale);
+                OptionalString(w, "reelAnimationId", x.ReelAnimationId);
+                OptionalString(w, "retractAnimationId", x.RetractAnimationId);
+                OptionalString(w, "throwPresentationId", x.ThrowPresentationId);
+                OptionalString(w, "retractPresentationId", x.RetractPresentationId);
+                if (x.AtTarget is { } at)
+                {
+                    w.WritePropertyName("atTarget"); w.WriteStartObject();
+                    w.WriteNumber("warningTicks", at.WarningTicks); w.WriteNumber("catchTicks", at.CatchTicks);
+                    Number(w, "radius", at.Radius); Number(w, "height", at.Height); Number(w, "damage", at.Damage);
+                    Number(w, "maxRange", at.MaxRange); Number(w, "noTargetDistance", at.NoTargetDistance);
+                    OptionalString(w, "warningPresentationId", at.WarningPresentationId);
+                    OptionalString(w, "catchPresentationId", at.CatchPresentationId);
+                    w.WriteEndObject();
+                }
+                break;
+            case CookedCommandGrabCapabilityParameters x:
+                w.WriteNumber("lungeTicks", x.LungeTicks); Number(w, "lungeSpeed", x.LungeSpeed);
+                Number(w, "stopDistance", x.StopDistance); w.WriteNumber("captureTick", x.CaptureTick);
+                WriteHitboxObject(w, x.Capture, "capture"); w.WriteNumber("releaseTick", x.ReleaseTick);
+                w.WritePropertyName("launch"); w.WriteStartObject();
+                Number(w, "damage", x.Launch.Damage); Number(w, "angle", x.Launch.Angle);
+                Number(w, "baseKnockback", x.Launch.BaseKnockback); Number(w, "knockbackGrowth", x.Launch.KnockbackGrowth);
+                w.WriteNumber("stunTicks", x.Launch.StunTicks); w.WriteEndObject();
+                OptionalString(w, "catchPresentationId", x.CatchPresentationId);
+                OptionalString(w, "releasePresentationId", x.ReleasePresentationId);
+                break;
+            case CookedClinchCapabilityParameters x:
+                Number(w, "lungeDistance", x.LungeDistance); Number(w, "lungeSpeed", x.LungeSpeed);
+                WriteHitboxObject(w, x.CatchHitbox, "catchHitbox"); Number(w, "anchorDistance", x.AnchorDistance);
+                w.WriteNumber("whiffRecoveryTicks", x.WhiffRecoveryTicks); w.WriteNumber("releaseTick", x.ReleaseTick);
+                w.WriteNumber("releaseLockTicks", x.ReleaseLockTicks);
+                break;
             case CookedSteeredChargeCapabilityParameters x:
                 Number(w, "gallopSpeed", x.GallopSpeed); Number(w, "turnDegreesPerSecond", x.TurnDegreesPerSecond);
                 w.WriteNumber("maxGallopTicks", x.MaxGallopTicks); w.WriteBoolean("armored", x.Armored);
@@ -1771,14 +2338,28 @@ public static class CharacterPackageCompiler
                 OptionalString(w, "missEndingPresentationId", x.MissEndingPresentationId);
                 OptionalString(w, "airEndingPresentationId", x.AirEndingPresentationId);
                 break;
-            case CookedMankiRoundBombCapabilityParameters x: w.WriteNumber("throwTriggerTick", x.ThrowTriggerTick); Number(w, "maxRange", x.MaxRange); Number(w, "launchAngle", x.LaunchAngle); Number(w, "gravity", x.Gravity); Number(w, "hitboxRadius", x.HitboxRadius); Number(w, "damage", x.Damage); w.WriteNumber("stunTicks", x.StunTicks); w.WriteNumber("maxFlightTicks", x.MaxFlightTicks); Number(w, "kbAngle", x.KbAngle); Number(w, "explosionDamage", x.ExplosionDamage); Number(w, "explosionRadius", x.ExplosionRadius); Number(w, "explosionKbBase", x.ExplosionKbBase); Number(w, "explosionKbGrowth", x.ExplosionKbGrowth); w.WriteNumber("explosionStunTicks", x.ExplosionStunTicks); w.WriteNumber("explosionDurationTicks", x.ExplosionDurationTicks); Number(w, "explosionKbAngle", x.ExplosionKbAngle); OptionalString(w, "explosionPresentationId", x.ExplosionPresentationId); break;
-            case CookedMankiJetpackBoostCapabilityParameters x: w.WriteNumber("startupTicks", x.StartupTicks); Number(w, "verticalSpeed", x.VerticalSpeed); Number(w, "horizontalSpeed", x.HorizontalSpeed); Number(w, "explosionRadius", x.ExplosionRadius); Number(w, "explosionDamage", x.ExplosionDamage); Number(w, "explosionKbAngle", x.ExplosionKbAngle); Number(w, "explosionKbBase", x.ExplosionKbBase); Number(w, "explosionKbGrowth", x.ExplosionKbGrowth); w.WriteNumber("explosionStunTicks", x.ExplosionStunTicks); w.WriteNumber("explosionDurationTicks", x.ExplosionDurationTicks); OptionalString(w, "explosionPresentationId", x.ExplosionPresentationId); break;
+            case CookedMankiRoundBombCapabilityParameters x: w.WriteNumber("fuseTicks", x.FuseTicks); w.WriteNumber("maxFlightTicks", x.MaxFlightTicks); Number(w, "gravity", x.Gravity); Number(w, "hitboxRadius", x.HitboxRadius); Number(w, "hopBackSpeed", x.HopBackSpeed); Number(w, "hopUpSpeed", x.HopUpSpeed); Number(w, "explosionDamage", x.ExplosionDamage); Number(w, "explosionRadius", x.ExplosionRadius); Number(w, "explosionKbBase", x.ExplosionKbBase); Number(w, "explosionKbGrowth", x.ExplosionKbGrowth); w.WriteNumber("explosionStunTicks", x.ExplosionStunTicks); w.WriteNumber("explosionDurationTicks", x.ExplosionDurationTicks); Number(w, "explosionKbAngle", x.ExplosionKbAngle); Number(w, "selfPushSpeed", x.SelfPushSpeed); OptionalString(w, "explosionPresentationId", x.ExplosionPresentationId); break;
+            case CookedMankiJetpackBoostCapabilityParameters x: w.WriteNumber("startupTicks", x.StartupTicks); Number(w, "verticalSpeed", x.VerticalSpeed); Number(w, "horizontalSpeed", x.HorizontalSpeed); Number(w, "explosionRadius", x.ExplosionRadius); Number(w, "explosionDamage", x.ExplosionDamage); Number(w, "explosionKbAngle", x.ExplosionKbAngle); Number(w, "explosionKbBase", x.ExplosionKbBase); Number(w, "explosionKbGrowth", x.ExplosionKbGrowth); w.WriteNumber("explosionStunTicks", x.ExplosionStunTicks); w.WriteNumber("explosionDurationTicks", x.ExplosionDurationTicks); OptionalString(w, "explosionPresentationId", x.ExplosionPresentationId); w.WriteNumber("fuelTicks", x.FuelTicks); Number(w, "sinkSpeed", x.SinkSpeed); Number(w, "jumpBurstSpeed", x.JumpBurstSpeed); w.WriteNumber("jumpBurstTicks", x.JumpBurstTicks); break;
             case CookedMankiBazookaCapabilityParameters x: Number(w, "homingTurnDegPerTick", x.HomingTurnDegPerTick); Number(w, "homingTurnCos", x.HomingTurnCos); Number(w, "homingTurnSin", x.HomingTurnSin); w.WriteNumber("fireTriggerTick", x.FireTriggerTick); Number(w, "projectileSpeed", x.ProjectileSpeed); Number(w, "hitboxRadius", x.HitboxRadius); Number(w, "damage", x.Damage); Number(w, "gravity", x.Gravity); w.WriteNumber("maxFlightTicks", x.MaxFlightTicks); w.WriteNumber("stunTicks", x.StunTicks); Number(w, "explosionRadius", x.ExplosionRadius); Number(w, "kbAngle", x.KbAngle); Number(w, "explosionKbBase", x.ExplosionKbBase); Number(w, "explosionKbGrowth", x.ExplosionKbGrowth); w.WriteNumber("explosionStunTicks", x.ExplosionStunTicks); w.WriteNumber("explosionDurationTicks", x.ExplosionDurationTicks); Number(w, "explosionKbAngle", x.ExplosionKbAngle); w.WriteNumber("castDuration", x.CastDuration); w.WriteNumber("recoveryDuration", x.RecoveryDuration); OptionalString(w, "explosionPresentationId", x.ExplosionPresentationId); break;
-            case CookedMankiAerosolInfernoCapabilityParameters x: if (x.MinimumChargeTicks != 0) w.WriteNumber("minimumChargeTicks", x.MinimumChargeTicks); if (x.ChargeTiers != null) { w.WritePropertyName("chargeTiers"); w.WriteStartArray(); foreach (var tier in x.ChargeTiers) { w.WriteStartObject(); w.WriteNumber("chargeTicks", tier.ChargeTicks); Number(w, "damage", tier.Damage); Number(w, "reachScale", tier.ReachScale); w.WriteEndObject(); } w.WriteEndArray(); } w.WriteNumber("fireTriggerTick", x.FireTriggerTick); w.WriteNumber("fireDurationTicks", x.FireDurationTicks); w.WriteNumber("hitboxDurationTicks", x.HitboxDurationTicks); Number(w, "hitboxRadius", x.HitboxRadius); Number(w, "offsetY", x.OffsetY); Number(w, "offsetZ", x.OffsetZ); Number(w, "endOffsetZ", x.EndOffsetZ); Number(w, "damage", x.Damage); Number(w, "knockbackAngle", x.KnockbackAngle); Number(w, "knockbackBase", x.KnockbackBase); Number(w, "knockbackGrowth", x.KnockbackGrowth); w.WriteNumber("stunTicks", x.StunTicks); w.WriteNumber("hitGroup", x.HitGroup); break;
+            case CookedMankiKamikazeCapabilityParameters x: w.WriteNumber("runTicks", x.RunTicks); Number(w, "speed", x.Speed); Number(w, "contactRadius", x.ContactRadius); Number(w, "explosionDamage", x.ExplosionDamage); Number(w, "explosionRadius", x.ExplosionRadius); Number(w, "explosionKbBase", x.ExplosionKbBase); Number(w, "explosionKbGrowth", x.ExplosionKbGrowth); w.WriteNumber("explosionStunTicks", x.ExplosionStunTicks); w.WriteNumber("explosionDurationTicks", x.ExplosionDurationTicks); Number(w, "explosionKbAngle", x.ExplosionKbAngle); Number(w, "selfPushSpeed", x.SelfPushSpeed); OptionalString(w, "explosionPresentationId", x.ExplosionPresentationId); break;
             default: throw new InvalidDataException("Unknown capability parameters.");
         }
         w.WriteEndObject();
     }
+    /// <summary>Optional carry/finisher fields; absent when zero so single-hit tunings keep their hashes.</summary>
+    internal static void WriteCycloneCarry(Utf8JsonWriter w, ushort hitIntervalTicks, ushort fixedHitstunTicks,
+        ushort finisherTick, float finisherDamage, float finisherAngle, float finisherBase, float finisherGrowth)
+    {
+        if (hitIntervalTicks != 0) w.WriteNumber("hitIntervalTicks", hitIntervalTicks);
+        if (fixedHitstunTicks != 0) w.WriteNumber("fixedHitstunTicks", fixedHitstunTicks);
+        if (finisherTick == 0) return;
+        w.WriteNumber("finisherTick", finisherTick);
+        Number(w, "finisherDamage", finisherDamage);
+        Number(w, "finisherKnockbackAngle", finisherAngle);
+        Number(w, "finisherKnockbackBase", finisherBase);
+        Number(w, "finisherKnockbackGrowth", finisherGrowth);
+    }
+
     internal static void WriteRecoveryHop(Utf8JsonWriter w, RecoveryHopParameters? hop)
     {
         if (hop == null) return;
@@ -1802,10 +2383,19 @@ public static class CharacterPackageCompiler
         public void Error(string code, string path, string message) => _items.Add((_order++, new CharacterDiagnostic(CharacterDiagnosticSeverity.Error, code, path, message)));
         public void Warning(string code, string path, string message) => _items.Add((_order++, new CharacterDiagnostic(CharacterDiagnosticSeverity.Warning, code, path, message)));
         public List<CharacterDiagnostic> ToList() => _items.OrderBy(x => x.Order).ThenBy(x => x.Value.Code, StringComparer.Ordinal).Select(x => x.Value).ToList();
+        public void AddFrom(DiagnosticBag other, Func<string, string> path)
+        {
+            foreach (var item in other.ToList()) _items.Add((_order++, item with { Path = path(item.Path) }));
+        }
     }
 
+    private static bool IsId(string value) => !string.IsNullOrEmpty(value) && value.Length <= 64 && value[0] >= 'a' && value[0] <= 'z' && value.All(x => (x >= 'a' && x <= 'z') || (x >= '0' && x <= '9') || x == '.' || x == '-');
     private static void ValidateAttachmentId(string value, string path, DiagnosticBag d) { if (string.IsNullOrEmpty(value) || value.Length > 64 || value[0] != '_' || value.Skip(1).Any(x => !(x >= 'a' && x <= 'z') && !(x >= '0' && x <= '9') && x != '.' && x != '-' && x != '_')) d.Error("id.invalid", path, "Attachment ID must be underscore-prefixed lowercase ASCII."); }
-    private static void ValidateId(string value, string path, DiagnosticBag d) { if (string.IsNullOrEmpty(value) || value.Length > 64 || value[0] < 'a' || value[0] > 'z' || value.Any(x => !(x >= 'a' && x <= 'z') && !(x >= '0' && x <= '9') && x != '.' && x != '-')) d.Error("id.invalid", path, "ID must be lowercase ASCII and start with a letter."); }
+    private static void ValidateHurtboxBoneId(string value, string path, DiagnosticBag d)
+    {
+        if (!CharacterBoneRegistry.IsRigId(value)) ValidateId(value, path, d);
+    }
+    private static void ValidateId(string value, string path, DiagnosticBag d) { if (!IsId(value)) d.Error("id.invalid", path, "ID must be lowercase ASCII and start with a letter."); }
     private static bool IsSemVer(string value)
     {
         var parts = value.Split(new[] { '.', '-' }, StringSplitOptions.RemoveEmptyEntries);

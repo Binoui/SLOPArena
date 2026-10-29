@@ -70,6 +70,11 @@ public sealed class CookedCharacterDefinition
     public IReadOnlyList<CookedSlotDefinition> Slots { get; }
     /// <summary>The shell stance (ADR-0045), or null for fighters without one.</summary>
     public CookedShellDefinition? Shell { get; }
+    /// <summary>Form 1 of a two-form fighter (ADR-0051), or null for fighters without forms.</summary>
+    public CookedAlternateForm? AlternateForm { get; }
+    /// <summary>Every cooked slot: form 0's fourteen, then form 1's when the fighter has forms.</summary>
+    public IEnumerable<CookedSlotDefinition> AllSlots
+        => AlternateForm == null ? Slots : System.Linq.Enumerable.Concat(Slots, AlternateForm.Slots);
 
     public CookedCharacterDefinition(
         string displayName,
@@ -88,7 +93,8 @@ public sealed class CookedCharacterDefinition
         IReadOnlyList<string> presentationIds,
         IReadOnlyList<CookedCapabilityRequirement> capabilityRequirements,
         IReadOnlyList<CookedSlotDefinition> slots,
-        CookedShellDefinition? shell = null)
+        CookedShellDefinition? shell = null,
+        CookedAlternateForm? alternateForm = null)
     {
         DisplayName = displayName;
         Weight = weight;
@@ -107,6 +113,7 @@ public sealed class CookedCharacterDefinition
         CapabilityRequirements = Copy(capabilityRequirements);
         Slots = Copy(slots);
         Shell = shell;
+        AlternateForm = alternateForm;
     }
 
     private static IReadOnlyList<T> Copy<T>(IReadOnlyList<T> values)
@@ -163,27 +170,38 @@ public sealed record CookedPresentation(
     string Grabbed = "",
     string ThrowForward = "",
     string AirDodge = "",
-    string Shell = "");
+    string Shell = "",
+    string Flying = "",
+    string MayhemLaugh = "");
 
 /// <summary>
-/// The character-level shell stance (slop.ability.shell-stance.v1, ADR-0045). The pose and hurtbox while in
-/// <see cref="ActionState.Shell"/> come from <see cref="CookedPresentation.Shell"/>.
+/// Form 1 of a two-form fighter (slop.ability.forms.v1, ADR-0051): its own movement, presentation roles and fourteen
+/// slots, each with <see cref="CookedSlotDefinition.Form"/> 1. Body, capsule, hurtboxes and model come from form 0.
 /// </summary>
-/// <param name="SkateTicks">Skating time from a grounded hand-off or her first touchdown in the shell.</param>
-/// <param name="MinSkateSpeed">A slower start pushes off at this speed.</param>
-/// <param name="MaxSkateSpeed">Faster starts are capped here.</param>
-/// <param name="LandingSpeedRatio">Share of the touchdown's downward speed added to the skate.</param>
-/// <param name="PopOutDeceleration">m/s² braking of the skate speed carried into a grounded move that pops her out.</param>
-/// <param name="BlockedRecoilSpeed">A wall or a shield pops her up bouncing back at this speed.</param>
-/// <param name="Hitbox">The bowling hitbox, root-relative; it hits each fighter once per stay in the shell.</param>
+public sealed record CookedAlternateForm(
+    string Id,
+    string DisplayName,
+    CookedMovement Movement,
+    FormPresentation Presentation,
+    IReadOnlyList<CookedSlotDefinition> Slots);
+
+/// <summary>
+/// The character-level shell (slop.ability.shell-stance.v2, ADR-0050); see <see cref="ShellSource"/>. The pose and
+/// hurtbox while riding (<see cref="ActionState.Shell"/>) come from <see cref="CookedPresentation.Shell"/>.
+/// </summary>
+/// <param name="PopOutDeceleration">m/s² braking of the ride speed carried into a grounded move that pops her out.</param>
+/// <param name="BlockedRecoilSpeed">A head-on wall pops her up bouncing back at this speed.</param>
 public sealed record CookedShellDefinition(
-    ushort SkateTicks,
-    float MinSkateSpeed,
-    float MaxSkateSpeed,
-    float LandingSpeedRatio,
     float PopOutDeceleration,
     float BlockedRecoilSpeed,
-    CookedHitbox Hitbox,
+    CookedShellSplash? Splash,
+    CookedShellRide? Ride);
+
+/// <summary>The splash of a tucked landing; see <see cref="ShellSplashSource"/>.</summary>
+public sealed record CookedShellSplash(CookedHitbox Hitbox, ushort PopUpTicks, string? PresentationId);
+
+/// <summary>The ride on her wave; see <see cref="ShellRideSource"/>.</summary>
+public sealed record CookedShellRide(ushort Ticks, float Speed, float TurnDegreesPerSecond, CookedHitbox Wave,
     string? HitPresentationId);
 
 public sealed record CookedHurtboxCapsule(
@@ -200,7 +218,11 @@ public sealed record CookedHurtboxBone(
     float OffsetX,
     float OffsetY,
     float OffsetZ,
-    float Radius);
+    float Radius,
+    string? EndBoneId = null,
+    float EndOffsetX = 0f,
+    float EndOffsetY = 0f,
+    float EndOffsetZ = 0f);
 
 public sealed record CookedCaptureGeometry(
     float Reach,
@@ -233,6 +255,8 @@ public sealed class CookedSlotDefinition
     public float AimMovementSpeedScale { get; }
     /// <summary>Whether the move runs in the shell (ADR-0045).</summary>
     public ShellPolicy ShellPolicy { get; }
+    /// <summary>The form whose grid holds the move (ADR-0051): 0, or 1 for an alternateForm slot.</summary>
+    public byte Form { get; }
     public string? AimAnimationId { get; }
     public CookedTimeline Timeline { get; }
 
@@ -291,9 +315,11 @@ public sealed class CookedSlotDefinition
         bool allowSlideCarry = false,
         string? hitPresentationId = null,
         float aimMovementSpeedScale = 1f,
-        ShellPolicy shellPolicy = ShellPolicy.PopOut)
+        ShellPolicy shellPolicy = ShellPolicy.PopOut,
+        byte form = 0)
     {
         Ordinal = ordinal;
+        Form = form;
         Id = id;
         IsAir = isAir;
         Name = name;
@@ -384,6 +410,7 @@ public enum CookedOperationKind : byte
     GravityWindow = 8,
     ArmorWindow = 9,
     StartupAimCorrection = 10,
+    SwapForm = 11,
 }
 public abstract class CookedTimelineOperation
 {
@@ -511,7 +538,11 @@ public sealed record CookedHitbox(
     bool Interruptible,
     byte HitGroup,
     AuthoringKnockbackDirection KnockbackDirection = AuthoringKnockbackDirection.AwayFromOwner,
-    ushort FixedHitstunTicks = 0);
+    ushort FixedHitstunTicks = 0,
+    // Presentation only (ADR-0053): Arcade record fingerprints serialize this record and must not see it.
+    [property: System.Text.Json.Serialization.JsonIgnore] string? HitPresentationId = null,
+    [property: System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingDefault)]
+    bool RequiresFacingOwner = false);
 
 public sealed class CookedSpawnProjectileOperation : CookedTimelineOperation
 {
@@ -534,7 +565,12 @@ public sealed record CookedProjectile(
     ushort StunTicks,
     ushort MaxFlightTicks,
     float YawOffsetDegrees = 0f,
-    CookedProjectileReturn? Return = null);
+    CookedProjectileReturn? Return = null,
+    // Both blocks are omitted when absent so existing projectiles keep their Arcade record fingerprints.
+    [property: System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+    CookedProjectileHoming? Homing = null,
+    [property: System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+    CookedProjectilePerch? Perch = null);
 
 public sealed record CookedProjectileReturn(
     ushort OutboundTicks,
@@ -627,17 +663,20 @@ public sealed class CookedEmitPresentationOperation : CookedTimelineOperation
     public string PresentationId { get; }
     public int OperationIndex { get; }
     public PresentationPlacement Placement { get; }
+    public AuthoringPresentationCondition Condition { get; }
     public CookedEmitPresentationOperation(
         ushort tick,
         AuthoringUnit unit,
         string presentationId,
         int operationIndex,
-        PresentationPlacement placement)
+        PresentationPlacement placement,
+        AuthoringPresentationCondition condition = AuthoringPresentationCondition.Always)
         : base(tick, unit, CookedOperationKind.EmitPresentation)
     {
         PresentationId = presentationId;
         OperationIndex = operationIndex;
         Placement = placement ?? new PresentationPlacement();
+        Condition = condition;
     }
     public CookedEmitPresentationOperation(
         ushort tick,
@@ -652,6 +691,13 @@ public sealed class CookedCompleteTimelineOperation : CookedTimelineOperation
     public CookedCompleteTimelineOperation(ushort tick, AuthoringUnit unit)
         : base(tick, unit, CookedOperationKind.CompleteTimeline) { }
 }
+
+/// <summary>Toggles a two-form fighter's form at its tick (ADR-0051). A move interrupted before it does not swap.</summary>
+public sealed class CookedSwapFormOperation : CookedTimelineOperation
+{
+    public CookedSwapFormOperation(ushort tick, AuthoringUnit unit)
+        : base(tick, unit, CookedOperationKind.SwapForm) { }
+}
 public abstract record CookedCapabilityParameters;
 public sealed record CookedAimedRecoveryCapabilityParameters(
     ushort StartupTicks,
@@ -665,48 +711,15 @@ public sealed record CookedRisingDragonCapabilityParameters(float RiseSpeed, ush
 public sealed record CookedCycloneKickCapabilityParameters(
     float ForwardSpeed, ushort WindupTicks, ushort HitboxEndTick, ushort DurationTicks, float BodyRadius,
     float SideRadius, float SideOffset, float Damage, float KnockbackAngle, float KnockbackBase,
-    float KnockbackGrowth, ushort StunTicks, float BodyY, float SideY) : CookedCapabilityParameters;
-public sealed record CookedChargedDirectionalDashCapabilityParameters(
-    ushort MaxChargeTicks,
-    ushort Tier2Ticks,
-    ushort Tier3Ticks,
-    float MinDistance,
-    float MaxDistance,
-    float DashSpeed,
-    ushort FinisherLeadTicks,
-    ushort FinisherSeekTick,
-    ushort RecoveryTicks,
-    float Tier2Damage,
-    float Tier3Damage,
-    CookedHitbox TraversalHitbox,
-    CookedHitbox FinisherHitbox) : CookedCapabilityParameters
-{
-    public byte GetChargeTier(ushort chargeTicks)
-        => chargeTicks >= Tier3Ticks ? (byte)2 : chargeTicks >= Tier2Ticks ? (byte)1 : (byte)0;
-
-    public float GetDashDistance(ushort chargeTicks)
-        => chargeTicks >= MaxChargeTicks ? MaxDistance
-            : MinDistance + (MaxDistance - MinDistance) * chargeTicks / MaxChargeTicks;
-
-    public float GetFinisherDamage(ushort chargeTicks)
-        => GetChargeTier(chargeTicks) == 2 ? Tier3Damage
-            : GetChargeTier(chargeTicks) == 1 ? Tier2Damage
-            : FinisherHitbox.Damage;
-}
-
+    float KnockbackGrowth, ushort StunTicks, float BodyY, float SideY,
+    ushort HitIntervalTicks = 0, ushort FixedHitstunTicks = 0, ushort FinisherTick = 0, float FinisherDamage = 0f,
+    float FinisherKnockbackAngle = 0f, float FinisherKnockbackBase = 0f, float FinisherKnockbackGrowth = 0f) : CookedCapabilityParameters;
 public sealed record CookedWibouRisingSlashCapabilityParameters(
     float RiseSpeed,
     ushort RiseTicks,
     float HomingRange,
     float HomingSpeed) : CookedCapabilityParameters;
 
-public sealed record CookedWibouBladeFlurryCapabilityParameters(
-    float ForwardSpeed,
-    ushort AscentStartTick,
-    ushort AscentEndTick,
-    ushort DescentStartTick,
-    float RiseSpeed,
-    float DescentSpeed) : CookedCapabilityParameters;
 /// <summary>slop.ability.thrust.v1 (ADR-0045); see <see cref="ThrustCapabilityParameters"/>.</summary>
 public sealed record CookedThrustCapabilityParameters(
     ThrustAim Aim,
@@ -719,6 +732,47 @@ public sealed record CookedThrustCapabilityParameters(
     bool KeepIncomingSpeed,
     ushort ThrustTicks,
     CookedHitbox? TrailHitbox) : CookedCapabilityParameters;
+
+/// <summary>slop.ability.cannonball.v1 (ADR-0050); see <see cref="CannonballCapabilityParameters"/>.</summary>
+public sealed record CookedCannonballCapabilityParameters(
+    ushort TakeoffTick,
+    float MaxRange,
+    float NoTargetDistance,
+    ushort MinFlightTicks,
+    ushort MaxFlightTicks,
+    float MaxLaunchSpeed,
+    string LaunchPresentationId = "") : CookedCapabilityParameters;
+
+/// <summary>slop.ability.tether.v1 (ADR-0048); see <see cref="TetherCapabilityParameters"/>.</summary>
+public sealed record CookedTetherCapabilityParameters(
+    ushort ThrowTick,
+    CookedProjectile? Projectile,
+    float ReelSpeed,
+    float AnchorDistance,
+    ushort ArrivalStunTicks,
+    ushort MaxReelTicks,
+    float RetractSpeed,
+    ushort MissRecoveryTicks,
+    float AirGravityScale,
+    string ReelAnimationId = "",
+    string RetractAnimationId = "",
+    string ThrowPresentationId = "",
+    string RetractPresentationId = "",
+    // Omitted when absent so a thrown ring keeps its Arcade record fingerprint.
+    [property: System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+    CookedTetherAtTarget? AtTarget = null) : CookedCapabilityParameters;
+
+/// <summary>The tether's placed catch (ADR-0051); see <see cref="TetherAtTargetSource"/>.</summary>
+public sealed record CookedTetherAtTarget(
+    ushort WarningTicks,
+    ushort CatchTicks,
+    float Radius,
+    float Height,
+    float Damage,
+    float MaxRange,
+    float NoTargetDistance,
+    string WarningPresentationId = "",
+    string CatchPresentationId = "");
 
 public sealed record CookedSteeredChargeCapabilityParameters(
     float GallopSpeed,
@@ -753,15 +807,12 @@ public sealed record CookedTargetedLeapCapabilityParameters(
     string LaunchPresentationId = "",
     string LandingPresentationId = "") : CookedCapabilityParameters;
 public sealed record CookedMankiRoundBombCapabilityParameters(
-    ushort ThrowTriggerTick,
-    float MaxRange,
-    float LaunchAngle,
+    ushort FuseTicks,
+    ushort MaxFlightTicks,
     float Gravity,
     float HitboxRadius,
-    float Damage,
-    ushort StunTicks,
-    ushort MaxFlightTicks,
-    float KbAngle,
+    float HopBackSpeed,
+    float HopUpSpeed,
     float ExplosionDamage,
     float ExplosionRadius,
     float ExplosionKbBase,
@@ -769,7 +820,8 @@ public sealed record CookedMankiRoundBombCapabilityParameters(
     ushort ExplosionStunTicks,
     ushort ExplosionDurationTicks,
     float ExplosionKbAngle,
-    string ExplosionPresentationId = "") : CookedCapabilityParameters;
+    float SelfPushSpeed,
+    string ExplosionPresentationId) : CookedCapabilityParameters;
 public sealed record CookedMankiJetpackBoostCapabilityParameters(
     ushort StartupTicks,
     float VerticalSpeed,
@@ -781,7 +833,11 @@ public sealed record CookedMankiJetpackBoostCapabilityParameters(
     float ExplosionKbGrowth,
     ushort ExplosionStunTicks,
     ushort ExplosionDurationTicks,
-    string ExplosionPresentationId = "") : CookedCapabilityParameters;
+    string ExplosionPresentationId,
+    ushort FuelTicks,
+    float SinkSpeed,
+    float JumpBurstSpeed,
+    ushort JumpBurstTicks) : CookedCapabilityParameters;
 public sealed record CookedMankiBazookaCapabilityParameters(
     ushort FireTriggerTick,
     float ProjectileSpeed,
@@ -804,49 +860,6 @@ public sealed record CookedMankiBazookaCapabilityParameters(
     float HomingTurnSin,
     string ExplosionPresentationId = "") : CookedCapabilityParameters;
 
-public sealed record CookedMankiAerosolInfernoCapabilityParameters(
-    ushort FireTriggerTick,
-    ushort FireDurationTicks,
-    ushort HitboxDurationTicks,
-    float HitboxRadius,
-    float OffsetY,
-    float OffsetZ,
-    float EndOffsetZ,
-    float Damage,
-    float KnockbackAngle,
-    float KnockbackBase,
-    float KnockbackGrowth,
-    ushort StunTicks,
-    byte HitGroup,
-    ushort MinimumChargeTicks = 0,
-    IReadOnlyList<MankiAerosolChargeTier>? ChargeTiers = null) : CookedCapabilityParameters
-{
-    private IReadOnlyList<MankiAerosolChargeTier>? _chargeTiers = CopyTiers(ChargeTiers);
-    public IReadOnlyList<MankiAerosolChargeTier>? ChargeTiers
-    {
-        get => _chargeTiers;
-        init => _chargeTiers = CopyTiers(value);
-    }
-
-    private static IReadOnlyList<MankiAerosolChargeTier>? CopyTiers(IReadOnlyList<MankiAerosolChargeTier>? tiers)
-        => tiers == null ? null : new ReadOnlyCollection<MankiAerosolChargeTier>(new List<MankiAerosolChargeTier>(tiers));
-
-    public ushort MaxChargeTicks => ChargeTiers != null && ChargeTiers.Count > 0
-        ? ChargeTiers[ChargeTiers.Count - 1].ChargeTicks : MinimumChargeTicks;
-
-    public MankiAerosolChargeTier GetChargeTier(ushort chargeTicks)
-    {
-        var selected = new MankiAerosolChargeTier(MinimumChargeTicks, Damage, 1f);
-        if (ChargeTiers != null)
-            foreach (var tier in ChargeTiers)
-            {
-                if (chargeTicks < tier.ChargeTicks) break;
-                selected = tier;
-            }
-        return selected;
-    }
-}
-
 public sealed record CookedBudget(
     int SlotCount,
     int StageCount,
@@ -862,3 +875,17 @@ public sealed record CookedBudget(
     public const int MaxOperationsPerTimeline = 256;
     public const int MaxCapabilityRequirements = 32;
 }
+
+public sealed record CookedMankiKamikazeCapabilityParameters(
+    ushort RunTicks,
+    float Speed,
+    float ContactRadius,
+    float ExplosionDamage,
+    float ExplosionRadius,
+    float ExplosionKbBase,
+    float ExplosionKbGrowth,
+    ushort ExplosionStunTicks,
+    ushort ExplosionDurationTicks,
+    float ExplosionKbAngle,
+    float SelfPushSpeed,
+    string ExplosionPresentationId) : CookedCapabilityParameters;

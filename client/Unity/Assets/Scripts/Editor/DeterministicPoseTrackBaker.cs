@@ -12,18 +12,21 @@ using SlopArena.Shared;
 
 internal static class DeterministicPoseTrackBaker
 {
-    internal static readonly HumanBodyBones[] RequiredBones =
+    internal static readonly HumanBodyBones[] RequiredBones = CharacterBoneRegistry.HumanoidPoints
+        .Where(x => x.Required).Select(x => (HumanBodyBones)Enum.Parse(typeof(HumanBodyBones), x.HumanoidBone)).ToArray();
+
+    internal static Transform ResolveBone(Animator animator, string id)
     {
-        HumanBodyBones.Head,
-        HumanBodyBones.UpperChest,
-        HumanBodyBones.Hips,
-        HumanBodyBones.RightHand,
-        HumanBodyBones.LeftHand,
-        HumanBodyBones.RightFoot,
-        HumanBodyBones.LeftFoot,
-        HumanBodyBones.RightToes,
-        HumanBodyBones.LeftToes,
-    };
+        var point = CharacterBoneRegistry.Find(id);
+        if (point != null)
+            return animator.GetBoneTransform((HumanBodyBones)Enum.Parse(typeof(HumanBodyBones), point.HumanoidBone));
+        if (!CharacterBoneRegistry.IsRigId(id))
+            throw new InvalidOperationException($"Unknown bone ID '{id}'.");
+        string name = id.Substring(CharacterBoneRegistry.RigPrefix.Length);
+        var matches = animator.GetComponentsInChildren<Transform>(true).Where(x => x.name == name).ToArray();
+        if (matches.Length != 1) throw new InvalidOperationException($"Rig bone '{name}' must resolve exactly once, found {matches.Length}.");
+        return matches[0];
+    }
 
     internal sealed class SampledAnimation
     {
@@ -45,7 +48,8 @@ internal static class DeterministicPoseTrackBaker
         int sampleRate,
         WeaponAttachConfig weaponConfig = null,
         float visualScale = 1f,
-        float? modelYOffset = null)
+        float? modelYOffset = null,
+        IReadOnlyList<CookedHurtboxBone> hurtboxes = null)
     {
         if (sampleRate != 60) throw new InvalidOperationException("Sample rate must be exactly 60 Hz.");
         if (rig == null) throw new InvalidOperationException("Rig is missing.");
@@ -75,15 +79,23 @@ internal static class DeterministicPoseTrackBaker
             animator.cullingMode = AnimatorCullingMode.AlwaysAnimate;
             animator.fireEvents = false;
             animator.Rebind();
-            var transforms = new Transform[RequiredBones.Length];
+            var rigTransforms = temp.GetComponentsInChildren<Transform>(true);
+            var restPositions = rigTransforms.Select(t => t.localPosition).ToArray();
+            var restRotations = rigTransforms.Select(t => t.localRotation).ToArray();
+            var restScales = rigTransforms.Select(t => t.localScale).ToArray();
+            var pointIds = CharacterBoneRegistry.HumanoidPoints.Where(x => x.Required).Select(x => x.Id)
+                .Concat((hurtboxes ?? Array.Empty<CookedHurtboxBone>()).SelectMany(x => new[] { x.BoneId, x.EndBoneId })
+                    .Where(x => x != null).Select(x => x!))
+                .GroupBy(x => CharacterBoneRegistry.BakedName(x), StringComparer.Ordinal).Select(x => x.First()).ToArray();
+            var transforms = new Transform[pointIds.Length];
             int weaponPoints = weaponConfig == null ? 0 : 2;
-            var names = new string[RequiredBones.Length + weaponPoints + (modelYOffset.HasValue ? 1 : 0)];
-            for (int i = 0; i < RequiredBones.Length; i++)
+            var names = new string[pointIds.Length + weaponPoints + (modelYOffset.HasValue ? 1 : 0)];
+            for (int i = 0; i < pointIds.Length; i++)
             {
-                transforms[i] = animator.GetBoneTransform(RequiredBones[i]);
+                transforms[i] = ResolveBone(animator, pointIds[i]);
                 if (transforms[i] == null)
-                    throw new InvalidOperationException($"Required humanoid bone is missing: {RequiredBones[i]}.");
-                names[i] = transforms[i].name;
+                    throw new InvalidOperationException($"Required hurtbox bone is missing: {pointIds[i]}.");
+                names[i] = CharacterBoneRegistry.BakedName(pointIds[i]);
             }
             WeaponEntry weaponEntry = null;
             Transform weaponBone = null;
@@ -144,12 +156,12 @@ internal static class DeterministicPoseTrackBaker
                         hiltLocal = Vector3.zero;
                     }
                 }
-                names[RequiredBones.Length] = "_weapon_tip";
-                names[RequiredBones.Length + 1] = "_weapon_hilt";
+                names[transforms.Length] = "_weapon_tip";
+                names[transforms.Length + 1] = "_weapon_hilt";
             }
             if (modelYOffset.HasValue)
-                names[RequiredBones.Length + weaponPoints] = BakedAnimationData.HipsOffsetPointName;
-            var hips = transforms[2];
+                names[transforms.Length + weaponPoints] = BakedAnimationData.HipsOffsetPointName;
+            var hips = animator.GetBoneTransform(HumanBodyBones.Hips);
             using var stream = new MemoryStream();
             WriteUInt32(stream, 0x4C454B53u);
             WriteUInt32(stream, 1u);
@@ -163,6 +175,14 @@ internal static class DeterministicPoseTrackBaker
                     throw new InvalidOperationException($"Animation '{animation.SemanticId}' has no valid frames.");
                 WriteString(stream, animation.PoseTrackId);
                 WriteUInt32(stream, (uint)animation.FrameCount);
+                // Unkeyed custom bones must not inherit the previous clip's final pose.
+                animator.Rebind();
+                for (int i = 0; i < rigTransforms.Length; i++)
+                {
+                    rigTransforms[i].localPosition = restPositions[i];
+                    rigTransforms[i].localRotation = restRotations[i];
+                    rigTransforms[i].localScale = restScales[i];
+                }
                 var graph = PlayableGraph.Create(temp.name);
                 try
                 {

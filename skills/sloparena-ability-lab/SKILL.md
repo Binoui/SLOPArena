@@ -73,16 +73,16 @@ it early. Choose a scenario horizon long enough to observe release and recovery.
 
 Save this batch as `/tmp/ability-lab-charge.json`, choose a fresh capture output
 directory, and invoke it with your own terminal identity already set.
-The batch intentionally leaves Wibou selected in the Lab; declare any required
+The batch intentionally leaves FightGuy selected in the Lab; declare any required
 restoration in `restore`. Capture omits charge so it replays the 45-tick hold:
 
 ```json
 {
   "commands": [
-    ["sloparena.lab.open", "--target", "wibou"],
-    ["sloparena.lab.run", "--action", "ground.R", "--charge-ticks", "45", "--ticks", "180", "--distance", "5.6", "--opponent", "idle"],
+    ["sloparena.lab.open", "--target", "fightguy"],
+    ["sloparena.lab.run", "--action", "ground.A", "--charge-ticks", "45", "--ticks", "180", "--distance", "5.6", "--opponent", "idle"],
     ["sloparena.lab.inspect"],
-    ["sloparena.lab.capture", "--action", "ground.R", "--ticks", "44,80", "--view", "right", "--output", ".ability-lab-cache/wibou/charged-run"]
+    ["sloparena.lab.capture", "--action", "ground.A", "--ticks", "44,80", "--view", "right", "--output", ".ability-lab-cache/fightguy/charged-run"]
   ],
   "restore": []
 }

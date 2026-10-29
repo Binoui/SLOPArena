@@ -62,10 +62,10 @@ MonoBehaviour:
     _clip: {fileID: 7400000, guid: 35926af06601f9cb09b07da1ddb3c406, type: 2}
     _extrapolation: 0
     _poseTrackId: anim.sweeping-kick
-  - _semanticId: anim.high-kick
-    _clip: {fileID: 7400000, guid: 4e90ecac4c0d8c718aa349996204222e, type: 2}
+  - _semanticId: anim.flip-kick
+    _clip: {fileID: 7400000, guid: 8d27121ac17573c28a35c35e5ddb7afc, type: 2}
     _extrapolation: 0
-    _poseTrackId: anim.high-kick
+    _poseTrackId: anim.flip-kick
   - _semanticId: anim.double-kick
     _clip: {fileID: 7400000, guid: e9165de70bb6b826b99b10f936b4f473, type: 2}
     _extrapolation: 0
@@ -131,6 +131,8 @@ MonoBehaviour:
     _prefab: {fileID: 2517283860932840487, guid: ebd340f6b25b6f32a8127f40922ee2be, type: 3}
   - _semanticId: presentation.fightguy.rising-dragon.hit
     _prefab: {fileID: 2564342200370681700, guid: 241c12df9d2b6e30c81ad5220091eebb, type: 3}
+  - _semanticId: presentation.fightguy.rising-dragon.sweet-hit
+    _prefab: {fileID: 1687520320000732585, guid: 2f45febf1f8d0ab1ca48dc771b1897bb, type: 3}
   - _semanticId: presentation.fightguy.cyclone-kick.spiral
     _prefab: {fileID: 8015874321948751117, guid: ed917e72370da8e929d324efa62c6ea6, type: 3}
   - _semanticId: presentation.fightguy.cyclone-kick.dust

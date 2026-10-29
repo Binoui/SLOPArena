@@ -32,6 +32,15 @@ namespace SlopArena.Client.Combat
         private ServerSimulation _sim;
         private SpellResolver _resolver;
         private ProjectileVFXConfig _config;
+        private ArenaDefinition _arena;
+        private int[] _bombGroundCandidates = System.Array.Empty<int>();
+
+        public void SetArena(ArenaDefinition arena)
+        {
+            _arena = arena;
+            int count = arena.CollisionTriangles?.Length ?? 0;
+            if (_bombGroundCandidates.Length < count) _bombGroundCandidates = new int[count];
+        }
 
         private readonly Dictionary<ulong, (CharacterAnimationCatalog Catalog, PlayerRenderer Renderer)> _owners = new();
         private readonly Dictionary<ulong, ProjectilePresentation> _hazardVisuals = new();
@@ -51,6 +60,7 @@ namespace SlopArena.Client.Combat
         public void RegisterOwner(ulong owner, CharacterAnimationCatalog catalog, PlayerRenderer renderer = null)
         {
             ClearOwnerVisuals(owner);
+            _heads.Remove(owner);
             _owners[owner] = (catalog, renderer);
         }
 
@@ -205,7 +215,7 @@ namespace SlopArena.Client.Combat
                 var hb = hitboxes[i];
                 if (!_owners.ContainsKey(hb.OwnerId)) continue;
                 float speedSq = hb.VX * hb.VX + hb.VY * hb.VY + hb.VZ * hb.VZ;
-                if (speedSq <= 0.0001f && hb.StickyFuseTicks == 0)
+                if (speedSq <= 0.0001f && hb.StickyFuseTicks == 0 && !(hb.ContactExplosion && hb.AttackSlot == AbilitySlots.A))
                     continue;
 
                 var projectileKey = (hb.OwnerId, hb.ActivationId, hb.VisualOperationIndex,
@@ -213,8 +223,12 @@ namespace SlopArena.Client.Combat
                 _matchedLocal.Add(projectileKey);
                 if (!_activeVisuals.TryGetValue(projectileKey, out var vis))
                 {
-                    vis = TakeHeldVisual(hb.OwnerId, hb.AttackSlot, hb.ActivationAirborne, hb.AttackSequence)
-                        ?? CreateProjectileVisual(hb.OwnerId, hb.AttackSlot, hb.ActivationAirborne);
+                    vis = hb.ContactExplosion && hb.AttackSlot == AbilitySlots.A
+                        ? MankiBombVisual.Create(VisualFor(hb.OwnerId, hb.AttackSlot, hb.ActivationAirborne)?.Prefab).gameObject
+                        : TakeHeldVisual(hb.OwnerId, hb.AttackSlot, hb.ActivationAirborne, hb.AttackSequence)
+                            ?? (hb.Perch.HasValue && VisualFor(hb.OwnerId, hb.AttackSlot, hb.ActivationAirborne)?.Prefab == null
+                                ? BuildCrowPlaceholder()
+                                : CreateProjectileVisual(hb.OwnerId, hb.AttackSlot, hb.ActivationAirborne));
                     _activeVisuals[projectileKey] = vis;
                     if (_hazardHands.TryGetValue(hb.OwnerId, out var hand) && hand != null)
                         _launchOffsets[hb.EmissionId] = hand.position - new Vector3(hb.X, hb.Y, hb.Z);
@@ -232,8 +246,18 @@ namespace SlopArena.Client.Combat
                         : .12f * Mathf.Sin(_sim.CurrentTick / 60f * Mathf.Lerp(26f, 8f, fraction));
                     vis.transform.localScale = Vector3.one * hazard.Scale * (1f + pulse);
                 }
+                if (hb.Perch.HasValue)
+                {
+                    PlacePerch(vis.transform, hb);
+                    continue;
+                }
+                if (hb.ContactExplosion && hb.AttackSlot == AbilitySlots.A)
+                {
+                    vis.GetComponent<MankiBombVisual>().UpdateBomb(hb, _arena, _bombGroundCandidates);
+                    continue;
+                }
                 ScaleProjectileVisual(vis, hb.Radius,
-                    GetChargedProjectileParameters(_sim.GetDefinition(hb.OwnerId)?.GetCookedSlotAbility(hb.AttackSlot, hb.ActivationAirborne)),
+                    GetChargedProjectileParameters(_sim.GetDefinition(hb.OwnerId)?.ForForm(hb.Form).GetCookedSlotAbility(hb.AttackSlot, hb.ActivationAirborne)),
                     hb.OwnerId, hb.AttackSlot, hb.ActivationAirborne);
                 OrientProjectile(vis.transform, VisualFor(hb.OwnerId, hb.AttackSlot, hb.ActivationAirborne), hb.VX, hb.VY, hb.VZ);
             }
@@ -250,6 +274,57 @@ namespace SlopArena.Client.Combat
                 _activeVisuals.Remove(id);
                 _launchOffsets.Remove(id.Emission);
             }
+        }
+
+        private readonly Dictionary<ulong, Transform> _heads = new();
+
+        /// <summary>
+        /// A perching projectile (ADR-0051, Nyx's Hex Crow): in flight it faces its travel; perched, it sits on its
+        /// carrier's head bone, so every player sees whom it marks. Shared keeps it at the carrier's centre.
+        /// </summary>
+        private void PlacePerch(Transform visual, in Hitbox hb)
+        {
+            visual.GetComponent<NyxCrowVisual>()?.SetPerched(hb.AttachedEntityId != 0);
+            if (hb.AttachedEntityId == 0)
+            {
+                var velocity = new Vector3(hb.VX, hb.VY, hb.VZ);
+                if (velocity.sqrMagnitude > 0.0001f) visual.rotation = Quaternion.LookRotation(velocity);
+                return;
+            }
+            if (!_heads.TryGetValue(hb.AttachedEntityId, out var head) || head == null)
+            {
+                head = _owners.TryGetValue(hb.AttachedEntityId, out var carrier) && carrier.Renderer != null
+                    ? carrier.Renderer.ResolvePresentationBone("bone.head") : null;
+                _heads[hb.AttachedEntityId] = head;
+            }
+            if (head == null) return;
+            visual.position = head.position + Vector3.up * 0.22f;
+            var forward = Vector3.ProjectOnPlane(head.forward, Vector3.up);
+            if (forward.sqrMagnitude > 0.0001f) visual.rotation = Quaternion.LookRotation(forward);
+        }
+
+        /// <summary>A placeholder crow until the effects pass: a dark body, two wings and a beak.</summary>
+        private static GameObject BuildCrowPlaceholder()
+        {
+            var root = new GameObject("CrowPlaceholder");
+            var material = new Material(Shader.Find("Universal Render Pipeline/Lit")) { color = new Color(0.12f, 0.06f, 0.16f) };
+            var beak = new Material(Shader.Find("Universal Render Pipeline/Lit")) { color = new Color(0.85f, 0.75f, 0.95f) };
+            void Part(PrimitiveType type, Vector3 position, Vector3 scale, Material shared)
+            {
+                var part = GameObject.CreatePrimitive(type);
+                Object.DestroyImmediate(part.GetComponent<Collider>());
+                part.transform.SetParent(root.transform, false);
+                part.transform.localPosition = position;
+                part.transform.localScale = scale;
+                part.GetComponent<MeshRenderer>().sharedMaterial = shared;
+            }
+            Part(PrimitiveType.Sphere, Vector3.zero, new Vector3(0.22f, 0.2f, 0.34f), material);
+            Part(PrimitiveType.Sphere, new Vector3(0f, 0.08f, 0.16f), Vector3.one * 0.14f, material);
+            Part(PrimitiveType.Cube, new Vector3(-0.2f, 0.04f, 0f), new Vector3(0.3f, 0.03f, 0.16f), material);
+            Part(PrimitiveType.Cube, new Vector3(0.2f, 0.04f, 0f), new Vector3(0.3f, 0.03f, 0.16f), material);
+            Part(PrimitiveType.Cube, new Vector3(0f, 0.07f, 0.26f), new Vector3(0.04f, 0.04f, 0.1f), beak);
+            root.AddComponent<ProjectileMaterialOwner>().Materials = new[] { material, beak };
+            return root;
         }
 
         private static CookedChargedProjectileCapabilityParameters GetChargedProjectileParameters(
@@ -375,6 +450,7 @@ namespace SlopArena.Client.Combat
         private void OnHitboxRemoved(Hitbox hb, float lastX, float lastY, float lastZ)
         {
             if (!_owners.ContainsKey(hb.OwnerId)) return;
+            if (hb.Perch.HasValue) return;
             if (hb.Explosion.HasValue)
             {
                 if (ProfileFor(hb.OwnerId)?.SuppressRemovalExplosion == true)
@@ -387,8 +463,8 @@ namespace SlopArena.Client.Combat
             // Contact/cancellation marks the hitbox inactive; configured hits have
             // their own confirmed effect (or shield feedback). Keep expiry bursts.
             if (!hb.Active && hb.AttackSlot > 0
-                && !string.IsNullOrEmpty(_sim.GetDefinition(hb.OwnerId)
-                    ?.GetCookedSlotAbility(hb.AttackSlot, hb.ActivationAirborne)?.HitPresentationId))
+                && !string.IsNullOrEmpty(_sim.GetDefinition(hb.OwnerId)?.ForForm(hb.Form)
+                    .GetCookedSlotAbility(hb.AttackSlot, hb.ActivationAirborne)?.HitPresentationId))
                 return;
             SpawnImpact(new Vector3(lastX, lastY, lastZ));
         }

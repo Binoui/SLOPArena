@@ -12,6 +12,180 @@ namespace SlopArena.Shared.Tests;
 
 public sealed class CharacterPackageAssemblerTests
 {
+    [Fact]
+    public void CapsuleEndpointsSurviveCookedAdmissionAndRuntimeAdaptation()
+    {
+        string root = FindRepoFile("client/Unity/Assets/CharacterPackages/fightguy");
+        var source = CharacterPackageSourceCodec.Load(File.ReadAllText(Path.Combine(root, "package.json")),
+            File.ReadAllText(Path.Combine(root, "character.json"))).Source!;
+        var bones = source.Character.HurtboxBoneDefs.ToArray();
+        bones[0] = bones[0] with { EndBoneId = "bone.neck", EndOffsetX = .1f, EndOffsetY = -.2f, EndOffsetZ = .3f };
+        source = source with { Character = source.Character with { HurtboxBoneDefs = bones } };
+        var compiled = CharacterPackageCompiler.Compile(source, CharacterCookProfile.TrustedBuiltIn).CookedPackage!;
+        var admitted = CookedCharacterPackageLoader.LoadAssembly(CharacterPackageAssembler.Assemble(BuildInput(compiled,
+            Array.Empty<PackageDependencySource>(), compiled.Definition.CapabilityRequirements, Array.Empty<CharacterDiagnostic>())));
+        Assert.True(admitted.IsValid, string.Join("\n", admitted.Diagnostics));
+        var bone = admitted.Package!.Definition.HurtboxBoneDefs.Single(x => x.BoneId == bones[0].BoneId);
+        Assert.Equal("bone.neck", bone.EndBoneId);
+        Assert.Equal(.1f, bone.EndOffsetX); Assert.Equal(-.2f, bone.EndOffsetY); Assert.Equal(.3f, bone.EndOffsetZ);
+        var runtime = admitted.ToCharacterDefinition().HurtboxBoneDefs!.Single(x => x.BoneName == CharacterBoneRegistry.BakedName(bone.BoneId));
+        Assert.Equal(CharacterBoneRegistry.BakedName("bone.neck"), runtime.EndBoneName);
+        Assert.Equal(bone.EndOffsetX, runtime.EndOffX); Assert.Equal(bone.EndOffsetY, runtime.EndOffY); Assert.Equal(bone.EndOffsetZ, runtime.EndOffZ);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void MissingHurtboxPointRejectsThePackage(bool endBone)
+    {
+        var package = Compile();
+        var runtime = JsonNode.Parse(package.CanonicalBytes)!;
+        var bone = runtime["character"]!["hurtboxBoneDefs"]![0]!;
+        bone[endBone ? "endBoneId" : "boneId"] = "bone.missing";
+        var input = BuildInput(package, Array.Empty<PackageDependencySource>(),
+            package.Definition.CapabilityRequirements, Array.Empty<CharacterDiagnostic>());
+        var candidate = new CharacterPackageAssemblyInput(input.PackageId, input.Version, input.Creator, input.License,
+            input.Attribution, input.AuthoringSchemaVersion, input.CookedSchemaVersion, input.RuntimeApiMin, input.RuntimeApiMax,
+            input.SourceHash, input.Dependencies, input.CapabilityRequirements, input.CookerVersion, input.UnityVersion,
+            input.BindingSchemaVersion, input.PoseFormat, input.PoseVersion, input.SampleRate, input.Warnings,
+            Encoding.UTF8.GetBytes(runtime.ToJsonString()), input.PoseBytes, input.BindingBytes,
+            new CookedCharacterPackage(package.Metadata, package.Definition, package.Budget, package.Diagnostics, Encoding.UTF8.GetBytes(runtime.ToJsonString())));
+        var result = CharacterPackageAssembler.Assemble(candidate);
+        Assert.True(result.IsValid, string.Join("\n", result.Diagnostics));
+        var verification = CharacterPackageAssembler.Verify(Files(result));
+        Assert.False(verification.IsValid);
+        Assert.Contains(verification.Diagnostics, x => x.Code == "package.pose.hurtbox-missing");
+    }
+
+    [Fact]
+    public void FlyingAnimationSurvivesSourceEditsAndCookedAdmission()
+    {
+        string root = FindRepoFile("client/Unity/Assets/CharacterPackages/manki");
+        var source = CharacterPackageSourceCodec.Load(File.ReadAllText(Path.Combine(root, "package.json")),
+            File.ReadAllText(Path.Combine(root, "character.json"))).Source!;
+        source = source with { Character = source.Character with
+        {
+            Presentation = source.Character.Presentation with { Flying = "anim.test.flight" }
+        } };
+        var renamed = CharacterPackageSourceCodec.RenameSemanticId(source, "anim.test.flight", "anim.test.flying",
+            new[] { new CharacterAssetCatalogBindingSnapshot("anim.test.flight", "anim.test.flight") });
+        Assert.True(renamed.IsValid);
+        var compiled = CharacterPackageCompiler.Compile(CharacterPackageSourceCodec.SerializeManifest(renamed.Source!.Manifest),
+            CharacterPackageSourceCodec.SerializeCharacter(renamed.Source.Character), CharacterCookProfile.TrustedBuiltIn);
+        Assert.NotNull(compiled.CookedPackage);
+        var package = compiled.CookedPackage!;
+        var assembly = CharacterPackageAssembler.Assemble(BuildInput(package, Array.Empty<PackageDependencySource>(),
+            package.Definition.CapabilityRequirements, Array.Empty<CharacterDiagnostic>()));
+        var loaded = CookedCharacterPackageLoader.LoadAssembly(assembly);
+        Assert.True(loaded.IsValid, string.Join("\n", loaded.Diagnostics));
+        Assert.Equal("anim.manki.gf-loop", loaded.Package!.Definition.Presentation.MayhemLaugh);
+        Assert.Equal("anim.manki.gf-loop", loaded.ToCharacterDefinition().MayhemLaughAnim);
+        Assert.True(loaded.BakedAnimation!.FindAnimIndex("anim.manki.gf-loop") >= 0);
+        Assert.Equal("anim.test.flying", loaded.Package.Definition.Presentation.Flying);
+        Assert.Equal("anim.test.flying", CookedCharacterRuntimeAdapter.ToCharacterDefinition(loaded.Package).FlyingAnim);
+        Assert.True(BakedAnimationData.LoadFromBin(assembly.PoseBytes).FindAnimIndex("anim.test.flying") >= 0);
+    }
+
+    [Theory]
+    [InlineData("roundtrip")]
+    [InlineData("api")]
+    [InlineData("coverage")]
+    [InlineData("aim")]
+    [InlineData("bone")]
+    [InlineData("duration")]
+    [InlineData("retired")]
+    public void DashStrikeCookedAdmissionMatchesTheSourceContract(string mutation)
+    {
+        string root = FindRepoFile("client/Unity/Assets/CharacterPackages/wibou");
+        var compiled = CharacterPackageCompiler.Compile(File.ReadAllText(Path.Combine(root, "package.json")),
+            File.ReadAllText(Path.Combine(root, "character.json")), CharacterCookProfile.TrustedBuiltIn);
+        Assert.NotNull(compiled.CookedPackage);
+        var package = compiled.CookedPackage!;
+        var runtime = JsonNode.Parse(package.CanonicalBytes)!.AsObject();
+        var move = runtime["character"]!["slots"]!.AsArray().Single(x => (string?)x!["id"] == "ground.R")!;
+        var stage = move["timeline"]!["stages"]![0]!;
+        var operation = stage["operations"]!.AsArray().Single(x => x!["capabilityId"] != null)!;
+        switch (mutation)
+        {
+            case "coverage": operation["parameters"]!["lightHitbox"]!["radius"] = .1; break;
+            case "aim": move["aimMode"] = (byte)AuthoringAimMode.GroundVector; break;
+            case "bone": operation["parameters"]!["tipHitbox"]!["startBoneId"] = "_weapon_tip"; break;
+            case "duration": stage["durationTicks"] = 5; break;
+            case "retired": operation["capabilityId"] = "slop.ability.charged-directional-dash.v1"; break;
+        }
+        if (mutation == "api")
+        {
+            runtime["metadata"]!["compatibility"]!["runtimeApiMin"] = "1.14.0";
+            package = new CookedCharacterPackage(package.Metadata with { RuntimeApiMin = "1.14.0" }, package.Definition,
+                package.Budget, package.Diagnostics, Encoding.UTF8.GetBytes(runtime.ToJsonString()));
+        }
+        else if (mutation != "roundtrip")
+            package = new CookedCharacterPackage(package.Metadata, package.Definition,
+                package.Budget, package.Diagnostics, Encoding.UTF8.GetBytes(runtime.ToJsonString()));
+        var loaded = CookedCharacterPackageLoader.LoadAssembly(CharacterPackageAssembler.Assemble(BuildInput(package,
+            Array.Empty<PackageDependencySource>(), package.Definition.CapabilityRequirements, Array.Empty<CharacterDiagnostic>())));
+        Assert.Equal(mutation == "roundtrip", loaded.IsValid);
+        if (mutation == "roundtrip")
+        {
+            var actual = loaded.Package!.Definition.Slots.Single(x => x.Id == "ground.R").Timeline.Stages[0]
+                .Operations.OfType<CookedStartCapabilityOperation>().Single();
+            Assert.IsType<Abilities.DashStrikeAbility>(Construct(actual));
+        }
+        else Assert.Contains(loaded.Diagnostics, x => x.Severity == CharacterDiagnosticSeverity.Error);
+        static Abilities.ServerAbility Construct(CookedStartCapabilityOperation x)
+        {
+            Assert.True(Abilities.InternalCapabilityRegistry.TryCreate(x.CapabilityId, x.CapabilityVersion, x.Parameters, out var ability));
+            return ability;
+        }
+    }
+
+    [Theory]
+    [InlineData("roundtrip")]
+    [InlineData("api")]
+    [InlineData("coverage")]
+    [InlineData("hold")]
+    [InlineData("clip")]
+    [InlineData("duration")]
+    [InlineData("retired")]
+    public void FlashCutCookedAdmissionMatchesTheSourceContract(string mutation)
+    {
+        string root = FindRepoFile("client/Unity/Assets/CharacterPackages/wibou");
+        var compiled = CharacterPackageCompiler.Compile(File.ReadAllText(Path.Combine(root, "package.json")),
+            File.ReadAllText(Path.Combine(root, "character.json")), CharacterCookProfile.TrustedBuiltIn);
+        Assert.NotNull(compiled.CookedPackage);
+        var package = compiled.CookedPackage!;
+        var runtime = JsonNode.Parse(package.CanonicalBytes)!.AsObject();
+        var move = runtime["character"]!["slots"]!.AsArray().Single(x => (string?)x!["id"] == "ground.F")!;
+        var stage = move["timeline"]!["stages"]![0]!;
+        var operation = stage["operations"]!.AsArray().Single(x => x!["capabilityId"] != null)!;
+        switch (mutation)
+        {
+            case "coverage": operation["parameters"]!["cutHitbox"]!["radius"] = .5; break;
+            case "hold": operation["parameters"]!["sheatheTicks"] = 120; operation["parameters"]!["legTicks"] = 30; break;
+            case "clip": operation["parameters"]!["stanceAnimationId"] = "anim.wibou.g1"; break;
+            case "duration": stage["durationTicks"] = 60; break;
+            case "retired": operation["capabilityId"] = "slop.internal.wibou.blade-flurry.v2"; break;
+        }
+        if (mutation == "api")
+            package = new CookedCharacterPackage(package.Metadata with { RuntimeApiMin = "1.14.0" }, package.Definition,
+                package.Budget, package.Diagnostics, package.CanonicalBytes);
+        else if (mutation != "roundtrip")
+            package = new CookedCharacterPackage(package.Metadata, package.Definition,
+                package.Budget, package.Diagnostics, Encoding.UTF8.GetBytes(runtime.ToJsonString()));
+        var loaded = CookedCharacterPackageLoader.LoadAssembly(CharacterPackageAssembler.Assemble(BuildInput(package,
+            Array.Empty<PackageDependencySource>(), package.Definition.CapabilityRequirements, Array.Empty<CharacterDiagnostic>())));
+        Assert.Equal(mutation == "roundtrip", loaded.IsValid);
+        if (mutation == "roundtrip")
+        {
+            var actual = loaded.Package!.Definition.Slots.Single(x => x.Id == "ground.F").Timeline.Stages[0]
+                .Operations.OfType<CookedStartCapabilityOperation>().Single();
+            Assert.True(Abilities.InternalCapabilityRegistry.TryCreate(actual.CapabilityId, actual.CapabilityVersion,
+                actual.Parameters, out var ability));
+            Assert.IsType<Abilities.FlashCutAbility>(ability);
+        }
+        else Assert.Contains(loaded.Diagnostics, x => x.Severity == CharacterDiagnosticSeverity.Error);
+    }
+
     private const string ProfileMediaId = "GlobalObjectId_V1-1-0123456789abcdef0123456789abcdef-100100000-0";
 
     [Fact]
@@ -366,6 +540,87 @@ public sealed class CharacterPackageAssemblerTests
     }
 
     [Fact]
+    public void AlternateFormRoundTripsSourceAndCookedAdmissionAndRejectsMismatches()
+    {
+        string root = FindRepoFile("client/Unity/Assets/CharacterPackages/fightguy");
+        string manifest = File.ReadAllText(Path.Combine(root, "package.json"));
+        JsonObject Character(bool block = true, bool capability = true)
+        {
+            var c = JsonNode.Parse(File.ReadAllText(Path.Combine(root, "character.json")))!.AsObject();
+            FightGuyFixture.WithoutTitleMatch(c);
+            if (capability)
+                c["capabilityRequirements"]!.AsArray().Add(new JsonObject
+                    { ["capabilityId"] = CharacterPackageCompiler.FormsCapabilityId, ["capabilityVersion"] = "1" });
+            c["slots"]!.AsArray().Single(s => (string?)s!["id"] == "ground.F")!["timeline"]!["stages"]![0]!["operations"]!
+                .AsArray().Add(new JsonObject { ["kind"] = "swapForm", ["tick"] = 0, ["unit"] = "ticks" });
+            if (!block) return c;
+            var movement = c["movement"]!.DeepClone().AsObject();
+            movement["runSpeed"] = 16;
+            c["alternateForm"] = new JsonObject
+            {
+                ["id"] = "fake",
+                ["displayName"] = "Fixture Fake",
+                ["movement"] = movement,
+                ["presentation"] = new JsonObject { ["run"] = c["presentation"]!["dash"]!.DeepClone() },
+                ["slots"] = c["slots"]!.DeepClone(),
+                ["aliases"] = c["aliases"]!.DeepClone(),
+            };
+            return c;
+        }
+        CharacterCompileResult Compile(JsonObject c)
+            => CharacterPackageCompiler.Compile(manifest, c.ToJsonString(), CharacterCookProfile.TrustedBuiltIn);
+
+        var source = CharacterPackageSourceCodec.Load(manifest, Character().ToJsonString());
+        Assert.True(source.IsValid, string.Join("; ", source.Diagnostics));
+        var rewritten = CharacterPackageSourceCodec.Load(manifest,
+            CharacterPackageSourceCodec.SerializeCharacter(source.Source!.Character));
+        Assert.True(rewritten.IsValid, string.Join("; ", rewritten.Diagnostics));
+        Assert.Equal(source.Source.Character.AlternateForm!.Slots.Count, rewritten.Source!.Character.AlternateForm!.Slots.Count);
+        var compiled = CharacterPackageCompiler.Compile(rewritten.Source, CharacterCookProfile.TrustedBuiltIn);
+        Assert.True(compiled.CookedPackage != null, string.Join("; ", compiled.Diagnostics.Select(d => d.Code + " " + d.Path)));
+        var package = compiled.CookedPackage!;
+        Assert.Equal("1.16.0", package.Metadata.RuntimeApiMin);
+
+        var loaded = CookedCharacterPackageLoader.LoadAssembly(CharacterPackageAssembler.Assemble(BuildInput(package,
+            Array.Empty<PackageDependencySource>(), package.Definition.CapabilityRequirements, Array.Empty<CharacterDiagnostic>())));
+        Assert.True(loaded.IsValid, string.Join("; ", loaded.Diagnostics.Select(d => d.Code + " " + d.Message)));
+        var form = loaded.Package!.Definition.AlternateForm!;
+        Assert.Equal(("fake", "Fixture Fake"), (form.Id, form.DisplayName));
+        Assert.Equal(CharacterPackageCompiler.CanonicalSlotIds, form.Slots.Select(s => s.Id));
+        Assert.All(form.Slots, s => Assert.Equal(1, s.Form));
+        Assert.All(loaded.Package.Definition.Slots, s => Assert.Equal(0, s.Form));
+        foreach (var grid in new[] { loaded.Package.Definition.Slots, form.Slots })
+        foreach (string id in new[] { "ground.F", "air.F" })
+            Assert.Single(grid.Single(s => s.Id == id).Timeline.Stages.SelectMany(st => st.Operations).OfType<CookedSwapFormOperation>());
+
+        var real = loaded.ToCharacterDefinition(CharacterClass.FightGuy);
+        var fake = real.ForForm(1);
+        Assert.Equal(1, fake.Form);
+        Assert.Same(real, fake.ForForm(0));
+        Assert.Equal(16f, fake.Movement.RunSpeed);
+        Assert.Equal(real.DashAnim, fake.RunAnim);
+        Assert.Equal(real.IdleAnim, fake.IdleAnim);
+        Assert.Equal((real.CapsuleHeight, real.ShieldRadius, real.Weight), (fake.CapsuleHeight, fake.ShieldRadius, fake.Weight));
+
+        var runtime = JsonNode.Parse(package.CanonicalBytes)!.AsObject();
+        runtime["metadata"]!["compatibility"]!["runtimeApiMin"] = "1.15.0";
+        var downgraded = new CookedCharacterPackage(package.Metadata with { RuntimeApiMin = "1.15.0" }, package.Definition,
+            package.Budget, package.Diagnostics, Encoding.UTF8.GetBytes(runtime.ToJsonString()));
+        var rejected = CookedCharacterPackageLoader.LoadAssembly(CharacterPackageAssembler.Assemble(BuildInput(downgraded,
+            Array.Empty<PackageDependencySource>(), downgraded.Definition.CapabilityRequirements, Array.Empty<CharacterDiagnostic>())));
+        Assert.Contains(rejected.Diagnostics, d => d.Code == "package.compatibility.unsupported");
+
+        Assert.Contains(Compile(Character(block: false)).Diagnostics, d => d.Code == "schema.missing" && d.Path == "character.alternateForm");
+        Assert.Contains(Compile(Character(capability: false)).Diagnostics, d => d.Code == "capability.unknown" && d.Path == "character.alternateForm");
+        Assert.Null(Compile(Character(block: false, capability: false)).CookedPackage);
+        var duplicated = Character();
+        var formSlots = duplicated["alternateForm"]!["slots"]!.AsArray();
+        formSlots.Add(formSlots[0]!.DeepClone());
+        Assert.Contains(Compile(duplicated).Diagnostics,
+            d => d.Code == "id.duplicate" && d.Path == $"character.alternateForm.slots[{formSlots.Count - 1}].id");
+    }
+
+    [Fact]
     public void FingerGunsRoundTripsTheVerifiedCookedPackage()
     {
         var package = CompileFingerGuns();
@@ -415,11 +670,62 @@ public sealed class CharacterPackageAssemblerTests
             ? "package.compatibility.unsupported" : "package.capability.parameters-invalid"));
     }
 
+    [Fact]
+    public void TetherRoundTripsTheVerifiedCookedPackage()
+    {
+        var package = RingDuel.Compile(null);
+        var loaded = LoadFingerGuns(package);
+        Assert.True(loaded.IsValid, string.Join("; ", loaded.Diagnostics));
+        Assert.Equal("1.14.0", loaded.Package!.Metadata.RuntimeApiMin);
+        Assert.Equal(TetherTests.Parameters, loaded.Package.Definition.Slots.Single(slot => slot.Id == "ground.A")
+            .Timeline.Stages.Single().Operations.OfType<CookedStartCapabilityOperation>().Single().Parameters);
+    }
+
+    [Theory]
+    [InlineData("api")]
+    [InlineData("tick")]
+    [InlineData("iasa")]
+    [InlineData("operation")]
+    [InlineData("gravity")]
+    [InlineData("knockback")]
+    [InlineData("speed")]
+    [InlineData("arrivalStunTicks")]
+    [InlineData("reelAnimationId")]
+    public void TetherLoaderRejectsTamperedCookedSlotsOrApi(string field)
+    {
+        var package = RingDuel.Compile(null);
+        var runtime = JsonNode.Parse(package.CanonicalBytes)!;
+        string api = field == "api" ? "1.12.0" : "1.14.0";
+        runtime["metadata"]!["compatibility"]!["runtimeApiMin"] = api;
+        var stage = runtime["character"]!["slots"]!.AsArray().Single(s => (string?)s!["id"] == "ground.A")!
+            ["timeline"]!["stages"]![0]!;
+        var operation = stage["operations"]![0]!;
+        var p = operation["parameters"]!;
+        switch (field)
+        {
+            case "api": break;
+            case "tick": operation["tick"] = 1; break;
+            case "iasa": stage["iasaTicks"] = 1; break;
+            case "operation": stage["operations"]!.AsArray().Add(operation.DeepClone()); break;
+            case "gravity": p["projectile"]!["gravity"] = 4; break;
+            case "knockback": p["projectile"]!["baseKnockback"] = 4; break;
+            case "speed": p["projectile"]!["speed"] = 0; break;
+            case "arrivalStunTicks": p[field] = 0; break;
+            case "reelAnimationId": p[field] = "anim.bashie.ring"; break;
+        }
+        var tampered = new CookedCharacterPackage(package.Metadata with { RuntimeApiMin = api }, package.Definition,
+            package.Budget, package.Diagnostics, Encoding.UTF8.GetBytes(runtime.ToJsonString()));
+        var rejected = LoadFingerGuns(tampered);
+        Assert.False(rejected.IsValid);
+        Assert.Contains(rejected.Diagnostics, d => d.Code == (field == "api"
+            ? "package.compatibility.unsupported" : "package.capability.parameters-invalid"));
+    }
+
     private static CookedCharacterPackage CompileFingerGuns()
     {
         string root = FindRepoFile("client/Unity/Assets/CharacterPackages/fightguy");
         var character = JsonNode.Parse(File.ReadAllText(Path.Combine(root, "character.json")))!.AsObject();
-        FingerGunsTests.UseGuns(character);
+        FingerGunsTests.UseGuns(character, slot => slot["aimMode"] = "groundVector");
         var compiled = CharacterPackageCompiler.Compile(File.ReadAllText(Path.Combine(root, "package.json")),
             character.ToJsonString(), CharacterCookProfile.TrustedBuiltIn);
         Assert.NotNull(compiled.CookedPackage);
@@ -429,6 +735,41 @@ public sealed class CharacterPackageAssemblerTests
     private static CookedCharacterPackageLoadResult LoadFingerGuns(CookedCharacterPackage package)
         => CookedCharacterPackageLoader.LoadAssembly(CharacterPackageAssembler.Assemble(BuildInput(package,
             Array.Empty<PackageDependencySource>(), package.Definition.CapabilityRequirements, Array.Empty<CharacterDiagnostic>())));
+
+    [Theory]
+    [InlineData("ground.A", "fuseTicks", 0)]
+    [InlineData("ground.A", "hopBackSpeed", 0)]
+    [InlineData("ground.A", "explosionDamage", -1)]
+    [InlineData("ground.F", "speed", 61)]
+    [InlineData("ground.F", "selfPushSpeed", 41)]
+    [InlineData("ground.E", "fuelTicks", 0)]
+    [InlineData("ground.E", "sinkSpeed", 0)]
+    [InlineData("ground.E", "jumpBurstTicks", 181)]
+    [InlineData("ground.E", "jumpBurstSpeed", 31)]
+    [InlineData("ground.E", "horizontalSpeed", 41)]
+    public void MankiSourceAndCookedLoaderRejectTheSameInvalidCanAndFlightBounds(string slotId, string field, int value)
+    {
+        string root = FindRepoFile("client/Unity/Assets/CharacterPackages/manki");
+        string metadata = File.ReadAllText(Path.Combine(root, "package.json"));
+        string source = File.ReadAllText(Path.Combine(root, "character.json"));
+        JsonNode Parameters(JsonNode character) => character["slots"]!.AsArray()
+            .Single(slot => (string?)slot!["id"] == slotId)!["timeline"]!["stages"]![0]!["operations"]!.AsArray()
+            .Single(operation => operation!.AsObject().ContainsKey("capabilityId"))!["parameters"]!;
+        var authoring = JsonNode.Parse(source)!;
+        Parameters(authoring)[field] = value;
+        var rejectedSource = CharacterPackageCompiler.Compile(metadata, authoring.ToJsonString(), CharacterCookProfile.TrustedBuiltIn);
+        Assert.Null(rejectedSource.CookedPackage);
+        Assert.Contains(rejectedSource.Diagnostics, d => d.Code == "value.out-of-range");
+
+        var package = CharacterPackageCompiler.Compile(metadata, source, CharacterCookProfile.TrustedBuiltIn).CookedPackage!;
+        var runtime = JsonNode.Parse(package.CanonicalBytes)!;
+        Parameters(runtime["character"]!)[field] = value;
+        var tampered = new CookedCharacterPackage(package.Metadata, package.Definition,
+            package.Budget, package.Diagnostics, Encoding.UTF8.GetBytes(runtime.ToJsonString()));
+        var rejectedCooked = LoadFingerGuns(tampered);
+        Assert.False(rejectedCooked.IsValid);
+        Assert.Contains(rejectedCooked.Diagnostics, d => d.Code == "package.capability.parameters-invalid");
+    }
 
     [Fact]
     public void ChargedStreamRoundTripsTheVerifiedCookedPackage()
@@ -450,77 +791,9 @@ public sealed class CharacterPackageAssemblerTests
                 .OfType<CookedStartCapabilityOperation>().Single().Parameters);
     }
 
-    [Theory]
-    [InlineData(true, 18)]
-    [InlineData(false, 0)]
-    public void AerosolMinimumChargeRoundTripsSourceAndVerifiedCookedPackage(bool includeMinimum, int expected)
-    {
-        string root = FindRepoFile("client/Unity/Assets/CharacterPackages/manki");
-        string manifest = File.ReadAllText(Path.Combine(root, "package.json"));
-        var character = JsonNode.Parse(File.ReadAllText(Path.Combine(root, "character.json")))!;
-        if (!includeMinimum)
-            foreach (var slot in character["slots"]!.AsArray())
-                foreach (var stage in slot!["timeline"]!["stages"]!.AsArray())
-                    foreach (var operation in stage!["operations"]!.AsArray())
-                        if (operation!["capabilityId"]?.GetValue<string>() == "slop.internal.manki.aerosol-inferno.v1")
-                        {
-                            operation["parameters"]!.AsObject().Remove("minimumChargeTicks");
-                            operation["parameters"]!.AsObject().Remove("chargeTiers");
-                        }
-        var source = CharacterPackageSourceCodec.Load(manifest, character.ToJsonString());
-        Assert.True(source.IsValid, string.Join("; ", source.Diagnostics));
-        var rewritten = CharacterPackageSourceCodec.Load(manifest,
-            CharacterPackageSourceCodec.SerializeCharacter(source.Source!.Character));
-        Assert.True(rewritten.IsValid, string.Join("; ", rewritten.Diagnostics));
-        var compiled = CharacterPackageCompiler.Compile(rewritten.Source!, CharacterCookProfile.TrustedBuiltIn);
-        Assert.NotNull(compiled.CookedPackage);
-        var package = compiled.CookedPackage!;
-        var assembly = CharacterPackageAssembler.Assemble(BuildInput(package, Array.Empty<PackageDependencySource>(),
-            package.Definition.CapabilityRequirements, Array.Empty<CharacterDiagnostic>()));
-        var loaded = CookedCharacterPackageLoader.LoadAssembly(assembly);
-        Assert.True(loaded.IsValid, string.Join("; ", loaded.Diagnostics));
-        foreach (var slot in loaded.Package!.Definition.Slots.Where(slot => slot.Id is "ground.F" or "air.F"))
-        {
-            var capability = Assert.Single(slot.Timeline.Stages.SelectMany(stage => stage.Operations)
-                .OfType<CookedStartCapabilityOperation>());
-            var parameters = Assert.IsType<CookedMankiAerosolInfernoCapabilityParameters>(capability.Parameters);
-            Assert.Equal((ushort)expected, parameters.MinimumChargeTicks);
-            if (includeMinimum)
-                Assert.Equal(new[]
-                {
-                    new MankiAerosolChargeTier(18, 10f, 0.6f), new MankiAerosolChargeTier(30, 14f, 0.8f),
-                    new MankiAerosolChargeTier(42, 18f, 1f), new MankiAerosolChargeTier(54, 22f, 1.25f),
-                    new MankiAerosolChargeTier(66, 26f, 1.5f),
-                }, parameters.ChargeTiers);
-            else
-            {
-                Assert.Null(parameters.ChargeTiers);
-                Assert.Equal(15f, parameters.GetChargeTier(120).Damage);
-                Assert.Equal(1f, parameters.GetChargeTier(120).ReachScale);
-            }
-        }
-    }
 
-    [Theory]
-    [InlineData("chargeTicks", 18)]
-    [InlineData("damage", 9)]
-    [InlineData("reachScale", 0)]
-    public void AerosolRejectsInvalidChargeProgression(string field, float value)
-    {
-        string root = FindRepoFile("client/Unity/Assets/CharacterPackages/manki");
-        var character = JsonNode.Parse(File.ReadAllText(Path.Combine(root, "character.json")))!;
-        foreach (var slot in character["slots"]!.AsArray())
-            foreach (var stage in slot!["timeline"]!["stages"]!.AsArray())
-                foreach (var operation in stage!["operations"]!.AsArray())
-                    if (operation!["capabilityId"]?.GetValue<string>() == "slop.internal.manki.aerosol-inferno.v1")
-                        operation["parameters"]!["chargeTiers"]![1]![field] = JsonValue.Create(value);
-        var source = CharacterPackageSourceCodec.Load(File.ReadAllText(Path.Combine(root, "package.json")), character.ToJsonString());
-        Assert.True(source.IsValid, string.Join("; ", source.Diagnostics));
-        var compiled = CharacterPackageCompiler.Compile(source.Source!, CharacterCookProfile.TrustedBuiltIn);
-        Assert.Null(compiled.CookedPackage);
-        Assert.Contains(compiled.Diagnostics, diagnostic => diagnostic.Code == "value.out-of-range"
-            && diagnostic.Path.Contains("chargeTiers"));
-    }
+
+
 
     [Fact]
     public void Assemble_IsDeterministic_AndVerifiesCanonicalTree()
@@ -983,6 +1256,7 @@ public sealed class CharacterPackageAssemblerTests
     {
         string root = FindRepoFile("client/Unity/Assets/CharacterPackages/fightguy");
         var character = JsonNode.Parse(File.ReadAllText(Path.Combine(root, "character.json")))!;
+        FightGuyFixture.WithoutTitleMatch(character.AsObject());
         foreach (var slot in character["slots"]!.AsArray())
         foreach (var stage in slot!["timeline"]!["stages"]!.AsArray())
         {
@@ -1051,8 +1325,8 @@ public sealed class CharacterPackageAssemblerTests
     }
 
     [Theory]
-    [InlineData("wibou", "1.5.0", "1.4.0")]
-    [InlineData("fightguy", "1.6.0", "1.5.0")]
+    [InlineData("wibou", "1.15.0", "1.14.0")]
+    [InlineData("fightguy", "1.17.0", "1.16.0")]
     [InlineData("bonk", "1.8.0", "1.7.0")]
     public void CookedLoaderRestoresParametersAndEnforcesApiFloor(string id, string api, string incompatibleApi)
     {
@@ -1078,6 +1352,11 @@ public sealed class CharacterPackageAssemblerTests
             Assert.Equal(1f, charge.GetRadius(45));
             Assert.Equal(20f, charge.Projectile.Speed);
             Assert.Equal((ushort)112, charge.Projectile.MaxFlightTicks);
+            var source = package.Definition.Slots.Single(slot => slot.Id == "ground.F");
+            var clinch = Assert.IsType<CookedClinchCapabilityParameters>(loaded.Package!.Definition.Slots
+                .Single(slot => slot.Id == "ground.F").Timeline.Stages[0].Operations
+                .OfType<CookedStartCapabilityOperation>().Single().Parameters);
+            Assert.Equal(source.Timeline.Stages[0].Operations.OfType<CookedStartCapabilityOperation>().Single().Parameters, clinch);
         }
         if (id == "bonk")
             Assert.All(loaded.Package!.Definition.Slots.Where(slot => slot.Id.EndsWith(".F")),
@@ -1131,10 +1410,15 @@ public sealed class CharacterPackageAssemblerTests
             package.Definition.Presentation.Grabbed,
             package.Definition.Presentation.ThrowForward,
             package.Definition.Presentation.AirDodge,
+            package.Definition.Presentation.Flying,
+            package.Definition.Presentation.MayhemLaugh,
         })
             if (!string.IsNullOrEmpty(role))
                 names.Add(role);
-        foreach (var slot in package.Definition.Slots)
+        foreach (var (_, role) in package.Definition.AlternateForm?.Presentation.Roles ?? Array.Empty<(string, string)>())
+            if (!string.IsNullOrEmpty(role))
+                names.Add(role);
+        foreach (var slot in package.Definition.AllSlots)
         {
             if (!string.IsNullOrEmpty(slot.AimAnimationId)) names.Add(slot.AimAnimationId);
             foreach (var stage in slot.Timeline.Stages)
@@ -1164,6 +1448,8 @@ public sealed class CharacterPackageAssemblerTests
 
         var boneNames = new[] { "root" }
             .Concat(package.Definition.AttachmentBoneIds)
+            .Concat(package.Definition.HurtboxBoneDefs.SelectMany(x => new[] { x.BoneId, x.EndBoneId })
+                .Where(x => x != null).Select(x => CharacterBoneRegistry.BakedName(x)!))
             .Distinct(StringComparer.Ordinal)
             .ToArray();
         using var poses = new MemoryStream();

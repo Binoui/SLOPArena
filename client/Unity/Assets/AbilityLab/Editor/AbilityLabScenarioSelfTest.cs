@@ -39,8 +39,8 @@ public static class AbilityLabScenarioSelfTest
             && block.Frames.Any(frame => frame.Opponent.BlockStunTicks > 0), "Block damaged the opponent or lost Blockstun.");
         var collisionFrame = block.Frames[block.Contacts[0].FrameIndex];
         Require(collisionFrame.Hurtboxes.Any(shape => shape.Id == 2 && shape.ShieldSurface)
-            && !collisionFrame.Hurtboxes.Any(shape => shape.Id == 2 && !shape.ShieldSurface),
-            "Recorded blocked contact showed raw body hurtboxes instead of Shared's shield surface.");
+            && !collisionFrame.Hurtboxes.Any(shape => shape.Id == 2 && !shape.ShieldSurface && !shape.ProtectedByShield),
+            "Recorded blocked contact showed unshielded body hurtboxes instead of Shared's shield surface.");
 
         var captured = Sim("grab", 1.2f);
         Require(captured.Interactions.Count == 2 && captured.Interactions[0].Kind == "capture"
@@ -50,12 +50,20 @@ public static class AbilityLabScenarioSelfTest
             && captureFrame.Actor.InteractionId == captureFrame.Opponent.InteractionId, "Capture lost the held state or linkage.");
         var releaseFrame = captured.Frames[captured.Interactions[1].FrameIndex];
         Require(releaseFrame.Actor.InteractionId == 0 && releaseFrame.Opponent.InteractionId == 0
-            && releaseFrame.Opponent.DamagePercent > captureFrame.Opponent.DamagePercent
-            && releaseFrame.Opponent.State == ActionState.Thrown, "Automatic release lost terminal linkage, damage or launch state.");
+            && releaseFrame.Opponent.DamagePercent == captureFrame.Opponent.DamagePercent + 4
+            && releaseFrame.Opponent.HitstopTicks > 0, "Automatic toss lost terminal linkage, damage or freeze.");
+        var beforeRelease = captured.Frames[captured.Interactions[1].FrameIndex - 1];
+        Require(GrabThrow.WasReleased(beforeRelease.Actor, beforeRelease.Opponent,
+            releaseFrame.Actor, releaseFrame.Opponent), "Automatic toss lost its release witness.");
+        Require(captured.Frames.Any(frame => frame.Opponent.State == ActionState.Hitstun
+            && frame.Opponent.KVY > 0f), "Automatic toss did not launch into ordinary Hitstun.");
         Require(captured.Interactions[1].FrameIndex - captured.Interactions[0].FrameIndex
             == DefenseConfig.GrabHoldTicks + DefenseConfig.ThrowReleaseTicks,
             "Scenario orchestration changed Shared release timing.");
-        Require(captured.Contacts.Count == 0, "Grab invented a hitbox contact record.");
+        Require(captured.Contacts.Count == 1 && captured.Contacts[0].Hit.AttackSlot == 0
+            && captured.Contacts[0].Hit.OwnerEntityId == 1 && !captured.Contacts[0].Hit.Blocked
+            && captured.Contacts[0].FrameIndex == captured.Interactions[1].FrameIndex,
+            "Grab must record exactly its accepted release contact.");
         var shieldGrab = Sim("grab", 1.2f, AbilityLabOpponentBehavior.Shield);
         Require(shieldGrab.Interactions.Any(observation => observation.Kind == "capture"), "Shield incorrectly blocked grab.");
         var whiff = Sim("grab", 12f);

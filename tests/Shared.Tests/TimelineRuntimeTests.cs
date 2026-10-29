@@ -608,9 +608,6 @@ public sealed class TimelineRuntimeTests
     public void CapabilityCancellationClearsAimWithoutClearingVelocity()
     {
         var slot = Slot(10,
-            new CookedStartCapabilityOperation(0, AuthoringUnit.Ticks,
-                "slop.internal.manki.round-bomb.v1", "1",
-                new CookedMankiRoundBombCapabilityParameters(10, 12f, 30f, 30f, .6f, 6f, 22, 90, 30, 4f, 2.3f, 5f, 9f, 15, 4, 45)),
             new CookedSetAimStateOperation(0, AuthoringUnit.Ticks, AuthoringAimMode.CameraForward3D));
         var initial = TestHelpers.PlayerState() with { PY = 100f, IsGrounded = false, VX = 4f, VZ = 5f };
         var (sim, def) = Create(slot, initial);
@@ -948,10 +945,7 @@ public sealed class TimelineRuntimeTests
     }
 
     [Theory]
-    [InlineData("manki", "F")]
     [InlineData("fightguy", "R")]
-    [InlineData("fightguy", "F")]
-    [InlineData("wibou", "F")]
     [InlineData("bonk", "A")]
     [InlineData("bonk", "R")]
     public void AuthoredSpecialsCorrectStartupAndCommitGroundAndAir(string package, string label)
@@ -980,8 +974,6 @@ public sealed class TimelineRuntimeTests
                 CookedSpawnHitboxOperation hit => (int)hit.Tick,
                 CookedSpawnProjectileOperation throwOperation => (int)throwOperation.Tick,
                 CookedForwardLungeOperation lunge => (int)lunge.Tick,
-                CookedStartCapabilityOperation { Parameters: CookedMankiAerosolInfernoCapabilityParameters flame }
-                    => flame.FireTriggerTick,
                 CookedStartCapabilityOperation { Parameters: CookedCycloneKickCapabilityParameters cyclone }
                     => cyclone.WindupTicks + 1,
                 // The Joust launches into its gallop on the tick the capability starts.
@@ -1042,51 +1034,7 @@ public sealed class TimelineRuntimeTests
         }
     }
 
-    [Theory]
-    [InlineData("manki", "F", "valid")]
-    [InlineData("manki", "F", "invalidated")]
-    [InlineData("manki", "F", "empty")]
-    public void AimedSpecialReleaseCorrectsFinalManualFacingWithoutReacquiring(
-        string package, string label, string targetScenario)
-    {
-        var def = CompileSourceDefinition(package);
-        var slot = def.CookedSlots!.Single(s => s.Id == $"ground.{label}");
-        var initial = TestHelpers.PlayerState() with { PY = def.CapsuleHeight * .5f };
-        var (sim, _) = Create(slot, initial);
-        sim.RegisterEntity(1, def, initial);
-        sim.RegisterEntity(100, def, TestHelpers.NpcState(targetScenario == "empty" ? 10f : 2.5f, 0f)
-            with { PY = initial.PY });
-        byte wireSlot = label == "R" ? AbilitySlots.R : AbilitySlots.F;
-        sim.ActivateAbility(1, new CookedTimelineAbility(slot),
-            (byte)(wireSlot - 1), def, activationInput: new InputState { TargetEntityId = 100 });
-        var hold = new Dictionary<ulong, InputState> { [1] = new() { IsAiming = true } };
-        const float manualYaw = MathF.PI / 3f;
-        sim.SetState(1, sim.GetState(1) with { AimYaw = manualYaw });
-        for (int tick = 0; tick < 24; tick++)
-        {
-            if (targetScenario == "invalidated" && tick == 2)
-                sim.SetState(100, sim.GetState(100) with { PX = 10f });
-            if (targetScenario != "valid" && tick == 3)
-                sim.SetState(100, sim.GetState(100) with { PX = 2.5f });
-            sim.TickAbilities(hold);
-            TestHelpers.AssertNear(manualYaw, sim.GetState(1).FacingYaw);
-            Assert.Equal(ActionState.Aiming, sim.GetState(1).State);
-        }
-        sim.TickAbilities(new() { [1] = default });
-        var profile = slot.Timeline.Stages.SelectMany(stage => stage.Operations)
-            .OfType<CookedStartupAimCorrectionOperation>().Single();
-        float step = profile.YawDegreesPerSecond * MathF.PI / 180f / 60f;
-        float expected = manualYaw + (targetScenario == "valid" ? step : 0f);
-        TestHelpers.AssertNear(expected, sim.GetState(1).FacingYaw);
-        Assert.Equal(ActionState.Attacking, sim.GetState(1).State);
-        Assert.Equal(targetScenario == "empty" ? 0UL : 100UL, sim.GetState(1).AttackCorrectionTargetId);
-        if (targetScenario != "valid")
-            Assert.False(sim.GetState(1).AttackCorrectionActive);
-        sim.SetState(1, sim.GetState(1) with { State = ActionState.Hitstun });
-        sim.TickAbilities(new());
-        Assert.False(sim.GetState(1).AttackCorrectionOwned);
-        Assert.Equal(0UL, sim.GetState(1).AttackCorrectionTargetId);
-    }
+
 
     [Fact]
     public void AttackerHitstopDoesNotShortenItsOtherLiveWindows()
@@ -1165,7 +1113,7 @@ public sealed class TimelineRuntimeTests
             if (walking.State == ActionState.Aiming) fastest = MathF.Max(fastest, MathF.Abs(walking.VX));
         }
         Assert.InRange(fastest, 0.5f * cap, cap + 1e-4f);
-        if (!airborne) TestHelpers.AssertNear(.94f * cap, fastest, 1e-4f);
+        if (!airborne) TestHelpers.AssertNear(cap, fastest, 1e-4f); // the ground ramp completes inside the aim
 
         var stopped = sim.GetState(1);
         Assert.Equal(ActionState.Attacking, stopped.State);

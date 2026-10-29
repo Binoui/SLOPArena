@@ -270,8 +270,8 @@ evaluates each clip the way Animancer plays it (playable graph, no root motion, 
 `AnimationClip.SampleAnimation` agrees on the hips-relative pose but put the hips up to 3.5 m
 elsewhere for clips with root curves. `HitboxGeometry.BakedPointToWorld` places every baked
 point for hitboxes, hurtboxes and the Ability Lab: the hips at `_hips_offset`, every other
-point at hips + scale × (point − hips), with `HurtboxBoneScale` for body points and 1 for
-weapon points. Bakes without `_hips_offset` keep the fixed `HipHeight` pivot. Before this,
+point at hips + scale × (point − hips), with scale 1 for hurtboxes and weapon attack points. Body-bone attack points retain
+`HurtboxBoneScale`. Bakes without `_hips_offset` keep the fixed `HipHeight` pivot. Before this,
 the fixed pivot put Wibou's tested sword up to 37 cm from the drawn blade in his normals and
 53 cm in Skyfall's dive, and every fighter's hurtboxes trailed animated hip motion by up to
 1.2 m (Bonk's Targeted Jump Slam). The `Rendered Pose Alignment` Editor self-test renders
@@ -279,17 +279,34 @@ every clip frame through Animancer and requires each resolved point within 0.1 m
 
 ### Hurtbox construction and fallback
 
-`ServerSimulation.BuildHurtboxList` produces `SpellResolver.EntityData` from the
-fighter's Shared state. Body definitions and baked bones pair by name, not by index.
-The volume can be a sphere or a capsule; eliminated fighters do not supply
-ordinary vulnerable hurtboxes.
+`ServerSimulation.BuildHurtboxList` and `BuildEntitiesFromState` produce the same
+`SpellResolver.EntityData` for simulation, Training, and Ability Lab.
+Bone definitions pair with baked points by name, independently of definition order.
+Eliminated fighters do not supply ordinary vulnerable hurtboxes.
+
+A package `hurtboxBoneDefs` entry with only `boneId`, offsets, and `radius` produces a sphere.
+An optional `endBoneId` produces a capsule, with independent `endOffsetX/Y/Z` values that default to zero.
+Both endpoints resolve on the drawn pose at scale 1. Both offsets rotate with facing,
+and both points receive `HitboxGeometry.ApplyAttackPosePitch`.
+`HurtboxBoneScale` still controls body-bone attack reach and does not shrink hurtbox points.
+
+`CharacterBoneRegistry` maps semantic IDs to humanoid mappings and stable baked names.
+The cook uses `Animator.GetBoneTransform`, including on rigs whose transform names differ.
+`rig:<exact transform name>` names a non-humanoid point such as a tail bone.
+The cook retains the original required points and adds every hurtbox start and end.
+Package admission fails with `package.pose.hurtbox-missing` if either endpoint is absent from `poses.bin`.
+An invalid runtime definition throws instead of silently omitting a vulnerable body region.
+
+The roster uses mesh-fitted head, torso, arm, hand, leg, and foot capsules.
+Salamander and Manki also have tail capsules. Bashie's shell is part of her body.
+Nyx's skirt, Bonk's cape, Wibou's coat, and Salamander's hat do not add hurtboxes.
+See [ADR-0055](../adr/0055-capsule-hurtboxes.md) and the
+[fit and coverage tools](../../tools/character_sizes/README.md).
 
 When the baked-animation path is unavailable, the fallback uses authored `HurtboxCapsules`.
 Callers must register the resolved `BakedAnimationData`; a `BakedDataPath` string
-does not load poses into a directly registered entity. Missing poses and missing
+cannot load poses into a directly registered entity. Missing poses and missing
 fallback capsules can remove collision rather than create a generic hurtbox.
-
-Cooked combat fixtures therefore pass the admitted definition and baked poses explicitly.
 Keep fallback capsules intact through definition serialization and catalog cloning.
 
 ---

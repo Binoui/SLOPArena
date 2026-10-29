@@ -22,6 +22,8 @@ string compareId = job["compare"]?.Type == Newtonsoft.Json.Linq.JTokenType.Strin
 var bakeTicks = job["bakeTicks"].ToObject<int[]>();
 bool alignOrigin = job["alignOrigin"]?.Type != Newtonsoft.Json.Linq.JTokenType.Boolean || (bool)job["alignOrigin"];
 bool loopTime = job["loopTime"]?.Type == Newtonsoft.Json.Linq.JTokenType.Boolean && (bool)job["loopTime"];
+bool groundToReference = job["groundToReference"]?.Type == Newtonsoft.Json.Linq.JTokenType.Boolean && (bool)job["groundToReference"];
+if (groundToReference && reference == null) throw new System.Exception("Sole grounding requires an entry reference");
 string assetPath = job["asset"]?.Type == Newtonsoft.Json.Linq.JTokenType.String ? (string)job["asset"] : null;
 if (assetPath != null && (!assetPath.StartsWith("Assets/") || !assetPath.EndsWith(".anim") || assetPath.Contains("..")))
   throw new System.Exception("Asset path must be a new Assets/... .anim path: " + assetPath);
@@ -61,6 +63,13 @@ float referenceTime = reference != null ? (int)reference["tick"] / (float)fps : 
 var compareClip = Bound(compareId);
 float[] P(UnityEngine.Vector3 v) => new[] { v.x, v.y, v.z };
 
+// One body per form on a shared skeleton (unity_rigpack.py --meshes): show only the pack's skinned meshes on the instance.
+void ShowMeshes(UnityEngine.GameObject instance) {
+  if (job["meshes"] == null || job["meshes"].Type != Newtonsoft.Json.Linq.JTokenType.Array) return;
+  var shown = job["meshes"].ToObject<string[]>();
+  foreach (var sk in instance.GetComponentsInChildren<UnityEngine.SkinnedMeshRenderer>(true))
+    sk.gameObject.SetActive(System.Array.IndexOf(shown, sk.name) >= 0);
+}
 var scene = UnityEditor.SceneManagement.EditorSceneManager.NewPreviewScene();
 var spawned = new System.Collections.Generic.List<UnityEngine.GameObject>();
 var temporary = new System.Collections.Generic.List<UnityEngine.Object>();  // destroyed after the instances
@@ -70,6 +79,7 @@ try {
   (UnityEngine.GameObject actor, UnityEngine.Animator animator, UnityEngine.Transform[] bones, System.Action restore,
    System.Action constrain, UnityEngine.SkinnedMeshRenderer[] skins) Spawn() {
     var actor = (UnityEngine.GameObject)UnityEngine.Object.Instantiate(prefab);
+    ShowMeshes(actor);
     spawned.Add(actor);
     UnityEngine.SceneManagement.SceneManager.MoveGameObjectToScene(actor, scene);
     actor.hideFlags = UnityEngine.HideFlags.HideAndDontSave;
@@ -301,6 +311,7 @@ try {
   }
   UnityEngine.Quaternion Continuous(UnityEngine.Quaternion q, UnityEngine.Quaternion previous) =>
     UnityEngine.Quaternion.Dot(q, previous) < 0f ? new UnityEngine.Quaternion(-q.x, -q.y, -q.z, -q.w) : q;
+  var groundBody = new float[ticks];
   UnityEngine.AnimationClip Build(UnityEngine.Vector3 origin) {
     var clip = new UnityEngine.AnimationClip { name = name, frameRate = fps };
     var bindings = new System.Collections.Generic.List<UnityEditor.EditorCurveBinding>();
@@ -319,7 +330,7 @@ try {
     var root = new UnityEngine.Quaternion[ticks];
     for (int tick = 0; tick < ticks; tick++) root[tick] = tick == 0 ? bodyQ[0] : Continuous(bodyQ[tick], root[tick - 1]);
     Add("", typeof(UnityEngine.Animator), "RootT.x", t => bodyT[t].x + origin.x);
-    Add("", typeof(UnityEngine.Animator), "RootT.y", t => bodyT[t].y + origin.y);
+    Add("", typeof(UnityEngine.Animator), "RootT.y", t => bodyT[t].y + origin.y + groundBody[t]);
     Add("", typeof(UnityEngine.Animator), "RootT.z", t => bodyT[t].z + origin.z);
     Add("", typeof(UnityEngine.Animator), "RootQ.x", t => root[t].x);
     Add("", typeof(UnityEngine.Animator), "RootQ.y", t => root[t].y);
@@ -405,6 +416,54 @@ try {
     }
   }
   var result = Build(origin);
+  object grounding = null;
+  if (groundToReference) {
+    var feet = new[] { player.animator.GetBoneTransform(UnityEngine.HumanBodyBones.LeftFoot), player.animator.GetBoneTransform(UnityEngine.HumanBodyBones.RightFoot) };
+    if (feet[0] == null || feet[1] == null) throw new System.Exception("Sole grounding requires both Humanoid feet");
+    var soleVertices = new System.Collections.Generic.List<(UnityEngine.SkinnedMeshRenderer skin, int[] indices)>();
+    foreach (var sk in player.skins) {
+      if (!sk.enabled || !sk.gameObject.activeInHierarchy || sk.sharedMesh == null) continue;
+      var indices = new System.Collections.Generic.List<int>();
+      var weights = sk.sharedMesh.boneWeights;
+      for (int v = 0; v < weights.Length; v++) {
+        var w = weights[v];
+        var bones = new[] { w.boneIndex0, w.boneIndex1, w.boneIndex2, w.boneIndex3 };
+        var influence = new[] { w.weight0, w.weight1, w.weight2, w.weight3 };
+        float footWeight = 0f;
+        for (int k = 0; k < 4; k++)
+          if (influence[k] > 0f && (sk.bones[bones[k]].IsChildOf(feet[0]) || sk.bones[bones[k]].IsChildOf(feet[1]))) footWeight += influence[k];
+        if (footWeight >= 0.5f) indices.Add(v);
+      }
+      if (indices.Count > 0) soleVertices.Add((sk, indices.ToArray()));
+    }
+    if (soleVertices.Count == 0) throw new System.Exception("Sole grounding found no foot-weighted vertices");
+    float Sole() {
+      float low = float.PositiveInfinity;
+      foreach (var item in soleVertices) {
+        item.skin.BakeMesh(baked, true);
+        var vertices = baked.vertices;
+        foreach (int v in item.indices) low = UnityEngine.Mathf.Min(low, item.skin.transform.TransformPoint(vertices[v]).y);
+      }
+      return low;
+    }
+    Runtime(referenceClip, referenceTime);
+    float floor = Sole();
+    var translation = new float[ticks];
+    for (int tick = 0; tick < ticks; tick++) {
+      Runtime(result, tick / (float)fps);
+      translation[tick] = floor - Sole();
+      groundBody[tick] = translation[tick] / player.animator.humanScale;
+    }
+    temporary.Add(result);
+    result = Build(origin);
+    var residual = new float[ticks];
+    for (int tick = 0; tick < ticks; tick++) {
+      Runtime(result, tick / (float)fps);
+      residual[tick] = Sole() - floor;
+      if (UnityEngine.Mathf.Abs(residual[tick]) > 0.0001f) throw new System.Exception("Sole grounding failed at tick " + tick + ": " + residual[tick]);
+    }
+    grounding = new { referenceSoleY = floor, translationMetres = translation, residualMetres = residual };
+  }
 
   var newSample = new float[ticks][][]; var newRuntime = new float[ticks][][];
   var compareSample = compareClip != null ? new float[ticks][][] : null; var compareRuntime = compareClip != null ? new float[ticks][][] : null;
@@ -455,7 +514,7 @@ try {
     muscleAttributes = System.Linq.Enumerable.ToArray(System.Linq.Enumerable.Select(UnityEngine.HumanTrait.MuscleName, MuscleAttribute)),
     mapped, generic = System.Linq.Enumerable.ToArray(System.Linq.Enumerable.Select(generic, i => paths[i])), inBetween, springSkipped,
     reference = referenceClip != null ? new { clip = referenceClip.name, semanticId = (string)(reference["semanticId"] ?? reference["asset"]), tick = (int)reference["tick"], positions = referencePositions } : null,
-    originBodyOffset = P(origin), compare = compareClip?.name,
+    originBodyOffset = P(origin), grounding, compare = compareClip?.name,
     fit = new { beforeMetres = fitBefore, afterMetres = fitAfter, afterDegrees = fitAngle, worstJoint = System.Array.ConvertAll(fitWorst, i => paths[i]),
                 worstAngleJoint = System.Array.ConvertAll(fitAngleJoint, i => paths[i]) },
     newSample, newRuntime, compareSample, compareRuntime, skin, bakes,

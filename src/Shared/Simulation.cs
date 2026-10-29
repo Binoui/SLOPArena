@@ -71,6 +71,10 @@ namespace SlopArena.Shared
         // tools/MoveDataReport prints the live values.
         public const float FlightGravity = 14f;
         public const float FlightFriction = 6f;
+        /// <summary>Horizontal brake (m/s²) when the stick points straight against post-hitstun
+        /// launch momentum. Air steering would brake at 12-24 m/s² and cancel half a launch;
+        /// this lets the stick cancel about a fifth.</summary>
+        public const float HeldFlightBrake = 8f;
 
         private const byte MaxAirDodges = 1;
 
@@ -164,45 +168,25 @@ namespace SlopArena.Shared
             _lastDownAdmissionReason = null;
             ordinaryActionOpportunity = false;
             movementActionAccepted = false;
-            if (s.InteractionId != 0
-                && s.State is (ActionState.Grabbed or ActionState.Throwing))
+            if (s.InteractionId != 0 && ActionStates.MovedByPartner(s.State))
             {
+                // A clinched fighter takes its holder's hits as hitstop alone (ADR-0053); nothing else runs it down.
+                if (s.State == ActionState.Clinched && s.HitstopTicks > 0) s.HitstopTicks--;
                 TickTimers(ref s);
                 return;
             }
             if (s.InteractionId != 0 && s.State == ActionState.Grabbing)
             {
                 TickTimers(ref s);
-                (float dx, float dz) = GetInputDirection(input);
-                // Human movement arrives in world space, with camera azimuth in AimYaw.
-                // Recover the control axes: sideways steers, forward/back walks along
-                // the held pair's facing. Camera turns alone never rotate the pair.
-                float controlYaw = input.AimYaw * (MathF.PI / 18000f);
-                float side = dx * MathF.Cos(controlYaw) - dz * MathF.Sin(controlYaw);
-                float forward = dx * MathF.Sin(controlYaw) + dz * MathF.Cos(controlYaw);
-                int yaw = (int)MathF.Round(s.CapturedYaw
-                    + side * DefenseConfig.GrabTurnDegreesPerSecond * TickDt * 100f);
-                if (yaw > 18000) yaw -= 36000;
-                else if (yaw < -18000) yaw += 36000;
-                s.CapturedYaw = (short)yaw;
-                s.FacingYaw = s.AimYaw = yaw * (MathF.PI / 18000f);
-                float speed = forward * def.Movement.RunSpeed * DefenseConfig.GrabWalkSpeedRatio;
-                s.VX = MathF.Sin(s.FacingYaw) * speed;
-                s.VZ = MathF.Cos(s.FacingYaw) * speed;
-                s.VY = 0f;
-                MoveDefenseBody(ref s, def, arena);
-                return;
-            }
-            if (s.State == ActionState.Thrown)
-            {
-                ProcessThrown(ref s, def, arena);
+                s.VX = s.VY = s.VZ = 0f;
                 return;
             }
 
             var stats = def.Movement;
             bool wasGrounded = s.IsGrounded;
             bool blockStunLocked = s.BlockStunTicks > 0;
-            bool slotInputBlocked = s.LandingLagTicks > 0 || IsDefenseActionState(s.State);
+            bool slotInputBlocked = s.LandingLagTicks > 0
+                || IsDefenseActionState(s.State) && !(s.State == ActionState.Throwing && s.InteractionId == 0);
 
             if (verticalMotionOwned)
             {
@@ -234,6 +218,9 @@ namespace SlopArena.Shared
             s.AimTargetDistance = input.AimDistance * 0.01f;
             s.AimPitch = input.AimPitch * 0.01f * (MathF.PI / 180f);
 
+            // A held cut (ADR-0052) is only ever frozen; any path that ends its freeze without the release still frees it.
+            if (s.State == ActionState.CutHeld && s.HitstopTicks == 0)
+                s.State = ActionState.Idle;
             // ── Hitstop (ADR-0012): per-pair freeze. While frozen, capture the defender's
             // Combo Influence input, decrement, and skip the state machine, timers, and physics.
             // The launch queued at hit connect applies at freeze expiry.
@@ -250,7 +237,8 @@ namespace SlopArena.Shared
                 }
                 if (!s.QueuedArmorHitstop && (input.MoveX != 0f || input.MoveY != 0f))
                 {
-                    if (!s.SdiApplied)
+                    // A held victim keeps its DI for the pop but cannot nudge out of the hold.
+                    if (!s.SdiApplied && s.State != ActionState.CutHeld)
                     {
                         ApplySdi(ref s, input.MoveX, input.MoveY, def, arena);
                         s.SdiApplied = true;
@@ -261,6 +249,8 @@ namespace SlopArena.Shared
                 s.HitstopTicks--;
                 if (s.HitstopTicks == 0)
                 {
+                    if (s.State == ActionState.CutHeld)
+                        s.State = ActionState.Idle;
                     bool queuedCrouchBrace = s.QueuedCrouchBrace;
                     if (s.QueuedKBResolvedForce)
                     {
@@ -303,7 +293,6 @@ namespace SlopArena.Shared
             // during the dash is held for the arrival window (the latest press wins).
             if (s.State is ActionState.HomingDashFloat or ActionState.HomingDash)
             {
-                if (input.ActiveSlot > 0) s.BufferedSlot = input.ActiveSlot;
                 TickTimers(ref s);
                 MoveDefenseBody(ref s, def, arena);
                 return;
@@ -602,9 +591,9 @@ namespace SlopArena.Shared
             // slides down through the FindLedge tolerance window and falls off on its own)
             if (s.State != ActionState.Hitstun && s.State != ActionState.LedgeHang)
                 ApplyGravity(ref s, stats, gravityMultiplier, verticalMotionOwned);
-            float fallSpeedBeforeMove = -s.VY;
-            bool skating = s.State == ActionState.Shell && wasGrounded;
-            
+            bool riding = s.State == ActionState.Shell && wasGrounded;
+            float stepX = s.PX, stepY = s.PY, stepZ = s.PZ;
+
             // 9-10. Authoritative triangle collision, with the old heightmap path kept
             // intact for legacy and synthetic unbaked arenas.
             float capsuleHalf = def.CapsuleHeight * 0.5f;
@@ -614,7 +603,7 @@ namespace SlopArena.Shared
             {
                 MoveThroughStage(ref s, def, arena,
                     s.VX * TickDt, s.VY * TickDt, s.VZ * TickDt, out float wallX, out float wallZ);
-                if (skating && def.Shell != null && Shell.IsHeadOn(s.FacingYaw, wallX, wallZ))
+                if (riding && def.Shell != null && Shell.IsHeadOn(s.FacingYaw, wallX, wallZ))
                     Shell.Blocked(ref s, def.Shell);
                 if (s.IsGrounded)
                 {
@@ -686,13 +675,16 @@ namespace SlopArena.Shared
             // a grounded→airborne transition with no upward velocity and no launch force
             // (knockback rides KVY + its own flight gravity) needs the nudge: leap the
             // float window so full Gravity applies on the very next airborne tick.
+            // The wave breaks at the lip (ADR-0050): a grounded ride never steps off its support.
+            if (riding && s.State == ActionState.Shell && !s.IsGrounded)
+                Shell.BreakAtLip(ref s, stepX, stepY, stepZ);
             ApplyWalkOffTransition(ref s, wasGrounded, stats.FloatWindowTicks);
 
             if (!wasGrounded && s.IsGrounded)
                 ClearMovementInterruptionFlags(ref s);
-            // A coast that lands skates on; a higher fall skates faster. The running clock carries on.
-            if (s.State == ActionState.Shell && !wasGrounded && s.IsGrounded && def.Shell != null)
-                Shell.Settle(ref s, def.Shell, fallSpeedBeforeMove, restartClock: false);
+            // A coast that lands rides on: its clock starts and its speed is laid back along the heading.
+            if (s.State == ActionState.Shell && !wasGrounded && s.IsGrounded && def.Shell?.Ride is { } ride)
+                Shell.LandRide(ref s, ride);
 
             if (s.State is (ActionState.AirDodgeMovement or ActionState.AirDodgeRecovery)
                 && s.IsGrounded)
@@ -741,7 +733,7 @@ namespace SlopArena.Shared
                 if (s.StateTicks == 0 && s.State != ActionState.Idle &&
                     s.State is not (ActionState.Shielding or ActionState.ShieldDrop or
                         ActionState.GrabAttempt or ActionState.Grabbing or ActionState.Grabbed or
-                        ActionState.Throwing or ActionState.Thrown or ActionState.AirDodgeMovement or
+                        ActionState.Throwing or ActionState.AirDodgeMovement or
                         ActionState.AirDodgeRecovery or ActionState.HomingDashFloat or ActionState.HomingDash))
                     s.State = ActionState.Idle;
             }
@@ -755,26 +747,16 @@ namespace SlopArena.Shared
                 ushort cd = s.GetCooldown(slot);
                 if (cd > 0) s.SetCooldown(slot, (ushort)(cd - 1));
             }
+            Forms.TickBank(ref s.Form);
 
-            // Charge-stock regen (ability charge pools, e.g. Wibou Rising Slash).
-            // Only active when a charge is spent; recovers one charge per regen period.
-            if (s.ChargeStockSpent > 0)
-            {
-                if (s.ChargeStockRegenTicks > 0) s.ChargeStockRegenTicks--;
-                if (s.ChargeStockRegenTicks == 0)
-                {
-                    s.ChargeStockSpent--;
-                    if (s.ChargeStockSpent > 0)
-                        s.ChargeStockRegenTicks = s.ChargeStockRegenPeriod > 0 ? s.ChargeStockRegenPeriod : (ushort)180;
-                }
-            }
+            s.RegenerateCharges();
 
 
         }
         private static bool IsDefenseActionState(ActionState state)
             => state is ActionState.Shielding or ActionState.ShieldDrop or ActionState.GrabAttempt
-                or ActionState.Grabbing or ActionState.Grabbed or ActionState.Throwing or ActionState.Thrown
-                or ActionState.AirDodgeMovement or ActionState.AirDodgeRecovery;
+                or ActionState.Grabbing or ActionState.Grabbed or ActionState.Throwing
+                or ActionState.AirDodgeMovement or ActionState.AirDodgeRecovery || ActionStates.Captive(state);
 
         private static bool CanAcceptDefenseAction(in CharacterState state, ActiveMoveView? activeMove,
             bool blockStunLocked, bool verticalMotionOwned)
@@ -986,6 +968,7 @@ namespace SlopArena.Shared
             else if (state.State == ActionState.GrabAttempt && state.StateTicks == 0)
             {
                 state.State = ActionState.Idle;
+                state.ClearStartupAimCorrection();
                 state.InteractionPhase = (byte)DefenseInteractionPhase.None;
                 state.InteractionId = 0;
                 state.InteractionPartnerId = 0;
@@ -1007,7 +990,7 @@ namespace SlopArena.Shared
                 state.State = ActionState.Idle;
         }
 
-        private static void MoveDefenseBody(ref CharacterState state, CharacterDefinition def,
+        internal static void MoveDefenseBody(ref CharacterState state, CharacterDefinition def,
             in ArenaDefinition arena)
         {
             MoveThroughStage(ref state, def, arena,
@@ -1022,34 +1005,6 @@ namespace SlopArena.Shared
             {
                 state.PY = floor;
                 state.VY = 0f;
-            }
-        }
-
-        private static void ProcessThrown(ref CharacterState state, CharacterDefinition def,
-            in ArenaDefinition arena)
-        {
-            TickTimers(ref state);
-            if (!state.IsGrounded)
-            {
-                state.KVY -= def.Movement.Gravity * TickDt;
-                state.VX = state.KVX; state.VY = state.KVY; state.VZ = state.KVZ;
-                MoveDefenseBody(ref state, def, arena);
-                if (state.IsGrounded)
-                {
-                    // Stage contact starts the final eight animation frames. Lower
-                    // platforms extend flight; higher ones cannot be passed through.
-                    state.StateTicks = DefenseConfig.ThrownRecoveryTicks;
-                    state.KVX = state.KVY = state.KVZ = 0f;
-                    state.VX = state.VY = state.VZ = 0f;
-                    state.HitstunTicks = 0;
-                    state.WasAirborneDuringKnockback = false;
-                    RefreshGroundResources(ref state, def.Movement);
-                }
-            }
-            else if (state.StateTicks == 0)
-            {
-                state.State = ActionState.Idle;
-                state.AnimLockTicks = 0;
             }
         }
 
@@ -1919,7 +1874,17 @@ namespace SlopArena.Shared
             s.IsGrounded = false;
 
             bool hasInput = ((dirX * dirX) + (dirZ * dirZ)) > 1e-4f;
-            if (hasInput)
+            float speed = MathF.Sqrt((s.VX * s.VX) + (s.VZ * s.VZ));
+            float opposing = speed > 0f ? -((dirX * s.VX) + (dirZ * s.VZ)) / speed : 0f;
+            if (hasInput && s.InPostHitstunFlight && (opposing > 0f || speed > stats.AirSpeedMax))
+            {
+                // Launch momentum outranks steering: it only brakes, harder the more the
+                // stick opposes it, and ordinary drift resumes once it is spent.
+                float brake = FlightFriction
+                    + ((HeldFlightBrake - FlightFriction) * Math.Clamp(opposing, 0f, 1f));
+                DecayHorizontalSpeed(ref s, brake * TickDt);
+            }
+            else if (hasInput)
             {
                 float accel = (stats.AirAccelStick + stats.AirAccelBase) * TickDt;
                 s.VX = MoveToward(s.VX, dirX * stats.AirSpeedMax, accel);
@@ -1987,7 +1952,12 @@ namespace SlopArena.Shared
 
         internal static void ApplyFixedHitstun(ref CharacterState s, ushort fixedTicks, ushort stunGate)
         {
-            if (fixedTicks == 0 || stunGate == 0 || s.HitstunTicks == 0) return;
+            if (fixedTicks == 0 || stunGate == 0) return;
+            if (s.HitstunTicks == 0)
+            {
+                s.State = ActionState.Hitstun;
+                s.HitReactionSequence = unchecked((ushort)(s.HitReactionSequence + 1));
+            }
             s.HitstunTicks = Math.Min(fixedTicks, (ushort)240);
             s.HitstunLevel = s.HitstunTicks <= 30 ? (byte)0 :
                 s.HitstunTicks <= 50 ? (byte)1 : (byte)2;
@@ -2162,7 +2132,7 @@ namespace SlopArena.Shared
             verticalVelocity = MathF.Max(verticalVelocity - FlightGravity * TickDt, fallLimit);
         }
 
-        private static void ApplyGravity(ref CharacterState s, MovementStats stats, float gravityMultiplier,
+        internal static void ApplyGravity(ref CharacterState s, MovementStats stats, float gravityMultiplier,
             bool verticalMotionOwned = false)
         {
             if (!s.IsGrounded)

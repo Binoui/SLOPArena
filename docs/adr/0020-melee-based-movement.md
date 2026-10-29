@@ -1,6 +1,6 @@
 # ADR-0020: Melee-Based Movement
 
-**Status:** Accepted 2026-08-13. Ground movement amended 2026-10-27 after the owner approved the Progressive prototype.
+**Status:** Accepted 2026-08-13. Ground movement amended 2026-10-27 after the owner approved the Progressive prototype, and retuned 2026-10-28 (Start 60%, Ramp 12).
 **Deciders:** @Binoui
 **Amends:** ADR-0001 (gravity — §3, three-phase ramp → float-window-only)
 **Related:** ADR-0015 (timing-based defense), ADR-0016 (keyboard-first input), ADR-0017 (facing), ADR-0018 (target lock), ADR-0019 (hit response), ADR-0021 (frame timing)
@@ -24,10 +24,10 @@ Every fighter and mode uses the same immutable constants in `GroundSpeedTuning`.
 GameServer, client prediction, Training, Solo, Arcade, and replay playback all run this Shared rule.
 Only the character's `RunSpeed` changes the absolute speed.
 
-Let R be RunSpeed and S = 0.4*R. With held movement and speed below S, the first moving tick sets speed exactly to S.
-Each later tick adds `(R-S)/20 = 0.03*R`, clamped to R.
-The first completed tick is therefore 40%, and completed tick 21 reaches full speed, 350 ms after input begins at 60 Hz.
-The 20-tick ramp counts the increments after the initial step.
+Let R be RunSpeed and S = 0.6*R. With held movement and speed below S, the first moving tick sets speed exactly to S.
+Each later tick adds `(R-S)/12 = R/30`, clamped to R.
+The first completed tick is therefore 60%, and completed tick 13 reaches full speed, about 217 ms after input begins at 60 Hz.
+The 12-tick ramp counts the increments after the initial step.
 
 Held turns redirect velocity immediately, retain 100% of current speed, and continue the same increment.
 A reversal during coast follows the same rule. Speed below S returns to S without an extra increment on that tick.
@@ -45,11 +45,13 @@ Low posture, attack commitment, air movement, collision, and jump admission keep
 Steam Deck playtests with non-fighting-game players on 2026-10-24 and 2026-10-25 motivated the movement comparison.
 The owner tried the Training prototype on 2026-10-26/27 and approved Start 40%, Ramp 20 Linear, TurnaroundKeep 100%, Stop 20 on 2026-10-27.
 Tiers, Hybrid, variable curves, and live tuning are removed after that choice.
+After playing the Steam release (playtest.37) on 2026-10-28 the owner found the start too slow and picked Start 60%, Ramp 12; Stop 20 is unchanged.
 
-The real MovementProbe measured five interleaved runs per fighter on a large flat floor, with identical curves and zero repeat spread.
+Figures below are computed from the rule on a flat floor (the 40%/20 figures were MovementProbe-measured and matched the rule exactly).
 Tick zero is standstill. Held distance includes all 6, 12, or 18 moving ticks. Total includes every braking tick.
-FightGuy at R = 12 m/s starts at 4.8 m/s, reaches full speed on tick 21 over 2.940 m, and stops from run in 20 ticks over 1.900 m.
-Its 0.1, 0.2, and 0.3 second pushes travel 0.570/1.120 m, 1.356/2.350 m, and 2.358/3.924 m while held/through standstill.
+FightGuy at R = 12 m/s starts at 7.2 m/s, reaches full speed on tick 13 over 2.080 m, and stops from run in 20 ticks over 1.900 m.
+Its 0.1, 0.2, and 0.3 second pushes travel 0.820/1.920 m, 1.880/3.653 m, and 3.080/4.980 m while held/through standstill
+(40%/20 was 0.570/1.120, 1.356/2.350 and 2.358/3.924 m).
 A cruise reversal is 12 m/s in the new direction on its first tick, over -0.200 m.
 These are simulation distances and timings, not hardware latency or a claim about player acceptance.
 

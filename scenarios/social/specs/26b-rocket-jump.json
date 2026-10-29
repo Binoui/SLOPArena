@@ -1,0 +1,80 @@
+{
+ "stage": "splash_deck",
+ "notes": "final: FightGuy (110%) jumps as Manki fires the homing Bazooka from 13 m (press t12, jump t14); the rocket climbs to him and blows him out of the air (hit t42); moving camera behind FightGuy follows the launch off the deck",
+ "capture": {
+  "from": 4,
+  "to": 125,
+  "step": 1,
+  "width": 1080,
+  "height": 1920,
+  "quality": 92
+ },
+ "fighters": [
+  {
+   "id": 1,
+   "package": "manki",
+   "feet": [
+    -5,
+    0,
+    6
+   ],
+   "yaw": 90,
+   "target": 2,
+   "input": [
+    {
+     "at": 12,
+     "press": "R"
+    }
+   ]
+  },
+  {
+   "id": 2,
+   "package": "fightguy",
+   "feet": [
+    8,
+    0,
+    6
+   ],
+   "yaw": 270,
+   "damage": 110,
+   "target": 1,
+   "input": [
+    {
+     "from": 14,
+     "to": 26,
+     "jump": true
+    },
+    {
+     "from": 30,
+     "to": 40,
+     "jump": true
+    }
+   ]
+  }
+ ],
+ "cameras": [
+  {
+   "name": "fgm",
+   "pos": [
+    11.5,
+    2.2,
+    3.4
+   ],
+   "look": [
+    0,
+    2,
+    6
+   ],
+   "follow": 2,
+   "lookOffset": [
+    -2.5,
+    0.8,
+    0
+   ],
+   "move": true,
+   "ease": 0.15,
+   "fov": 52,
+   "far": 4000
+  }
+ ]
+}

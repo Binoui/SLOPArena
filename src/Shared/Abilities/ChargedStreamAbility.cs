@@ -48,7 +48,7 @@ public sealed class ChargedStreamAbility : ServerAbility, IAimHoldCapability, IL
                 if (s.ChargeTicks < _parameters.MaxChargeTicks) s.ChargeTicks++;
                 _aimYaw = s.AimYaw;
                 _aimPitch = s.AimPitch;
-                // Like Manki's Aerosol Inferno: she turns to the camera's aim while she pumps.
+                // Like Manki's Aerosol Inferno: she turns to her aim while she pumps.
                 if (!autoTarget) s.FacingYaw = s.AimYaw;
                 return;
             }

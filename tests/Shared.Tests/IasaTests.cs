@@ -156,11 +156,11 @@ public class IasaTests
         Assert.Equal(0f, states[Slot1Duration - 2].VZ);
 
         // Natural completion unlocks on this tick; the following held-input tick must start
-        // at the same 40% floor as an ordinary start.
+        // at the same start floor as an ordinary start.
         Assert.Equal(ActionState.Idle, states[Slot1Duration - 1].State);
         Assert.Equal(0f, states[Slot1Duration - 1].VZ);
         Assert.Equal(ActionState.Run, states[Slot1Duration].State);
-        TestHelpers.AssertNear(.4f * def.Movement.RunSpeed, states[Slot1Duration].VZ, 0.1f);
+        TestHelpers.AssertNear(GroundSpeedTuning.StartRatio * def.Movement.RunSpeed, states[Slot1Duration].VZ, 0.1f);
     }
     [Fact]
     public void IasaUnlock_RequiresAttackingStateAndActiveSlot()

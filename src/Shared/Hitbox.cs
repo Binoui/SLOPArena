@@ -93,6 +93,12 @@ namespace SlopArena.Shared
         /// <summary>Cooked cosine and sine of the maximum turn per tick.</summary>
         public float HomingTurnCos, HomingTurnSin;
 
+        /// <summary>
+        /// A perching projectile's pop (ADR-0051). Set, the sticky path carries it without damage and never explodes it;
+        /// a hit from the thrower's other form on its carrier queues the pop, and an opposing attack in flight breaks it.
+        /// </summary>
+        public ProjectilePerch? Perch;
+
         /// <summary>Optional damage override for contact with the owner.</summary>
         public float? OwnerDamage;
 
@@ -101,6 +107,9 @@ namespace SlopArena.Shared
         /// Used by projectiles to create an AoE burst on impact.
         /// </summary>
         public ProjectileExplosion? Explosion;
+        public bool ContactExplosion;
+        public bool ExplodeOnExpiry;
+
 
         /// <summary>Optional boomerang behaviour: the projectile flies out, turns and comes back to its owner.</summary>
         public ProjectileReturn? Return;
@@ -116,10 +125,13 @@ namespace SlopArena.Shared
         public bool FreezesOwner;
 
         /// <summary>
-        /// A fighter-state window (the shell's bowling hitbox, ADR-0045): it follows its owner without an attack,
+        /// A fighter-state window (her ride's wave, ADR-0050): it follows its owner without an attack,
         /// is never removed with an ability, and lives exactly as long as its owner's state says.
         /// </summary>
         public bool OwnerWindow;
+
+        /// <summary>When nonzero, the only entity this hitbox can touch (a flash leg reaches its victim alone, ADR-0052).</summary>
+        public ulong OnlyTargetId;
 
         /// <summary>
         /// True = hit each opponent once and persist until the window expires (Melee-style
@@ -160,6 +172,9 @@ namespace SlopArena.Shared
         /// it (not the live IsGrounded, which can flip mid-window if the owner lands).
         /// </summary>
         public bool Airborne;
+
+        /// <summary>The owner's form that spawned it (ADR-0051); <see cref="Def"/> is that form's definition.</summary>
+        public byte Form;
 
         /// <summary>True once a tracked hitbox has been resolved on an earlier tick.</summary>
         public bool HasSweepOrigin;

@@ -12,6 +12,11 @@ public enum PresentationEventSource : byte
     ProjectileCatch = 6,
     /// <summary>A returning projectile hit its busy owner.</summary>
     ProjectileSelfHit = 7,
+    /// <summary>
+    /// An empty tether ring starts back to its thrower (ADR-0048). The position is where it starts and
+    /// <c>Placement.DurationTicks</c> the whole retract: the client draws the ring home over that time.
+    /// </summary>
+    TetherRetract = 8,
 }
 
 public readonly record struct PresentationEventKey(

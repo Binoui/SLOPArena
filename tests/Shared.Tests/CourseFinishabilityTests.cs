@@ -56,6 +56,11 @@ public sealed class CourseFinishabilityTests
         });
         Assert.True(driver.UsesSnapshots);
         Assert.Equal((byte)1, driver.Sim.CoursePlayers.Single(p => p.EntityId == 1).Place);
+        var solo = new CourseFinishability("wibou_mall", fighter);
+        for (int tick = 0; tick < 60 && !solo.State.IsGrounded; tick++) solo.Sim.Tick(new());
+        Assert.True(solo.State.IsGrounded);
+        foreach (var input in driver.Inputs) solo.Sim.Tick(new() { [1] = input });
+        Assert.Equal((byte)0, solo.State.Deaths);
         foreach (var shortcut in new[] { saleBalloon ? 1 : 0, serviceLadder ? 2 : 0 }.Where(s => s != 0))
             AssertShortcutTakesLead(driver, shortcut);
         if (fighter == CharacterClass.FightGuy && saleBalloon && serviceLadder
@@ -92,7 +97,14 @@ public sealed class CourseFinishabilityTests
     private static void ExportShortcutCaptures(CourseFinishability driver, string output)
     {
         Directory.CreateDirectory(output);
-        File.WriteAllText(Path.Combine(output, "shortcuts.inputs.json"), JsonSerializer.Serialize(driver.Inputs.Select(input => new
+        const int settleTicks = 20;
+        File.WriteAllText(Path.Combine(output, "shortcuts.expected.json"), JsonSerializer.Serialize(driver.FrameStates.Select((state, index) => new
+        {
+            tick = settleTicks + index + 1, state.PX, state.PY, state.PZ, state.VX, state.VY, state.VZ,
+            state.IsGrounded, state.JumpsLeft, state.State, state.StateTicks, state.JumpHeldTicks
+        })));
+        File.WriteAllText(Path.Combine(output, "shortcuts.inputs.json"), JsonSerializer.Serialize(
+            Enumerable.Repeat(default(InputState), settleTicks).Concat(driver.Inputs).Select(input => new
         {
             ticks = 1, moveX = input.MoveX, moveY = input.MoveY, jumpPressed = input.Jump, jumpHeld = input.JumpHeld,
             facingYaw = input.FacingYaw, aimYaw = input.AimYaw
@@ -101,10 +113,10 @@ public sealed class CourseFinishabilityTests
         {
             ("s1-approach", (RouteStep)new Go(.4f,-30.6f), 38f),
             ("s1-landing", (RouteStep)new Hop(9,-19.5f,4), 218f),
-            ("s2-approach", (RouteStep)new Go(15,16), -30f),
-            ("s2-landing", (RouteStep)new Hop(11.5f,21.5f,15), 160f),
-        }.Select(c => new { name = c.Item1, tick = driver.Landings.Single(p => p.Step == c.Item2).InputCount,
-            camera = new { yaw = c.Item3, pitch = 35 } });
+            ("s2-approach", (RouteStep)new Go(15,16), 45f),
+            ("s2-landing", (RouteStep)new Hop(11.5f,21.5f,15), 45f),
+        }.Select(c => new { name = c.Item1, tick = settleTicks + driver.Landings.Single(p => p.Step == c.Item2).InputCount,
+            camera = new { yaw = c.Item3, pitch = c.Item1 == "s2-landing" ? 45 : 35 } });
         File.WriteAllText(Path.Combine(output, "shortcuts.json"), JsonSerializer.Serialize(new
         {
             version = 1, stage = "wibou_mall", fighter = "fightguy", inputs = "shortcuts.inputs.json", captures,

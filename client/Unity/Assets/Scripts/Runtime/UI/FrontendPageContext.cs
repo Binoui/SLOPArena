@@ -88,9 +88,21 @@ namespace SlopArena.Client.UI
         private Action? _backAction;
         private Action? _modalCloseAction;
 
+        private Button? _forwardButton;
+
         /// <summary>The current page's primary Continue/Ready/Play control.
         /// Start submits this button only while it is visible and enabled.</summary>
-        public Button? ForwardButton { get; set; }
+        public Button? ForwardButton
+        {
+            get => _forwardButton;
+            set
+            {
+                if (_forwardButton == value) return;
+                if (_forwardButton != null) MenuPrompts.Remove(_forwardButton);
+                _forwardButton = value;
+                if (value != null) MenuPrompts.Stick(value, MenuAction.Forward);
+            }
+        }
 
         /// <summary>Primary validation control for the page-owned modal.</summary>
         public Button? ModalForwardButton { get; set; }

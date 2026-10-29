@@ -52,7 +52,7 @@ public class AuthoringPolicyTests
         // must carry the same landing-lag + auto-cancel declarations as the ground normal.
         var def = TestHelpers.FightGuyDef;
         AssertAirNormal(def.GetCookedSlotAbility(AbilitySlots.Slot1, airborne: true)!.Timeline.Stages[0], "Slot1 (Floating Kick)");
-        AssertAirNormal(def.GetCookedSlotAbility(AbilitySlots.Slot3, airborne: true)!.Timeline.Stages[0], "Slot3 (High Kick)");
+        AssertAirNormal(def.GetCookedSlotAbility(AbilitySlots.Slot3, airborne: true)!.Timeline.Stages[0], "Slot3 (Flip Kick)");
         AssertAirNormal(def.GetCookedSlotAbility(AbilitySlots.Slot4, airborne: true)!.Timeline.Stages[0], "Slot4 (Air Smash)");
     }
 

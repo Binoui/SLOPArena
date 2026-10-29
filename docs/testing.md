@@ -11,16 +11,37 @@ historical evidence, not a checklist to repeat for every release.
 
 ## Human playtest checklist
 
-Keep the gitignored root `TESTING-UNITY.md` to at most five short, actionable checks
-for current work. Each check names where to go, what to do, and what to look for.
-Merge overlapping checks and retire resolved or superseded ones. Before trimming a
-large backlog, preserve the original under ignored `tmp/testing-unity/` and link it
-from the current file.
+File each human check with `python3 tools/factory.py check add`. Pass your T3
+thread id from `t3_thread_configuration` when you are in T3. Otherwise choose an
+explicit `--thread <id>` or `--no-thread`. See [Slop Factory checks](systems/slop-factory.md)
+for commands and the desk relay.
+
+Each check names where to go, what to do, and what to look for. Keep it short.
+Merge overlapping checks, retire your own superseded checks with `check drop`,
+and answer redo notes with `check ready` after fixing them. The owner records
+Good, Redo, or Dropped on the board; unresolved checks stay visible there.
 
 Record human feedback briefly, with only the scope actually reported. General
 "looks good" feedback does not establish that every historical scenario passed.
-Keep automated test totals, technical evidence and capture logs in task/PR reports
-or linked artifacts so the checklist stays easy to use.
+Keep automated test totals, technical evidence, and capture logs in task/PR reports
+or linked artifacts.
+
+## Grab and throw verification
+
+Offline `GrabAimTests`, `GrabBeelineTests`, `GrabHoldTests`, `GrabThrowTests`,
+`GrabThrowConformanceTests` and `GrabThrowMeasurementTests` cover startup aim,
+stationary input, queue arbitration, legal wall turns, real release reactions,
+rollback and roster aerial chases. Run with `-p:SkipUnityPluginCopy=true`.
+Measurement output uses `--logger "console;verbosity=detailed"` and records the
+stage, percent, weight, tuning and DI. It distinguishes state readiness from
+accepted jump and slot ticks.
+
+After Unity compilation, run **Grab Animation Presentation** and the Ability Lab
+scenario self-test in Edit Mode. In Training, check startup turning, a stationary
+hold, both throw directions near a wall, release freeze and ordinary victim
+reaction. Check Beeline grab arrival on the ground and its drop in the air.
+Use the current root checklist for human follow-up. Dated records below retain
+the behavior and test totals observed at their dates.
 
 ## Local iteration
 
@@ -90,7 +111,8 @@ from the roster manifest and verify all four payloads for each admitted package.
 - B / east face button closes the topmost dialog or menu, otherwise invokes the
   page's Back action, including from top-bar focus or a page text field. Social
   focus returns to the page first. Home has no preceding page.
-- Start invokes the page's Continue/Ready/Play action independently of focused
+- On Home and Local Play Mode Select, Start presses the focused mode card.
+  Elsewhere Start invokes the page's Continue/Ready/Play action independently of focused
   fighter/stage cards: fighter selection → stage selection → launch; online
   selection → lock-in → leader-only continuation. Disabled/hidden controls stay
   unavailable. Browser continuation joins the last controller-focused room;
@@ -99,9 +121,22 @@ from the roster manifest and verify all four payloads for each admitted package.
   the covered page. In Settings it accepts the active confirmation or finishes
   Settings; in the shell menu it resumes. Gameplay Start still opens/resumes
   pause. B closes pause, with Resume focused on entry.
-- X / west switches top-bar focus; Y / north switches page/social focus.
-  Keyboard Escape retains the shell-menu shortcut. Native Steam overlay and
-  active rebinding keep input ownership; menu shortcuts do not steal captures.
+- LB/RB cycle Training, Local Play, and Online in that order with wrapping. From
+  Home, RB enters Training and LB enters Online. Joined P2-P4 pads retain seat
+  fighter cycling. Settings LB/RB cycle Audio, Controls, Video, Gameplay, and Accessibility.
+- Up at the page's upper focus edge enters the top bar on the active section tab;
+  Down returns to remembered page focus. Keyboard E toggles top-bar focus.
+  X has no global action. Y / north switches page/social focus.
+- View/Select opens or closes the frontend MENU; B also closes it. Keyboard
+  Escape retains the shell-menu shortcut. Native Steam overlay, modal entry,
+  text editing, Social focus, and active rebinding keep input ownership.
+- Xbox stickers show only after pad input. Mouse or keyboard hides them and
+  restores the E and Q text hints. Missing local glyph sheets leave readable labels.
+- Test pads in the Editor with Steam's desktop controller layout off. While Steam runs,
+  a program it did not launch receives Steam's desktop key echoes: Start sends Escape
+  (opens MENU), View sends Tab, A sends Enter, B sends Space, and the d-pad sends arrows.
+  Each pad press then acts twice. Builds launched from Steam use the game's own Steam
+  Input layout and are unaffected.
 
 Test in Unity with a controller: navigate Home → Solo/Training → fighters →
 stages without a mouse; select cards with A, continue with Start and return with
@@ -344,7 +379,8 @@ Inspect semantic `data.result.success` and diagnostics, plus actual
 `scenario.frames[]`, accepted `contacts[]`, grab `interactions[]`,
 `presentationEvents[]`, and `deaths[]`. Confirm hit damage/knockback and later
 state, block as zero-damage blocked contact, miss as no contact/damage, and grab
-capture/release as interaction transitions rather than fabricated hit records.
+capture as a paired transition and release as an attributed terminal transition
+plus exactly one accepted slot-zero contact. An interruption must remain terminal.
 Frame 0 corresponds to MatchTick 1. Preview and capture with `--action`; capture
 must use the matching recorded run/options. It restores prior scenario/cursor,
 playback, visibility, camera and render target; verify restoration and cache

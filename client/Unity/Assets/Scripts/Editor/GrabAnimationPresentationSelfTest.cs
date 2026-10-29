@@ -74,51 +74,66 @@ public static class GrabAnimationPresentationSelfTest
             state.InteractionPhase = (byte)DefenseInteractionPhase.Captured;
             renderer.ApplyServerState(state, renderer.CharacterDef?.GetCookedSlotAbility(state.AttackSlot, false));
             Require(graph.States.Current.Clip == shared.GetClipByName("grab_idle_a"), "Grabber did not enter its hold loop.");
-            state.VZ = 2f;
-            renderer.ApplyServerState(state, renderer.CharacterDef?.GetCookedSlotAbility(state.AttackSlot, false));
-            Require(graph.States.Current.Clip == shared.GetClipByName("Grab_Walk_F_A"), "Grabber forward walk is missing.");
-            state.VZ = -2f;
-            renderer.ApplyServerState(state, renderer.CharacterDef?.GetCookedSlotAbility(state.AttackSlot, false));
-            Require(graph.States.Current.Clip == shared.GetClipByName("Grab_Walk_B_A"), "Grabber backward walk is missing.");
-
+            state.InteractionId = 1;
             state.State = ActionState.Grabbed;
-            state.VZ = 0f;
-            renderer.ApplyServerState(state, renderer.CharacterDef?.GetCookedSlotAbility(state.AttackSlot, false));
+            renderer.ApplyServerState(state, null);
             Require(graph.States.Current.Clip == shared.GetClipByName("grab_idle_b"), "Victim did not enter its hold loop.");
-            state.VZ = 2f;
-            renderer.ApplyServerState(state, renderer.CharacterDef?.GetCookedSlotAbility(state.AttackSlot, false));
-            Require(graph.States.Current.Clip == shared.GetClipByName("Grab_Walk_F_B"), "Victim forward walk is missing.");
-            state.VZ = -2f;
-            renderer.ApplyServerState(state, renderer.CharacterDef?.GetCookedSlotAbility(state.AttackSlot, false));
-            Require(graph.States.Current.Clip == shared.GetClipByName("Grab_Walk_B_B"), "Victim backward walk is missing.");
 
-            state.State = ActionState.Throwing;
-            state.VZ = 0f;
-            state.InteractionPhase = (byte)DefenseInteractionPhase.Throwing;
-            state.StateTicks = DefenseConfig.ThrowAnimationTicks;
-            renderer.ApplyServerState(state, renderer.CharacterDef?.GetCookedSlotAbility(state.AttackSlot, false));
-            Require(graph.States.Current.Clip == shared.GetClipByName("throw")
-                && graph.States.Current.Time == 0, "Throw request did not start the throw clip.");
-            state.StateTicks = DefenseConfig.ThrowAttackerRecoveryTicks;
-            renderer.ApplyServerState(state, renderer.CharacterDef?.GetCookedSlotAbility(state.AttackSlot, false));
-            Require(Math.Abs(graph.States.Current.Time - 11.0 / 30.0) < 0.00001, "Release did not sample throw frame 11.");
+            foreach (var kind in new[]
+            {
+                (Windup: DefenseInteractionPhase.Throwing, Released: DefenseInteractionPhase.FlingReleased, Recovery: (ushort)12),
+                (Windup: DefenseInteractionPhase.UpTossing, Released: DefenseInteractionPhase.UpTossReleased, Recovery: (ushort)3),
+            })
+            {
+                state.State = ActionState.Throwing;
+                state.InteractionId = 1;
+                state.InteractionPhase = (byte)kind.Windup;
+                state.StateTicks = DefenseConfig.ThrowReleaseTicks;
+                renderer.ApplyServerState(state, null);
+                Require(graph.States.Current.Clip == shared.GetClipByName("throw")
+                    && graph.States.Current.Time == 0, "Throw request did not start the throw clip.");
+                state.StateTicks = 1;
+                renderer.ApplyServerState(state, null);
+                state.InteractionId = 0;
+                state.InteractionPhase = (byte)kind.Released;
+                state.StateTicks = kind.Recovery;
+                state.HitstopTicks = 2;
+                renderer.ApplyServerState(state, null);
+                graph.Evaluate(0.2f);
+                Require(Math.Abs(graph.States.Current.Time - 22.0 / 60.0) < 0.00001,
+                    "Release freeze did not hold the authoritative throw pose.");
+                Require(renderer.PlayScrubbedState(state, false, 0), "Recorded release could not resolve its clip.");
+                Require(Math.Abs(graph.States.Current.Time - 22.0 / 60.0) < 0.00001,
+                    "Recorded release differs from live playback.");
+                state.HitstopTicks = 0;
+                state.StateTicks--;
+                renderer.ApplyServerState(state, null);
+                Require(Math.Abs(graph.States.Current.Time - 23.0 / 60.0) < 0.00001,
+                    "Detached recovery did not resume at natural clip time.");
 
-            state.State = ActionState.Grabbed;
-            state.StateTicks = DefenseConfig.ThrownAnimationTicks;
-            renderer.ApplyServerState(state, renderer.CharacterDef?.GetCookedSlotAbility(state.AttackSlot, false));
-            Require(graph.States.Current.Clip == shared.GetClipByName("Grab_Throw_B")
-                && graph.States.Current.Time == 0, "Victim throw clip did not share the grabber's clock.");
-            state.State = ActionState.Thrown;
-            state.IsGrounded = false;
-            state.StateTicks = DefenseConfig.ThrownAnimationTicks - DefenseConfig.ThrowReleaseTicks;
-            renderer.ApplyServerState(state, renderer.CharacterDef?.GetCookedSlotAbility(state.AttackSlot, false));
-            Require(Math.Abs(graph.States.Current.Time - 11.0 / 30.0) < 0.00001, "Release restarted the victim throw clip.");
-            state.IsGrounded = true;
-            state.StateTicks = DefenseConfig.ThrownRecoveryTicks;
-            renderer.ApplyServerState(state, renderer.CharacterDef?.GetCookedSlotAbility(state.AttackSlot, false));
-            Require(Math.Abs(graph.States.Current.Time - 34.0 / 30.0) < 0.00001, "Landing did not sample victim frame 34.");
-            Require(renderer.PlayScrubbedState(state, false, 0), "Recorded landing could not resolve its clip.");
-            Require(Math.Abs(graph.States.Current.Time - 34.0 / 30.0) < 0.00001, "Recorded landing differs from live playback.");
+                state.State = ActionState.Grabbed;
+                state.InteractionId = 1;
+                state.InteractionPhase = (byte)kind.Windup;
+                state.StateTicks = DefenseConfig.ThrowReleaseTicks;
+                renderer.ApplyServerState(state, null);
+                Require(graph.States.Current.Clip == shared.GetClipByName("Grab_Throw_B")
+                    && graph.States.Current.Time == 0, "Victim windup did not share the thrower's clock.");
+                state.StateTicks = 1;
+                renderer.ApplyServerState(state, null);
+                state.State = ActionState.Idle;
+                state.InteractionId = 0;
+                state.InteractionPhase = (byte)kind.Released;
+                state.HitstopTicks = 2;
+                renderer.ApplyServerState(state, null);
+                state.HitstopTicks = 0;
+                state.State = ActionState.Hitstun;
+                state.HitstunTicks = 20;
+                state.HitReactionSequence++;
+                renderer.ApplyServerState(state, null);
+                Require(graph.States.Current.Clip == source.Bindings.Single(binding => binding.SemanticId == definition.HitSmallAnim).Clip,
+                    "Released victim did not enter its ordinary hit reaction.");
+                state.HitstunTicks = 0;
+            }
             state.State = ActionState.Idle;
             state.StateTicks = 0;
             renderer.ApplyServerState(state, renderer.CharacterDef?.GetCookedSlotAbility(state.AttackSlot, false));
@@ -133,7 +148,7 @@ public static class GrabAnimationPresentationSelfTest
             renderer.ApplyServerState(state, renderer.CharacterDef?.GetCookedSlotAbility(state.AttackSlot, false));
             Require(graph.States.Current.Clip == source.Bindings.Single(binding => binding.SemanticId == definition.HitSmallAnim).Clip,
                 "Hitstun did not interrupt grab.");
-            Debug.Log("[GrabAnimationPresentationSelfTest] Passed grab/hold, paired idle and walks, throw frame 11, victim landing frame 34, replay/Hitstop, recorded poses, and interruption.");
+            Debug.Log("[GrabAnimationPresentationSelfTest] Passed grab/hold, both throw windups and release freeze, ordinary victim reactions, recovery, rewind, and interruption.");
         }
         finally
         {
@@ -206,21 +221,18 @@ public static class GrabAnimationPresentationSelfTest
                 new Vector3(0f, definition.CapsuleHeight * 0.5f, 0f), 0f);
             var held = recorded.Frames.First(frame => frame.Actor.State == ActionState.Grabbing);
             var throwing = recorded.Frames.First(frame => frame.Actor.State == ActionState.Throwing);
-            var release = recorded.Frames.First(frame => frame.Opponent.State == ActionState.Thrown);
-            var landing = recorded.Frames.First(frame => frame.Opponent.State == ActionState.Thrown && frame.Opponent.IsGrounded);
-            var phases = new[] { "hold", "walk-forward", "walk-backward", "throw-start", "release-frame-11", "landing-frame-34" };
-            var frames = new[] { held, held, held, throwing, release, landing };
+            var release = recorded.Frames[recorded.Interactions.First(observation => observation.Kind == "release").FrameIndex];
+            var launched = recorded.Frames.First(frame => frame.Opponent.State == ActionState.Hitstun && !frame.Opponent.IsGrounded);
+            var actionable = recorded.Frames.First(frame => frame.FrameIndex > launched.FrameIndex
+                && frame.Opponent.State == ActionState.Idle && frame.Opponent.HitstopTicks == 0 && !frame.Opponent.IsGrounded);
+            var phases = new[] { "hold", "throw-start", "release-freeze", "ordinary-launch", "actionable-flight" };
+            var frames = new[] { held, throwing, release, launched, actionable };
             Directory.CreateDirectory(directory);
             var paths = new string[phases.Length];
             for (int index = 0; index < phases.Length; index++)
             {
                 var actorState = frames[index].Actor;
                 var victimState = frames[index].Opponent;
-                if (index is 1 or 2)
-                {
-                    actorState.VZ = victimState.VZ = index == 1 ? 2f : -2f;
-                    actorState.StateTicks = victimState.StateTicks = DefenseConfig.GrabHoldTicks - 30;
-                }
                 Require(grabber.PlayScrubbedState(actorState, !actorState.IsGrounded, 0)
                     && victim.PlayScrubbedState(victimState, !victimState.IsGrounded, 0), "Paired pose did not resolve.");
                 camera.Render();

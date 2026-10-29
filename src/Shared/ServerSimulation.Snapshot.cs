@@ -19,7 +19,14 @@ namespace SlopArena.Shared
         // 11: expanding shockwave rings and per-hazard shield policy.
         // 12: deterministic breakable cage walls.
         // 13: the shell (ADR-0045): owner-window hitboxes, jump takeoff and attack carry origins, thrust state.
-        public const uint SnapshotFormatVersion = 13;
+        // 14: Manki floor cans and powered flight.
+        // 15: fighter-owned Flying, contact bombs and Kamikaze (ADR-0049).
+        // 16: single-target hitboxes and held cuts (ADR-0052).
+        // 17: two forms (ADR-0051): the fighter's form and cooldown bank, each hitbox's form, the activation's form.
+        // 18: a timeline activation records its confirmed fighter contact for form swap-cancels.
+        // 19: a hitbox's own hit presentation and the activation's sweetspot contact (ADR-0053).
+        // 20: perching projectiles and their queued pops (ADR-0051).
+        public const uint SnapshotFormatVersion = 21;
 
         private readonly List<ulong> _abilityOrder = new();
 
@@ -70,10 +77,13 @@ namespace SlopArena.Shared
                         throw new NotSupportedException(
                             $"Entity {id} runs {ability.GetType().Name}; snapshots cover cooked timeline activations.");
                     w.WriteInt(cooked.SlotOrdinal);
+                    w.WriteByte(cooked.Move.Form);
                     cooked.WriteSnapshot(w);
                 }
             }
             _spellResolver.WriteSnapshot(w, OwnerContent);
+            WriteHeldCuts(w);
+            WritePendingPops(w);
             // Arcade objects (ADR-0040): the ball, then the Slopball rules that own it.
             w.WriteBool(_arcadeBall != null);
             if (_arcadeBall != null)
@@ -139,10 +149,12 @@ namespace SlopArena.Shared
                 if (r.ReadBool())
                 {
                     int ordinal = r.ReadInt();
-                    var def = _defs[id];
+                    byte form = r.ReadByte();
+                    // The activation keeps the form it started in, whatever she is now (ADR-0051).
+                    var def = _defs[id].ForForm(form);
                     var slot = def.CookedSlots != null && ordinal >= 0 && ordinal < def.CookedSlots.Count
                         ? def.CookedSlots[ordinal] : null;
-                    if (slot == null || slot.Ordinal != ordinal)
+                    if (slot == null || slot.Ordinal != ordinal || slot.Form != form)
                         throw SnapshotReader.Malformed($"cooked slot {ordinal} of fighter {id}");
                     var ability = new CookedTimelineAbility(slot);
                     WireAbility(id, ability, def);
@@ -152,6 +164,8 @@ namespace SlopArena.Shared
                 fighters[i] = fighter;
             }
             var resolver = SpellResolver.ReadSnapshot(r, OwnerContent);
+            var heldCuts = ReadHeldCuts(r);
+            var pendingPops = ReadPendingPops(r);
             bool hasBall = r.ReadBool();
             if (hasBall != (_arcadeBall != null))
                 throw SnapshotReader.Malformed("Arcade ball presence");
@@ -189,7 +203,7 @@ namespace SlopArena.Shared
                 throw SnapshotReader.Malformed("trailing data");
 
             return new PreparedSnapshot(tick, nextActivationId, nextInteractionId, fighters,
-                resolver, ball, rules, volley, inputRelease, course, onlineCourse, mayhem);
+                resolver, ball, rules, volley, inputRelease, course, onlineCourse, mayhem) { HeldCuts = heldCuts, PendingPops = pendingPops };
         }
 
         internal void ApplySnapshot(PreparedSnapshot prepared)
@@ -213,6 +227,10 @@ namespace SlopArena.Shared
                     _activeAbilities[id] = fighter.Ability;
             }
             _spellResolver.ApplySnapshot(prepared.Resolver);
+            _heldCuts.Clear();
+            _heldCuts.AddRange(prepared.HeldCuts);
+            _pendingPops.Clear();
+            _pendingPops.AddRange(prepared.PendingPops);
             if (prepared.Mayhem != null) _mayhem!.Apply(prepared.Mayhem);
             if (prepared.Course.HasValue) _course!.Apply(prepared.Course.Value);
             if (prepared.OnlineCourse != null) _onlineCourse!.Apply(prepared.OnlineCourse);
@@ -322,7 +340,11 @@ namespace SlopArena.Shared
             ArcadeBallSimulation.Snapshot Ball, SlopballSimulation.Snapshot Rules,
             SlopballVersusSimulation.Snapshot Volley, bool InputRelease,
             CharacterCourseSimulation.Snapshot? Course, OnlineCourseSimulation.Snapshot? OnlineCourse,
-            MankiMayhemSimulation.Snapshot? Mayhem);
+            MankiMayhemSimulation.Snapshot? Mayhem)
+        {
+            internal HeldCut[] HeldCuts { get; init; } = Array.Empty<HeldCut>();
+            internal PendingPop[] PendingPops { get; init; } = Array.Empty<PendingPop>();
+        }
 
         internal sealed class FighterSnapshot
         {

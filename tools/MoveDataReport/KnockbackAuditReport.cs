@@ -95,29 +95,27 @@ internal static class KnockbackAuditReport
                 {
                     case CookedChargedProjectileCapabilityParameters p:
                         yield return new("projectile (all charge tiers share launch)", Hit(p.Projectile)); break;
-                    case CookedChargedDirectionalDashCapabilityParameters d:
-                        yield return new("traversal (no launch)", Hit(d.TraversalHitbox));
-                        foreach (ushort ticks in new[] { (ushort)0, d.Tier2Ticks, d.Tier3Ticks })
-                            yield return new($"finisher charge tier {d.GetChargeTier(ticks) + 1}", Hit(d.FinisherHitbox, d.GetFinisherDamage(ticks)));
+                    case CookedDashStrikeCapabilityParameters d:
+                        yield return new("light cut", Hit(d.LightHitbox));
+                        yield return new("endpoint tip (alternative)", Hit(d.TipHitbox));
                         break;
                     case CookedTargetedLeapCapabilityParameters leap:
                         yield return new("landing hit", Hit(leap.Hitbox)); break;
+                    case CookedFlashCutCapabilityParameters flash:
+                        yield return new("held cut (launches on the click)", Hit(flash.CutHitbox)); break;
                     case CookedCycloneKickCapabilityParameters cyclone:
                         yield return new("body / side hit", Hit(cyclone.Damage, cyclone.KnockbackAngle, cyclone.KnockbackBase, cyclone.KnockbackGrowth, cyclone.StunTicks)); break;
                     case CookedMankiRoundBombCapabilityParameters bomb:
-                        // Resolver projectile defaults: unlike its explosion, the bomb has no stun gate.
-                        yield return new("direct projectile", Hit(bomb.Damage, bomb.KbAngle, 4f, 6f, 0));
                         yield return new("explosion", Hit(bomb.ExplosionDamage, bomb.ExplosionKbAngle, bomb.ExplosionKbBase, bomb.ExplosionKbGrowth, bomb.ExplosionStunTicks)); break;
                     case CookedMankiJetpackBoostCapabilityParameters jet:
                         yield return new("ignition explosion", Hit(jet.ExplosionDamage, jet.ExplosionKbAngle, jet.ExplosionKbBase, jet.ExplosionKbGrowth, jet.ExplosionStunTicks)); break;
                     case CookedMankiBazookaCapabilityParameters rocket:
                         yield return new("direct projectile", Hit(rocket.Damage, rocket.KbAngle, 6f, 9f, rocket.StunTicks));
                         yield return new("explosion", Hit(10f, rocket.ExplosionKbAngle, rocket.ExplosionKbBase, rocket.ExplosionKbGrowth, rocket.ExplosionStunTicks)); break;
-                    case CookedMankiAerosolInfernoCapabilityParameters fire:
-                        yield return new("flame hit", Hit(fire.Damage, fire.KnockbackAngle, fire.KnockbackBase, fire.KnockbackGrowth, fire.StunTicks)); break;
+                    case CookedMankiKamikazeCapabilityParameters fire:
+                        yield return new("Kamikaze blast", Hit(fire.ExplosionDamage, fire.ExplosionKbAngle, fire.ExplosionKbBase, fire.ExplosionKbGrowth, fire.ExplosionStunTicks)); break;
                     case CookedRisingDragonCapabilityParameters:
                     case CookedWibouRisingSlashCapabilityParameters:
-                    case CookedWibouBladeFlurryCapabilityParameters:
                         break; // Movement only; ordinary timeline operations own their hitboxes.
                     default: throw new NotSupportedException($"Audit does not cover {capability.CapabilityId}");
                 }

@@ -1,0 +1,156 @@
+{
+  "name": "nyx-fake-g4",
+  "rigpack": "artifacts/genra-rigpacks/nyx-unity-fakemoves",
+  "character": "Nyx (Mixamo joints in a Humanoid body: Hips, Spine, Spine1, Spine2, Neck, Head, LeftShoulder/LeftArm/LeftForeArm/LeftHand with five full fingers, the same on the right, LeftUpLeg/LeftLeg/LeftFoot/LeftToeBase and the right leg; no tail). An adult woman, about 1.70 m tall in the rig (the game draws her 1.04 times bigger). Measured on the rig: thigh 0.395 m, shin 0.298 m, upper arm 0.223 m, forearm 0.212 m, hand 0.118 m from wrist to middle fingertip, shoulders 0.346 m apart. She wears tall platform boots: with a flat boot the ankle joint (Foot) sits about 0.187 m above the floor and the toe joint about 0.01 m above it; standing straight her hip joint is about 0.88 m above the floor. Her waist-length straight black hair is rigid on her head and hangs down her back: hands swung behind her head or back pass through it, so keep them in front of, beside or above it. Fake form: a backpack sits on her upper back, rigid on joint Nyx_Backpack under Spine2, with a pole rising above her LEFT shoulder that holds a big ring light, its top about 0.51 m above that shoulder. Arms must not pass through the backpack, the pole or the ring.",
+  "notes": "Nyx fake form ground.4 (anim.nyx.fake.g4), from her pose sheet fake-g4 (2026-10-29). Proposed game timing: {\"total\": 52, \"contact\": 16, \"active\": [16, 22], \"iasa\": 46, \"model\": \"FightGuy Double Kick 69/12/64, Manki Head Slam 40/10/35\"}; authored at 2x. Candidate only: nothing binds before the owner approves.",
+  "description": "Nyxxie's ground.4, Platform Stomp-Kick: her big one. A front push-kick with the huge platform boot.\n\nWho she is. Nyxxie, Nyx's fake form (image 1): the same woman as a parody goth e-girl influencer, with a cat-ear headband, huge lashes, fishnets, a pink-and-black pleated skirt, pink-buckled platform boots, a backpack with a ring light on a pole above her left shoulder, and her phone. She never stops moving: loose and bouncy, a show-off who performs for her phone and films herself, and she fights like a brawler. Weight shifts, hip pops, bouncing knees, a toss of the head; overlap and follow-through everywhere.\n\nThe phone. She always holds one smartphone in her RIGHT hand, but the rig has no phone mesh yet: keep the right hand closed around an invisible phone the whole clip (fingers curled loosely as around a slim 7 x 15 cm slab, thumb on its face), whatever the arm does. It never changes hands. Her LEFT hand is the free one.\n\nHow the game plays it. The match camera sits straight behind her and a little above, so the action must read from behind: gestures out to the side, up or well ahead of her, not hidden in front of her chest. The fighter does not travel in the clip; the game moves her. The game crossfades in and out over about 0.1 s.\n\nThis clip is authored slow, at twice the move's game length; the game speeds it up to the move's own ticks. Give every beat its full development: the anticipation, the gesture or hit carried through the hips and shoulders, the follow-through, the settle and the overlap. Never rush a beat.\n\nA forward hit lands on her centre line, well ahead of her chest, not beside her shoulder. After the hit the ending lag is plain: she regains her balance and the arms take the shortest calm path back to the stance. No flourish, no gesture after the hit.\n\nFlow. Generated moves read stiff by default, and for this job the flow check's warnings count as failures. Stagger arrivals (the hips first, then the chest, the arms one or two ticks later, the head last), keep every hold drifting one way by a few degrees, and let the free hand, the fingers and the head trail the main action by one to three ticks (Clip.overlap). Recover in waves.\n\nThe floor. It is at up = -0.889 m in this character frame (origin: the hips of her idle at tick 0). With a flat boot the toe joint (ToeBase) sits about 0.015 m above the floor and the ankle (Foot) about 0.191 m above it. Never push a boot through the floor.\n\nHer idle, where ground moves start and end (reference `fakestance`, the entry and exit pose): her weight on one hip, the phone at chest height in her right hand, bored.\n\nThe clip (104 ticks, played once):\n- Tick 0: The stance.\n- Tick 10: Weight shifts onto her left leg; the right knee starts to rise; the phone hand comes up to film.\n- Tick 24: Chamber: the right knee raised high to her chest, the huge platform boot cocked under her, the thigh above level; she leans back a little; arms out for balance, the phone hand up by her face filming the kick.\n- Tick 28: A moving hold: the knee rises 2-3 cm more, she sinks a little on the left knee.\n- Tick 32: Kick (contact): the right leg drives straight forward, sole first, at chest height, about 0.6 m ahead of her hips on her centre line, the leg almost straight; she leans back 15-20 degrees to counter it; arms flung out to the sides.\n- Tick 44: Held out through the hit, the boot drifting up 2-3 cm.\n- Tick 52: The leg folds back, knee high again.\n- Tick 60: Stamp: the boot stamps down to the floor ahead of her with a dip in both knees.\n- Tick 92: Recovered by the shortest path back to the stance; she can act again.\n- Tick 104: The stance, matching tick 0.",
+  "references": {
+    "realstance": "references/realstance.usda",
+    "fakestance": "references/fakestance.usda",
+    "idle": "references/idle.usda",
+    "fall": "references/fall.usda",
+    "run": "references/run.usda"
+  },
+  "entry": {
+    "reference": "fakestance",
+    "tick": 0
+  },
+  "clock": {
+    "duration_ticks": 104,
+    "contact_tick": 32,
+    "active": [
+      32,
+      44
+    ],
+    "iasa_tick": 92
+  },
+  "timing": {
+    "fixed": [
+      "104 ticks played once",
+      "contact at tick 32, active ticks 32-44; the player can act from tick 92",
+      "authored at 2x the proposed game length (52 ticks); the game plays it faster, so every beat keeps its proportion",
+      "tick 0 is her fakestance pose and tick 104 her fakestance pose exactly"
+    ],
+    "adjustable": [
+      "small pose details (angles, reach) that keep the sheet pose and the timing"
+    ]
+  },
+  "views": [
+    "gameplay",
+    "profile",
+    "three-quarter-right"
+  ],
+  "images": [
+    "../../../tmp/nyx-model/renders/fake/q3.png",
+    "../../../tmp/nyx-model/anim-sheets/sheets/fake-g4.png"
+  ],
+  "image_notes": "1: Nyx's fake form model (three-quarter render). 2: the pose sheet for this move (generated art on her model; she faces LEFT in it, so 'toward the left' on the sheet is straight ahead of her in this frame). Its poses read left to right: pose 1 'ready': brawler stance; pose 2 'chamber': her right knee raised high to her chest, the huge platform boot cocked; pose 3 'kick': a front push-kick toward the left at chest height, the platform sole first, leaning back; pose 4 'stamp': the boot stamping back down to the floor. Sheet note: Her big one: the platform boot does the work. Follow this brief's text and ticks where the sheet differs.",
+  "keys": [
+    0,
+    10,
+    24,
+    28,
+    32,
+    44,
+    52,
+    60,
+    92,
+    104
+  ],
+  "review_ticks": [
+    0,
+    5,
+    10,
+    17,
+    24,
+    26,
+    28,
+    30,
+    32,
+    38,
+    44,
+    48,
+    52,
+    56,
+    60,
+    76,
+    92,
+    98,
+    104
+  ],
+  "exit": {
+    "reference": "fakestance",
+    "tick": 0,
+    "from_tick": 104
+  },
+  "fast_windows": [
+    [
+      26,
+      34
+    ]
+  ],
+  "strike": [
+    "RightFoot"
+  ],
+  "targets": [
+    {
+      "name": "LeftToeBase on the floor (standing leg) at tick 32 (m)",
+      "kind": "char",
+      "a": "LeftToeBase",
+      "axis": "up",
+      "tick": 32,
+      "min": -0.894,
+      "max": -0.844
+    },
+    {
+      "name": "RightToeBase on the floor (stamp) at tick 62 (m)",
+      "kind": "char",
+      "a": "RightToeBase",
+      "axis": "up",
+      "tick": 62,
+      "min": -0.894,
+      "max": -0.844
+    },
+    {
+      "name": "chamber: right knee high (m)",
+      "kind": "below",
+      "a": "Hips",
+      "b": "RightLeg",
+      "tick": 24,
+      "min": -0.04
+    },
+    {
+      "name": "kick: boot far ahead (m)",
+      "kind": "ahead",
+      "a": "RightFoot",
+      "b": "Hips",
+      "tick": 32,
+      "min": 0.5
+    },
+    {
+      "name": "kick: boot at chest height (m)",
+      "kind": "below",
+      "a": "Hips",
+      "b": "RightFoot",
+      "tick": 32,
+      "min": 0.12
+    },
+    {
+      "name": "kick: boot on her centre line (m)",
+      "kind": "char",
+      "a": "RightFoot",
+      "axis": "right",
+      "tick": 32,
+      "min": -0.12,
+      "max": 0.12
+    },
+    {
+      "name": "kick: leaning back (m)",
+      "kind": "ahead",
+      "a": "Head",
+      "b": "Hips",
+      "tick": 32,
+      "max": -0.02
+    }
+  ]
+}

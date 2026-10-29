@@ -77,6 +77,7 @@ namespace SlopArena.Client.UI
 
         private void Update()
         {
+            if (_root != null) MenuPrompts.ApplyInputMode(_root);
             // ConstantPhysicalSize may change scale without changing the
             // shell's layout rect, so GeometryChangedEvent alone misses resizes.
             if (_root?.panel != null && !Mathf.Approximately(_root.panel.scaledPixelsPerPoint, _lastPanelScale))
@@ -120,8 +121,18 @@ namespace SlopArena.Client.UI
             var menuTrigger = documentRoot.Q<Button>("shell-menu-trigger");
             var settingsTopButton = documentRoot.Q<Button>("shell-settings");
             if (settingsTopButton != null) settingsTopButton.clicked += OpenSettingsFromTopBar;
-            if (menuTrigger != null) menuTrigger.clicked += ToggleMenu;
-            if (_resumeButton != null) _resumeButton.clicked += CloseMenu;
+            if (menuTrigger != null)
+            {
+                menuTrigger.clicked += ToggleMenu;
+                MenuPrompts.Stick(menuTrigger, MenuAction.Menu);
+            }
+            var nav = documentRoot.Q<VisualElement>("shell-nav");
+            if (nav != null) MenuPrompts.Flank(nav, MenuAction.PrevSection, MenuAction.NextSection);
+            if (_resumeButton != null)
+            {
+                _resumeButton.clicked += CloseMenu;
+                MenuPrompts.Stick(_resumeButton, MenuAction.Back);
+            }
             if (_settingsButton != null) _settingsButton.clicked += OpenSettings;
             if (quitButton != null) quitButton.clicked += QuitGame;
             _settingsOverlay = gameObject.GetComponent<SettingsOverlay>() ?? gameObject.AddComponent<SettingsOverlay>();
@@ -381,6 +392,7 @@ namespace SlopArena.Client.UI
             _menuModal.AddToClassList("shell-escape-menu--open");
             _menuOpen = true;
             UiModalState.Push();
+            FrontendController.FocusRouter?.ApplyRegionFocusability();
             _resumeButton?.Focus();
         }
 
@@ -391,6 +403,7 @@ namespace SlopArena.Client.UI
             _menuModal?.RemoveFromClassList("shell-escape-menu--open");
             if (_modalHost != null) _modalHost.pickingMode = _originalModalPicking;
             UiModalState.Pop();
+            FrontendController.FocusRouter?.ApplyRegionFocusability();
             if (_restoreFocus?.panel != null) _restoreFocus.Focus();
             _restoreFocus = null;
         }
@@ -418,7 +431,13 @@ namespace SlopArena.Client.UI
                 || FrontendController.Identity is { IsPresented: true })
                 return;
             UISFX.PlayClick();
-            _settingsOverlay.Open(_modalHost);
+            var opener = _root?.panel?.focusController.focusedElement as VisualElement;
+            _settingsOverlay.Open(_modalHost, () =>
+            {
+                FrontendController.FocusRouter?.ApplyRegionFocusability();
+                if (opener?.panel != null) opener.Focus();
+            });
+            FrontendController.FocusRouter?.ApplyRegionFocusability();
         }
 
         private void QuitGame()

@@ -85,6 +85,7 @@ public class MayhemJumpTests
     {
         var sim = JumpMatch(roster: true);
         var classes = new[] { CharacterClass.FightGuy, CharacterClass.Manki, CharacterClass.Wibou, CharacterClass.Bonk };
+        var definitions = classes.Select(TestHelpers.ResolveDef).ToArray();
         var jumps = new HashSet<ulong>(); var hits = new List<SpellResolver.HitResult>();
         while (sim.CurrentTick < 2000 && sim.MankiMayhem!.Value.Phase != MankiMayhemPhase.Score)
         {
@@ -92,8 +93,8 @@ public class MayhemJumpTests
             for (int i = 0; i < 4; i++)
             {
                 var threats = new MayhemThreats(sim); ulong id = (ulong)i + 1;
-                threats.TryAvoid(sim.GetState(id), TestHelpers.ResolveDef(classes[i]), MankiMayhemTests.Arena(), out var input);
-                input.JumpHeld = input.Jump; inputs[id] = input;
+                threats.TryAvoid(sim.GetState(id), definitions[i], MankiMayhemTests.Arena(), out var input);
+                inputs[id] = input;
                 if (input.Jump) jumps.Add(id);
             }
             sim.Tick(inputs); hits.AddRange(sim.LastTickHits);

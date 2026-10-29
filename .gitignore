@@ -217,12 +217,17 @@ client/Unity/Assets/Plugins/**/NuGet/.nuget-installed.json
 # Project-authored static Down poses are package source, not imported animation packs.
 !client/Unity/Assets/CharacterPackages/fightguy/Animations/fightguy_crouch.anim
 !client/Unity/Assets/CharacterPackages/manki/Animations/manki_crouch.anim
+# Original project-authored FightGuy animations.
+!client/Unity/Assets/CharacterPackages/fightguy/Animations/fightguy_air3_flip_kick.anim
 # Original project-authored Manki animations.
 !client/Unity/Assets/CharacterPackages/manki/Animations/manki_air3_double_fist.anim
 !client/Unity/Assets/CharacterPackages/manki/Animations/manki_ground4_head_slam.anim
 # Approved Manki Aerosol Inferno shake loop and fire (ground and air F) from the GenRA toolkit (2026-10-22).
 !client/Unity/Assets/CharacterPackages/manki/Animations/manki_gf_shake_loop.anim
 !client/Unity/Assets/CharacterPackages/manki/Animations/manki_gf_fire.anim
+# Approved Manki flight and Kamikaze from the GenRA toolkit (2026-10-29).
+!client/Unity/Assets/CharacterPackages/manki/Animations/manki-fly-loop-v1.anim
+!client/Unity/Assets/CharacterPackages/manki/Animations/manki-gf-kamikaze-56-v1.anim
 !client/Unity/Assets/CharacterPackages/bonk/Animations/bonk_crouch.anim
 # Approved project-authored Bonk horizontal aerial.
 !client/Unity/Assets/CharacterPackages/bonk/Animations/bonk_air2_horizontal_slash.anim
@@ -275,6 +280,8 @@ client/Unity/Assets/Plugins/**/NuGet/.nuget-installed.json
 !client/Unity/Assets/CharacterPackages/fightguy/Presentation/FightGuy*.png
 !client/Unity/Assets/CharacterPackages/fightguy/Presentation/Source/*.png
 !client/Unity/Assets/CharacterPackages/wibou/Presentation/Wibou*.png
+!client/Unity/Assets/CharacterPackages/wibou/Presentation/Source/*.png
+# Includes generated Masked Classic, Grin Mushroom and Fire Comet textures.
 !client/Unity/Assets/CharacterPackages/manki/Presentation/Manki*.png
 !client/Unity/Assets/CharacterPackages/bonk/Presentation/Bonk*.png
 !client/Unity/Assets/CharacterPackages/bonk/Presentation/Source/*.png
@@ -572,3 +579,16 @@ videos/*
 /.agents/skills/*/agents/*
 !/.agents/skills/*/agents/openai.yaml
 # END project skill adapters
+
+# Nyx's original two-form model and colour maps. Vendor animation copies stay local.
+!client/Unity/Assets/Art/Characters/nyx/Models/Nyx.fbx*
+!client/Unity/Assets/Art/Characters/nyx/Materials/Nyx_*.mat*
+!client/Unity/Assets/Art/Characters/nyx/Textures/Nyx_*.png*
+!client/Unity/Assets/CharacterPackages/nyx/Animations/Borrowed/crouch.anim
+!client/Unity/Assets/CharacterPackages/nyx/Animations/Borrowed/tumble.anim
+
+# Nyx approved package motion and generated comic presentation.
+!client/Unity/Assets/CharacterPackages/nyx/Animations/nyx-*.anim*
+!client/Unity/Assets/CharacterPackages/nyx/Animations/Source/nyx-*.anim*
+!client/Unity/Assets/CharacterPackages/nyx/Presentation/Nyx*.mat*
+!client/Unity/Assets/CharacterPackages/nyx/Presentation/Source/Nyx*.png*

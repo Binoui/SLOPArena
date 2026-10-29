@@ -15,8 +15,8 @@ namespace SlopArena.Client.World
     }
 
     /// <summary>
-    /// Charge tiers of a slot's charged capability: a charged projectile or directional dash
-    /// (three tiers) or Manki's Aerosol Inferno (five). A charged stream has a charge but no tiers.
+    /// Charge tiers of a slot's charged capability: a charged projectile
+    /// (three tiers). A charged stream has a charge but no tiers.
     /// </summary>
     public static class ChargeTiers
     {
@@ -24,9 +24,7 @@ namespace SlopArena.Client.World
         public static int Of(CookedSlotDefinition? move, ushort chargeTicks) => Find(move) switch
         {
             CookedChargedProjectileCapabilityParameters projectile => projectile.GetChargeTier(chargeTicks),
-            CookedChargedDirectionalDashCapabilityParameters dash => dash.GetChargeTier(chargeTicks),
             // Below the first threshold the charge still reads as tier 1.
-            CookedMankiAerosolInfernoCapabilityParameters aerosol => Mathf.Max(0, Reached(aerosol, chargeTicks) - 1),
             _ => -1,
         };
 
@@ -37,19 +35,28 @@ namespace SlopArena.Client.World
             {
                 CookedChargedProjectileCapabilityParameters projectile => projectile.MaxChargeTicks,
                 CookedChargedStreamCapabilityParameters stream => stream.MaxChargeTicks,
-                CookedChargedDirectionalDashCapabilityParameters dash => dash.MaxChargeTicks,
-                CookedMankiAerosolInfernoCapabilityParameters aerosol => aerosol.MaxChargeTicks,
                 _ => (ushort)0,
             };
             return full > 0 ? Mathf.Clamp01(chargeTicks / (float)full) : 0f;
         }
 
-        private static int Reached(CookedMankiAerosolInfernoCapabilityParameters aerosol, ushort chargeTicks)
+        /// <summary>Steps a HUD card shows for the slot's charge: its tiers, three for a stream; 0 when it has none.</summary>
+        public static int Steps(CookedSlotDefinition? move) => Find(move) switch
         {
-            int reached = 0;
-            foreach (var tier in aerosol.ChargeTiers ?? System.Array.Empty<MankiAerosolChargeTier>())
-                if (chargeTicks >= tier.ChargeTicks) reached++;
-            return reached;
+            null => 0,
+            _ => 3,
+        };
+
+        /// <summary>Steps reached at this charge: tiered moves light tier 1 on the press.</summary>
+        public static int StepsReached(CookedSlotDefinition? move, ushort chargeTicks)
+        {
+            if (chargeTicks == 0) return 0;
+            return Find(move) switch
+            {
+                CookedChargedStreamCapabilityParameters => Mathf.CeilToInt(Progress(move, chargeTicks) * 3f),
+                null => 0,
+                _ => Of(move, chargeTicks) + 1,
+            };
         }
 
         private static CookedCapabilityParameters Find(CookedSlotDefinition? move)
@@ -58,8 +65,7 @@ namespace SlopArena.Client.World
             foreach (var stage in move.Timeline.Stages)
             foreach (var operation in stage.Operations)
                 if (operation is CookedStartCapabilityOperation { Parameters: CookedChargedProjectileCapabilityParameters
-                    or CookedChargedStreamCapabilityParameters or CookedChargedDirectionalDashCapabilityParameters
-                    or CookedMankiAerosolInfernoCapabilityParameters } start)
+                    or CookedChargedStreamCapabilityParameters } start)
                     return start.Parameters;
             return null;
         }

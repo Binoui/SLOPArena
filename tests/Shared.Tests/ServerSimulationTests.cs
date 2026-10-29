@@ -347,33 +347,17 @@ public class ServerSimulationTests
     }
 
     [Fact]
-    public void Tick_MankiQ_HoldThenThrow_EndsInIdle()
+    public void Tick_MankiQ_DropsImmediatelyAndReleasesItsShortCommitment()
     {
-        var arena = MakeTestArena();
-        var sim = new ServerSimulation(arena);
-        var def = BuiltInContentResolver.Resolve(CharacterClass.Manki).Definition;
-        var state = MakeIdleState(1);
-        sim.RegisterEntity(1, def, state);
-
-        // Tick 0: press A (Round Bomb)
-        sim.Tick(new Dictionary<ulong, InputState>
-            { { 1, new InputState { ActiveSlot = AbilitySlots.A } } });
-        var t0 = sim.GetState(1);
-        Assert.Equal(ActionState.Aiming, t0.State);
-
-        for (int i = 1; i < 75; i++)
-        {
-            sim.Tick(new Dictionary<ulong, InputState> { { 1, default } });
-            var s = sim.GetState(1);
-            // Q: 8-tick aim hold (Aiming) + 60-tick throw phase (Attacking) = ends at tick 68.
-            // Without aim held, the release fires as soon as the 8-tick lock expires (tick 8).
-            bool expectedAiming = i < 8;
-            bool expectedAttacking = i >= 8 && i < 68;
-            Assert.True((s.State == ActionState.Aiming) == expectedAiming,
-                $"tick {i}: expected {(expectedAiming ? "Aiming" : "not-Aiming")} but got {s.State}");
-            Assert.True((s.State == ActionState.Attacking) == expectedAttacking,
-                $"tick {i}: expected {(expectedAttacking ? "Attacking" : "not-Attacking")} but got {s.State}");
-        }
+        var sim = new ServerSimulation(MakeTestArena());
+        var def = TestHelpers.MankiDef;
+        sim.RegisterEntity(1, def, MakeIdleState(1));
+        sim.Tick(new() { [1] = new() { ActiveSlot = AbilitySlots.A } });
+        Assert.Equal(ActionState.Attacking, sim.GetState(1).State);
+        Assert.Contains(sim.Resolver.GetActiveHitboxes(), h => h.ContactExplosion);
+        for (int i = 0; i < 20; i++) sim.Tick(new() { [1] = default });
+        Assert.Equal(ActionState.Idle, sim.GetState(1).State);
+        Assert.Equal((byte)0, sim.GetState(1).AttackSlot);
     }
 
     // ═══════════════════════════════════════════════════════════════
@@ -1186,7 +1170,7 @@ public class ServerSimulationTests
         {
             sim.Tick(inputs);
             if (i == DefenseConfig.GrabHoldTicks - 1)
-                Assert.Equal((byte)DefenseInteractionPhase.Throwing, sim.GetState(1).InteractionPhase);
+                Assert.Equal((byte)DefenseInteractionPhase.UpTossing, sim.GetState(1).InteractionPhase);
             Assert.Equal(interactionId, sim.GetState(1).InteractionId);
             Assert.Equal(interactionId, sim.GetState(2).InteractionId);
         }
@@ -1198,14 +1182,14 @@ public class ServerSimulationTests
         attacker = sim.GetState(1);
         victim = sim.GetState(2);
         Assert.Equal(ActionState.Throwing, attacker.State);
-        Assert.Equal(ActionState.Thrown, victim.State);
-        Assert.Equal(6, victim.DamagePercent);
+        Assert.True(victim.HitstopTicks > 0);
+        Assert.Equal(4, victim.DamagePercent);
         Assert.Equal(0ul, attacker.InteractionId);
         Assert.Equal(0ul, victim.InteractionId);
-        Assert.True(victim.KVZ > 0f);
-        Assert.True(victim.HitstunTicks > 0);
+        Assert.True(victim.QueuedKBStun > 0);
+        Assert.Equal(0f, victim.QueuedKBDirZ);
         sim.Tick(inputs);
-        Assert.Equal(6, sim.GetState(2).DamagePercent);
+        Assert.Equal(4, sim.GetState(2).DamagePercent);
         Assert.Equal(interactionId, attacker.LastTerminalInteractionId);
         Assert.Equal(interactionId, victim.LastTerminalInteractionId);
         Assert.True(attacker.AnimLockTicks > 0);

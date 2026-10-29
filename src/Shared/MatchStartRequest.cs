@@ -15,7 +15,9 @@ namespace SlopArena.Shared;
 /// <param name="SteamId">Master-verified SteamID (development guests only in development mode).</param>
 /// <param name="CharacterClass">Locked-in character class the game server must spawn.</param>
 /// <param name="EntityId">Server entity ID (1..N) the player drives and the server broadcasts state for.</param>
-public sealed record MatchPlayer(long SteamId, CharacterClass CharacterClass, int EntityId, SlopballCamp Camp = SlopballCamp.None, byte Colour = 0);
+/// <param name="Form">Starting form of a two-form fighter (ADR-0051): optional key <c>form</c>, 0 or 1, absent meaning 0.</param>
+public sealed record MatchPlayer(long SteamId, CharacterClass CharacterClass, int EntityId, SlopballCamp Camp = SlopballCamp.None, byte Colour = 0,
+    byte Form = 0);
 
 /// <summary>Master match-start command. Protocol 2 adds Steam admission coordinates;
 /// protocol 0 is retained only for explicit development UDP sessions.</summary>
@@ -103,7 +105,10 @@ public static class MatchStartRequestCodec
             byte colour = 0;
             if (item.TryGetProperty("colour", out var colourElement)
                 && (colourElement.ValueKind != JsonValueKind.Number || !colourElement.TryGetByte(out colour) || colour > 3)) return null;
-            list.Add(new MatchPlayer(steamId, characterClass, entityId, camp, colour));
+            byte form = 0;
+            if (item.TryGetProperty("form", out var formElement)
+                && (formElement.ValueKind != JsonValueKind.Number || !formElement.TryGetByte(out form) || form > 1)) return null;
+            list.Add(new MatchPlayer(steamId, characterClass, entityId, camp, colour, form));
         }
 
         if (list.Count is < 2 or > 4)

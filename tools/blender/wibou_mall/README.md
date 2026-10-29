@@ -11,6 +11,23 @@ can take either shortcut with plain jumps. `CourseFinishabilityTests` checks S1,
 S2 and both together, alongside the ordinary route. The main racing line remains
 the ordinary path in `racing_line.json`.
 
+Export the measured FightGuy shortcut inputs and gameplay capture scenario with:
+
+```bash
+SLOPARENA_NEO_MALL_CAPTURE_OUTPUT="$PWD/tmp/neo-mall-scenario" \
+  dotnet test tests/Shared.Tests -p:SkipUnityPluginCopy=true \
+  --filter FullyQualifiedName~NeoMallShortcutsFinishWithPlainJumps
+bun scripts/sloparena-replay.ts --scenario tmp/neo-mall-scenario/shortcuts.json \
+  --output tmp/neo-mall-gameplay --project-path client/Unity
+```
+
+The scenario settles the fighter after Go before replaying the measured inputs.
+It leaves targets intact to inspect traversal, so its expected result is an
+unfinished solo run with no falls. Inside an owned replay batch,
+`sloparena.stage.views.cameras --stage wibou_mall --output tmp/neo-mall-overview`
+captures the named top-down racing overview. Replay stop and restore remain
+required for the batch.
+
 - `layout.py` keeps the whole shell as a `SPEC`: decks (floating balcony and bridge slabs, the
   podium and the elevator tower on the floor, hanging planters and signs), the escalator's
   sloped slabs and balustrades, 1 m railings on the deck edges, the envelope walls, the start,

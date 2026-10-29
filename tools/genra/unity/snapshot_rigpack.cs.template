@@ -1,6 +1,6 @@
 // genra rig-pack snapshot: read-only, Edit Mode, preview scene; no asset or scene changes.
 // Rendered by tools/genra/unity_rigpack.py (fields {{PACKAGE}} {{OUTPUT}} {{CLIPS}} {{BAKES}} {{PREFAB}}
-// {{WEAPON_CONFIG}}) and run with the gateway's eval_file. Captures the package's catalog prefab (or an unbound
+// {{WEAPON_CONFIG}} {{MESHES}}) and run with the gateway's eval_file. Captures the package's catalog prefab (or an unbound
 // candidate prefab, with its own weapon config, played with the package's bound clips) exactly as the game renders it: skinned meshes
 // (vertices, UVs, triangles, weights, bindposes), runtime weapon attachments (WeaponAttach placement), rotation
 // constraints, bound clips (or clip assets, retargeted onto the prefab) played at 60 Hz as PlayerRenderer plays them,
@@ -11,6 +11,7 @@ var semantics = new string[] { {{CLIPS}} };
 var bakeFrames = new int[] { {{BAKES}} };
 var prefabOverride = "{{PREFAB}}";          // "" = the catalog's _rig
 var weaponConfigOverride = "{{WEAPON_CONFIG}}";  // "" = every weapon config in the package
+var shownMeshes = new string[] { {{MESHES}} };  // empty = the prefab's renderers as they are; else only these, on the instance
 if (UnityEditor.EditorApplication.isPlaying) throw new System.Exception("Rig-pack snapshot requires Edit Mode");
 var packageRoot = "Assets/CharacterPackages/" + package;
 var catalog = UnityEditor.AssetDatabase.LoadMainAssetAtPath(packageRoot + "/CharacterAssetCatalog.asset");
@@ -65,6 +66,16 @@ try {
   spawned.Add(actor);
   UnityEngine.SceneManagement.SceneManager.MoveGameObjectToScene(actor, scene);
   actor.hideFlags = UnityEngine.HideFlags.HideAndDontSave;
+  // One body per form on a shared skeleton (Nyx): show only the requested skinned meshes on this instance.
+  if (shownMeshes.Length > 0) {
+    var found = new System.Collections.Generic.HashSet<string>();
+    foreach (var sk in actor.GetComponentsInChildren<UnityEngine.SkinnedMeshRenderer>(true)) {
+      bool show = System.Array.IndexOf(shownMeshes, sk.name) >= 0;
+      sk.gameObject.SetActive(show);
+      if (show) found.Add(sk.name);
+    }
+    foreach (var name in shownMeshes) if (!found.Contains(name)) throw new System.Exception("No skinned mesh " + name + " in " + prefab.name);
+  }
   var animator = actor.GetComponentInChildren<UnityEngine.Animator>();
   var transforms = new System.Collections.Generic.List<UnityEngine.Transform>(actor.GetComponentsInChildren<UnityEngine.Transform>(true));
   var index = new System.Collections.Generic.Dictionary<UnityEngine.Transform, int>();
@@ -152,7 +163,8 @@ try {
   foreach (var t in transforms)
     bones.Add(new { name = t.name, path = PathOf(t), parent = t.parent != null && index.ContainsKey(t.parent) ? index[t.parent] : -1,
       world = Flat(t.localToWorldMatrix) });
-  var renderers = actor.GetComponentsInChildren<UnityEngine.SkinnedMeshRenderer>(true);
+  var renderers = System.Linq.Enumerable.ToArray(System.Linq.Enumerable.Where(actor.GetComponentsInChildren<UnityEngine.SkinnedMeshRenderer>(true),
+    sk => shownMeshes.Length == 0 || System.Array.IndexOf(shownMeshes, sk.name) >= 0));
   var meshes = new System.Collections.Generic.List<object>();
   foreach (var sk in renderers) {
     var mesh = sk.sharedMesh;
@@ -238,7 +250,8 @@ try {
   foreach (var semantic in semantics) references[semantic] = Sample(clips[semantic]);
 
   var modelPath = UnityEditor.AssetDatabase.GetAssetPath(skin.sharedMesh);
-  var data = new { package = package, prefab = UnityEditor.AssetDatabase.GetAssetPath(prefab), model = modelPath,
+  var data = new { package = package, prefab = UnityEditor.AssetDatabase.GetAssetPath(prefab),
+    shownMeshes = shownMeshes.Length > 0 ? shownMeshes : null, model = modelPath,
     avatar = animator != null && animator.avatar != null ? animator.avatar.name : null,
     avatarPath = animator != null && animator.avatar != null ? UnityEditor.AssetDatabase.GetAssetPath(animator.avatar) : null,
     avatarValid = animator != null && animator.avatar != null && animator.avatar.isValid,

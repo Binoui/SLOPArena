@@ -34,6 +34,15 @@ unity doctor
 Use `--format json` for automation. Results are written to stdout, errors to stderr, and
 command failure produces a nonzero exit code.
 
+Check for a running Editor before `unity open`. The gateway reports a missing descriptor both
+when no Editor runs and while one is still starting. A Hub-launched Editor runs as
+`unityhub-unity-editor-<version> -projectpath …`, so look for it with
+`pgrep -af -- '-projectpath .*client/Unity'` and rerun gateway `status` after a minute.
+Opening a project that is already open starts a second Editor that quits at once, but first it
+rotates the log: the live Editor keeps writing to `~/.config/unity3d/Editor-prev.log`, and the
+older log is lost. Moving `Editor-prev.log` back to `Editor.log` restores the live log's usual
+path. This happened on 2026-10-29.
+
 ### Gateway baseline and upgrades
 
 The shipped [ownership gateway](../../scripts/unity-editor-gateway.ts) uses the
@@ -139,6 +148,9 @@ after acquisition the gateway settles owned work/restoration before release.
 For gameplay scenarios, run and inspect the native Shared two-fighter scenario
 first. Do not generate temporary C# or use `eval` to create opponents or arrange
 gameplay. `eval` is reserved for novel diagnostics not covered by a typed command.
+Callbacks an `eval` adds (`EditorApplication.update`, `RenderPipelineManager` events) outlive the
+batch and Play Mode. Wrap their body in `try`/`catch`, unsubscribe on any exception or when Play Mode
+ends, and cap their lifetime; a throwing leftover hook trips Error Pause in later batches.
 
 Keep open/run/inspect in one gateway batch. Save this as `/tmp/ability-lab-run.json`:
 
@@ -434,6 +446,63 @@ before encoding. For contiguous frames starting at zero:
 ffmpeg -framerate 60 -i tmp/clip/%04d.jpg -c:v libx264 -crf 18 \
   -pix_fmt yuv420p -movflags +faststart tmp/clip.mp4
 ```
+
+## Move review
+
+From stopped Edit Mode, review an admitted character's animation and VFX from ten
+simultaneous cameras with one Training take per recipe move:
+
+```bash
+python3 tools/move_review.py run nyx
+python3 tools/move_review.py run nyx --moves 'real-g1,fake-*' --views behind,front --size 640x360
+python3 tools/move_review.py run nyx --dry-run
+python3 tools/move_review.py media tmp/moves/nyx/<run>
+```
+
+The runner uses your gateway identity and one bounded batch. It waits for its own
+lease, prepares Training, captures each move, stops Play Mode, and restores the
+saved scene and configuration. On hosts that require scoped long jobs, use
+`systemd-run --user --scope python3 tools/move_review.py run nyx`.
+
+Recipes live in `scenarios/moves/<package>.json`. Unity owns their parsing and
+validation; Python reads only move ids. See the
+[recipe and media guide](../../scenarios/moves/README.md) for forms, inputs,
+camera geometry, phase anchors, selection, and output details. Adding or retiming
+a move requires updating its recipe. Training uses the installed development
+catalog throughout each take so its live animation and VFX bindings remain valid.
+
+| Native command | Mode and result |
+| --- | --- |
+| `sloparena.moves.prepare --recipe R --output RUN` | Stopped Edit Mode. Validate the recipe and admitted slots, write `plan.json`, and prepare disposable Training. Optional `--moves`, `--views`, and `--size` describe a selected run. |
+| `sloparena.moves.take --recipe R --move ID --output DIR` | Ready Play Mode Training. Arrange facing, form, and dummy, settle for 30 uncaptured ticks, and record every view in one take. Optional `--views`, `--size`, `--quality`, and Pipeline `--timeout 180`. |
+| `sloparena.moves.abort` | Restore active take resources, timing, quality, camera pin, interpolation, and input ownership. Safe to repeat, including after reload. |
+| `sloparena.moves.test` | Check recipe parsing, facing rotation, capture budgeting, phase resolution, and the Nyx recipe without advancing gameplay. |
+
+For a native batch, pass the same `--views` and `--size` to prepare and take.
+Enter Play Mode with `editor_play` after prepare and declare this restoration:
+
+```json
+{"commands":[],"restore":[["sloparena.moves.abort"],["sloparena.photo.stop"],["sloparena.photo.restore"],["editor_status"]]}
+```
+
+`sloparena.training.arrange` also accepts `--facing <degrees>` and `--form 0|1`.
+Omitting them retains its existing camera-facing and current-form behavior.
+Photo preparation/restoration saves both player and opponent forms.
+
+Frame zero is the state after the first input and Shared step. Every camera's
+frame k carries the same `matchTick`; `frames.jsonl` records the observed render
+ticks and action boxes. `take.json` is written last, after all JPGs finish. Fresh
+capture directories prevent overwriting evidence. Error Pause during a take is
+resumed and counted in its receipt. Failed takes retain partial output.
+
+Below `tmp/moves/<package>/<run>/media/`, inspect phase sheets with same-pixel zooms,
+per-view H.264 yuv420p clips, synchronized move mosaics, and form montages.
+`summary.json` lists completed/missing takes, resolved phases, problems, and paths;
+`timing.json` separates gateway and media wall time. `media` rebuilds without the
+Editor and rejects skipped frames, unequal camera ticks, and missing images.
+Boards at `media/board/form-<n>.html` stay under 30 KB and use absolute image paths.
+The owner's thread previews them at 390 px. A child returns the paths without
+rendering or sending captures. Views omit HUD and audio in this version.
 
 ## Screenshots and visual evidence
 

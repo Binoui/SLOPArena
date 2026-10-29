@@ -1,59 +1,55 @@
-# Hurtbox / Visual Model Alignment
+# Hurtbox and model alignment
 
-> **Superseded for package cooks (2026-10-17).** Cooks now write `_hips_offset`, the drawn
-> hips relative to the capsule centre, and Shared places hurtboxes and bone hitboxes from it
-> (see [hitbox system](systems/hitbox-system.md#drawn-hips--package-cooks-since-2026-10-17)).
-> `HipHeight` and `BoneYToWorldY` below remain the fixed pivot for attack-pose pitch, aim
-> correction and legacy bakes without that point.
+The roster uses bone-to-bone capsules fitted to its rendered meshes.
+[ADR-0055](adr/0055-capsule-hurtboxes.md) records the decision and alternatives.
+The [hitbox system](systems/hitbox-system.md#hurtboxes) describes runtime placement.
 
-## The Core Problem
+## Why the seven spheres missed visible hits
 
-Server hurtboxes (from baked bone data) didn't align with the visual model. The baked data uses a Hips-relative coordinate system (Hips at Y=0, feet at negative Y), but the simulation formula anchored hurtboxes at capsule-bottom. Result: Hips hurtbox sat at ground level while the model's Hips was at hip height — a Y desync up to 0.85m.
+Every package previously used near-identical spheres at the head, spine, hips, hands, and feet.
+Those volumes left the upper arms, forearms, thighs, and shins mostly uncovered.
+Bonk's original surface coverage was 22%, while Wibou's was 77%, despite their shared sphere layout.
+The original whole-mesh figures were Bashie 46%, FightGuy 60%, Manki 54%, Nyx 64%, and Salamander 39%.
 
-## Root Cause
+The coverage tool samples every fourth frame of every bound clip.
+Each vertex receives one third of each adjacent triangle's area and a region from its dominant skin bone.
+Coverage is the share of sampled surface area inside the union of Shared hurtboxes.
+It is not a hit-rate benchmark and does not establish player acceptance.
+Whole-mesh coverage includes cloth and hats. Body coverage excludes those cosmetic regions.
 
-The old formula `wy = py - CapsuleHeight/2 + by` assumes the baked data origin is at capsule-bottom (feet). But baked data origin is at the Hips bone — `by=0` means "at Hips height", not "at feet height." No single constant bridges this because characters have different proportions.
+## How the capsules follow the model
 
-## Solution: `HipHeight` + `BoneYToWorldY`
+`CharacterBoneRegistry` maps package IDs to humanoid mappings and stable baked point names.
+The baker samples the humanoid transforms through `Animator.GetBoneTransform`.
+This also handles Manki's custom arm mapping. `rig:<exact transform name>` covers tail and shell points.
+Missing hurtbox endpoints fail package validation instead of disappearing during simulation.
 
-### `CharacterDefinition.HipHeight`
+Baked points are hips-relative. `_hips_offset` stores the drawn hips relative to the capsule centre.
+Shared places hurtbox endpoints at those drawn positions with scale 1, rotates their offsets with facing,
+and applies attack-pose pitch. Radii come from the mesh rather than the old 0.85 positional shrink.
+Body-bone attack hitboxes still use `HurtboxBoneScale`, so this fit does not change attack reach.
 
-Per-character Y distance from feet (ground contact) to Hips bone. Derived from `abs(lowest bone Y)` at idle frame 0.
+The head, torso, upper arms, forearms, hands, thighs, shins, and feet receive capsules.
+Salamander and Manki have tail chains. Bashie's shell is hittable body geometry.
+Nyx's skirt, Bonk's cape, Wibou's coat, and Salamander's hat do not enlarge the vulnerable body.
+A cosmetic surface can overlap an existing body volume without adding one of its own.
 
-| Character | CapsuleHeight | HipHeight |
-|-----------|---------------|-----------|
-| Manki     | 1.5           | 0.50      |
-| FightGuy  | 1.7           | 0.82      |
+## Earlier alignment fixes
 
-### `CharacterDefinition.BoneYToWorldY(capsuleCenterY, boneLocalY)`
+Before `_hips_offset`, a fixed `HipHeight` pivot could leave hurtboxes behind an animation's hip motion.
+Current package bakes carry the drawn pivot. `HipHeight` and `BoneYToWorldY` remain relevant to
+attack-pose pitch, aim correction, and fallback bakes without `_hips_offset`.
+`presentation.modelYOffset` places the model root relative to the capsule centre.
+Do not derive it from a generic half-height formula after a model swap.
 
-```csharp
-public float BoneYToWorldY(float capsuleCenterY, float boneLocalY)
-    => capsuleCenterY - CapsuleHeight * 0.5f + HipHeight + boneLocalY;
-```
+## Reproduce the fit and check it
 
-When grounded (`capsuleCenterY = CapsuleHeight/2`), this reduces to `HipHeight + boneLocalY`:
-- Hips (`by=0`): `HipHeight` — at actual hip height
-- Feet (`by≈-HipHeight`): ~0 — at ground
-- Head: `HipHeight + head_baked_y` — correct
+Use the [character size tools](../tools/character_sizes/README.md#fit-and-check-hurtboxes).
+The fitter changes only `hurtboxBoneDefs`, re-reads source before writing, and imports/cooks that package.
+The evaluation scores the actual cooked capsules against the original sphere baseline.
+It reports total and per-region coverage, excluded cosmetic regions, and bone-placement error.
 
-### `BakedAnimationData.GetMinBoneY()`
-
-Utility to compute HipHeight from baked data. Scans all bones at idle frame 0 for minimum Y. Returns 0 if idle animation not found.
-
-### ModelYOffset
-
-Client model offset places feet at capsule bottom: `ModelYOffset = -CapsuleHeight/2`. Both characters use this convention.
-
-## Call Sites
-
-All bone→world Y conversions use `def.BoneYToWorldY(py, by)` — 4 locations total:
-- `ServerSimulation.BuildEntitiesFromState` (hurtboxes)
-- `ServerSimulation.Tick` per-entity hurtbox resolve
-- `ServerSimulation.SpawnHitboxEvents` (bone-attached hitboxes)
-- `ServerAbility` bone-attached hitbox spawn
-
-## Verify
-
-**Manki grounded idle:** `py=0.75, HipHeight=0.50, by=0` → Hips hurtbox Y = `0.75 - 0.75 + 0.50 + 0 = 0.50`
-**FightGuy grounded idle:** `py=0.85, HipHeight=0.82, by=0` → Hips hurtbox Y = `0.85 - 0.85 + 0.82 + 0 = 0.82`
+Inspect front and side renders in idle, an attack mid-swing, and hit-hard.
+The visual mode uses Shared's cooked entities for the wire capsules.
+A percentile fit deliberately leaves some mesh surface outside; inspect those gaps rather than chase 100% coverage.
+Run the cooker and Rendered Pose Alignment self-tests after cooking.

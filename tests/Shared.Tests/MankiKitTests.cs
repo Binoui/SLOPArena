@@ -91,7 +91,7 @@ public class MankiKitTests
         TickJetpack(sim, 3, moveX: 0f, moveY: 0f);
 
         var after = sim.GetState(1);
-        Assert.Equal(15f, after.VY);
+        Assert.Equal(8f, after.VY);
         Assert.False(after.IsGrounded);
         Assert.Equal(Def.Movement.FloatWindowTicks, after.AirTimeTicks);
     }
@@ -106,14 +106,14 @@ public class MankiKitTests
         TickJetpack(sim, 3, moveX: 1f, moveY: 1f);
 
         var after = sim.GetState(1);
-        var expected = 3.5f / MathF.Sqrt(2f);
+        var expected = 12f / MathF.Sqrt(2f);
         Assert.Equal(expected, after.VX, 3);
         Assert.Equal(expected, after.VZ, 3);
-        Assert.Equal(3.5f, MathF.Sqrt(after.VX * after.VX + after.VZ * after.VZ), 3);
+        Assert.Equal(12f, MathF.Sqrt(after.VX * after.VX + after.VZ * after.VZ), 3);
     }
 
     [Fact]
-    public void Jetpack_NeutralInputLaunchesVertically()
+    public void Jetpack_NeutralInputFliesAlongFacing()
     {
         var sim = TestHelpers.MakeSim();
         var state = TestHelpers.PlayerState() with { PY = Gpy };
@@ -123,12 +123,12 @@ public class MankiKitTests
 
         var after = sim.GetState(1);
         Assert.Equal(0f, after.VX);
-        Assert.Equal(0f, after.VZ);
-        Assert.Equal(15f, after.VY);
+        Assert.Equal(12f, after.VZ);
+        Assert.Equal(8f, after.VY);
     }
 
     [Fact]
-    public void Jetpack_AscentIgnoresOppositeStickAndResumesAirDriftAfterApex()
+    public void Jetpack_SteersOnOppositeStickAndResumesAirDriftAfterFuel()
     {
         var sim = TestHelpers.MakeSim();
         var state = TestHelpers.PlayerState() with { PY = Gpy };
@@ -138,9 +138,9 @@ public class MankiKitTests
         var launch = sim.GetState(1);
         for (int i = 0; i < 10; i++)
             sim.Tick(new() { { 1, new InputState { MoveX = -1f } } });
-        Assert.Equal(launch.VX, sim.GetState(1).VX);
+        Assert.Equal(-launch.VX, sim.GetState(1).VX);
 
-        for (int i = 0; i < 100 && sim.GetActiveAbility(1) != null; i++)
+        for (int i = 0; i < 220 && sim.GetState(1).Flight.Active; i++)
             sim.Tick(new() { { 1, default } });
 
         var apex = sim.GetState(1);
@@ -183,14 +183,14 @@ public class MankiKitTests
     }
 
     [Fact]
-    public void Jetpack_ApexCompletionStartsCooldownAndRejectsUntilReady()
+    public void Jetpack_FuelCompletionStartsCooldownAndRejectsUntilReady()
     {
         var sim = TestHelpers.MakeSim();
         var state = TestHelpers.PlayerState() with { PY = Gpy };
         TestHelpers.RegisterPlayer(sim, Def, state);
 
         TickJetpack(sim, 3, moveX: 0f, moveY: 0f);
-        for (int i = 0; i < 100 && sim.GetActiveAbility(1) != null; i++)
+        for (int i = 0; i < 220 && sim.GetState(1).Flight.Active; i++)
             sim.Tick(new() { { 1, default } });
 
         var completed = sim.GetState(1);

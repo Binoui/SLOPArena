@@ -81,7 +81,7 @@ public class HitstopTests
         player.PY = TestHelpers.GroundPY(def);
         sim.RegisterEntity(1, def, player);
 
-        var npc = TestHelpers.NpcState(0f, 3.5f);
+        var npc = TestHelpers.NpcState(0f, 1.5f);
         npc.PY = Gpy;
         sim.RegisterEntity(100, TestHelpers.EngineDef, npc);
 

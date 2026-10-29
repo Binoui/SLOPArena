@@ -56,6 +56,14 @@ var clips = new System.Collections.Generic.List<(string label, string source, Un
 foreach (var c in job["clips"] ?? new Newtonsoft.Json.Linq.JArray())
   clips.Add(((string)c["label"], (string)(c["asset"] ?? c["semanticId"]), Resolve(c)));
 
+// One body per form on a shared skeleton (unity_rigpack.py --meshes): show only the pack's skinned meshes on the instance.
+void ShowMeshes(UnityEngine.GameObject instance) {
+  if (job["meshes"] == null || job["meshes"].Type != Newtonsoft.Json.Linq.JTokenType.Array) return;
+  var shown = new System.Collections.Generic.List<string>(job["meshes"].ToObject<string[]>());
+  if (job["meshesShown"] is Newtonsoft.Json.Linq.JObject windows) foreach (var w in windows) shown.Add(w.Key);
+  foreach (var sk in instance.GetComponentsInChildren<UnityEngine.SkinnedMeshRenderer>(true))
+    sk.gameObject.SetActive(shown.Contains(sk.name));
+}
 var scene = UnityEditor.SceneManagement.EditorSceneManager.NewPreviewScene();
 var temporary = new System.Collections.Generic.List<UnityEngine.Object>();
 var previousActive = UnityEngine.RenderTexture.active;
@@ -67,6 +75,7 @@ UnityEngine.GameObject Add(UnityEngine.GameObject g) {
 }
 try {
   var actor = Add((UnityEngine.GameObject)UnityEngine.Object.Instantiate(prefab));
+  ShowMeshes(actor);
   var animator = actor.GetComponentInChildren<UnityEngine.Animator>(true);
   animator.applyRootMotion = false;
   animator.cullingMode = UnityEngine.AnimatorCullingMode.AlwaysAnimate;
@@ -125,6 +134,18 @@ try {
     copy.AddComponent<UnityEngine.MeshRenderer>().sharedMaterials = skin.sharedMaterials;
     skin.forceRenderingOff = true;
     copies.Add((skin, copy, mesh));
+  }
+
+  // The brief's meshes_shown: a body shown only in its tick windows, such as Nyx's two forms either side of the swap
+  // flash, or her hand-held pole while it is out of the backpack.
+  void ShowCopies(int tick) {
+    if (!(job["meshesShown"] is Newtonsoft.Json.Linq.JObject windows)) return;
+    foreach (var c in copies) {
+      if (!(windows[c.skin.name] is Newtonsoft.Json.Linq.JArray list)) continue;
+      bool on = false;
+      foreach (var s in list.ToObject<int[][]>()) on |= tick >= s[0] && tick <= s[1];
+      c.copy.SetActive(on);
+    }
   }
 
   void Rest() { for (int i = 0; i < all.Length; i++) { all[i].localPosition = restT[i]; all[i].localRotation = restR[i]; all[i].localScale = restS[i]; } }
@@ -200,6 +221,7 @@ try {
       if (tick > 0) travelled += travel;
       Pose(clip, UnityEngine.Mathf.Min(tick / 60f * speed, clip.length));
       ShowWeapons(tick, null);
+      ShowCopies(tick);
       Capture(label, tick);
     }
     actor.transform.position = basePosition;

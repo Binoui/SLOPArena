@@ -14,7 +14,6 @@ namespace SlopArena.Client.Entities
         HeavyLanding,
         FastFall,
         Launch,
-        Knockout,
         Respawn,
         Invincibility,
         AirRing,
@@ -84,11 +83,6 @@ namespace SlopArena.Client.Entities
                 SpawnRespawn(position, direction, Color.white);
                 return;
             }
-            if (kind == MovementFeedbackKind.Knockout)
-            {
-                SpawnOne(position, direction, MovementFeedbackKind.Knockout);
-                return;
-            }
 
             SpawnOne(position, direction, kind);
         }
@@ -127,7 +121,7 @@ namespace SlopArena.Client.Entities
                 return;
             _continuous = false;
             StopParticles(false);
-            _releaseAt = Time.unscaledTime + 0.55f;
+            _releaseAt = Clock + 0.55f;
         }
         public static MovementFeedbackEffect BeginInvincibility(
             Vector3 position, Color tint)
@@ -156,7 +150,7 @@ namespace SlopArena.Client.Entities
                 return;
             _continuous = false;
             StopParticles(false);
-            _releaseAt = Time.unscaledTime + 0.35f;
+            _releaseAt = Clock + 0.35f;
         }
 
         /// <summary>Smoke puffs that follow a launched fighter; density and size track the launch.</summary>
@@ -211,7 +205,7 @@ namespace SlopArena.Client.Entities
                 return;
             _continuous = false;
             StopParticles(false);
-            _releaseAt = Time.unscaledTime + 0.8f;
+            _releaseAt = Clock + 0.8f;
         }
 
 
@@ -280,8 +274,6 @@ namespace SlopArena.Client.Entities
                 if (_kind is MovementFeedbackKind.Dash or MovementFeedbackKind.FastFall
                     or MovementFeedbackKind.Launch)
                     main.duration = Mathf.Min(main.duration, 0.18f);
-                if (_kind == MovementFeedbackKind.Knockout)
-                    main.duration = Mathf.Min(main.duration, 1.1f);
             }
         }
 
@@ -337,7 +329,7 @@ namespace SlopArena.Client.Entities
             }
 
             _active = true;
-            _releaseAt = Time.unscaledTime + LifetimeFor(_kind);
+            _releaseAt = Clock + LifetimeFor(_kind);
         }
         private void ShowContinuousInvincibility(Vector3 position, Color tint)
         {
@@ -435,9 +427,20 @@ namespace SlopArena.Client.Entities
             _releaseAt = float.PositiveInfinity;
         }
 
+        private static float Clock
+        {
+            get
+            {
+#if UNITY_EDITOR
+                if (Time.captureDeltaTime > 0f) return Time.time;
+#endif
+                return Time.unscaledTime;
+            }
+        }
+
         private void Update()
         {
-            if (!_active || _continuous || Time.unscaledTime < _releaseAt)
+            if (!_active || _continuous || Clock < _releaseAt)
                 return;
 
             StopParticles(true);
@@ -471,7 +474,6 @@ namespace SlopArena.Client.Entities
             MovementFeedbackKind.HeavyLanding => 0.54f,
             MovementFeedbackKind.FastFall => 0.55f,
             MovementFeedbackKind.Launch => 0.65f,
-            MovementFeedbackKind.Knockout => 1.45f,
             MovementFeedbackKind.Respawn => 0.95f,
             MovementFeedbackKind.Invincibility => 0.62f,
             _ => 0.5f,
@@ -483,15 +485,12 @@ namespace SlopArena.Client.Entities
             MovementFeedbackKind.AirRing => 0.8f,
             MovementFeedbackKind.GroundRing => 0.55f,
             MovementFeedbackKind.Launch => 0.65f,
-            MovementFeedbackKind.Knockout => 1.1f,
             MovementFeedbackKind.Respawn => 1.0f,
             _ => 1.1f,
         };
 
         private static string ResourcePath(MovementFeedbackKind kind) => kind switch
         {
-            MovementFeedbackKind.Knockout
-                => "VFX/SlopArena/CFXR4 Wave Explosion Purple",
             MovementFeedbackKind.Dash or MovementFeedbackKind.FastFall
                 or MovementFeedbackKind.Launch
                 => "VFX/SlopArena/MovementWindTrails",
@@ -532,7 +531,6 @@ namespace SlopArena.Client.Entities
             MovementFeedbackKind.HeavyLanding,
             MovementFeedbackKind.FastFall,
             MovementFeedbackKind.Launch,
-            MovementFeedbackKind.Knockout,
             MovementFeedbackKind.Respawn,
             MovementFeedbackKind.Invincibility,
             MovementFeedbackKind.AirRing,

@@ -1,0 +1,144 @@
+{
+  "name": "nyx-fake-idle",
+  "rigpack": "artifacts/genra-rigpacks/nyx-unity-fake",
+  "character": "Nyx (Mixamo joints in a Humanoid body: Hips, Spine, Spine1, Spine2, Neck, Head, LeftShoulder/LeftArm/LeftForeArm/LeftHand with five full fingers, the same on the right, LeftUpLeg/LeftLeg/LeftFoot/LeftToeBase and the right leg; no tail). An adult woman, about 1.70 m tall in the rig (the game draws her 1.04 times bigger). Measured on the rig: thigh 0.395 m, shin 0.298 m, upper arm 0.223 m, forearm 0.212 m, hand 0.118 m from wrist to middle fingertip, shoulders 0.346 m apart. She wears tall platform boots: with a flat boot the ankle joint (Foot) sits about 0.187 m above the floor and the toe joint about 0.01 m above it; standing straight her hip joint is about 0.88 m above the floor. Her waist-length straight black hair is rigid on her head and hangs down her back: hands swung behind her head or back pass through it, so keep them in front of, beside or above it. Fake form: a backpack sits on her upper back, rigid on joint Nyx_Backpack under Spine2, with a pole rising above her LEFT shoulder that holds a big ring light, its top about 0.51 m above that shoulder. Arms must not pass through the backpack, the pole or the ring.",
+  "notes": "Nyx fake form idle (anim.nyx.fake.idle), from her pose sheet fake-idle (2026-10-29). Proposed game timing: {\"total\": 720, \"model\": \"Bashie's slowed idle (12 s loop); the owner's calm-idle rule\"}; authored at 1x. Candidate only: nothing binds before the owner approves.",
+  "description": "Nyxxie's idle, 'doomscrolling': the clip she plays whenever she stands in a fight.\n\nWho she is. Nyxxie, Nyx's fake form (image 1): the same woman as a parody goth e-girl influencer, with a cat-ear headband, huge lashes, fishnets, a pink-and-black pleated skirt, pink-buckled platform boots, a backpack with a ring light on a pole above her left shoulder, and her phone. She never stops moving: loose and bouncy, a show-off who performs for her phone and films herself, and she fights like a brawler. Weight shifts, hip pops, bouncing knees, a toss of the head; overlap and follow-through everywhere.\n\nThe phone. She always holds one smartphone in her RIGHT hand, but the rig has no phone mesh yet: keep the right hand closed around an invisible phone the whole clip (fingers curled loosely as around a slim 7 x 15 cm slab, thumb on its face), whatever the arm does. It never changes hands. Her LEFT hand is the free one.\n\nHow the game plays it. The match camera sits straight behind her and a little above, so the action must read from behind: gestures out to the side, up or well ahead of her, not hidden in front of her chest. The fighter does not travel in the clip; the game moves her. The game crossfades in and out over about 0.1 s.\n\nThe floor. It is at up = -0.802 m in this character frame (origin: the hips of a borrowed stance at tick 0). With a flat boot the toe joint (ToeBase) sits about 0.01 m above the floor and the ankle (Foot) about 0.187 m above it. Never push a boot through the floor.\n\nThe entry reference is another fighter's idle borrowed onto her body; it only sets the frame and the floor. Tick 0 is free.\n\nThe clip (720 ticks, a loop: the last tick equals the first):\n- Tick 0: Rest: her weight on her right hip (the right leg straight and the hip popped out to her right, the left knee relaxed and a little bent, the left boot a step out), the phone at chest height in her right hand about 0.25 m in front of her chest, screen toward her, her head tipped down 10-15 degrees at it, bored. The left arm hangs loose, the hand by her left thigh. Her right thumb scrolls with a small flick every 1.5-2 s (Thumb joints bending 15-25 degrees and back).\n- Tick 150: Still scrolling, a slow breath; the head tilts 3 degrees to one side.\n- Tick 300: The one slow gesture begins: she lifts the phone up for a quick selfie.\n- Tick 380: Selfie: the right arm raised up and forward, the phone about 0.2 m above her head and 0.35 m in front of it, screen toward her face; she tilts her head 10 degrees toward the right shoulder and pouts up at it. Her left hand comes up beside her cheek in a peace sign (index and middle fingers up, the others curled).\n- Tick 440: Still posing, drifting: the head tilts a little further, the peace sign tips.\n- Tick 520: Back to scrolling at chest height, the left arm hanging again.\n- Tick 720: Rest again, the same pose as tick 0 (the loop closes).\n\nKeep it calm: the roster's hand-made idles turn their body joints 2-11 degrees a second and move the hands 0.05-0.08 body lengths a second. Outside the one gesture only breathing, a slow sway of the popped hip (1-2 cm) and the thumb scrolling. No steps, no weight change from hip to hip.",
+  "references": {
+    "idle": "references/idle.usda",
+    "run": "references/run.usda",
+    "fall": "references/fall.usda"
+  },
+  "entry": {
+    "reference": "idle",
+    "tick": 0,
+    "match": false
+  },
+  "clock": {
+    "duration_ticks": 720
+  },
+  "timing": {
+    "fixed": [
+      "720 ticks looping"
+    ],
+    "adjustable": [
+      "the beats inside the clip, as long as the sheet poses read"
+    ]
+  },
+  "views": [
+    "gameplay",
+    "profile",
+    "three-quarter-right"
+  ],
+  "images": [
+    "../../../tmp/nyx-model/renders/fake/q3.png",
+    "../../../tmp/nyx-model/anim-sheets/sheets/fake-idle.png"
+  ],
+  "image_notes": "1: Nyx's fake form model (three-quarter render). 2: the pose sheet for this move (generated art on her model; she faces LEFT in it, so 'toward the left' on the sheet is straight ahead of her in this frame). Its poses read left to right: pose 1 'rest': standing with her weight on one hip, the phone at chest height in her right hand, scrolling with her thumb, bored; pose 2 'slow gesture': the same stance, lifting the phone up for a quick selfie with a pout. Sheet note: A calm slow loop with one slow gesture. Follow this brief's text and ticks where the sheet differs.",
+  "keys": [
+    0,
+    150,
+    300,
+    380,
+    440,
+    520,
+    720
+  ],
+  "review_ticks": [
+    0,
+    75,
+    150,
+    225,
+    300,
+    340,
+    380,
+    410,
+    440,
+    480,
+    520,
+    620,
+    720
+  ],
+  "loop": {
+    "from_tick": 0
+  },
+  "planted": [
+    "RightFoot",
+    "RightToeBase"
+  ],
+  "grounding": "reference-sole",
+  "snap_degrees_per_tick": 4,
+  "targets": [
+    {
+      "name": "LeftToeBase on the floor at tick 0 (m)",
+      "kind": "char",
+      "a": "LeftToeBase",
+      "axis": "up",
+      "tick": 0,
+      "min": -0.812,
+      "max": -0.762
+    },
+    {
+      "name": "RightToeBase on the floor at tick 0 (m)",
+      "kind": "char",
+      "a": "RightToeBase",
+      "axis": "up",
+      "tick": 0,
+      "min": -0.812,
+      "max": -0.762
+    },
+    {
+      "name": "phone at chest height at tick 0 (m)",
+      "kind": "below",
+      "a": "Spine2",
+      "b": "RightHand",
+      "tick": 0,
+      "min": -0.18,
+      "max": 0.08
+    },
+    {
+      "name": "phone in front of her chest at tick 0 (m)",
+      "kind": "ahead",
+      "a": "RightHand",
+      "b": "Spine2",
+      "tick": 0,
+      "min": 0.12
+    },
+    {
+      "name": "hip popped to her right at tick 0 (m)",
+      "kind": "char",
+      "a": "Hips",
+      "axis": "right",
+      "tick": 0,
+      "min": 0.01
+    },
+    {
+      "name": "selfie: phone above her head (m)",
+      "kind": "below",
+      "a": "Head",
+      "b": "RightHand",
+      "tick": 400,
+      "min": 0.05
+    },
+    {
+      "name": "peace sign up by her cheek (m)",
+      "kind": "below",
+      "a": "Spine2",
+      "b": "LeftHand",
+      "tick": 400,
+      "min": 0.05
+    },
+    {
+      "name": "chest breathes (m)",
+      "kind": "range",
+      "a": "Spine2",
+      "axis": "up",
+      "window": [
+        0,
+        720
+      ],
+      "min": 0.004,
+      "max": 0.03
+    }
+  ]
+}

@@ -48,6 +48,8 @@ namespace SlopArena.Client.World
         protected CharacterDefinition _playerDef = null!;
         protected UnityEngine.Camera _mainCamera;
         private readonly TimelinePresentationDispatcher _timelinePresentations = new();
+        private TetherRopePresenter? _tetherRopes;
+        private TetherRopePresenter TetherRopes => _tetherRopes ??= gameObject.AddComponent<TetherRopePresenter>();
         private readonly Dictionary<ulong, WeaponAttach> _weapons = new();
         private readonly Dictionary<ulong, PlayerRenderer> _fighters = new();
         private ArenaDefinition _fighterArena;
@@ -75,9 +77,23 @@ namespace SlopArena.Client.World
         }
         private void FixedUpdate()
         {
+#if UNITY_EDITOR
+            if (CaptureStepping) return;
+#endif
             OnMatchFixedUpdate();
             UpdateCameraFraming();
         }
+
+#if UNITY_EDITOR
+        protected virtual bool CaptureStepping => false;
+        protected void StepForCapture()
+        {
+            OnMatchFixedUpdate();
+            UpdateCameraFraming();
+        }
+
+        public void ClearCapturePresentation() => ResetSimulationPresentation();
+#endif
 
         private readonly List<FramingSubject> _framingSubjects = new();
 
@@ -191,11 +207,13 @@ namespace SlopArena.Client.World
             renderer.PlayerNumber = entityId is >= 1 and <= 4 ? (int)entityId : 2;
             renderer.SetBlastLines(arena);
             var projectiles = FindFirstObjectByType<ProjectileVFXManager>() ?? gameObject.AddComponent<ProjectileVFXManager>();
+            projectiles.SetArena(arena);
             projectiles.RegisterOwner(entityId, animationCatalog, renderer);
             renderer.BindProjectilePresentation(projectiles);
             var feedback = FindFirstObjectByType<CombatFeedback>() ?? gameObject.AddComponent<CombatFeedback>();
             feedback.RegisterRenderer(renderer);
             _timelinePresentations.Register(entityId, renderer, animationCatalog);
+            TetherRopes.Register(entityId, renderer, animationCatalog);
 
             var weaponConfig = entry.CookedCharacterPackage != null
                 ? cookedWeaponConfig
@@ -210,7 +228,10 @@ namespace SlopArena.Client.World
             return true;
         }
         protected void PresentTimelineEvents()
-            => _timelinePresentations.Tick(Bridge.LastTickPresentationEvents);
+        {
+            _timelinePresentations.Tick(Bridge.LastTickPresentationEvents);
+            TetherRopes.Present(Bridge, Bridge.LastTickPresentationEvents);
+        }
 
         protected void RegisterHostPresentation(ulong id, Transform root, CharacterAnimationCatalog catalog)
             => _timelinePresentations.RegisterHost(id, root, catalog);
@@ -223,6 +244,7 @@ namespace SlopArena.Client.World
         protected void ResetSimulationPresentation()
         {
             _timelinePresentations.ResetForFreshSimulation();
+            _tetherRopes?.Clear();
             _activeSwordOwners.Clear();
             ApplySwordTrailOwners();
             _aimHandler?.ResetPresentation();
@@ -276,8 +298,6 @@ namespace SlopArena.Client.World
         {
             PresentationFloor.Use(arena.Heightmap);
             CameraObstruction.SeeThroughThinWalls = false;
-            // Prototype: only the Slopball court, in every mode that plays on it, lets the camera ignore walls.
-            CameraObstruction.CutAwayOccluders = cameraObstruction && arena.Name == SlopballMatch.ArenaKey;
             var stageRoot = new GameObject("Stage");
             var triangles = arena.CollisionTriangles;
             if (cameraObstruction && triangles != null && triangles.Length > 0)
@@ -317,6 +337,7 @@ namespace SlopArena.Client.World
             }
             var visual = Instantiate(prefab, stageRoot.transform);
             StageVisual = visual.transform;
+            StageSightHoles.Adopt(visual);
             // A stage whose art exports the see-through anchor (Hamster Habitat's clear tubes)
             // lets the camera look through its thin walls; every other stage keeps them solid.
             foreach (var child in visual.GetComponentsInChildren<Transform>(true))
@@ -421,6 +442,7 @@ namespace SlopArena.Client.World
             indicator.Init(Bridge.GetState, renderers, _fighterArena, _cameraMount?.RenderCamera,
                 id => MatchConfig.Format == MatchFormat.SlopballVersus && MatchConfig.Camps.TryGetValue(id, out var camp)
                     ? camp : SlopballCamp.None, CourseColours.ForEntity);
+            _fighterIndicator.AddComponent<QuickDrawBracket>().Init(Bridge.GetState, renderers, PlayerEntityId, _fighterArena);
             _fighterIndicator.AddComponent<HomingDashLockOn>().Init(Bridge.GetState, renderers, ResolveAimTarget, _cameraMount?.RenderCamera);
         }
 
