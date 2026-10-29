@@ -523,32 +523,34 @@ namespace SlopArena.Shared
 					if (animFrame < 0f) animFrame = 0f;
 					float yaw = state.FacingYaw;
 					float cos = MathF.Cos(yaw), sin = MathF.Sin(yaw);
-					float scale = def.HurtboxBoneScale;
-					for (int i = 0; i < def.HurtboxBoneDefs.Count; i++)
-					{
-						var hbd = def.HurtboxBoneDefs[i];
-						// Pair by name: cooked defs are sorted by bone ID while the bake
-						// keeps its own bone order (issue #282).
-						int bi = baked.FindBoneIndex(hbd.BoneName);
-						if (bi < 0 || !HitboxGeometry.BakedPointToWorld(in state, def, baked, animIdx, animFrame, bi, scale,
-							out float wx, out float wy, out float wz)) continue;
-						// Per-def offset (Ability Lab authored, spec #119): applied in
-						// sim-meter space, rotated by facing — matches the hitbox
-						// BoneOff* convention. All shipped defs use zero offsets, so
-						// this is behavior-preserving for existing characters.
-						wx += (hbd.OffX * cos) + (hbd.OffZ * sin);
-						wy += hbd.OffY;
-						wz += (-hbd.OffX * sin) + (hbd.OffZ * cos);
-						HitboxGeometry.ApplyAttackPosePitch(in state, def, ref wx, ref wy, ref wz);
-						list.Add(new SpellResolver.EntityData
-						{
-							Id = entityId, PosX = wx, PosY = wy, PosZ = wz,
-							Radius = hbd.Radius, Shape = HitboxShape.Sphere,
-							EndX = wx, EndY = wy, EndZ = wz,
-							InvincibilityTicks = state.InvincibilityTicks,
-							Active = true,
-						});
-					}
+                    for (int i = 0; i < def.HurtboxBoneDefs.Count; i++)
+                    {
+                        var hbd = def.HurtboxBoneDefs[i];
+                        Resolve(hbd.BoneName, hbd.OffX, hbd.OffY, hbd.OffZ, out float wx, out float wy, out float wz);
+                        float ex = wx, ey = wy, ez = wz;
+                        if (hbd.EndBoneName != null)
+                            Resolve(hbd.EndBoneName, hbd.EndOffX, hbd.EndOffY, hbd.EndOffZ, out ex, out ey, out ez);
+                        list.Add(new SpellResolver.EntityData
+                        {
+                            Id = entityId, PosX = wx, PosY = wy, PosZ = wz,
+                            Radius = hbd.Radius, Shape = hbd.EndBoneName != null ? HitboxShape.Capsule : HitboxShape.Sphere,
+                            EndX = ex, EndY = ey, EndZ = ez,
+                            InvincibilityTicks = state.InvincibilityTicks,
+                            Active = true,
+                        });
+                    }
+                    void Resolve(string name, float ox, float oy, float oz, out float x, out float y, out float z)
+                    {
+                        int index = baked.FindBoneIndex(name);
+                        // Fitted radii follow the drawn body; attack bones retain HurtboxBoneScale.
+                        if (index < 0 || !HitboxGeometry.BakedPointToWorld(in state, def, baked, animIdx, animFrame, index, 1f,
+                            out x, out y, out z))
+                            throw new InvalidOperationException($"Hurtbox bone '{name}' is missing from the admitted pose.");
+                        x += ox * cos + oz * sin;
+                        y += oy;
+                        z += -ox * sin + oz * cos;
+                        HitboxGeometry.ApplyAttackPosePitch(in state, def, ref x, ref y, ref z);
+                    }
 				}
 			}
 			else if (def.HurtboxCapsules != null)

@@ -323,7 +323,7 @@ public static class CharacterPackageCompiler
             c.ShieldRadius,
             CookCaptureGeometry(c.CaptureGeometry),
             c.HurtboxCapsules.Select(x => new CookedHurtboxCapsule(x.StartX, x.StartY, x.StartZ, x.EndX, x.EndY, x.EndZ, x.Radius)).ToList(),
-            c.HurtboxBoneDefs.Select(x => new CookedHurtboxBone(x.BoneId, x.OffsetX, x.OffsetY, x.OffsetZ, x.Radius)).ToList(),
+            c.HurtboxBoneDefs.Select(x => new CookedHurtboxBone(x.BoneId, x.OffsetX, x.OffsetY, x.OffsetZ, x.Radius, x.EndBoneId, x.EndOffsetX, x.EndOffsetY, x.EndOffsetZ)).ToList(),
             c.AttachmentBoneIds.OrderBy(x => x, StringComparer.Ordinal).ToList(),
             c.PresentationIds.OrderBy(x => x, StringComparer.Ordinal).ToList(),
             c.CapabilityRequirements.OrderBy(x => x.CapabilityId, StringComparer.Ordinal).Select(x => new CookedCapabilityRequirement(x.CapabilityId, x.CapabilityVersion)).ToList(),
@@ -1332,7 +1332,7 @@ public static class CharacterPackageCompiler
 
     private static void ValidateBoneReference(string? id, CharacterAuthoringDocument c, string path, DiagnosticBag d)
     {
-        if (id != null && !c.HurtboxBoneDefs.Any(x => x.BoneId == id) && !c.AttachmentBoneIds.Contains(id, StringComparer.Ordinal))
+        if (id != null && CharacterBoneRegistry.Find(id)?.Required != true && !c.HurtboxBoneDefs.Any(x => x.BoneId == id || x.EndBoneId == id) && !c.AttachmentBoneIds.Contains(id, StringComparer.Ordinal))
             d.Error("reference.unresolved", path, "Bone ID is not declared.");
     }
     private static void ValidatePresentationPlacement(PresentationPlacement placement, CharacterAuthoringDocument c, DiagnosticBag d)
@@ -1353,7 +1353,7 @@ public static class CharacterPackageCompiler
             d.Error("value.out-of-range", "character.operation.placement.attachmentMode", "Unknown presentation attachment mode.");
         if (placement.AttachmentMode == AuthoringPresentationAttachmentMode.Bone &&
             (string.IsNullOrEmpty(placement.BoneId) ||
-             (placement.BoneId != null && !c.HurtboxBoneDefs.Any(x => x.BoneId == placement.BoneId) &&
+             (placement.BoneId != null && CharacterBoneRegistry.Find(placement.BoneId)?.Required != true && !c.HurtboxBoneDefs.Any(x => x.BoneId == placement.BoneId || x.EndBoneId == placement.BoneId) &&
               !c.AttachmentBoneIds.Contains(placement.BoneId, StringComparer.Ordinal))))
             d.Error("reference.unresolved", "character.operation.placement.boneId", "Presentation bone must be a declared bone.");
     }
@@ -1580,7 +1580,17 @@ public static class CharacterPackageCompiler
     private static void ValidateIds(CharacterAuthoringDocument c, DiagnosticBag d)
     {
         var seenHurtboxBones = new HashSet<string>(StringComparer.Ordinal);
-        for (var i = 0; i < c.HurtboxBoneDefs.Count; i++) { var id = c.HurtboxBoneDefs[i].BoneId; ValidateId(id, $"character.hurtboxBoneDefs[{i}].boneId", d); if (!seenHurtboxBones.Add(id)) d.Error("id.duplicate", $"character.hurtboxBoneDefs[{i}].boneId", "Duplicate bone ID."); }
+        for (var i = 0; i < c.HurtboxBoneDefs.Count; i++)
+        {
+            var bone = c.HurtboxBoneDefs[i];
+            string path = $"character.hurtboxBoneDefs[{i}]";
+            ValidateHurtboxBoneId(bone.BoneId, path + ".boneId", d);
+            if (bone.EndBoneId != null) ValidateHurtboxBoneId(bone.EndBoneId, path + ".endBoneId", d);
+            if (!seenHurtboxBones.Add(bone.BoneId)) d.Error("id.duplicate", path + ".boneId", "Duplicate bone ID.");
+            ValidateNonNegative(bone.Radius, path + ".radius", d);
+            if (bone.EndBoneId == null && (bone.EndOffsetX != 0f || bone.EndOffsetY != 0f || bone.EndOffsetZ != 0f))
+                d.Error("reference.unresolved", path + ".endBoneId", "End offsets require an end bone.");
+        }
         var seenAttachmentBones = new HashSet<string>(StringComparer.Ordinal);
         for (var i = 0; i < c.AttachmentBoneIds.Count; i++) { var id = c.AttachmentBoneIds[i]; ValidateAttachmentId(id, $"character.attachmentBoneIds[{i}]", d); if (!seenAttachmentBones.Add(id)) d.Error("id.duplicate", $"character.attachmentBoneIds[{i}]", "Duplicate attachment bone ID."); }
         var seenPresentation = new HashSet<string>(StringComparer.Ordinal);
@@ -1663,7 +1673,7 @@ public static class CharacterPackageCompiler
     {
         var floats = new List<float> { c.Weight, c.CapsuleRadius, c.CapsuleHeight, c.HipHeight, c.HurtboxRadius, c.ShieldRadius, c.Movement.AirDodgeSpeed, c.Presentation.LandStartOffsetSeconds, c.Presentation.VisualScale, c.Presentation.HurtboxBoneScale, c.Presentation.ModelYOffset, c.Presentation.ModelSoleOffset };
         floats.AddRange(c.HurtboxCapsules.SelectMany(x => new[] { x.StartX, x.StartY, x.StartZ, x.EndX, x.EndY, x.EndZ, x.Radius }));
-        floats.AddRange(c.HurtboxBoneDefs.SelectMany(x => new[] { x.OffsetX, x.OffsetY, x.OffsetZ, x.Radius }));
+        floats.AddRange(c.HurtboxBoneDefs.SelectMany(x => new[] { x.OffsetX, x.OffsetY, x.OffsetZ, x.Radius, x.EndOffsetX, x.EndOffsetY, x.EndOffsetZ }));
         foreach (var value in floats) if (float.IsNaN(value) || float.IsInfinity(value)) d.Error("value.non-finite", "character", "Numeric value must be finite.");
         if (c.Movement.AirDodgeSpeed <= 0f) d.Error("value.out-of-range", "character.movement.airDodgeSpeed", "Air-dodge speed must be greater than zero.");
     }
@@ -1917,7 +1927,7 @@ public static class CharacterPackageCompiler
             writer.WritePropertyName("character"); writer.WriteStartObject(); writer.WriteString("displayName", definition.DisplayName); Number(writer, "weight", definition.Weight); WriteMovement(writer, definition.Movement); WritePresentation(writer, definition.Presentation); Number(writer, "capsuleRadius", definition.CapsuleRadius); Number(writer, "capsuleHeight", definition.CapsuleHeight); Number(writer, "hipHeight", definition.HipHeight); Number(writer, "hurtboxRadius", definition.HurtboxRadius); Number(writer, "shieldRadius", definition.ShieldRadius);
             WriteCaptureGeometry(writer, definition.CaptureGeometry);
             writer.WritePropertyName("hurtboxCapsules"); writer.WriteStartArray(); foreach (var x in definition.HurtboxCapsules) { writer.WriteStartObject(); Number(writer, "startX", x.StartX); Number(writer, "startY", x.StartY); Number(writer, "startZ", x.StartZ); Number(writer, "endX", x.EndX); Number(writer, "endY", x.EndY); Number(writer, "endZ", x.EndZ); Number(writer, "radius", x.Radius); writer.WriteEndObject(); } writer.WriteEndArray();
-            writer.WritePropertyName("hurtboxBoneDefs"); writer.WriteStartArray(); foreach (var x in definition.HurtboxBoneDefs.OrderBy(x => x.BoneId, StringComparer.Ordinal)) { writer.WriteStartObject(); writer.WriteString("boneId", x.BoneId); Number(writer, "offsetX", x.OffsetX); Number(writer, "offsetY", x.OffsetY); Number(writer, "offsetZ", x.OffsetZ); Number(writer, "radius", x.Radius); writer.WriteEndObject(); } writer.WriteEndArray();
+            writer.WritePropertyName("hurtboxBoneDefs"); writer.WriteStartArray(); foreach (var x in definition.HurtboxBoneDefs.OrderBy(x => x.BoneId, StringComparer.Ordinal)) { writer.WriteStartObject(); writer.WriteString("boneId", x.BoneId); Number(writer, "offsetX", x.OffsetX); Number(writer, "offsetY", x.OffsetY); Number(writer, "offsetZ", x.OffsetZ); Number(writer, "radius", x.Radius); if (x.EndBoneId != null) writer.WriteString("endBoneId", x.EndBoneId); Number(writer, "endOffsetX", x.EndOffsetX); Number(writer, "endOffsetY", x.EndOffsetY); Number(writer, "endOffsetZ", x.EndOffsetZ); writer.WriteEndObject(); } writer.WriteEndArray();
             writer.WritePropertyName("attachmentBoneIds"); writer.WriteStartArray(); foreach (var x in definition.AttachmentBoneIds) writer.WriteStringValue(x); writer.WriteEndArray();
             writer.WritePropertyName("presentationIds"); writer.WriteStartArray(); foreach (var x in definition.PresentationIds) writer.WriteStringValue(x); writer.WriteEndArray();
             writer.WritePropertyName("capabilityRequirements"); writer.WriteStartArray(); foreach (var x in definition.CapabilityRequirements) { writer.WriteStartObject(); writer.WriteString("capabilityId", x.CapabilityId); writer.WriteString("capabilityVersion", x.CapabilityVersion); writer.WriteEndObject(); } writer.WriteEndArray();
@@ -2381,6 +2391,10 @@ public static class CharacterPackageCompiler
 
     private static bool IsId(string value) => !string.IsNullOrEmpty(value) && value.Length <= 64 && value[0] >= 'a' && value[0] <= 'z' && value.All(x => (x >= 'a' && x <= 'z') || (x >= '0' && x <= '9') || x == '.' || x == '-');
     private static void ValidateAttachmentId(string value, string path, DiagnosticBag d) { if (string.IsNullOrEmpty(value) || value.Length > 64 || value[0] != '_' || value.Skip(1).Any(x => !(x >= 'a' && x <= 'z') && !(x >= '0' && x <= '9') && x != '.' && x != '-' && x != '_')) d.Error("id.invalid", path, "Attachment ID must be underscore-prefixed lowercase ASCII."); }
+    private static void ValidateHurtboxBoneId(string value, string path, DiagnosticBag d)
+    {
+        if (!CharacterBoneRegistry.IsRigId(value)) ValidateId(value, path, d);
+    }
     private static void ValidateId(string value, string path, DiagnosticBag d) { if (!IsId(value)) d.Error("id.invalid", path, "ID must be lowercase ASCII and start with a letter."); }
     private static bool IsSemVer(string value)
     {

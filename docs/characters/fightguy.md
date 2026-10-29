@@ -9,6 +9,34 @@
 
 FightGuy is the reference cooked character package.
 
+## Flip Kick (air.3) — 2026-10-29
+
+The aerial High Kick was hard to land and played like Air Smash (air.4). In
+`tools/HitReliabilityReport`, its right foot rose only to 1.05 m above his feet (his head
+is at 1.33 m) and hit the same spot 0.6 m ahead at chest height as Air Smash. It was active
+for 7 ticks, 5 of them touching a target 1 m ahead. It touched 51 positions on the Arc grid,
+12 of them behind him.
+
+Flip Kick replaces it: a full backflip in the air, the straight right leg sweeping from in
+front of him, over his head, to behind him. It was authored with GenRA at 96 ticks
+(`tools/genra/briefs/fightguy-a3-flip-kick.json`). The owner approved the keys, and the
+flow pass was the take picked. It is bound as `anim.flip-kick`
+(`Animations/fightguy_air3_flip_kick.anim`) and plays at 2× in a 48-tick stage:
+
+| | High Kick | Flip Kick |
+|---|---:|---:|
+| Duration / IASA | 51 / 48 | 48 / 40 |
+| Hit (game ticks) | 16–22 | 10–22 |
+| Auto-cancel after | 35 | 36 |
+| Arc grid positions, FightGuy defender (behind him) | 51 (12) | 86 (34) |
+| Highest target feet height reached | +1.5 m | +2.0 m (the report's search limit) |
+
+The hitbox (sphere 0.5 m on the right foot), damage, knockback and landing lag are
+unchanged. The report flags the 2× playback; that is intended, because the clip was
+authored slow (see the [GenRA workflow](genra-animation-workflow.md#1-capture-the-brief-and-clock)).
+Before cooking, `hitarc.py` estimated 124 positions for the toolkit foot line; the
+cooked sphere on the game's model reaches 86.
+
 ## Run foot contact — 2026-10-17
 
 FightGuy's size is the roster reference (idle head 1.33 m; see

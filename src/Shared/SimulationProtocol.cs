@@ -27,6 +27,8 @@ namespace SlopArena.Shared
         // changed since the previous release tag while this value (and the Master's Protocol) did not.
         // Note simulation changes below; the release bump folds them into one numbered line.
         // Unreleased:
+        // - Mesh-fitted bone capsules follow drawn hurtbox poses at scale 1 (ADR-0055); attack reach is unchanged.
+        //   JUMP! CPUs sustain the full jump through squat to clear the fitted body and tail.
         // - Grab aim and directional throws (ADR-0054): stationary hold, Beeline attack/grab arbitration,
         //   press-only stick fling or neutral toss, shared release freeze/queued launch into ordinary Hitstun,
         //   attributed release outcomes and short detached recovery. Phase values 8/9/10; action 21 reserved.

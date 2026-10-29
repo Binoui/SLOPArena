@@ -44,7 +44,9 @@ public static class CharacterAssetCookerSelfTest
                 FrameCount = Mathf.CeilToInt(x.Clip.length * 60),
             }).ToArray();
         var baked = BakedAnimationData.LoadFromBin(DeterministicPoseTrackBaker.Bake(
-            catalog.Rig, animations, 60, catalog.WeaponConfig, presentation.VisualScale, presentation.ModelYOffset));
+            catalog.Rig, animations, 60, catalog.WeaponConfig, presentation.VisualScale, presentation.ModelYOffset,
+            character.HurtboxBoneDefs.Select(x => new CookedHurtboxBone(x.BoneId, x.OffsetX, x.OffsetY, x.OffsetZ,
+                x.Radius, x.EndBoneId, x.EndOffsetX, x.EndOffsetY, x.EndOffsetZ)).ToArray()));
         int hipsOffsetIndex = baked.HipsOffsetIndex;
         if (hipsOffsetIndex < 0) throw new InvalidOperationException($"{catalog.PackageId} bake has no {BakedAnimationData.HipsOffsetPointName}.");
         var def = new CharacterDefinition
@@ -72,7 +74,15 @@ public static class CharacterAssetCookerSelfTest
             animator.fireEvents = false;
             var animancer = model.GetComponent<Animancer.AnimancerComponent>();
             if (animancer == null) animancer = model.AddComponent<Animancer.AnimancerComponent>();
-            var bones = DeterministicPoseTrackBaker.RequiredBones.Select(animator.GetBoneTransform).ToArray();
+            var rigTransforms = model.GetComponentsInChildren<Transform>(true);
+            var restPositions = rigTransforms.Select(t => t.localPosition).ToArray();
+            var restRotations = rigTransforms.Select(t => t.localRotation).ToArray();
+            var restScales = rigTransforms.Select(t => t.localScale).ToArray();
+            var bonePoints = CharacterBoneRegistry.HumanoidPoints
+                .Where(x => baked.FindBoneIndex(x.BakedName) >= 0).ToArray();
+            var bones = bonePoints.Select(x => DeterministicPoseTrackBaker.ResolveBone(animator, x.Id)).ToArray();
+            var rigPoints = baked.BoneNames.Where(CharacterBoneRegistry.IsRigId)
+                .Select(id => (id, bone: DeterministicPoseTrackBaker.ResolveBone(animator, id))).ToArray();
             Transform hips = animator.GetBoneTransform(HumanBodyBones.Hips);
 
             var entry = catalog.WeaponConfig?.Entries?.FirstOrDefault(x => x != null);
@@ -94,6 +104,12 @@ public static class CharacterAssetCookerSelfTest
                 int animIndex = baked.FindAnimIndex(animation.PoseTrackId);
                 if (animIndex < 0) throw new InvalidOperationException($"{catalog.PackageId} bake is missing {animation.PoseTrackId}.");
                 // The same scrub PlayerRenderer.TrySampleBakedWeaponPath uses.
+                for (int i = 0; i < rigTransforms.Length; i++)
+                {
+                    rigTransforms[i].localPosition = restPositions[i];
+                    rigTransforms[i].localRotation = restRotations[i];
+                    rigTransforms[i].localScale = restScales[i];
+                }
                 var clipState = animancer.Play(animation.Clip, 0f);
                 clipState.Speed = 0f;
                 for (int frame = 0; frame < animation.FrameCount; frame++)
@@ -101,7 +117,9 @@ public static class CharacterAssetCookerSelfTest
                     clipState.Time = frame / 60f;
                     animancer.Evaluate(0f);
                     for (int i = 0; i < bones.Length; i++)
-                        AssertPoint(i, bones[i].position, DeterministicPoseTrackBaker.RequiredBones[i].ToString());
+                        AssertPoint(baked.FindBoneIndex(bonePoints[i].BakedName), bones[i].position, bonePoints[i].Id);
+                    foreach (var point in rigPoints)
+                        AssertPoint(baked.FindBoneIndex(point.id), point.bone.position, point.id);
                     AssertPoint(hipsOffsetIndex, hips.position, BakedAnimationData.HipsOffsetPointName);
                     if (hilt != null && tip != null && hiltIndex >= 0 && tipIndex >= 0)
                     {

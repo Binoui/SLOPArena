@@ -578,6 +578,13 @@ motion, and check the bound move with the report. On Sunrise's first keys it sho
 still overhead for most of the window covered 151 FightGuy positions (23 behind him) against the old hand-made rising
 slash's 266 (front to back).
 
+A kick or punch whose limb is the hitbox sweeps a joint line instead: `--joints RightFoot,RightToeBase` on the
+command line, or `"joints": ["RightFoot", "RightToeBase"]` in a brief's `arc` target. For an aerial the grid's heights
+are relative to its feet. FightGuy's Flip Kick (2026-10-29) was briefed against the old aerial High Kick's 51 positions
+and estimated at 124 on its keys. The cooked move, a 0.5 m sphere on the foot of the game's model, reached 86. Without
+a calibration, read the estimate as an upper bound. `report_spheres` reads each target volume as a sphere at its
+start point, so recheck it once a report's targets are capsule hurtboxes.
+
 ## Visual references
 
 ### Image pose sheets (default)

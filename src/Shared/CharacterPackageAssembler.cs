@@ -257,6 +257,11 @@ public static class CharacterPackageAssembler
             PoseData poses = ParsePoses(input.PoseBytes, d);
             HashSet<string> required = RequiredAnimations(input.CookedPackage, d);
             if (binding == null || poses == null) return;
+            foreach (var bone in input.CookedPackage.Definition.HurtboxBoneDefs)
+            {
+                ValidateHurtboxPoint(bone.BoneId, poses, d);
+                if (bone.EndBoneId != null) ValidateHurtboxPoint(bone.EndBoneId, poses, d);
+            }
             ValidateReferences(required, input.CookedPackage.Definition.PresentationIds,
                 input.CookedPackage.Definition.AllSlots.Select(slot => slot.HitPresentationId).Where(id => !string.IsNullOrEmpty(id)).Select(id => id!),
                 binding, poses, d);
@@ -331,6 +336,11 @@ public static class CharacterPackageAssembler
             {
                 HashSet<string> required = RequiredAnimations(root, d);
                 ValidateReferences(required, RequiredPresentations(root, d), RequiredHitPresentations(root, d), binding, pose, d);
+                if (root.GetProperty("character").TryGetProperty("hurtboxBoneDefs", out var hurtboxes) && hurtboxes.ValueKind == JsonValueKind.Array)
+                    foreach (var bone in hurtboxes.EnumerateArray())
+                        foreach (string field in new[] { "boneId", "endBoneId" })
+                            if (bone.TryGetProperty(field, out var id) && id.ValueKind == JsonValueKind.String)
+                                ValidateHurtboxPoint(id.GetString()!, pose, d);
                 if (root.GetProperty("character").TryGetProperty("attachmentBoneIds", out var attachmentIds) && attachmentIds.ValueKind == JsonValueKind.Array)
                     foreach (var id in attachmentIds.EnumerateArray())
                         if (id.ValueKind != JsonValueKind.String || !pose.BoneNames.Contains(id.GetString() ?? ""))
@@ -340,6 +350,12 @@ public static class CharacterPackageAssembler
             }
         }
         catch (Exception ex) { d.Add(Error("package.runtime.malformed", RuntimePath, ex.Message)); }
+    }
+
+    private static void ValidateHurtboxPoint(string id, PoseData pose, List<CharacterDiagnostic> d)
+    {
+        if (!pose.BoneNames.Contains(CharacterBoneRegistry.BakedName(id)!))
+            d.Add(Error("package.pose.hurtbox-missing", "character.hurtboxBoneDefs", $"Hurtbox bone '{id}' is missing from poses.bin."));
     }
 
     private static HashSet<string> RequiredAnimations(CookedCharacterPackage package, List<CharacterDiagnostic> d)

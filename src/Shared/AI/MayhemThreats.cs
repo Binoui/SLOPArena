@@ -17,6 +17,10 @@ public readonly struct MayhemThreats
     public bool TryAvoid(in CharacterState self, CharacterDefinition def, in ArenaDefinition arena, out InputState input)
     {
         input = default;
+        // Full body and tail capsules need the full jump, not a released-squat short hop.
+        if (Slams != null && Slams.Count > 0 && self.State == ActionState.JumpSquat
+            && self.HitstopTicks == 0 && self.HitstunTicks == 0)
+        { input.JumpHeld = true; return true; }
         if (Rings == null || !self.IsGrounded || self.HitstopTicks > 0 || self.HitstunTicks > 0
             || self.LandingLagTicks > 0 || self.AnimLockTicks > 0 || self.InteractionId != 0
             || !ActionStates.AdmitsActions(self.State)) return false;
@@ -56,7 +60,7 @@ public readonly struct MayhemThreats
                 float distance = MathF.Sqrt(dx * dx + dz * dz) - def.CapsuleRadius - MankiMayhemTuning.RingHalfWidth;
                 float contact = slam.Tick + MathF.Max(0f, distance) / MankiMayhemTuning.RingSpeed * 60f;
                 if (contact >= Tick && contact - Tick <= MankiMayhemTuning.BotJumpLeadTicks)
-                { input.Jump = true; return true; }
+                { input.Jump = input.JumpHeld = true; return true; }
             }
             return true;
         }

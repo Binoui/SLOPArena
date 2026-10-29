@@ -62,10 +62,10 @@ MonoBehaviour:
     _clip: {fileID: 7400000, guid: 35926af06601f9cb09b07da1ddb3c406, type: 2}
     _extrapolation: 0
     _poseTrackId: anim.sweeping-kick
-  - _semanticId: anim.high-kick
-    _clip: {fileID: 7400000, guid: 4e90ecac4c0d8c718aa349996204222e, type: 2}
+  - _semanticId: anim.flip-kick
+    _clip: {fileID: 7400000, guid: 8d27121ac17573c28a35c35e5ddb7afc, type: 2}
     _extrapolation: 0
-    _poseTrackId: anim.high-kick
+    _poseTrackId: anim.flip-kick
   - _semanticId: anim.double-kick
     _clip: {fileID: 7400000, guid: e9165de70bb6b826b99b10f936b4f473, type: 2}
     _extrapolation: 0

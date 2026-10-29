@@ -129,52 +129,168 @@
   "hurtboxBoneDefs": [
     {
       "boneId": "bone.head",
-      "offsetX": 0,
-      "offsetY": 0,
-      "offsetZ": 0,
-      "radius": 0.22
-    },
-    {
-      "boneId": "bone.spine2",
-      "offsetX": 0,
-      "offsetY": 0,
-      "offsetZ": 0,
-      "radius": 0.26
+      "offsetX": 0.0,
+      "offsetY": 0.0,
+      "offsetZ": 0.0,
+      "radius": 0.2374,
+      "endBoneId": "bone.head",
+      "endOffsetX": 0.0,
+      "endOffsetY": 0.1591,
+      "endOffsetZ": 0.0
     },
     {
       "boneId": "bone.hips",
-      "offsetX": 0,
-      "offsetY": 0,
-      "offsetZ": 0,
-      "radius": 0.26
+      "offsetX": 0.0,
+      "offsetY": 0.0,
+      "offsetZ": 0.0,
+      "radius": 0.2031,
+      "endBoneId": "bone.neck",
+      "endOffsetX": 0.0,
+      "endOffsetY": 0.0,
+      "endOffsetZ": 0.0
+    },
+    {
+      "boneId": "bone.right-upper-arm",
+      "offsetX": 0.0,
+      "offsetY": 0.0,
+      "offsetZ": 0.0,
+      "radius": 0.0575,
+      "endBoneId": "bone.right-lower-arm",
+      "endOffsetX": 0.0,
+      "endOffsetY": 0.0,
+      "endOffsetZ": 0.0
+    },
+    {
+      "boneId": "bone.right-lower-arm",
+      "offsetX": 0.0,
+      "offsetY": 0.0,
+      "offsetZ": 0.0,
+      "radius": 0.1007,
+      "endBoneId": "bone.right-hand",
+      "endOffsetX": 0.0,
+      "endOffsetY": 0.0,
+      "endOffsetZ": 0.0
     },
     {
       "boneId": "bone.right-hand",
-      "offsetX": 0,
-      "offsetY": 0,
-      "offsetZ": 0,
-      "radius": 0.12
+      "offsetX": 0.0,
+      "offsetY": 0.0,
+      "offsetZ": 0.0,
+      "radius": 0.083,
+      "endBoneId": "bone.right-hand-end",
+      "endOffsetX": 0.0,
+      "endOffsetY": 0.0,
+      "endOffsetZ": 0.0
     },
     {
-      "boneId": "bone.left-hand",
-      "offsetX": 0,
-      "offsetY": 0,
-      "offsetZ": 0,
-      "radius": 0.12
+      "boneId": "bone.right-upper-leg",
+      "offsetX": 0.0,
+      "offsetY": 0.0,
+      "offsetZ": 0.0,
+      "radius": 0.0781,
+      "endBoneId": "bone.right-lower-leg",
+      "endOffsetX": 0.0,
+      "endOffsetY": 0.0,
+      "endOffsetZ": 0.0
+    },
+    {
+      "boneId": "bone.right-lower-leg",
+      "offsetX": 0.0,
+      "offsetY": 0.0,
+      "offsetZ": 0.0,
+      "radius": 0.069,
+      "endBoneId": "bone.right-foot",
+      "endOffsetX": 0.0,
+      "endOffsetY": 0.0,
+      "endOffsetZ": 0.0
     },
     {
       "boneId": "bone.right-foot",
-      "offsetX": 0,
-      "offsetY": 0,
-      "offsetZ": 0,
-      "radius": 0.16
+      "offsetX": 0.0,
+      "offsetY": 0.0,
+      "offsetZ": 0.0,
+      "radius": 0.1073,
+      "endBoneId": "bone.right-toes",
+      "endOffsetX": 0.0,
+      "endOffsetY": 0.0,
+      "endOffsetZ": 0.0
+    },
+    {
+      "boneId": "bone.left-upper-arm",
+      "offsetX": 0.0,
+      "offsetY": 0.0,
+      "offsetZ": 0.0,
+      "radius": 0.0522,
+      "endBoneId": "bone.left-lower-arm",
+      "endOffsetX": 0.0,
+      "endOffsetY": 0.0,
+      "endOffsetZ": 0.0
+    },
+    {
+      "boneId": "bone.left-lower-arm",
+      "offsetX": 0.0,
+      "offsetY": 0.0,
+      "offsetZ": 0.0,
+      "radius": 0.1001,
+      "endBoneId": "bone.left-hand",
+      "endOffsetX": 0.0,
+      "endOffsetY": 0.0,
+      "endOffsetZ": 0.0
+    },
+    {
+      "boneId": "bone.left-hand",
+      "offsetX": 0.0,
+      "offsetY": 0.0,
+      "offsetZ": 0.0,
+      "radius": 0.073,
+      "endBoneId": "bone.left-hand-end",
+      "endOffsetX": 0.0,
+      "endOffsetY": 0.0,
+      "endOffsetZ": 0.0
+    },
+    {
+      "boneId": "bone.left-upper-leg",
+      "offsetX": 0.0,
+      "offsetY": 0.0,
+      "offsetZ": 0.0,
+      "radius": 0.0822,
+      "endBoneId": "bone.left-lower-leg",
+      "endOffsetX": 0.0,
+      "endOffsetY": 0.0,
+      "endOffsetZ": 0.0
+    },
+    {
+      "boneId": "bone.left-lower-leg",
+      "offsetX": 0.0,
+      "offsetY": 0.0,
+      "offsetZ": 0.0,
+      "radius": 0.0699,
+      "endBoneId": "bone.left-foot",
+      "endOffsetX": 0.0,
+      "endOffsetY": 0.0,
+      "endOffsetZ": 0.0
     },
     {
       "boneId": "bone.left-foot",
-      "offsetX": 0,
-      "offsetY": 0,
-      "offsetZ": 0,
-      "radius": 0.16
+      "offsetX": 0.0,
+      "offsetY": 0.0,
+      "offsetZ": 0.0,
+      "radius": 0.11,
+      "endBoneId": "bone.left-toes",
+      "endOffsetX": 0.0,
+      "endOffsetY": 0.0,
+      "endOffsetZ": 0.0
+    },
+    {
+      "boneId": "rig:Shell",
+      "offsetX": 0.0,
+      "offsetY": 0.0,
+      "offsetZ": 0.0,
+      "radius": 0.2196,
+      "endBoneId": "rig:Shell",
+      "endOffsetX": 0.0,
+      "endOffsetY": 0.0,
+      "endOffsetZ": 0.0
     }
   ],
   "attachmentBoneIds": [],

@@ -5,14 +5,6 @@ using Xunit;
 
 namespace SlopArena.Shared.Tests;
 
-/// <summary>
-/// Pose-resolution tests for the unified hurtbox path (spec #119).
-/// BuildHurtboxList now resolves every entity's hurtboxes through the same
-/// BuildEntitiesFromState the Ability Lab preview uses. The golden test locks the
-/// real Manki def + shared 7-bone set against the pre-unification formula, proving
-/// the refactor is behavior-preserving for shipped characters (all offsets are zero);
-/// the offset tests lock the newly activated per-def offset semantics.
-/// </summary>
 public class HurtboxPoseTests
 {
     private static byte[] MakeBin(string[] boneNames, Func<int, int, int, float> bonePos)
@@ -59,11 +51,48 @@ public class HurtboxPoseTests
         _ => 0f,
     };
 
-    [Fact]
-    public void UnifiedPose_MatchesLegacyTickPath_ForShippedMankiDef()
+    [Theory]
+    [InlineData(0f)]
+    [InlineData(0.4f)]
+    public void EndBoneHurtboxFollowsDrawnPoseAndRotatesBothOffsets(float pitch)
     {
-        // Real Manki def from the registry — the shared 7-bone set, scale 0.85.
-        var def = TestHelpers.MankiDef;
+        var def = new CharacterDefinition
+        {
+            CapsuleHeight = 2f, HipHeight = 1f, HurtboxBoneScale = .5f,
+            HurtboxBoneDefs = new[] { new HurtboxBoneDef("start", .1f, .2f, .3f, .15f, "end", -.2f, .3f, .1f) },
+        };
+        var baked = BakedAnimationData.LoadFromBin(MakeBin(new[] { "end", "start", BakedAnimationData.HipsOffsetPointName },
+            (_, bone, axis) => bone switch
+            {
+                0 => axis == 1 ? 1f : 0f,
+                1 => axis == 0 ? 1f : 0f,
+                _ => axis == 1 ? .8f : 0f,
+            }));
+        var state = new CharacterState { PX = 2f, PY = 3f, PZ = 4f, FacingYaw = MathF.PI / 2f, AttackPosePitch = pitch };
+        var capsule = Assert.Single(ServerSimulation.BuildEntitiesFromState(state, def, baked, "idle", 0, 9));
+        Assert.Equal(HitboxShape.Capsule, capsule.Shape);
+        Assert.Equal((ulong)9, capsule.Id);
+        // Facing +X maps local (x, y, z) to (z, y, -x), about the drawn hips at y=3.8.
+        float sx = 2.3f, sy = 4f, sz = 2.9f;
+        float ex = 2.1f, ey = 5.1f, ez = 4.2f;
+        HitboxGeometry.ApplyAttackPosePitch(state, def, ref sx, ref sy, ref sz);
+        HitboxGeometry.ApplyAttackPosePitch(state, def, ref ex, ref ey, ref ez);
+        TestHelpers.AssertNear(sx, capsule.PosX, .0001f);
+        TestHelpers.AssertNear(sy, capsule.PosY, .0001f);
+        TestHelpers.AssertNear(sz, capsule.PosZ, .0001f);
+        TestHelpers.AssertNear(ex, capsule.EndX, .0001f);
+        TestHelpers.AssertNear(ey, capsule.EndY, .0001f);
+        TestHelpers.AssertNear(ez, capsule.EndZ, .0001f);
+    }
+
+    [Fact]
+    public void UnifiedPose_ResolvesSpheresByNameAtDrawnScale()
+    {
+        var def = new CharacterDefinition
+        {
+            CapsuleHeight = 1.5f, HipHeight = .5f, HurtboxBoneScale = 0.85f,
+            HurtboxBoneDefs = Array.ConvertAll(BoneNames, name => new HurtboxBoneDef(name, 0, 0, 0, .1f)),
+        };
         Assert.NotNull(def.HurtboxBoneDefs);
         Assert.Equal(BoneNames.Length, def.HurtboxBoneDefs!.Count);
         var baked = BakedAnimationData.LoadFromBin(MakeBin(BoneNames, (f, bone, axis) => BonePos(bone, axis)));
@@ -79,7 +108,7 @@ public class HurtboxPoseTests
 
         Assert.Equal(def.HurtboxBoneDefs.Count, resolved.Count);
         float cos = MathF.Cos(state.FacingYaw), sin = MathF.Sin(state.FacingYaw);
-        float scale = def.HurtboxBoneScale;
+        float scale = 1f;
         for (int i = 0; i < def.HurtboxBoneDefs.Count; i++)
         {
             var hbd = def.HurtboxBoneDefs[i];
@@ -87,8 +116,6 @@ public class HurtboxPoseTests
             // each def must land on the fixture bone it names.
             int bone = Array.IndexOf(BoneNames, hbd.BoneName);
             Assert.True(bone >= 0, $"{hbd.BoneName} is not a fixture bone.");
-            // Legacy BuildHurtboxList formula (pre-spec-#119): scale, rotate, BoneYToWorldY,
-            // offsets added raw (all zero for shipped defs → identical to unified).
             float bx = BonePos(bone, 0) * scale, by = BonePos(bone, 1) * scale, bz = BonePos(bone, 2) * scale;
             float wx = state.PX + ((bx * cos) + (bz * sin));
             float wy = def.BoneYToWorldY(state.PY, by);
@@ -104,18 +131,6 @@ public class HurtboxPoseTests
             TestHelpers.AssertNear(wz, e.PosZ, 0.0001f);
         }
     }
-
-    /// <summary>The rig bone each authored semantic hurtbox bone names in the cooked bakes.</summary>
-    private static readonly Dictionary<string, string> RigBones = new()
-    {
-        ["bone.head"] = "mixamorig:Head",
-        ["bone.spine2"] = "mixamorig:Spine2",
-        ["bone.hips"] = "mixamorig:Hips",
-        ["bone.right-hand"] = "mixamorig:RightHand",
-        ["bone.left-hand"] = "mixamorig:LeftHand",
-        ["bone.right-foot"] = "mixamorig:RightFoot",
-        ["bone.left-foot"] = "mixamorig:LeftFoot",
-    };
 
     [Theory]
     [InlineData(CharacterClass.FightGuy)]
@@ -140,11 +155,11 @@ public class HurtboxPoseTests
 
         Assert.Equal(authored.Count, resolved.Count);
         float cos = MathF.Cos(state.FacingYaw), sin = MathF.Sin(state.FacingYaw);
-        float scale = def.HurtboxBoneScale;
+        float scale = 1f;
         int idle = baked.FindAnimIndex(def.IdleAnim);
         foreach (var bone in authored)
         {
-            Assert.True(RigBones.TryGetValue(bone.BoneId, out var rigBone), $"{bone.BoneId} has no expected rig bone.");
+            string rigBone = CharacterBoneRegistry.BakedName(bone.BoneId)!;
             int index = baked.FindBoneIndex(rigBone);
             Assert.True(index >= 0, $"{fighter} bake lacks {rigBone}.");
             // The named bone where it is drawn (cooked hips offset), then the authored offset.
@@ -162,7 +177,7 @@ public class HurtboxPoseTests
     }
 
     [Fact]
-    public void UnifiedPose_SkipsDefWhoseBoneIsNotBaked()
+    public void UnifiedPose_RejectsDefWhoseBoneIsNotBaked()
     {
         // A def naming a bone the bake lacks resolves nothing; it must not borrow the
         // baked bone at its own index.
@@ -180,12 +195,8 @@ public class HurtboxPoseTests
         var baked = BakedAnimationData.LoadFromBin(MakeBin(BoneNames, (f, bone, axis) => BonePos(bone, axis)));
         var state = new CharacterState { PX = 0f, PY = 0.75f, PZ = 0f };
 
-        var resolved = ServerSimulation.BuildEntitiesFromState(state, def, baked, "idle", 0, 0);
-
-        var e = Assert.Single(resolved);
-        // Spine2 (baked y 0.5) → world Y = py - h/2 + HipHeight + by = 0.75 - 0.75 + 0.5 + 0.5 = 1.0
-        Assert.Equal(1.0f, e.PosY, 5);
-        Assert.Equal(0.26f, e.Radius, 5);
+        Assert.Throws<InvalidOperationException>(() =>
+            ServerSimulation.BuildEntitiesFromState(state, def, baked, "idle", 0, 0));
     }
 
     [Fact]

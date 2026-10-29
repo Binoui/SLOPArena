@@ -506,7 +506,7 @@ public static class CharacterPackageSourceCodec
         Number(w, "shieldRadius", x.ShieldRadius);
         WriteCaptureGeometry(w, x.CaptureGeometry);
         w.WritePropertyName("hurtboxCapsules"); w.WriteStartArray(); foreach (var h in x.HurtboxCapsules ?? System.Array.Empty<HurtboxCapsuleSource>()) { w.WriteStartObject(); Number(w,"startX",h.StartX); Number(w,"startY",h.StartY); Number(w,"startZ",h.StartZ); Number(w,"endX",h.EndX); Number(w,"endY",h.EndY); Number(w,"endZ",h.EndZ); Number(w,"radius",h.Radius); w.WriteEndObject(); } w.WriteEndArray();
-        w.WritePropertyName("hurtboxBoneDefs"); w.WriteStartArray(); foreach (var h in x.HurtboxBoneDefs ?? System.Array.Empty<HurtboxBoneSource>()) { w.WriteStartObject(); w.WriteString("boneId",h.BoneId); Number(w,"offsetX",h.OffsetX); Number(w,"offsetY",h.OffsetY); Number(w,"offsetZ",h.OffsetZ); Number(w,"radius",h.Radius); w.WriteEndObject(); } w.WriteEndArray();
+        w.WritePropertyName("hurtboxBoneDefs"); w.WriteStartArray(); foreach (var h in x.HurtboxBoneDefs ?? System.Array.Empty<HurtboxBoneSource>()) { w.WriteStartObject(); w.WriteString("boneId",h.BoneId); Number(w,"offsetX",h.OffsetX); Number(w,"offsetY",h.OffsetY); Number(w,"offsetZ",h.OffsetZ); Number(w,"radius",h.Radius); if (h.EndBoneId != null) w.WriteString("endBoneId",h.EndBoneId); Number(w,"endOffsetX",h.EndOffsetX); Number(w,"endOffsetY",h.EndOffsetY); Number(w,"endOffsetZ",h.EndOffsetZ); w.WriteEndObject(); } w.WriteEndArray();
         WriteStringArray(w, "attachmentBoneIds", x.AttachmentBoneIds); WriteStringArray(w, "presentationIds", x.PresentationIds);
         w.WritePropertyName("capabilityRequirements"); w.WriteStartArray(); foreach (var c in x.CapabilityRequirements ?? System.Array.Empty<CapabilityRequirementSource>()) { w.WriteStartObject(); w.WriteString("capabilityId", c.CapabilityId); w.WriteString("capabilityVersion", c.CapabilityVersion); w.WriteEndObject(); } w.WriteEndArray();
         if (x.Shell != null) WriteShell(w, x.Shell);
@@ -1136,8 +1136,8 @@ public static class CharacterPackageSourceCodec
         var i = 0;
         foreach (var e in a.EnumerateArray())
         {
-            var p = ReadObject(e, $"character.hurtboxBoneDefs[{i}]", d, "boneId", "offsetX", "offsetY", "offsetZ", "radius");
-            result.Add(new HurtboxBoneSource(String(p, "boneId", $"character.hurtboxBoneDefs[{i}].boneId", d), Float(p, "offsetX", $"character.hurtboxBoneDefs[{i}].offsetX", d), Float(p, "offsetY", $"character.hurtboxBoneDefs[{i}].offsetY", d), Float(p, "offsetZ", $"character.hurtboxBoneDefs[{i}].offsetZ", d), Float(p, "radius", $"character.hurtboxBoneDefs[{i}].radius", d)));
+            var p = ReadObject(e, $"character.hurtboxBoneDefs[{i}]", d, "boneId", "offsetX", "offsetY", "offsetZ", "radius", "endBoneId", "endOffsetX", "endOffsetY", "endOffsetZ");
+            result.Add(new HurtboxBoneSource(String(p, "boneId", $"character.hurtboxBoneDefs[{i}].boneId", d), Float(p, "offsetX", $"character.hurtboxBoneDefs[{i}].offsetX", d), Float(p, "offsetY", $"character.hurtboxBoneDefs[{i}].offsetY", d), Float(p, "offsetZ", $"character.hurtboxBoneDefs[{i}].offsetZ", d), Float(p, "radius", $"character.hurtboxBoneDefs[{i}].radius", d), OptionalString(p, "endBoneId", $"character.hurtboxBoneDefs[{i}].endBoneId", d), OptionalFloat(p, "endOffsetX", $"character.hurtboxBoneDefs[{i}].endOffsetX", d), OptionalFloat(p, "endOffsetY", $"character.hurtboxBoneDefs[{i}].endOffsetY", d), OptionalFloat(p, "endOffsetZ", $"character.hurtboxBoneDefs[{i}].endOffsetZ", d)));
             i++;
         }
         return result;

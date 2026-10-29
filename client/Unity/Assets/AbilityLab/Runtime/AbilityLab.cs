@@ -1729,7 +1729,9 @@ namespace SlopArena.Client.Tools
                 {
                     var hb = hurtboxes[i];
                     GL.Color(new Color(0f, 1f, 0.35f));
-                    WireSphere(new Vector3(hb.PosX, hb.PosY, hb.PosZ), hb.Radius);
+                    if (hb.Shape == HitboxShape.Capsule)
+                        WireCapsule(new Vector3(hb.PosX, hb.PosY, hb.PosZ), new Vector3(hb.EndX, hb.EndY, hb.EndZ), hb.Radius);
+                    else WireSphere(new Vector3(hb.PosX, hb.PosY, hb.PosZ), hb.Radius);
                 }
             }
             if (ShowHitboxes)
@@ -1894,7 +1896,7 @@ namespace SlopArena.Client.Tools
             if (Mathf.Abs(Vector3.Dot(dir, up)) > 0.99f) up = Vector3.right;
             Vector3 right = Vector3.Cross(dir, up).normalized;
             Vector3 fwd = Vector3.Cross(right, dir).normalized;
-            Vector3 a2 = a + dir * radius, b2 = b - dir * radius;
+            Vector3 a2 = a, b2 = b;
             const int segs = 12;
             for (int i = 0; i < segs; i++)
             {
@@ -1908,10 +1910,6 @@ namespace SlopArena.Client.Tools
                 Line(p0, q0);
             }
 
-            // The collision capsule includes hemispherical ends centered at the
-            // resolved endpoints. The cylinder rings above are inset by one
-            // radius, so draw the endpoint spheres too; without them the
-            // wireframe appears shorter than the actual capsule.
             WireSphere(a, radius);
             WireSphere(b, radius);
         }

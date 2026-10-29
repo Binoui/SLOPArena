@@ -45,18 +45,28 @@ public sealed class ShieldGrabPunishTests
     }
 
     [Theory]
-    [InlineData(CharacterClass.FightGuy)]
-    [InlineData(CharacterClass.Manki)]
-    [InlineData(CharacterClass.Wibou)]
-    [InlineData(CharacterClass.Bonk)]
-    public void TimingSafeNormalCanRetreatBeforeShieldGrabBecomesActive(CharacterClass defender)
+    [InlineData(CharacterClass.FightGuy, 1.2f)]
+    [InlineData(CharacterClass.Manki, 1.2f)]
+    [InlineData(CharacterClass.Wibou, 1.2f)]
+    [InlineData(CharacterClass.Bonk, 1.4f)]
+    public void TimingSafeNormalCanRetreatBeforeShieldGrabBecomesActive(CharacterClass defender, float distance)
     {
-        var result = RunPunish(defender, CharacterClass.Manki, AbilitySlots.Slot1, 1.2f);
+        var result = RunPunish(defender, CharacterClass.Manki, AbilitySlots.Slot1, distance);
 
         Assert.True(result.Blocked);
         Assert.True(result.GrabStarted);
         Assert.True(result.AttackerCouldActBeforeCapture);
         Assert.False(result.Captured, "Reach tuning must not erase recovery-based escape.");
+    }
+
+    [Fact]
+    public void CloseBonkGrabCanCatchMankisExposedBodyAfterRecoveryAllowsMovement()
+    {
+        var result = RunPunish(CharacterClass.Bonk, CharacterClass.Manki, AbilitySlots.Slot1, 1.2f);
+        Assert.True(result.Blocked);
+        Assert.True(result.GrabStarted);
+        Assert.True(result.AttackerCouldActBeforeCapture);
+        Assert.True(result.Captured);
     }
 
     private static PunishResult RunPunish(

@@ -98,7 +98,7 @@ public static class UnityCharacterAssetCooker
     public const int BindingSchemaVersion = 2;
     public const int PoseVersion = 1;
     public const int SampleRate = 60;
-    public const string CookerVersion = "package-presentation-2";
+    public const string CookerVersion = "bone-capsules-1";
 
     public static CharacterAssetCookResult Cook(string packageRoot, CharacterAssetCatalog catalog, CharacterCookOutput output, CharacterCookProfile profile)
     {
@@ -172,7 +172,8 @@ public static class UnityCharacterAssetCooker
                 SampleRate,
                 catalog.WeaponConfig,
                 presentation.VisualScale,
-                presentation.ModelYOffset);
+                presentation.ModelYOffset,
+                compiled.CookedPackage.Definition.HurtboxBoneDefs);
         }
         catch (Exception ex)
         {

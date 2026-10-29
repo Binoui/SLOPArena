@@ -2305,21 +2305,17 @@ namespace SlopArena.Client.Entities
                 if (_weaponAttach == null) _weaponAttach = GetComponent<WeaponAttach>();
                 return _weaponAttach?.ResolveTrailAnchor(name);
             }
+            var point = CharacterBoneRegistry.Find(name);
+            var animator = Animator;
+            if (point != null && animator != null && animator.isHuman)
+                return animator.GetBoneTransform((HumanBodyBones)Enum.Parse(typeof(HumanBodyBones), point.HumanoidBone));
+            if (CharacterBoneRegistry.IsRigId(name))
+                return FindBone(name.Substring(CharacterBoneRegistry.RigPrefix.Length));
             return FindBone(PresentationBoneName(name));
         }
 
         public static string PresentationBoneName(string name)
-            => name switch
-            {
-                "bone.head" => "mixamorig:Head",
-                "bone.hips" => "mixamorig:Hips",
-                "bone.spine2" => "mixamorig:Spine2",
-                "bone.right-hand" => "mixamorig:RightHand",
-                "bone.left-hand" => "mixamorig:LeftHand",
-                "bone.right-foot" => "mixamorig:RightFoot",
-                "bone.left-foot" => "mixamorig:LeftFoot",
-                _ => name,
-            };
+            => CharacterBoneRegistry.BakedName(name);
 
         private Transform FindBone(string name)
         {

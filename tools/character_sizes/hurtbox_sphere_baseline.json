@@ -1,0 +1,380 @@
+{
+  "fightguy": {
+    "hurtboxBoneScale": 0.85,
+    "hurtboxBoneDefs": [
+      {
+        "boneId": "bone.head",
+        "offsetX": 0,
+        "offsetY": 0,
+        "offsetZ": 0,
+        "radius": 0.22
+      },
+      {
+        "boneId": "bone.spine2",
+        "offsetX": 0,
+        "offsetY": 0,
+        "offsetZ": 0,
+        "radius": 0.26
+      },
+      {
+        "boneId": "bone.hips",
+        "offsetX": 0,
+        "offsetY": 0,
+        "offsetZ": 0,
+        "radius": 0.26
+      },
+      {
+        "boneId": "bone.right-hand",
+        "offsetX": 0,
+        "offsetY": 0,
+        "offsetZ": 0,
+        "radius": 0.12
+      },
+      {
+        "boneId": "bone.left-hand",
+        "offsetX": 0,
+        "offsetY": 0,
+        "offsetZ": 0,
+        "radius": 0.12
+      },
+      {
+        "boneId": "bone.right-foot",
+        "offsetX": 0,
+        "offsetY": 0,
+        "offsetZ": 0,
+        "radius": 0.16
+      },
+      {
+        "boneId": "bone.left-foot",
+        "offsetX": 0,
+        "offsetY": 0,
+        "offsetZ": 0,
+        "radius": 0.16
+      }
+    ]
+  },
+  "bonk": {
+    "hurtboxBoneScale": 0.85,
+    "hurtboxBoneDefs": [
+      {
+        "boneId": "bone.head",
+        "offsetX": 0,
+        "offsetY": 0,
+        "offsetZ": 0,
+        "radius": 0.22
+      },
+      {
+        "boneId": "bone.spine2",
+        "offsetX": 0,
+        "offsetY": 0,
+        "offsetZ": 0,
+        "radius": 0.26
+      },
+      {
+        "boneId": "bone.hips",
+        "offsetX": 0,
+        "offsetY": 0,
+        "offsetZ": 0,
+        "radius": 0.26
+      },
+      {
+        "boneId": "bone.right-hand",
+        "offsetX": 0,
+        "offsetY": 0,
+        "offsetZ": 0,
+        "radius": 0.12
+      },
+      {
+        "boneId": "bone.left-hand",
+        "offsetX": 0,
+        "offsetY": 0,
+        "offsetZ": 0,
+        "radius": 0.12
+      },
+      {
+        "boneId": "bone.right-foot",
+        "offsetX": 0,
+        "offsetY": 0,
+        "offsetZ": 0,
+        "radius": 0.16
+      },
+      {
+        "boneId": "bone.left-foot",
+        "offsetX": 0,
+        "offsetY": 0,
+        "offsetZ": 0,
+        "radius": 0.16
+      }
+    ]
+  },
+  "manki": {
+    "hurtboxBoneScale": 0.85,
+    "hurtboxBoneDefs": [
+      {
+        "boneId": "bone.head",
+        "offsetX": 0,
+        "offsetY": 0,
+        "offsetZ": 0,
+        "radius": 0.22
+      },
+      {
+        "boneId": "bone.spine2",
+        "offsetX": 0,
+        "offsetY": 0,
+        "offsetZ": 0,
+        "radius": 0.26
+      },
+      {
+        "boneId": "bone.hips",
+        "offsetX": 0,
+        "offsetY": 0,
+        "offsetZ": 0,
+        "radius": 0.26
+      },
+      {
+        "boneId": "bone.right-hand",
+        "offsetX": 0,
+        "offsetY": 0,
+        "offsetZ": 0,
+        "radius": 0.12
+      },
+      {
+        "boneId": "bone.left-hand",
+        "offsetX": 0,
+        "offsetY": 0,
+        "offsetZ": 0,
+        "radius": 0.12
+      },
+      {
+        "boneId": "bone.right-foot",
+        "offsetX": 0,
+        "offsetY": 0,
+        "offsetZ": 0,
+        "radius": 0.16
+      },
+      {
+        "boneId": "bone.left-foot",
+        "offsetX": 0,
+        "offsetY": 0,
+        "offsetZ": 0,
+        "radius": 0.16
+      }
+    ]
+  },
+  "wibou": {
+    "hurtboxBoneScale": 0.85,
+    "hurtboxBoneDefs": [
+      {
+        "boneId": "bone.head",
+        "offsetX": 0,
+        "offsetY": 0,
+        "offsetZ": 0,
+        "radius": 0.22
+      },
+      {
+        "boneId": "bone.spine2",
+        "offsetX": 0,
+        "offsetY": 0,
+        "offsetZ": 0,
+        "radius": 0.26
+      },
+      {
+        "boneId": "bone.hips",
+        "offsetX": 0,
+        "offsetY": 0,
+        "offsetZ": 0,
+        "radius": 0.26
+      },
+      {
+        "boneId": "bone.right-hand",
+        "offsetX": 0,
+        "offsetY": 0,
+        "offsetZ": 0,
+        "radius": 0.16
+      },
+      {
+        "boneId": "bone.left-hand",
+        "offsetX": 0,
+        "offsetY": 0,
+        "offsetZ": 0,
+        "radius": 0.16
+      },
+      {
+        "boneId": "bone.right-foot",
+        "offsetX": 0,
+        "offsetY": 0,
+        "offsetZ": 0,
+        "radius": 0.16
+      },
+      {
+        "boneId": "bone.left-foot",
+        "offsetX": 0,
+        "offsetY": 0,
+        "offsetZ": 0,
+        "radius": 0.16
+      }
+    ]
+  },
+  "bashie": {
+    "hurtboxBoneScale": 0.85,
+    "hurtboxBoneDefs": [
+      {
+        "boneId": "bone.head",
+        "offsetX": 0,
+        "offsetY": 0,
+        "offsetZ": 0,
+        "radius": 0.22
+      },
+      {
+        "boneId": "bone.spine2",
+        "offsetX": 0,
+        "offsetY": 0,
+        "offsetZ": 0,
+        "radius": 0.26
+      },
+      {
+        "boneId": "bone.hips",
+        "offsetX": 0,
+        "offsetY": 0,
+        "offsetZ": 0,
+        "radius": 0.26
+      },
+      {
+        "boneId": "bone.right-hand",
+        "offsetX": 0,
+        "offsetY": 0,
+        "offsetZ": 0,
+        "radius": 0.12
+      },
+      {
+        "boneId": "bone.left-hand",
+        "offsetX": 0,
+        "offsetY": 0,
+        "offsetZ": 0,
+        "radius": 0.12
+      },
+      {
+        "boneId": "bone.right-foot",
+        "offsetX": 0,
+        "offsetY": 0,
+        "offsetZ": 0,
+        "radius": 0.16
+      },
+      {
+        "boneId": "bone.left-foot",
+        "offsetX": 0,
+        "offsetY": 0,
+        "offsetZ": 0,
+        "radius": 0.16
+      }
+    ]
+  },
+  "salamander": {
+    "hurtboxBoneScale": 0.85,
+    "hurtboxBoneDefs": [
+      {
+        "boneId": "bone.head",
+        "offsetX": 0,
+        "offsetY": 0,
+        "offsetZ": 0,
+        "radius": 0.22
+      },
+      {
+        "boneId": "bone.spine2",
+        "offsetX": 0,
+        "offsetY": 0,
+        "offsetZ": 0,
+        "radius": 0.26
+      },
+      {
+        "boneId": "bone.hips",
+        "offsetX": 0,
+        "offsetY": 0,
+        "offsetZ": 0,
+        "radius": 0.26
+      },
+      {
+        "boneId": "bone.right-hand",
+        "offsetX": 0,
+        "offsetY": 0,
+        "offsetZ": 0,
+        "radius": 0.12
+      },
+      {
+        "boneId": "bone.left-hand",
+        "offsetX": 0,
+        "offsetY": 0,
+        "offsetZ": 0,
+        "radius": 0.12
+      },
+      {
+        "boneId": "bone.right-foot",
+        "offsetX": 0,
+        "offsetY": 0,
+        "offsetZ": 0,
+        "radius": 0.16
+      },
+      {
+        "boneId": "bone.left-foot",
+        "offsetX": 0,
+        "offsetY": 0,
+        "offsetZ": 0,
+        "radius": 0.16
+      }
+    ]
+  },
+  "nyx": {
+    "hurtboxBoneScale": 1,
+    "hurtboxBoneDefs": [
+      {
+        "boneId": "bone.head",
+        "offsetX": 0,
+        "offsetY": 0,
+        "offsetZ": 0,
+        "radius": 0.22
+      },
+      {
+        "boneId": "bone.spine2",
+        "offsetX": 0,
+        "offsetY": 0,
+        "offsetZ": 0,
+        "radius": 0.26
+      },
+      {
+        "boneId": "bone.hips",
+        "offsetX": 0,
+        "offsetY": 0,
+        "offsetZ": 0,
+        "radius": 0.26
+      },
+      {
+        "boneId": "bone.right-hand",
+        "offsetX": 0,
+        "offsetY": 0,
+        "offsetZ": 0,
+        "radius": 0.12
+      },
+      {
+        "boneId": "bone.left-hand",
+        "offsetX": 0,
+        "offsetY": 0,
+        "offsetZ": 0,
+        "radius": 0.12
+      },
+      {
+        "boneId": "bone.right-foot",
+        "offsetX": 0,
+        "offsetY": 0,
+        "offsetZ": 0,
+        "radius": 0.16
+      },
+      {
+        "boneId": "bone.left-foot",
+        "offsetX": 0,
+        "offsetY": 0,
+        "offsetZ": 0,
+        "radius": 0.16
+      }
+    ]
+  }
+}

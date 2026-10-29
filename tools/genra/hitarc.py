@@ -73,11 +73,13 @@ def coverage(segments, radius, spheres, distances, heights, lateral=0.0) -> np.n
     return (gap < (radius + spheres[:, 3])[None, None, :, None]).any(axis=(2, 3))
 
 
-def arc_grid(clip, window, radius, report, defender='FightGuy', calibration=None) -> np.ndarray:
-    """The ARC_HEIGHTS x ARC_DISTANCES grid of defender positions the clip's weapon touches over `window`
-    [first, last], with the floor under its first tick (a move that starts standing)."""
+def arc_grid(clip, window, radius, report, defender='FightGuy', calibration=None, joints=('bladeHilt', 'bladeEnd')) \
+        -> np.ndarray:
+    """The ARC_HEIGHTS x ARC_DISTANCES grid of defender positions the clip's weapon (or the `joints` line of a limb
+    that is the hitbox, such as a kick's foot) touches over `window` [first, last], with the floor under its first
+    tick (a move that starts standing; for an aerial, heights are relative to its feet)."""
     first, last = window
-    seg = weapon_segments(clip, range(first, last + 1), floor_of(clip.pose(0)), calibration=calibration)
+    seg = weapon_segments(clip, range(first, last + 1), floor_of(clip.pose(0)), *joints, calibration=calibration)
     return coverage(seg, radius, report_spheres(report, defender), ARC_DISTANCES, ARC_HEIGHTS)
 
 
@@ -157,18 +159,21 @@ def main(argv=None):
     parser.add_argument('--active', required=True, help='first-last active tick (move data)')
     parser.add_argument('--report', required=True, help="a HitReliabilityReport JSON (its `targets` volumes)")
     parser.add_argument('--calibration', help=f"the attacker's rig-to-game calibration ({', '.join(CALIBRATION)})")
+    parser.add_argument('--joints', default='bladeHilt,bladeEnd',
+                        help='the hitbox line, start,end joints (a kick: RightFoot,RightToeBase)')
     parser.add_argument('--out')
     args = parser.parse_args(argv)
+    joints = tuple(args.joints.split(','))
     brief = Brief(Path(args.brief).resolve())
     clip = Clip.load(brief.rig, args.result, frame=brief.entry_frame)
     window = [int(x) for x in args.active.split('-')]
     cal = CALIBRATION.get(args.calibration) if args.calibration else None
-    grids = {name: arc_grid(clip, window, args.radius, args.report, name, cal) for name in ('FightGuy', 'Manki')}
+    grids = {name: arc_grid(clip, window, args.radius, args.report, name, cal, joints) for name in ('FightGuy', 'Manki')}
     for name, grid in grids.items():
         print(f"{name}: {arc_cells(grid)} positions touched ({arc_cells(grid, 'ahead')} ahead, "
               f"{arc_cells(grid, 'behind')} behind); standing {intervals(grid[0], ARC_DISTANCES, 0.25)}")
     if args.out:
-        seg = weapon_segments(clip, range(window[0], window[1] + 1), floor_of(clip.pose(0)), calibration=cal)
+        seg = weapon_segments(clip, range(window[0], window[1] + 1), floor_of(clip.pose(0)), *joints, calibration=cal)
         draw(args.out, None, ARC_DISTANCES, ARC_HEIGHTS, {Path(args.result).parent.parent.name: (seg, grids)}, 'hit arc')
     return 0
 

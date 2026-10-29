@@ -97,7 +97,7 @@ namespace SlopArena.Shared
 
         /// <summary>
         /// Bone-attached hurtboxes (ServerSkeleton-based). Replaces HurtboxCapsules when loaded.
-        /// Each entry defines a sphere at a bone position with an offset.
+        /// Each entry defines a sphere or a capsule between named pose points.
         /// </summary>
         private IReadOnlyList<HurtboxBoneDef>? _hurtboxBoneDefs;
         public IReadOnlyList<HurtboxBoneDef>? HurtboxBoneDefs
@@ -111,8 +111,7 @@ namespace SlopArena.Shared
         /// <summary>Unity Resources path for the model prefab. E.g. "Characters/Manki"</summary>
         public string ModelResourcePath { get; init; } = "";
         /// <summary>
-        /// Scale factor for baked bone positions. Mixamo GLBs are in cm (0.01),
-        /// Blender/Maya exports with meters are 1.0. Default: 1.0
+        /// Body-bone attack reach retains the authored shrink. Fitted hurtboxes use scale 1.
         /// </summary>
         public float HurtboxBoneScale { get; init; } = 1.0f;
         /// <summary>

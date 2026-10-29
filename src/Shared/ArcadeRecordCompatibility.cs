@@ -96,7 +96,13 @@ public static class ArcadeRecordCompatibility
             {
                 fighter.Identity.PackageId, c.Weight, c.Movement, c.CapsuleRadius, c.CapsuleHeight,
                 c.HipHeight, c.HurtboxRadius, c.ShieldRadius, c.CaptureGeometry,
-                c.HurtboxCapsules, c.HurtboxBoneDefs, d.HurtboxBoneScale,
+                c.HurtboxCapsules,
+                HurtboxBoneDefs = c.HurtboxBoneDefs.Select(x => new
+                {
+                    x.BoneId, x.OffsetX, x.OffsetY, x.OffsetZ, x.Radius,
+                    x.EndBoneId, x.EndOffsetX, x.EndOffsetY, x.EndOffsetZ,
+                }).ToArray(),
+                d.HurtboxBoneScale,
                 Capabilities = c.CapabilityRequirements.OrderBy(x => x.CapabilityId, StringComparer.Ordinal).ToArray(),
                 Bones = bones,
                 LowPosture = new { Crouch = baked != null && !string.IsNullOrEmpty(d.CrouchAnim) && baked.FindAnimIndex(d.CrouchAnim) >= 0,

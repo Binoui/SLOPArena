@@ -20,7 +20,7 @@ public static class CookedCharacterRuntimeAdapter
             CapsuleRadius=c.CapsuleRadius, CapsuleHeight=c.CapsuleHeight, HipHeight=c.HipHeight, HurtboxRadius=c.HurtboxRadius, ShieldRadius=c.ShieldRadius,
             CaptureGeometry = c.CaptureGeometry,
             HurtboxCapsules=c.HurtboxCapsules.Select(x=>new HurtboxCapsule(x.StartX,x.StartY,x.StartZ,x.EndX,x.EndY,x.EndZ,x.Radius)).ToArray(),
-            HurtboxBoneDefs=c.HurtboxBoneDefs.Select(x=>new HurtboxBoneDef(RuntimeBoneId(x.BoneId)!,x.OffsetX,x.OffsetY,x.OffsetZ,x.Radius)).ToArray(),
+            HurtboxBoneDefs=c.HurtboxBoneDefs.Select(x=>new HurtboxBoneDef(RuntimeBoneId(x.BoneId)!,x.OffsetX,x.OffsetY,x.OffsetZ,x.Radius,RuntimeBoneId(x.EndBoneId),x.EndOffsetX,x.EndOffsetY,x.EndOffsetZ)).ToArray(),
             ModelResourcePath=c.Presentation.ModelResourcePath, VisualScale=c.Presentation.VisualScale, HurtboxBoneScale=c.Presentation.HurtboxBoneScale, ModelYOffset=c.Presentation.ModelYOffset, ModelSoleOffset=c.Presentation.ModelSoleOffset, AutoModelYOffset=c.Presentation.AutoModelYOffset,
             BakedDataPath="",
             IdleAnim=c.Presentation.Idle, RunAnim=c.Presentation.Run, DashAnim=c.Presentation.Dash, JumpAnim=c.Presentation.Jump, FallAnim=c.Presentation.Fall,
@@ -92,17 +92,5 @@ public static class CookedCharacterRuntimeAdapter
         };
 
     internal static string? RuntimeBoneId(string? value)
-        => value switch
-        {
-            "bone.head" => "mixamorig:Head",
-            "bone.hips" => "mixamorig:Hips",
-            "bone.spine" => "mixamorig:Spine2",
-            "bone.spine2" => "mixamorig:Spine2",
-            "bone.right-hand" => "mixamorig:RightHand",
-            "bone.left-hand" => "mixamorig:LeftHand",
-            "bone.right-foot" => "mixamorig:RightFoot",
-            "bone.left-foot" => "mixamorig:LeftFoot",
-            null => null,
-            _ => value,
-        };
+        => CharacterBoneRegistry.BakedName(value);
 }

@@ -218,7 +218,11 @@ public sealed record CookedHurtboxBone(
     float OffsetX,
     float OffsetY,
     float OffsetZ,
-    float Radius);
+    float Radius,
+    string? EndBoneId = null,
+    float EndOffsetX = 0f,
+    float EndOffsetY = 0f,
+    float EndOffsetZ = 0f);
 
 public sealed record CookedCaptureGeometry(
     float Reach,

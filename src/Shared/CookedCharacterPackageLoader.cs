@@ -402,7 +402,8 @@ public static class CookedCharacterPackageLoader
         if (hitbox.HitPresentationId != null && !definition.PresentationIds.Contains(hitbox.HitPresentationId, StringComparer.Ordinal))
             diagnostics.Add(Error("package.capability.parameters-invalid", path, "Hit presentation ID is not declared."));
         bool HasBone(string? id) => id == null ||
-            definition.HurtboxBoneDefs.Any(bone => bone.BoneId == id) ||
+            CharacterBoneRegistry.Find(id)?.Required == true ||
+            definition.HurtboxBoneDefs.Any(bone => bone.BoneId == id || bone.EndBoneId == id) ||
             definition.AttachmentBoneIds.Contains(id, StringComparer.Ordinal);
         if (!HasBone(hitbox.StartBoneId) || !HasBone(hitbox.EndBoneId))
             diagnostics.Add(Error("package.capability.parameters-invalid", path,
@@ -996,8 +997,12 @@ public static class CookedCharacterPackageLoader
             }).ToList();
             var bones = A(c["hurtboxBoneDefs"]).EnumerateArray().Select(x =>
             {
-                var q = O(x, "boneId", "offsetX", "offsetY", "offsetZ", "radius");
-                return new CookedHurtboxBone(S(q, "boneId"), F(q, "offsetX"), F(q, "offsetY"), F(q, "offsetZ"), F(q, "radius"));
+                var q = OOptional(x, new[] { "endBoneId", "endOffsetX", "endOffsetY", "endOffsetZ" }, "boneId", "offsetX", "offsetY", "offsetZ", "radius");
+                return new CookedHurtboxBone(S(q, "boneId"), F(q, "offsetX"), F(q, "offsetY"), F(q, "offsetZ"), F(q, "radius"),
+                    q.ContainsKey("endBoneId") ? S(q, "endBoneId") : null,
+                    q.ContainsKey("endOffsetX") ? F(q, "endOffsetX") : 0f,
+                    q.ContainsKey("endOffsetY") ? F(q, "endOffsetY") : 0f,
+                    q.ContainsKey("endOffsetZ") ? F(q, "endOffsetZ") : 0f);
             }).ToList();
             var attachments = A(c["attachmentBoneIds"]).EnumerateArray()
                 .Select(x => x.ValueKind == JsonValueKind.String ? x.GetString()! : throw new InvalidDataException("Attachment bone ID must be a string."))

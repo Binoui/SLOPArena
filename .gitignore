@@ -217,6 +217,8 @@ client/Unity/Assets/Plugins/**/NuGet/.nuget-installed.json
 # Project-authored static Down poses are package source, not imported animation packs.
 !client/Unity/Assets/CharacterPackages/fightguy/Animations/fightguy_crouch.anim
 !client/Unity/Assets/CharacterPackages/manki/Animations/manki_crouch.anim
+# Original project-authored FightGuy animations.
+!client/Unity/Assets/CharacterPackages/fightguy/Animations/fightguy_air3_flip_kick.anim
 # Original project-authored Manki animations.
 !client/Unity/Assets/CharacterPackages/manki/Animations/manki_air3_double_fist.anim
 !client/Unity/Assets/CharacterPackages/manki/Animations/manki_ground4_head_slam.anim

@@ -1133,16 +1133,19 @@ namespace SlopArena.Client.World
             float len = axis.magnitude;
             if (len < 1e-4f)
             {
-                // Degenerate (start ≈ end): single cross-section circle. Defensive only —
-                // callers route equal endpoints to the sphere branch.
-                const int seg = 16;
-                Vector3 prev = default;
-                for (int i = 0; i <= seg; i++)
+                const int circleSegments = 16;
+                for (int plane = 0; plane < 3; plane++)
                 {
-                    float angle = i * (Mathf.PI * 2f / seg);
-                    Vector3 p = a + new Vector3(Mathf.Cos(angle), 0f, Mathf.Sin(angle)) * radius;
-                    if (i > 0) drawLine(prev, p);
-                    prev = p;
+                    Vector3 previous = default;
+                    for (int i = 0; i <= circleSegments; i++)
+                    {
+                        float angle = i * (Mathf.PI * 2f / circleSegments);
+                        float x = Mathf.Cos(angle) * radius, y = Mathf.Sin(angle) * radius;
+                        Vector3 point = a + (plane == 0 ? new Vector3(x, y, 0f)
+                            : plane == 1 ? new Vector3(x, 0f, y) : new Vector3(0f, x, y));
+                        if (i > 0) drawLine(previous, point);
+                        previous = point;
+                    }
                 }
                 return;
             }

@@ -13,6 +13,51 @@ namespace SlopArena.Shared.Tests;
 public sealed class CharacterPackageAssemblerTests
 {
     [Fact]
+    public void CapsuleEndpointsSurviveCookedAdmissionAndRuntimeAdaptation()
+    {
+        string root = FindRepoFile("client/Unity/Assets/CharacterPackages/fightguy");
+        var source = CharacterPackageSourceCodec.Load(File.ReadAllText(Path.Combine(root, "package.json")),
+            File.ReadAllText(Path.Combine(root, "character.json"))).Source!;
+        var bones = source.Character.HurtboxBoneDefs.ToArray();
+        bones[0] = bones[0] with { EndBoneId = "bone.neck", EndOffsetX = .1f, EndOffsetY = -.2f, EndOffsetZ = .3f };
+        source = source with { Character = source.Character with { HurtboxBoneDefs = bones } };
+        var compiled = CharacterPackageCompiler.Compile(source, CharacterCookProfile.TrustedBuiltIn).CookedPackage!;
+        var admitted = CookedCharacterPackageLoader.LoadAssembly(CharacterPackageAssembler.Assemble(BuildInput(compiled,
+            Array.Empty<PackageDependencySource>(), compiled.Definition.CapabilityRequirements, Array.Empty<CharacterDiagnostic>())));
+        Assert.True(admitted.IsValid, string.Join("\n", admitted.Diagnostics));
+        var bone = admitted.Package!.Definition.HurtboxBoneDefs.Single(x => x.BoneId == bones[0].BoneId);
+        Assert.Equal("bone.neck", bone.EndBoneId);
+        Assert.Equal(.1f, bone.EndOffsetX); Assert.Equal(-.2f, bone.EndOffsetY); Assert.Equal(.3f, bone.EndOffsetZ);
+        var runtime = admitted.ToCharacterDefinition().HurtboxBoneDefs!.Single(x => x.BoneName == CharacterBoneRegistry.BakedName(bone.BoneId));
+        Assert.Equal(CharacterBoneRegistry.BakedName("bone.neck"), runtime.EndBoneName);
+        Assert.Equal(bone.EndOffsetX, runtime.EndOffX); Assert.Equal(bone.EndOffsetY, runtime.EndOffY); Assert.Equal(bone.EndOffsetZ, runtime.EndOffZ);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void MissingHurtboxPointRejectsThePackage(bool endBone)
+    {
+        var package = Compile();
+        var runtime = JsonNode.Parse(package.CanonicalBytes)!;
+        var bone = runtime["character"]!["hurtboxBoneDefs"]![0]!;
+        bone[endBone ? "endBoneId" : "boneId"] = "bone.missing";
+        var input = BuildInput(package, Array.Empty<PackageDependencySource>(),
+            package.Definition.CapabilityRequirements, Array.Empty<CharacterDiagnostic>());
+        var candidate = new CharacterPackageAssemblyInput(input.PackageId, input.Version, input.Creator, input.License,
+            input.Attribution, input.AuthoringSchemaVersion, input.CookedSchemaVersion, input.RuntimeApiMin, input.RuntimeApiMax,
+            input.SourceHash, input.Dependencies, input.CapabilityRequirements, input.CookerVersion, input.UnityVersion,
+            input.BindingSchemaVersion, input.PoseFormat, input.PoseVersion, input.SampleRate, input.Warnings,
+            Encoding.UTF8.GetBytes(runtime.ToJsonString()), input.PoseBytes, input.BindingBytes,
+            new CookedCharacterPackage(package.Metadata, package.Definition, package.Budget, package.Diagnostics, Encoding.UTF8.GetBytes(runtime.ToJsonString())));
+        var result = CharacterPackageAssembler.Assemble(candidate);
+        Assert.True(result.IsValid, string.Join("\n", result.Diagnostics));
+        var verification = CharacterPackageAssembler.Verify(Files(result));
+        Assert.False(verification.IsValid);
+        Assert.Contains(verification.Diagnostics, x => x.Code == "package.pose.hurtbox-missing");
+    }
+
+    [Fact]
     public void FlyingAnimationSurvivesSourceEditsAndCookedAdmission()
     {
         string root = FindRepoFile("client/Unity/Assets/CharacterPackages/manki");
@@ -1403,6 +1448,8 @@ public sealed class CharacterPackageAssemblerTests
 
         var boneNames = new[] { "root" }
             .Concat(package.Definition.AttachmentBoneIds)
+            .Concat(package.Definition.HurtboxBoneDefs.SelectMany(x => new[] { x.BoneId, x.EndBoneId })
+                .Where(x => x != null).Select(x => CharacterBoneRegistry.BakedName(x)!))
             .Distinct(StringComparer.Ordinal)
             .ToArray();
         using var poses = new MemoryStream();

@@ -1109,7 +1109,8 @@ public sealed partial class AbilityLabWindow : EditorWindow
         {
             var bone = bones[index];
             _characterHurtboxBones.Add(new Label(
-                $"Bone {index + 1} · {bone.BoneId} · Offset ({Number(bone.OffsetX)}, {Number(bone.OffsetY)}, {Number(bone.OffsetZ)}) · Radius {Number(bone.Radius)}"));
+                $"Bone {index + 1} · {bone.BoneId} · Offset ({Number(bone.OffsetX)}, {Number(bone.OffsetY)}, {Number(bone.OffsetZ)}) · Radius {Number(bone.Radius)}" +
+                (bone.EndBoneId == null ? "" : $" · End {bone.EndBoneId} ({Number(bone.EndOffsetX)}, {Number(bone.EndOffsetY)}, {Number(bone.EndOffsetZ)})")));
         }
         if (bones.Count == 0) _characterHurtboxBones.Add(new Label("No authored bone hurtboxes."));
     }
@@ -3390,7 +3391,7 @@ public sealed partial class AbilityLabWindow : EditorWindow
         if (!_workspace.HasPackage) return choices;
 
         choices.AddRange((_workspace.Draft.HurtboxBoneDefs ?? Array.Empty<HurtboxBoneSource>())
-            .Select(bone => bone.BoneId)
+            .SelectMany(bone => new[] { bone.BoneId, bone.EndBoneId })
             .Where(id => !string.IsNullOrEmpty(id) && !choices.Contains(id, StringComparer.Ordinal)));
         choices.AddRange((_workspace.Draft.AttachmentBoneIds ?? Array.Empty<string>())
             .Where(id => !string.IsNullOrEmpty(id) && !choices.Contains(id, StringComparer.Ordinal)));
