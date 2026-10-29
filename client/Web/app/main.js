@@ -1,4 +1,11 @@
 import * as THREE from 'three';
+import { toThree, unitSphere, unitCylinder, placeSegment, placeBall } from './geometry.js';
+import { Puppet } from './fighters.js';
+import { ModelFighter, loadFighterModel } from './fighter-model.js';
+import { createVfx } from './vfx.js';
+import { loadStageArt, hasStageArt } from './stage-art.js';
+import { createAudio } from './audio.js';
+import { createCamera } from './camera.js';
 
 const QUERY = new URLSearchParams(location.search);
 const STOCKS = Number(QUERY.get('stocks')) || 3;
@@ -8,6 +15,7 @@ const AUTOPLAY = QUERY.has('autoplay');
 const PATHS = globalThis.SLOPA_PATHS ?? {
   content: '../../../content-cooked/',
   arenas: '../../../data/arenas/',
+  assets: '../assets/',
   framework: QUERY.get('fw') === 'build'
     ? '../sim/bin/Release/net10.0/wwwroot/_framework/dotnet.js' : '../publish/wwwroot/_framework/dotnet.js',
 };
@@ -78,8 +86,10 @@ addEventListener('resize', () => {
   camera.aspect = innerWidth / innerHeight;
   camera.updateProjectionMatrix();
 });
-scene.add(new THREE.HemisphereLight(0xfff1dc, 0x2a2340, 1.4));
-const sun = new THREE.DirectionalLight(0xffffff, 2.2);
+// URP shades without three.js's 1/pi diffuse factor; these intensities match the game's fighter brightness.
+const hemi = new THREE.HemisphereLight(0xfff1dc, 0x2a2340, 3);
+scene.add(hemi);
+const sun = new THREE.DirectionalLight(0xffffff, 4.5);
 sun.position.set(-8, 20, 10);
 sun.castShadow = true;
 sun.shadow.mapSize.set(2048, 2048);
@@ -89,7 +99,38 @@ scene.add(sun, sun.target);
 const world = new THREE.Group();
 world.scale.z = -1;
 scene.add(world);
-const toThree = (x, y, z) => new THREE.Vector3(x, y, -z);
+
+// A stage's exported Unity lighting (stage-art.js environment) sets the sky, fog and key-light direction. Fighters
+// keep the calibrated rig above, only tinted toward the stage: Unity's fighters stay bright on night stages, and
+// lighting them with the raw night values (After Hours' key light is 0.3) turned them into silhouettes.
+const linear = rgb => new THREE.Color(rgb[0], rgb[1], rgb[2]).convertSRGBToLinear();
+const STAGE_TINT = 0.25;
+function applyEnvironment(env) {
+  const air = env?.atmosphere;
+  scene.background = air ? linear(air.background) : new THREE.Color(0x1d1830);
+  scene.fog = air?.fog ? new THREE.Fog(linear(air.fogColor), air.fogStart, air.fogEnd) : new THREE.Fog(0x1d1830, 40, 90);
+  hemi.color.set(0xfff1dc);
+  hemi.groundColor.set(0x2a2340);
+  if (air) {
+    hemi.color.lerp(linear(air.ambientSky), STAGE_TINT);
+    hemi.groundColor.lerp(linear(air.ambientGround), STAGE_TINT);
+  }
+  const key = env?.lights?.find(l => l.type === 'directional');
+  sun.color.set(0xffffff);
+  sun.position.set(-8, 20, 10);
+  if (key) {
+    // Same reading as stage-art.js: a sun's azimuth/elevation, or a Unity rotation's x (elevation) and y (azimuth).
+    const elevation = THREE.MathUtils.degToRad(key.sun?.elevation ?? key.rotation?.[0] ?? 55);
+    const azimuth = THREE.MathUtils.degToRad(key.sun?.azimuth ?? key.rotation?.[1] ?? 30);
+    sun.position.copy(toThree(-Math.sin(azimuth) * Math.cos(elevation), Math.sin(elevation), -Math.cos(azimuth) * Math.cos(elevation))).multiplyScalar(40);
+    sun.color.lerp(linear(key.color), STAGE_TINT);
+  }
+  camera.far = Math.max(300, env?.cameraFar ?? 0);
+  camera.updateProjectionMatrix();
+}
+const vfx = createVfx({ world, camera });
+const cam = createCamera(camera);
+const audio = createAudio({ paths: PATHS });
 
 const gridTexture = (() => {
   const c = document.createElement('canvas');
@@ -147,186 +188,6 @@ function buildStage(color) {
   return g;
 }
 
-// ── Puppets: limbless capsule fighters posed from the cooked hurtbox skeleton (poses.bin). ──
-const UP = new THREE.Vector3(0, 1, 0);
-const unitSphere = new THREE.SphereGeometry(1, 20, 14);
-const unitCylinder = new THREE.CylinderGeometry(1, 1, 1, 16, 1);
-function placeSegment(mesh, a, b, r) {
-  const d = new THREE.Vector3().subVectors(b, a);
-  const len = Math.max(d.length(), 1e-4);
-  mesh.position.copy(a).addScaledVector(d, 0.5);
-  mesh.quaternion.setFromUnitVectors(UP, d.divideScalar(len));
-  mesh.scale.set(r, len, r);
-}
-function placeBall(mesh, p, r) { mesh.position.copy(p); mesh.scale.setScalar(r); }
-
-class Puppet {
-  constructor(pkg, seat) {
-    const bones = fighterInfo[pkg].bones;
-    this.idx = name => bones.findIndex(b => b.endsWith(name));
-    this.b = {
-      head: this.idx(':Head'), chest: this.idx(':Spine2'), hips: this.idx(':Hips'),
-      rh: this.idx(':RightHand'), lh: this.idx(':LeftHand'), rf: this.idx(':RightFoot'), lf: this.idx(':LeftFoot'),
-      rt: this.idx(':RightToeBase'), lt: this.idx(':LeftToeBase'), tip: this.idx('_weapon_tip'), hilt: this.idx('_weapon_hilt'),
-    };
-    const body = new THREE.MeshStandardMaterial({ color: BODY[pkg] ?? 0xdddddd, roughness: 0.5 });
-    const dark = new THREE.MeshStandardMaterial({ color: new THREE.Color(BODY[pkg] ?? 0xdddddd).multiplyScalar(0.55), roughness: 0.6 });
-    const white = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.3 });
-    const black = new THREE.MeshBasicMaterial({ color: 0x111111 });
-    const seatMat = new THREE.MeshBasicMaterial({ color: SEATS[seat] });
-    this.mats = [body, dark];
-    const m = (geo, mat) => { const x = new THREE.Mesh(geo, mat); x.castShadow = true; this.group.add(x); return x; };
-    this.group = new THREE.Group();
-    this.head = m(unitSphere, body);
-    this.eyes = [m(unitSphere, white), m(unitSphere, white)];
-    this.pupils = [m(unitSphere, black), m(unitSphere, black)];
-    this.torso = m(unitCylinder, body);
-    this.hipBall = m(unitSphere, body);
-    this.chestBall = m(unitSphere, body);
-    this.hands = [m(unitSphere, dark), m(unitSphere, dark)];
-    this.feet = [m(unitCylinder, dark), m(unitCylinder, dark)];
-    this.toes = [m(unitSphere, dark), m(unitSphere, dark), m(unitSphere, dark), m(unitSphere, dark)];
-    this.blade = this.b.tip >= 0 && this.b.hilt >= 0
-      ? m(unitCylinder, new THREE.MeshStandardMaterial({ color: 0xdfe6f0, metalness: 0.8, roughness: 0.25 })) : null;
-    this.ring = new THREE.Mesh(new THREE.TorusGeometry(0.5, 0.05, 8, 32), seatMat);
-    this.ring.rotation.x = Math.PI / 2;
-    this.group.add(this.ring);
-    this.shield = new THREE.Mesh(unitSphere, new THREE.MeshStandardMaterial({
-      color: SEATS[seat], transparent: true, opacity: 0.28, emissive: SEATS[seat], emissiveIntensity: 0.6 }));
-    this.group.add(this.shield);
-    this.L = 0;
-    this.half = fighterInfo[pkg].half;
-    world.add(this.group);
-  }
-  pt(f, i) {
-    if (i < 0 || f.pts[i * 3] == null) return null;
-    return new THREE.Vector3(f.pts[i * 3], f.pts[i * 3 + 1], f.pts[i * 3 + 2]);
-  }
-  update(f, out, now) {
-    this.group.visible = !out && f.pts.length > 0;
-    if (!this.group.visible) return;
-    const P = name => this.pt(f, this.b[name]);
-    const head = P('head'), chest = P('chest'), hips = P('hips');
-    if (!head || !chest || !hips) return;
-    const L = head.distanceTo(hips);
-    this.L = this.L ? this.L * 0.95 + L * 0.05 : L;
-    const s = this.L;
-    const jitter = f.stop > 0 ? (Math.random() - 0.5) * 0.06 : 0;
-    this.group.position.set(jitter, 0, 0);
-    const neck = new THREE.Vector3().subVectors(head, chest).normalize();
-    const headR = s * 0.42;
-    const hc = head.clone().addScaledVector(neck, headR * 0.7);
-    placeBall(this.head, hc, headR);
-    const fwd = new THREE.Vector3(Math.sin(f.yaw), 0, Math.cos(f.yaw));
-    const right = new THREE.Vector3(Math.cos(f.yaw), 0, -Math.sin(f.yaw));
-    for (let i = 0; i < 2; i++) {
-      const side = i === 0 ? -1 : 1;
-      const e = hc.clone().addScaledVector(fwd, headR * 0.8).addScaledVector(right, side * headR * 0.38).addScaledVector(UP, headR * 0.15);
-      placeBall(this.eyes[i], e, headR * 0.28);
-      placeBall(this.pupils[i], e.clone().addScaledVector(fwd, headR * 0.2), headR * 0.13);
-    }
-    const torsoR = s * 0.3;
-    placeSegment(this.torso, hips, chest, torsoR);
-    placeBall(this.hipBall, hips, torsoR);
-    placeBall(this.chestBall, chest, torsoR * 1.1);
-    [['rh', 0], ['lh', 1]].forEach(([n, i]) => { const p = P(n); this.hands[i].visible = !!p; if (p) placeBall(this.hands[i], p, s * 0.17); });
-    [['rf', 'rt', 0], ['lf', 'lt', 1]].forEach(([a, b, i]) => {
-      const pa = P(a), pb = P(b) ?? pa;
-      this.feet[i].visible = !!pa;
-      if (!pa) return;
-      placeSegment(this.feet[i], pa, pb, s * 0.13);
-      placeBall(this.toes[i * 2], pa, s * 0.13);
-      placeBall(this.toes[i * 2 + 1], pb, s * 0.13);
-    });
-    if (this.blade) {
-      const tip = P('tip'), hilt = P('hilt');
-      this.blade.visible = !!(tip && hilt);
-      if (tip && hilt) placeSegment(this.blade, hilt, tip, s * 0.035);
-    }
-    this.ring.position.set(f.p[0], f.p[1] - this.half + 0.03, f.p[2]);
-    const shielding = /Shield/.test(f.state);
-    this.shield.visible = shielding;
-    if (shielding) placeBall(this.shield, hips.clone().lerp(chest, 0.5), s * 1.3);
-    const blink = f.inv > 0 && Math.floor(now / 70) % 2 === 0;
-    const hurt = f.state === 'Hitstun' || f.stop > 0;
-    for (const mat of this.mats) {
-      mat.emissive.setHex(hurt ? 0xffffff : 0x000000);
-      mat.emissiveIntensity = hurt ? 0.35 : 0;
-      mat.transparent = blink;
-      mat.opacity = blink ? 0.35 : 1;
-    }
-  }
-  dispose() { world.remove(this.group); }
-}
-
-// ── Hitboxes and projectiles straight from SpellResolver ──
-const hitboxPool = [];
-const meleeMat = new THREE.MeshBasicMaterial({ color: 0xff3355, transparent: true, opacity: 0.32, depthWrite: false });
-const projMat = new THREE.MeshStandardMaterial({ color: 0xffb030, emissive: 0xff8a00, emissiveIntensity: 1.2, transparent: true, opacity: 0.9 });
-let showHitboxes = true;
-function drawHitboxes(list) {
-  let used = 0;
-  for (const [x, y, z, ex, ey, ez, r, , projectile, shape] of list) {
-    if (!projectile && !showHitboxes) continue;
-    let h = hitboxPool[used];
-    if (!h) {
-      h = { ball: new THREE.Mesh(unitSphere, meleeMat), end: new THREE.Mesh(unitSphere, meleeMat), seg: new THREE.Mesh(unitCylinder, meleeMat) };
-      world.add(h.ball, h.end, h.seg);
-      hitboxPool.push(h);
-    }
-    used++;
-    const mat = projectile ? projMat : meleeMat;
-    const a = new THREE.Vector3(x, y, z), b = new THREE.Vector3(ex, ey, ez);
-    const capsule = shape === 1 && a.distanceToSquared(b) > 1e-6;
-    h.ball.material = h.end.material = h.seg.material = mat;
-    h.ball.visible = true;
-    h.end.visible = h.seg.visible = capsule;
-    placeBall(h.ball, a, shape === 2 ? r * 0.15 : r);
-    if (capsule) { placeBall(h.end, b, r); placeSegment(h.seg, a, b, r); }
-  }
-  for (let i = used; i < hitboxPool.length; i++) {
-    const h = hitboxPool[i];
-    h.ball.visible = h.end.visible = h.seg.visible = false;
-  }
-}
-
-// ── Hit sparks and KO bursts ──
-const sparks = [];
-const sparkGeo = new THREE.OctahedronGeometry(1, 0);
-function burst(x, y, z, color, count, speed, size) {
-  for (let i = 0; i < count; i++) {
-    const m = new THREE.Mesh(sparkGeo, new THREE.MeshBasicMaterial({ color, transparent: true }));
-    m.position.set(x, y, z);
-    m.scale.setScalar(size * (0.5 + Math.random()));
-    const v = new THREE.Vector3(Math.random() - 0.5, Math.random() - 0.3, Math.random() - 0.5).normalize().multiplyScalar(speed * (0.4 + Math.random()));
-    world.add(m);
-    sparks.push({ m, v, life: 1 });
-  }
-}
-function tickSparks(dt) {
-  for (let i = sparks.length - 1; i >= 0; i--) {
-    const s = sparks[i];
-    s.life -= dt * 2.8;
-    s.v.y -= 9 * dt;
-    s.m.position.addScaledVector(s.v, dt);
-    s.m.material.opacity = Math.max(s.life, 0);
-    s.m.rotation.x += dt * 9;
-    if (s.life <= 0) { world.remove(s.m); s.m.material.dispose(); sparks.splice(i, 1); }
-  }
-}
-function popText(x, y, z, text, color) {
-  const v = toThree(x, y, z).project(camera);
-  const el = document.createElement('div');
-  el.className = 'pop';
-  el.textContent = text;
-  el.style.color = color;
-  el.style.left = `${(v.x * 0.5 + 0.5) * innerWidth}px`;
-  el.style.top = `${(-v.y * 0.5 + 0.5) * innerHeight}px`;
-  document.body.append(el);
-  requestAnimationFrame(() => { el.style.transform = 'translateY(-50px) scale(1.2)'; el.style.opacity = '0'; });
-  setTimeout(() => el.remove(), 700);
-}
-
 // ── Input: keyboard by physical key position (as in Unity), plus the first gamepad ──
 const SLOT = { Slot1: 3, Slot3: 8, Slot4: 9, A: 11, E: 4, R: 5, F: 6 };
 const KEY_SLOTS = { Digit1: SLOT.Slot1, Digit2: SLOT.Slot3, Digit3: SLOT.Slot4, KeyQ: SLOT.A, KeyE: SLOT.E, KeyR: SLOT.R, KeyF: SLOT.F };
@@ -342,7 +203,7 @@ addEventListener('keydown', e => {
   if (e.repeat) return;
   held.add(e.code);
   if (e.code === 'Escape') { leaveMatch(); return; }
-  if (e.code === 'KeyH') showHitboxes = !showHitboxes;
+  if (e.code === 'KeyH') vfx.toggleHitboxes();
   if (e.code === 'Space') edges.jump = true;
   if (KEY_SLOTS[e.code]) edges.slot = KEY_SLOTS[e.code];
   if (e.code === 'ShiftLeft') edges.shield = true;
@@ -375,6 +236,16 @@ function readPad() {
   return { x: mag > 0.25 ? ax : 0, y: mag > 0.25 ? -ay : 0, jump: b(0) && !lb, shield: b(7) && !lb, down: b(6) };
 }
 
+// Unity keeps the camera basis a held direction started with, so a camera turn does not bend a run underway;
+// a new direction (more than 40 degrees away) re-reads the camera.
+let heldBasis = null, heldAngle = 0;
+function cameraRelative(mx, my) {
+  if (mx === 0 && my === 0) { heldBasis = null; return [0, 0]; }
+  const angle = Math.atan2(mx, my) * 180 / Math.PI;
+  if (heldBasis === null || Math.abs(((angle - heldAngle + 540) % 360) - 180) > 40) { heldBasis = cam.yaw; heldAngle = angle; }
+  const y = heldBasis * Math.PI / 180;
+  return [my * Math.sin(y) + mx * Math.cos(y), my * Math.cos(y) - mx * Math.sin(y)];
+}
 const inputBuf = new Uint8Array(22);
 const inputView = new DataView(inputBuf.buffer);
 function buildInput(self) {
@@ -384,6 +255,7 @@ function buildInput(self) {
   if (pad && (pad.x || pad.y)) { mx = pad.x; my = pad.y; }
   const m = Math.hypot(mx, my);
   if (m > 0) { mx /= m; my /= m; }
+  [mx, my] = cameraRelative(mx, my);
   const wrapDeg = r => { let d = (r * 180 / Math.PI) % 360; if (d > 180) d -= 360; if (d < -180) d += 360; return d; };
   const yaw = Math.round(wrapDeg(self?.yaw ?? 0) * 100);
   const down = held.has('KeyX') || !!pad?.down;
@@ -414,6 +286,7 @@ const alive = f => f.deaths < STOCKS;
 const MODES = {
   brawl: {
     label: 'Brawl',
+    camera: 'steady',
     rows: ['secCpu', 'secStage', 'secLevel'],
     stage: () => pick.stage,
     packages: () => [pick.you, ...pick.cpus],
@@ -428,10 +301,8 @@ const MODES = {
       banner('GO!', '', 900);
     },
     onFrame(frame) {
-      for (const [id, x, y, z] of frame.deaths) {
+      for (const [id] of frame.deaths) {
         const seat = frame.fighters.findIndex(f => f.id === id);
-        const b = arena.bounds;
-        burst(Math.min(Math.max(x, b[0]), b[1]), Math.max(y, arena.killHeight + 4), Math.min(Math.max(z, b[2]), b[3]), SEATS[seat], 40, 16, 0.14);
         banner('KO!', fighterInfo[frame.fighters[seat].pkg].name, 900);
       }
       frame.fighters.forEach((f, i) => {
@@ -451,13 +322,16 @@ const MODES = {
 
   slopball: {
     label: 'Slopball',
+    camera: 'frame',
     rows: [],
     stage: () => 'slopball',
     packages: () => [pick.you],
     ready: () => true,
-    begin(frame, court) {
+    begin(frame, court, { stageArt }) {
       this.court = court;
       this.props = new THREE.Group();
+      // The exported Night Court carries its own net; the prototype one stands in on the grey box.
+      const ownNet = !!stageArt?.getObjectByName('Court Net');
       const width = court.landing[0] * 2 + 3;
       const net = new THREE.Mesh(new THREE.BoxGeometry(width, court.netTop - court.floorY, Math.max(court.netHalf * 2, 0.08)),
         new THREE.MeshStandardMaterial({ color: 0xf4efe2, transparent: true, opacity: 0.55, roughness: 0.9 }));
@@ -481,7 +355,9 @@ const MODES = {
       this.marker = new THREE.Mesh(new THREE.RingGeometry(0.7, 0.85, 32), new THREE.MeshBasicMaterial({ color: 0xffd23a, transparent: true, opacity: 0.8, side: THREE.DoubleSide }));
       this.marker.rotation.x = -Math.PI / 2;
       this.drop = new THREE.Mesh(unitCylinder, new THREE.MeshBasicMaterial({ color: 0xffd23a, transparent: true, opacity: 0.25 }));
-      this.props.add(net, tape, this.launcher, this.ball, this.marker, this.drop);
+      if (ownNet) this.props.children.slice().forEach(post => this.props.remove(post));
+      else this.props.add(net, tape);
+      this.props.add(this.launcher, this.ball, this.marker, this.drop);
       world.add(this.props);
       $('hud').classList.add('top');
       $('hud').innerHTML = `
@@ -500,7 +376,7 @@ const MODES = {
       } else if (this.lastBeat !== 0) { this.lastBeat = 0; banner('SLOP IT OUT', '', 900); }
       for (const [kind, returns] of s.events) {
         const [x, y, z] = s.ball.p;
-        if (kind === 'Returned') { burst(x, y, z, 0xffd23a, 18, 9, 0.08); popText(x, y + 0.8, z, `${returns}`, '#ffd23a'); }
+        if (kind === 'Returned') { vfx.burst(x, y, z, 0xffd23a, 18, 9, 0.08); vfx.popText(x, y + 0.8, z, `${returns}`, '#ffd23a'); }
         if (kind === 'Missed' && returns > 0) banner('DROPPED', `${returns} in a row`, 1200);
       }
       $('returns').textContent = s.returns;
@@ -527,6 +403,30 @@ const MODES = {
   },
 };
 
+// ── Fighter views and the context effects and audio read each tick ──
+// ?puppets keeps the capsule puppets even when a fighter has an exported model.
+const models = new Map();
+async function loadModels(pkgs) {
+  if (QUERY.has('puppets')) return;
+  await Promise.all(pkgs.map(async pkg => { models.set(pkg, await loadFighterModel(pkg, PATHS.assets)); }));
+}
+function createFighterView(pkg, seat) {
+  const gltf = models.get(pkg);
+  const info = fighterInfo[pkg];
+  return gltf
+    ? new ModelFighter({ world, info, gltf, seatColor: SEATS[seat] })
+    : new Puppet({ world, info, seatColor: SEATS[seat], bodyColor: BODY[pkg] ?? 0xdddddd });
+}
+function frameContext(frame) {
+  const seatOf = id => frame.fighters.findIndex(f => f.id === id);
+  return {
+    seatOf,
+    seatColor: seat => SEATS[seat] ?? 0xffffff,
+    arena,
+    boneWorld: (id, boneId) => match?.views[seatOf(id)]?.boneWorld(boneId) ?? null,
+  };
+}
+
 // ── Match lifecycle ──
 let match = null;
 const stageCache = new Map();
@@ -536,17 +436,27 @@ async function startMatch() {
   const [, , color] = STAGES.find(s => s[0] === stageId);
   arena = JSON.parse(Demo.LoadArena(await bytes(`${PATHS.arenas}${stageId}.arena`)));
   const pkgs = mode.packages();
+  await loadModels(pkgs);
   const started = JSON.parse(Demo.Start(pick.mode, pkgs.join(','), STOCKS, pick.level, (Math.random() * 1e9) | 0));
   if (started.error) { status(started.error); return; }
   if (stageGroup) world.remove(stageGroup);
-  if (!stageCache.has(stageId)) stageCache.set(stageId, buildStage(color));
+  if (!stageCache.has(stageId)) {
+    const group = new THREE.Group();
+    const greybox = buildStage(color);
+    const art = await loadStageArt(stageId, { paths: PATHS });
+    if (art) { greybox.visible = false; group.add(art); group.userData.art = art; }
+    group.add(greybox);
+    stageCache.set(stageId, group);
+  }
   stageGroup = stageCache.get(stageId);
   world.add(stageGroup);
+  applyEnvironment(stageGroup.userData.art?.userData.environment);
   const frame = JSON.parse(Demo.Step(new Uint8Array(0)));
-  match = { mode, frame, puppets: pkgs.map((p, i) => new Puppet(p, i)), ended: false, stepMs: 0, steps: 0 };
-  camTarget = null;
+  match = { mode, modeId: pick.mode, frame, views: pkgs.map((p, i) => createFighterView(p, i)), ended: false, stepMs: 0, steps: 0 };
+  audio.onMatchStart(pick.mode);
+  cam.reset();
   $('menu').classList.add('hidden');
-  mode.begin(frame, started.court);
+  mode.begin(frame, started.court, { stageArt: stageGroup.userData.art ?? null });
 }
 function finishMatch(title, sub) {
   match.ended = true;
@@ -555,8 +465,9 @@ function finishMatch(title, sub) {
 }
 function leaveMatch() {
   if (!match) return;
-  match.puppets.forEach(p => p.dispose());
+  match.views.forEach(v => v.dispose());
   match.mode.dispose?.();
+  audio.onMatchEnd();
   match = null;
   $('hud').innerHTML = '';
   $('hud').classList.remove('top');
@@ -578,39 +489,28 @@ function step() {
   match.stepMs += performance.now() - t;
   match.steps++;
   match.frame = frame;
-  for (const [target, , dmg, blocked, x, y, z] of frame.hits) {
-    const seat = frame.fighters.findIndex(f => f.id === target);
-    burst(x, y, z, blocked ? 0x8fd8ff : 0xfff2a0, blocked ? 6 : 10 + dmg, 7, 0.06);
-    if (!blocked && seat >= 0) popText(x, y + 0.6, z, `${Math.round(dmg)}`, hex(SEATS[seat]));
-  }
+  const ctx = frameContext(frame);
+  vfx.onFrame(frame, ctx);
+  audio.onFrame(frame, ctx);
   match.mode.onFrame(frame);
 }
 
-// ── Camera: frames the mode's focus points from behind the nearest one ──
-let camTarget = null;
-const camPos = new THREE.Vector3(0, 10, 20);
+// ── Camera: Steady follows P1 toward its target; framing modes keep their focus points in view ──
 function updateCamera(dt) {
-  const pts = match.mode.focus(match.frame).map(p => toThree(p[0], p[1] + 1, p[2]));
-  if (!pts.length) return;
-  const box = new THREE.Box3().setFromPoints(pts);
-  const center = box.getCenter(new THREE.Vector3());
-  const size = box.getSize(new THREE.Vector3());
-  // Stand back from the nearest point so depth spread never pushes anyone under the HUD.
-  const d = Math.min(7 + size.x * 0.75 + size.z * 0.25, 30);
-  const want = new THREE.Vector3(center.x, center.y + 2.5 + d * 0.45, box.max.z + d * 0.8);
-  const k = camTarget ? 1 - Math.exp(-dt * 4) : 1;
-  // Aim low and toward the camera so the nearest fighter clears the HUD cards.
-  const aim = new THREE.Vector3(center.x, center.y - 1.2, center.z + size.z * 0.3);
-  camTarget = camTarget ? camTarget.lerp(aim, k) : aim;
-  camPos.lerp(want, k);
-  camera.position.copy(camPos);
-  camera.lookAt(camTarget);
+  const frame = match.frame;
+  if (match.mode.camera !== 'steady') return cam.frame(match.mode.focus(frame), dt);
+  const self = frame.fighters[0];
+  const target = frame.fighters.find(f => f.id === self.target && alive(f))
+    ?? frame.fighters.filter(f => f !== self && alive(f) && f.p[1] > arena.killHeight + 3)
+      .sort((a, b) => Math.hypot(a.p[0] - self.p[0], a.p[2] - self.p[2]) - Math.hypot(b.p[0] - self.p[0], b.p[2] - self.p[2]))[0];
+  cam.steady(self, target?.p ?? null, dt);
 }
 
 // ── Frame loop: fixed 60 Hz simulation, render every display frame ──
 let acc = 0, last = performance.now(), fpsFrames = 0, fpsT = last, fps = 0;
 function loop(now) {
   requestAnimationFrame(loop);
+  pollMenuPad();
   const dt = Math.min(now - last, 100);
   last = now;
   if (match && !match.ended) {
@@ -618,8 +518,8 @@ function loop(now) {
     while (acc >= TICK_MS) { step(); acc -= TICK_MS; }
   } else acc = 0;
   if (match) {
-    match.frame.fighters.forEach((f, i) => match.puppets[i].update(f, !alive(f), now));
-    drawHitboxes(match.frame.hitboxes);
+    match.frame.fighters.forEach((f, i) => match.views[i].update(f, !alive(f), now));
+    vfx.drawHitboxes(match.frame.hitboxes);
     match.mode.draw?.(match.frame);
     updateCamera(dt / 1000);
   } else {
@@ -627,7 +527,7 @@ function loop(now) {
     camera.position.set(Math.sin(a) * 26, 14, Math.cos(a) * 26);
     camera.lookAt(0, 0, 0);
   }
-  tickSparks(dt / 1000);
+  vfx.update(dt / 1000);
   renderer.render(scene, camera);
   fpsFrames++;
   if (now - fpsT > 500) {
@@ -639,7 +539,9 @@ function loop(now) {
 }
 
 // ── Menu ──
-const pick = { mode: 'brawl', you: 'fightguy', cpus: ['manki'], stage: 'rec_center_roof', level: 1 };
+// The public menu lists finished stages only; ?allstages adds the grey boxes for development.
+const MENU_STAGES = STAGES.filter(([id]) => id !== 'slopball' && (hasStageArt(id) || QUERY.has('allstages')));
+const pick = { mode: 'brawl', you: 'fightguy', cpus: ['manki'], stage: 'after_hours', level: 1 };
 function renderMenu() {
   const btn = (label, on, fn) => { const b = document.createElement('button'); b.className = 'pick' + (on ? ' on' : ''); b.textContent = label; b.onclick = () => { fn(); renderMenu(); }; return b; };
   $('pickMode').replaceChildren(...Object.entries(MODES).map(([id, m]) => btn(m.label, pick.mode === id, () => { pick.mode = id; })));
@@ -647,13 +549,86 @@ function renderMenu() {
   $('pickCpu').replaceChildren(...catalog.fighters.map(f => btn(f.name, pick.cpus.includes(f.id), () => {
     pick.cpus = pick.cpus.includes(f.id) ? pick.cpus.filter(x => x !== f.id) : [...pick.cpus, f.id].slice(-3);
   })));
-  $('pickStage').replaceChildren(...STAGES.filter(s => s[0] !== 'slopball').map(([id, name]) => btn(name, pick.stage === id, () => { pick.stage = id; })));
+  $('pickStage').replaceChildren(...MENU_STAGES.map(([id, name]) => btn(name, pick.stage === id, () => { pick.stage = id; })));
   $('pickLevel').replaceChildren(...LEVELS.map((name, i) => btn(name, pick.level === i, () => { pick.level = i; })));
   for (const id of ['secCpu', 'secStage', 'secLevel']) $(id).classList.toggle('hidden', !MODES[pick.mode].rows.includes(id));
 }
-$('go').onclick = () => { if (MODES[pick.mode].ready()) startMatch().catch(e => status(String(e))); };
-addEventListener('keydown', e => { if (e.code === 'Enter' && !match) $('go').click(); });
+$('go').onclick = () => { if (MODES[pick.mode].ready()) startMatch().catch(e => { console.error(e); status(String(e)); }); };
+addEventListener('keydown', e => { if (e.code === 'Enter' && !match && !startScreen) $('go').click(); });
+
+// ── Gamepad outside play: the start screen, menu navigation (D-pad or stick, A selects, B steps back,
+// Start fights) and Start to leave a match. Browsers only count clicks and keys as the gesture that unlocks
+// sound, so the start screen asks for one and a pad still dismisses it (silently) if that's all there is.
+let startScreen = document.createElement('div');
+startScreen.id = 'start';
+startScreen.innerHTML = '<div class="press">Click or press any key</div><div class="sub">Gamepad ready: press A</div>';
+document.body.append(startScreen);
+function dismissStart(e) {
+  if (!startScreen) return;
+  e?.stopImmediatePropagation?.();
+  startScreen.remove();
+  startScreen = null;
+  focusMenu(document.querySelector('#pickMode .pick.on') ?? $('go'));
+}
+addEventListener('keydown', dismissStart, { capture: true });
+addEventListener('pointerdown', dismissStart, { capture: true });
+
+let menuPadPrev = [], menuFocus = null, repeatAt = 0;
+const focusables = () => [...document.querySelectorAll('#menu button, #menu a, #menu summary')].filter(el => el.offsetParent);
+function focusMenu(el) {
+  menuFocus?.classList.remove('pad-focus');
+  menuFocus = el;
+  el?.classList.add('pad-focus');
+  el?.scrollIntoView({ block: 'nearest' });
+}
+function moveFocus(dx, dy) {
+  const all = focusables();
+  if (!menuFocus || !all.includes(menuFocus)) return focusMenu(all[0]);
+  const from = menuFocus.getBoundingClientRect();
+  const cx = from.x + from.width / 2, cy = from.y + from.height / 2;
+  let best = null, bestScore = Infinity;
+  for (const el of all) {
+    if (el === menuFocus) continue;
+    const r = el.getBoundingClientRect();
+    const ex = r.x + r.width / 2 - cx, ey = r.y + r.height / 2 - cy;
+    const along = ex * dx + ey * dy;
+    if (along <= 4) continue;
+    const score = along + 3 * Math.abs(ex * dy - ey * dx);
+    if (score < bestScore) { bestScore = score; best = el; }
+  }
+  if (best) focusMenu(best);
+}
+function pollMenuPad() {
+  const pad = [...(navigator.getGamepads?.() ?? [])].find(Boolean);
+  if (!pad) return;
+  const b = i => !!pad.buttons[i]?.pressed;
+  const pressed = i => b(i) && !menuPadPrev[i];
+  const any = pad.buttons.some((_, i) => pressed(i));
+  if (match) {
+    if (pressed(9)) leaveMatch();
+  } else if (startScreen) {
+    if (any) dismissStart();
+  } else {
+    const [ax, ay] = pad.axes;
+    const dx = (b(15) ? 1 : 0) - (b(14) ? 1 : 0) || (Math.abs(ax) > 0.5 ? Math.sign(ax) : 0);
+    const dy = (b(13) ? 1 : 0) - (b(12) ? 1 : 0) || (Math.abs(ay) > 0.5 ? Math.sign(ay) : 0);
+    const now = performance.now();
+    if ((dx || dy) && now >= repeatAt) {
+      moveFocus(dx, dx ? 0 : dy);
+      repeatAt = now + (repeatAt === 0 ? 350 : 140);
+    } else if (!dx && !dy) repeatAt = 0;
+    if (pressed(0) && menuFocus) {
+      const keep = menuFocus.id || menuFocus.textContent;
+      menuFocus.click();
+      // renderMenu rebuilds the buttons; keep the focus on the same choice.
+      focusMenu(focusables().find(el => (el.id || el.textContent) === keep) ?? focusables()[0]);
+    }
+    if (pressed(9)) $('go').click();
+  }
+  menuPadPrev = pad.buttons.map(x => x.pressed);
+}
 renderMenu();
 $('menu').classList.remove('hidden');
+audio.onMenu();
 status(`ready · boot ${bootMs.toFixed(0)} ms`);
 requestAnimationFrame(loop);

@@ -15,6 +15,7 @@ public static partial class Demo
 {
     static BuiltInRosterManifest? _roster;
     static readonly Dictionary<string, CookedCharacterPackageLoadResult> _packages = new(StringComparer.Ordinal);
+    static readonly Dictionary<string, MatchContentPackageRequirement> _ownIdentity = new(StringComparer.Ordinal);
     static MatchContentCatalog? _catalog;
     static ArenaDefinition _arena;
     static MatchMode? _mode;
@@ -31,6 +32,7 @@ public static partial class Demo
     {
         _roster = BuiltInRosterManifestCodec.ParseCooked(json);
         _packages.Clear();
+        _ownIdentity.Clear();
         _catalog = null;
     }
 
@@ -47,15 +49,30 @@ public static partial class Demo
             [CharacterPackageAssembler.BindingPath] = bindings,
         };
         var result = CookedCharacterPackageLoader.LoadFiles(files, entry.Requirement);
+        // A shared working tree can hold a fresh cook whose roster pin lags a few seconds behind. Load the package
+        // by its own identity so local play keeps working; scripts/package.mjs refuses to publish such a set.
+        string warning = "";
+        if (!result.IsValid && result.Diagnostics.Any(d => d.Code == "package.identity.mismatch"))
+        {
+            using var doc = System.Text.Json.JsonDocument.Parse(manifest);
+            var m = doc.RootElement;
+            var own = new MatchContentPackageRequirement(m.GetProperty("packageId").GetString()!, m.GetProperty("version").GetString()!,
+                m.GetProperty("cookedContentHash").GetString()!, m.GetProperty("packageHash").GetString()!);
+            result = CookedCharacterPackageLoader.LoadFiles(files, own);
+            _ownIdentity[packageId] = own;
+            warning = "stale roster pin, loaded by the package's own identity";
+        }
         _packages[packageId] = result;
-        return result.IsValid ? "" : string.Join("; ", result.Diagnostics);
+        return result.IsValid ? warning : string.Join("; ", result.Diagnostics);
     }
 
     // Packages that failed to load are dropped so one stale cook doesn't block the demo.
     [JSExport]
     public static string BuildCatalog()
     {
-        var valid = _roster!.Entries.Where(e => _packages.TryGetValue(e.PackageId, out var p) && p.IsValid).ToList();
+        var valid = _roster!.Entries.Where(e => _packages.TryGetValue(e.PackageId, out var p) && p.IsValid)
+            .Select(e => _ownIdentity.TryGetValue(e.PackageId, out var own) ? new BuiltInRosterEntry(e.Selector, e.PackageId, own) : e)
+            .ToList();
         var manifest = new BuiltInRosterManifest(_roster.SchemaVersion, valid);
         var packages = valid.ToDictionary(e => e.PackageId, e => _packages[e.PackageId], StringComparer.Ordinal);
         var result = new MatchContentCatalogBuilder().Build(manifest, packages);
@@ -68,7 +85,8 @@ public static partial class Demo
             if (!first) sb.Append(',');
             first = false;
             sb.Append("{\"id\":").Append(Str(e.Identity.PackageId)).Append(",\"name\":").Append(Str(e.DisplayName))
-              .Append(",\"half\":").Append(F(e.Definition.CapsuleHeight * 0.5f)).Append(",\"bones\":[");
+              .Append(",\"half\":").Append(F(e.Definition.CapsuleHeight * 0.5f))
+              .Append(",\"visualScale\":").Append(F(e.Definition.VisualScale)).Append(",\"modelYOffset\":").Append(F(e.Definition.ModelYOffset)).Append(",\"bones\":[");
             var names = e.BakedAnimation?.BoneNames ?? Array.Empty<string>();
             for (int i = 0; i < names.Count; i++) { if (i > 0) sb.Append(','); sb.Append(Str(names[i])); }
             sb.Append("]}");
@@ -169,6 +187,7 @@ public static partial class Demo
               .Append(",\"inv\":").Append(s.InvincibilityTicks)
               .Append(",\"stop\":").Append(s.HitstopTicks)
               .Append(",\"target\":").Append(s.TargetEntityId)
+              .Append(",\"form\":").Append(s.Form.Active)
               .Append(",\"anim\":");
             var args = new object?[] { f.Id, s, def, null, null, 0f, false };
             bool posed = (bool)ResolveBoneAnimFrame.Invoke(sim, args)!;
@@ -176,7 +195,7 @@ public static partial class Demo
             {
                 float frame = (float)args[5]!;
                 int animIdx = baked.FindAnimIndex(anim);
-                sb.Append(Str(anim)).Append(",\"pts\":[");
+                sb.Append(Str(anim)).Append(",\"frame\":").Append(F(frame)).Append(",\"pts\":[");
                 for (int b = 0; b < baked.BoneNames.Count; b++)
                 {
                     if (b > 0) sb.Append(',');
@@ -190,7 +209,7 @@ public static partial class Demo
                 }
                 sb.Append(']');
             }
-            else sb.Append("null,\"pts\":[]");
+            else sb.Append("null,\"frame\":0,\"pts\":[]");
             sb.Append('}');
         }
         sb.Append("],\"hitboxes\":[");
@@ -200,10 +219,13 @@ public static partial class Demo
             if (!first) sb.Append(',');
             first = false;
             bool capsule = h.Shape == HitboxShape.Capsule;
-            sb.Append('[').Append(F(h.X)).Append(',').Append(F(h.Y)).Append(',').Append(F(h.Z)).Append(',')
-              .Append(F(capsule ? h.EndX : h.X)).Append(',').Append(F(capsule ? h.EndY : h.Y)).Append(',')
-              .Append(F(capsule ? h.EndZ : h.Z)).Append(',').Append(F(h.Radius)).Append(',').Append(h.OwnerId).Append(',')
-              .Append(h.VX != 0 || h.VY != 0 || h.VZ != 0 ? 1 : 0).Append(',').Append((int)h.Shape).Append(']');
+            sb.Append("{\"a\":[").Append(F(h.X)).Append(',').Append(F(h.Y)).Append(',').Append(F(h.Z))
+              .Append("],\"b\":[").Append(F(capsule ? h.EndX : h.X)).Append(',').Append(F(capsule ? h.EndY : h.Y)).Append(',')
+              .Append(F(capsule ? h.EndZ : h.Z)).Append("],\"r\":").Append(F(h.Radius))
+              .Append(",\"shape\":").Append((int)h.Shape).Append(",\"owner\":").Append(h.OwnerId)
+              .Append(",\"slot\":").Append(h.AttackSlot).Append(",\"air\":").Append(h.ActivationAirborne ? 1 : 0)
+              .Append(",\"emit\":").Append(h.EmissionId).Append(",\"age\":").Append(h.AgeTicks)
+              .Append(",\"v\":[").Append(F(h.VX)).Append(',').Append(F(h.VY)).Append(',').Append(F(h.VZ)).Append("]}");
         }
         sb.Append("],\"hits\":[");
         first = true;
@@ -218,7 +240,7 @@ public static partial class Demo
             }
             sb.Append('[').Append(hit.TargetEntityId).Append(',').Append(hit.OwnerEntityId).Append(',').Append(F(hit.Damage))
               .Append(',').Append(hit.Blocked ? 1 : 0).Append(',').Append(F(tx)).Append(',').Append(F(ty))
-              .Append(',').Append(F(tz)).Append(']');
+              .Append(',').Append(F(tz)).Append(',').Append(hit.HitstopTicks).Append(',').Append(hit.AttackSlot).Append(']');
         }
         sb.Append("],\"deaths\":[");
         first = true;
@@ -228,6 +250,22 @@ public static partial class Demo
             first = false;
             sb.Append('[').Append(d.EntityId).Append(',').Append(F(d.State.PX)).Append(',').Append(F(d.State.PY))
               .Append(',').Append(F(d.State.PZ)).Append(']');
+        }
+        sb.Append("],\"events\":[");
+        first = true;
+        foreach (var e in sim.GetPresentationEvents(clear: true))
+        {
+            if (!first) sb.Append(',');
+            first = false;
+            var pl = e.Placement;
+            sb.Append("{\"id\":").Append(Str(e.PresentationId)).Append(",\"entity\":").Append(e.EntityId)
+              .Append(",\"source\":").Append(Str(e.Source.ToString()))
+              .Append(",\"p\":[").Append(F(e.WorldX)).Append(',').Append(F(e.WorldY)).Append(',').Append(F(e.WorldZ))
+              .Append("],\"yaw\":").Append(F(e.WorldYaw))
+              .Append(",\"bone\":").Append(pl.AttachmentMode == AuthoringPresentationAttachmentMode.Bone && pl.BoneId != null ? Str(pl.BoneId) : "null")
+              .Append(",\"local\":[").Append(F(pl.LocalPositionX)).Append(',').Append(F(pl.LocalPositionY)).Append(',').Append(F(pl.LocalPositionZ))
+              .Append("],\"scale\":[").Append(F(pl.LocalScaleX)).Append(',').Append(F(pl.LocalScaleY)).Append(',').Append(F(pl.LocalScaleZ))
+              .Append("],\"ticks\":").Append(pl.DurationTicks).Append('}');
         }
         sb.Append("],\"mode\":");
         m.WriteFrame(sb);

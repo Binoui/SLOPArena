@@ -1,12 +1,14 @@
 // Drives the demo in headless Chrome over CDP: boot, start a match, play inputs, capture screenshots.
+// Usage: node drive.mjs <outDir> '{"url"?, "query"?, "size"?: "390x844", "port"?: 9334, "setup"?: js, "bench"?: true, "pad"?: true, "steps": [{"eval"?: js, "down"?: [codes], "ms"?, "up"?: [codes], "until"?: js, "timeout"?, "shot"?: name}]}'
 import { spawn } from 'node:child_process';
 import { writeFileSync, mkdirSync } from 'node:fs';
 const out = process.argv[2] ?? '/tmp/webdemo-shots';
 const script = JSON.parse(process.argv[3] ?? '{}');
 mkdirSync(out, { recursive: true });
-const port = 9333;
-const chrome = spawn('google-chrome-stable', ['--headless=new', `--remote-debugging-port=${port}`, '--user-data-dir=/tmp/webdemo-chrome',
-  '--window-size=1280,720', '--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--no-first-run', 'about:blank'], { stdio: 'ignore' });
+const port = Number(script.port ?? 9333);
+const [width, height] = (script.size ?? '1280x720').split('x').map(Number);
+const chrome = spawn('google-chrome-stable', ['--headless=new', `--remote-debugging-port=${port}`, `--user-data-dir=/tmp/webdemo-chrome-${port}`,
+  `--window-size=${width},${height}`, '--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--no-first-run', 'about:blank'], { stdio: 'ignore' });
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 let ws;
 for (let i = 0; i < 50 && !ws; i++) {
@@ -27,15 +29,17 @@ ws.addEventListener('message', e => {
 const send = (method, params = {}) => new Promise(r => { const i = ++id; pending.set(i, r); ws.send(JSON.stringify({ id: i, method, params })); });
 const evalJs = async expr => (await send('Runtime.evaluate', { expression: expr, returnByValue: true, awaitPromise: true })).result?.result?.value;
 const shot = async name => { const r = await send('Page.captureScreenshot', { format: 'png' }); writeFileSync(`${out}/${name}.png`, Buffer.from(r.result.data, 'base64')); };
-const CODES = { Space: [' ', 32], KeyW: ['w', 87], KeyA: ['a', 65], KeyS: ['s', 83], KeyD: ['d', 68], Digit1: ['1', 49], Digit2: ['2', 50], Digit3: ['3', 51], Digit4: ['4', 52], KeyQ: ['q', 81], KeyE: ['e', 69], KeyR: ['r', 82], KeyF: ['f', 70], Enter: ['Enter', 13], ShiftLeft: ['Shift', 16], KeyH: ['h', 72] };
+const CODES = { Space: [' ', 32], KeyW: ['w', 87], KeyA: ['a', 65], KeyS: ['s', 83], KeyD: ['d', 68], Digit1: ['1', 49], Digit2: ['2', 50], Digit3: ['3', 51], Digit4: ['4', 52], KeyQ: ['q', 81], KeyE: ['e', 69], KeyR: ['r', 82], KeyF: ['f', 70], Enter: ['Enter', 13], Escape: ['Escape', 27], ShiftLeft: ['Shift', 16], KeyH: ['h', 72] };
 const key = async (code, type) => { const [k, vk] = CODES[code]; await send('Input.dispatchKeyEvent', { type, code, key: k, windowsVirtualKeyCode: vk }); };
 await send('Runtime.enable'); await send('Page.enable');
 await send('Page.navigate', { url: (script.url ?? 'http://127.0.0.1:8642/client/Web/app/index.html') + (script.query ?? '') });
-for (let i = 0; i < 100; i++) { await sleep(200); if ((await evalJs(`document.getElementById('status').textContent`) ?? '').startsWith('ready')) break; }
+for (let i = 0; i < 100; i++) { await sleep(200); if (script.lineup ? (await evalJs('document.title')) === 'ready' : (await evalJs(`document.getElementById('status')?.textContent`) ?? '').startsWith('ready')) break; }
 console.log('status:', await evalJs(`document.getElementById('status').textContent`));
 await shot('0-menu');
+if (script.lineup) { ws.close(); chrome.kill(); process.exit(0); }
+if (!script.pad) { await key('Escape', 'keyDown'); await key('Escape', 'keyUp'); }
 await evalJs(script.setup ?? '');
-await key('Enter', 'keyDown'); await key('Enter', 'keyUp');
+if (!script.pad) { await key('Enter', 'keyDown'); await key('Enter', 'keyUp'); }
 await sleep(1500); await shot('1-start');
 for (const [i, step] of (script.steps ?? []).entries()) {
   if (step.until) {
@@ -43,6 +47,7 @@ for (const [i, step] of (script.steps ?? []).entries()) {
     while (Date.now() - t < (step.timeout ?? 60000) && !(await evalJs(step.until))) await sleep(250);
     console.log('until', step.until, '->', await evalJs(step.until), `after ${((Date.now() - t) / 1000).toFixed(1)} s`);
   }
+  if (step.eval) console.log('eval:', await evalJs(step.eval));
   for (const c of step.down ?? []) await key(c, 'keyDown');
   await sleep(step.ms ?? 300);
   for (const c of step.up ?? []) await key(c, 'keyUp');
