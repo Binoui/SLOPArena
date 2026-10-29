@@ -22,11 +22,7 @@ namespace SlopArena.Shared
         // 28: grounded Beelines never climb, airborne ones aim just above the target's feet; arrival lands on a 0.3 m gap.
         // 29: snappier ground start: 60% of RunSpeed, then a 12-tick ramp.
         // 30: Cyclone Kick carries victims with interval hits and a finisher; dizzy only on a whiff.
-        //
-        // Bump once per deploy, never per change: release prepare refuses a release whose src/Shared
-        // changed since the previous release tag while this value (and the Master's Protocol) did not.
-        // Note simulation changes below; the release bump folds them into one numbered line.
-        // Unreleased:
+        // 31: the 0.2.0-playtest.38 release (29 and 30 never shipped on their own):
         // - Mesh-fitted bone capsules follow drawn hurtbox poses at scale 1 (ADR-0055); attack reach is unchanged.
         //   JUMP! CPUs sustain the full jump through squat to clear the fitted body and tail.
         // - Grab aim and directional throws (ADR-0054): stationary hold, Beeline attack/grab arbitration,
@@ -69,6 +65,11 @@ namespace SlopArena.Shared
         // - Nyx's two forms (ADR-0051): slop.ability.forms.v1 with an alternateForm grid, the swapForm operation,
         //   CharacterState.Form with the other form's cooldown bank, Hitbox.Form, the activation's form, runtime API
         //   1.16.0, World Snapshot v17 and World Frame v8 (a form byte per hit); MatchPlayer's optional form key.
-        public const byte Version = 30;
+        //
+        // Bump once per deploy, never per change: release prepare refuses a release whose src/Shared
+        // changed since the previous release tag while this value (and the Master's Protocol) did not.
+        // Note simulation changes below; the release bump folds them into one numbered line.
+        // Unreleased:
+        public const byte Version = 31;
     }
 }
