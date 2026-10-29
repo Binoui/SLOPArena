@@ -1,0 +1,413 @@
+{
+ "format": 1,
+ "stage": "training",
+ "folder": "Assets/Stages/training/Presentation/CrashTestLab",
+ "model": "TrainingLab.fbx",
+ "stamp": "TrainingLab.layout.json",
+ "root": "Crash-Test Lab",
+ "supersededRoots": [
+  "Neutral Lab Fill",
+  "Practice Lab Finish",
+  "Measurement Surfaces",
+  "Room and Platforms"
+ ],
+ "removeRootLights": true,
+ "textures": [
+  {
+   "file": "TrainingAtlas.png",
+   "srgb": true,
+   "wrap": "clamp",
+   "maxSize": 2048,
+   "aniso": 8
+  },
+  {
+   "file": "TrainingFloor.png",
+   "srgb": true,
+   "wrap": "clamp",
+   "maxSize": 4096,
+   "aniso": 8
+  },
+  {
+   "file": "TrainingDetail.png",
+   "srgb": false,
+   "wrap": "repeat",
+   "maxSize": 256,
+   "aniso": 8
+  }
+ ],
+ "materials": [
+  {
+   "slot": "TL_Lit",
+   "asset": "TL_Lit",
+   "shader": "SLOPArena/StageVertexLit",
+   "baseMap": "TrainingAtlas.png",
+   "baseColor": [
+    1,
+    1,
+    1,
+    1
+   ],
+   "textures": {
+    "_DetailMap": "TrainingDetail.png"
+   },
+   "floats": {
+    "_DetailScale": 0.7,
+    "_DetailStrength": 0.1,
+    "_Wrap": 0.35,
+    "_Specular": 0.06,
+    "_Gloss": 18,
+    "_Emission": 0,
+    "_Wind": 0,
+    "_Cull": 2.0,
+    "_ReceiveShadowsOff": 0
+   },
+   "colors": {
+    "_ShadowTint": [
+     0.64,
+     0.66,
+     0.68
+    ]
+   },
+   "keywords": {
+    "_RECEIVE_SHADOWS_OFF": false
+   }
+  },
+  {
+   "slot": "TL_Floor",
+   "asset": "TL_Floor",
+   "shader": "SLOPArena/StageVertexLit",
+   "baseMap": "TrainingFloor.png",
+   "baseColor": [
+    1,
+    1,
+    1,
+    1
+   ],
+   "textures": {
+    "_DetailMap": "TrainingDetail.png"
+   },
+   "floats": {
+    "_DetailScale": 0.7,
+    "_DetailStrength": 0.1,
+    "_Wrap": 0.35,
+    "_Specular": 0.06,
+    "_Gloss": 18,
+    "_Emission": 0,
+    "_Wind": 0,
+    "_Cull": 2.0,
+    "_ReceiveShadowsOff": 0
+   },
+   "colors": {
+    "_ShadowTint": [
+     0.64,
+     0.66,
+     0.68
+    ]
+   },
+   "keywords": {
+    "_RECEIVE_SHADOWS_OFF": false
+   }
+  },
+  {
+   "slot": "TL_Hall",
+   "asset": "TL_Hall",
+   "shader": "SLOPArena/StageNeon",
+   "baseMap": "TrainingAtlas.png",
+   "baseColor": [
+    1,
+    1,
+    1,
+    1
+   ],
+   "floats": {
+    "_Base": 0.72,
+    "_Ambient": 0.18,
+    "_Shade": 0.22,
+    "_Glow": 0,
+    "_FogAmount": 1,
+    "_TimeScale": 1,
+    "_Cull": 2.0
+   },
+   "vectors": {
+    "_ShadeDirection": [
+     0.1,
+     0.95,
+     -0.25,
+     0
+    ]
+   }
+  },
+  {
+   "slot": "TL_Glow",
+   "asset": "TL_Glow",
+   "shader": "SLOPArena/StageNeon",
+   "baseMap": "TrainingAtlas.png",
+   "baseColor": [
+    1,
+    1,
+    1,
+    1
+   ],
+   "floats": {
+    "_Base": 0.72,
+    "_Ambient": 0.18,
+    "_Shade": 0.22,
+    "_Glow": 1.05,
+    "_FogAmount": 1,
+    "_TimeScale": 1,
+    "_Cull": 2.0
+   },
+   "vectors": {
+    "_ShadeDirection": [
+     0.1,
+     0.95,
+     -0.25,
+     0
+    ]
+   }
+  }
+ ],
+ "shadows": {
+  "cast": false,
+  "receive": false,
+  "objects": {
+   "TestPlatform Cap": {
+    "cast": true,
+    "receive": true
+   },
+   "TestPlatform Plating": {
+    "cast": true,
+    "receive": true
+   },
+   "WestDeck Cap": {
+    "cast": true,
+    "receive": true
+   },
+   "WestDeck Plating": {
+    "cast": true,
+    "receive": true
+   },
+   "EastDeck Cap": {
+    "cast": true,
+    "receive": true
+   },
+   "EastDeck Plating": {
+    "cast": true,
+    "receive": true
+   },
+   "Walkway Cap": {
+    "cast": true,
+    "receive": true
+   },
+   "Walkway Plating": {
+    "cast": true,
+    "receive": true
+   },
+   "DrillYard Cap": {
+    "cast": true,
+    "receive": true
+   },
+   "DrillYard Plating": {
+    "cast": true,
+    "receive": true
+   },
+   "StepDeck Cap": {
+    "cast": true,
+    "receive": true
+   },
+   "StepDeck Plating": {
+    "cast": true,
+    "receive": true
+   },
+   "StepBlock Cap": {
+    "cast": true,
+    "receive": true
+   },
+   "StepBlock Plating": {
+    "cast": true,
+    "receive": true
+   },
+   "Shelf Cap": {
+    "cast": true,
+    "receive": true
+   },
+   "Shelf Plating": {
+    "cast": true,
+    "receive": true
+   },
+   "NearIsland Cap": {
+    "cast": true,
+    "receive": true
+   },
+   "NearIsland Plating": {
+    "cast": true,
+    "receive": true
+   },
+   "MidIsland Cap": {
+    "cast": true,
+    "receive": true
+   },
+   "MidIsland Plating": {
+    "cast": true,
+    "receive": true
+   },
+   "FarIsland Cap": {
+    "cast": true,
+    "receive": true
+   },
+   "FarIsland Plating": {
+    "cast": true,
+    "receive": true
+   },
+   "Braced Lattice": {
+    "cast": true,
+    "receive": true
+   }
+  }
+ },
+ "lights": [
+  {
+   "name": "Overhead Lab Key",
+   "type": "directional",
+   "rotation": [
+    78,
+    0,
+    0
+   ],
+   "color": [
+    0.96,
+    0.98,
+    1
+   ],
+   "intensity": 1.0,
+   "shadows": "soft",
+   "shadowStrength": 0.5
+  }
+ ],
+ "atmosphere": {
+  "background": [
+   0.3,
+   0.34,
+   0.38
+  ],
+  "ambientSky": [
+   0.6,
+   0.62,
+   0.65
+  ],
+  "ambientGround": [
+   0.3,
+   0.32,
+   0.34
+  ],
+  "ambientIntensity": 1,
+  "fog": true,
+  "fogColor": [
+   0.36,
+   0.4,
+   0.44
+  ],
+  "fogStart": 45,
+  "fogEnd": 160
+ },
+ "cameras": [
+  {
+   "name": "start",
+   "position": [
+    0,
+    5,
+    -17
+   ],
+   "target": [
+    0,
+    2,
+    5
+   ],
+   "fov": 45
+  },
+  {
+   "name": "dummy",
+   "position": [
+    0,
+    5,
+    17
+   ],
+   "target": [
+    0,
+    1,
+    -6
+   ],
+   "fov": 45
+  },
+  {
+   "name": "yard",
+   "position": [
+    -12,
+    14,
+    -6
+   ],
+   "target": [
+    -26,
+    0.2,
+    2
+   ],
+   "fov": 70
+  },
+  {
+   "name": "range",
+   "position": [
+    9,
+    7,
+    -7
+   ],
+   "target": [
+    23,
+    -0.7,
+    0
+   ],
+   "fov": 82
+  },
+  {
+   "name": "trench",
+   "position": [
+    -15.5,
+    -2,
+    -6
+   ],
+   "target": [
+    -15.5,
+    1,
+    6
+   ],
+   "fov": 75
+  },
+  {
+   "name": "south-recovery",
+   "position": [
+    5,
+    -2.5,
+    -25
+   ],
+   "target": [
+    0,
+    -5,
+    -13
+   ],
+   "fov": 60
+  },
+  {
+   "name": "thumbnail",
+   "position": [
+    15,
+    21,
+    -30
+   ],
+   "target": [
+    -3,
+    -2,
+    0
+   ],
+   "fov": 84
+  }
+ ]
+}

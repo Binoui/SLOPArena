@@ -48,6 +48,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   Inhale: {fileID: 8426524178486868651}
   Deflate: {fileID: 6171746866540394583}
+  BlowPresentationId: presentation.bashie.whistle.blow
 --- !u!82 &8426524178486868651
 AudioSource:
   m_ObjectHideFlags: 0

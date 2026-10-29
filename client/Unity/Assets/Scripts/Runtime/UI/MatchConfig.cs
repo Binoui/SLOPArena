@@ -14,6 +14,8 @@ namespace SlopArena.Client.UI
     {
         public SeatKind Kind;
         public CharacterClass Fighter;
+        /// <summary>The picked starting form of a two-form fighter (ADR-0051); others ignore it.</summary>
+        public byte Form;
         public CpuDifficulty Difficulty;
         public int DeviceId;
     }
@@ -29,6 +31,11 @@ namespace SlopArena.Client.UI
         public static SlopArena.Shared.CharacterClass PlayerClass
             = SlopArena.Shared.CharacterClass.FightGuy;
         public static string PlayerPackageId = "fightguy";
+        /// <summary>P1's picked starting form (ADR-0051).</summary>
+        public static byte PlayerForm;
+
+        /// <summary>The starting form a seat picked on Fighter Select.</summary>
+        public static byte FormOf(int playerNumber) => playerNumber == 1 ? PlayerForm : Seat(playerNumber).Form;
         public static string ArenaName = "training";
         public static bool IsHost = true;
         public static string ServerIP = "127.0.0.1";

@@ -66,10 +66,6 @@ MonoBehaviour:
     _clip: {fileID: -3743569049614240450, guid: be0574ee8a19446eaa39d14d45dc2c1c, type: 3}
     _extrapolation: 0
     _poseTrackId: anim.manki.ga
-  - _semanticId: anim.manki.ga-loop
-    _clip: {fileID: 7400000, guid: e97e870b7fd3c782e9ed4439889058c1, type: 2}
-    _extrapolation: 0
-    _poseTrackId: anim.manki.ga-loop
   - _semanticId: anim.manki.ge
     _clip: {fileID: -203655887218126122, guid: 6b8e30a0f65d4483badc8058faf585c4, type: 3}
     _extrapolation: 0
@@ -82,10 +78,6 @@ MonoBehaviour:
     _clip: {fileID: 7400000, guid: 1a2c18c43f23c4bfaa7dee5e71110905, type: 2}
     _extrapolation: 0
     _poseTrackId: anim.manki.gf-loop
-  - _semanticId: anim.manki.gf-atk
-    _clip: {fileID: 7400000, guid: c2f488fd13787b519960d6b5afa1a900, type: 2}
-    _extrapolation: 0
-    _poseTrackId: anim.manki.gf-atk
   - _semanticId: anim.manki.a1
     _clip: {fileID: 7400000, guid: 1e38db663d20d801db86b5b8eb43b9ca, type: 2}
     _extrapolation: 0

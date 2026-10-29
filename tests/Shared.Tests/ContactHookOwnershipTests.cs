@@ -32,11 +32,11 @@ public sealed class ContactHookOwnershipTests
             Tick(sim, default);
         Assert.Single(sim.Resolver.GetActiveHitboxes());
 
-        // R: charge, then dash forward (+Z), away from the projectile's path.
-        Tick(sim, new InputState { ActiveSlot = AbilitySlots.R, IsAiming = true, AimYaw = 0 });
-        for (int i = 1; i < 20; i++)
-            Tick(sim, new InputState { IsAiming = true, AimYaw = 0 });
-        Tick(sim, default);
+        for (int i = 0; i < 25; i++) Tick(sim, default);
+        // Keep the selected fighter out of acquisition range so R uses facing.
+        var shield = sim.GetState(2); shield.PX = 30f; sim.SetState(2, shield);
+        Tick(sim, new InputState { ActiveSlot = AbilitySlots.R });
+        shield.PX = 4f; sim.SetState(2, shield);
 
         bool blockedDuringDash = false;
         for (int i = 0; i < 180 && sim.GetActiveAbility(1) != null; i++)
@@ -47,7 +47,7 @@ public sealed class ContactHookOwnershipTests
         }
 
         Assert.True(blockedDuringDash, "the projectile must reach the shield while the dash travels");
-        Assert.InRange(sim.GetState(1).PZ, 2.93f, 2.937f);
+        Assert.InRange(sim.GetState(1).PZ, 3.49f, 3.51f);
     }
 
     private static void Tick(ServerSimulation sim, InputState attacker)
@@ -77,16 +77,15 @@ public sealed class ContactHookOwnershipTests
             0f, 0f, 0f, 0f, 0f, 0f, null, null, 1f, 0f, 0f, 0f, 0, 1, true, 0);
         var finisher = new CookedHitbox(AuthoringHitboxShape.Capsule, .5f,
             0f, 0f, 0f, 0f, 0f, 0f, "_weapon_hilt", "_weapon_tip", 6f, 45f, 5f, 80f, 8, 9, true, 0);
-        var dash = new CookedChargedDirectionalDashCapabilityParameters(
-            60, 20, 45, 1.2f, 6.4f, 10.5f, 4, 31, 24, 9f, 12f, traversal, finisher);
+        var dash = new CookedDashStrikeCapabilityParameters(3.5f, 28f, 31, 16, traversal, finisher, "");
         slots[5] = new CookedSlotDefinition(5, "ground.R", false, "Charged dash fixture", "", "",
-            AuthoringAbilityBehavior.DirectionalDash, AuthoringAimMode.GroundVector, 0, false, false,
+            AuthoringAbilityBehavior.MeleeCombo, AuthoringAimMode.None, 0, false, false,
             new CookedTimeline(new[]
             {
                 new CookedStage(80, 0, 0, 0, 0, Array.Empty<string>(), new CookedTimelineOperation[]
                 {
                     new CookedStartCapabilityOperation(0, AuthoringUnit.Ticks,
-                        CharacterPackageCompiler.ChargedDirectionalDashCapabilityId, "1", dash),
+                        CharacterPackageCompiler.DashStrikeCapabilityId, "1", dash),
                 }),
             }), aimMovement: AuthoringAimMovementMode.Mobile);
         definition = definition with { CookedSlots = slots };

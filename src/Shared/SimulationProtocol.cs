@@ -27,13 +27,26 @@ namespace SlopArena.Shared
         // changed since the previous release tag while this value (and the Master's Protocol) did not.
         // Note simulation changes below; the release bump folds them into one numbered line.
         // Unreleased:
-        // - Manki Can Bomb and powered Jetpack v2 (ADR-0049), three charges, mobile F charge,
-        //   shared owner-fire/blast can reactions and World Snapshot v14 cans/ignition state.
+        // - Wibou Quick Draw (ADR-0052): slop.ability.dash-strike.v1, fixed target-bearing R,
+        //   exclusive light/tip cuts and recovery turn; runtime API 1.15.0. Snapshot layout unchanged.
+        // - Wibou's flash (ADR-0052): slop.ability.flash-cut.v1 replaces Skyfall (blade-flurry.v2 retired); held cuts
+        //   (ActionState.CutHeld = 30) freeze victims until the pop tick, single-target hitboxes; runtime API 1.15.0,
+        //   World Snapshot v16.
+        // - Manki flying bomber (ADR-0049): fighter-owned Flying/fuel, Bombs Away and Kamikaze,
+        //   no ignition or Aerosol capability; World Snapshot v15.
+        // - Manki contact bombs share upward-floor projection with their ground warning;
+        //   slower gravity and larger contact/blast radii. Snapshot layout unchanged.
         // - holding the stick against post-hitstun launch momentum brakes at 8 m/s², not the air acceleration.
         // - stick-turned recoveries: a RecoveryMove without a cursor goes where the stick points in its first 3 input ticks.
         // - Bashie's Rescue Ring (ADR-0048): slop.ability.tether.v1, runtime API 1.13.0, a thrown line held as a paired
         //   interaction (ActionState.Reeled = 27, DefenseInteractionPhase.Reeling = 5, presentation source
         //   TetherRetract = 8); Hose Down leaves her kit. World Snapshot layout unchanged.
+        // - Bashie's Cannonball and Wave Pool (ADR-0050): slop.ability.shell-stance.v2 (splash and ride; v1 retired),
+        //   slop.ability.cannonball.v1, ShellPolicy.Ride = 2, ActionState.Swept = 29, runtime API 1.14.0; the skate,
+        //   the bowl and NO RUNNING!'s stun leave her kit. World Snapshot layout unchanged.
+        // - Nyx's two forms (ADR-0051): slop.ability.forms.v1 with an alternateForm grid, the swapForm operation,
+        //   CharacterState.Form with the other form's cooldown bank, Hitbox.Form, the activation's form, runtime API
+        //   1.16.0, World Snapshot v17 and World Frame v8 (a form byte per hit); MatchPlayer's optional form key.
         public const byte Version = 30;
     }
 }

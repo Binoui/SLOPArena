@@ -94,7 +94,6 @@ public sealed class AimMovementTests
     }
 
     [Theory]
-    [InlineData(AbilitySlots.A)]
     [InlineData(AbilitySlots.R)]
     public void MankiAirborneSpecial_PreservesMomentumThroughCompletion(byte slot)
     {
@@ -142,7 +141,6 @@ public sealed class AimMovementTests
     }
 
     [Theory]
-    [InlineData(AbilitySlots.A)]
     [InlineData(AbilitySlots.R)]
     public void MankiAirborneSpecial_LandingStopsDriftAndKeepsAction(byte slot)
     {
@@ -169,10 +167,8 @@ public sealed class AimMovementTests
     }
 
     [Theory]
-    [InlineData(CharacterClass.Manki, AbilitySlots.A)]
     [InlineData(CharacterClass.Manki, AbilitySlots.R)]
     [InlineData(CharacterClass.Bonk, AbilitySlots.E)]
-    [InlineData(CharacterClass.Wibou, AbilitySlots.R)]
     public void AuthoredAimedHolds_UseFixedMovementOnGroundAndInAir(CharacterClass character, byte slot)
     {
         var def = TestHelpers.ResolveSourceDef(character.ToString().ToLowerInvariant());
@@ -181,31 +177,19 @@ public sealed class AimMovementTests
     }
 
     [Fact]
-    public void WibouDash_HoldStopsMovementAndReleaseStillTravels()
+    public void QuickDrawIgnoresTheFormerAimHold()
     {
         var def = TestHelpers.ResolveSourceDef("wibou");
         var sim = TestHelpers.MakeSim();
-        var s = TestHelpers.PlayerState(20f, 20f);
-        s.PY = TestHelpers.GroundPY(def);
-        sim.RegisterEntity(1, def, s);
-        var input = new InputState
-        {
-            ActiveSlot = AbilitySlots.R, IsAiming = true, AimYaw = 9000,
-            MoveX = 1f, MoveY = 1f,
-        };
-        TestHelpers.TickHold(sim, input, 30);
-        var held = sim.GetState(1);
-        Assert.Equal(ActionState.Aiming, held.State);
-        Assert.Equal(20f, held.PX);
-        Assert.Equal(20f, held.PZ);
-        Assert.Equal(0f, held.VX);
-        Assert.Equal(0f, held.VZ);
-
-        TestHelpers.TickN(sim, new InputState { AimYaw = -9000 }, 1);
-        var released = sim.GetState(1);
-        Assert.Equal(ActionState.Attacking, released.State);
-        Assert.True(released.VX > 0f);
-        var traveling = TestHelpers.TickDefault(sim, 1);
-        Assert.True(traveling.PX > held.PX);
+        var state = TestHelpers.PlayerState(20, 20); state.PY = TestHelpers.GroundPY(def);
+        sim.RegisterEntity(1, def, state);
+        var input = new InputState { ActiveSlot = AbilitySlots.R, IsAiming = true, AimYaw = 9000, MoveX = 1 };
+        TestHelpers.TickHold(sim, input, 8);
+        var traveled = sim.GetState(1);
+        Assert.Equal(ActionState.Attacking, traveled.State);
+        Assert.False(traveled.IsAiming);
+        Assert.InRange(traveled.PZ, 23.499f, 23.501f);
+        Assert.InRange(traveled.PX, 19.999f, 20.001f);
     }
+
 }

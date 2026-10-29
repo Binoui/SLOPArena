@@ -1,0 +1,132 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6e24271275a4fc0af82df0240843b6bf, type: 3}
+  m_Name: CharacterAssetCatalog
+  m_EditorClassIdentifier: 
+  _packageId: nyx
+  _catalogSchemaVersion: 2
+  _rig: {fileID: 798405274654581072, guid: 200098506fbae44e2bfeeae62a0e130d, type: 3}
+  _weaponConfig: {fileID: 0}
+  _sampleRate: 60
+  _bindings:
+  - _semanticId: anim.nyx.air-smash
+    _clip: {fileID: 7400000, guid: 5aeaaf696158f4f6394210ad9015f1fa, type: 2}
+    _extrapolation: 0
+    _poseTrackId: anim.nyx.air-smash
+  - _semanticId: anim.nyx.crouch
+    _clip: {fileID: 7400000, guid: 5fc84b08ad506d917b6e6a0e840b8145, type: 2}
+    _extrapolation: 0
+    _poseTrackId: anim.nyx.crouch
+  - _semanticId: anim.nyx.cyclone-kick
+    _clip: {fileID: 7400000, guid: 8a44b7694da57817ebefbf6c628c2540, type: 2}
+    _extrapolation: 0
+    _poseTrackId: anim.nyx.cyclone-kick
+  - _semanticId: anim.nyx.dash
+    _clip: {fileID: 7400000, guid: 3597512105879eaf3960b9cb14ff9a5e, type: 2}
+    _extrapolation: 0
+    _poseTrackId: anim.nyx.dash
+  - _semanticId: anim.nyx.double-kick
+    _clip: {fileID: 7400000, guid: 57695f5a722b3defbbe0f5430a23e78c, type: 2}
+    _extrapolation: 0
+    _poseTrackId: anim.nyx.double-kick
+  - _semanticId: anim.nyx.fall
+    _clip: {fileID: 7400000, guid: f74c3fa9e403d556c9c97e30645fd031, type: 2}
+    _extrapolation: 0
+    _poseTrackId: anim.nyx.fall
+  - _semanticId: anim.nyx.fist-of-fury
+    _clip: {fileID: 7400000, guid: f7f45e84a9faad711b95fb3f1a3317bf, type: 2}
+    _extrapolation: 0
+    _poseTrackId: anim.nyx.fist-of-fury
+  - _semanticId: anim.nyx.floating-kick
+    _clip: {fileID: 7400000, guid: de7c856d223dd08d1a580dc482dae508, type: 2}
+    _extrapolation: 0
+    _poseTrackId: anim.nyx.floating-kick
+  - _semanticId: anim.nyx.high-kick
+    _clip: {fileID: 7400000, guid: e76203f350f827bc0a77426f2a3d5c1d, type: 2}
+    _extrapolation: 0
+    _poseTrackId: anim.nyx.high-kick
+  - _semanticId: anim.nyx.hit-hard
+    _clip: {fileID: 7400000, guid: f01f3f70676745fc7b6f9165bb3fdcaf, type: 2}
+    _extrapolation: 0
+    _poseTrackId: anim.nyx.hit-hard
+  - _semanticId: anim.nyx.hit-light
+    _clip: {fileID: 7400000, guid: a9c3e083b1f85e1d8a8a02b5d22218eb, type: 2}
+    _extrapolation: 0
+    _poseTrackId: anim.nyx.hit-light
+  - _semanticId: anim.nyx.hit-medium
+    _clip: {fileID: 7400000, guid: 94bd4d002ab2f6a08b6da7891ef9793b, type: 2}
+    _extrapolation: 0
+    _poseTrackId: anim.nyx.hit-medium
+  - _semanticId: anim.nyx.idle
+    _clip: {fileID: 7400000, guid: ef10c491bc1a010328c11965751269fc, type: 2}
+    _extrapolation: 0
+    _poseTrackId: anim.nyx.idle
+  - _semanticId: anim.nyx.jump
+    _clip: {fileID: 7400000, guid: 5ce4a8f78d1730216a9d4e6a37ebd9bf, type: 2}
+    _extrapolation: 0
+    _poseTrackId: anim.nyx.jump
+  - _semanticId: anim.nyx.ki-shot
+    _clip: {fileID: 7400000, guid: 8ccd5c79e00cc363398a00cb3b5651fb, type: 2}
+    _extrapolation: 2
+    _poseTrackId: anim.nyx.ki-shot
+  - _semanticId: anim.nyx.ki-shot-loop
+    _clip: {fileID: 7400000, guid: 7307ba057f2f98b03a5aa6a2552bb32c, type: 2}
+    _extrapolation: 0
+    _poseTrackId: anim.nyx.ki-shot-loop
+  - _semanticId: anim.nyx.rising-dragon
+    _clip: {fileID: 7400000, guid: 7510624a4de38a5af8b178f744025d7e, type: 2}
+    _extrapolation: 0
+    _poseTrackId: anim.nyx.rising-dragon
+  - _semanticId: anim.nyx.run
+    _clip: {fileID: 7400000, guid: b5ce58f68cb046d17b72bd1103c75e96, type: 2}
+    _extrapolation: 0
+    _poseTrackId: anim.nyx.run
+  - _semanticId: anim.nyx.slide
+    _clip: {fileID: 7400000, guid: 5fc84b08ad506d917b6e6a0e840b8145, type: 2}
+    _extrapolation: 0
+    _poseTrackId: anim.nyx.slide
+  - _semanticId: anim.nyx.straight-punch
+    _clip: {fileID: 7400000, guid: 02307e4a2e27e23569f9e3df359aa8d0, type: 2}
+    _extrapolation: 0
+    _poseTrackId: anim.nyx.straight-punch
+  - _semanticId: anim.nyx.sweeping-kick
+    _clip: {fileID: 7400000, guid: a3b99bb3681353503bf5bddfceb346b6, type: 2}
+    _extrapolation: 0
+    _poseTrackId: anim.nyx.sweeping-kick
+  - _semanticId: anim.nyx.tumble
+    _clip: {fileID: 7400000, guid: 0fae26af212816884a6cc8b74c84fa07, type: 2}
+    _extrapolation: 0
+    _poseTrackId: anim.nyx.tumble
+  _presentations: []
+  _presentationProfile:
+    _respawnTint: {r: 1, g: 1, b: 1, a: 0.95}
+    _swing:
+      _selection: 0
+      _clips: []
+      _clipObjectIds: []
+    _lightImpact:
+      _selection: 0
+      _clips:
+      - {fileID: 0}
+      _clipObjectIds: []
+    _mediumImpact:
+      _selection: 0
+      _clips:
+      - {fileID: 0}
+      _clipObjectIds: []
+    _heavyImpact:
+      _selection: 0
+      _clips:
+      - {fileID: 0}
+      _clipObjectIds: []
+    _suppressRemovalExplosion: 0
+    _projectiles: []

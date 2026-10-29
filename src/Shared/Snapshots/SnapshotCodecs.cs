@@ -63,6 +63,8 @@ namespace SlopArena.Shared
             w.WriteUShort(s.AnimLockTicks);
             w.WriteUShort(s.LandingLagTicks);
             w.WriteUShort(s.ChargeTicks);
+            w.WriteBool(s.Flight.Active); w.WriteUShort(s.Flight.FuelTicksLeft); w.WriteUShort(s.Flight.BurstTicksLeft);
+            w.WriteFloat(s.Flight.LiftSpeed); w.WriteFloat(s.Flight.HeadingYaw);
             w.WriteByte(s.ChargeStockSpent);
             w.WriteUShort(s.ChargeStockRegenTicks);
             w.WriteUShort(s.ChargeStockRegenTicks2); w.WriteUShort(s.ChargeStockRegenTicks3);
@@ -121,6 +123,9 @@ namespace SlopArena.Shared
             w.WriteUShort(s.Cooldown8);
             w.WriteUShort(s.Cooldown9);
             w.WriteUShort(s.Cooldown10);
+            w.WriteByte(s.Form.Active);
+            w.WriteUShort(s.Form.Bank1); w.WriteUShort(s.Form.Bank3); w.WriteUShort(s.Form.Bank4);
+            w.WriteUShort(s.Form.BankA); w.WriteUShort(s.Form.BankE); w.WriteUShort(s.Form.BankR);
             w.WriteByte(s.ReturningProjectileSlot);
         }
 
@@ -185,6 +190,8 @@ namespace SlopArena.Shared
             s.AnimLockTicks = r.ReadUShort();
             s.LandingLagTicks = r.ReadUShort();
             s.ChargeTicks = r.ReadUShort();
+            s.Flight.Active = r.ReadBool(); s.Flight.FuelTicksLeft = r.ReadUShort(); s.Flight.BurstTicksLeft = r.ReadUShort();
+            s.Flight.LiftSpeed = r.ReadFloat(); s.Flight.HeadingYaw = r.ReadFloat();
             s.ChargeStockSpent = r.ReadByte();
             s.ChargeStockRegenTicks = r.ReadUShort();
             s.ChargeStockRegenTicks2 = r.ReadUShort(); s.ChargeStockRegenTicks3 = r.ReadUShort();
@@ -243,6 +250,9 @@ namespace SlopArena.Shared
             s.Cooldown8 = r.ReadUShort();
             s.Cooldown9 = r.ReadUShort();
             s.Cooldown10 = r.ReadUShort();
+            s.Form.Active = r.ReadByte();
+            s.Form.Bank1 = r.ReadUShort(); s.Form.Bank3 = r.ReadUShort(); s.Form.Bank4 = r.ReadUShort();
+            s.Form.BankA = r.ReadUShort(); s.Form.BankE = r.ReadUShort(); s.Form.BankR = r.ReadUShort();
             s.ReturningProjectileSlot = r.ReadByte();
             return s;
         }
@@ -379,7 +389,8 @@ namespace SlopArena.Shared
             w.WriteUShort(explosion.StunTicks);
             w.WriteUShort(explosion.DurationTicks);
             w.WriteBool(explosion.CanHitOwner);
-            w.WriteBool(explosion.IgnitesOwnerCans);
+            w.WriteFloat(explosion.SelfPushSpeed);
+            w.WriteBool(explosion.EndsOwnerActivation);
             w.WriteBool(explosion.OwnerDamage.HasValue);
             if (explosion.OwnerDamage.HasValue) w.WriteFloat(explosion.OwnerDamage.Value);
             w.WriteString(explosion.ExplosionPresentationId);
@@ -397,7 +408,8 @@ namespace SlopArena.Shared
             explosion.StunTicks = r.ReadUShort();
             explosion.DurationTicks = r.ReadUShort();
             explosion.CanHitOwner = r.ReadBool();
-            explosion.IgnitesOwnerCans = r.ReadBool();
+            explosion.SelfPushSpeed = r.ReadFloat();
+            explosion.EndsOwnerActivation = r.ReadBool();
             if (r.ReadBool()) explosion.OwnerDamage = r.ReadFloat();
             explosion.ExplosionPresentationId = r.ReadString()!;
             explosion.PresentationAttackSequence = r.ReadByte();
@@ -405,15 +417,6 @@ namespace SlopArena.Shared
             explosion.PresentationYaw = r.ReadFloat();
             return explosion;
         }
-
-        public static void Write(SnapshotWriter w, in MankiCanPayload can)
-        {
-            w.WriteUShort(can.FuseTicks); w.WriteUShort(can.WarningTicks);
-            Write(w, can.Blast); Write(w, can.EarlyBlast);
-        }
-
-        public static MankiCanPayload ReadMankiCanPayload(SnapshotReader r)
-            => new(r.ReadUShort(), r.ReadUShort(), ReadProjectileExplosion(r), ReadProjectileExplosion(r));
 
         public static void Write(SnapshotWriter w, in ProjectileReturn projectileReturn)
         {
@@ -533,10 +536,8 @@ namespace SlopArena.Shared
             w.WriteFloat(hb.HomingTurnSin);
             w.WriteBool(hb.OwnerDamage.HasValue);
             if (hb.OwnerDamage.HasValue) w.WriteFloat(hb.OwnerDamage.Value);
-            w.WriteBool(hb.IgnitesOwnerCans);
-            w.WriteBool(hb.IsCanIgniterOnly);
-            w.WriteBool(hb.MankiCan.HasValue);
-            if (hb.MankiCan.HasValue) Write(w, hb.MankiCan.Value);
+            w.WriteBool(hb.ContactExplosion);
+            w.WriteBool(hb.ExplodeOnExpiry);
             w.WriteBool(hb.Explosion.HasValue);
             if (hb.Explosion.HasValue)
                 Write(w, hb.Explosion.Value);
@@ -548,12 +549,13 @@ namespace SlopArena.Shared
             w.WriteBool(hb.CanHitOwner);
             w.WriteBool(hb.FreezesOwner);
             w.WriteBool(hb.OwnerWindow);
+            w.WriteULong(hb.OnlyTargetId);
             w.WriteBool(hb.HitsMultipleOpponents);
             w.WriteSet(hb.HitEntities);
             w.WriteBool(hb.TracksBone);
             Write(w, hb.SourceEvent);
             var owner = hb.Def != null || hb.Baked != null ? ownerContent(hb.OwnerId) : default;
-            if (hb.Def != null && !ReferenceEquals(hb.Def, owner.Def))
+            if (hb.Def != null && !ReferenceEquals(hb.Def, owner.Def?.ForForm(hb.Form)))
                 throw new InvalidOperationException($"Hitbox of entity {hb.OwnerId} references another fighter's definition.");
             if (hb.Baked != null && !ReferenceEquals(hb.Baked, owner.Baked))
                 throw new InvalidOperationException($"Hitbox of entity {hb.OwnerId} references another fighter's baked animation.");
@@ -562,6 +564,7 @@ namespace SlopArena.Shared
             w.WriteByte(hb.AnimIndex);
             w.WriteByte(hb.Slot);
             w.WriteBool(hb.Airborne);
+            w.WriteByte(hb.Form);
             w.WriteBool(hb.HasSweepOrigin);
             Write(w, hb.SweepOrigin);
             w.WriteInt(hb.Sweep?.Length ?? -1);
@@ -617,9 +620,8 @@ namespace SlopArena.Shared
             hb.HomingTurnCos = r.ReadFloat();
             hb.HomingTurnSin = r.ReadFloat();
             if (r.ReadBool()) hb.OwnerDamage = r.ReadFloat();
-            hb.IgnitesOwnerCans = r.ReadBool();
-            hb.IsCanIgniterOnly = r.ReadBool();
-            if (r.ReadBool()) hb.MankiCan = ReadMankiCanPayload(r);
+            hb.ContactExplosion = r.ReadBool();
+            hb.ExplodeOnExpiry = r.ReadBool();
             if (r.ReadBool())
                 hb.Explosion = ReadProjectileExplosion(r);
             if (r.ReadBool())
@@ -629,23 +631,25 @@ namespace SlopArena.Shared
             hb.CanHitOwner = r.ReadBool();
             hb.FreezesOwner = r.ReadBool();
             hb.OwnerWindow = r.ReadBool();
+            hb.OnlyTargetId = r.ReadULong();
             hb.HitsMultipleOpponents = r.ReadBool();
             hb.HitEntities = r.ReadSet();
             hb.TracksBone = r.ReadBool();
             hb.SourceEvent = ReadHitboxEvent(r);
             bool hasBaked = r.ReadBool();
             bool hasDef = r.ReadBool();
+            hb.AnimIndex = r.ReadByte();
+            hb.Slot = r.ReadByte();
+            hb.Airborne = r.ReadBool();
+            hb.Form = r.ReadByte();
             if (hasBaked || hasDef)
             {
                 var owner = ownerContent(hb.OwnerId);
                 if ((hasDef && owner.Def == null) || (hasBaked && owner.Baked == null))
                     throw SnapshotReader.Malformed($"hitbox owner {hb.OwnerId} content");
-                hb.Def = hasDef ? owner.Def : null;
+                hb.Def = hasDef ? owner.Def!.ForForm(hb.Form) : null;
                 hb.Baked = hasBaked ? owner.Baked : null;
             }
-            hb.AnimIndex = r.ReadByte();
-            hb.Slot = r.ReadByte();
-            hb.Airborne = r.ReadBool();
             hb.HasSweepOrigin = r.ReadBool();
             hb.SweepOrigin = ReadHitboxSweepOrigin(r);
             int poses = r.ReadOptionalCount(24);

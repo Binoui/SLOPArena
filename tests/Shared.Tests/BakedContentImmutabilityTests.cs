@@ -6,21 +6,7 @@ namespace SlopArena.Tests;
 
 public sealed class BakedContentImmutabilityTests
 {
-    [Fact]
-    public void ChangingCapabilityTierBuffersCannotRetuneAnAdmittedMove()
-    {
-        var slot = TestHelpers.MankiDef.GetCookedSlotAbility(AbilitySlots.F, false)!;
-        var parameters = slot.Timeline.Stages.SelectMany(stage => stage.Operations)
-            .OfType<CookedStartCapabilityOperation>()
-            .Select(operation => operation.Parameters)
-            .OfType<CookedMankiAerosolInfernoCapabilityParameters>().Single();
-        var tiers = new[] { new MankiAerosolChargeTier(1, 7f, 1f) };
-        var isolated = parameters with { ChargeTiers = tiers };
 
-        tiers[0] = new MankiAerosolChargeTier(1, 99f, 1f);
-
-        Assert.Equal(7f, isolated.GetChargeTier(1).Damage);
-    }
 
     [Fact]
     public void ChangingConstructionBuffersCannotChangeAnAdmittedPose()

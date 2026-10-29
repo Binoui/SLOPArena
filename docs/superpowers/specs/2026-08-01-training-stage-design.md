@@ -1,7 +1,7 @@
 # Training Box Stage — Design Spec
 
 **Date:** 2026-08-01
-**Status:** Current stage uses the quiet practice lab presentation and two-wall gameplay boundary of 2026-10-11; earlier rebuild notes and the original tutorial below are historical.
+**Status:** Historical grey-lab and two-wall design. The 2026-10-29 Crash-Test Lab rebuild is governed by the [locked design brief](../../design/stages/training.design.md) and [production brief](../../design/stages/training.md). Maintainer acceptance is pending.
 **Owner:** binoui (new to Unity — spec doubles as a build tutorial)
 
 ## Two-wall gameplay boundary — 2026-10-11

@@ -54,6 +54,7 @@ namespace SlopArena.EditorTools
                 "fightguy" => CharacterClass.FightGuy, "manki" => CharacterClass.Manki,
                 "wibou" => CharacterClass.Wibou, "bonk" => CharacterClass.Bonk, "bashie" => CharacterClass.Bashie,
                 "salamander" => CharacterClass.Salamander,
+                "nyx" => CharacterClass.Nyx,
                 _ => throw new ArgumentException("fighter must be fightguy, manki, wibou, bonk or bashie.")
             };
             if (!Enum.TryParse(opponent, true, out CharacterClass opponentClass) || opponentClass == CharacterClass.None

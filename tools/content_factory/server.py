@@ -280,8 +280,8 @@ def add_inbox(text: str) -> dict:
 
 
 def add_report(kind: str, text: str, inbox: list[int]) -> dict:
-    if kind not in {"scout", "analyst"} or not text.strip():
-        raise Refused("a report has a kind (scout or analyst) and a body")
+    if kind not in {"scout", "designer", "analyst"} or not text.strip():
+        raise Refused("a report has a kind (scout, designer or analyst) and a body")
     with db() as con:
         report_id = con.execute("INSERT INTO reports (kind, body, at) VALUES (?, ?, ?)",
                                 (kind, text.strip(), now())).lastrowid

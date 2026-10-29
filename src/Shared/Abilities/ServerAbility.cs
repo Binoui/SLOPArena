@@ -40,6 +40,9 @@ namespace SlopArena.Shared.Abilities
         /// <summary>The tether this activation runs, if any (ADR-0048): its contacts catch instead of hitting.</summary>
         public virtual TetherAbility? Tether => null;
 
+        /// <summary>The hold this activation's contact puts on that victim (ADR-0052), or null for an ordinary hit.</summary>
+        public virtual HeldCutRelease? HeldCutFor(ulong victimId) => null;
+
         /// <summary>
         /// True while this activation's authored armor window remains active. A capability may report
         /// armour of its own (a charge armoured for as long as it gallops); its timeline forwards it.
@@ -105,6 +108,8 @@ namespace SlopArena.Shared.Abilities
             ref float damage, ref float knockbackForce)
         {
         }
+        public virtual void OnHitConfirmed(in SpellResolver.HitResult hit, in CharacterState target, int operationIndex) { }
+
         /// <summary>Accepted nonfighter contact; owner effects do not require a fake fighter target.</summary>
         public virtual void OnHitObject(ref CharacterState attacker, CharacterDefinition attackerDef,
             ref float damage, ref float knockbackForce) { }
@@ -174,8 +179,8 @@ namespace SlopArena.Shared.Abilities
         /// When evt.BoneName is set and baked data is available, positions at the
         /// bone's world position instead of the fixed OffX/Y/Z offset.
         /// </summary>
-        protected HashSet<ulong> SpawnHitbox(ref CharacterState s, HitboxEvent evt, bool followOwner = false,
-            bool ignitesOwnerCans = false)
+        protected HashSet<ulong> SpawnHitbox(ref CharacterState s, HitboxEvent evt, bool followOwner = false, bool freezesOwner = true,
+            ulong onlyTargetId = 0)
         {
             // Position resolution is shared with the Ability Lab preview + tests
             // (spec #119) — one implementation, previews cannot drift from the server.
@@ -217,7 +222,6 @@ namespace SlopArena.Shared.Abilities
                 Shape = evt.Shape,
                 EndX = wex, EndY = wey, EndZ = wez,
                 Damage = damage,
-                IgnitesOwnerCans = ignitesOwnerCans,
                 BaseKnockback = kbBase,
                 KnockbackGrowth = kbGrowth,
                 KnockbackAngle = kbAngle,
@@ -229,7 +233,8 @@ namespace SlopArena.Shared.Abilities
                 ActivationId = ActivationId,
                 ActivationAirborne = AirborneAtStart,
                 AttackSequence = PresentationAttackSequence,
-                FreezesOwner = true,
+                FreezesOwner = freezesOwner,
+                OnlyTargetId = onlyTargetId,
                 CancelWithAbility = true,
                 HitsMultipleOpponents = true,
                 HitEntities = sharedHitEntities ??= new HashSet<ulong>(),
@@ -241,6 +246,7 @@ namespace SlopArena.Shared.Abilities
                 Slot = Slot,
                 AttackSlot = (byte)(Slot + 1),
                 Airborne = AirborneAtStart,
+                Form = CharacterDef?.Form ?? 0,
             };
             Resolver.Spawn(hitbox);
             return sharedHitEntities;
@@ -336,6 +342,7 @@ namespace SlopArena.Shared.Abilities
             hitbox.ActivationId = ActivationId;
             hitbox.ActivationAirborne = AirborneAtStart;
             hitbox.AttackSequence = PresentationAttackSequence;
+            hitbox.Form = CharacterDef?.Form ?? 0;
             Resolver.Spawn(hitbox);
         }
 

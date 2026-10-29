@@ -7,145 +7,281 @@ using F = SlopArena.Shared.Tests.BashieShellFixture;
 namespace SlopArena.Shared.Tests;
 
 /// <summary>
-/// Bashie's shell (ADR-0045): Shell Shift skates her straight, Shell Dive and Hydro Jet carry her into the skate,
-/// the skate bowls fighters over, and normals, jumps, walls, shields and hits take her out.
+/// Bashie's shell (ADR-0050): every tucked landing splashes, the Cannonball hops onto where her target stood, the
+/// dive and Hydro Jet land through the same splash, and the compiler admits the shell only whole. Her wave is in
+/// <see cref="BashieWaveTests"/>.
 /// </summary>
 public sealed class BashieShellTests
 {
-    private const ulong Bashie = 1, Dummy = 2;
+    internal const ulong Bashie = 1, Dummy = 2, Third = 3;
     private static readonly CharacterDefinition Def = F.Definition;
-    private static float GroundY => TestHelpers.GroundPY(Def);
+    internal static float GroundY => TestHelpers.GroundPY(Def);
     private static float RunSpeed => Def.Movement.RunSpeed;
 
     [Fact]
-    public void StandingShellShiftTucksThenPushesOffIntoATimedSkate()
+    public void GroundRLandsWhereTheTargetStoodAndSplashesItUpward()
     {
-        var sim = Sim();
-        Step(sim, new InputState { ActiveSlot = AbilitySlots.R });
-        int tuck = 0;
-        while (State(sim).State != ActionState.Shell && tuck++ < 20)
-        {
-            Assert.True(Tucked(sim), "the tuck move already counts as in the shell");
-            Step(sim);
-        }
-        var skate = State(sim);
-        Assert.Equal(ActionState.Shell, skate.State);
-        Assert.Equal(F.SkateTicks, skate.StateTicks);
-        Assert.InRange(skate.VZ, F.MinSkateSpeed - .001f, F.MinSkateSpeed + .001f);
-        Assert.Equal(0f, skate.VX);
-        Assert.Single(Windows(sim));
+        var sim = Sim(dummy: Dummy2(0f, 4f));
+        Step(sim, Press(AbilitySlots.R));
+        Assert.True(Tucked(sim), "the cannonball is a tuck move");
+        var splash = RunToSplash(sim);
+        var landed = State(sim);
+        Assert.InRange(landed.PZ, 3.4f, 4.6f);
+        Assert.InRange(landed.PX, -.2f, .2f);
+        Assert.Equal(ActionState.Idle, landed.State);
+        Assert.Equal(F.PopUpTicks, landed.LandingLagTicks);
+        Assert.True(landed.GetCooldown(AbilitySlots.R) > 0, "R's cooldown starts at the splash");
+        Assert.Equal(Dummy, Assert.Single(splash).TargetEntityId);
+        Assert.Equal(F.SplashDamage, splash[0].Damage);
+        Assert.True(Launched(sim, Dummy), "the splash launches upward");
     }
 
     [Fact]
-    public void ShellShiftFromARunSkatesStraightAtRunSpeedWhateverTheStick()
+    public void MovingAwayAfterTakeoffDodgesItAndSheStillPopsUp()
     {
-        var sim = Sim(Running(RunSpeed));
-        var sideways = new InputState { MoveX = 1f };
-        Step(sim, sideways with { ActiveSlot = AbilitySlots.R });
-        SkateOn(sim, sideways);
-        for (int i = 0; i < 20; i++)
-        {
-            Step(sim, sideways);
-            var state = State(sim);
-            Assert.Equal(ActionState.Shell, state.State);
-            Assert.Equal(0f, state.VX);
-            Assert.InRange(state.VZ, RunSpeed - .001f, RunSpeed + .001f);
-            Assert.Equal(0f, state.FacingYaw);
-        }
+        var sim = Sim(dummy: Dummy2(0f, 4f));
+        var runAway = new Dictionary<ulong, InputState> { [Dummy] = new InputState { MoveY = 1f } };
+        Step(sim, Press(AbilitySlots.R));
+        var splash = RunToSplash(sim, runAway);
+        Assert.Empty(splash);
+        Assert.InRange(State(sim).PZ, 3.4f, 4.6f);
+        Assert.Equal(F.PopUpTicks, State(sim).LandingLagTicks);
     }
 
     [Fact]
-    public void SkateRunsOutAndPopsUpReadyToAct()
+    public void NoTargetLandsAFixedDistanceAhead()
     {
         var sim = Sim();
-        Step(sim, new InputState { ActiveSlot = AbilitySlots.R });
-        SkateOn(sim);
+        Step(sim, Press(AbilitySlots.R));
+        Assert.Empty(RunToSplash(sim));
+        Assert.InRange(State(sim).PZ, F.NoTargetDistance - .3f, F.NoTargetDistance + .3f);
+        Assert.InRange(State(sim).PX, -.05f, .05f);
+    }
+
+    [Fact]
+    public void FarTargetsAreClampedToMaxRange()
+    {
+        var sim = Sim(dummy: Dummy2(0f, 16f));
+        Step(sim, Press(AbilitySlots.R));
+        Assert.Empty(RunToSplash(sim));
+        Assert.InRange(State(sim).PZ, F.MaxRange - .3f, F.MaxRange + .3f);
+    }
+
+    [Fact]
+    public void ATargetOnAHigherPlatformIsReached()
+    {
+        var arena = CourseShellArena.FromBoxes(new[]
+        {
+            (-60f, -1f, -60f, 60f, 0f, 60f),
+            (-3f, 0f, 4f, 3f, 1.5f, 10f),
+        }, new SpawnPoint { X = 0f, Y = 1f, Z = 0f });
+        var dummy = Dummy2(0f, 6f);
+        dummy.PY += 1.5f;
+        var sim = Sim(dummy: dummy, arena: arena);
+        Step(sim, Press(AbilitySlots.R));
+        var splash = RunToSplash(sim);
+        Assert.InRange(State(sim).PY, GroundY + 1.5f - .02f, GroundY + 1.5f + .02f);
+        Assert.Equal(Dummy, Assert.Single(splash).TargetEntityId);
+    }
+
+    [Fact]
+    public void WithNoLandingByTheStageEndSheFallsFreeAndCanRecover()
+    {
+        // A deep pit past the ledge: the far box only lowers the blast zone.
+        var pit = CourseShellArena.FromBoxes(new[] { (-60f, -1f, -60f, 60f, 0f, 10f), (50f, -41f, 50f, 60f, -40f, 60f) },
+            new SpawnPoint { X = 0f, Y = 1f, Z = 0f });
+        var sim = Sim(Standing(0f, 8f), Dummy2(0f, 14f), pit);
+        Step(sim, Press(AbilitySlots.R));
         int ticks = 0;
-        while (State(sim).State == ActionState.Shell && ticks++ < 200) Step(sim);
-        Assert.Equal(F.SkateTicks, ticks);
-        Assert.Equal(ActionState.Idle, State(sim).State);
-        Step(sim);
-        Assert.Empty(Windows(sim));
-        Step(sim, new InputState { ActiveSlot = AbilitySlots.Slot1 });
+        while (State(sim).State == ActionState.Attacking && ticks++ < F.CannonballTicks + 5) Step(sim);
+        var free = State(sim);
+        Assert.Equal(ActionState.Idle, free.State);
+        Assert.False(free.IsGrounded);
+        Assert.False(Tucked(sim));
+        Assert.Equal(F.CannonballTicks, ticks + 1);
+        Step(sim, Press(AbilitySlots.E));
         Assert.Equal(ActionState.Attacking, State(sim).State);
+        Assert.Equal(AbilitySlots.E, State(sim).AttackSlot);
+    }
+
+    [Fact]
+    public void AHitInFlightEndsItWithoutASplash()
+    {
+        var sim = Sim(dummy: Dummy2(0f, 6f));
+        Step(sim, Press(AbilitySlots.R));
+        while (State(sim).IsGrounded) Step(sim);
+        Step(sim);
+        var me = State(sim);
+        sim.Resolver.Spawn(new Hitbox
+        {
+            X = me.PX, Y = me.PY, Z = me.PZ, EndX = me.PX, EndY = me.PY, EndZ = me.PZ,
+            Radius = 1f, Shape = HitboxShape.Sphere, Damage = 5f, BaseKnockback = 5f, KnockbackAngle = 30,
+            StunTicks = 20, DurationTicks = 2, OwnerId = Third, AttackSlot = AbilitySlots.Slot1,
+        });
+        var events = new List<TimelinePresentationEvent>();
+        for (int i = 0; i < 80; i++)
+        {
+            Step(sim);
+            Assert.DoesNotContain(sim.LastTickHits, h => h.OwnerEntityId == Bashie);
+            events.AddRange(sim.GetPresentationEvents(clear: true));
+        }
+        Assert.DoesNotContain(events, e => e.Source == PresentationEventSource.CapabilityLanding);
+        Assert.Equal(0, State(sim).LandingLagTicks);
+    }
+
+    [Fact]
+    public void TheSplashHitsEachFighterOnceAndAShieldBlocksIt()
+    {
+        var sim = Sim(dummy: Dummy2(0f, 4.5f));
+        var shielder = Dummy2(1f, 3.6f);
+        shielder.EntityId = Third;
+        sim.RegisterEntity(Third, TestHelpers.EngineDef, shielder);
+        var shield = new Dictionary<ulong, InputState> { [Third] = new InputState { ShieldHeld = true } };
+        Step(sim, Press(AbilitySlots.R) with { TargetEntityId = (byte)Dummy }, shield);
+        var splash = RunToSplash(sim, shield, ticksAfter: F.SplashTicks + 2);
+        Assert.Single(splash, h => h.TargetEntityId == Dummy && !h.Blocked);
+        Assert.Single(splash, h => h.TargetEntityId == Third && h.Blocked);
+        Assert.True(sim.GetState(Third).BlockStunTicks > 0 || sim.GetState(Third).HitstopTicks > 0);
+        Assert.True(State(sim).LandingLagTicks > 0, "a block does not cut her pop-up short");
+    }
+
+    [Fact]
+    public void FightersHighAboveTheSplashAreMissed()
+    {
+        var sim = Sim(dummy: Dummy2(0f, 4f));
+        var high = Dummy2(0f, 4f);
+        high.EntityId = Third;
+        high.PY += 3.5f;
+        high.IsGrounded = false;
+        sim.RegisterEntity(Third, TestHelpers.EngineDef, high);
+        sim.NoGravityEntityId = Third;
+        Step(sim, Press(AbilitySlots.R) with { TargetEntityId = (byte)Dummy });
+        var splash = RunToSplash(sim, ticksAfter: F.SplashTicks + 1);
+        Assert.Contains(splash, h => h.TargetEntityId == Dummy);
+        Assert.DoesNotContain(splash, h => h.TargetEntityId == Third);
     }
 
     [Theory]
-    [InlineData(AbilitySlots.Slot1)]
-    [InlineData(AbilitySlots.Slot3)]
-    [InlineData(AbilitySlots.Slot4)]
-    public void AGroundNormalPopsHerOutAtSkateSpeedThenBrakes(byte normal)
+    [InlineData(0f, 0f)]
+    [InlineData(10f, 0f)]
+    [InlineData(25f, 0f)]
+    [InlineData(5f, 1.5f)]
+    [InlineData(5f, -2f)]
+    public void TheSolvedArcLandsOnItsPointAtItsPlannedTick(float distance, float rise)
     {
-        float skateSpeed = 16f;
-        var sim = Sim(Running(skateSpeed));
-        Step(sim, new InputState { ActiveSlot = AbilitySlots.R });
-        SkateOn(sim);
-        Step(sim, new InputState { ActiveSlot = normal });
-        var popped = State(sim);
-        Assert.Equal(ActionState.Attacking, popped.State);
-        Assert.False(Tucked(sim));
-        float brake = F.PopOutDeceleration * Simulation.TickDt;
-        Assert.InRange(Speed(popped), skateSpeed - brake - .001f, skateSpeed - brake + .001f);
-        Assert.Empty(Windows(sim));
-        float previous = Speed(popped);
-        bool hopped = false;
-        for (int i = 0; i < 10; i++)
-        {
-            Step(sim);
-            var state = State(sim);
-            hopped |= state.PY > GroundY + .05f;
-            Assert.InRange(Speed(state), previous - brake - .001f, previous - brake + .001f);
-            previous = Speed(state);
-        }
-        if (normal == AbilitySlots.Slot4)
-        {
-            for (int i = 0; i < 10 && !hopped; i++) { Step(sim); hopped = State(sim).PY > GroundY + .05f; }
-            Assert.True(hopped, "Rising Shell keeps its hop while it carries the skate speed");
-        }
+        var p = F.CannonballParameters;
+        float gravity = Def.Movement.Gravity;
+        var arc = Abilities.CannonballFlight.Solve(0f, 0f, 0f, .3f, 0f, rise, distance, p, gravity);
+        float clamped = MathF.Min(distance, p.MaxRange);
+        Assert.Equal((ushort)MathF.Round(p.MinFlightTicks + (p.MaxFlightTicks - p.MinFlightTicks) * clamped / p.MaxRange), arc.FlightTicks);
+        Assert.Equal(distance > 0f ? 0f : .3f, arc.Yaw, 4);
+        Assert.InRange(arc.HorizontalSpeed * arc.FlightTicks * Simulation.TickDt, clamped - .001f, clamped + .001f);
+        // Her first flight tick leaves her support without gravity, as the simulation integrates it.
+        float y = arc.VerticalSpeed * Simulation.TickDt, vy = arc.VerticalSpeed;
+        for (int tick = 2; tick <= arc.FlightTicks; tick++) { vy -= gravity * Simulation.TickDt; y += vy * Simulation.TickDt; }
+        if (rise >= 0f) Assert.InRange(y, rise - .001f, rise + .001f);
+        else Assert.True(arc.VerticalSpeed > 0f, "she always hops up, even toward a lower target");
     }
 
     [Fact]
-    public void AJumpHopsOutOfTheSkateKeepingItsSpeed()
+    public void TheLaunchCapLandsShort()
     {
-        float skateSpeed = 18f;
-        var sim = Sim(Running(skateSpeed));
-        Step(sim, new InputState { ActiveSlot = AbilitySlots.R });
-        SkateOn(sim);
-        Step(sim, new InputState { Jump = true, JumpHeld = true });
-        Assert.Equal(ActionState.JumpSquat, State(sim).State);
-        int ticks = 0;
-        while (State(sim).IsGrounded && ticks++ < 20) Step(sim, new InputState { JumpHeld = true });
-        var airborne = State(sim);
-        Assert.False(airborne.IsGrounded);
-        Assert.False(Tucked(sim));
-        Assert.True(Speed(airborne) > RunSpeed + 1f, $"a hop out of the shell is not capped at RunSpeed ({Speed(airborne)})");
-        float airFriction = Def.Movement.AirFriction * Simulation.TickDt;
-        Assert.InRange(Speed(airborne), skateSpeed - airFriction - .001f, skateSpeed + .001f);
+        var p = F.CannonballParameters;
+        var arc = Abilities.CannonballFlight.Solve(0f, 0f, 0f, 0f, 0f, 30f, 2f, p, Def.Movement.Gravity);
+        Assert.Equal(p.MaxLaunchSpeed, arc.VerticalSpeed);
     }
 
     [Fact]
-    public void NeutralHydroJetGoesStraightUpThenCoastsAndAnAirJumpHopsOut()
+    public void AirRDivesTowardTheTargetAndSplashesWithNoSkate()
+    {
+        var sim = Sim(Airborne(4f), Dummy2(1.2f, 3.2f));
+        Step(sim, Press(AbilitySlots.R));
+        Assert.InRange(State(sim).FacingYaw, MathF.Atan2(1.2f, 3.2f) - .01f, MathF.Atan2(1.2f, 3.2f) + .01f);
+        var splash = RunToSplash(sim);
+        Assert.Equal(ActionState.Idle, State(sim).State);
+        Assert.Equal(F.PopUpTicks, State(sim).LandingLagTicks);
+        Assert.Equal(0f, Speed(State(sim)));
+        Assert.Single(splash);
+        Step(sim);
+        Assert.NotEqual(ActionState.Shell, State(sim).State);
+    }
+
+    [Fact]
+    public void TheDiveLeansTowardATargetAheadButNotOneBehind()
+    {
+        var ahead = Sim(Airborne(4f), Dummy2(3f, 6f));
+        Step(ahead, Press(AbilitySlots.R));
+        Assert.InRange(State(ahead).FacingYaw, MathF.Atan2(3f, 6f) - .01f, MathF.Atan2(3f, 6f) + .01f);
+        Assert.True(State(ahead).VX > 0f && State(ahead).VY < 0f);
+
+        var behind = Sim(Airborne(4f), Dummy2(0f, -5f));
+        Step(behind, Press(AbilitySlots.R));
+        Assert.Equal(0f, State(behind).FacingYaw);
+        Assert.Equal(0f, State(behind).VX, 3);
+        Assert.True(State(behind).VZ > 0f);
+    }
+
+    [Fact]
+    public void RMidJetKeepsTheJetSpeedWithoutUntuckingAndSplashes()
     {
         var sim = Sim();
-        Step(sim, new InputState { ActiveSlot = AbilitySlots.E });
-        var jet = State(sim);
-        Assert.True(Tucked(sim));
-        Assert.Equal(0f, jet.VX, 3);
-        Assert.Equal(0f, jet.VZ, 3);
-        Assert.InRange(jet.VY, F.JetSpeed - .001f, F.JetSpeed + .001f);
+        Step(sim, new InputState { ActiveSlot = AbilitySlots.E, MoveY = 1f });
+        for (int i = 0; i < F.JetIasa; i++) { Assert.True(Tucked(sim)); Step(sim); }
+        Step(sim, Press(AbilitySlots.R));
+        var dive = State(sim);
+        Assert.True(dive.GetCooldown(AbilitySlots.E) > 0, "R cancelling the jet starts E's cooldown");
+        float diveSpeed = MathF.Sqrt(dive.VX * dive.VX + dive.VY * dive.VY + dive.VZ * dive.VZ);
+        float firstTick = F.DiveAcceleration * Simulation.TickDt;
+        Assert.InRange(diveSpeed, F.JetSpeed + firstTick - .01f, F.JetSpeed + firstTick + .01f);
         int ticks = 0;
-        while (State(sim).State == ActionState.Attacking && ticks++ < 40)
+        var events = new List<TimelinePresentationEvent>();
+        while (State(sim).State == ActionState.Attacking && ticks++ < 120)
         {
-            Assert.True(Tucked(sim));
+            Assert.True(Tucked(sim), $"tucked every tick from E to the splash (tick {ticks})");
             Step(sim);
+            events.AddRange(sim.GetPresentationEvents(clear: true));
         }
-        var coast = State(sim);
-        Assert.Equal(ActionState.Shell, coast.State);
-        Assert.False(coast.IsGrounded);
-        Assert.Equal(0, coast.StateTicks);
-        Step(sim, new InputState { Jump = true });
+        Assert.True(State(sim).IsGrounded);
+        Assert.Equal(F.PopUpTicks, State(sim).LandingLagTicks);
+        Assert.Contains(events, e => e.Source == PresentationEventSource.CapabilityLanding
+            && e.PresentationId == "presentation.bashie.shell.plop");
+    }
+
+    [Fact]
+    public void HydroJetEndsInAnOrdinaryFall()
+    {
+        var sim = Sim();
+        Step(sim, Press(AbilitySlots.E));
+        Assert.True(Tucked(sim));
+        Assert.InRange(State(sim).VY, F.JetSpeed - .001f, F.JetSpeed + .001f);
+        while (State(sim).State == ActionState.Attacking) Step(sim);
         Assert.Equal(ActionState.Idle, State(sim).State);
+        Assert.False(State(sim).IsGrounded);
         Assert.False(Tucked(sim));
+        int ticks = 0;
+        while (!State(sim).IsGrounded && ticks++ < 200) Step(sim);
+        Assert.Equal(0, State(sim).LandingLagTicks);
+        Assert.Empty(Windows(sim));
+    }
+
+    [Fact]
+    public void AHydroJetThatMeetsTheGroundSplashes()
+    {
+        var def = TestHelpers.ResolveSourceDef("bashie", c =>
+        {
+            F.Apply(c);
+            F.SlotNamed(c, "ground.E")["timeline"]!["stages"]![0]!["operations"]![0]!["parameters"]!["stickPitchDegrees"] = -30;
+        });
+        var sim = new ServerSimulation(Floor());
+        var me = Airborne(2f);
+        me.EntityId = Bashie;
+        sim.RegisterEntity(Bashie, def, me);
+        Step(sim, new InputState { ActiveSlot = AbilitySlots.E, MoveY = 1f });
+        int ticks = 0;
+        while (State(sim).State == ActionState.Attacking && ticks++ < F.JetTicks) Step(sim);
+        Assert.True(ticks < F.JetTicks, "the jet met the ground before it ended");
+        Assert.True(State(sim).IsGrounded);
+        Assert.Equal(F.PopUpTicks, State(sim).LandingLagTicks);
     }
 
     [Theory]
@@ -182,189 +318,29 @@ public sealed class BashieShellTests
     }
 
     [Fact]
-    public void RMidJetDivesAtTheJetSpeedWithoutUntuckingAndLandsIntoTheSkate()
+    public void OneCurrentTargetForTheCannonballTheDiveAndTheRide()
     {
-        var sim = Sim();
-        Step(sim, new InputState { ActiveSlot = AbilitySlots.E, MoveY = 1f });
-        for (int i = 0; i < F.JetIasa; i++) { Assert.True(Tucked(sim)); Step(sim); }
-        ushort eCooldownBefore = State(sim).GetCooldown(AbilitySlots.E);
-        Step(sim, new InputState { ActiveSlot = AbilitySlots.R });
-        var dive = State(sim);
-        Assert.Equal(0, eCooldownBefore);
-        Assert.True(dive.GetCooldown(AbilitySlots.E) > 0, "R cancelling the jet starts E's cooldown");
-        Assert.Equal(0, dive.GetCooldown(AbilitySlots.R));
-        float diveSpeed = MathF.Sqrt(dive.VX * dive.VX + dive.VY * dive.VY + dive.VZ * dive.VZ);
-        // The jet's speed is kept, not added to the dive's; the dive then accelerates on its own.
-        float firstTick = F.DiveAcceleration * Simulation.TickDt;
-        Assert.InRange(diveSpeed, F.JetSpeed + firstTick - .01f, F.JetSpeed + firstTick + .01f);
-        Assert.True(dive.VY < 0f);
-        int ticks = 0;
-        while (!(State(sim).State == ActionState.Shell && State(sim).IsGrounded) && ticks++ < 120)
+        // The closest fighter is the current target; selecting another one wins while it is in lock range.
+        foreach (byte selected in new byte[] { 0, (byte)Third })
         {
-            Assert.True(Tucked(sim), $"tucked every tick from E to the skate (tick {ticks}, {State(sim).State})");
-            Step(sim);
+            float yaw = selected == 0 ? MathF.Atan2(-2f, 3f) : MathF.Atan2(4f, 5f);
+            foreach (var (start, slot) in new[] { (Standing(), AbilitySlots.R), (Airborne(4f), AbilitySlots.R), (Standing(), AbilitySlots.F) })
+            {
+                var sim = Sim(start, Dummy2(-2f, 3f));
+                var other = Dummy2(4f, 5f);
+                other.EntityId = Third;
+                sim.RegisterEntity(Third, TestHelpers.EngineDef, other);
+                var input = Press(slot) with { TargetEntityId = selected };
+                // Her client sends its selection every tick; the dive reads the target the last tick resolved.
+                Step(sim, new InputState { TargetEntityId = selected });
+                Step(sim, input);
+                for (int i = 0; i < F.WhistleTicks + 6 && State(sim).State != ActionState.Shell && State(sim).IsGrounded == start.IsGrounded && slot == AbilitySlots.F; i++)
+                    Step(sim, new InputState { TargetEntityId = selected });
+                for (int i = 0; i < F.TakeoffTick + 2 && slot == AbilitySlots.R && start.IsGrounded; i++)
+                    Step(sim, new InputState { TargetEntityId = selected });
+                Assert.InRange(State(sim).FacingYaw, yaw - .02f, yaw + .02f);
+            }
         }
-        var skate = State(sim);
-        Assert.Equal(ActionState.Shell, skate.State);
-        Assert.True(skate.IsGrounded);
-        Assert.Equal(F.SkateTicks, skate.StateTicks);
-        Assert.True(skate.GetCooldown(AbilitySlots.R) > 0, "air R's cooldown starts at touchdown");
-    }
-
-    [Fact]
-    public void HigherDivesSkateFasterUpToTheCap()
-    {
-        float low = DiveLandingSpeed(2.5f), high = DiveLandingSpeed(7f);
-        Assert.True(high > low + .5f, $"higher dive {high} vs lower {low}");
-        Assert.True(low >= F.MinSkateSpeed && high <= F.MaxSkateSpeed);
-    }
-
-    [Fact]
-    public void TheDiveLeansTowardATargetAheadButNotOneBehind()
-    {
-        var ahead = Sim(Airborne(4f), Dummy2(3f, 6f));
-        Step(ahead, new InputState { ActiveSlot = AbilitySlots.R });
-        Assert.InRange(State(ahead).FacingYaw, MathF.Atan2(3f, 6f) - .01f, MathF.Atan2(3f, 6f) + .01f);
-        Assert.True(State(ahead).VX > 0f && State(ahead).VY < 0f);
-
-        var behind = Sim(Airborne(4f), Dummy2(0f, -5f));
-        Step(behind, new InputState { ActiveSlot = AbilitySlots.R });
-        Assert.Equal(0f, State(behind).FacingYaw);
-        Assert.Equal(0f, State(behind).VX, 3);
-        Assert.True(State(behind).VZ > 0f);
-    }
-
-    [Fact]
-    public void TheSkateBowlsAFighterUpOnceAndSkatesOnUnderThem()
-    {
-        var sim = Sim(Running(RunSpeed), Dummy2(0f, 4f));
-        Step(sim, new InputState { ActiveSlot = AbilitySlots.R });
-        int hits = 0;
-        bool launched = false;
-        for (int i = 0; i < 50 && State(sim).State == ActionState.Shell || i < TuckTicks + 2; i++)
-        {
-            Step(sim);
-            hits += sim.LastTickHits.Count(h => h.OwnerEntityId == Bashie && h.TargetEntityId == Dummy && h.OwnerWindow);
-            var dummy = sim.GetState(Dummy);
-            launched |= dummy.KVY > 0f || dummy.VY > 0f && !dummy.IsGrounded;
-            if (State(sim).PZ > 6f) break;
-        }
-        Assert.Equal(1, hits);
-        Assert.True(launched, "the victim is bowled up");
-        Assert.Equal(ActionState.Shell, State(sim).State);
-        Assert.True(State(sim).PZ > 5.5f, "she skated on past the victim");
-    }
-
-    [Fact]
-    public void AHeadOnWallPopsHerUpBouncingBack()
-    {
-        var sim = Sim(Running(RunSpeed), arena: Floor(wallZ: 6f));
-        Step(sim, new InputState { ActiveSlot = AbilitySlots.R });
-        SkateOn(sim);
-        int ticks = 0;
-        while (State(sim).State == ActionState.Shell && ticks++ < 60) Step(sim);
-        var stopped = State(sim);
-        Assert.Equal(ActionState.Idle, stopped.State);
-        Assert.InRange(stopped.VZ, -F.BlockedRecoilSpeed - .001f, -F.BlockedRecoilSpeed + .001f);
-        Assert.True(stopped.PZ < 6f);
-        Assert.Equal(0, stopped.AnimLockTicks);
-    }
-
-    [Fact]
-    public void AShieldPopsHerUpAndBlockstunsTheShielder()
-    {
-        var sim = Sim(Running(RunSpeed), Dummy2(0f, 5f));
-        var shield = new Dictionary<ulong, InputState> { [Dummy] = new InputState { ShieldHeld = true } };
-        Step(sim, new InputState { ActiveSlot = AbilitySlots.R }, shield);
-        bool blocked = false;
-        for (int i = 0; i < 60 && !blocked; i++)
-        {
-            Step(sim, default, shield);
-            blocked = sim.LastTickHits.Any(h => h.Blocked && h.OwnerWindow);
-        }
-        Assert.True(blocked);
-        Assert.True(sim.GetState(Dummy).BlockStunTicks > 0);
-        Assert.Equal(ActionState.Idle, State(sim).State);
-        Assert.True(State(sim).VZ < 0f, "she bounces back off the shield");
-    }
-
-    [Fact]
-    public void AnyHitPopsHerOutOfTheShell()
-    {
-        var sim = Sim(Running(RunSpeed), Dummy2(5f, 0f));
-        Step(sim, new InputState { ActiveSlot = AbilitySlots.R });
-        SkateOn(sim);
-        var me = State(sim);
-        sim.Resolver.Spawn(new Hitbox
-        {
-            X = me.PX, Y = me.PY, Z = me.PZ + .3f, EndX = me.PX, EndY = me.PY, EndZ = me.PZ + .3f,
-            Radius = 1f, Shape = HitboxShape.Sphere, Damage = 5f, BaseKnockback = 5f, KnockbackAngle = 30,
-            StunTicks = 10, DurationTicks = 2, OwnerId = Dummy, AttackSlot = AbilitySlots.Slot1,
-        });
-        Step(sim);
-        Assert.NotEqual(ActionState.Shell, State(sim).State);
-        Step(sim);
-        Assert.Empty(Windows(sim));
-    }
-
-    [Fact]
-    public void WalkingOffALedgeCoastsOnTheRunningClockAndLandsBackInTheSkate()
-    {
-        var sim = Sim(Running(RunSpeed, z: 5f), arena: Floor(ledgeZ: 10f));
-        Step(sim, new InputState { ActiveSlot = AbilitySlots.R });
-        SkateOn(sim);
-        ushort clock = State(sim).StateTicks;
-        bool coasted = false;
-        for (int i = 0; i < 80; i++)
-        {
-            Step(sim);
-            var state = State(sim);
-            Assert.Equal(ActionState.Shell, state.State);
-            Assert.Equal(clock - 1, state.StateTicks);
-            clock = state.StateTicks;
-            coasted |= !state.IsGrounded;
-            if (coasted && state.IsGrounded) break;
-        }
-        Assert.True(coasted);
-        Assert.True(State(sim).IsGrounded, "she lands back in the skate with the clock still running");
-        Assert.True(Speed(State(sim)) > RunSpeed, "the fall adds to the skate");
-    }
-
-    [Fact]
-    public void RsCooldownStartsAtTheHandOffAndACoolingRChangesNothing()
-    {
-        var sim = Sim();
-        Step(sim, new InputState { ActiveSlot = AbilitySlots.R });
-        while (State(sim).State == ActionState.Attacking)
-        {
-            Assert.Equal(0, State(sim).GetCooldown(AbilitySlots.R));
-            Step(sim);
-        }
-        Assert.Equal(F.RCooldown, State(sim).GetCooldown(AbilitySlots.R));
-        Step(sim);
-        var before = State(sim);
-        Step(sim, new InputState { ActiveSlot = AbilitySlots.R });
-        var after = State(sim);
-        Assert.Equal(ActionState.Shell, after.State);
-        Assert.Equal(before.StateTicks - 1, after.StateTicks);
-        Assert.Equal(before.VZ, after.VZ);
-    }
-
-    [Fact]
-    public void ShieldAndAirDodgeLeaveTheShell()
-    {
-        var ground = Sim();
-        Step(ground, new InputState { ActiveSlot = AbilitySlots.R });
-        SkateOn(ground);
-        Step(ground, new InputState { ShieldHeld = true });
-        Assert.Equal(ActionState.Shielding, State(ground).State);
-
-        var air = Sim();
-        Step(air, new InputState { ActiveSlot = AbilitySlots.E });
-        while (State(air).State == ActionState.Attacking) Step(air);
-        Assert.Equal(ActionState.Shell, State(air).State);
-        Step(air, new InputState { ShieldPressed = true, MoveX = 1f });
-        Assert.Equal(ActionState.AirDodgeMovement, State(air).State);
     }
 
     [Fact]
@@ -373,26 +349,49 @@ public sealed class BashieShellTests
         Assert.Contains(Compile(c => c["shell"] = null), d => d.Code == "schema.missing");
         Assert.Contains(Compile(c => c["capabilityRequirements"]!.AsArray().RemoveAt(1)), d => d.Code == "capability.unknown");
         Assert.Contains(Compile(c => F.SlotNamed(c, "ground.1")["shellPolicy"] = "tuck"), d => d.Code == "value.out-of-range");
-        Assert.Contains(Compile(c => F.SlotNamed(c, "ground.R")["allowSlideCarry"] = true), d => d.Code == "capability.ambiguous");
-        Assert.Contains(Compile(c => F.SlotNamed(c, "ground.E")["timeline"]!["stages"]![0]!["operations"]![0]!["parameters"]!["speed"] = 0),
-            d => d.Code == "value.out-of-range");
+        Assert.Contains(Compile(c => F.SlotNamed(c, "ground.1")["shellPolicy"] = "ride"), d => d.Code == "value.out-of-range");
+        Assert.Contains(Compile(c => F.SlotNamed(c, "ground.E")["allowSlideCarry"] = true), d => d.Code == "capability.ambiguous");
         Assert.Contains(Compile(c => ((System.Text.Json.Nodes.JsonObject)c["presentation"]!).Remove("shell")),
             d => d.Code == "schema.missing");
+        // A splash exists exactly when a slot tucks, a ride exactly when one special rides.
+        Assert.Contains(Compile(c => ((System.Text.Json.Nodes.JsonObject)c["shell"]!).Remove("splash")), d => d.Code == "capability.ambiguous");
+        Assert.Contains(Compile(c => ((System.Text.Json.Nodes.JsonObject)c["shell"]!).Remove("ride")), d => d.Code == "capability.ambiguous");
+        Assert.Contains(Compile(c => F.SlotNamed(c, "ground.F")["shellPolicy"] = "popOut"), d => d.Code == "capability.ambiguous");
+        Assert.Contains(Compile(c => F.SlotNamed(c, "ground.A")["shellPolicy"] = "ride"), d => d.Code is "capability.ambiguous");
+        // The ride is the shell's: a ride move carries no motion or capability of its own.
+        Assert.Contains(Compile(c => F.SlotNamed(c, "ground.F")["timeline"]!["stages"]![0]!["iasaTicks"] = 4), d => d.Code == "capability.ambiguous");
+        Assert.Contains(Compile(c => F.SlotNamed(c, "ground.F")["timeline"]!["stages"]![0]!["operations"]!.AsArray().Add(
+            System.Text.Json.Nodes.JsonNode.Parse("""{"kind":"setVelocity","tick":0,"unit":"ticks","velocityMode":"absolute","x":0,"y":0,"z":0}"""))),
+            d => d.Code == "capability.ambiguous");
+        Assert.Contains(Compile(c => c["shell"]!["ride"]!["wave"]!["stunTicks"] = 5), d => d.Code == "value.out-of-range");
+        Assert.Contains(Compile(c => c["shell"]!["splash"]!["popUpTicks"] = 0), d => d.Code == "value.out-of-range");
+        // The cannonball tucks and fits its stage.
+        Assert.Contains(Compile(c => F.SlotNamed(c, "ground.R")["shellPolicy"] = "popOut"), d => d.Code == "capability.ambiguous");
+        Assert.Contains(Compile(c => F.SlotNamed(c, "ground.R")["timeline"]!["stages"]![0]!["durationTicks"] = 30), d => d.Code == "capability.ambiguous");
+        Assert.Contains(Compile(c => F.SlotNamed(c, "ground.R")["timeline"]!["stages"]![0]!["operations"]![0]!["parameters"]!["minFlightTicks"] = 0),
+            d => d.Code == "value.out-of-range");
         Assert.Empty(Compile(_ => { }).Where(d => d.Severity == CharacterDiagnosticSeverity.Error));
     }
 
     [Fact]
-    public void ShellContentNeedsRuntimeApi112AndOtherPackagesWriteNoShellFields()
+    public void ShellStanceV1IsRefusedWithItsRetirementReason()
     {
-        Assert.Equal("1.12.0", CompilePackage("bashie", c => { F.Apply(c); F.WithoutRing(c); }).Metadata.RuntimeApiMin);
-        foreach (var package in new[] { "fightguy", "wibou", "manki", "bonk" })
+        var diagnostics = Compile(c => c["capabilityRequirements"]![1]!["capabilityId"] = "slop.ability.shell-stance.v1");
+        Assert.Contains(diagnostics, d => d.Code == "capability.retired" && d.Message.Contains("shell-stance.v2"));
+    }
+
+    [Fact]
+    public void ShellContentNeedsRuntimeApi114AndOtherPackagesWriteNoShellFields()
+    {
+        var bashie = CompilePackage("bashie", c => { F.Apply(c); F.WithoutRing(c); });
+        Assert.Equal("1.14.0", bashie.Metadata.RuntimeApiMin);
+        Assert.Contains("\"splash\"", System.Text.Encoding.UTF8.GetString(bashie.CanonicalBytes));
+        foreach (var package in new[] { "fightguy", "wibou", "manki", "bonk", "salamander" })
         {
             var cooked = CompilePackage(package, null);
-            if (Environment.GetEnvironmentVariable("SHELL_DUMP") is { } dump)
-                System.IO.File.WriteAllBytes($"{dump}/{package}.json", cooked.CanonicalBytes);
             string text = System.Text.Encoding.UTF8.GetString(cooked.CanonicalBytes);
             Assert.DoesNotContain("\"shell", text);
-            Assert.NotEqual("1.12.0", cooked.Metadata.RuntimeApiMin);
+            Assert.NotEqual("1.14.0", cooked.Metadata.RuntimeApiMin);
             Assert.Null(cooked.Definition.Shell);
         }
     }
@@ -429,44 +428,67 @@ public sealed class BashieShellTests
     }
 
     [Fact]
-    public void HerLiveKitTucksOnRAndEAndJetsAndDivesThroughThrust()
+    public void HerLiveKitTucksOnRAndERidesOnFAndCannonballsOnGroundR()
     {
         var live = TestHelpers.ResolveSourceDef("bashie");
-        Assert.NotNull(live.Shell);
+        Assert.NotNull(live.Shell?.Splash);
+        Assert.NotNull(live.Shell?.Ride);
         Assert.Equal("anim.bashie.gr-slide", live.ShellAnim);
         foreach (var id in new[] { "ground.R", "air.R", "ground.E", "air.E" })
             Assert.Equal(ShellPolicy.Tuck, live.CookedSlots!.Single(slot => slot.Id == id).ShellPolicy);
-        foreach (var id in new[] { "ground.1", "ground.3", "ground.4", "air.1", "ground.A", "ground.F" })
+        foreach (var id in new[] { "ground.F", "air.F" })
+            Assert.Equal(ShellPolicy.Ride, live.CookedSlots!.Single(slot => slot.Id == id).ShellPolicy);
+        foreach (var id in new[] { "ground.1", "ground.3", "ground.4", "air.1", "ground.A" })
             Assert.Equal(ShellPolicy.PopOut, live.CookedSlots!.Single(slot => slot.Id == id).ShellPolicy);
+        Assert.Contains(live.CookedSlots!.Single(slot => slot.Id == "ground.R").Timeline.Stages[0].Operations,
+            op => op is CookedStartCapabilityOperation { CapabilityId: CharacterPackageCompiler.CannonballCapabilityId });
         foreach (var id in new[] { "air.R", "ground.E" })
             Assert.Contains(live.CookedSlots!.Single(slot => slot.Id == id).Timeline.Stages[0].Operations,
                 op => op is CookedStartCapabilityOperation { CapabilityId: CharacterPackageCompiler.ThrustCapabilityId });
-
-        var sim = new ServerSimulation(Floor());
-        var me = Standing(); me.EntityId = Bashie;
-        sim.RegisterEntity(Bashie, live, me);
-        sim.Tick(new Dictionary<ulong, InputState> { [Bashie] = new InputState { ActiveSlot = AbilitySlots.E, MoveY = 1f } });
-        int ticks = 0;
-        while (ticks++ < 200 && !(sim.GetState(Bashie).State == ActionState.Shell && sim.GetState(Bashie).IsGrounded))
-        {
-            var state = sim.GetState(Bashie);
-            Assert.True(Shell.IsTucked(state.State, sim.GetActiveMove(Bashie)?.Slot), $"tucked at tick {ticks} ({state.State})");
-            bool pressR = state.State == ActionState.Attacking && Simulation.IsIasaUnlocked(in state, sim.GetActiveMove(Bashie))
-                && state.AttackSlot == AbilitySlots.E;
-            sim.Tick(new Dictionary<ulong, InputState> { [Bashie] = pressR ? new InputState { ActiveSlot = AbilitySlots.R } : default });
-        }
-        Assert.Equal(ActionState.Shell, sim.GetState(Bashie).State);
-        Assert.True(sim.GetState(Bashie).IsGrounded, "Hydro Jet, then Shell Dive at its IASA, lands her into the skate");
     }
 
-    private static float DiveLandingSpeed(float height)
+    // ── helpers ──
+
+    internal static InputState Press(byte slot) => new() { ActiveSlot = slot };
+
+    /// <summary>Whistles (F) and ticks until she rides.</summary>
+    internal static void RideOn(ServerSimulation sim, InputState input = default, Dictionary<ulong, InputState>? others = null)
     {
-        var sim = Sim(Airborne(height));
-        Step(sim, new InputState { ActiveSlot = AbilitySlots.R });
+        Step(sim, input with { ActiveSlot = AbilitySlots.F }, others);
         int ticks = 0;
-        while (!(State(sim).State == ActionState.Shell && State(sim).IsGrounded) && ticks++ < 120) Step(sim);
+        while (State(sim).State != ActionState.Shell && ticks++ < F.WhistleTicks + 5) Step(sim, input, others);
         Assert.Equal(ActionState.Shell, State(sim).State);
-        return Speed(State(sim));
+    }
+
+    /// <summary>Steps until her tucked move splashes, then a few ticks more; returns the splash's contacts.</summary>
+    internal static List<SpellResolver.HitResult> RunToSplash(ServerSimulation sim,
+        Dictionary<ulong, InputState>? others = null, int ticksAfter = 0, int maxTicks = 120)
+    {
+        var hits = new List<SpellResolver.HitResult>();
+        int ticks = 0;
+        while (State(sim).State == ActionState.Attacking && ticks++ < maxTicks)
+        {
+            Step(sim, default, others);
+            hits.AddRange(sim.LastTickHits.Where(h => h.OwnerEntityId == Bashie && !h.OwnerWindow));
+        }
+        Assert.True(State(sim).IsGrounded && State(sim).LandingLagTicks == F.PopUpTicks, $"she splashed ({State(sim).State})");
+        for (int i = 0; i < ticksAfter; i++)
+        {
+            Step(sim, default, others);
+            hits.AddRange(sim.LastTickHits.Where(h => h.OwnerEntityId == Bashie && !h.OwnerWindow));
+        }
+        return hits;
+    }
+
+    internal static bool Launched(ServerSimulation sim, ulong id)
+    {
+        for (int i = 0; i < 20; i++)
+        {
+            var s = sim.GetState(id);
+            if (s.KVY > 0f || s.VY > 0f && !s.IsGrounded) return true;
+            Step(sim);
+        }
+        return false;
     }
 
     private static IReadOnlyList<CharacterDiagnostic> Compile(Action<System.Text.Json.Nodes.JsonObject> edit)
@@ -493,8 +515,6 @@ public sealed class BashieShellTests
             System.Text.Json.Nodes.JsonNode.Parse(System.IO.File.ReadAllText(RepoFile(root + "/character.json")))!.AsObject());
     }
 
-    private const ushort TuckTicks = F.TuckTicks;
-
     private static string RepoFile(string relative)
     {
         var directory = new System.IO.DirectoryInfo(AppContext.BaseDirectory);
@@ -504,12 +524,13 @@ public sealed class BashieShellTests
         return System.IO.Path.Combine(directory!.FullName, relative);
     }
 
-    internal static ServerSimulation Sim(CharacterState? bashie = null, CharacterState? dummy = null, ArenaDefinition? arena = null)
+    internal static ServerSimulation Sim(CharacterState? bashie = null, CharacterState? dummy = null, ArenaDefinition? arena = null,
+        CharacterDefinition? def = null)
     {
         var sim = new ServerSimulation(arena ?? Floor());
         var me = bashie ?? Standing();
         me.EntityId = Bashie;
-        sim.RegisterEntity(Bashie, Def, me);
+        sim.RegisterEntity(Bashie, def ?? Def, me);
         var other = dummy ?? Dummy2(30f, 30f);
         other.EntityId = Dummy;
         sim.RegisterEntity(Dummy, TestHelpers.EngineDef, other);
@@ -561,14 +582,6 @@ public sealed class BashieShellTests
         return state;
     }
 
-    /// <summary>Ticks through the tuck until she skates.</summary>
-    internal static void SkateOn(ServerSimulation sim, InputState input = default)
-    {
-        int ticks = 0;
-        while (State(sim).State != ActionState.Shell && ticks++ < 30) Step(sim, input);
-        Assert.Equal(ActionState.Shell, State(sim).State);
-    }
-
     internal static void Step(ServerSimulation sim, InputState input = default, Dictionary<ulong, InputState>? others = null)
     {
         var inputs = others == null ? new Dictionary<ulong, InputState>() : new Dictionary<ulong, InputState>(others);
@@ -577,8 +590,8 @@ public sealed class BashieShellTests
     }
 
     internal static CharacterState State(ServerSimulation sim) => sim.GetState(Bashie);
-    private static bool Tucked(ServerSimulation sim) => Shell.IsTucked(State(sim).State, sim.GetActiveMove(Bashie)?.Slot);
-    private static float Speed(in CharacterState s) => MathF.Sqrt(s.VX * s.VX + s.VZ * s.VZ);
-    private static List<Hitbox> Windows(ServerSimulation sim)
+    internal static bool Tucked(ServerSimulation sim) => Shell.IsTucked(State(sim).State, sim.GetActiveMove(Bashie)?.Slot);
+    internal static float Speed(in CharacterState s) => MathF.Sqrt(s.VX * s.VX + s.VZ * s.VZ);
+    internal static List<Hitbox> Windows(ServerSimulation sim)
         => sim.Resolver.GetActiveHitboxes().Where(h => h.OwnerWindow && h.OwnerId == Bashie).ToList();
 }

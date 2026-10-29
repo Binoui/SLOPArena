@@ -74,7 +74,7 @@ const TABS = [["review","To review",["rendered"]],["proposed","Proposed",["propo
 const ACTIONS = {rendered:[["ready","Ready to post","go"],["approved","Redo with note",""],["rejected","Reject",""]],
   proposed:[["approved","Approve","go"],["rejected","Reject",""]], approved:[["ready","Ready to post","go"],["proposed","Back to proposed",""],["rejected","Reject",""]],
   ready:[["posted","Mark posted","go"],["approved","Redo with note",""],["rejected","Reject",""]], posted:[], rejected:[["proposed","Restore",""]]};
-const TAB_RUNS = {proposed: ["propose", "Propose clips", "The designer reads the latest scout reports and what changed in the game, then adds 5 to 7 ideas here."],
+const TAB_RUNS = {proposed: ["propose", "Propose clips", "The designer builds the batch around your open notes in the Scout inbox, then the latest scout reports and what changed in the game: 5 to 7 ideas here."],
   approved: ["render", "Render approved", "Films every idea in this tab; each take lands in To review."]};
 const ACTIVE = ["queued","sent","running"], PLATFORMS = ["tiktok","shorts","x"];
 const RUN_TEXT = {propose: "Sent to T3: the designer thread appears in about 2 minutes, ideas land in PROPOSED.", render: "Sent to T3: the thread appears in about 2 minutes, clips land in TO REVIEW.",
@@ -184,7 +184,7 @@ async function stats(id) {
 }
 function scout() {
   const open_ = B.inbox.filter(i => !i.report), used = B.inbox.filter(i => i.report);
-  return `<p style="margin-bottom:8px">Drop links (TikToks, Shorts, posts) or thoughts here. The scout reads them and writes a report; the designer reads the latest reports before proposing.</p>
+  return `<p style="margin-bottom:8px">Drop links (TikToks, Shorts, posts) or thoughts here. Run scout to get a report on links. A request for a clip or a theme ("a clip of the defensive options") goes to the next Propose clips, which builds its batch around it; no scout run needed.</p>
     <textarea id="inboxText" placeholder="https://www.tiktok.com/@.../video/... why it caught your eye"></textarea>
     <div class="acts"><button class="btn" onclick="addInbox()">Add to inbox</button><button class="btn go" onclick="startRun('scout')">Run scout</button></div>
     <h4>Inbox (${open_.length} new)</h4><div class="inbox">${open_.concat(used).map(i => `<div class="${i.report ? "used" : ""}">${esc(i.body)}${i.report ? ` <small>(report ${i.report})</small>` : ""}</div>`).join("") || "Empty."}</div>

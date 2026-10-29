@@ -5,6 +5,8 @@ fighter state" ("sounds good, i want to try it"). The values under [Prototype de
 the coordinator's and stay open to the maintainer's play verdict.
 **Extends:** [ADR-0039](0039-full-world-rollback.md) (World Snapshots) and
 [ADR-0042](0042-controller-layout-three-normals-homing-dash.md) (slot grid)
+**Superseded in part by:** [ADR-0050](0050-bashie-cannonball-and-wave-pool.md) — the skate model, the bowling window,
+the walk-off coast, Hydro Jet's landing skate and Shell Shift are gone; a tucked landing now splashes and F rides.
 
 ## Context
 

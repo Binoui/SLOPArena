@@ -136,8 +136,8 @@ namespace SlopArena.EditorTools
                 }
                 finally { Object.DestroyImmediate(catalog); }
             }
-            CheckChargedSword(fixture.Root);
-            Debug.Log("[UnityAuditRuntimeSelfTest] Package swing triggers passed for None-class ground/air catalogs and charged finishers; silent cycle positions retain dedupe/cursors.");
+            CheckDashStrikeSword(fixture.Root);
+            Debug.Log("[UnityAuditRuntimeSelfTest] Package swing triggers passed for None-class ground/air catalogs and Quick Draw tips; silent cycle positions retain dedupe/cursors.");
         }
 
         [MenuItem("Tools/SLOPArena/Tests/Unity Audit Runtime/Training Failure")]
@@ -349,13 +349,12 @@ namespace SlopArena.EditorTools
             }
         }
 
-        private static void CheckChargedSword(GameObject root)
+        private static void CheckDashStrikeSword(GameObject root)
         {
             var renderer = root.AddComponent<PlayerRenderer>();
             var blade = new CookedHitbox(AuthoringHitboxShape.Capsule, 0.1f, 0f, 0f, 0f, 0f, 0f, 1f,
                 "_weapon_hilt", "_weapon_tip", 1f, 0f, 0f, 0f, 1, 1, true, 0);
-            var charge = new CookedChargedDirectionalDashCapabilityParameters(
-                60, 20, 40, 1f, 5f, 10f, 2, 8, 10, 2f, 3f, blade, blade);
+            var charge = new CookedDashStrikeCapabilityParameters(3.5f, 28f, 8, 10, blade, blade, "presentation.fixture.tip");
             var timeline = new CookedTimeline(new[]
             {
                 new CookedStage(20, 0, 0, 0, 0, Array.Empty<string>(), new CookedTimelineOperation[]
@@ -381,7 +380,7 @@ namespace SlopArena.EditorTools
                 IsGrounded = true, AttackElapsedTicks = 4,
             };
             PresentSound(renderer, state);
-            Require((int)Get(renderer, "_swingSequence") == 0, "A charged finisher emitted while aiming.");
+            Require((int)Get(renderer, "_swingSequence") == 0, "A Quick Draw tip emitted while aiming.");
             state.State = ActionState.Attacking;
             foreach (ushort elapsed in new ushort[] { 7, 8, 9, 7, 8 })
             {
@@ -389,17 +388,17 @@ namespace SlopArena.EditorTools
                 PresentSound(renderer, state);
             }
             Require((int)Get(renderer, "_swingSequence") == 1,
-                "A charged finisher was lost or replayed across its seek tick or a rewind.");
+                "A Quick Draw tip was lost or replayed across its seek tick or a rewind.");
             state.AttackSequence++;
             state.AttackElapsedTicks = 12;
             PresentSound(renderer, state);
             Require((int)Get(renderer, "_swingSequence") == 2,
-                "A new charged activation skipped past the finisher without emitting.");
+                "A new Quick Draw activation skipped past the finisher without emitting.");
             state.AttackElapsedTicks = 14;
             PresentSound(renderer, state);
             PresentSound(renderer, state);
             Require((int)Get(renderer, "_swingSequence") == 3,
-                "A charged finisher suppressed or duplicated a later ordinary hitbox sound.");
+                "A Quick Draw tip suppressed or duplicated a later ordinary hitbox sound.");
             }
             finally { Object.DestroyImmediate(catalog); }
         }

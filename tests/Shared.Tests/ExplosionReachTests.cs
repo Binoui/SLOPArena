@@ -51,10 +51,10 @@ public sealed class ExplosionReachTests
         // Three crates around the landing point, none on the bomb's path: only the blast reaches them.
         var targets = new[]
         {
-            new CourseTargetDefinition("left", new(Centre - 1.6f, 1.3f, Centre + 10f), .65f),
-            new CourseTargetDefinition("right", new(Centre + 1.6f, 1.3f, Centre + 10f), .65f),
-            new CourseTargetDefinition("behind", new(Centre, 1.3f, Centre + 11.8f), .65f),
-            new CourseTargetDefinition("far", new(Centre + 6f, 1.3f, Centre + 10f), .65f),
+            new CourseTargetDefinition("left", new(Centre - 1.6f, 1.3f, Centre), .65f),
+            new CourseTargetDefinition("right", new(Centre + 1.6f, 1.3f, Centre), .65f),
+            new CourseTargetDefinition("behind", new(Centre, 1.3f, Centre + 1.8f), .65f),
+            new CourseTargetDefinition("far", new(Centre + 6f, 1.3f, Centre), .65f),
         };
         var course = new CharacterCourseDefinition(targets, Array.Empty<CourseCheckpointDefinition>(),
             new ArcadeVolume(new(Centre, 1f, Centre + 40f), new(2f, 2f, 2f)));
@@ -77,8 +77,8 @@ public sealed class ExplosionReachTests
         var manki = TestHelpers.MankiDef; var target = TestHelpers.EngineDef;
         var sim = new ServerSimulation(Flat(), NoWinMatchRule.Instance);
         sim.RegisterEntity(1, manki, Grounded(1, manki, Centre, Centre));
-        sim.RegisterEntity(100, target, Grounded(100, target, Centre - 1.5f, Centre + 10f));
-        sim.RegisterEntity(101, target, Grounded(101, target, Centre + 1.5f, Centre + 10f));
+        sim.RegisterEntity(100, target, Grounded(100, target, Centre - 1.5f, Centre));
+        sim.RegisterEntity(101, target, Grounded(101, target, Centre + 1.5f, Centre));
 
         ThrowBomb(sim, 10f, 100, 101);
 

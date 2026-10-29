@@ -103,6 +103,7 @@ New packages live under `client/Unity/Assets/CharacterPackages/<package>/`. Cook
 | Manki | Cooked package; rostered | [Manki](characters/manki.md) |
 | Wibou | Cooked package; rostered | [Wibou](characters/wibou.md) |
 | Bashie | Cooked package; rostered with her own model and a partially authored kit; see her page for remaining stand-ins | [Bashie](characters/bashie.md) |
+| Nyx | Playable with placeholder moves; two-form engine and her own animations in progress | [Nyx](characters/nyx.md) |
 
 The [Nilus page](characters/nilus.md) is a historical record of a retired character, not
 an implementation or authoring guide.

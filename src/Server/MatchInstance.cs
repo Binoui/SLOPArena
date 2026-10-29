@@ -126,7 +126,7 @@ namespace SlopArena.Server
 			{
 				var content = _contentCatalog.Resolve(p.CharacterClass)
 					?? throw new InvalidDataException($"Roster selector '{p.CharacterClass}' is not in the match content catalog.");
-				_slots.Add(new PlayerSlot((ulong)p.EntityId, p.CharacterClass, p.SteamId, content));
+				_slots.Add(new PlayerSlot((ulong)p.EntityId, p.CharacterClass, p.SteamId, content) { Form = p.Form });
 			}
 		}
 
@@ -304,7 +304,7 @@ namespace SlopArena.Server
 			{
 				var slot = _slots[i];
 				var def = slot.Content.Definition;
-				_sim.RegisterEntity(slot.EntityId, def, CreateInitialState(def, i), slot.Content.BakedAnimation);
+				_sim.RegisterEntity(slot.EntityId, def, CreateInitialState(def.ForForm(slot.Form), i), slot.Content.BakedAnimation);
 				// Respawn at the same distributed spawn point as initial spawn (issue #37).
 				var respawnSpawn = PickSpawn(i);
 				_sim.SetRespawnPosition(slot.EntityId, respawnSpawn.X, respawnSpawn.Y, respawnSpawn.Z, respawnSpawn.Yaw);
@@ -520,6 +520,7 @@ namespace SlopArena.Server
 				JumpsLeft = def.Movement.MaxJumps,
 				AirDodgesLeft = 1,
 				DamagePercent = 0,
+				Form = new FormState { Active = def.Form },
 			};
 		}
 
@@ -1004,6 +1005,8 @@ namespace SlopArena.Server
 			public CharacterClass CharacterClass { get; }
 			public long SteamId { get; }
 			public MatchContentEntry Content { get; }
+			/// <summary>The starting form the master sent (ADR-0051); fighters without forms ignore it.</summary>
+			public byte Form { get; init; }
 			public IPEndPoint? EndPoint { get; set; }
 			public DateTime LastPacket { get; set; } = DateTime.UtcNow;
 			private volatile bool _disconnected;

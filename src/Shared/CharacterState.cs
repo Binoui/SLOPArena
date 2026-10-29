@@ -134,6 +134,7 @@ namespace SlopArena.Shared
         /// aimed charge progress (0 = none, >0 = charging)
         /// </summary>
         public ushort ChargeTicks;
+        public FlyingState Flight;
         /// <summary>Spent charges in the cooked, bounded three-charge pool.</summary>
         public byte ChargeStockSpent;
         public ushort ChargeStockRegenTicks;
@@ -291,6 +292,9 @@ namespace SlopArena.Shared
         /// </summary>
         public ushort Cooldown0, Cooldown1, Cooldown2, Cooldown3, Cooldown4, Cooldown5,
             Cooldown6, Cooldown7, Cooldown8, Cooldown9, Cooldown10;
+        /// <summary>The live form and the other form's cooldown bank (ADR-0051). It survives every state; only the
+        /// swapForm operation changes it.</summary>
+        public FormState Form;
 
         /// <summary>
         /// Wire slot whose returning projectile (Sir Bonk's pot lid) is still out, 0 when none. Mirrored

@@ -29,7 +29,9 @@ prefab (a new model before it replaces the catalog rig) with the package's bound
 weapon placement (a new hand's bone frame needs its own offsets); both need `--label`, which names the pack
 <package>-unity-LABEL. `--prop SLOT` (with `--label`) also attaches that slot's held prop, such as Manki's aerosol
 can for F, the way always-visible weapons are attached, so the model sees it, the clearance checks include it and
-`unity_clip.py render` draws it. Unity space is left-handed and Y-up;
+`unity_clip.py render` draws it. `--meshes A,B` (with `--label`) shows only those skinned meshes on the temporary
+instance and records only them, for a rig with one body per form (Nyx); mapping.json keeps the list, so unity_clip.py
+writes and renders with the same meshes. Unity space is left-handed and Y-up;
 the pack mirrors x into a right-handed Y-up space. Constraint-driven copy bones (Manki's
 skin fingers) are bound to their source joints; weapons become fixed joints under their bone.
 """
@@ -63,10 +65,13 @@ CHARACTERS = {  # package -> {reference label: catalog semantic id}
     # All four are raised stand-ins borrowed from Manki (2026-10-27) until his own clips exist.
     'salamander': {'idle': 'anim.salamander.idle', 'run': 'anim.salamander.run', 'jump': 'anim.salamander.jump',
                    'fall': 'anim.salamander.fall'},
+    # FightGuy's clips borrowed onto her rig (2026-10-29) until her own exist. One skeleton carries both forms' meshes:
+    # build one pack per form with --meshes (2026-10-29).
+    'nyx': {'idle': 'anim.nyx.idle', 'run': 'anim.nyx.run', 'jump': 'anim.nyx.jump', 'fall': 'anim.nyx.fall'},
 }
 # Skinned meshes the game simulates as cloth rather than animates: left out of the pack, so the animator poses the body
 # under them and the checks don't treat them as limbs (the salamander's poncho, 2026-10-27).
-CLOTH_MESHES = {'salamander': {'Salamander_Poncho'}}
+CLOTH_MESHES = {'salamander': {'Salamander_Poncho'}, 'nyx': {'Nyx_Real_Dress'}}
 SLOTS = {'E': 4, 'R': 5, 'F': 6, 'A': 11}  # AbilitySlots numbers of the letter keys, as weapon configs store them
 BAKE_FRAMES = [0, 10, -1]  # -1 = last frame
 MIRROR = np.diag([-1.0, 1.0, 1.0])
@@ -88,14 +93,15 @@ def pack_dir(package: str, refs: dict | None = None, label: str | None = None) -
 
 
 def snapshot(package: str, out: Path | None = None, refs: dict | None = None, label: str | None = None,
-             prefab: str = '', weapon_config: str = '') -> Path:
+             prefab: str = '', weapon_config: str = '', meshes=()) -> Path:
     clips = refs or CHARACTERS[package]
     out = out or SNAPSHOTS / f'{variant(package, refs, label)}-{time.strftime("%Y%m%d-%H%M%S")}.json'
     template = (HERE / 'unity/snapshot_rigpack.cs.template').read_text()
     code = (template.replace('{{PACKAGE}}', package).replace('{{OUTPUT}}', str(out))
             .replace('{{CLIPS}}', ', '.join(json.dumps(v) for v in clips.values()))
             .replace('{{BAKES}}', ', '.join(str(f) for f in BAKE_FRAMES))
-            .replace('{{PREFAB}}', prefab).replace('{{WEAPON_CONFIG}}', weapon_config))
+            .replace('{{PREFAB}}', prefab).replace('{{WEAPON_CONFIG}}', weapon_config)
+            .replace('{{MESHES}}', ', '.join(json.dumps(m) for m in meshes)))
     script = Path('/tmp/genra-rigpacks') / f'snapshot-{package}.cs'
     script.parent.mkdir(parents=True, exist_ok=True)
     script.write_text(code)
@@ -259,6 +265,28 @@ def build(package: str, snap_path: Path | None = None, out_dir: Path | None = No
                 local = np.eye(4)
                 local[3, :3] = point
                 extra.append((f'{weapon_joint}/{name}', weapon_joint, local))
+    # A skinned prop held rigidly in a hand (Nyx's hand-held ring-light pole, 2026-10-29) gets the weapons' anchors, so
+    # briefs, motion paths and strike visibility can follow its far end: bladeHilt nearer the hand, bladeEnd beyond.
+    if not any(w['anchors'] for w in data['weapons']):
+        for m in data['meshes']:
+            weights = np.array(m['influenceWeights'])
+            bone_ids = set(np.array(m['influenceBones'])[weights > 0].tolist())
+            paths = {resolve(m['bones'][b]) for b in bone_ids}
+            if len(paths) != 1:
+                continue
+            path = next(iter(paths))
+            i = path_index[path]
+            parent = bones[i]['parent']
+            if not bones[parent]['name'].endswith('Hand') or any(b['parent'] == i for b in bones):
+                continue
+            pose = to_row(m['bindposes'][next(iter(bone_ids))])
+            local_points = (np.c_[points(m['mesh']['vertices']), np.ones(m['mesh']['vertexCount'])] @ pose)[:, :3]
+            near, far = sorted(prop_ends([local_points]), key=lambda e: float(np.linalg.norm(e)))
+            for name, point in (('bladeHilt', near), ('bladeEnd', far)):
+                local = np.eye(4)
+                local[3, :3] = point
+                extra.append((f'{joint_of[i]}/{name}', joint_of[i], local))
+            break
     joints += [e[0] for e in extra]
     jindex = {j: n for n, j in enumerate(joints)}
     parent_of = {}
@@ -437,7 +465,8 @@ def build(package: str, snap_path: Path | None = None, out_dir: Path | None = No
         write_animation(ref, s, data['references'][refs[label]])
         ref.GetRootLayer().Save()
 
-    mapping = {'package': package, 'prefab': data['prefab'], 'model': data['model'], 'avatar': data['avatar'],
+    mapping = {'package': package, 'prefab': data['prefab'], 'shownMeshes': data.get('shownMeshes'),
+               'model': data['model'], 'avatar': data['avatar'],
                'avatarPath': data['avatarPath'], 'avatarHuman': data['avatarHuman'], 'unity': data['unity'],
                'coordinates': 'right-handed Y-up metres: Unity x mirrored', 'skeletonScale': scale,
                'actorRootWorld': bones[0]['world'], 'joints': {
@@ -738,6 +767,9 @@ def main(argv=None):
     parser.add_argument('--prop', action='append', default=[], metavar='SLOT',
                         help="also attach this slot's held prop (E, R, F, A or an AbilitySlots number), e.g. F for "
                              "Manki's aerosol can (needs --label)")
+    parser.add_argument('--meshes', default='', metavar='NAME,...',
+                        help='show only these skinned meshes on the snapshot instance (needs --label), e.g. one form of a '
+                             'rig that carries two bodies; unity_clip.py shows the same ones. The prefab is not changed')
     parser.add_argument('--grip-from', metavar='LABEL:TICK',
                         help='grip: take the grip from this frame of a pack reference (e.g. an approved two-handed clip)')
     parser.add_argument('--hand-gap', type=float, metavar='METRES',
@@ -748,6 +780,9 @@ def main(argv=None):
         parser.error('--reference takes LABEL=SOURCE')
     if (args.prefab or args.weapon_config) and not args.label:
         parser.error('--prefab and --weapon-config build a candidate pack: name it with --label')
+    meshes = tuple(m for m in args.meshes.split(',') if m)
+    if meshes and not args.label:
+        parser.error('--meshes builds a pack beside the shared one: name it with --label')
     if args.prop and not args.label:
         parser.error('--prop builds a pack beside the shared one: name it with --label')
     if not all(p.upper() in SLOTS or p.isdigit() for p in args.prop):
@@ -773,7 +808,8 @@ def main(argv=None):
             continue
         snap = None
         if args.command in ('snapshot', 'all'):
-            snap = snapshot(package, refs=refs, label=args.label, prefab=args.prefab, weapon_config=args.weapon_config)
+            snap = snapshot(package, refs=refs, label=args.label, prefab=args.prefab, weapon_config=args.weapon_config,
+                            meshes=meshes)
             print(package, 'snapshot ->', snap, flush=True)
         if args.command in ('build', 'all'):
             report = build(package, snap, refs=refs, label=args.label, props=props)

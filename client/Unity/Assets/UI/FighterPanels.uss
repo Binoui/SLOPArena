@@ -32,6 +32,8 @@
 .frontend-shell--fighters .char-card .char-card-check { display: none; }
 .frontend-shell--fighters .char-card .char-markers { left: 4px; top: 4px; right: 4px; }
 .frontend-shell--fighters .char-card .char-marker { font-size: 12px; padding: 1px 4px; margin-right: 3px; margin-bottom: 3px; }
+.char-card .char-card-form { position: absolute; left: 4px; right: 4px; bottom: 34px; margin: 0; padding: 2px 4px; border-width: 2px; border-color: rgb(240, 238, 232); border-radius: 0; background-color: rgb(27, 26, 24); color: rgb(240, 238, 232); font-size: 11px; -unity-text-align: middle-center; }
+.char-card .char-card-form:hover, .char-card .char-card-form:focus { background-color: rgb(240, 238, 232); color: rgb(27, 26, 24); }
 .frontend-shell--fighters .char-summary-section { flex-direction: column; align-items: center; flex-wrap: nowrap; }
 .frontend-shell--fighters .char-summary-section .roster-panel {
     width: 84%;

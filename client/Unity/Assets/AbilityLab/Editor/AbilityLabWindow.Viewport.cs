@@ -221,40 +221,6 @@ public sealed partial class AbilityLabWindow
         }
         if (Event.current.type != EventType.Repaint) return;
         GUI.DrawTexture(rect, _movesViewportTarget, ScaleMode.StretchToFill, false);
-        if (_lab.IsScenarioPreview && _lab.Scenario is { } scenario &&
-            SlopArena.Shared.CanonicalSlotProjection.TryGet(scenario.Options.Action, out var address))
-        {
-            int slotIndex = System.Array.IndexOf(AbilityLab.SlotNames, address.InputLabel);
-            if (slotIndex >= 0)
-            {
-                var cooked = _lab.Def.GetCookedSlotAbility(CanonicalSlotProjection.ToWire(CanonicalSlotProjection.All[slotIndex]), address.IsAirborne);
-                SlopArena.Shared.CookedChargedDirectionalDashCapabilityParameters? charge = null;
-                if (cooked != null)
-                    foreach (var stage in cooked.Timeline.Stages)
-                    foreach (var operation in stage.Operations)
-                        if (operation is SlopArena.Shared.CookedStartCapabilityOperation
-                            { Parameters: SlopArena.Shared.CookedChargedDirectionalDashCapabilityParameters parameters })
-                        {
-                            charge = parameters;
-                            break;
-                        }
-                if (charge != null)
-                {
-                    ushort ticks = scenario.Frames[_lab.ScenarioFrame].Actor.ChargeTicks;
-                    byte tier = charge.GetChargeTier(ticks);
-                    Color color = tier switch
-                    {
-                        2 => new Color(1f, 0.3f, 0.12f),
-                        1 => new Color(1f, 0.8f, 0.15f),
-                        _ => new Color(0.35f, 0.85f, 1f),
-                    };
-                    var badge = new Rect(rect.x + 12f, rect.y + 12f, 210f, 34f);
-                    EditorGUI.DrawRect(badge, new Color(0f, 0f, 0f, 0.82f));
-                    var style = new GUIStyle(EditorStyles.boldLabel) { normal = { textColor = color }, fontSize = 16 };
-                    GUI.Label(badge, $"CHARGE {ticks} · TIER {tier + 1}", style);
-                }
-            }
-        }
     }
 
     private void HandlePreviewCameraInput(Rect rect)

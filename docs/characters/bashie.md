@@ -16,8 +16,10 @@ shell, with her own clips, a surf wave and sounds, and Ring Bounce (E) supplied 
 owner replaced both with the shell kit ([ADR-0045](../adr/0045-bashie-shell-state.md)): Shell Shift and Shell Dive on R
 and Hydro Jet on E share one shell state, built as a Training prototype. Ground and air 1
 now have Whirlpool Spin after ADR-0042. Ground 4 has Rising Shell and air 4 its diagonal shell strike. Ground and air 3
-have Shell Flip. NO RUNNING! now supplies her F. Rescue Ring replaced Hose Down on A the same day
-([ADR-0048](../adr/0048-bashie-rescue-ring-tether.md)), also a Training prototype. Her movement still comes from Manki.
+have Shell Flip. Rescue Ring replaced Hose Down on A the same day
+([ADR-0048](../adr/0048-bashie-rescue-ring-tether.md)), also a Training prototype. On 2026-10-29 the Cannonball (R) and
+Wave Pool (F) replaced Shell Shift and NO RUNNING! ([ADR-0050](../adr/0050-bashie-cannonball-and-wave-pool.md)), also
+a Training prototype. Her movement still comes from Manki.
 
 **Package (owner, 2026-10-22):** "im totally down to steal all of manki's slots especially normals just to have her
 ingame. its fine if specials looks weird until we do them properly".
@@ -25,8 +27,8 @@ ingame. its fine if specials looks weird until we do them properly".
   5 was the retired Nilus).
 - Her movement still comes from Manki. Her
   own changes are the size (`visualScale` 1.1), `modelYOffset` -0.75, `hipHeight` 0.34, her idle and run, Rescue Ring in
-  place of his Round Bomb, Shell Shift and Shell Dive in place of his Bazooka, Hydro Jet in place of his Jetpack Boost, and Whirlpool
-  Spin on ground and air 1, the diagonal shell strikes on ground and air 4, Shell Flip on ground and air 3, and NO RUNNING! on F.
+  place of his Round Bomb, the Cannonball and its dive in place of his Bazooka, Hydro Jet in place of his Jetpack Boost, and Whirlpool
+  Spin on ground and air 1, the diagonal shell strikes on ground and air 4, Shell Flip on ground and air 3, and Wave Pool on F.
 - The remaining stand-in clips are copies of Manki's under `Animations/Borrowed/`, raised 0.342 m for her body.
   Played on her as they are, his clips stand her a third of a metre under the floor.
 - She borrows none of his effects or props: her hits use the shared impact effects, and her specials fire without
@@ -254,9 +256,9 @@ the one rule she enforces, on everyone else.
 | Slot | Special | Shape | The opening |
 | --- | --- | --- | --- |
 | A | Rescue Ring | She throws her life ring straight at her target. The first fighter it meets is reeled in to her feet, stuck just long enough for one normal. It works in the air, and from the shell she pops out to throw. | A miss (range, a wall, a shield) leaves her reeling the empty ring back. Hit her or the caught fighter and the line drops. |
-| E | Hydro Jet | She tucks and jets off in the stick's direction with no wind-up (neutral goes straight up). The jet behind her shoves. R mid-jet becomes Shell Dive without untucking; landing still tucked flows into the skate. | No armour: any hit pops her out. The jet's direction is fixed once it starts. |
-| R | Shell Shift / Shell Dive | On the ground she drops into her shell and skates straight on at her speed, bowling fighters up and skating on under them. In the air she dives steeply at the ground ahead, leaning toward a target in front; the dive's speed becomes the skate's. | A wall or a shield pops her up bouncing back; the skate cannot steer. |
-| F | NO RUNNING! | She takes a huge breath and puffs up like a balloon, then blows: TWEEEET! The blow stuns fighters within 5 m for 2 s with no damage or horizontal push. Shields block it. The owner changed the original slow to a stun on 2026-10-26. Sign: NO RUNNING!. | The inhale is the tell. If she is hit mid-inhale, she whizzes around deflating. |
+| E | Hydro Jet | She tucks and jets off in the stick's direction with no wind-up (neutral goes straight up). The jet behind her shoves. R mid-jet dives without untucking; a jet that meets the ground splashes. | No armour: any hit pops her out. The jet's direction is fixed once it starts. |
+| R | Cannonball / Cannonball Dive | On the ground she hops up tucked and cannonballs onto where her target stood. In the air she dives steeply at the ground ahead, leaning toward a target in front. Either landing splashes everyone around upward, into her normals. | A target that moved is missed and she pops up out of the splash, open to a punish. |
+| F | Wave Pool | A short whistle, then she rides a wave in her shell toward her target, carrying everyone it meets toward the edge, shields and all. The wave breaks at the lip. Jumping off sends them on at her speed into her aerial. | The whistle is the tell. Any hit on her ends the ride and lets everyone go. |
 
 ### Rescue Ring (A)
 
@@ -290,30 +292,41 @@ stream that pushed without hurting (FLUDD, the owner's reference). Rescue Ring r
 public and keeps its coverage through FightGuy's fixture in `ChargedStreamTests`. Its blaster, clips and NO SPLASHING!
 cues stay in the package, unbound from her A.
 
-### The shell: Shell Shift, Shell Dive and Hydro Jet (R and E)
+### The shell: Cannonball, Wave Pool and Hydro Jet (R, F and E)
 
-**Accepted 2026-10-28** for a Training prototype ([ADR-0045](../adr/0045-bashie-shell-state.md)): the owner rejected
-the first specials (Hose Down aimed with the camera, Ring Bounce waited 44 ticks, Shell Slide was hard to steer for one
-9% hit) and approved "the shell as a fighter state" ("sounds good, i want to try it"). Her R and E share one state:
+**Accepted 2026-10-29** for a Training prototype ([ADR-0050](../adr/0050-bashie-cannonball-and-wave-pool.md)): Shell
+Shift "just goes in a direction and feels useless and hard to hit" and NO RUNNING! "feels out of place", so the shell
+now does two things, a splash and a ride ("this sounds very cool. lets go for it").
 
-- **In the shell:** she skates on the ground (straight, at her carried speed) and coasts in the air. The skate bowls
-  each fighter once per stay and she skates on under them. When the clock runs out she pops up, with no flipped punish.
-  A head-on wall or a shield pops her up bouncing back.
-- **R, ground: Shell Shift.** She tucks and settles into the skate at her run speed; a standing start pushes off.
-- **R, air: Shell Dive.** A steep dive at the ground ahead, leaning toward a target in front. The dive's speed (plus a
-  share of its downward speed) becomes the skate's: a higher dive skates faster.
-- **E: Hydro Jet.** She jets in the stick's direction (neutral: straight up) with a trailing shove. R mid-jet dives at
-  the jet's speed without untucking; landing still tucked flows into the skate.
-- **Exits:** a normal (1, 3, 4) pops her out at skate speed (Rising Shell keeps its hop and the carry); a jump hops out
-  keeping her speed; Q, F, shield, grab, air dodge and homing dash pop her out. E and R keep her in.
-- **First-pass values (named, untuned):** skate 90 ticks, push-off 10 m/s, cap 20 m/s, landing ratio 0.5, pop-out
-  braking 40 m/s², wall/shield bounce 4 m/s; bowling hitbox from Shell Slide's lance (capsule 0.5, damage 9, angle 65,
-  knockback 9 + 20, stun 18). Shell Shift tucks for 10 ticks (cooldown 180). Shell Dive: -55°, 14 m/s accelerating
-  30 m/s² to 24 for up to 45 ticks, IASA 24, 60° target cone (cooldown 180, shared with ground R). Hydro Jet: 15 m/s
-  for 20 ticks, stick pitch 25°, IASA 8, trailing shove (knockback 10, no damage or stun), cooldown 210.
-- **Stand-in presentation:** the tuck cue holds while she is in the shell (`ShellTuck.HoldWhileTucked`); the shell pose
-  is `anim.bashie.gr-slide`, Shell Shift shows `anim.bashie.gr`, Shell Dive `anim.bashie.gr`, Hydro Jet
-  `anim.bashie.gr-slide`. No new art, VFX or sounds yet.
+- **Splash.** Every tucked landing splashes: R, air R and a Hydro Jet that meets the ground end there, R's cooldown
+  starts, and a wide hitbox at her feet launches everyone around upward. She pops up in place, hit or miss.
+- **R, ground: Cannonball.** She takes her current target on her first tick (else 4 m along her facing), squats and
+  hops on one solved arc onto where they stood. A hit in flight ends it with no splash. With no landing by the stage end
+  she untucks and falls free. Q, then R on her first free tick, splashes inside the ring's arrival window.
+- **R, air: Cannonball Dive.** The thrust dive, unchanged; its landing splashes. Pressed during Hydro Jet it keeps the
+  jet's speed.
+- **F: Wave Pool.** The whistle turns her toward her target and hangs her in the air; when it ends she rides her wave
+  (`ActionState.Shell`) toward her target's ground point, turning toward it at a capped rate. The wave catches each
+  fighter once (small damage, credited to her) into `ActionState.Swept` and carries them at her speed, through shields.
+  The ride ends on its clock, at the lip (she stops on it, they fly on), at a head-on wall (she bounces back), on a hit
+  or on any action; carried fighters are let go with her speed. Air F coasts until she lands, then the clock starts.
+- **First-pass values (named, untuned):** splash sphere 1.7 m at her feet, damage 9, angle 85, knockback 10 + 25, stun
+  24, 3 ticks, pop-up 18 ticks. Cannonball takeoff tick 2, max range 8 m, flight 5 to 40 ticks by distance, launch cap
+  20 m/s, 70-tick stage, cooldown 150 (shared with the dive). Dive: -55°, 14 m/s accelerating 30 m/s² to 24 for up to
+  45 ticks, IASA 24, 60° cone. Ride 90 ticks at 13 m/s, turn 40°/s, wave capsule 2.2 m wide 0.8 m ahead (radius 0.7,
+  damage 3 once). Whistle 24 ticks, blow at 18, gravity 0.15, cooldown 540. Hydro Jet: 15 m/s for 20 ticks, stick
+  pitch 25°, IASA 8, trailing shove, cooldown 210. Pop-out braking 40 m/s², wall bounce 4 m/s.
+- **Stand-in presentation:** the tuck cue holds while she is in the shell (`ShellTuck.HoldWhileTucked`; Wave Pool's
+  cue waits out the whistle); the shell pose is `anim.bashie.gr-slide`; the plop is the splash; the surf wave, grown
+  2.2 times, shows while she rides; carried fighters hold the small-hit pose like Reeled ones; `WhistlePuff` paces the
+  accepted puff to the blow cue. No new art, VFX or sounds yet.
+
+### Shell Shift and the skate (R, retired 2026-10-29)
+
+Built 2026-10-28 ([ADR-0045](../adr/0045-bashie-shell-state.md)): ground R tucked her into a 90-tick skate at her run
+speed that bowled fighters once, Shell Dive's landing and Hydro Jet's coast fed the skate, and a shield popped her up.
+ADR-0050 deleted the skate, the bowl and the walk-off coast; `anim.bashie.gr-pop` stays listed on the Cannonball's
+stage but is not played.
 
 ### Ring Bounce (E, retired 2026-10-28)
 
@@ -335,62 +348,27 @@ Built 2026-10-22 on Sir Bonk's `slop.ability.steered-charge.v1`: a steered, armo
 that ended on the first hit, with a flipped-on-her-back miss and a thin-air look-down. Shell Shift and Shell Dive
 replaced it. What carries over: the tuck (`ShellTuck`/`ShellTuckRig`, look "A", her hat and face peeking out), its clips
 (`anim.bashie.gr` dive, `gr-slide` loop, `gr-pop` pop-out; `gr-flip` and `gr-lookdown` are unbound), the plop and
-hit cues, and the lance's hitbox numbers for the bowling hitbox. The surf wave is not emitted by the new kit yet.
+hit cues, and the surf wave, which Wave Pool now rides.
 
-### NO RUNNING! (F)
+### NO RUNNING! (F, retired 2026-10-29)
 
 ![NO RUNNING!](../design/references/bashie/bashie-f-no-running.jpg)
 
-**Built 2026-10-26, awaiting the owner's in-game verdict.** The owner replaced the original slow with an area stun
-and chose Shield blocking. Ground F and its air alias use one package-authored timeline, with no Shared engine,
-CharacterState, snapshot or protocol change. The [approved specification](../plans/2026-10-26-bashie-no-running.md)
-records the decisions and mechanism probe.
-
-- Inhale for 48 ticks, blow at tick 48, then recover for 24 ticks. The stage lasts 72 ticks with no IASA.
-- The root-relative sphere is 5 m around her chest, active for 3 ticks. It hits each opponent once for zero damage.
-  Ordinary Shield, invincibility, friendly-fire and interruption rules apply. She never hits herself.
-- After 6 ticks of hitstop, the target stays in Hitstun for exactly 120 ticks. Base knockback 1 points straight down
-  at -90 degrees with zero growth, so neutral targets have no horizontal slide or upward launch. Airborne targets fall
-  and land during the stun. A later hit replaces the stun with its own reaction.
-- Cooldown is 720 ticks, starting at completion or cancellation. An inhale interrupted by a hit never blows.
-- The airborne inhale scales gravity to 0.15 for 48 ticks. It does not refill air resources.
-- The owner picked swell C, "full balloon", on 2026-10-26. `WhistlePuff` follows authoritative attack ticks through
-  Idle, Inhaling, Blown, Deflating and Done phases. Her yellow belly and cheeks swell through the baked `Puff` blend
-  shape in `Presentation/BashieBodyPuff.asset`. The Shell bone grows to 1.2 times its rest scale at full puff.
-  She eases up to full size at tick 40 with a small wobble, then snaps back at the tick-48 blow. Blend weights stay
-  nonnegative. An interrupted inhale deflates over 0.3 s with a soft balloon squeal.
-- `WhistlePuffRig` anchors the whistle's measured mouthpiece to the Head bone's rest-frame beak point. It follows
-  her head through the real clip, held from about tick 8 to 56. The final whistle transform also accounts for the
-  hit accent's nonuniform scale. Release, disable and knockout restore the blend
-  weight, shell scale and whistle. A stale body mesh without `Puff` logs one warning and skips the swell.
-- `BashiePresentationBuilder` bakes the accepted C shape from the source FBX mesh and source albedo, then binds it
-  to `BashieRig.prefab`. `PuffProfile` owns the mesh parameters. Rerun `sloparena.presentation.bashie.puff.build`
-  after a rig re-import or albedo change. The full presentation builder also includes that step.
-- Three floor rings expand to 5 m in about 0.25 s. A NO RUNNING! sign reuses the pool-sign builder with an Archivo Black
-  glyph mask. The inhale, warm low pea-whistle trill and deflation sounds come from `tools/sfx/bashie_clips.py`.
-  Stunned fighters retain their normal hard-hit reaction. No stun marker exists yet.
-- `anim.bashie.whistle` has its own asset, `Animations/bashie_whistle.anim`, initially copied from her idle.
-  Her real GenRA clip can replace its contents without changing the binding. The puff cue positions the whistle itself.
-
-Cooked-catalog regression coverage lives in `tests/Shared.Tests/BashieWhistleTests.cs`. It checks exact stun and
-no-slide timing on ground and in air, range, Shield, invincibility, self exclusion, real-hit interruption, air F,
-zero damage and cooldown. Runtime captures are `tmp/bashie-f/near-3m.mp4`, `tmp/bashie-f/far-6m.mp4` and
-`tmp/bashie-f/whistle-close.mp4`, with PNG key frames in `tmp/bashie-f/keyframes/`. The native capture writes
-video frames only; these review clips mix the bound cue sounds at their attack ticks. The raw frames and command
-receipts remain beside them.
-The accepted C swell captures are in `tmp/bashie-f/swell-c/`, with front, side, blow and interrupted-inhale PNGs
-in `keyframes/`. The MP4s use the native capture's video frames. Audio playback is checked in the runtime trace.
-The real effects pass follows concept approval. Slopball interaction and human controller feel remain open.
-
+Built 2026-10-26 ([specification](../plans/2026-10-26-bashie-no-running.md)): a 48-tick inhale, then a blow that
+stunned everyone within 5 m for 120 ticks with no damage or slide; Shields blocked it. Wave Pool replaced it. What
+carries over: the owner's swell C (`WhistlePuff`, `WhistlePuffRig`, the baked `Puff` blend shape built by
+`sloparena.presentation.bashie.puff.build`), the whistle prop, the floor-ring blow, the inhale, trill and deflation
+sounds and `anim.bashie.whistle`. The NO RUNNING! sign is unbound and no longer built; its texture and prefab stay in
+the package. Its captures remain in `tmp/bashie-f/`.
 
 ## Engine pieces
 
 | Special | What exists | What's new |
 | --- | --- | --- |
-| R | The shell state ([ADR-0045](../adr/0045-bashie-shell-state.md)): `ActionState.Shell`, `slop.ability.shell-stance.v1` and `slop.ability.thrust.v1` ([ability architecture](../systems/ability-architecture.md)). | Built 2026-10-28 as a Training prototype; Shell Slide (steered charge) retired. |
+| R | The shell ([ADR-0050](../adr/0050-bashie-cannonball-and-wave-pool.md)): `ActionState.Shell`, `slop.ability.shell-stance.v2` (splash and ride), `slop.ability.cannonball.v1` and `slop.ability.thrust.v1` ([ability architecture](../systems/ability-architecture.md)). | Built 2026-10-29 as a Training prototype; Shell Shift and the skate retired. |
 | A | Grab pairs (`InteractionId`, `InteractionPartnerId`), projectiles, auto-target projectile aim and the body mover. | Built 2026-10-28: `slop.ability.tether.v1` and `ActionState.Reeled` ([ADR-0048](../adr/0048-bashie-rescue-ring-tether.md)); Hose Down's charged stream retired from her kit. |
 | E | `slop.ability.thrust.v1` with a trailing hitbox, a tuck move like R. | Built 2026-10-28 with the shell; Ring Bounce (aimed recovery) retired. |
-| F | An ordinary hitbox with `fixedHitstunTicks: 120`, `stunTicks: 1` and base knockback 1 pointed straight down at -90 degrees prevents horizontal slide. | Built 2026-10-26 with package data and client presentation only. No Shared engine change. |
+| F | No capability: the slot's `shellPolicy: ride` starts the shell's ride when the whistle completes; its wave carries fighters as `ActionState.Swept`. | Built 2026-10-29; NO RUNNING!'s stun retired. |
 
 ## Concept images
 

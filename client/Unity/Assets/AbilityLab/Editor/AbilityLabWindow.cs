@@ -2419,7 +2419,7 @@ public sealed partial class AbilityLabWindow : EditorWindow
             .OfType<StartCapabilityOperationSource>()
             .Any(op => op.CapabilityId == CharacterPackageCompiler.TargetedLeapCapabilityId));
         moveGroup.Add(addTargetedLeap);
-        AddChargedDirectionalDashButton(moveGroup, stageIndex, slot);
+        AddDashStrikeButton(moveGroup, stageIndex, slot);
 
 
         var presentationIds = _workspace.Draft.PresentationIds ?? Array.Empty<string>();
@@ -2701,9 +2701,9 @@ public sealed partial class AbilityLabWindow : EditorWindow
             AddTargetedLeapInspector(group, operation, leap);
         }
         else if (operation.Source is StartCapabilityOperationSource capability &&
-            capability.Parameters is ChargedDirectionalDashCapabilityParameters chargedDash)
+            capability.Parameters is DashStrikeCapabilityParameters chargedDash)
         {
-            AddChargedDashInspector(group, operation, capability, chargedDash);
+            AddDashStrikeInspector(group, operation, capability, chargedDash);
         }
         else if (operation.Source is StartCapabilityOperationSource chargedProjectileSource &&
             chargedProjectileSource.Parameters is ChargedProjectileCapabilityParameters chargedProjectile)

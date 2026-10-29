@@ -2,6 +2,8 @@
 
 **Status:** Built 2026-10-26 and awaiting the owner's in-game verdict. Bashie's own cooked whistle timeline
 replaces the Manki Aerosol Inferno stand-in.
+**Superseded in part by:** [ADR-0050](../adr/0050-bashie-cannonball-and-wave-pool.md) — the stun is gone; F is now
+Wave Pool, whose short whistle reuses the puff and the blow.
 
 The owner approved Bashie's kit on 2026-10-21 ([Bashie](../characters/bashie.md#specials)). F is the
 whistle: she takes a huge breath and puffs up like a balloon, then blows: TWEEEET! The inhale is the

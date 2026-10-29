@@ -90,10 +90,6 @@ MonoBehaviour:
     _clip: {fileID: 7400000, guid: 9ed7f6806b6135bf4a4eb7f9c20b677c, type: 2}
     _extrapolation: 0
     _poseTrackId: anim.wibou.r-charge
-  - _semanticId: anim.wibou.f
-    _clip: {fileID: 7400000, guid: bdb392334e0abf1fe8f9c4027f78265e, type: 2}
-    _extrapolation: 0
-    _poseTrackId: anim.wibou.f
   - _semanticId: anim.wibou.tumble
     _clip: {fileID: 7400000, guid: 04f799445821d49a2b6f2e982baa8824, type: 2}
     _extrapolation: 0
@@ -123,10 +119,8 @@ MonoBehaviour:
     _prefab: {fileID: 8198410025174390627, guid: cc7fa917eb148dcceb0d44373194c4de, type: 3}
   - _semanticId: presentation.wibou.skyfall.draw
     _prefab: {fileID: 7530250364334947904, guid: bb5fbe80363b9e2cda1e534cd114997b, type: 3}
-  - _semanticId: presentation.wibou.skyfall.launch
-    _prefab: {fileID: 5874019425951262313, guid: 81fe1dcaa83ce48138e14a675484ee4c, type: 3}
-  - _semanticId: presentation.wibou.skyfall.spike
-    _prefab: {fileID: 5010605903077912676, guid: a44e231198740733293a6186c442d8f6, type: 3}
+  - _semanticId: presentation.wibou.flash.nani
+    _prefab: {fileID: 866338650819680867, guid: 19e87e5d8e0e3ee999b411836f859ec0, type: 3}
   - _semanticId: presentation.wibou.dash.charge
     _prefab: {fileID: 8470178808113140597, guid: 5f7fa5706c9647af5bdd5eb8da96edcf, type: 3}
   - _semanticId: presentation.wibou.dash.cut

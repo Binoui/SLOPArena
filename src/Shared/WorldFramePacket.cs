@@ -21,8 +21,9 @@ namespace SlopArena.Shared
     public sealed class WorldFramePacket
     {
         public const uint Magic = 0x4D524657; // "WFRM"
-        /// <summary>2 adds the Slopball events of the frame's event ticks (ADR-0040).</summary>
-        public const byte FormatVersion = 7;
+        /// <summary>2 adds the Slopball events of the frame's event ticks (ADR-0040); 8 adds the attacker's form to
+        /// each hit (ADR-0051).</summary>
+        public const byte FormatVersion = 8;
         public const int HeaderSize = 16;
         public const int MaxBodyBytes = 64 * 1024;
         public const int MaxPresentationEvents = 256;
@@ -357,7 +358,7 @@ namespace SlopArena.Shared
                         ? item.Event.Index == -1 : item.Event.Index is >= -1 and < 32);
         }
 
-        private const int HitBytes = 1 + 8 + 8 + 1 + 8 + 1 + 1 + 4 + 4 + 1 + 1 + 4 + 4 + 4 + 2 + 2 + 1 + 1 + 12 + 4 + 2 + 1 + 4 + 4;
+        private const int HitBytes = 1 + 8 + 8 + 1 + 8 + 1 + 1 + 1 + 4 + 4 + 1 + 1 + 4 + 4 + 4 + 2 + 2 + 1 + 1 + 12 + 4 + 2 + 1 + 4 + 4;
 
         private static void WriteHit(SnapshotWriter w, in SpellResolver.HitResult hit)
         {
@@ -367,6 +368,7 @@ namespace SlopArena.Shared
             w.WriteULong(hit.ActivationId);
             w.WriteByte(hit.AttackSequence);
             w.WriteBool(hit.Airborne);
+            w.WriteByte(hit.Form);
             w.WriteFloat(hit.Damage);
             w.WriteFloat(hit.DirX);
             w.WriteSByte(hit.KnockbackAngle);
@@ -399,6 +401,7 @@ namespace SlopArena.Shared
                 ActivationId = r.ReadULong(),
                 AttackSequence = r.ReadByte(),
                 Airborne = r.ReadBool(),
+                Form = r.ReadByte(),
                 Damage = r.ReadFloat(),
                 DirX = r.ReadFloat(),
                 KnockbackAngle = r.ReadSByte(),

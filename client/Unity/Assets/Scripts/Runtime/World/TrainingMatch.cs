@@ -78,6 +78,8 @@ namespace SlopArena.Client.World
             public ulong Id;
             public PlayerRenderer Renderer;
             public CharacterDefinition Def;
+            /// <summary>The seat's picked starting form (ADR-0051).</summary>
+            public byte Form;
             public MatchContentEntry Entry = null!;
             public int PlayerNumber;
             public ulong TargetId;
@@ -278,11 +280,13 @@ namespace SlopArena.Client.World
         private void RestoreTrainingEntity(ulong id, SpawnPoint spawn, MatchContentEntry entry,
             CharacterState previous, PlayerRenderer renderer)
         {
+            // A reset keeps her form, as a respawn does (ADR-0051).
             var state = new CharacterState
             {
                 PX = spawn.X, PY = spawn.Y, PZ = spawn.Z, FacingYaw = spawn.Yaw,
-                JumpsLeft = entry.Definition.Movement.MaxJumps, AirDodgesLeft = 1,
+                JumpsLeft = entry.Definition.ForForm(previous.Form.Active).Movement.MaxJumps, AirDodgesLeft = 1,
                 DamagePercent = previous.DamagePercent, Deaths = previous.Deaths,
+                Form = new FormState { Active = previous.Form.Active },
             };
             _bridge.RegisterEntity(id, entry.Definition, state, entry.BakedAnimation);
             _bridge.SetRespawnPosition(id, spawn.X, spawn.Y, spawn.Z, spawn.Yaw);
@@ -421,7 +425,8 @@ namespace SlopArena.Client.World
             {
                 PX = pSpawn.X, PY = pSpawn.Y, PZ = pSpawn.Z,
                 FacingYaw = pSpawn.Yaw,
-                JumpsLeft = playerDef.Movement.MaxJumps,
+                JumpsLeft = playerDef.ForForm(MatchConfig.PlayerForm).Movement.MaxJumps,
+                Form = new FormState { Active = MatchConfig.PlayerForm },
             }, playerEntry.BakedAnimation);
             _playerRenderer.transform.position = new Vector3(pSpawn.X, pSpawn.Y, pSpawn.Z);
 
@@ -441,6 +446,7 @@ namespace SlopArena.Client.World
                     Renderer = _npcs.Count == 0 ? _npcRenderer : null!,
                     Entry = entry,
                     Def = entry.Definition,
+                    Form = seat.Form,
                     PlayerNumber = player,
                     Spawn = NextNpcSpawn(),
                     Rng = new System.Random(),
@@ -589,7 +595,8 @@ namespace SlopArena.Client.World
             {
                 PX = spawn.X, PY = spawn.Y, PZ = spawn.Z,
                 FacingYaw = spawn.Yaw,
-                JumpsLeft = slot.Def.Movement.MaxJumps,
+                JumpsLeft = slot.Def.ForForm(slot.Form).Movement.MaxJumps,
+                Form = new FormState { Active = slot.Form },
             }, slot.Entry.BakedAnimation);
             _bridge.SetRespawnPosition(slot.Id, spawn.X, spawn.Y, spawn.Z, spawn.Yaw);
             return true;
@@ -938,7 +945,7 @@ namespace SlopArena.Client.World
             if (slot.Def == null) return BuildIdleInput();
             slot.Rng ??= new System.Random();
             slot.Memory.ObserveOpponent(playerState);
-            return _npcPolicy.Decide(npcState, slot.Def, slot.Rng, slot.Memory,
+            return _npcPolicy.Decide(npcState, slot.Def.ForForm(npcState.Form.Active), slot.Rng, slot.Memory,
                 _arenaDef, slot.Entry.BakedAnimation, behavior, _bridge.GetActiveMove(slot.Id)?.Slot,
                 mayhemThreats: Mayhem ? new MayhemThreats(_bridge.InternalSim) : null);
         }

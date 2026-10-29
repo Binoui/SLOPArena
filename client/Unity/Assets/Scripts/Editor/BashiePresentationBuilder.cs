@@ -15,33 +15,24 @@ namespace SlopArena.EditorTools
 {
     /// <summary>
     /// Rebuilds Bashie's package-owned presentation from code (docs/characters/bashie.md): the pool lifeguard who
-    /// enforces every rule and breaks them all herself. Hose Down (A) is cartoon pool water in toon bands (a deep
-    /// pool-blue rim, blue, light cyan, white foam): a hose spray of streaks fanning out of her toy blaster, drips
-    /// while she pumps, a splash where it lands, and the NO SPLASHING! pool sign she is breaking. The owner picked
-    /// the spray look ("C") from painted concepts on 2026-10-22. Shell Slide (R) folds her into her own shell with
-    /// <see cref="ShellTuck"/> (look "A", picked from renders of her rig the same day). Workflow and readability rules are in
+    /// enforces every rule and breaks them all herself. Her water is cartoon pool water in toon bands (a deep
+    /// pool-blue rim, blue, light cyan, white foam). Her shell moves fold her into her own shell with
+    /// <see cref="ShellTuck"/> (look "A", picked from renders of her rig on 2026-10-22). Workflow and readability rules are in
     /// skills/sloparena-character-vfx-pass; plumbing is in <see cref="PresentationBuilderKit"/>.
     /// </summary>
     public static class BashiePresentationBuilder
     {
-        private const string WeaponConfigPath = "Assets/CharacterPackages/bashie/Presentation/BashieWeaponAttachments.asset";
-        private const string SignMaskPath = "Assets/CharacterPackages/bashie/Presentation/Source/NoSplashing.png";
         private const string RingPrefabPath = "Assets/CharacterPackages/bashie/Presentation/BashieRing.prefab";
 
         private static GameObject LoadPrefab(string path)
             => AssetDatabase.LoadAssetAtPath<GameObject>(path) ?? throw new System.InvalidOperationException($"{path} is missing.");
-        // character.json presentation.visualScale: her bones carry it in game, and the blaster's offset with them.
+        // character.json presentation.visualScale: her bones carry it in game.
         private const float VisualScale = 1.1f;
-        // The stream's projectile (character.json ground.A): its speed and gravity, which the streaks keep pace with.
-        private const float StreamSpeed = 16f, StreamGravity = 4f;
 
         private static readonly Color Rim = new(0.055f, 0.227f, 0.463f);
         private static readonly Color Blue = new(0.157f, 0.584f, 0.902f);
         private static readonly Color Cyan = new(0.525f, 0.863f, 1f);
         private static readonly Color Foam = new(0.957f, 0.992f, 1f);
-        private static readonly Color SignBlue = new(0.122f, 0.373f, 0.749f);
-        private static readonly Color SignRed = new(0.898f, 0.2f, 0.165f);
-        private static readonly Color Ink = new(0.094f, 0.118f, 0.18f);
 
         private static PresentationBuilderKit _kit;
         private static Materials _m;
@@ -59,13 +50,8 @@ namespace SlopArena.EditorTools
             _kit = kit;
             BuildPuff();
             _m = BuildMaterials();
-            var (muzzle, barrel) = MuzzleInHand();
             var built = new List<(string id, GameObject prefab)>
             {
-                ("presentation.bashie.hose.pump", Pump(muzzle, barrel)),
-                ("presentation.bashie.hose.release", Release(muzzle, barrel)),
-                ("presentation.bashie.hose.sign", Sign("BashieHoseSign", "BashieSign", SignMaskPath)),
-                ("presentation.bashie.hose.hit", Hit()),
                 ("presentation.bashie.shell.tuck", Tuck()),
                 ("presentation.bashie.shell.plop", Plop()),
                 ("presentation.bashie.shell.surf", Surf()),
@@ -77,19 +63,12 @@ namespace SlopArena.EditorTools
                 ("presentation.bashie.shell.flip-tuck", FlipTuck()),
                 ("presentation.bashie.whistle.puff", WhistlePuff()),
                 ("presentation.bashie.whistle.blow", WhistleBlow()),
-                ("presentation.bashie.whistle.sign", Sign("BashieWhistleSign", "BashieNoRunningSign",
-                    "Assets/CharacterPackages/bashie/Presentation/Source/NoRunning.png")),
             };
-            // The retired Ring Bounce cues keep their accepted prefabs while her package still declares them.
-            foreach (var (id, name) in new[] { ("presentation.bashie.ring.bounce", "BashieRingBounce"),
-                         ("presentation.bashie.ring.rebound", "BashieRingRebound") })
-                built.Add((id, LoadPrefab($"Assets/CharacterPackages/bashie/Presentation/{name}.prefab")));
-            var drop = StreamDrop();
             // Rescue Ring (ADR-0048): her life ring prop is the thrown ring.
             var ring = LoadPrefab(RingPrefabPath);
             kit.BindProjectile("ground.A", ring);
             kit.BindProjectile("air.A", ring);
-            return kit.Finish(built, new { drop = AssetDatabase.GetAssetPath(drop), muzzle = muzzle.ToString("F3") });
+            return kit.Finish(built);
         }
 
         // Accepted C-full-balloon, 2026-10-26. Rerun after re-importing the rig or changing its albedo.
@@ -446,27 +425,12 @@ namespace SlopArena.EditorTools
             return new { success = true, id, prefab = AssetDatabase.GetAssetPath(prefab), warnings = kit.Warnings.ToArray() };
         }
 
-        /// <summary>
-        /// The blaster's muzzle in the right hand's frame, in metres under a unit-scale frame, and the barrel's
-        /// rotation: <see cref="WeaponAttach"/> places the blaster at the hand's scaled offset at world scale 1.
-        /// </summary>
-        private static (Vector3 position, Quaternion rotation) MuzzleInHand()
-        {
-            var config = AssetDatabase.LoadAssetAtPath<WeaponAttachConfig>(WeaponConfigPath)
-                ?? throw new System.InvalidOperationException("Missing " + WeaponConfigPath + " (blaster_import.eval.cs).");
-            var entry = config.Entries.Single(e => e.AttackSlot == AbilitySlots.A);
-            var muzzle = entry.Prefab.transform.Find("Muzzle")
-                ?? throw new System.InvalidOperationException("The blaster prefab has no Muzzle anchor.");
-            var rotation = Quaternion.Euler(entry.RotationOffset);
-            return (entry.PositionOffset * VisualScale + rotation * muzzle.localPosition, rotation);
-        }
-
         // ── Shell Slide ──────────────────────────────────────────────────────────
 
         /// <summary>
         /// Folds her into her shell (<see cref="ShellTuck"/>), the look the owner picked ("A", 2026-10-22): her hat
-        /// and face peek out of the front. It holds for as long as the simulation has her in the shell (ADR-0045),
-        /// through Shell Shift, Hydro Jet, Shell Dive and the skate, so it is not bound to one attack.
+        /// and face peek out of the front. It holds for as long as the simulation has her in the shell (ADR-0050),
+        /// through the Cannonball, its dive, Hydro Jet and the Wave Pool ride, so it is not bound to one attack.
         /// </summary>
         private static GameObject Tuck()
         {
@@ -606,7 +570,8 @@ namespace SlopArena.EditorTools
 
         // Her hips while tucked sit this high (ShellTuckPose.Bashie's 0.141 at her visual scale): the surf's floor.
         private const float TuckedHipsHeight = 0.141f * VisualScale;
-        private static readonly string[] SlideClips = { "anim.bashie.gr-slide" };
+        // The stand-in for Wave Pool's big wave (ADR-0050): the surf grown around her while she rides.
+        private const float RideWaveScale = 2.2f;
 
         /// <summary>The dive into the shell: a ring of splash round her where she lands on her belly, and the fwump.</summary>
         private static GameObject Plop()
@@ -643,14 +608,14 @@ namespace SlopArena.EditorTools
         }
 
         /// <summary>
-        /// The surf she rides while she slides (the owner's pick, "C", 2026-10-22): a little toon wave curling just
-        /// ahead of her, low in front of her face and higher at the sides, foam on its crest, spray thrown back off
-        /// its sides, a wet streak on the floor behind and the rush of water. It shows only while she slides on the
-        /// ground (<see cref="AttackClipShow"/>).
+        /// The surf she rides on Wave Pool (the owner's pick, "C", 2026-10-22, grown as the stand-in big wave): a toon
+        /// wave curling just ahead of her, low in front of her face and higher at the sides, foam on its crest, spray
+        /// thrown back off its sides, a wet streak on the floor behind and the rush of water. It shows only while she
+        /// rides on the ground (<see cref="AttackClipShow"/>); the cue outlives the whistle that emits it.
         /// </summary>
         private static GameObject Surf()
         {
-            var root = _kit.NewRoot("BashieShellSurf", attackBound: true);
+            var root = _kit.NewRoot("BashieShellSurf", attackBound: false);
             var frame = new GameObject("Frame");
             frame.transform.SetParent(root.transform, false);
             var pf = frame.AddComponent<PresentationFrame>();
@@ -727,13 +692,14 @@ namespace SlopArena.EditorTools
             var rush = _kit.Sound(root, "bashie_shell_slide", 0.32f, 1f);
             if (rush != null) { rush.loop = true; rush.playOnAwake = false; }
             var show = root.AddComponent<AttackClipShow>();
-            show.AnimationIds = SlideClips;
+            show.WhileRiding = true;
+            show.Scale = RideWaveScale;
             show.GroundedOnly = true;
             show.Grow = grow.transform;
             return _kit.Save(root);
         }
 
-        /// <summary>The shell bowling someone over: a splash of the surf against them and a hollow knock.</summary>
+        /// <summary>Her wave catching someone: a splash of the surf against them and a hollow knock.</summary>
         private static GameObject ShellHit()
         {
             var root = _kit.NewRoot("BashieShellHit", attackBound: false);
@@ -816,193 +782,6 @@ namespace SlopArena.EditorTools
             return c;
         }
 
-        // ── Hose Down ────────────────────────────────────────────────────────────
-
-        /// <summary>
-        /// One drop of the stream, as its projectile visual (+Y along the flight). Each drop fires a few streaks at its
-        /// own speed in a narrow cone, so twenty drops a second make a hose spray that fans out as it flies; mist and
-        /// drips peel off along the way and hang on after the drop lands.
-        /// </summary>
-        private static GameObject StreamDrop()
-        {
-            var root = _kit.NewRoot("BashieHoseDrop", attackBound: false);
-            var streaks = Particles(root, "Streaks", _m.Streak, 0.5f);
-            Burst(streaks, 5);
-            var main = streaks.main;
-            main.startLifetime = new ParticleSystem.MinMaxCurve(0.3f, 0.4f);
-            main.startSpeed = new ParticleSystem.MinMaxCurve(StreamSpeed * 0.88f, StreamSpeed * 1.04f);
-            main.startSize = new ParticleSystem.MinMaxCurve(0.11f, 0.19f);
-            main.startColor = new Color(1f, 1f, 1f, 0.88f);
-            main.gravityModifier = StreamGravity / 9.81f;
-            main.maxParticles = 8;
-            var shape = streaks.shape;
-            shape.enabled = true;
-            shape.shapeType = ParticleSystemShapeType.Cone;
-            shape.angle = 6f;
-            shape.radius = 0.05f;
-            shape.rotation = new Vector3(-90f, 0f, 0f);          // the cone fires along the drop's +Y
-            // The quad trails behind each streak: its length is its speed plus a little of its size.
-            Stretch(streaks, 0.065f, 1.1f);
-            SizeOverLife(streaks, Curve((0f, 0.55f), (0.25f, 1f), (1f, 1.7f)));
-            Fade(streaks, 0.7f);
-
-            var mist = Particles(root, "Mist", _m.Mist, 0.5f);
-            var emission = mist.emission;
-            emission.rateOverDistance = 2.5f;
-            main = mist.main;
-            main.startLifetime = new ParticleSystem.MinMaxCurve(0.2f, 0.3f);
-            main.startSize = new ParticleSystem.MinMaxCurve(0.22f, 0.36f);
-            main.startRotation = new ParticleSystem.MinMaxCurve(0f, Mathf.PI * 2f);
-            SizeOverLife(mist, Curve((0f, 0.6f), (1f, 1.6f)));
-            Fade(mist, 0.3f);
-            Behind(mist);
-            mist.gameObject.AddComponent<LingerAfterProjectile>().Seconds = 0.4f;
-
-            var drips = Particles(root, "Drips", _m.Drop, 0.5f);
-            emission = drips.emission;
-            emission.rateOverDistance = 0.8f;
-            main = drips.main;
-            main.startLifetime = new ParticleSystem.MinMaxCurve(0.25f, 0.4f);
-            main.startSize = new ParticleSystem.MinMaxCurve(0.05f, 0.09f);
-            main.startSpeed = new ParticleSystem.MinMaxCurve(0.4f, 1.6f);
-            main.gravityModifier = 1.3f;
-            Sphere(drips, 0.12f);
-            Fade(drips, 0.4f);
-            drips.gameObject.AddComponent<LingerAfterProjectile>().Seconds = 0.45f;
-            return _kit.Save(root);
-        }
-
-        /// <summary>While she pumps: each stroke spits a few drops out of the muzzle, with the pump's squeaks.</summary>
-        private static GameObject Pump(Vector3 muzzle, Quaternion barrel)
-        {
-            var root = _kit.NewRoot("BashieHosePump", attackBound: true);
-            var at = Muzzle(root, muzzle, barrel);
-            var spits = Particles(at, "Spits", _m.Drop, 12f);
-            var emission = spits.emission;
-            // One spit per stroke of her 24-tick pump loop.
-            emission.SetBursts(new[] { new ParticleSystem.Burst(0.2f, 3, 4, 0, 0.4f) });
-            var main = spits.main;
-            main.startLifetime = new ParticleSystem.MinMaxCurve(0.35f, 0.5f);
-            main.startSpeed = new ParticleSystem.MinMaxCurve(1.2f, 2.4f);
-            main.startSize = new ParticleSystem.MinMaxCurve(0.05f, 0.09f);
-            main.gravityModifier = 1.2f;
-            var shape = spits.shape;
-            shape.enabled = true;
-            shape.shapeType = ParticleSystemShapeType.Cone;
-            shape.angle = 25f;
-            shape.radius = 0.02f;
-            Fade(spits, 0.6f);
-            _kit.Sound(root, "bashie_pump", 0.4f, 1f);
-            return _kit.Save(root);
-        }
-
-        /// <summary>
-        /// The release: a splash crown at the muzzle, a gush of water thrown forward with a burst of drops, mist, and
-        /// the hose's rush. It grows with the pump, as Manki's flame does with his shake (owner, 2026-10-22: "the
-        /// release could splash a lot more water, depending on charge time like manki F"): a tap is a squirt, a full
-        /// pump nearly twice the size with three and a half times the water.
-        /// </summary>
-        private static GameObject Release(Vector3 muzzle, Quaternion barrel)
-        {
-            var root = _kit.NewRoot("BashieHoseRelease", attackBound: true);
-            var at = Muzzle(root, muzzle, barrel);
-            var grow = new GameObject("Grow");
-            grow.transform.SetParent(at.transform, false);
-            var charge = grow.AddComponent<ChargeScale>();
-            charge.Slot = AbilitySlots.A;
-            charge.MinScale = 0.7f;
-            charge.MaxScale = 1.9f;
-            charge.MaxCount = 3.5f;
-            charge.MaxSpeed = 1.6f;
-            const ParticleSystemScalingMode scaled = ParticleSystemScalingMode.Hierarchy;
-
-            var crown = Particles(grow, "Crown", _m.Crown, 0.3f, ParticleSystemSimulationSpace.Local, scaled);
-            Burst(crown, 1);
-            var main = crown.main;
-            main.startLifetime = 0.18f;
-            main.startSize = 0.42f;
-            main.startRotation = new ParticleSystem.MinMaxCurve(0f, Mathf.PI * 2f);
-            main.maxParticles = 1;
-            SizeOverLife(crown, Curve((0f, 0.45f), (0.4f, 1f), (1f, 1.15f)));
-            Fade(crown, 0.4f);
-            InFront(crown);
-
-            var gush = Particles(grow, "Gush", _m.Streak, 0.4f, scaling: scaled);
-            Burst(gush, 6);
-            main = gush.main;
-            main.startLifetime = new ParticleSystem.MinMaxCurve(0.3f, 0.5f);
-            main.startSpeed = new ParticleSystem.MinMaxCurve(3f, 7f);
-            main.startSize = new ParticleSystem.MinMaxCurve(0.1f, 0.2f);
-            main.gravityModifier = 1f;
-            var shape = gush.shape;
-            shape.enabled = true;
-            shape.shapeType = ParticleSystemShapeType.Cone;
-            shape.angle = 32f;
-            shape.radius = 0.04f;
-            Stretch(gush, 0.06f, 1f);
-            SizeOverLife(gush, Curve((0f, 0.6f), (0.3f, 1f), (1f, 1.3f)));
-            Fade(gush, 0.6f);
-
-            var burst = Particles(grow, "Burst drops", _m.Drop, 0.4f, scaling: scaled);
-            Burst(burst, 8);
-            main = burst.main;
-            main.startLifetime = new ParticleSystem.MinMaxCurve(0.3f, 0.55f);
-            main.startSpeed = new ParticleSystem.MinMaxCurve(2f, 4.5f);
-            main.startSize = new ParticleSystem.MinMaxCurve(0.05f, 0.09f);
-            main.gravityModifier = 1.2f;
-            shape = burst.shape;
-            shape.enabled = true;
-            shape.shapeType = ParticleSystemShapeType.Cone;
-            shape.angle = 38f;
-            shape.radius = 0.03f;
-            Fade(burst, 0.6f);
-
-            var mist = Particles(grow, "Mist", _m.Mist, 0.4f, scaling: scaled);
-            Burst(mist, 2);
-            main = mist.main;
-            main.startLifetime = new ParticleSystem.MinMaxCurve(0.3f, 0.4f);
-            main.startSize = new ParticleSystem.MinMaxCurve(0.3f, 0.45f);
-            main.startSpeed = new ParticleSystem.MinMaxCurve(0.3f, 0.9f);
-            shape = mist.shape;
-            shape.enabled = true;
-            shape.shapeType = ParticleSystemShapeType.Cone;
-            shape.angle = 25f;
-            shape.radius = 0.05f;
-            SizeOverLife(mist, Curve((0f, 0.6f), (1f, 1.5f)));
-            Fade(mist, 0.3f);
-            _kit.Sound(root, "bashie_spray", 0.55f, 1f);
-            return _kit.Save(root);
-        }
-
-        /// <summary>
-        /// The rule she is breaking: a NO SPLASHING! pool sign pops just over her hat, a little toward where she
-        /// sprays so the match camera keeps it in frame, with a soft pop; it hangs and fades. A positive pivot keeps
-        /// it in front of the fighters.
-        /// </summary>
-        private static GameObject Sign(string rootName, string materialName, string maskPath)
-        {
-            var mask = new MaskField(maskPath);
-            var material = _kit.ParticleMaterial(materialName, _kit.BakeTexture(materialName, 512, 84,
-                (u, v) => SignPixel(u, v, mask)));
-            var root = _kit.NewRoot(rootName, attackBound: false);
-            var sign = Particles(root, "Sign", material, 1.2f, ParticleSystemSimulationSpace.Local);
-            Burst(sign, 1);
-            var main = sign.main;
-            main.startLifetime = 1.05f;
-            main.startSize3D = true;
-            main.startSizeX = 1.3f;                           // the sign texture's 512 x 84
-            main.startSizeY = 0.213f;
-            main.startSizeZ = 1f;
-            main.startRotation = -6f * Mathf.Deg2Rad;
-            SizeOverLife(sign, Curve((0f, 0f), (0.08f, 1.15f), (0.14f, 0.95f), (0.2f, 1f), (0.85f, 1f), (1f, 0.85f)));
-            Fade(sign, 0.8f);
-            var renderer = sign.GetComponent<ParticleSystemRenderer>();
-            renderer.pivot = new Vector3(0f, 0f, 1.2f);
-            InFront(sign);
-            _kit.Sound(root, "bashie_sign", 0.5f, 1f);
-            return _kit.Save(root);
-        }
-
         private static GameObject WhistlePuff()
         {
             var root = _kit.NewRoot("BashieWhistlePuff", attackBound: false);
@@ -1038,70 +817,7 @@ namespace SlopArena.EditorTools
             return _kit.Save(root);
         }
 
-        /// <summary>
-        /// A drop of the stream landing on someone: a splash crown, drops flung back, a puff of mist and a little
-        /// puddle on the floor. Contacts scale by damage and a push deals none, so it is drawn at the 0.6 floor.
-        /// </summary>
-        private static GameObject Hit()
-        {
-            var root = _kit.NewRoot("BashieHoseHit", attackBound: false);
-            const ParticleSystemScalingMode scaled = ParticleSystemScalingMode.Hierarchy;
-            var crown = Particles(root, "Crown", _m.Crown, 0.3f, ParticleSystemSimulationSpace.Local, scaled);
-            Burst(crown, 1);
-            var main = crown.main;
-            main.startLifetime = 0.18f;
-            main.startSize = 0.8f;
-            main.startRotation = new ParticleSystem.MinMaxCurve(0f, Mathf.PI * 2f);
-            SizeOverLife(crown, Curve((0f, 0.5f), (0.4f, 1f), (1f, 1.1f)));
-            Fade(crown, 0.4f);
-            InFront(crown);
-            var drops = Particles(root, "Drops", _m.Drop, 0.3f, scaling: scaled);
-            Burst(drops, 6);
-            main = drops.main;
-            main.startLifetime = new ParticleSystem.MinMaxCurve(0.35f, 0.55f);
-            main.startSpeed = new ParticleSystem.MinMaxCurve(1.5f, 3.5f);
-            main.startSize = new ParticleSystem.MinMaxCurve(0.07f, 0.12f);
-            main.gravityModifier = 1.4f;
-            Sphere(drops, 0.15f);
-            Fade(drops, 0.6f);
-            InFront(drops);
-            var mist = Particles(root, "Mist", _m.Mist, 0.3f, scaling: scaled);
-            Burst(mist, 1);
-            main = mist.main;
-            main.startLifetime = 0.3f;
-            main.startSize = 0.7f;
-            SizeOverLife(mist, Curve((0f, 0.6f), (1f, 1.4f)));
-            Fade(mist, 0.3f);
-            var floor = new GameObject("Floor");
-            floor.transform.SetParent(root.transform, false);
-            floor.AddComponent<SnapToFloor>();
-            var puddle = Particles(floor, "Puddle", _m.Puddle, 0.7f, ParticleSystemSimulationSpace.Local, scaled);
-            Burst(puddle, 1);
-            main = puddle.main;
-            main.startLifetime = 0.6f;
-            main.startSize = 1f;
-            main.startRotation = new ParticleSystem.MinMaxCurve(0f, Mathf.PI * 2f);
-            puddle.GetComponent<ParticleSystemRenderer>().renderMode = ParticleSystemRenderMode.HorizontalBillboard;
-            SizeOverLife(puddle, Curve((0f, 0.5f), (0.3f, 1f), (1f, 1.05f)));
-            Fade(puddle, 0.5f);
-            _kit.Sound(root, "bashie_splash", 0.22f, 1f);
-            return _kit.Save(root);
-        }
-
         // ── Shared ───────────────────────────────────────────────────────────────
-
-        /// <summary>The muzzle of the blaster in a bone cue: a unit-scale frame, then the muzzle, +Z down the barrel.</summary>
-        private static GameObject Muzzle(GameObject root, Vector3 position, Quaternion barrel)
-        {
-            var frame = new GameObject("Frame");
-            frame.transform.SetParent(root.transform, false);
-            frame.AddComponent<PresentationFrame>().UnitScale = true;
-            var muzzle = new GameObject("Muzzle");
-            muzzle.transform.SetParent(frame.transform, false);
-            muzzle.transform.localPosition = position;
-            muzzle.transform.localRotation = barrel;
-            return muzzle;
-        }
 
         private static Materials BuildMaterials()
         {
@@ -1180,35 +896,6 @@ namespace SlopArena.EditorTools
             color = Color.Lerp(color, Foam, Mathf.Clamp01(0.5f - glint) * color.a * 0.85f);
             color.a *= 0.85f;
             return color;
-        }
-
-        /// <summary>
-        /// The NO SPLASHING! pool sign: a white board with a blue border and a dark rim, red lettering from the mask,
-        /// and a no-splash pictogram (a splash in a red no-circle) at its left end.
-        /// </summary>
-        private static Color SignPixel(float u, float v, MaskField mask)
-        {
-            // Texels: 512 x 84. The board fills the texture with a little margin.
-            var p = new Vector2(u * 512f - 256f, v * 84f - 42f);
-            float board = Box(p, new Vector2(250f, 38f) - Vector2.one * 10f) - 10f;
-            var color = Bands(board, 3.5f, 6f, Rim, SignBlue, Color.white);
-            if (color.a <= 0f) return color;
-            const float Left = -172f, Right = 238f;
-            float texels = (Right - Left) / (0.93f * mask.Width);
-            if (p.x >= Left - 3f && p.x <= Right + 3f && Mathf.Abs(p.y) < 28f)
-            {
-                float mu = 0.5f + (p.x - (Left + Right) * 0.5f) / (texels * mask.Width);
-                float mv = 0.5f + p.y / (texels * mask.Height);
-                float letter = mask.Sample(mu, mv) * texels;
-                color = Color.Lerp(color, Bands(letter, 2f, 99f, Ink, SignRed, SignRed), Mathf.Clamp01(0.5f - letter));
-            }
-            // Pictogram: a splash crown inside a red no-circle with a slash.
-            var c = p - new Vector2(-210f, 0f);
-            float splash = Polygon(c / 19f, StarOutline(7, 0.5f, 5)) * 19f;
-            color = Color.Lerp(color, Bands(splash, 1.2f, 3f, Rim, Blue, Cyan), Mathf.Clamp01(0.5f - splash));
-            float ring = Mathf.Abs(c.magnitude - 26f) - 3.5f;
-            float slash = Box(Rotate(c, 45f), new Vector2(26f, 3.2f));
-            return Color.Lerp(color, SignRed, Mathf.Clamp01(0.5f - Mathf.Min(ring, slash)));
         }
     }
 }

@@ -546,19 +546,20 @@ public sealed class TutorialProgressTests
         Assert.Equal(TutorialDummyBehavior.Idle, shield.Progress.DummyBehavior);
         _output.WriteLine($"{fighter} shield: hold Shield, block, Dash after blockstun; {Snapshot(shield)}");
 
+        // The plain south edge keeps this recovery clear of the new western trench.
         var recovery = new Lab(fighter, DummyFor(fighter), TutorialLessonId.BeelineTricks,
-            playerX: -23f, playerZ: 0f, dummyX: -17f, dummyZ: 0f);
+            playerX: 0f, playerZ: -15.5f, dummyX: 0f, dummyZ: -9.5f);
         recovery.Sim.SetState(Player, recovery.Sim.GetState(Player) with
         {
             IsGrounded = false, PY = recovery.PlayerEntry.Definition.CapsuleHeight * 0.5f - 0.7f,
-            FacingYaw = MathF.PI * 0.5f, AimYaw = MathF.PI * 0.5f,
+            FacingYaw = 0f, AimYaw = 0f,
         });
         recovery.Step(dummy: default(InputState));
         recovery.Step(new InputState { DashPressed = true }, default(InputState));
         for (int t = 0; t < 180 && !recovery.Progress.IsComplete(1); t++) recovery.Step(dummy: default(InputState));
         Assert.True(recovery.Progress.IsComplete(1), $"{fighter} recovery: {Snapshot(recovery)}");
         Assert.Equal(0, recovery.Sim.GetState(Player).Deaths);
-        _output.WriteLine($"{fighter} recovery: west edge x=-23, feet=-0.7, Dash toward dummy x=-17; {Snapshot(recovery)}");
+        _output.WriteLine($"{fighter} recovery: off the south edge z=-15.5, feet=-0.7, Dash toward dummy z=-9.5; {Snapshot(recovery)}");
     }
 
     [Theory]

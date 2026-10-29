@@ -12,7 +12,7 @@ The stage picker currently offers seven PVP maps:
 | [Log Off](log_off.md) | Rebuilt 2026-10-16 as a split stump with fungus shelves and a sunset campsite; accepted 2026-10-17 |
 | [Hamster Habitat](hamster_habitat.md) | New 2026-10-27: two hamster bins joined by see-through tubes in Table Manners' bedroom at night; accepted from captures 2026-10-27, not yet played in a match |
 
-Training remains available only in training mode. License Test (Fighter's License) is the Tutorial's map and is never offered here.
+[Training](training.md) remains the sole `trainingOnly` entry. Its round-2 Crash-Test Lab adds the Drill Yard, trench, low shelf and 4/8/13.5 m Recovery Range to the Crash Pad. It follows the [locked brief](training.design.md) of 2026-10-29 and awaits maintainer acceptance in Training; the production brief records far-island and automatic-ledge-entry deviations. License Test (Fighter's License) is the Tutorial's map and is never offered here.
 
 Rec Center Roof, Picnic Panic, Industrial Rooftop and SciFi City Demo are hidden from the picker pending a rebuild or removal. Their baked arenas, presentation assets and authoring records are preserved. Slop Court was removed on 2026-10-16; Slop Pit is now the GameHost default arena.
 

@@ -179,24 +179,17 @@
   ],
   "attachmentBoneIds": [],
   "presentationIds": [
-    "presentation.bashie.hose.pump",
-    "presentation.bashie.hose.release",
-    "presentation.bashie.hose.sign",
-    "presentation.bashie.hose.hit",
     "presentation.bashie.shell.tuck",
     "presentation.bashie.shell.plop",
     "presentation.bashie.shell.surf",
     "presentation.bashie.shell.hit",
     "presentation.bashie.shell.spin-tuck",
     "presentation.bashie.shell.spin-water",
-    "presentation.bashie.ring.bounce",
-    "presentation.bashie.ring.rebound",
     "presentation.bashie.shell.rise-tuck",
     "presentation.bashie.shell.air-strike-tuck",
     "presentation.bashie.shell.flip-tuck",
     "presentation.bashie.whistle.puff",
-    "presentation.bashie.whistle.blow",
-    "presentation.bashie.whistle.sign"
+    "presentation.bashie.whistle.blow"
   ],
   "capabilityRequirements": [
     {
@@ -204,43 +197,73 @@
       "capabilityVersion": "1"
     },
     {
-      "capabilityId": "slop.ability.shell-stance.v1",
+      "capabilityId": "slop.ability.shell-stance.v2",
       "capabilityVersion": "1"
     },
     {
       "capabilityId": "slop.ability.thrust.v1",
       "capabilityVersion": "1"
+    },
+    {
+      "capabilityId": "slop.ability.cannonball.v1",
+      "capabilityVersion": "1"
     }
   ],
   "shell": {
-    "skateTicks": 90,
-    "minSkateSpeed": 10,
-    "maxSkateSpeed": 20,
-    "landingSpeedRatio": 0.5,
     "popOutDeceleration": 40,
     "blockedRecoilSpeed": 4,
-    "hitbox": {
-      "shape": "capsule",
-      "radius": 0.5,
-      "offsetX": 0,
-      "offsetY": -0.45,
-      "offsetZ": -0.1,
-      "endOffsetX": 0,
-      "endOffsetY": 0,
-      "endOffsetZ": 0.6,
-      "startBoneId": null,
-      "endBoneId": null,
-      "damage": 9,
-      "angle": 65,
-      "baseKnockback": 9,
-      "knockbackGrowth": 20,
-      "stunTicks": 18,
-      "durationTicks": 1,
-      "interruptible": false,
-      "hitGroup": 0,
-      "knockbackDirection": "awayFromOwner"
+    "splash": {
+      "popUpTicks": 18,
+      "presentationId": "presentation.bashie.shell.plop",
+      "hitbox": {
+        "shape": "sphere",
+        "radius": 1.7,
+        "offsetX": 0,
+        "offsetY": -0.75,
+        "offsetZ": 0,
+        "endOffsetX": 0,
+        "endOffsetY": 0,
+        "endOffsetZ": 0,
+        "startBoneId": null,
+        "endBoneId": null,
+        "damage": 9,
+        "angle": 85,
+        "baseKnockback": 10,
+        "knockbackGrowth": 25,
+        "stunTicks": 24,
+        "durationTicks": 3,
+        "interruptible": false,
+        "hitGroup": 0,
+        "knockbackDirection": "awayFromOwner"
+      }
     },
-    "hitPresentationId": "presentation.bashie.shell.hit"
+    "ride": {
+      "ticks": 90,
+      "speed": 13,
+      "turnDegreesPerSecond": 40,
+      "hitPresentationId": "presentation.bashie.shell.hit",
+      "wave": {
+        "shape": "capsule",
+        "radius": 0.7,
+        "offsetX": -1.1,
+        "offsetY": -0.3,
+        "offsetZ": 0.8,
+        "endOffsetX": 1.1,
+        "endOffsetY": -0.3,
+        "endOffsetZ": 0.8,
+        "startBoneId": null,
+        "endBoneId": null,
+        "damage": 3,
+        "angle": 10,
+        "baseKnockback": 8,
+        "knockbackGrowth": 0,
+        "stunTicks": 0,
+        "durationTicks": 1,
+        "interruptible": false,
+        "hitGroup": 0,
+        "knockbackDirection": "awayFromOwner"
+      }
+    }
   },
   "slots": [
     {
@@ -1583,7 +1606,7 @@
     {
       "id": "ground.E",
       "name": "Hydro Jet",
-      "description": "Tuck and jet off in the stick's direction with no wind-up (neutral goes straight up). The jet behind you shoves. Press R mid-jet to dive without untucking; landing still tucked flows into the skate.",
+      "description": "Tuck and jet off in the stick's direction with no wind-up (neutral goes straight up). The jet behind you shoves. Press R mid-jet to dive without untucking; landing tucked splashes.",
       "iconId": "icon.e",
       "behavior": "meleeCombo",
       "aimMode": "none",
@@ -1672,13 +1695,13 @@
     },
     {
       "id": "ground.R",
-      "name": "Shell Shift",
-      "description": "Drop into your shell and skate straight on at your speed (a standing start pushes off). Fighters in the way are bowled up and you skate on under them. A normal or a jump pops you out at skate speed; when the skate runs out you pop up.",
+      "name": "Cannonball",
+      "description": "Hop up tucked and cannonball onto where your target stood. The splash launches everyone around upward, into your normals. If they moved, you pop up out of the splash open to a punish.",
       "iconId": "icon.r",
       "behavior": "meleeCombo",
       "aimMode": "none",
       "aimMovement": "fixed",
-      "cooldownTicks": 180,
+      "cooldownTicks": 150,
       "isRecoveryMove": false,
       "preserveMomentumOnStart": false,
       "allowSlideCarry": false,
@@ -1686,7 +1709,7 @@
       "timeline": {
         "stages": [
           {
-            "durationTicks": 10,
+            "durationTicks": 70,
             "iasaTicks": 0,
             "landingLagTicks": 0,
             "autoCancelBeforeTicks": 0,
@@ -1698,22 +1721,9 @@
             "trackingStrength": 0,
             "animationIds": [
               "anim.bashie.gr",
-              "anim.bashie.gr-pop",
-              "anim.bashie.gr-slide"
+              "anim.bashie.gr-pop"
             ],
             "operations": [
-              {
-                "kind": "startupAimCorrection",
-                "tick": 0,
-                "unit": "ticks",
-                "endTick": 6,
-                "acquisitionRange": 4,
-                "acquisitionHalfAngleDegrees": 180,
-                "maxYawDegrees": 90,
-                "maxPitchDegrees": 0,
-                "yawDegreesPerSecond": 720,
-                "pitchDegreesPerSecond": 0
-              },
               {
                 "kind": "emitPresentation",
                 "tick": 0,
@@ -1732,20 +1742,18 @@
                 }
               },
               {
-                "kind": "emitPresentation",
-                "tick": 6,
+                "kind": "startCapability",
+                "tick": 0,
                 "unit": "ticks",
-                "presentationId": "presentation.bashie.shell.plop",
-                "placement": {
-                  "attachmentMode": "world",
-                  "boneId": null,
-                  "localPositionX": 0,
-                  "localPositionY": 0,
-                  "localPositionZ": 0.3,
-                  "localScaleX": 1,
-                  "localScaleY": 1,
-                  "localScaleZ": 1,
-                  "durationTicks": 60
+                "capabilityId": "slop.ability.cannonball.v1",
+                "capabilityVersion": "1",
+                "parameters": {
+                  "takeoffTick": 2,
+                  "maxRange": 8,
+                  "noTargetDistance": 4,
+                  "minFlightTicks": 5,
+                  "maxFlightTicks": 40,
+                  "maxLaunchSpeed": 20
                 }
               }
             ]
@@ -1755,13 +1763,13 @@
     },
     {
       "id": "air.R",
-      "name": "Shell Dive",
-      "description": "Tuck and dive steeply at the ground ahead, leaning toward a target in front. Landing turns the dive's speed into the skate: a higher dive skates faster. Pressed during Hydro Jet it keeps the jet's speed.",
+      "name": "Cannonball Dive",
+      "description": "Tuck and dive steeply at the ground ahead, leaning toward a target in front. Landing splashes like the Cannonball. Pressed during Hydro Jet it keeps the jet's speed.",
       "iconId": "icon.r",
       "behavior": "meleeCombo",
       "aimMode": "none",
       "aimMovement": "fixed",
-      "cooldownTicks": 180,
+      "cooldownTicks": 150,
       "isRecoveryMove": false,
       "preserveMomentumOnStart": false,
       "allowSlideCarry": false,
@@ -1825,20 +1833,21 @@
     },
     {
       "id": "ground.F",
-      "name": "NO RUNNING!",
-      "description": "Puff up, then blow a whistle to stun nearby fighters. Shields block it.",
+      "name": "Wave Pool",
+      "description": "Blow your whistle: a wave rises behind you and you ride it in your shell toward your target, carrying everyone it meets toward the edge, shields and all. It breaks at the lip. Jump off to send them flying into your aerial.",
       "iconId": "icon.f",
       "behavior": "areaDenial",
       "aimMode": "none",
       "aimMovement": "fixed",
-      "cooldownTicks": 720,
+      "cooldownTicks": 540,
       "isRecoveryMove": false,
       "preserveMomentumOnStart": false,
       "allowSlideCarry": false,
+      "shellPolicy": "ride",
       "timeline": {
         "stages": [
           {
-            "durationTicks": 72,
+            "durationTicks": 24,
             "iasaTicks": 0,
             "landingLagTicks": 0,
             "autoCancelBeforeTicks": 0,
@@ -1853,52 +1862,37 @@
             ],
             "operations": [
               {
-                "kind": "emitPresentation",
+                "kind": "startupAimCorrection",
                 "tick": 0,
                 "unit": "ticks",
-                "presentationId": "presentation.bashie.whistle.puff",
-                "placement": {
-                  "attachmentMode": "world",
-                  "durationTicks": 120
-                }
+                "endTick": 18,
+                "acquisitionRange": 12,
+                "acquisitionHalfAngleDegrees": 180,
+                "maxYawDegrees": 180,
+                "maxPitchDegrees": 0,
+                "yawDegreesPerSecond": 540,
+                "pitchDegreesPerSecond": 0
               },
               {
                 "kind": "gravityWindow",
                 "tick": 0,
                 "unit": "normalized",
                 "gravityScale": 0.15,
-                "durationTicks": 48
+                "durationTicks": 24
               },
               {
-                "kind": "spawnHitbox",
-                "tick": 48,
-                "unit": "meters",
-                "hitbox": {
-                  "shape": "sphere",
-                  "radius": 5.0,
-                  "offsetX": 0,
-                  "offsetY": 0.25,
-                  "offsetZ": 0,
-                  "endOffsetX": 0,
-                  "endOffsetY": 0,
-                  "endOffsetZ": 0,
-                  "startBoneId": null,
-                  "endBoneId": null,
-                  "damage": 0,
-                  "angle": -90,
-                  "baseKnockback": 1,
-                  "knockbackGrowth": 0,
-                  "stunTicks": 1,
-                  "durationTicks": 3,
-                  "interruptible": true,
-                  "hitGroup": 0,
-                  "knockbackDirection": "awayFromOwner",
-                  "fixedHitstunTicks": 120
+                "kind": "emitPresentation",
+                "tick": 0,
+                "unit": "ticks",
+                "presentationId": "presentation.bashie.whistle.puff",
+                "placement": {
+                  "attachmentMode": "world",
+                  "durationTicks": 60
                 }
               },
               {
                 "kind": "emitPresentation",
-                "tick": 48,
+                "tick": 18,
                 "unit": "ticks",
                 "presentationId": "presentation.bashie.whistle.blow",
                 "placement": {
@@ -1908,13 +1902,36 @@
               },
               {
                 "kind": "emitPresentation",
-                "tick": 48,
+                "tick": 18,
                 "unit": "ticks",
-                "presentationId": "presentation.bashie.whistle.sign",
+                "presentationId": "presentation.bashie.shell.tuck",
                 "placement": {
-                  "attachmentMode": "world",
-                  "durationTicks": 78,
-                  "localPositionY": 1.0
+                  "attachmentMode": "bone",
+                  "boneId": "bone.hips",
+                  "localPositionX": 0,
+                  "localPositionY": 0,
+                  "localPositionZ": 0,
+                  "localScaleX": 1,
+                  "localScaleY": 1,
+                  "localScaleZ": 1,
+                  "durationTicks": 600
+                }
+              },
+              {
+                "kind": "emitPresentation",
+                "tick": 18,
+                "unit": "ticks",
+                "presentationId": "presentation.bashie.shell.surf",
+                "placement": {
+                  "attachmentMode": "bone",
+                  "boneId": "bone.hips",
+                  "localPositionX": 0,
+                  "localPositionY": 0,
+                  "localPositionZ": 0,
+                  "localScaleX": 1,
+                  "localScaleY": 1,
+                  "localScaleZ": 1,
+                  "durationTicks": 240
                 }
               }
             ]

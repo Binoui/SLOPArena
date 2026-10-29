@@ -193,6 +193,7 @@ namespace SlopArena.Client.World
             renderer.PlayerNumber = entityId is >= 1 and <= 4 ? (int)entityId : 2;
             renderer.SetBlastLines(arena);
             var projectiles = FindFirstObjectByType<ProjectileVFXManager>() ?? gameObject.AddComponent<ProjectileVFXManager>();
+            projectiles.SetArena(arena);
             projectiles.RegisterOwner(entityId, animationCatalog, renderer);
             renderer.BindProjectilePresentation(projectiles);
             var feedback = FindFirstObjectByType<CombatFeedback>() ?? gameObject.AddComponent<CombatFeedback>();
@@ -427,6 +428,7 @@ namespace SlopArena.Client.World
             indicator.Init(Bridge.GetState, renderers, _fighterArena, _cameraMount?.RenderCamera,
                 id => MatchConfig.Format == MatchFormat.SlopballVersus && MatchConfig.Camps.TryGetValue(id, out var camp)
                     ? camp : SlopballCamp.None, CourseColours.ForEntity);
+            _fighterIndicator.AddComponent<QuickDrawBracket>().Init(Bridge.GetState, renderers, PlayerEntityId, _fighterArena);
             _fighterIndicator.AddComponent<HomingDashLockOn>().Init(Bridge.GetState, renderers, ResolveAimTarget, _cameraMount?.RenderCamera);
         }
 

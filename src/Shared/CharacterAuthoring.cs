@@ -39,30 +39,89 @@ public sealed record CharacterAuthoringDocument(
     IReadOnlyList<CapabilityRequirementSource> CapabilityRequirements,
     IReadOnlyList<CharacterSlotSource> Slots,
     IReadOnlyList<CharacterAliasSource> Aliases,
-    ShellSource? Shell = null);
+    ShellSource? Shell = null,
+    AlternateFormSource? AlternateForm = null);
 
 /// <summary>
-/// A character's shell stance (slop.ability.shell-stance.v1, ADR-0045): the state between her tuck moves.
-/// She skates on the ground for <see cref="SkateTicks"/> and coasts in the air, bowling fighters over with
-/// <see cref="Hitbox"/>, until the skate runs out, a wall or a shield stops her, or she acts.
+/// Form 1 of a two-form fighter (slop.ability.forms.v1, ADR-0051). The document's top-level movement, presentation
+/// and slots are form 0. This block brings the second form's movement, its locomotion, hit and defense roles and its
+/// own fourteen canonical slots with aliases. She has one body: capsule, hurtboxes, shield, capture geometry, weight,
+/// scale and model offsets stay form 0's.
+/// </summary>
+public sealed record AlternateFormSource(
+    string Id,
+    string DisplayName,
+    CharacterMovementSource Movement,
+    FormPresentation Presentation,
+    IReadOnlyList<CharacterSlotSource> Slots,
+    IReadOnlyList<CharacterAliasSource> Aliases);
+
+/// <summary>An alternate form's animation roles (ADR-0051). An empty role plays form 0's clip on the same rig.</summary>
+public sealed record FormPresentation(
+    string Idle = "",
+    string Run = "",
+    string Dash = "",
+    string Jump = "",
+    string Fall = "",
+    string HitSmall = "",
+    string HitMedium = "",
+    string HitHard = "",
+    string Tumble = "",
+    string Shield = "",
+    string Grab = "",
+    string Grabbed = "",
+    string ThrowForward = "",
+    string AirDodge = "")
+{
+    /// <summary>Every role with its authoring name, in authoring order.</summary>
+    public (string Name, string Id)[] Roles => new[]
+    {
+        ("idle", Idle), ("run", Run), ("dash", Dash), ("jump", Jump), ("fall", Fall),
+        ("hitSmall", HitSmall), ("hitMedium", HitMedium), ("hitHard", HitHard), ("tumble", Tumble),
+        ("shield", Shield), ("grab", Grab), ("grabbed", Grabbed), ("throwForward", ThrowForward), ("airDodge", AirDodge),
+    };
+}
+
+/// <summary>
+/// A character's shell (slop.ability.shell-stance.v2, ADR-0050): the splash every tucked landing makes, and the
+/// ride on her wave. <see cref="Splash"/> exists exactly when a slot tucks, <see cref="Ride"/> exactly when one
+/// canonical move rides. A move that pops her out of a grounded ride starts at ride speed and brakes at
+/// <see cref="PopOutDeceleration"/>; a head-on wall pops her up bouncing back at <see cref="BlockedRecoilSpeed"/>.
 /// </summary>
 public sealed record ShellSource(
-    ushort SkateTicks,
-    float MinSkateSpeed,
-    float MaxSkateSpeed,
-    float LandingSpeedRatio,
     float PopOutDeceleration,
     float BlockedRecoilSpeed,
-    HitboxSource Hitbox,
+    ShellSplashSource? Splash = null,
+    ShellRideSource? Ride = null);
+
+/// <summary>
+/// What landing tucked does: a root-relative hitbox at her feet (no bones, hitGroup 0) that hits each fighter once,
+/// then <see cref="PopUpTicks"/> of landing lag, hit or miss.
+/// </summary>
+public sealed record ShellSplashSource(HitboxSource Hitbox, ushort PopUpTicks, string? PresentationId = null);
+
+/// <summary>
+/// The ride on her wave: <see cref="Ticks"/> on the ground (an airborne start coasts untimed until she lands) at
+/// <see cref="Speed"/>, turning toward her current target by at most <see cref="TurnDegreesPerSecond"/>.
+/// <see cref="Wave"/> is the window that rides with her: root-relative, hitGroup 0, no stun. A fighter it meets is
+/// caught once and carried; its damage is dealt at the catch and its knockback only pushes objects.
+/// </summary>
+public sealed record ShellRideSource(
+    ushort Ticks,
+    float Speed,
+    float TurnDegreesPerSecond,
+    HitboxSource Wave,
     string? HitPresentationId = null);
 
-/// <summary>How a move treats the shell (ADR-0045). Omitted means PopOut.</summary>
+/// <summary>How a move treats the shell (ADR-0050). Omitted means PopOut. One value per slot.</summary>
 public enum ShellPolicy : byte
 {
-    /// <summary>Starting the move pops her out; from a grounded shell it starts at skate speed.</summary>
+    /// <summary>Starting the move pops her out; from a grounded ride it starts at ride speed.</summary>
     PopOut = 0,
-    /// <summary>The move runs in the shell, tucking her if she is not; when it ends she is back in the shell.</summary>
+    /// <summary>The move runs tucked; a touchdown while it runs ends it with the shell's splash.</summary>
     Tuck = 1,
+    /// <summary>The move runs untucked; completing it starts the ride. An interrupted ride move gives no ride.</summary>
+    Ride = 2,
 }
 
 public sealed record CharacterMovementSource(
@@ -274,6 +333,11 @@ public sealed record CompleteTimelineOperationSource(
     ushort Tick,
     AuthoringUnit Unit) : CharacterTimelineOperationSource(Tick, Unit);
 
+/// <summary>Toggles a two-form fighter's form at its tick (ADR-0051).</summary>
+public sealed record SwapFormOperationSource(
+    ushort Tick,
+    AuthoringUnit Unit) : CharacterTimelineOperationSource(Tick, Unit);
+
 public sealed record HitboxSource(
     AuthoringHitboxShape Shape,
     float Radius,
@@ -419,34 +483,12 @@ public sealed record CycloneKickCapabilityParameters(
     float FinisherKnockbackGrowth = 0f) : TypedCapabilityParameters;
 
 
-public sealed record ChargedDirectionalDashCapabilityParameters(
-    ushort MaxChargeTicks,
-    ushort Tier2Ticks,
-    ushort Tier3Ticks,
-    float MinDistance,
-    float MaxDistance,
-    float DashSpeed,
-    ushort FinisherLeadTicks,
-    ushort FinisherSeekTick,
-    ushort RecoveryTicks,
-    float Tier2Damage,
-    float Tier3Damage,
-    HitboxSource TraversalHitbox,
-    HitboxSource FinisherHitbox) : TypedCapabilityParameters;
-
 public sealed record WibouRisingSlashCapabilityParameters(
     float RiseSpeed,
     ushort RiseTicks,
     float HomingRange,
     float HomingSpeed) : TypedCapabilityParameters;
 
-public sealed record WibouBladeFlurryCapabilityParameters(
-    float ForwardSpeed,
-    ushort AscentStartTick,
-    ushort AscentEndTick,
-    ushort DescentStartTick,
-    float RiseSpeed,
-    float DescentSpeed) : TypedCapabilityParameters;
 /// <summary>
 /// A steerable charge (slop.ability.steered-charge.v1): a gallop at a fixed speed whose heading the
 /// stick turns within a capped rate, with a lance hitbox and optional armour for as long as it lasts.
@@ -525,6 +567,22 @@ public sealed record TetherCapabilityParameters(
     string RetractAnimationId = "",
     string ThrowPresentationId = "",
     string RetractPresentationId = "") : TypedCapabilityParameters;
+
+/// <summary>
+/// slop.ability.cannonball.v1 (runtime API 1.14.0, ADR-0050), Bashie's ground R: a tucked hop onto where her current
+/// target stands at <see cref="TakeoffTick"/> (else <see cref="NoTargetDistance"/> along her facing), clamped to
+/// <see cref="MaxRange"/>. Flight time runs from <see cref="MinFlightTicks"/> at her feet to
+/// <see cref="MaxFlightTicks"/> at max range; the solved launch is capped at <see cref="MaxLaunchSpeed"/>. It only
+/// flies: the shell's splash lands it, and with no landing by the stage end she falls free with her speed.
+/// </summary>
+public sealed record CannonballCapabilityParameters(
+    ushort TakeoffTick,
+    float MaxRange,
+    float NoTargetDistance,
+    ushort MinFlightTicks,
+    ushort MaxFlightTicks,
+    float MaxLaunchSpeed,
+    string LaunchPresentationId = "") : TypedCapabilityParameters;
 public sealed record TargetedLeapCapabilityParameters(
     ushort MaxAimTicks,
     ushort MaxFlightTicks,
@@ -537,15 +595,12 @@ public sealed record TargetedLeapCapabilityParameters(
     string LaunchPresentationId = "",
     string LandingPresentationId = "") : TypedCapabilityParameters;
 public sealed record MankiRoundBombCapabilityParameters(
-    ushort ThrowTriggerTick,
-    float MaxRange,
-    float LaunchAngle,
+    ushort FuseTicks,
+    ushort MaxFlightTicks,
     float Gravity,
     float HitboxRadius,
-    float Damage,
-    ushort StunTicks,
-    ushort MaxFlightTicks,
-    float KbAngle,
+    float HopBackSpeed,
+    float HopUpSpeed,
     float ExplosionDamage,
     float ExplosionRadius,
     float ExplosionKbBase,
@@ -553,12 +608,8 @@ public sealed record MankiRoundBombCapabilityParameters(
     ushort ExplosionStunTicks,
     ushort ExplosionDurationTicks,
     float ExplosionKbAngle,
-    string ExplosionPresentationId = "",
-    ushort FuseTicks = 240,
-    ushort WarningTicks = 8,
-    float EarlyDamage = 16f,
-    float EarlyRadius = 4f,
-    float ImpactRadius = 1.1f) : TypedCapabilityParameters;
+    float SelfPushSpeed,
+    string ExplosionPresentationId) : TypedCapabilityParameters;
 public sealed record MankiJetpackBoostCapabilityParameters(
     ushort StartupTicks,
     float VerticalSpeed,
@@ -570,12 +621,11 @@ public sealed record MankiJetpackBoostCapabilityParameters(
     float ExplosionKbGrowth,
     ushort ExplosionStunTicks,
     ushort ExplosionDurationTicks,
-    string ExplosionPresentationId = "",
-    ushort FuelTicks = 120,
-    float SinkSpeed = 1.2f,
-    float JumpBurstSpeed = 10f,
-    ushort JumpBurstTicks = 12,
-    float ExhaustRadius = 1.4f) : TypedCapabilityParameters;
+    string ExplosionPresentationId,
+    ushort FuelTicks,
+    float SinkSpeed,
+    float JumpBurstSpeed,
+    ushort JumpBurstTicks) : TypedCapabilityParameters;
 public sealed record MankiBazookaCapabilityParameters(
     ushort FireTriggerTick,
     float ProjectileSpeed,
@@ -596,24 +646,21 @@ public sealed record MankiBazookaCapabilityParameters(
     float HomingTurnDegPerTick,
     string ExplosionPresentationId = "") : TypedCapabilityParameters;
 
-public sealed record MankiAerosolChargeTier(ushort ChargeTicks, float Damage, float ReachScale);
 
-public sealed record MankiAerosolInfernoCapabilityParameters(
-    ushort FireTriggerTick,
-    ushort FireDurationTicks,
-    ushort HitboxDurationTicks,
-    float HitboxRadius,
-    float OffsetY,
-    float OffsetZ,
-    float EndOffsetZ,
-    float Damage,
-    float KnockbackAngle,
-    float KnockbackBase,
-    float KnockbackGrowth,
-    ushort StunTicks,
-    byte HitGroup,
-    ushort MinimumChargeTicks = 0,
-    IReadOnlyList<MankiAerosolChargeTier>? ChargeTiers = null) : TypedCapabilityParameters;
+public sealed record MankiKamikazeCapabilityParameters(
+    ushort RunTicks,
+    float Speed,
+    float ContactRadius,
+    float ExplosionDamage,
+    float ExplosionRadius,
+    float ExplosionKbBase,
+    float ExplosionKbGrowth,
+    ushort ExplosionStunTicks,
+    ushort ExplosionDurationTicks,
+    float ExplosionKbAngle,
+    float SelfPushSpeed,
+    string ExplosionPresentationId) : TypedCapabilityParameters;
+
 
 public enum AuthoringAbilityBehavior : byte
 {

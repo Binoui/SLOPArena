@@ -160,6 +160,9 @@ namespace SlopArena.Shared
 			_defs[id] = def;
                 if (_onlineCourse != null) _onlineCourse.Register(id, initialState);
 			initialState.EntityId = id;
+			// The seat's starting form (ADR-0051); fighters without forms ignore it.
+			if (def.ForForm(initialState.Form.Active).Form != initialState.Form.Active) initialState.Form = default;
+            Flying.Refuel(ref initialState, def.ForForm(initialState.Form.Active));
 			_states[id] = initialState;
 			_kos[id] = 0;
 			_lastHitCredits.Remove(id);
@@ -201,7 +204,17 @@ namespace SlopArena.Shared
 
 
 		public CharacterState GetState(ulong id) => _states.TryGetValue(id, out var s) ? s : default;
-		public CharacterDefinition GetDefinition(ulong id) => _defs.TryGetValue(id, out var d) ? d : null;
+		public CharacterDefinition GetDefinition(ulong id) => TryDef(id, out var d) ? d : null;
+		/// <summary>The definition a fighter plays with now. Every per-fighter definition read goes through
+		/// here; snapshots alone read the registered definition to re-link stored content (ADR-0051).</summary>
+		private CharacterDefinition Def(ulong id) => _defs[id].ForForm(FormOf(id));
+		private bool TryDef(ulong id, out CharacterDefinition def)
+		{
+			if (!_defs.TryGetValue(id, out def)) return false;
+			def = def.ForForm(FormOf(id));
+			return true;
+		}
+		private byte FormOf(ulong id) => _states.TryGetValue(id, out var state) ? state.Form.Active : (byte)0;
 		public void SetState(ulong id, CharacterState state) => _states[id] = state;
         private enum AbilityExit : byte { Completed, Cancelled, Superseded, Removed, Reset }
 
@@ -211,12 +224,18 @@ namespace SlopArena.Shared
 
         private void RetireAbility(ulong id, ref CharacterState state, AbilityExit exit)
         {
-            CookedShellDefinition? resumeShell = null;
+            if (exit is AbilityExit.Reset or AbilityExit.Removed)
+            {
+                state.Flight = default;
+                if (exit == AbilityExit.Reset) Flying.Refuel(ref state, Def(id));
+                if (state.State == ActionState.Flying) state.State = ActionState.Idle;
+            }
+            CookedShellRide? ride = null;
             if (_activeAbilities.TryGetValue(id, out var ability))
             {
-                // A tuck move that completes hands her back to the shell (ADR-0045).
-                if (exit == AbilityExit.Completed && ability.Move?.ShellPolicy == ShellPolicy.Tuck)
-                    resumeShell = _defs.TryGetValue(id, out var owner) ? owner.Shell : null;
+                // A ride move that completes puts her on the ride (ADR-0050).
+                if (exit == AbilityExit.Completed && ability.Move?.ShellPolicy == ShellPolicy.Ride)
+                    ride = TryDef(id, out var owner) ? owner.Shell?.Ride : null;
                 if (exit != AbilityExit.Completed)
                 {
                     if (exit == AbilityExit.Cancelled)
@@ -237,20 +256,22 @@ namespace SlopArena.Shared
             if (exit == AbilityExit.Removed)
                 _spellResolver.RemoveOwnerEffects(id);
             else if (exit == AbilityExit.Reset)
-                _spellResolver.RemoveMankiCans(id);
+                _spellResolver.RemoveContactBombs(id);
             ushort completionRecoveryLockTicks = exit == AbilityExit.Completed ? state.AnimLockTicks : (ushort)0;
             state.ClearAttackFields();
             state.AnimLockTicks = completionRecoveryLockTicks;
             if (exit == AbilityExit.Cancelled && state.State is (ActionState.Attacking or ActionState.Aiming))
                 state.State = ActionState.Idle;
-            if (resumeShell != null)
-                Shell.Settle(ref state, resumeShell, 0f, restartClock: true);
+            if (state.Flight.Active && state.State == ActionState.Idle) state.State = ActionState.Flying;
+            if (ride != null)
+                EnterRide(ref state, ride);
         }
 
         private void ApplyAbilityCooldown(ulong id, ServerAbility ability, ref CharacterState state)
         {
+            if (ability.Slot + 1 == AbilitySlots.E && state.Flight.Active) return;
             if (ability.Slot < AbilitySlots.Count && NoCooldownsEntityId != id)
-                state.SetCooldown((byte)(ability.Slot + 1), ability.Cooldown);
+                Forms.SetCooldown(ref state, (byte)(ability.Slot + 1), ability.CharacterDef?.Form ?? 0, ability.Cooldown);
         }
 
 
@@ -333,7 +354,7 @@ namespace SlopArena.Shared
 			ability.ClearArmorWindow();
 			state.ClearStartupAimCorrection();
 			state.BufferedSlot = 0;
-			// The homing dash arrival window and the skate are timed by StateTicks; its expiry must not end the attack.
+			// The homing dash arrival window and the ride are timed by StateTicks; its expiry must not end the attack.
 			if (state.State is ActionState.HomingDashArrive or ActionState.Shell)
 				state.StateTicks = 0;
             bool aimingAbility = cookedSlot?.AimMode is { } aimMode && aimMode != AuthoringAimMode.None;
@@ -407,7 +428,7 @@ namespace SlopArena.Shared
 			{
 				if (!_activeAbilities.TryGetValue(id, out var ability)) continue;
 				if (!_states.TryGetValue(id, out var state)) continue;
-				if (!_defs.TryGetValue(id, out var def)) continue;
+				if (!TryDef(id, out var def)) continue;
 				bool frozenForTick = ability.FrozenForSimulationTick;
 				ability.FrozenForSimulationTick = false;
 
@@ -435,7 +456,8 @@ namespace SlopArena.Shared
 				ability.TickArmorWindow();
 				try
 				{
-					ability.Tick(ref state, ref input, def);
+					// A running move keeps the form it started in (ADR-0051).
+					ability.Tick(ref state, ref input, ability.CharacterDef ?? def);
 				}
 				finally
 				{
@@ -576,6 +598,12 @@ namespace SlopArena.Shared
             // when the state is grounded and the baked payload contains the exact
             // semantic binding; absent legacy content falls through to upright
             // selection without fabricating low hurtboxes.
+            if (state.State == ActionState.Flying)
+            {
+                targetAnim = def.GetCookedSlotAbility(AbilitySlots.E, true)!.Timeline.Stages[0].AnimationIds[0];
+                bakedFrame = Math.Max(0, baked.FrameCountFor(targetAnim) - 1) * Flying.PoseFraction;
+                return true;
+            }
             if (state.State == ActionState.Shell && !string.IsNullOrEmpty(def.ShellAnim)
                 && baked.FindAnimIndex(def.ShellAnim) >= 0)
             {
@@ -604,8 +632,8 @@ namespace SlopArena.Shared
                 if (GetActiveMove(id) is { } move)
                     targetAnim = move.Pose.AnimationId;
             }
-            // A reeled fighter wears the small-hit pose, as its client presentation does.
-            else if (state.State == ActionState.Reeled) targetAnim = def.HitSmallAnim;
+            // A captive fighter wears the small-hit pose, as its client presentation does.
+            else if (ActionStates.Captive(state.State)) targetAnim = def.HitSmallAnim;
             else if (state.State == ActionState.Hitstun) targetAnim = state.HitstunLevel switch
             {
                 1 => def.HitMediumAnim,
@@ -646,7 +674,7 @@ namespace SlopArena.Shared
                 if (pair.Key == attacker.EntityId || !CanAttackTarget(attacker.EntityId, pair.Key) || IsEliminated(target)
                     || (target.PX - attacker.PX) * sin + (target.PZ - attacker.PZ) * cos <= 0f)
                     continue;
-                var def = _defs[pair.Key];
+                var def = Def(pair.Key);
                 _lungeHurtboxes.Clear();
                 if (ResolveBoneAnimFrame(pair.Key, target, def, out var baked, out var anim, out var frame, false))
                     AppendEntitiesFromState(target, def, baked, anim, frame, pair.Key, _lungeHurtboxes);
@@ -812,7 +840,8 @@ namespace SlopArena.Shared
 				return false;
 			if (state.State is ActionState.Hitstun or ActionState.Aiming or ActionState.GrabAttempt
 				or ActionState.Grabbing or ActionState.Grabbed or ActionState.Throwing or ActionState.Thrown
-				or ActionState.Reeled or ActionState.HomingDashFloat or ActionState.HomingDash or ActionState.HomingDashMiss)
+				or ActionState.HomingDashFloat or ActionState.HomingDash or ActionState.HomingDashMiss
+				|| ActionStates.Captive(state.State))
 				return false;
 
 			if (_activeAbilities.ContainsKey(id))
@@ -823,7 +852,7 @@ namespace SlopArena.Shared
 				&& IsEligibleEnemy(id, targetId, state.PX, state.PZ, LockRangeMeters, out _)
 				&& TryGetCombatTargetPosition(targetId, out var target))
 			{
-				dx = target.X - state.PX; dy = HomingDashRise(targetId, target.Y, in state, _defs[id], airborneDash: !state.IsGrounded); dz = target.Z - state.PZ;
+				dx = target.X - state.PX; dy = HomingDashRise(targetId, target.Y, in state, Def(id), airborneDash: !state.IsGrounded); dz = target.Z - state.PZ;
 			}
 			else
 				targetId = 0;
@@ -843,7 +872,7 @@ namespace SlopArena.Shared
 				Simulation.StepHomingDash(ref state, false, 0f, 0f, 0f, 0f, def.Movement.FloatWindowTicks);
 				return;
 			}
-			float targetRadius = _defs.TryGetValue(targetId, out var targetDef) ? targetDef.CapsuleRadius : 0f;
+			float targetRadius = TryDef(targetId, out var targetDef) ? targetDef.CapsuleRadius : 0f;
 			Simulation.StepHomingDash(ref state, true,
 				target.X - state.PX, HomingDashRise(targetId, target.Y, in state, def, state.HomingDashAirUsed), target.Z - state.PZ,
 				def.CapsuleRadius + targetRadius + HomingDashConfig.ArrivalGap, def.Movement.FloatWindowTicks);
@@ -859,7 +888,7 @@ namespace SlopArena.Shared
 		private float HomingDashRise(ulong targetId, float targetY, in CharacterState state, CharacterDefinition def,
 			bool airborneDash)
 		{
-			if (!_defs.TryGetValue(targetId, out var targetDef))
+			if (!TryDef(targetId, out var targetDef))
 				return airborneDash ? targetY - state.PY : MathF.Min(0f, targetY - state.PY);
 			float feet = targetY - targetDef.CapsuleHeight * 0.5f - (state.PY - def.CapsuleHeight * 0.5f);
 			return airborneDash ? feet + targetDef.CapsuleHeight * HomingDashConfig.AirAimLift : MathF.Min(0f, feet);
@@ -936,7 +965,15 @@ namespace SlopArena.Shared
 				if (!_states.TryGetValue(id, out var state)) continue;
 				if (IsEliminated(state)) continue;
 				var input = inputs.TryGetValue(id, out var i) ? i : default;
-				var def = _defs[id];
+                var def = Def(id);
+                if (state.Flight.Active && input.ActiveSlot == AbilitySlots.E && state.HitstopTicks == 0)
+                {
+                    Flying.End(ref state, def, id != NoCooldownsEntityId, beforeTimers: true);
+                    input.ActiveSlot = 0;
+                    inputs[id] = input;
+                    _states[id] = state;
+                    continue;
+                }
 				if (input.DashPressed && TryStartHomingDash(id, ref state))
 				{
 					input.ActiveSlot = 0;
@@ -984,7 +1021,7 @@ namespace SlopArena.Shared
 				}
 
 
-				bool airborne = !state.IsGrounded;
+				bool airborne = state.Flight.Active || !state.IsGrounded;
 				var cookedSlot = def.GetCookedSlotAbility(input.ActiveSlot, airborne);
 
 				if (cookedSlot == null)
@@ -1010,7 +1047,6 @@ namespace SlopArena.Shared
 				}
 
                 int maxCharges = cookedSlot.ChargePool?.MaxCharges ?? 0;
-                if (maxCharges > 0 && _spellResolver.MankiCanOccupancy(id) >= maxCharges) continue;
 				if (maxCharges > 0 && state.ChargeStockSpent >= maxCharges
 				    || _spellResolver.HasReturningProjectile(id, input.ActiveSlot))
 				{
@@ -1020,6 +1056,8 @@ namespace SlopArena.Shared
 					inputs[id] = blockedInput;
 					continue;
 				}
+                if (input.ActiveSlot == AbilitySlots.E && Flying.Parameters(def) != null && state.Flight.FuelTicksLeft == 0)
+                    continue;
                 var ability = new CookedTimelineAbility(cookedSlot);
 
 				// ── IASA interrupt ──
@@ -1031,7 +1069,13 @@ namespace SlopArena.Shared
 				// TickAbilities. Attack state is cleared so the new ability's OnStart begins
 				// clean and no stale buffered press double-fires when the new attack's lock
 				// expires.
-				bool fromShell = Shell.IsTucked(state.State, GetActiveMove(id)?.Slot);
+				if (state.Flight.Active && !Flying.KeepsFlight(input.ActiveSlot))
+                {
+                    Flying.End(ref state, def, id != NoCooldownsEntityId, beforeTimers: true);
+                    state.IsGrounded = false;
+                    _states[id] = state;
+                }
+                bool fromShell = Shell.IsTucked(state.State, GetActiveMove(id)?.Slot);
 				if (currentAbility != null)
 				{
 					if (!iasaUnlocked) continue;
@@ -1186,7 +1230,7 @@ namespace SlopArena.Shared
 
 		private ulong FindGrabTarget(ulong grabberId, in CharacterState grabber)
 		{
-			if (!_defs.TryGetValue(grabberId, out var grabberDef)
+			if (!TryDef(grabberId, out var grabberDef)
 				|| grabberDef.CaptureGeometry == null) return 0;
 			var geometry = grabberDef.CaptureGeometry;
 			float yaw = grabber.CapturedYaw * (MathF.PI / 18000f);
@@ -1197,7 +1241,8 @@ namespace SlopArena.Shared
 			foreach (var (targetId, target) in _states)
 			{
 				if (targetId == grabberId || !CanAttackTarget(grabberId, targetId) || target.InteractionId != 0
-					|| !_defs.TryGetValue(targetId, out var targetDef)
+					|| target.State == ActionState.CutHeld
+					|| !TryDef(targetId, out var targetDef)
 					|| IsEliminated(target) || target.InvincibilityTicks > 0)
 					continue;
 				float dx = target.PX - grabber.PX, dz = target.PZ - grabber.PZ;
@@ -1298,7 +1343,7 @@ namespace SlopArena.Shared
 		private void CaptureInteraction(ulong grabberId, ulong targetId,
 			CharacterState grabber, CharacterState target)
 		{
-			if (!CanPlaceVictim(in grabber, in target, _defs[grabberId], _defs[targetId],
+			if (!CanPlaceVictim(in grabber, in target, Def(grabberId), Def(targetId),
 				out float x, out float y, out float z)) return;
 			unchecked
 			{
@@ -1387,7 +1432,7 @@ namespace SlopArena.Shared
 					|| partner.InteractionPhase != owner.InteractionPhase
 					|| partner.State != ActionState.Grabbed
 					|| !owner.IsGrounded || IsEliminated(owner) || IsEliminated(partner)
-					|| !CanPlaceVictim(in owner, in partner, _defs[ownerId], _defs[partnerId],
+					|| !CanPlaceVictim(in owner, in partner, Def(ownerId), Def(partnerId),
 						out float x, out float y, out float z))
 				{
 					InterruptInteraction(ref owner);
@@ -1431,13 +1476,13 @@ namespace SlopArena.Shared
 					partner.QueuedCrouchBrace = false;
 					Simulation.ApplyKnockback(ref partner, MathF.Sin(yaw), MathF.Cos(yaw),
 						30, ThrowBaseKnockback, ThrowGrowthKnockback, throwDamage, 1,
-						_defs[partnerId].Weight, combatTuning: CombatTuning);
+						Def(partnerId).Weight, combatTuning: CombatTuning);
 					// Retain percent/weight-scaled horizontal launch. The paired animation
 					// owns the vertical flight time, with ground contact at victim frame 34.
 					partner.State = ActionState.Thrown;
 					partner.StateTicks = DefenseConfig.ThrownAnimationTicks - DefenseConfig.ThrowReleaseTicks;
 					partner.IsGrounded = false;
-					partner.KVY = _defs[partnerId].Movement.Gravity
+					partner.KVY = Def(partnerId).Movement.Gravity
 						* (DefenseConfig.ThrownLandingTicks - DefenseConfig.ThrowReleaseTicks + 1)
 						* Simulation.TickDt * 0.5f;
 					partner.VX = partner.KVX; partner.VY = partner.KVY; partner.VZ = partner.KVZ;
@@ -1511,7 +1556,7 @@ namespace SlopArena.Shared
 				if (!_states.TryGetValue(id, out var state)) continue;
 				// Eliminated (0 stocks / rule) — frozen spectator, no physics (issue #37).
 				if (IsEliminated(state)) continue;
-				if (!_defs.TryGetValue(id, out var def)) continue; // state exists but no definition — invalid entity, skip (never simulate)
+				if (!TryDef(id, out var def)) continue; // state exists but no definition — invalid entity, skip (never simulate)
 				if (state.InteractionId != 0
 					&& (IsOutsideBlastZone(in state)
 						|| _states.TryGetValue(state.InteractionPartnerId, out var dyingPartner)
@@ -1528,16 +1573,17 @@ namespace SlopArena.Shared
 					_hitstopFrozenThisTick.Add(id);
 				if (activeAbility != null)
 					activeAbility.FrozenForSimulationTick = frozen;
-				bool verticalMotionOwned = activeAbility?.OwnsVerticalMotion == true;
+				Flying.Tick(ref state, input, def, id != NoCooldownsEntityId);
+                bool verticalMotionOwned = state.Flight.Active || activeAbility?.OwnsVerticalMotion == true;
 				if (!frozen && state.State is ActionState.HomingDashFloat or ActionState.HomingDash)
 					StepHomingDash(ref state, def);
                 Simulation.SimulateTick(ref state, def, input, _arena,
 					out bool ordinaryActionOpportunity, out bool movementActionAccepted,
 					_downActionTuning, verticalMotionOwned, GetActiveMove(id),
-					NoGravityEntityId == id ? 0f : activeAbility?.GravityMultiplier ?? 1f, CombatTuning);
+					NoGravityEntityId == id || state.Flight.Active ? 0f : activeAbility?.GravityMultiplier ?? 1f, CombatTuning);
 				if (state.State == ActionState.Grabbing && state.InteractionId != 0
 					&& _states.TryGetValue(state.InteractionPartnerId, out var heldPartner)
-					&& !CanPlaceVictim(in state, in heldPartner, def, _defs[state.InteractionPartnerId],
+					&& !CanPlaceVictim(in state, in heldPartner, def, Def(state.InteractionPartnerId),
 						out _, out _, out _))
 				{
 					state.PX = beforeMovement.PX; state.PY = beforeMovement.PY; state.PZ = beforeMovement.PZ;
@@ -1572,13 +1618,14 @@ namespace SlopArena.Shared
 				// Landing lag (issue #125 / ADR-0021 §3): land mid-aerial → lock, unless the
 				// landing frame falls in an auto-cancel window. Only air-started moves resolve
 				// their airborne variant's landing lag (ground moves keep their ground spec).
-				if (!ResolveShellTouchdown(id, ref state, def, wasGrounded, activeAbility, -beforeMovement.VY))
+				if (!state.Flight.Active && !ResolveShellTouchdown(id, ref state, def, wasGrounded, activeAbility))
 					ApplyLandingLag(ref state, def, wasGrounded, activeAbility);
-				_states[id] = state;
-			}
+                if (!state.Flight.Active && state.IsGrounded) Flying.Refuel(ref state, def);
+                _states[id] = state;
+            }
 
 
-			// ── Step 1b: Tick server-side abilities (overrides movement, spawns hitboxes) ──
+            // ── Step 1b: Tick server-side abilities (overrides movement, spawns hitboxes) ──
 			TickAbilities(inputs);
 			_abilityTickPhaseComplete = true;
 
@@ -1611,7 +1658,7 @@ namespace SlopArena.Shared
 			{
 				ulong firstId = simIds[i];
 				if (!_states.TryGetValue(firstId, out var first)
-				    || !_defs.TryGetValue(firstId, out var firstDef)
+				    || !TryDef(firstId, out var firstDef)
 				    || IsEliminated(first))
 					continue;
 
@@ -1619,10 +1666,10 @@ namespace SlopArena.Shared
 				{
 					ulong secondId = simIds[j];
 					if (!_states.TryGetValue(secondId, out var second)
-					    || !_defs.TryGetValue(secondId, out var secondDef)
+					    || !TryDef(secondId, out var secondDef)
 					    || IsEliminated(second))
 						continue;
-                    // She skates under the fighters she bowls over.
+                    // She rides under the fighters her wave carries.
                     if (first.State == ActionState.Shell || second.State == ActionState.Shell)
                         continue;
                     // A line being reeled in has one writer, the thrower's tether (ADR-0048).
@@ -1664,9 +1711,9 @@ namespace SlopArena.Shared
 					}
 
 					float penetration = radiusSum - distance;
-					bool firstFixed = first.State == ActionState.GrabAttempt
+					bool firstFixed = first.State is ActionState.GrabAttempt or ActionState.CutHeld
                         || (firstAbility?.HoldsFighterPushboxPosition ?? false);
-					bool secondFixed = second.State == ActionState.GrabAttempt
+					bool secondFixed = second.State is ActionState.GrabAttempt or ActionState.CutHeld
                         || (secondAbility?.HoldsFighterPushboxPosition ?? false);
 					if (firstFixed && secondFixed)
 						continue;
@@ -1710,7 +1757,7 @@ namespace SlopArena.Shared
 			{
 				ulong id = simIds[k];
 				if (!_states.TryGetValue(id, out var state)
-				    || !_defs.TryGetValue(id, out var def)
+				    || !TryDef(id, out var def)
 				    || IsEliminated(state))
 					continue;
 				Simulation.RecoverStageOverlap(ref state, def, _arena);
@@ -1809,19 +1856,32 @@ namespace SlopArena.Shared
 			return selected != 0 && IsEligibleEnemy(selfId, selected, selfX, selfZ,
 				LockRangeMeters, out _) ? selected : 0;
 		}
+		/// <summary>
+		/// The one "current target" of target-using specials (the ring, the dive, the cannonball, the ride): the
+		/// selected target when it is an eligible enemy in lock range, else the closest one. Its combat position is
+		/// a fighter's capsule centre or an object's position.
+		/// </summary>
+		internal bool TryGetCurrentTarget(in CharacterState s, out ulong targetId, out ArcadePoint position)
+		{
+			targetId = s.TargetEntityId;
+			if (targetId == 0 || !IsEligibleEnemy(s.EntityId, targetId, s.PX, s.PZ, LockRangeMeters, out _))
+				targetId = FindClosestEnemy(s.EntityId, s.PX, s.PZ, LockRangeMeters, out _);
+			if (targetId != 0 && TryGetCombatTargetPosition(targetId, out position))
+				return true;
+			targetId = 0;
+			position = default;
+			return false;
+		}
+
 		/// <summary>Resolve a straight shot toward the current eligible target at launch.</summary>
 		internal void ResolveAutoTargetProjectileAim(ref CharacterState state,
 			float launchOffsetX, float launchOffsetY, float launchOffsetZ, out float yaw, out float pitch)
 		{
 			yaw = state.FacingYaw;
 			pitch = 0f;
-			ulong targetId = state.TargetEntityId;
-			if (targetId == 0 || !IsEligibleEnemy(state.EntityId, targetId, state.PX, state.PZ, LockRangeMeters, out _))
-				targetId = FindClosestEnemy(state.EntityId, state.PX, state.PZ, LockRangeMeters, out _);
-			if (targetId == 0)
+			if (!TryGetCurrentTarget(in state, out ulong targetId, out var target))
 				return;
 
-			TryGetCombatTargetPosition(targetId, out var target);
 			float dx = target.X - state.PX;
 			float dz = target.Z - state.PZ;
 			if (dx * dx + dz * dz > 0.000001f)
@@ -1895,7 +1955,7 @@ namespace SlopArena.Shared
 				-yawStep, yawStep);
 			if (operation.MaxPitchDegrees > 0f)
 			{
-				float sourceHipY = _defs[state.EntityId].BoneYToWorldY(state.PY, 0f);
+				float sourceHipY = Def(state.EntityId).BoneYToWorldY(state.PY, 0f);
 				// A size-scaled upper-body reference; animation cannot move the aim point.
 				float targetTorsoY = CombatTargetAimY(state.AttackCorrectionTargetId, target.Y);
 				float targetPitch = Math.Clamp(MathF.Atan2(targetTorsoY - sourceHipY, MathF.Sqrt(horizontalSquared)),
@@ -2030,7 +2090,7 @@ namespace SlopArena.Shared
 			{
 				ulong id = kvp.Key;
 				var state = kvp.Value;
-				var def = _defs[id];
+				var def = Def(id);
 
 				// Eliminated (0 stocks / rule) — untargetable spectator (issue #37).
 				if (IsEliminated(state)) continue;
@@ -2091,7 +2151,7 @@ namespace SlopArena.Shared
 			{
 				Id = id, PosX = state.PX, PosY = state.PY, PosZ = state.PZ,
 				EndX = state.PX, EndY = state.PY, EndZ = state.PZ,
-				Radius = _defs[id].ShieldRadius, Shape = HitboxShape.Sphere,
+				Radius = Def(id).ShieldRadius, Shape = HitboxShape.Sphere,
 				InvincibilityTicks = state.InvincibilityTicks, Active = true,
 				ShieldSurface = true,
 			});
@@ -2173,7 +2233,7 @@ namespace SlopArena.Shared
 			var direction = GetBlockPushbackDirection(
 				in hit, in targetState, in attackerState, attackerExists);
 			ApplyShieldBlockPushback(
-				ref targetState, _defs[hit.TargetEntityId], direction.x, direction.z);
+				ref targetState, Def(hit.TargetEntityId), direction.x, direction.z);
 
 			if (hit.FreezesOwner && attackerExists && hit.OwnerEntityId != hit.TargetEntityId)
 				attackerState.HitstopTicks = Math.Max(attackerState.HitstopTicks, freeze);
@@ -2227,7 +2287,7 @@ namespace SlopArena.Shared
 
 		/// <summary>Where a returning projectile homes in: its owner's chest, while he is in the match.</summary>
 		private (bool Exists, float X, float Y, float Z) ReturnTarget(ulong ownerId)
-			=> _states.TryGetValue(ownerId, out var owner) && _defs.TryGetValue(ownerId, out var def)
+			=> _states.TryGetValue(ownerId, out var owner) && TryDef(ownerId, out var def)
 			   && !IsEliminated(owner)
 				? (true, owner.PX, owner.PY + def.CapsuleHeight * .25f, owner.PZ)
 				: (false, 0f, 0f, 0f);
@@ -2297,12 +2357,11 @@ namespace SlopArena.Shared
 			// Bone-tracked hitboxes sweep with their limb: re-resolve positions from
 			// the owners' current (post-movement) states before the collision pass.
             foreach (var state in _states.Values)
-                if (IsOutsideBlastZone(in state)) _spellResolver.RemoveMankiCans(state.EntityId);
+                if (IsOutsideBlastZone(in state)) _spellResolver.RemoveContactBombs(state.EntityId);
 			_spellResolver.UpdateBoneHitboxes(_states);
 			_spellResolver.UpdateReturningProjectiles(_returnTarget ??= ReturnTarget, _arena);
 			_spellResolver.UpdateHomingProjectiles(_homingTarget ??= HomingTarget);
             _spellResolver.UpdateStickyProjectiles(StickyCarrier);
-            _spellResolver.TickMankiCans();
 
 			// ── Step 3: Resolve hitboxes ──
 			var attackEntities = BuildAttackEntities(entityList);
@@ -2330,7 +2389,7 @@ namespace SlopArena.Shared
 			int hitContactOperationIndex = 0;
 			foreach (var hit in hits)
 			{
-				// A shield or a hit on her earlier in this batch ended her shell and its window.
+				// A hit on her earlier in this batch ended her ride and its wave.
 				if (hit.OwnerWindow && (!_states.TryGetValue(hit.OwnerEntityId, out var windowOwner)
 					|| windowOwner.State != ActionState.Shell))
 					continue;
@@ -2356,6 +2415,14 @@ namespace SlopArena.Shared
 
 				// Invincible (respawn grace, dash) — the hit is fully ignored (issue #37).
 				if (targetState.InvincibilityTicks > 0) continue;
+				// Her wave catches instead of hitting (ADR-0050); it refuses fighters in a pair itself.
+				if (attackerExists && hit.OwnerWindow)
+				{
+					CatchOnWave(in hit, ref attackerState, ref targetState, inputs, hitContactOperationIndex++);
+					_states[hit.OwnerEntityId] = attackerState;
+					_states[hit.TargetEntityId] = targetState;
+					continue;
+				}
 				if (!PredictCoupledInteractions && targetState.InteractionId != 0) continue;
 				if (targetState.State == ActionState.Shielding && !hit.Unblockable)
 				{
@@ -2368,11 +2435,6 @@ namespace SlopArena.Shared
 						blockingAbility.OnShieldBlock(ref attackerState, ref targetState);
 						_states[hit.OwnerEntityId] = attackerState;
 					}
-					else if (attackerExists && hit.OwnerWindow && _defs[hit.OwnerEntityId].Shell is { } blockedShell)
-					{
-						Shell.Blocked(ref attackerState, blockedShell);
-						_states[hit.OwnerEntityId] = attackerState;
-					}
 					continue;
 				}
 				// A tether's ring catches instead of hitting (ADR-0048).
@@ -2380,6 +2442,13 @@ namespace SlopArena.Shared
 				{
 					CatchOnTether(in hit, tether, ref attackerState, ref targetState, inputs, hitContactOperationIndex++);
 					_states[hit.OwnerEntityId] = attackerState;
+					_states[hit.TargetEntityId] = targetState;
+					continue;
+				}
+				if (targetState.State == ActionState.CutHeld)
+				{
+					HitHeldFighter(in hit, ref targetState, ref attackerState, attackerExists, hitContactOperationIndex++);
+					if (attackerExists) _states[hit.OwnerEntityId] = attackerState;
 					_states[hit.TargetEntityId] = targetState;
 					continue;
 				}
@@ -2391,12 +2460,14 @@ namespace SlopArena.Shared
 					InterruptInteraction(ref targetState);
 
 				bool crouchBraceEligible = IsCrouchBraceEligible(
-					hit.TargetEntityId, in targetState, _defs[hit.TargetEntityId]);
+					hit.TargetEntityId, in targetState, Def(hit.TargetEntityId));
 				if (!hit.ArmorProtected)
-				{
-					Simulation.ClearMovementInterruptionFlags(ref targetState);
-					// No armour in the shell: any hit pops her out (ADR-0045).
-					if (targetState.State == ActionState.Shell)
+                {
+                    Flying.End(ref targetState, Def(hit.TargetEntityId), hit.TargetEntityId != NoCooldownsEntityId);
+                    Simulation.ClearMovementInterruptionFlags(ref targetState);
+					// No armour on the ride: any hit pops her out and her wave lets go, and a fighter it carries
+					// leaves it with that hit's own reaction (ADR-0050).
+					if (targetState.State is ActionState.Shell or ActionState.Swept)
 					{
 						targetState.State = ActionState.Idle;
 						targetState.StateTicks = 0;
@@ -2457,12 +2528,12 @@ namespace SlopArena.Shared
                 CharacterState armoredReaction = default;
                 if (attackerExists
                     && ContactAbility(hit) is { } attackerAbility
-                    && _defs.TryGetValue(hit.OwnerEntityId, out var attackerDef))
+                    && TryDef(hit.OwnerEntityId, out var attackerDef))
                 {
                     if (hit.ArmorProtected)
                         armoredReaction = targetState;
                     attackerAbility.OnHitEntity(ref attackerState, ref targetState,
-                        attackerDef, _defs[hit.TargetEntityId], ref finalDamage, ref kbForce);
+                        attackerAbility.CharacterDef ?? attackerDef, Def(hit.TargetEntityId), ref finalDamage, ref kbForce);
                     if (hit.ArmorProtected)
                     {
                         targetState.KVX = armoredReaction.KVX;
@@ -2496,6 +2567,10 @@ namespace SlopArena.Shared
                 // A pure push (no damage, no stun: a shove such as one drop of Bashie's Hose Down stream) does not
                 // freeze its target, so a stream of them keeps pushing instead of stuttering it in place.
                 freeze = (shove ? hit.Damage : finalDamage) <= 0f && hit.StunTicks == 0 ? (ushort)0 : ComputeHitstopTicks(shove ? hit.Damage : finalDamage);
+                // A flash cut holds its victim until the click instead (ADR-0052); armour takes an ordinary hit.
+                if (freeze > 0 && !shove && !hit.ArmorProtected && attackerExists
+                    && ContactAbility(hit)?.HeldCutFor(hit.TargetEntityId) is { } heldCut && heldCut.PopTick > _tick)
+                    freeze = HoldCut(in hit, ref targetState, heldCut);
 				if (freeze > 0)
 				{
 					targetState.HitstopTicks = freeze;
@@ -2542,7 +2617,7 @@ namespace SlopArena.Shared
 					{
 						Simulation.ApplyKnockback(ref targetState, dirX, dirZ,
 							hit.KnockbackAngle, launchBase, launchGrowth,
-							finalDamage, hit.StunTicks, _defs[hit.TargetEntityId].Weight, combatTuning: CombatTuning);
+							finalDamage, hit.StunTicks, Def(hit.TargetEntityId).Weight, combatTuning: CombatTuning);
 						Simulation.ApplyFixedHitstun(ref targetState, hit.FixedHitstunTicks, hit.StunTicks);
 						Simulation.ApplyCrouchBrace(
 							ref targetState, crouchBraceEligible && ordinaryFormulaLaunch,
@@ -2554,7 +2629,7 @@ namespace SlopArena.Shared
 						targetState.DIX = targetInput.MoveX;
 						targetState.DIY = targetInput.MoveY;
 						Simulation.ApplySdi(ref targetState, targetState.DIX, targetState.DIY,
-							_defs[hit.TargetEntityId], _arena);
+							Def(hit.TargetEntityId), _arena);
 						Simulation.ApplyDirectionalInfluence(ref targetState);
 						targetState.DIX = targetState.DIY = 0f;
 					}
@@ -2580,7 +2655,7 @@ namespace SlopArena.Shared
 					}
 					else
 					{
-						float mass = MathF.Max(0.01f, _defs[hit.TargetEntityId].Weight + 100f);
+						float mass = MathF.Max(0.01f, Def(hit.TargetEntityId).Weight + 100f);
 						float braceMultiplier = ordinaryFormulaLaunch && crouchBraceEligible
 							? _downActionTuning.CrouchLaunchMultiplier : 1f;
 						impactForce = (launchBase
@@ -2599,6 +2674,7 @@ namespace SlopArena.Shared
 
 				_states[hit.TargetEntityId] = targetState;
 				LastTickHits.Add(resolvedHit);
+				ContactAbility(in hit)?.OnHitConfirmed(in resolvedHit, in targetState, hitContactOperationIndex);
 				EmitHitPresentation(in hit, finalDamage, in attackerState, attackerExists, hitContactOperationIndex);
 				hitContactOperationIndex++;
 			}
@@ -2608,12 +2684,12 @@ namespace SlopArena.Shared
 		private void EmitHitPresentation(in SpellResolver.HitResult hit, float finalDamage,
 			in CharacterState attackerState, bool attackerExists, int operationIndex)
 		{
-			if (!_defs.TryGetValue(hit.OwnerEntityId, out var hitOwnerDefinition)
+			if (!TryDef(hit.OwnerEntityId, out var hitOwnerDefinition)
 			    || hit.AttackSlot == 0 && !hit.OwnerWindow)
 				return;
 			string? hitPresentationId = hit.OwnerWindow
-				? hitOwnerDefinition.Shell?.HitPresentationId
-				: hitOwnerDefinition.GetCookedSlotAbility(hit.AttackSlot, hit.Airborne)?.HitPresentationId;
+				? hitOwnerDefinition.Shell?.Ride?.HitPresentationId
+				: hitOwnerDefinition.ForForm(hit.Form).GetCookedSlotAbility(hit.AttackSlot, hit.Airborne)?.HitPresentationId;
 			if (string.IsNullOrEmpty(hitPresentationId))
 				return;
 			// Confirmed contact carries cosmetic weight, including through replay.
@@ -2650,7 +2726,27 @@ namespace SlopArena.Shared
                 if (_mayhem != null && ownerId == MayhemHostEntityId)
                     foreach (ulong wall in _mayhem.Solids.InBlast(ex, ey, ez, explosion.Radius).ToArray())
                         _mayhem.HitWall(_tick, wall, wreck: true);
-				var (kbAngle, kbBase, kbGrowth) = explosion.Knockback.Resolve();
+                if (_states.TryGetValue(ownerId, out var blastOwner))
+                {
+                    if (explosion.EndsOwnerActivation && GetActiveAbility(ownerId)?.ActivationId == activationId)
+                    {
+                        blastOwner.AnimLockTicks = 0;
+                        RetireAbility(ownerId, ref blastOwner, AbilityExit.Cancelled);
+                    }
+                    float dx = blastOwner.PX - ex, dz = blastOwner.PZ - ez;
+                    float distance = MathF.Sqrt(dx * dx + dz * dz);
+                    if (explosion.SelfPushSpeed > 0f && dx * dx + dz * dz + (blastOwner.PY - ey) * (blastOwner.PY - ey)
+                        <= explosion.Radius * explosion.Radius)
+                    {
+                        if (distance < .01f) { dx = -MathF.Sin(blastOwner.FacingYaw); dz = -MathF.Cos(blastOwner.FacingYaw); distance = 1f; }
+                        blastOwner.VX = dx / distance * explosion.SelfPushSpeed * .7f;
+                        blastOwner.VZ = dz / distance * explosion.SelfPushSpeed * .7f;
+                        blastOwner.VY = explosion.SelfPushSpeed;
+                        blastOwner.IsGrounded = false;
+                    }
+                    _states[ownerId] = blastOwner;
+                }
+                var (kbAngle, kbBase, kbGrowth) = explosion.Knockback.Resolve();
 				_spellResolver.Spawn(new Hitbox
 				{
 					X = ex, Y = ey, Z = ez,
@@ -2668,14 +2764,12 @@ namespace SlopArena.Shared
 					ActivationAirborne = airborne,
 					AttackSequence = attackSequence,
 					CanHitOwner = explosion.CanHitOwner,
-                    IgnitesOwnerCans = explosion.IgnitesOwnerCans,
 					OwnerDamage = explosion.OwnerDamage,
 					// A blast hits everything in its radius once (fighters, the owner when
 					// allowed, balls and course targets), not just the first entity it meets.
 					HitsMultipleOpponents = true,
 				});
-                float presentationScale = explosion.IgnitesOwnerCans && explosion.CanHitOwner && attackSlot == AbilitySlots.A
-                    ? explosion.Radius / 3f : 1f;
+                float presentationScale = explosion.SelfPushSpeed > 0f ? explosion.Radius / 3f : 1f;
                 if (!string.IsNullOrEmpty(explosion.ExplosionPresentationId))
                     _presentationEvents.Add(new TimelinePresentationEvent(
                         _tick, ownerId, explosion.PresentationOperationIndex,
@@ -2709,7 +2803,7 @@ namespace SlopArena.Shared
 			}
 			foreach (var id in deadIds)
 			{
-				var d = _defs[id];
+				var d = Def(id);
 				var oldState = _states[id];
 				string boundary = oldState.PY < _blastLines.KillHeight ? "bottom"
 					: oldState.PY > _blastLines.KillTop ? "top"
@@ -2749,7 +2843,7 @@ namespace SlopArena.Shared
 				RetireAbility(id, ref oldState, AbilityExit.Superseded);
 				// A returning projectile in flight is back on his shoulder when he respawns.
 				_spellResolver.RemoveReturningProjectiles(id);
-                _spellResolver.RemoveMankiCans(id);
+                _spellResolver.RemoveContactBombs(id);
 				_spellResolver.StopHomingAt(id);
                 _spellResolver.ExplodeAttachedTo(id);
 				if (killerEntityId != 0 && _kos[killerEntityId] < byte.MaxValue)
@@ -2792,6 +2886,8 @@ namespace SlopArena.Shared
 					Deaths = newDeaths, DamagePercent = 0,
 					LastTerminalInteractionId = oldState.LastTerminalInteractionId,
 					InteractionTerminalTick = oldState.InteractionTerminalTick,
+					// She respawns in the form she was KO'd in (ADR-0051); cooldowns reset with the bank.
+					Form = new FormState { Active = oldState.Form.Active },
 					InteractionPhase = (byte)(oldState.LastTerminalInteractionId != 0
 						? DefenseInteractionPhase.Terminal : DefenseInteractionPhase.None),
 				};
@@ -2810,7 +2906,8 @@ namespace SlopArena.Shared
 					// Still has stocks — respawn with brief invincibility (Smash convention).
 					respawned.InvincibilityTicks = RespawnInvincibilityTicks;
 				}
-				_states[id] = respawned;
+                Flying.Refuel(ref respawned, d);
+                _states[id] = respawned;
 			}
 		}
 
@@ -2819,7 +2916,7 @@ namespace SlopArena.Shared
             foreach (var id in _lastTickTouchdowns)
             {
                 var state = _states[id];
-                var def = _defs[id];
+                var def = Def(id);
                 state.IsFastFalling = false;
                 if (state.IsGrounded && state.State != ActionState.JumpSquat)
                     Simulation.RefreshGroundResources(ref state, def.Movement);
@@ -2887,7 +2984,9 @@ namespace SlopArena.Shared
 
 				ProcessTargetLock(inputs);
 
+				AimHeldCutPops();
 				SimulateMovement(inputs);
+				ReleaseHeldCuts();
                 ConstrainSlopballFighters();
                 ConstrainMayhemFighters();
 				// Grab contact is committed after ordinary damage has interrupted candidates.

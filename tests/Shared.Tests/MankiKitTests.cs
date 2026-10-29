@@ -140,7 +140,7 @@ public class MankiKitTests
             sim.Tick(new() { { 1, new InputState { MoveX = -1f } } });
         Assert.Equal(-launch.VX, sim.GetState(1).VX);
 
-        for (int i = 0; i < 150 && sim.GetActiveAbility(1) != null; i++)
+        for (int i = 0; i < 220 && sim.GetState(1).Flight.Active; i++)
             sim.Tick(new() { { 1, default } });
 
         var apex = sim.GetState(1);
@@ -190,7 +190,7 @@ public class MankiKitTests
         TestHelpers.RegisterPlayer(sim, Def, state);
 
         TickJetpack(sim, 3, moveX: 0f, moveY: 0f);
-        for (int i = 0; i < 150 && sim.GetActiveAbility(1) != null; i++)
+        for (int i = 0; i < 220 && sim.GetState(1).Flight.Active; i++)
             sim.Tick(new() { { 1, default } });
 
         var completed = sim.GetState(1);

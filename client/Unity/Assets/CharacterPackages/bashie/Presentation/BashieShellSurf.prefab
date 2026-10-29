@@ -9,7 +9,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 2124462284867427884}
-  - component: {fileID: 1034767058251757930}
   - component: {fileID: 8447783969866638326}
   - component: {fileID: 5244751010254089563}
   m_Layer: 0
@@ -35,18 +34,6 @@ Transform:
   - {fileID: 3228055404931219902}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &1034767058251757930
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 403047681026994723}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 6e8a29c545c7202dd841fef2f80097aa, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
 --- !u!82 &8447783969866638326
 AudioSource:
   m_ObjectHideFlags: 0
@@ -156,9 +143,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 11f29aff21eb80b12868d491a8664168, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  AnimationIds:
-  - anim.bashie.gr-slide
+  AnimationIds: []
   GroundedOnly: 1
+  WhileRiding: 1
+  Scale: 2.2
   Grow: {fileID: 4587935473427712175}
   EaseSeconds: 0.08
 --- !u!1 &824549831466750702

@@ -70,6 +70,13 @@ public sealed class CookedTimelineAbility : ServerAbility
             return null;
         }
     }
+    public override HeldCutRelease? HeldCutFor(ulong victimId)
+    {
+        for (var i = 0; i < _capabilities.Count; i++)
+            if (_capabilities[i].HeldCutFor(victimId) is { } hold)
+                return hold;
+        return null;
+    }
     public override bool IgnoresFighterPushboxes
     {
         get
@@ -284,6 +291,11 @@ public sealed class CookedTimelineAbility : ServerAbility
         for (var i = 0; i < _capabilities.Count; i++)
             _capabilities[i].OnHitEntity(ref attacker, ref target, attackerDef, targetDef, ref damage, ref knockbackForce);
     }
+    public override void OnHitConfirmed(in SpellResolver.HitResult hit, in CharacterState target, int operationIndex)
+    {
+        foreach (var capability in _capabilities) capability.OnHitConfirmed(in hit, in target, operationIndex);
+    }
+
     public override void OnShieldBlock(ref CharacterState attacker, ref CharacterState defender)
     {
         for (var i = 0; i < _capabilities.Count; i++)
@@ -389,14 +401,13 @@ public sealed class CookedTimelineAbility : ServerAbility
                         && _capabilities.Exists(c => c is FightGuyCycloneKick { ShowsDizzy: false }))
                         break;
                     var placement = presentation.Placement;
-                    if (presentation.PresentationId == "presentation.manki.aerosol-inferno.start")
-                        foreach (var activeCapability in _capabilities)
-                            if (activeCapability is MankiAerosolInferno aerosol)
-                                placement = aerosol.ScaleFlamePresentation(s.ChargeTicks, placement);
                     PresentationSink?.Invoke(new TimelinePresentationEvent(0, s.EntityId, presentation.OperationIndex, presentation.PresentationId, PresentationAttackSequence, PresentationEventSource.Timeline, s.PX, s.PY, s.PZ, s.FacingYaw)
                     {
                         Placement = placement,
                     });
+                    break;
+                case CookedSwapFormOperation:
+                    Forms.Swap(ref s, CharacterDef ?? def);
                     break;
                 case CookedCompleteTimelineOperation:
                     Complete(ref s);

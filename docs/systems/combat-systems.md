@@ -147,22 +147,33 @@ The report's historical-fall and 3× slide-friction controls do not change these
 
 ### Shell
 
-Bashie's shell ([ADR-0045](../adr/0045-bashie-shell-state.md)) is a fighter state beside Slide,
-`ActionState.Shell`, entered when a tuck move (Shell Shift, Shell Dive, Hydro Jet) completes or
-touches down. "In the shell" is `Shell.IsTucked`: that state, or attacking in a tuck move. On the
-ground she skates straight along her facing on her velocity, with no steering or friction; in the
-air she coasts ballistically. `StateTicks` is the skate clock: it starts at a grounded hand-off or
-her first touchdown, keeps running through walk-off coasts, and its expiry pops her up into Idle.
-A landing adds `landingSpeedRatio` × the downward speed, so a higher dive skates faster; speeds stay
-within the shell's minimum and maximum. She may act from the shell: a grounded normal pops her out
-at skate speed (carry origin `Shell`: no RunSpeed cap, braking at `popOutDeceleration`, kept through
-a vertical-only hop), a grounded jump takes off uncapped (`JumpTakeoff.Shell`), an air jump hops her
-out, and shield, grab, air dodge and homing dash leave through their own admission. While she is in
-the state an engine-owned bowling hitbox (`Hitbox.OwnerWindow`) follows her and hits each fighter
-once per stay, freezing both, and she skates under the fighters she bowls (pushboxes skipped). A
-head-on wall (a side contact that would keep under 60% of her forward speed, including runtime
-walls and the Slopball net) or a shield pops her up bouncing back at `blockedRecoilSpeed` with no
-recovery lock. Any hit pops her out (no armour) and drops her later bowling contacts in that batch.
+Bashie's shell ([ADR-0045](../adr/0045-bashie-shell-state.md), reshaped by
+[ADR-0050](../adr/0050-bashie-cannonball-and-wave-pool.md)) owns a splash and a ride. "In the shell"
+is `Shell.IsTucked`: riding (`ActionState.Shell`) or attacking in a tuck move.
+
+- **Splash.** A tuck move (Cannonball, Cannonball Dive, Hydro Jet) that touches down ends there: its
+  cooldown starts, she pops up in place in landing lag for `popUpTicks`, and a still root-relative hitbox
+  at her feet, credited to the move, resolves in that tick's hit pass. It is an ordinary strike (shields
+  block it, each fighter once). A tuck move that ends in the air untucks into an ordinary fall.
+- **Ride.** A slot with `shellPolicy: ride` (Wave Pool) starts it when it completes: `ActionState.Shell`
+  heading for her current target's ground point (else her facing) at the ride speed, with no friction.
+  Grounded, `StateTicks` is the ride clock and the heading turns toward her current target by at most
+  `turnDegreesPerSecond` (not toward a fighter she already carries); in the air she coasts and the clock
+  starts on landing. A grounded step that would leave her support puts her back on the lip and pops her
+  up. A head-on wall (a side contact that would keep under 60% of her forward speed, including runtime
+  walls and the Slopball net) pops her up bouncing back at `blockedRecoilSpeed`. She may act from the
+  ride: a grounded normal starts at ride speed (carry origin `Shell`, braking at `popOutDeceleration`),
+  a grounded jump takes off uncapped (`JumpTakeoff.Shell`), and shield, grab, air dodge and homing dash
+  leave through their own admission. Any hit pops her out (no armour).
+- **Wave.** While she rides, an engine-owned unblockable window (`Hitbox.OwnerWindow`) follows her and
+  never freezes her. A new contact on a fighter is a catch, not a hit: it is refused (and forgotten, so
+  it can catch them later) for a fighter in a pair, one already Swept or one damaged earlier in the batch;
+  otherwise their move and reaction end, they take the wave's damage once (credit, friendly fire and
+  Mayhem shoves apply) and become `ActionState.Swept`. Each tick she carries every Swept fighter in her
+  window's hit set at her horizontal velocity and renews a two-tick lease, skipping fighters in hitstop.
+  When the ride ends by any path the window goes and the leases expire into Idle with that speed. Any
+  other hit replaces Swept with its own reaction. She rides under the fighters she carries (pushboxes
+  skipped). Objects (the Slopball ball, course targets) take the window's push or hit once.
 
 ### Settled CrouchBrace
 
@@ -246,6 +257,20 @@ startup, orange active contact, gray whiff recovery. The Edit Mode menu
 **Tools → SLOPArena → Tests → Grab Animation Presentation** checks held loops,
 both walk directions and roles, throw frame 11, victim landing frame 34, recorded
 poses, replay/Hitstop, attack cleanup, and interruption on an isolated rig.
+
+### Held cut
+
+A flash cut ([ADR-0052](../adr/0052-wibou-quick-draw-and-flash-cut.md)) that lands unblocked and unarmoured holds its
+victim: `ActionState.CutHeld` with `HitstopTicks` running to the cutter's pop tick and the cut's launch in the ordinary
+`QueuedKB*` fields. The victim's move retires on the next ability tick. While held, SDI is off (DI is captured), the
+body is fixed in pushbox resolution, and grabs, tether rings and Bashie's wave refuse it. Another fighter's hit adds
+damage and its presentation and freezes its attacker as usual; the hold, the queued launch and the KO credit stay the
+cut's. On the pop tick, before movement, the queued direction is re-aimed away from the cutter while he is still in
+that flash, so a low-percent pop never launches the victim into him; an interrupted cutter leaves the cut's
+direction. When the freeze ends Simulation returns the victim to `Idle` before the launch applies, and any `CutHeld`
+fighter without a freeze converges to `Idle`. `ServerSimulation` keeps one release record per held victim (World
+Snapshot v16) and emits the cutter's pop cue when the victim leaves the hold on its pop tick; a death, respawn or reset
+drops the record silently.
 
 ### Tether
 

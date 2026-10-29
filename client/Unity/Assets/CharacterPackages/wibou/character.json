@@ -189,23 +189,22 @@
     "presentation.wibou.code-rain",
     "presentation.wibou.rising.crescent",
     "presentation.wibou.skyfall.draw",
-    "presentation.wibou.skyfall.launch",
-    "presentation.wibou.skyfall.spike",
+    "presentation.wibou.flash.nani",
     "presentation.wibou.dash.charge",
     "presentation.wibou.dash.cut"
   ],
   "capabilityRequirements": [
     {
-      "capabilityId": "slop.ability.charged-directional-dash.v1",
+      "capabilityId": "slop.ability.dash-strike.v1",
+      "capabilityVersion": "1"
+    },
+    {
+      "capabilityId": "slop.ability.flash-cut.v1",
       "capabilityVersion": "1"
     },
     {
       "capabilityId": "slop.internal.wibou.rising-slash.v1",
       "capabilityVersion": "1"
-    },
-    {
-      "capabilityId": "slop.internal.wibou.blade-flurry.v2",
-      "capabilityVersion": "2"
     }
   ],
   "slots": [
@@ -980,13 +979,12 @@
     },
     {
       "id": "ground.R",
-      "name": "Dash Slash",
-      "description": "Aim a direction, then dash and slash.",
+      "name": "Quick Draw",
+      "description": "Tap to dash a fixed distance and slash. The blade tip at the end cuts hardest.",
       "iconId": "icon.r",
-      "behavior": "directionalDash",
-      "aimMode": "groundVector",
+      "behavior": "meleeCombo",
+      "aimMode": "none",
       "aimMovement": "fixed",
-      "aimAnimationId": "anim.wibou.r-charge",
       "cooldownTicks": 90,
       "isRecoveryMove": false,
       "preserveMomentumOnStart": false,
@@ -1012,87 +1010,62 @@
                 "kind": "startCapability",
                 "tick": 0,
                 "unit": "ticks",
-                "capabilityId": "slop.ability.charged-directional-dash.v1",
+                "capabilityId": "slop.ability.dash-strike.v1",
                 "capabilityVersion": "1",
                 "parameters": {
-                  "maxChargeTicks": 60,
-                  "tier2Ticks": 20,
-                  "tier3Ticks": 45,
-                  "minDistance": 1.2,
-                  "maxDistance": 6.4,
-                  "dashSpeed": 10.5,
-                  "finisherLeadTicks": 4,
-                  "finisherSeekTick": 31,
-                  "recoveryTicks": 24,
-                  "tier2Damage": 9,
-                  "tier3Damage": 12,
-                  "traversalHitbox": {
+                  "distance": 3.5,
+                  "speed": 28,
+                  "tipPoseTick": 33,
+                  "recoveryTicks": 16,
+                  "lightHitbox": {
                     "shape": "sphere",
-                    "radius": 0.45,
+                    "radius": 0.6,
                     "offsetX": 0,
                     "offsetY": 0,
                     "offsetZ": 0,
                     "endOffsetX": 0,
                     "endOffsetY": 0,
                     "endOffsetZ": 0,
-                    "startBoneId": "bone.hips",
+                    "startBoneId": null,
                     "endBoneId": null,
-                    "damage": 1,
+                    "damage": 3,
                     "angle": 0,
                     "baseKnockback": 0,
                     "knockbackGrowth": 0,
-                    "stunTicks": 0,
+                    "stunTicks": 12,
                     "durationTicks": 1,
+                    "interruptible": true,
+                    "hitGroup": 0,
+                    "knockbackDirection": "awayFromOwner",
+                    "fixedHitstunTicks": 38
+                  },
+                  "tipHitbox": {
+                    "shape": "capsule",
+                    "radius": 0.5,
+                    "offsetX": 0,
+                    "offsetY": 0.15,
+                    "offsetZ": 0.5,
+                    "endOffsetX": 0,
+                    "endOffsetY": 0,
+                    "endOffsetZ": 1.7,
+                    "startBoneId": null,
+                    "endBoneId": null,
+                    "damage": 13,
+                    "angle": 35,
+                    "baseKnockback": 10,
+                    "knockbackGrowth": 42,
+                    "stunTicks": 12,
+                    "durationTicks": 4,
                     "interruptible": true,
                     "hitGroup": 0,
                     "knockbackDirection": "awayFromOwner"
                   },
-                  "finisherHitbox": {
-                    "shape": "capsule",
-                    "radius": 0.5,
-                    "offsetX": 0,
-                    "offsetY": 0,
-                    "offsetZ": 0,
-                    "endOffsetX": 0,
-                    "endOffsetY": 0,
-                    "endOffsetZ": 0,
-                    "startBoneId": "_weapon_hilt",
-                    "endBoneId": "_weapon_tip",
-                    "damage": 6,
-                    "angle": 30,
-                    "baseKnockback": 8,
-                    "knockbackGrowth": 32,
-                    "stunTicks": 8,
-                    "durationTicks": 9,
-                    "interruptible": true,
-                    "hitGroup": 0,
-                    "knockbackDirection": "awayFromOwner"
-                  }
+                  "tipPresentationId": "presentation.wibou.blade.heavy-hit"
                 }
               },
               {
                 "kind": "emitPresentation",
                 "tick": 0,
-                "unit": "ticks",
-                "presentationId": "presentation.wibou.dash.charge",
-                "placement": {
-                  "attachmentMode": "bone",
-                  "boneId": "_weapon_hilt",
-                  "localPositionX": 0,
-                  "localPositionY": 0,
-                  "localPositionZ": 0,
-                  "localRotationX": 0,
-                  "localRotationY": 0,
-                  "localRotationZ": 0,
-                  "localScaleX": 1,
-                  "localScaleY": 1,
-                  "localScaleZ": 1,
-                  "durationTicks": 70
-                }
-              },
-              {
-                "kind": "emitPresentation",
-                "tick": 1,
                 "unit": "ticks",
                 "presentationId": "presentation.wibou.dash.cut",
                 "placement": {
@@ -1107,19 +1080,19 @@
                   "localScaleX": 1,
                   "localScaleY": 1,
                   "localScaleZ": 1,
-                  "durationTicks": 56
+                  "durationTicks": 12
                 }
               }
             ]
           }
         ]
       },
-      "hitPresentationId": "presentation.wibou.blade.heavy-hit"
+      "hitPresentationId": ""
     },
     {
       "id": "ground.F",
-      "name": "Skyfall",
-      "description": "Launch the opponent upward, follow into the air, then spike them straight down.",
+      "name": "Omae wa mou shindeiru",
+      "description": "Lock every opponent in range, cut through each in turn and sheathe. Then they all pop.",
       "iconId": "icon.f",
       "behavior": "meleeCombo",
       "aimMode": "none",
@@ -1131,7 +1104,7 @@
       "timeline": {
         "stages": [
           {
-            "durationTicks": 128,
+            "durationTicks": 180,
             "iasaTicks": 0,
             "landingLagTicks": 0,
             "autoCancelBeforeTicks": 0,
@@ -1142,34 +1115,54 @@
             "rotateTowardTarget": false,
             "trackingStrength": 0,
             "animationIds": [
-              "anim.wibou.f"
+              "anim.wibou.r",
+              "anim.wibou.r-charge"
             ],
             "operations": [
-              {
-                "kind": "startupAimCorrection",
-                "tick": 0,
-                "unit": "ticks",
-                "endTick": 14,
-                "acquisitionRange": 4,
-                "acquisitionHalfAngleDegrees": 180,
-                "maxYawDegrees": 90,
-                "maxPitchDegrees": 0,
-                "yawDegreesPerSecond": 720,
-                "pitchDegreesPerSecond": 0
-              },
               {
                 "kind": "startCapability",
                 "tick": 0,
                 "unit": "ticks",
-                "capabilityId": "slop.internal.wibou.blade-flurry.v2",
-                "capabilityVersion": "2",
+                "capabilityId": "slop.ability.flash-cut.v1",
+                "capabilityVersion": "1",
                 "parameters": {
-                  "forwardSpeed": 0,
-                  "ascentStartTick": 14,
-                  "ascentEndTick": 28,
-                  "descentStartTick": 60,
-                  "riseSpeed": 8.571428571428571,
-                  "descentSpeed": 12
+                  "stanceTicks": 24,
+                  "lockRange": 7,
+                  "maxTargets": 3,
+                  "legTicks": 10,
+                  "passThroughDistance": 1.2,
+                  "sheatheTicks": 30,
+                  "revealLeadTicks": 18,
+                  "recoveryTicks": 14,
+                  "whiffTicks": 40,
+                  "cutHitbox": {
+                    "shape": "sphere",
+                    "radius": 0.8,
+                    "offsetX": 0,
+                    "offsetY": 0,
+                    "offsetZ": 0,
+                    "endOffsetX": 0,
+                    "endOffsetY": 0,
+                    "endOffsetZ": 0,
+                    "startBoneId": null,
+                    "endBoneId": null,
+                    "damage": 16,
+                    "angle": 35,
+                    "baseKnockback": 12,
+                    "knockbackGrowth": 42,
+                    "stunTicks": 36,
+                    "durationTicks": 10,
+                    "interruptible": false,
+                    "hitGroup": 0,
+                    "knockbackDirection": "awayFromOwner"
+                  },
+                  "stanceAnimationId": "anim.wibou.r-charge",
+                  "legAnimationId": "anim.wibou.r",
+                  "sheatheAnimationId": "",
+                  "lockPresentationId": "presentation.wibou.blade.glint",
+                  "revealPresentationId": "presentation.wibou.flash.nani",
+                  "sheathePresentationId": "presentation.wibou.dash.charge",
+                  "popPresentationId": "presentation.wibou.blade.heavy-hit"
                 }
               },
               {
@@ -1191,124 +1184,12 @@
                   "localScaleZ": 1,
                   "durationTicks": 32
                 }
-              },
-              {
-                "kind": "spawnHitbox",
-                "tick": 14,
-                "unit": "meters",
-                "hitbox": {
-                  "shape": "capsule",
-                  "radius": 0.5,
-                  "offsetX": 0,
-                  "offsetY": 0,
-                  "offsetZ": 0,
-                  "endOffsetX": 0,
-                  "endOffsetY": 0,
-                  "endOffsetZ": 0,
-                  "startBoneId": "_weapon_hilt",
-                  "endBoneId": "_weapon_tip",
-                  "damage": 4,
-                  "angle": 90,
-                  "baseKnockback": 8,
-                  "knockbackGrowth": 0,
-                  "stunTicks": 30,
-                  "durationTicks": 5,
-                  "interruptible": false,
-                  "hitGroup": 0,
-                  "knockbackDirection": "awayFromOwner"
-                }
-              },
-              {
-                "kind": "emitPresentation",
-                "tick": 14,
-                "unit": "ticks",
-                "presentationId": "presentation.wibou.skyfall.launch",
-                "placement": {
-                  "attachmentMode": "world",
-                  "boneId": null,
-                  "localPositionX": 0,
-                  "localPositionY": 0.05,
-                  "localPositionZ": 0.9,
-                  "localRotationX": 0,
-                  "localRotationY": 0,
-                  "localRotationZ": 0,
-                  "localScaleX": 1,
-                  "localScaleY": 1,
-                  "localScaleZ": 1,
-                  "durationTicks": 34
-                }
-              },
-              {
-                "kind": "emitPresentation",
-                "tick": 14,
-                "unit": "ticks",
-                "presentationId": "presentation.wibou.code-rain",
-                "placement": {
-                  "attachmentMode": "bone",
-                  "boneId": "bone.hips",
-                  "localPositionX": 0,
-                  "localPositionY": 0,
-                  "localPositionZ": 0,
-                  "localRotationX": 0,
-                  "localRotationY": 0,
-                  "localRotationZ": 0,
-                  "localScaleX": 1,
-                  "localScaleY": 1,
-                  "localScaleZ": 1,
-                  "durationTicks": 75
-                }
-              },
-              {
-                "kind": "spawnHitbox",
-                "tick": 60,
-                "unit": "meters",
-                "hitbox": {
-                  "shape": "capsule",
-                  "radius": 0.5,
-                  "offsetX": 0,
-                  "offsetY": 0,
-                  "offsetZ": 0,
-                  "endOffsetX": 0,
-                  "endOffsetY": 0,
-                  "endOffsetZ": 0,
-                  "startBoneId": "_weapon_hilt",
-                  "endBoneId": "_weapon_tip",
-                  "damage": 16,
-                  "angle": 35,
-                  "baseKnockback": 12,
-                  "knockbackGrowth": 42,
-                  "stunTicks": 36,
-                  "durationTicks": 8,
-                  "interruptible": false,
-                  "hitGroup": 1,
-                  "knockbackDirection": "awayFromOwner"
-                }
-              },
-              {
-                "kind": "emitPresentation",
-                "tick": 60,
-                "unit": "ticks",
-                "presentationId": "presentation.wibou.skyfall.spike",
-                "placement": {
-                  "attachmentMode": "world",
-                  "boneId": null,
-                  "localPositionX": 0,
-                  "localPositionY": -0.3,
-                  "localPositionZ": 0.7,
-                  "localRotationX": 0,
-                  "localRotationY": 0,
-                  "localRotationZ": 0,
-                  "localScaleX": 1,
-                  "localScaleY": 1,
-                  "localScaleZ": 1,
-                  "durationTicks": 42
-                }
               }
             ]
           }
         ]
       },
-      "hitPresentationId": "presentation.wibou.blade.heavy-hit"
+      "hitPresentationId": "presentation.wibou.blade.hit"
     }
   ],
   "aliases": [

@@ -153,6 +153,20 @@ public sealed class TetherTests
         duel.RunUntil(() => duel.State(Dummy).State == ActionState.Hitstun, 30, (Dummy, shield));
     }
 
+    [Fact]
+    public void HerCannonballStartedOnHerFirstFreeTickSplashesThroughAHeldShield()
+    {
+        // Q then R is her combo (ADR-0050): squat and flight land inside the arrival window.
+        var duel = Arrived(out _, victimShields: true);
+        var shield = new InputState { ShieldHeld = true };
+        duel.Step(new InputState { ActiveSlot = AbilitySlots.R }, (Dummy, shield));
+        duel.RunUntil(() => duel.Hits.Any(h => h.OwnerEntityId == Bashie && h.AttackSlot == AbilitySlots.R), 60,
+            (Dummy, shield));
+        var splash = duel.Hits.First(h => h.OwnerEntityId == Bashie && h.AttackSlot == AbilitySlots.R);
+        Assert.False(splash.Blocked);
+        Assert.Equal(Dummy, splash.TargetEntityId);
+    }
+
     [Theory]
     [InlineData(AbilitySlots.Slot3)]
     [InlineData(AbilitySlots.Slot4)]
@@ -457,8 +471,7 @@ public sealed class TetherTests
     public void FromTheShellSheDoesNotTuckSheThrows()
     {
         var sim = BashieShellTests.Sim(BashieShellTests.Standing(), BashieShellTests.Dummy2(0f, 40f));
-        BashieShellTests.Step(sim, new InputState { ActiveSlot = AbilitySlots.R });
-        BashieShellTests.SkateOn(sim);
+        BashieShellTests.RideOn(sim);
         BashieShellTests.Step(sim, Throw);
         var state = BashieShellTests.State(sim);
         Assert.Equal(ActionState.Attacking, state.State);
@@ -470,10 +483,11 @@ public sealed class TetherTests
     }
 
     [Fact]
-    public void HerPackageUsesTheTetherOnGroundAndAirAAndNeedsRuntimeApi113()
+    public void HerPackageUsesTheTetherOnGroundAndAirA()
     {
         var compiled = RingDuel.Compile(null);
-        Assert.Equal("1.13.0", compiled.Metadata.RuntimeApiMin);
+        // The tether needs 1.13; her shell's splash and ride (ADR-0050) raise her package to 1.14.
+        Assert.Equal("1.14.0", compiled.Metadata.RuntimeApiMin);
         Assert.DoesNotContain(compiled.Definition.CapabilityRequirements,
             r => r.CapabilityId == CharacterPackageCompiler.ChargedStreamCapabilityId);
         foreach (var id in new[] { "ground.A", "air.A" })

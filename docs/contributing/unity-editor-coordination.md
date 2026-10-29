@@ -182,7 +182,10 @@ Shared builds that copy the plugin are Editor-affecting even without another wri
 Acquire your own bounded lease before copying into an open project; coordinate
 only affected concurrent writers as above. An explicit interactive `--hold` is
 permitted for an approved external shell copy: perform only that bounded work,
-let imports/compilation settle, then end the hold to release.
+let imports/compilation settle, then end the hold to release. The build's copy keeps the DLL's build time, which
+can be older than the Editor's last compile, so nothing reimports it. Touch the copied DLL inside the hold, and after
+release check the loaded assembly with an `eval` of `typeof(SlopArena.Shared.Forms).Assembly.ManifestModule.ModuleVersionId`
+against the file. On 2026-10-29 an untouched copy left the Editor on an older Shared build for 15 minutes.
 Do not nest a new gateway claim inside your own retained lease. Offline release/player
 builds require a separately authorized exclusive window and a confirmed closed
 project; never close another owner's Editor or start competing batchmode.

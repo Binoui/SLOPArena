@@ -28,36 +28,56 @@ public class WorldSnapshotTests
     }
 
     [Theory]
-    [InlineData("skate", 24)]
-    [InlineData("coast", 22)]
-    [InlineData("jet", 3)]
-    [InlineData("dive", 3)]
-    public void BashieShellRestoredMidPhaseReplaysIdentically(string phase, int captureTick)
+    [InlineData("cannonball")]
+    [InlineData("jet")]
+    [InlineData("dive")]
+    [InlineData("ride")]
+    public void BashieShellRestoredMidPhaseReplaysIdentically(string phase)
     {
-        ServerSimulation Make() => phase switch
+        ServerSimulation Make()
         {
-            "skate" => BashieShellTests.Sim(BashieShellTests.Running(11.5f), BashieShellTests.Dummy2(0f, 4f)),
-            "dive" => BashieShellTests.Sim(BashieShellTests.Airborne(4f)),
-            _ => BashieShellTests.Sim(),
-        };
+            var sim = phase switch
+            {
+                "dive" => BashieShellTests.Sim(BashieShellTests.Airborne(4f)),
+                "cannonball" or "ride" => BashieShellTests.Sim(dummy: BashieShellTests.Dummy2(0f, 5f)),
+                _ => BashieShellTests.Sim(),
+            };
+            if (phase == "ride")
+            {
+                var third = BashieShellTests.Dummy2(.8f, 6f);
+                third.EntityId = BashieShellTests.Third;
+                sim.RegisterEntity(BashieShellTests.Third, TestHelpers.EngineDef, third);
+            }
+            return sim;
+        }
         InputState Input(int tick) => tick != 1 ? default : new InputState
         {
-            ActiveSlot = phase is "skate" or "dive" ? AbilitySlots.R : AbilitySlots.E,
+            ActiveSlot = phase switch { "jet" => AbilitySlots.E, "ride" => AbilitySlots.F, _ => AbilitySlots.R },
             MoveY = phase == "jet" ? 1f : 0f,
         };
+        Func<ServerSimulation, bool> reached = phase switch
+        {
+            "cannonball" => sim => !BashieShellTests.State(sim).IsGrounded,
+            "ride" => sim => sim.GetState(BashieShellTests.Dummy).State == ActionState.Swept
+                && sim.GetState(BashieShellTests.Third).State == ActionState.Swept,
+            _ => _ => true,
+        };
         var continuous = Make();
-        for (int tick = 1; tick <= captureTick; tick++) BashieShellTests.Step(continuous, Input(tick));
-        var captured = BashieShellTests.State(continuous);
-        Assert.Equal(phase is "skate" or "coast" ? ActionState.Shell : ActionState.Attacking, captured.State);
-        if (phase == "skate")
-            Assert.Contains(continuous.Resolver.GetActiveHitboxes(), h => h.OwnerWindow && h.HitEntities!.Count == 1);
+        int tick = 0;
+        do BashieShellTests.Step(continuous, Input(++tick)); while (!reached(continuous) && tick < 120);
+        Assert.True(reached(continuous), $"{phase} reached");
+        for (int i = 0; i < 2; i++) BashieShellTests.Step(continuous, Input(++tick));
+        Assert.Equal(phase == "ride" ? ActionState.Shell : ActionState.Attacking, BashieShellTests.State(continuous).State);
+        if (phase == "ride")
+            Assert.Contains(continuous.Resolver.GetActiveHitboxes(), h => h.OwnerWindow && h.HitEntities!.Count == 2);
 
         var restored = Make();
         restored.RestoreSnapshot(continuous.CaptureSnapshot());
-        for (int tick = captureTick + 1; tick <= captureTick + 60; tick++)
+        for (int end = tick + 60; tick < end;)
         {
-            BashieShellTests.Step(continuous, Input(tick));
-            BashieShellTests.Step(restored, Input(tick));
+            var input = Input(++tick);
+            BashieShellTests.Step(continuous, input);
+            BashieShellTests.Step(restored, input);
             Assert.True(continuous.CaptureSnapshot().ContentEquals(restored.CaptureSnapshot()), $"{phase} diverged at tick {tick}");
         }
     }
@@ -114,7 +134,8 @@ public class WorldSnapshotTests
         var driver = new ScriptedFight(seed, ids);
         var rng = new Random(seed * 7919);
         var inputs = new Dictionary<ulong, InputState>();
-        var coverage = new Coverage();
+        var coverage = new Coverage(roster.Any(fighter => BuiltInContentResolver.Resolve(fighter).Definition
+            .CookedSlots!.Any(slot => slot.AimMode != AuthoringAimMode.None)));
         int nextRestore = rng.Next(1, 41);
         const int Ticks = 3000;
         for (int tick = 1; tick <= Ticks; tick++)
@@ -406,6 +427,12 @@ public class WorldSnapshotTests
             _free.Next(sim, inputs); // fighters beyond the first two keep these
             _total++;
             ulong a = _ids[_round % 2 == 0 ? 0 : 1], d = _ids[_round % 2 == 0 ? 1 : 0];
+            if (_drill == Drill.Aim)
+            {
+                ulong aimedOwner = _ids.FirstOrDefault(id => Aimed.Any(slot =>
+                    sim.GetDefinition(id).GetCookedSlotAbility(slot, false)?.AimMode is { } aim && aim != AuthoringAimMode.None));
+                if (aimedOwner != 0) { a = aimedOwner; d = _ids.First(id => id != a); }
+            }
             var me = sim.GetState(a);
             var them = sim.GetState(d);
             if (_drill == Drill.Free)
@@ -464,13 +491,16 @@ public class WorldSnapshotTests
                         if (++_count >= 2) Advance(after: 60);
                     }
                     break;
-                case Drill.Aim: // hold each aimed special for 40 ticks, then release it
+                case Drill.Aim:
                     attack.MoveX = attack.MoveY = 0f;
-                    if (_wait > 0) { _wait--; attack.ActiveSlot = Aimed[_count % Aimed.Length]; attack.IsAiming = _wait > 0; }
+                    byte aimSlot = Aimed.FirstOrDefault(slot => sim.GetDefinition(a).GetCookedSlotAbility(slot, false)?.AimMode
+                        is { } aim && aim != AuthoringAimMode.None);
+                    if (aimSlot == 0) { Advance(); break; }
+                    if (_wait > 0) { _wait--; attack.IsAiming = _wait > 0; }
                     else if (ready)
                     {
-                        if (_count >= Aimed.Length) { Advance(after: 30); break; }
-                        attack.ActiveSlot = Aimed[_count % Aimed.Length];
+                        if (_count > 0) { Advance(after: 30); break; }
+                        attack.ActiveSlot = aimSlot;
                         attack.IsAiming = true;
                         _wait = 40;
                         _count++;
@@ -544,12 +574,16 @@ public class WorldSnapshotTests
     private sealed class Coverage
     {
         private const int RestoresEach = 3;
-        private static readonly string[] Wanted =
+        private readonly string[] Wanted;
+        public Coverage(bool hasAimedMove)
         {
+            Wanted = new[]
+            {
             "ability", "capability", "hitbox", "hitstop", nameof(ActionState.Hitstun), nameof(ActionState.Shielding),
             nameof(ActionState.Aiming), nameof(ActionState.Grabbing), nameof(ActionState.Grabbed),
             nameof(ActionState.Throwing), nameof(ActionState.Thrown), nameof(ActionState.AirDodgeMovement),
-        };
+            }.Where(state => hasAimedMove || state != nameof(ActionState.Aiming)).ToArray();
+        }
         public int Restores;
         private int _deaths, _hits;
         private readonly HashSet<string> _now = new();

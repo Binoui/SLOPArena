@@ -66,7 +66,7 @@ namespace SlopArena.Shared
         {
             ulong throwerId = hit.OwnerEntityId, victimId = hit.TargetEntityId;
             if (!tether.Catches || thrower.InteractionId != 0 || victim.InteractionId != 0
-                || _damagedThisTick.Contains(victimId))
+                || victim.State == ActionState.CutHeld || _damagedThisTick.Contains(victimId))
                 return;
             RetireAbility(victimId, ref victim, AbilityExit.Superseded);
             ClearReaction(ref victim);
@@ -148,7 +148,7 @@ namespace SlopArena.Shared
             ring = default;
             ulong victimId = thrower.InteractionPartnerId;
             if (thrower.InteractionId == 0 || thrower.InteractionPhase != (byte)DefenseInteractionPhase.Reeling
-                || !_states.TryGetValue(victimId, out var victim) || !_defs.TryGetValue(victimId, out var victimDef)
+                || !_states.TryGetValue(victimId, out var victim) || !TryDef(victimId, out var victimDef)
                 || victim.State != ActionState.Reeled || victim.InteractionId != thrower.InteractionId
                 || victim.InteractionPartnerId != thrower.EntityId)
                 return TetherStep.Lost;
@@ -159,7 +159,7 @@ namespace SlopArena.Shared
                 return TetherStep.Snapped;
             }
 
-            var anchor = TetherAnchor(in thrower, _defs[thrower.EntityId], victimDef, p.AnchorDistance);
+            var anchor = TetherAnchor(in thrower, Def(thrower.EntityId), victimDef, p.AnchorDistance);
             float dx = anchor.X - victim.PX, dy = anchor.Y - victim.PY, dz = anchor.Z - victim.PZ;
             float horizontal = MathF.Sqrt(dx * dx + dz * dz);
             float reach = p.ReelSpeed * Simulation.TickDt;

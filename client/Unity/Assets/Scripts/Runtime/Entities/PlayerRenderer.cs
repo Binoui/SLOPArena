@@ -98,7 +98,10 @@ namespace SlopArena.Client.Entities
         [SerializeField] private string _modelResourcePath = "";
         [SerializeField] private string _modelName = "";
         [SerializeField] private float _modelVisualScale = 1f;
+        /// <summary>The definition of the form she shows now (ADR-0051); every role and move read uses it.</summary>
         private CharacterDefinition? _charDef;
+        private CharacterDefinition? _registeredDef;
+        private FormPresentation? _forms;
         private GameObject _modelInstance;
         private Vector3 _attackPoseModelOffset;
 
@@ -258,6 +261,7 @@ namespace SlopArena.Client.Entities
                 ResetAnimationState();
             bool hadModel = _modelPrefab != null;
             _charDef = definition;
+            _registeredDef = definition;
             _bakedData = baked;
             _weaponHiltBoneIndex = baked?.FindBoneIndex("_weapon_hilt") ?? -1;
             _weaponTipBoneIndex = baked?.FindBoneIndex("_weapon_tip") ?? -1;
@@ -411,6 +415,7 @@ namespace SlopArena.Client.Entities
             }
 
             _modelInstance = instance;
+            _forms = instance != null ? instance.GetComponentInChildren<FormPresentation>(true) : null;
             _animancer = animancer;
             _weaponHips = null;
             if (instance == null) return;
@@ -514,7 +519,7 @@ namespace SlopArena.Client.Entities
             playbackSpeed = 1f;
             if (_charDef == null || attackSlot == 0)
                 return false;
-            var spec = _charDef.GetCookedSlotAbility(attackSlot, airborne);
+            var spec = MoveFor(attackSlot, airborne);
             if (spec == null || spec.ClipCount == 0 || spec.Timeline.Stages is not { Count: > 0 })
                 return false;
             int animationIndex = comboStage % spec.ClipCount;
@@ -629,7 +634,7 @@ namespace SlopArena.Client.Entities
             if (_bakedData == null || _charDef == null || state.AttackSlot == 0
                 || _weaponHiltBoneIndex < 0 || _weaponTipBoneIndex < 0)
                 return false;
-            var spec = _charDef.GetCookedSlotAbility(state.AttackSlot, airborne);
+            var spec = MoveFor(state.AttackSlot, airborne);
             if (spec?.Timeline.Stages is not { Count: > 0 } || spec.ClipCount == 0)
                 return false;
             var movePose = spec.Clip(state.AnimIndex).At(state.AttackElapsedTicks);
@@ -666,13 +671,13 @@ namespace SlopArena.Client.Entities
         {
             if (state.State != ActionState.Attacking || state.AttackSlot == 0 || _charDef == null)
                 return false;
-            var spec = _charDef.GetCookedSlotAbility(state.AttackSlot, airborne);
+            var spec = MoveFor(state.AttackSlot, airborne);
             if (spec?.Timeline.Stages is not { Count: > 0 })
                 return false;
             var stage = spec.Timeline.Stages[spec.Clip(state.AnimIndex).StageIndex];
             if (state.AttackElapsedTicks >= stage.DurationTicks)
                 return false;
-            if (TryGetChargedSwordTrigger(state, airborne, out ushort finisherTick)
+            if (TryGetDashStrikeSwordTrigger(state, airborne, out ushort finisherTick)
                 && state.AttackElapsedTicks >= finisherTick)
                 return true;
             var events = stage.ReadHitboxes();
@@ -686,20 +691,18 @@ namespace SlopArena.Client.Entities
                     return true;
             return false;
         }
-        private bool TryGetChargedSwordTrigger(in CharacterState state, bool airborne, out ushort triggerTick)
+        private bool TryGetDashStrikeSwordTrigger(in CharacterState state, bool airborne, out ushort triggerTick)
         {
             triggerTick = 0;
-            var slot = _charDef?.GetCookedSlotAbility(state.AttackSlot, airborne);
+            var slot = MoveFor(state.AttackSlot, airborne);
             if (slot == null || slot.Timeline.Stages.Count == 0)
                 return false;
             var operations = slot.Timeline.Stages[slot.Clip(state.AnimIndex).StageIndex].Operations;
             for (int i = 0; i < operations.Count; i++)
                 if (operations[i] is CookedStartCapabilityOperation
-                    { Parameters: CookedChargedDirectionalDashCapabilityParameters dash }
-                    && dash.FinisherHitbox.StartBoneId == "_weapon_hilt"
-                    && dash.FinisherHitbox.EndBoneId == "_weapon_tip")
+                    { Parameters: CookedDashStrikeCapabilityParameters dash })
                 {
-                    triggerTick = dash.FinisherSeekTick;
+                    triggerTick = dash.TipPoseTick;
                     return true;
                 }
             return false;
@@ -781,7 +784,10 @@ namespace SlopArena.Client.Entities
             if (_animancer == null)
                 _animancer = GetComponent<AnimancerComponent>();
             if (_modelInstance == null && transform.childCount > 0)
+            {
                 _modelInstance = transform.GetChild(0).gameObject;
+                _forms = _modelInstance.GetComponentInChildren<FormPresentation>(true);
+            }
             LoadSharedAnimations();
             _sfxSource = gameObject.AddComponent<AudioSource>();
             _sfxSource.outputAudioMixerGroup = ClientSettingsService.Instance.FindBus("SFX");
@@ -929,6 +935,7 @@ namespace SlopArena.Client.Entities
             clip = null;
             time = 0f;
             LastAnimationClipNotInstalled = false;
+            ShowForm(snapshot.Form.Active);
             if (_animancer == null || _charDef == null) return false;
             if (snapshot.State is ActionState.GrabAttempt or ActionState.Grabbing or ActionState.Grabbed
                 or ActionState.Throwing or ActionState.Thrown)
@@ -942,7 +949,7 @@ namespace SlopArena.Client.Entities
                 int elapsed = poseTicks;
                 if (snapshot.State is ActionState.Attacking or ActionState.Aiming && snapshot.AttackSlot > 0)
                 {
-                    var spec = _charDef.GetCookedSlotAbility(snapshot.AttackSlot, airborne);
+                    var spec = MoveFor(snapshot.AttackSlot, airborne);
                     if (spec == null || spec.ClipCount == 0 || spec.Timeline.Stages is not { Count: > 0 })
                         return false;
                     int animationIndex = snapshot.AnimIndex % spec.ClipCount;
@@ -977,7 +984,7 @@ namespace SlopArena.Client.Entities
                         return true;
                     }
                 }
-                else if (snapshot.State == ActionState.Reeled)
+                else if (ActionStates.Captive(snapshot.State))
                 {
                     id = _charDef.HitSmallAnim;
                     elapsed = ReeledPoseTicks;
@@ -1084,8 +1091,7 @@ namespace SlopArena.Client.Entities
             ResetAnimationState();
             _hitFeel?.ResetForFreshSimulation();
             _deathFlashTicks = 0;
-            var skin = _modelInstance != null ? _modelInstance.GetComponentInChildren<SkinnedMeshRenderer>() : null;
-            if (skin != null) skin.enabled = true;
+            foreach (var skin in BodySkins()) if (skin != null) skin.enabled = true;
             _inHitstunAnim = false;
             _presentedHitReactionSequence = 0;
             _hasAppliedState = false;
@@ -1119,7 +1125,7 @@ namespace SlopArena.Client.Entities
                 return;
 
             if (state.State == ActionState.Attacking
-                && TryGetChargedSwordTrigger(state, _currentAttackAirborne, out ushort finisherTick)
+                && TryGetDashStrikeSwordTrigger(state, _currentAttackAirborne, out ushort finisherTick)
                 && state.AttackElapsedTicks >= finisherTick
                 && _playedSwordSfxTriggers.Add((state.AnimIndex, finisherTick)))
                 PlaySwordHitboxSfx();
@@ -1179,12 +1185,44 @@ namespace SlopArena.Client.Entities
                 Quaternion.Slerp(_interpolateFromRotation, _interpolateToRotation, alpha));
         }
 
+        private MankiFlightPresentation _flightPresentation;
         private CookedSlotDefinition? _activeMove;
         public CookedSlotDefinition? CurrentMove => _activeMove;
+
+        /// <summary>Follow her form (ADR-0051): roles and moves come from its definition, and its body draws.</summary>
+        private void ShowForm(byte form)
+        {
+            if (_registeredDef != null) _charDef = _registeredDef.ForForm(form);
+            if (_forms != null) _forms.Show(form);
+        }
+
+        /// <summary>The move behind an attack slot, from the shown form. A move still running from the other form
+        /// (F after its swap) keeps its own clip.</summary>
+        private CookedSlotDefinition? MoveFor(byte attackSlot, bool airborne)
+            => _activeMove != null && _charDef != null && _activeMove.Form != _charDef.Form
+                && CanonicalSlotProjection.TryGet(attackSlot, airborne, out var address) && _activeMove.Ordinal == address.Ordinal
+                ? _activeMove
+                : _charDef?.GetCookedSlotAbility(attackSlot, airborne);
+
+        /// <summary>The meshes the death blink and the respawn act on: both forms' for a two-form fighter, else the
+        /// model's first skinned mesh.</summary>
+        private SkinnedMeshRenderer[] BodySkins()
+        {
+            if (_forms != null) return _forms.Skins;
+            _firstSkin[0] = _modelInstance != null ? _modelInstance.GetComponentInChildren<SkinnedMeshRenderer>() : null;
+            return _firstSkin;
+        }
+        private readonly SkinnedMeshRenderer[] _firstSkin = new SkinnedMeshRenderer[1];
 
         public void ApplyServerState(CharacterState state, CookedSlotDefinition? activeMove)
         {
             _activeMove = activeMove;
+            ShowForm(state.Form.Active);
+            if (_charDef != null && Flying.Parameters(_charDef) is { } flight)
+            {
+                if (_flightPresentation == null) _flightPresentation = gameObject.AddComponent<MankiFlightPresentation>();
+                _flightPresentation.Apply(this, state, flight.FuelTicks);
+            }
             Vector3 targetPos = new Vector3(state.PX, state.PY + _modelYOffset, state.PZ);
 
             bool stockTransition = _hasAppliedState
@@ -1240,21 +1278,14 @@ namespace SlopArena.Client.Entities
             if (_deathFlashTicks > 0)
             {
                 _deathFlashTicks--;
-                if (_modelInstance != null)
-                {
-                    var mr = _modelInstance.GetComponentInChildren<SkinnedMeshRenderer>();
-                    if (mr != null)
-                        mr.enabled = (_deathFlashTicks % 2 == 0);
-                }
+                foreach (var skin in BodySkins())
+                    if (skin != null) skin.enabled = _deathFlashTicks % 2 == 0;
             }
             else
             {
-                if (_modelInstance != null)
-                {
-                    var mr = _modelInstance.GetComponentInChildren<SkinnedMeshRenderer>();
-                    if (mr != null && !mr.enabled)
-                        mr.enabled = true;
-                }
+                foreach (var skin in BodySkins())
+                    if (skin != null && !skin.enabled)
+                        skin.enabled = true;
             }
 
 
@@ -1828,9 +1859,9 @@ namespace SlopArena.Client.Entities
                 return;
             }
 
-            // Caught on a tether (ADR-0048): a stand-in held small-hit pose while the line holds and the arrival
-            // window runs. The Shared hurtbox uses the same clip.
-            if (state.State == ActionState.Reeled)
+            // Caught on a tether (ADR-0048) or carried by a wave (ADR-0050): a stand-in held small-hit pose while
+            // the line holds, the arrival window runs or the wave carries. The Shared hurtbox uses the same clip.
+            if (ActionStates.Captive(state.State))
             {
                 _jumpArcActive = false;
                 if (TryGetAnimation(_charDef.HitSmallAnim, out var reeledClip, out _))
@@ -1891,6 +1922,18 @@ namespace SlopArena.Client.Entities
                         _animancer.Play(clip, fadeDuration);
                         _jumpArcActive = true;
                     }
+                }
+                else if (state.State == ActionState.Flying)
+                {
+                    var flightMove = _charDef.GetCookedSlotAbility(AbilitySlots.E, true);
+                    if (flightMove != null && TryGetAnimation(flightMove.Timeline.Stages[0].AnimationIds[0], out var flightClip, out _)
+                        && _animancer.States.Current?.Clip != flightClip)
+                    {
+                        var pose = _animancer.Play(flightClip, .1f);
+                        pose.Time = flightClip.length * Flying.PoseFraction;
+                        pose.Speed = 0f;
+                    }
+                    _jumpArcActive = false;
                 }
                 else if (state.State == ActionState.Shell && TryPlayShellPose())
                 {

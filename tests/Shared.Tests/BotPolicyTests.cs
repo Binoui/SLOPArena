@@ -583,7 +583,7 @@ public class BotPolicyTests
     [Fact]
     public void AimedMove_HoldsThenReleasesTheResolvedAimPlan()
     {
-        var def = TestHelpers.ResolveDef(CharacterClass.Manki);
+        var def = TestHelpers.FightGuyDef;
         var self = TestHelpers.PlayerState();
         self.PY = TestHelpers.GroundPY(def);
         foreach (var slot in new[]
@@ -620,7 +620,7 @@ public class BotPolicyTests
     [Fact]
     public void ActionPlan_InvalidatesOnInterruptionDeathAndReset()
     {
-        var def = TestHelpers.MankiDef;
+        var def = TestHelpers.FightGuyDef;
         var target = Opponent(z: 0.75f);
 
         var interruptedMemory = new BotMemory { Difficulty = CpuDifficulty.Hard };
@@ -677,7 +677,7 @@ public class BotPolicyTests
     [Fact]
     public void AimedPlan_ReachesResolverThroughPolicyAcrossSeeds()
     {
-        var def = TestHelpers.MankiDef;
+        var def = TestHelpers.FightGuyDef;
         for (int seed = 0; seed < 8; seed++)
         {
             var baked = TestHelpers.LoadBakedData(def);
@@ -721,7 +721,7 @@ public class BotPolicyTests
     }
 
     [Fact]
-    public void DirectionalPlan_ExecutesMovementThroughSimulationAcrossSeeds()
+    public void QuickDrawPlan_ExecutesImmediateMovementThroughSimulationAcrossSeeds()
     {
         var def = TestHelpers.WibouDef;
         for (int seed = 0; seed < 8; seed++)
@@ -758,8 +758,8 @@ public class BotPolicyTests
                 moved = sim.GetState(1).PZ > 1f;
             }
 
-            Assert.True(aimed, $"seed {seed} never entered the directional plan");
-            Assert.True(moved, $"seed {seed} never moved through the directional dash");
+            Assert.False(aimed, $"seed {seed} held the retired charge");
+            Assert.True(moved, $"seed {seed} never moved through the Quick Draw");
         }
     }
 

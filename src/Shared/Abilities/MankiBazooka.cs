@@ -128,7 +128,6 @@ namespace SlopArena.Shared.Abilities
                     StunTicks = _parameters.ExplosionStunTicks,
                     DurationTicks = _parameters.ExplosionDurationTicks,
                     CanHitOwner = true,
-                    IgnitesOwnerCans = true,
                     OwnerDamage = 4f,
                     ExplosionPresentationId = _parameters.ExplosionPresentationId,
                     PresentationAttackSequence = PresentationAttackSequence,

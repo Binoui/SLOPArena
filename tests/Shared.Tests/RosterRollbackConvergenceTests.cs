@@ -26,12 +26,8 @@ public class RosterRollbackConvergenceTests
 
     [Theory]
     [InlineData(CharacterClass.FightGuy, AbilitySlots.A, 0)]
-    [InlineData(CharacterClass.Manki, AbilitySlots.A, 0)]
-    [InlineData(CharacterClass.Wibou, AbilitySlots.R, 0)]
     [InlineData(CharacterClass.Bonk, AbilitySlots.E, 0)]
     [InlineData(CharacterClass.FightGuy, AbilitySlots.A, 5)]
-    [InlineData(CharacterClass.Manki, AbilitySlots.A, 5)]
-    [InlineData(CharacterClass.Wibou, AbilitySlots.R, 5)]
     [InlineData(CharacterClass.Bonk, AbilitySlots.E, 5)]
     public void DelayedAimRelease_RecoversAndAcceptsMovementAndAnotherAttack(
         CharacterClass fighter, byte slot, int lossDenominator)
@@ -43,6 +39,38 @@ public class RosterRollbackConvergenceTests
         Assert.Equal(ActionState.Aiming, lab[1].State(1).State);
         Assert.Equal(ActionState.Aiming, lab.Server.GetState(1).State);
         lab.Run(30);
+        AssertRecoveryAndNextInputs(lab);
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(5)]
+    public void QuickDrawConvergesWithDelayAndLoss(int lossDenominator)
+    {
+        var lab = Match(CharacterClass.Wibou, lossDenominator);
+        lab[1].Input = (_, tick) => new InputState { ActiveSlot = tick == 30 ? AbilitySlots.R : (byte)0,
+            IsAiming = tick is >= 30 and < 65, AimYaw = 9000 };
+        lab.Run(50);
+        Assert.Equal(ActionState.Attacking, lab[1].State(1).State);
+        Assert.False(lab[1].State(1).IsAiming);
+        Assert.False(lab.Server.GetState(1).IsAiming);
+        lab.Run(30);
+        AssertRecoveryAndNextInputs(lab);
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(5)]
+    public void FlyingBomberConvergesWithDelayAndLoss(int lossDenominator)
+    {
+        var lab = Match(CharacterClass.Manki, lossDenominator);
+        lab[1].Input = (_, tick) => new InputState
+        {
+            ActiveSlot = tick switch { 30 => AbilitySlots.E, 40 => AbilitySlots.A, 80 => AbilitySlots.R,
+                130 => AbilitySlots.F, _ => (byte)0 },
+            Jump = tick == 50,
+        };
+        lab.Run(200);
         AssertRecoveryAndNextInputs(lab);
     }
 

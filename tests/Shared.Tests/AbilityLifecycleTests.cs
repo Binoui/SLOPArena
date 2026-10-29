@@ -27,156 +27,23 @@ public class AbilityLifecycleTests
 
         Assert.Equal(AuthoringAimMovementMode.Fixed, (def.GetCookedSlotAbility(AbilitySlots.A, airborne: false)?.AimMovement ?? AuthoringAimMovementMode.Fixed));
         var t0 = TestHelpers.TickN(sim, TestHelpers.Input(activeSlot: AbilitySlots.A), 1);
-        Assert.Equal(ActionState.Aiming, t0.State);
+        Assert.Equal(ActionState.Attacking, t0.State);
         Assert.Equal((byte)AbilitySlots.A, t0.AttackSlot);
     }
 
-    // ── Q hold: fixed aim — movement is locked, action transitions stay locked ──
-
-    [Fact]
-    public void MankiQ_FixedHold_StopsMovement()
-    {
-        var def = TestHelpers.ResolveSourceDef("manki");
-        var sim = TestHelpers.MakeSim();
-        var state = TestHelpers.PlayerState();
-        state.PY = TestHelpers.MankiGroundPY;
-        TestHelpers.RegisterPlayer(sim, def, state);
-
-        float startZ = state.PZ;
-        var aim = TestHelpers.Input(activeSlot: AbilitySlots.A, aiming: true, moveY: 1f);
-        for (int i = 0; i < 300; i++)
-            sim.Tick(new() { { 1, aim } });
-
-        var s = sim.GetState(1);
-        Assert.Equal(ActionState.Aiming, s.State);
-        Assert.Equal((byte)0, s.ComboStage);
-        Assert.NotNull(sim.GetActiveAbility(1));
-        Assert.Equal(startZ, s.PZ);
-        Assert.Equal(0f, s.VZ);
-    }
-
-    [Fact]
-    public void MankiQ_AirStart_LandingKeepsAimUntilRelease()
-    {
-        var arena = TestHelpers.TestArena();
-        var sim = TestHelpers.MakeSim(arena);
-        var state = TestHelpers.PlayerState();
-        state.PY = TestHelpers.MankiGroundPY + 2f;
-        state.IsGrounded = false;
-        state.VY = -1f;
-        TestHelpers.RegisterPlayer(sim, Def, state);
-
-        var aim = TestHelpers.Input(activeSlot: AbilitySlots.A, aiming: true);
-        sim.Tick(new() { { 1, aim } });
-        Assert.Equal(ActionState.Aiming, sim.GetState(1).State);
-
-        var falling = sim.GetState(1);
-        falling.PY = TestHelpers.MankiGroundPY + 0.05f;
-        falling.IsGrounded = false;
-        falling.VY = -1f;
-        sim.SetState(1, falling);
-        sim.Tick(new() { { 1, aim } });
-
-        var landed = sim.GetState(1);
-        Assert.True(landed.IsGrounded);
-        Assert.Equal(ActionState.Aiming, landed.State);
-        Assert.NotNull(sim.GetActiveAbility(1));
-        for (int i = 0; i < 7; i++)
-            sim.Tick(new() { { 1, aim } });
 
 
-        sim.Tick(new() { { 1, TestHelpers.Input(activeSlot: AbilitySlots.A, aiming: false) } });
-        Assert.Equal(ActionState.Attacking, sim.GetState(1).State);
-    }
 
-    [Fact]
-    public void MankiQ_MidHold_ShieldPressAndJumpBlocked()
-    {
-        var sim = TestHelpers.MakeSim();
-        var state = TestHelpers.PlayerState();
-        state.PY = TestHelpers.MankiGroundPY;
-        TestHelpers.RegisterPlayer(sim, Def, state);
 
-        var aim = TestHelpers.Input(activeSlot: AbilitySlots.A, aiming: true, moveY: 1f);
-        sim.Tick(new() { { 1, aim } });
-        for (int i = 0; i < 9; i++)
-            sim.Tick(new() { { 1, aim } });
 
-        // Fixed aim owns the action and rejects a fresh defense edge and jump.
-        sim.Tick(new() { { 1, new InputState { ActiveSlot = AbilitySlots.A, IsAiming = true, MoveY = 1f, Jump = true, ShieldPressed = true } } });
-        var s = sim.GetState(1);
-        Assert.Equal(ActionState.Aiming, s.State);
-        Assert.Equal((byte)AbilitySlots.A, s.AttackSlot);
-        Assert.Equal((byte)2, s.JumpsLeft);
-    }
 
-    [Fact]
-    public void MankiQ_HoldBeyondChargeCap_RemainsAimingUntilRelease()
-    {
-        var sim = TestHelpers.MakeSim();
-        var state = TestHelpers.PlayerState();
-        state.PY = TestHelpers.MankiGroundPY;
-        TestHelpers.RegisterPlayer(sim, Def, state);
 
-        var aim = TestHelpers.Input(activeSlot: AbilitySlots.A, aiming: true, moveY: 1f);
-        for (int i = 0; i < 300; i++)
-            sim.Tick(new() { { 1, aim } });
 
-        var held = sim.GetState(1);
-        Assert.Equal(ActionState.Aiming, held.State);
-        Assert.Equal((byte)0, held.ComboStage);
-        Assert.NotNull(sim.GetActiveAbility(1));
-
-        sim.Tick(new() { { 1, TestHelpers.Input(activeSlot: AbilitySlots.A, aiming: false) } });
-        var released = sim.GetState(1);
-        Assert.Equal(ActionState.Attacking, released.State);
-        Assert.Equal((byte)1, released.ComboStage);
-    }
 
     // ══════════════════════════════════════════════════════════════════
-    // ── F: Aerosol Inferno — fixed commitment lifecycle ──
     // ══════════════════════════════════════════════════════════════════
 
-    [Fact]
-    public void MankiF_AerosolInferno_HoldsUntilReleaseThenReturnsToIdle()
-    {
-        var sim = TestHelpers.MakeSim(TestHelpers.TestArena());
-        var state = TestHelpers.PlayerState();
-        state.PY = TestHelpers.MankiGroundPY;
-        TestHelpers.RegisterPlayer(sim, Def, state);
 
-        var held = new InputState { ActiveSlot = AbilitySlots.F, IsAiming = true, AimYaw = 9000 };
-        sim.Tick(new() { { 1, held } });
-        var started = sim.GetState(1);
-        Assert.Equal(ActionState.Aiming, started.State);
-        Assert.Equal((byte)AbilitySlots.F, started.AttackSlot);
-        var heldX = started.PX;
-        var heldY = started.PY;
-        var heldZ = started.PZ;
-
-        for (var tick = 0; tick < 20; tick++)
-        {
-            sim.Tick(new() { { 1, held } });
-        }
-
-        var aiming = sim.GetState(1);
-        Assert.Equal(ActionState.Aiming, aiming.State);
-        Assert.Equal(heldX, aiming.PX);
-        Assert.Equal(heldY, aiming.PY);
-        Assert.Equal(heldZ, aiming.PZ);
-        Assert.Equal(MathF.PI / 2f, aiming.FacingYaw, 1e-4f);
-
-        sim.Tick(new() { { 1, new InputState { AimYaw = 9000 } } });
-        var released = sim.GetState(1);
-        Assert.Equal(ActionState.Attacking, released.State);
-        Assert.Equal((byte)AbilitySlots.F, released.AttackSlot);
-        Assert.Equal((byte)1, released.ComboStage);
-
-        TestHelpers.TickDefault(sim, 70);  // the 62-tick fire, flame and recovery
-        var completed = sim.GetState(1);
-        Assert.Equal(ActionState.Idle, completed.State);
-        Assert.Equal((byte)0, completed.AttackSlot);
-    }
 
     // ══════════════════════════════════════════════════════════════════
     // ── R: Bazooka — FPS fire-and-forget rocket ──
@@ -315,12 +182,12 @@ public class AbilityLifecycleTests
 
         bool launched = false;
         var after = state;
-        for (int tick = 0; tick < 180; tick++)
+        for (int tick = 0; tick < 220; tick++)
         {
             after = TestHelpers.TickN(sim,
                 tick == 0 ? TestHelpers.Input(activeSlot: AbilitySlots.E) : default, 1);
             launched |= after.VY > 0f;
-            if (launched && sim.GetActiveAbility(1) == null)
+            if (launched && !sim.GetState(1).Flight.Active)
                 break;
         }
 

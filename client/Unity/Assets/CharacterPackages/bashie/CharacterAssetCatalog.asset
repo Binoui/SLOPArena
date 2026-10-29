@@ -115,14 +115,6 @@ MonoBehaviour:
     _extrapolation: 0
     _poseTrackId: anim.bashie.whistle
   _presentations:
-  - _semanticId: presentation.bashie.hose.pump
-    _prefab: {fileID: 1521471548995300166, guid: 271d349aee8a6c5dc8a948d0bc448bfe, type: 3}
-  - _semanticId: presentation.bashie.hose.release
-    _prefab: {fileID: 7733751994440535698, guid: c679158ce452b12b4b78e1ba19e21db3, type: 3}
-  - _semanticId: presentation.bashie.hose.sign
-    _prefab: {fileID: 8064585994916213162, guid: 534c4120ecd11a72e90f2b40f13c83d5, type: 3}
-  - _semanticId: presentation.bashie.hose.hit
-    _prefab: {fileID: 189327356592904366, guid: 92517fabdd23e7a3dadbc027f02d9fa6, type: 3}
   - _semanticId: presentation.bashie.shell.tuck
     _prefab: {fileID: 8101341052854985472, guid: af713e86c0cc0c922ab59d36bef37cac, type: 3}
   - _semanticId: presentation.bashie.shell.plop
@@ -139,18 +131,12 @@ MonoBehaviour:
     _prefab: {fileID: 6302717232837139324, guid: fe1eff96796114aa1909778daa488d52, type: 3}
   - _semanticId: presentation.bashie.shell.air-strike-tuck
     _prefab: {fileID: 4185853069914809720, guid: 377b85d28fb137f6b9dd9987c4192ece, type: 3}
+  - _semanticId: presentation.bashie.shell.flip-tuck
+    _prefab: {fileID: 1165248993868918788, guid: 89fa43edb19bfe10ebb6c96a8e2bf680, type: 3}
   - _semanticId: presentation.bashie.whistle.puff
     _prefab: {fileID: 1912667602288168695, guid: e4ffe33ccb2207130a627bc404d83443, type: 3}
   - _semanticId: presentation.bashie.whistle.blow
     _prefab: {fileID: 113618003211954687, guid: 6b860076bd547f7cb8329c746b7182a2, type: 3}
-  - _semanticId: presentation.bashie.whistle.sign
-    _prefab: {fileID: 3613989834587495733, guid: 346de3cf57a49a8e485585e3a1db5454, type: 3}
-  - _semanticId: presentation.bashie.ring.bounce
-    _prefab: {fileID: 517856996095854005, guid: 9225ed2d42dccad728d84469e1770e71, type: 3}
-  - _semanticId: presentation.bashie.ring.rebound
-    _prefab: {fileID: 6741874939935604705, guid: a79d6fb931198771d85f65ce202b128a, type: 3}
-  - _semanticId: presentation.bashie.shell.flip-tuck
-    _prefab: {fileID: 1165248993868918788, guid: 89fa43edb19bfe10ebb6c96a8e2bf680, type: 3}
   _presentationProfile:
     _respawnTint: {r: 0.98, g: 0.3, b: 0.27, a: 0.95}
     _swing:

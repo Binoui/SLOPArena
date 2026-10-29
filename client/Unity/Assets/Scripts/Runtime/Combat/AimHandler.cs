@@ -40,10 +40,6 @@ namespace SlopArena.Client.Combat
         [SerializeField] private float _minRange = 1f;
         [SerializeField] private float _maxRange = 12f;
 
-        private CookedChargedDirectionalDashCapabilityParameters _chargedDashParameters;
-        private bool _hasChargedDashParameters;
-        /// <summary>The aimed slot's lobbed throw (Round Bomb), read from the cooked slot when the cursor opens.</summary>
-        private CookedMankiRoundBombCapabilityParameters _lob;
         /// <summary>
         /// GroundVector slots that author travel aim a dash: the stick picks the direction instantly.
         /// Every other one aims the fighter's facing: the stick turns him progressively.
@@ -233,19 +229,12 @@ namespace SlopArena.Client.Combat
                 if (desired == CameraMode.FreeCursor)
                 {
                     _cameraMount?.FreezeAtCurrentAngles();
-                    _lob = null;
-                    var cookedCursorSlot = spec;
-                    if (cookedCursorSlot != null)
-                        foreach (var stage in cookedCursorSlot.Timeline.Stages)
-                        foreach (var operation in stage.Operations)
-                            if (operation is CookedStartCapabilityOperation { Parameters: CookedMankiRoundBombCapabilityParameters lob })
-                                _lob = lob;
                     if (_characterTransform != null)
                     {
                         Vector3 facing = new(Mathf.Sin(playerState.FacingYaw), 0f, Mathf.Cos(playerState.FacingYaw));
                         _controllerCursorGroundPoint = ClampGroundCursor(
                             _resolveAimTarget?.Invoke(playerState.TargetEntityId) ?? BodyCentre + facing * 6f,
-                            BodyCentre, _lob?.MaxRange ?? _maxRange);
+                            BodyCentre, _maxRange);
                     }
                     _controllerCursorActive = ControllerAim || HumanInputActions.LastUsedGamepad || Mouse.current == null;
                 }
@@ -266,19 +255,7 @@ namespace SlopArena.Client.Combat
                             if (operation is CookedForwardLungeOperation lunge)
                                 authoredDistance += lunge.Speed * lunge.DurationTicks * SlopArena.Shared.Simulation.TickDt;
                     if (authoredDistance > 0f) _groundVectorDistance = authoredDistance;
-                    _hasChargedDashParameters = false;
-                    var cookedAimSlot = spec;
-                    if (cookedAimSlot != null)
-                        foreach (var stage in cookedAimSlot.Timeline.Stages)
-                        foreach (var operation in stage.Operations)
-                            if (operation is CookedStartCapabilityOperation
-                                { Parameters: CookedChargedDirectionalDashCapabilityParameters parameters })
-                            {
-                                _chargedDashParameters = parameters;
-                                _hasChargedDashParameters = true;
-                            }
-                    _groundVectorAim = authoredDistance > 0f || _hasChargedDashParameters
-                        ? GroundVectorAim.Dash : GroundVectorAim.Facing;
+                    _groundVectorAim = authoredDistance > 0f ? GroundVectorAim.Dash : GroundVectorAim.Facing;
                     if (_groundVectorAim == GroundVectorAim.Facing)
                     {
                         // Aim continues from the fighter's facing so a press does not snap him to the camera,
@@ -331,7 +308,7 @@ namespace SlopArena.Client.Combat
                         aimTarget.Value, aimTarget.Value - _characterTransform.position, 0.8f);
                     _trajectoryIndicator?.SetTrajectory(
                         BodyCentre, _capsuleHeight, yawRad ?? 0f, (distCm ?? 0) * 0.01f,
-                        _lob != null ? aimTarget : null);
+                        null);
                 }
                 else
                 {
@@ -394,13 +371,6 @@ namespace SlopArena.Client.Combat
                     byte? chargeTier = null;
                     if (spec?.Timeline.Stages is { Count: > 0 } && spec.Timeline.Stages[0].ReadHitboxes() is { Length: > 0 })
                         dashWidth = spec.Timeline.Stages[0].ReadHitboxes()[0].Radius * 2f;
-                    if (_hasChargedDashParameters)
-                    {
-                        dashWidth = _chargedDashParameters.FinisherHitbox.Radius * 2f;
-                        dashDistance = _chargedDashParameters.GetDashDistance(playerState.ChargeTicks);
-                        chargeTier = _chargedDashParameters.GetChargeTier(playerState.ChargeTicks);
-                    }
-
                     ushort distCm = (ushort)Mathf.Clamp(dashDistance * 100f, 0f, 6500f);
                     ctx = new AimContext
                     {
@@ -415,11 +385,7 @@ namespace SlopArena.Client.Combat
                         Vector3 dir = new(Mathf.Sin(yaw), 0f, Mathf.Cos(yaw));
                         Vector3 feetY = _characterTransform.position;
                         Vector3 destination = feetY + dir * dashDistance;
-                        _groundDestinationIndicator?.SetDestination(destination, dir, dashWidth, chargeTier,
-                            _hasChargedDashParameters
-                                ? Mathf.Lerp(0.7f, 1.3f, Mathf.InverseLerp(
-                                    _chargedDashParameters.MinDistance, _chargedDashParameters.MaxDistance, dashDistance))
-                                : 1f);
+                        _groundDestinationIndicator?.SetDestination(destination, dir, dashWidth, chargeTier);
                         _trajectoryIndicator?.Clear();
                     }
                 }
@@ -515,7 +481,7 @@ namespace SlopArena.Client.Combat
             Vector2 mousePos = mouse != null ? mouse.position.ReadValue() : new Vector2(Screen.width * 0.5f, Screen.height * 0.5f);
             if (_controllerCursorActive)
             {
-                _controllerCursorGroundPoint = ClampGroundCursor(_controllerCursorGroundPoint, BodyCentre, _lob?.MaxRange ?? _maxRange);
+                _controllerCursorGroundPoint = ClampGroundCursor(_controllerCursorGroundPoint, BodyCentre, _maxRange);
                 _controllerCursorGroundPoint.y = PresentationFloor.TrySample(
                     _controllerCursorGroundPoint.x, _controllerCursorGroundPoint.z, out float floor) ? floor : 0f;
             }
@@ -523,7 +489,7 @@ namespace SlopArena.Client.Combat
                 ? new Ray(unityCam.transform.position, _controllerCursorGroundPoint - unityCam.transform.position)
                 : unityCam.ScreenPointToRay(mousePos);
 
-            var resolved = ResolveGroundCursor(cursorRay, BodyCentre, _characterTransform.forward, _capsuleHeight, _lob, _minRange, _maxRange);
+            var resolved = ResolveGroundCursor(cursorRay, BodyCentre, _characterTransform.forward, _capsuleHeight, _minRange, _maxRange);
             if (!resolved.HasValue) return (null, null, null);
             var (yaw, dist, aimTarget) = resolved.Value;
             if (!_controllerCursorActive)
@@ -568,12 +534,10 @@ namespace SlopArena.Client.Combat
         /// MatchBase mirrors its collision as a two-sided proxy on the Ignore Raycast layer, so the
         /// cursor sits on the island, roof or platform under it; a steep face stands for the top of
         /// its block, where Shared explodes a thrown bomb; open water or void falls back to the
-        /// y = 0 plane. A lobbed throw (<paramref name="lob"/>) sends the foot-height distance whose
-        /// unchanged server arc passes through that point and returns where the arc really lands;
-        /// anything else sends the clamped horizontal distance.
+        /// y = 0 plane. The cursor sends the clamped horizontal distance.
         /// </summary>
         public static (float yawRad, float distance, Vector3 landing)? ResolveGroundCursor(Ray ray, Vector3 bodyCentre,
-            Vector3 fallbackForward, float capsuleHeight, CookedMankiRoundBombCapabilityParameters lob, float minRange, float maxRange)
+            Vector3 fallbackForward, float capsuleHeight, float minRange, float maxRange)
         {
             Vector3 aimTarget;
             if (Physics.Raycast(ray, out var hit, 400f, Physics.IgnoreRaycastLayer, QueryTriggerInteraction.Ignore))
@@ -597,48 +561,13 @@ namespace SlopArena.Client.Combat
             float horizontal = toTarget.magnitude;
             Vector3 direction = horizontal > 0.001f ? toTarget / horizontal : fallbackForward;
             float dist;
-            if (lob != null)
+            dist = Mathf.Clamp(horizontal, minRange, maxRange);
+            if (!Mathf.Approximately(dist, horizontal))
             {
-                float launchY = bodyCentre.y + MankiRoundBomb.LaunchOffsetY;
-                float landing = -capsuleHeight * 0.5f - MankiRoundBomb.LaunchOffsetY;
-                float through = CombatMath.LobDistanceThrough(
-                    horizontal, aimTarget.y - launchY, lob.LaunchAngle * Mathf.Deg2Rad, landing);
-                dist = Mathf.Clamp(float.IsInfinity(through) ? lob.MaxRange : through, minRange, lob.MaxRange);
-                aimTarget = PredictLobImpact(bodyCentre, direction, dist, capsuleHeight, lob);
-            }
-            else
-            {
-                dist = Mathf.Clamp(horizontal, minRange, maxRange);
-                if (!Mathf.Approximately(dist, horizontal))
-                {
-                    aimTarget = bodyCentre + direction * dist;
-                    aimTarget.y = PresentationFloor.TrySample(aimTarget.x, aimTarget.z, out float floor) ? floor : 0f;
-                }
+                aimTarget = bodyCentre + direction * dist;
+                aimTarget.y = PresentationFloor.TrySample(aimTarget.x, aimTarget.z, out float floor) ? floor : 0f;
             }
             return (Mathf.Atan2(direction.x, direction.z), dist, aimTarget);
-        }
-
-        /// <summary>
-        /// Where Shared's thrown bomb lands for a sent distance: its arc stepped like SpellResolver
-        /// and tested against the floor like CheckGroundCollision (open water or void counts as y = 0).
-        /// </summary>
-        public static Vector3 PredictLobImpact(Vector3 origin, Vector3 direction, float distance, float capsuleHeight,
-            CookedMankiRoundBombCapabilityParameters lob)
-        {
-            float landing = -capsuleHeight * 0.5f - MankiRoundBomb.LaunchOffsetY;
-            CombatMath.ComputeProjectileLaunch(distance, lob.LaunchAngle * Mathf.Deg2Rad, lob.Gravity, landing,
-                out _, out float hSpeed, out float vSpeed);
-            var position = origin + Vector3.up * MankiRoundBomb.LaunchOffsetY;
-            var velocity = direction * hSpeed + Vector3.up * vSpeed;
-            for (int tick = 0; tick < lob.MaxFlightTicks; tick++)
-            {
-                position += velocity * SlopArena.Shared.Simulation.TickDt;
-                velocity.y -= lob.Gravity * SlopArena.Shared.Simulation.TickDt;
-                float ground = PresentationFloor.TrySample(position.x, position.z, out float floor) ? floor : 0f;
-                if (position.y - lob.HitboxRadius <= ground)
-                    return new Vector3(position.x, ground, position.z);
-            }
-            return position;
         }
 
         /// <summary>

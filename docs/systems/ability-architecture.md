@@ -121,23 +121,29 @@ of the fighter's run and air speed, as Bonk does at 35% during Blade Storm's spi
 timeline `setAimState` ends a mobile aim, horizontal speed stops: attacks have no friction,
 so the stick's speed would otherwise carry through the rest of the move.
 
-`slop.ability.charged-directional-dash.v1` is a public lifecycle requiring runtime
-API `1.5.0`. It owns capped hold charge, release-locked manual direction,
-continuously scaled distance, fighter-pushbox-only phasing, separate traversal
-and tier-scaled sword hit histories, final-segment animation seek, and recovery.
-Shields/terrain stop travel; terrain stops it when a tick keeps less than 60% of
-its forward travel, except on the landing tick, so seams, ramps and landings do
-not end it. Recovery holds its position against fighter pushboxes, so the dash
-ends on its marker. Incoming attacks retain ordinary interruption and damage
-authority. Its slot uses `DirectionalDash`/`GroundVector`, one stage,
-tick-zero activation and zero IASA. Competing lifecycle, startup correction,
-motion and external hitbox operations are rejected. Lead/seek/recovery timings
-must fit the stage; both nested hitboxes use independent hit group zero.
-Ability Lab edits these typed parameters and records actual hold/release frames.
-Traversal keeps its one-hit-per-opponent history through Hitstop-paused travel,
-then is removed at the endpoint or a shield/terrain stop. Sword lifetime remains
-independent; interruption removes both activation-owned hitboxes.
+`slop.ability.dash-strike.v1` is a public lifecycle requiring runtime API `1.15.0`
+([ADR-0052](../adr/0052-wibou-quick-draw-and-flash-cut.md)). It captures the current target's horizontal bearing at
+activation, or keeps facing without a target, and moves on the press tick. Ground and air travel stay level at one
+fixed distance. Dash, Tip, Recovery and Done own the phases. The root-relative light sphere samples each travel
+tick; the compiler and cooked loader reject per-tick travel greater than twice its radius. A static authored tip
+volume appears only at the full endpoint and wins a same-tick overlap. Both cuts share one activation hit group.
+The light cut freezes only its victim and records the first victim to face on the last recovery tick. The tip
+uses ordinary owner hitstop and a semantic contact effect. Shield or terrain stops place no tip. A landing is not
+a terrain stop. Its slot requires one tick-zero `MeleeCombo` stage, `None` aim, no IASA, slide carry or charge pool,
+and only presentation operations alongside the lifecycle. The watchdog must cover travel, tip lifetime and recovery.
+The former `slop.ability.charged-directional-dash.v1` fails closed with a retirement reason.
 
+`slop.ability.flash-cut.v1` is Wibou's F, a public lifecycle on runtime API `1.15.0` (ADR-0052). Stance, Legs, Sheathe,
+Recovery, Whiff and Done own the phases. The stance holds him still with gravity off; on its last tick he locks up to
+`maxTargets` eligible enemy fighters within `lockRange` (3D, centre to centre, nearest first, ties by entity ID) and
+fixes the pop tick at `lock + n × legTicks + sheatheTicks`. Each leg lasts `legTicks` and fixes its end point when it starts,
+`passThroughDistance` past where its victim stood then at their feet height, so a runner escapes it; ignores fighter pushboxes, and ends early on
+a wall. Its root sphere reaches only that victim (`Hitbox.OnlyTargetId`) and never freezes Wibou. An unarmoured,
+unblocked contact becomes a held cut (see [combat systems](combat-systems.md#held-cut)). After the click his recovery also waits, at most 60 ticks, until every popped victim leaves hitstun. With nobody locked he plays
+the whiff. The compiler and loader reject per-tick leg travel (`2 × lockRange + passThroughDistance` over `legTicks`)
+greater than twice the cut radius, holds over 240 ticks, unlisted clips, undeclared cues and a watchdog shorter than
+the longest path. Lock pulses, "NANI?!" (`revealLeadTicks` before the pop) and the sheathe click are capability cues;
+the simulation emits each pop from its own release record, so it plays even if Wibou was hit first.
 
 `slop.ability.charged-projectile.v1` requires runtime API `1.6.0`. It owns a
 stationary capped hold, two thresholds selecting three projectile radii, and one
@@ -195,16 +201,25 @@ completion operations are rejected, and startup aim correction, gravity and armo
 windows must end by its start tick. Phase clips (gallop loop, hit, miss, air ending)
 must be listed in the stage after the startup clip. Ability Lab does not edit it yet.
 
-`slop.ability.shell-stance.v1` and `slop.ability.thrust.v1` require runtime API `1.12.0`
-([ADR-0045](../adr/0045-bashie-shell-state.md), Bashie's Shell Shift, Shell Dive and Hydro Jet).
-The shell stance is a character-level `shell` block, not an operation: skate clock
-(`skateTicks`, 1–600), `minSkateSpeed` ≤ `maxSkateSpeed` ≤ 60, `landingSpeedRatio` (0–2),
-`popOutDeceleration` (0–600 m/s²), `blockedRecoilSpeed` (0–30), a root-relative bowling
-`hitbox` (no bones, hitGroup 0) and an optional `hitPresentationId`. It exists exactly when
-the capability is required, and needs a `presentation.shell` pose, which also sets her
-hurtbox in the shell. A slot opts in with `"shellPolicy": "tuck"` (written only when tuck,
-so other packages cook to the same bytes): only specials may tuck, without
-`allowSlideCarry` or `preserveMomentumOnStart`. `slop.ability.thrust.v1` picks one direction
+`slop.ability.thrust.v1` requires runtime API `1.12.0` ([ADR-0045](../adr/0045-bashie-shell-state.md)).
+`slop.ability.shell-stance.v2`, `slop.ability.cannonball.v1` and `shellPolicy: ride` require runtime API `1.14.0`
+([ADR-0050](../adr/0050-bashie-cannonball-and-wave-pool.md), Bashie's Cannonball, Wave Pool and Hydro Jet; rules in
+[combat systems](combat-systems.md#shell)); `slop.ability.shell-stance.v1` (the skate and the bowl) is retired with
+a reason. The shell stance is a character-level `shell` block, not an operation: `popOutDeceleration` (0–600 m/s²),
+`blockedRecoilSpeed` (0–30), an optional `splash` (a root-relative `hitbox` with no bones and hitGroup 0,
+`popUpTicks` 1–240, optional `presentationId`) and an optional `ride` (`ticks` 1–600, 0 < `speed` ≤ 60,
+`turnDegreesPerSecond`, a root-relative `wave` hitbox with hitGroup 0 and no stun, optional `hitPresentationId`).
+The block exists exactly when the capability is required and needs a `presentation.shell` pose, which also sets her
+hurtbox in the shell. A slot opts in with `"shellPolicy": "tuck"` or `"ride"` (written only when not `popOut`, so
+other packages cook to the same bytes); only specials may opt in. The splash exists exactly when some slot tucks,
+the ride exactly when one special (and its air or ground variant) rides. A tuck slot leaves `allowSlideCarry` and
+`preserveMomentumOnStart` off. A ride slot is one stage with IASA disabled and only presentation, startup aim
+correction and gravity windows. `slop.ability.cannonball.v1` takes the landing point from her current target in its
+first tick (else `noTargetDistance` along her facing), clamps it to `maxRange` (≤ 30), scales the flight from
+`minFlightTicks` (≥ 2) to `maxFlightTicks` (≤ 240) with distance, solves one arc under her gravity capped at
+`maxLaunchSpeed` (≤ 60) and holds it from `takeoffTick` (0–60); the shell's splash lands it. Its slot tucks, is one
+tick-zero lifecycle in one `meleeCombo` stage with no aim, IASA disabled and only presentation alongside, and the
+stage outlasts `takeoffTick` + `maxFlightTicks`. `slop.ability.thrust.v1` picks one direction
 when its move starts (`aim`: `stick`, or `targetAhead` within `targetConeDegrees` of her
 facing), pitches it from `neutralPitchDegrees` to `stickPitchDegrees` with stick magnitude,
 and drives that velocity with gravity off for `thrustTicks` at `speed`, accelerating to
@@ -213,7 +228,8 @@ optional `trailHitbox` is authored along the travel (behind her is -Z) and lasts
 Its slot is one tick-zero lifecycle in one `meleeCombo` stage with no aim, alongside only
 presentation and armour; IASA is allowed. A `setVelocity` may use `velocityMode: vertical`
 (same API): it writes only the vertical speed and keeps horizontal carry. Compiler and cooked
-loader enforce the same rules (`ShellBoundsError`, `ThrustBoundsError`).
+loader enforce the same rules (`ShellBoundsError`, `ShellPairingError`, `RideSlotError`, `CannonballSlotError`,
+`CannonballBoundsError`, `ThrustBoundsError`).
 
 `slop.ability.tether.v1` requires runtime API `1.13.0`
 ([ADR-0048](../adr/0048-bashie-rescue-ring-tether.md), Bashie's Rescue Ring; rules in
@@ -229,6 +245,18 @@ the line. A miss reels the empty ring back at `retractSpeed` (0–60 m/s), then 
 duration is the empty ring's time home. Its slot is one tick-zero lifecycle in one `meleeCombo` stage with no aim,
 IASA disabled and only presentation alongside; it cannot tuck. Compiler and cooked loader enforce the same rules
 (`TetherSlotError`, `TetherBoundsError`). Ability Lab does not edit it yet.
+
+`slop.ability.forms.v1` requires runtime API `1.16.0`
+([ADR-0051](../adr/0051-nyx-two-forms.md), Nyx). It is a character-level capability: the `alternateForm` block exists
+exactly when it is required. The block is form 1, with an `id`, a `displayName`, a full `movement` block, optional
+locomotion, hit and defense roles in `presentation` (an empty role plays form 0's clip) and its own fourteen canonical
+`slots` with `aliases`. Body fields stay form 0's. The cook writes form 1's slots under `alternateForm` with
+`form: 1`, and nothing for packages without the block, so they keep their bytes. The runtime builds one
+`CharacterDefinition` per form, linked through `ForForm`. The typed `swapForm` operation (no fields, unit `ticks`)
+toggles her form at its tick, at most once per move. The swap exchanges the live cooldowns of slots 1, 3, 4, A, E and R
+with the other form's bank in `CharacterState.Form`; F keeps one clock. A running move keeps the definition it started
+with, and its hitboxes and hit records carry its form. Compiler and cooked loader enforce the same rules
+(`FormsBoundsError`). Ability Lab shows and edits form 0 only.
 
 A `spawnProjectile` may carry a `return` block (runtime API `1.8.0`; Sir Bonk's pot
 lid). The projectile needs a positive speed and no gravity. It flies out for
@@ -315,17 +343,14 @@ contacts and input timing.
 | `slop.internal.fightguy.rising-dragon.v1` | FightGuy E, rising recovery | Public recovery primitive after trajectory and contact parity |
 | `slop.internal.fightguy.cyclone-kick.v1` | FightGuy R, rotating movement and hits | Cooked movement and hit windows after parity |
 | `slop.internal.wibou.rising-slash.v1` | Wibou E, aimed rising slash | Public recovery primitive after trajectory and contact parity |
-| `slop.internal.wibou.blade-flurry.v2` | Wibou F, per-tick flight control | Keep the versioned contract until cooked operations reproduce held-input motion |
-| `slop.internal.manki.round-bomb.v1` | Manki A, charged bomb | Public charged-projectile behavior after charge and explosion parity |
-| `slop.internal.manki.jetpack-boost.v1` | Manki E, jetpack recovery | Public recovery primitive after trajectory and landing parity |
+| `slop.internal.manki.round-bomb.v3` | Manki A, Bombs Away | Public contact-bomb and backward-hop operations after flight and fuse parity |
+| `slop.internal.manki.jetpack-boost.v3` | Manki E, Flying ignition | Public fighter-flight state after fuel, interruption and rollback parity |
 | `slop.internal.manki.bazooka.v2` | Manki R, press-to-fire homing rocket | Public projectile behavior after target capture, limited steering, cancellation and explosion parity |
-| `slop.internal.manki.aerosol-inferno.v1` | Manki F | Public charged-stream behavior after charge and contact parity. Bashie's F uses her own cooked whistle timeline. |
+| `slop.internal.manki.kamikaze.v1` | Manki F, Kamikaze | Public targeted thrust and contact explosion after finisher and self-push parity. Bashie's F uses her own cooked whistle timeline. |
 
-Blade Flurry v2 authors ascent start/end, descent start, rise/descent speed and
-forward speed. The unused v1 `moveTicks` contract is rejected. Wibou's package
-version and hashes changed, so older local Arcade records remain stored but do
-not compare against this content. Generic movement operations were rejected for
-this migration because they changed flight under held input.
+Blade Flurry (Skyfall, `slop.internal.wibou.blade-flurry.v1` and `.v2`) is retired in favour of
+`slop.ability.flash-cut.v1` (ADR-0052); both IDs fail closed with that reason. Wibou's package hashes
+changed, so older local Arcade records remain stored but do not compare against this content.
 
 Bazooka v2 replaces the held v1 input contract with immediate firing. Its authored
 stage clock starts on press. The rocket captures the current target at its fire

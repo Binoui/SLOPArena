@@ -14,8 +14,8 @@ skills/social-clips/SKILL.md owns the workflow. Its address comes from $SLOPAREN
     python3 tools/factory.py fetch <idea> [--out file.mp4]  # download the chosen (or latest) take
     python3 tools/factory.py run <run> running|done|failed [--summary "..."] [--made 12b-x,12c-y,report:2]
                                                             # done needs --made: every idea added or given a take, and reports
-    python3 tools/factory.py inbox                          # scout inbox items not yet reported on
-    python3 tools/factory.py report scout <report.md> [--inbox 3,4]
+    python3 tools/factory.py inbox                          # inbox items not yet answered by a report
+    python3 tools/factory.py report scout|designer <report.md> [--inbox 3,4]   # closes those inbox items
     python3 tools/factory.py reports [--kind scout] [--limit 3]
     python3 tools/factory.py import <queue-dir>             # one-time move of the old JSON queue
 """
@@ -142,7 +142,7 @@ def main() -> None:
     run.add_argument("--made", help="comma-separated idea ids and report:<n> this run produced; required with done")
     sub.add_parser("inbox")
     report = sub.add_parser("report")
-    report.add_argument("kind", choices=["scout", "analyst"])
+    report.add_argument("kind", choices=["scout", "designer", "analyst"])
     report.add_argument("file", type=Path)
     report.add_argument("--inbox", default="")
     reports = sub.add_parser("reports")

@@ -61,34 +61,6 @@ public class CombatPipelineTests
         if (result != expectedNewHit)
             Assert.Fail($"{desc}: expected {expectedNewHit} but got {result}");
     }
-    // TEST 2: Q projectile hits NPC, explodes
-    // ═══════════════════════════════════════════════════════════════════
-    //
-    // Manki Q (Round Bomb):
-    //   Phase 1 (hold, ~8 ticks): player aims (auto-release without input)
-    //   Phase 2 (throw, 60 ticks): projectile spawned at trigger_tick=10
-    //
-    // Projectile:
-    //   Launch: 30° upward, gravity=30, default aim distance=5m
-    //   Hitbox: sphere radius 0.6, Damage=6
-    //   Explosion: radius 3.0, Damage=10
-    //
-    // Timing estimate:
-    //   Hold phase: ticks 0-8 (AttackElapsedTicks: 1→9, transition at 9 > 8)
-    //   Throw phase starts: tick 8 (AttackElapsedTicks reset to 0)
-    //   Projectile spawn: tick 18 (AttackElapsedTicks=10 in throw phase)
-    //   Flight to ~Z=3.5 (ground impact): ≈22 ticks → tick ~40
-    //   Explosion at ground: ProcessProjectileExplosions on tick 40
-    //   Explosion hitbox processed: ResolveHits on tick 41→42
-    //
-    // Q projectile test.
-    // Timing:
-    //   Hold phase (aim with aimDistance=500): ticks 0-9 (AttackElapsedTicks 1→10)
-    //   Release pull (IsAiming=false, aimDistance still set): triggers transition
-    //   Throw phase: projectile spawns at AttackElapsedTicks=10
-    //   Flight to Z=5 (ground impact): ≈22 ticks from spawn
-    //   Explosion: next tick after ground impact
-
     [Fact]
     public void QProjectile_HitsNpc_DealsDamage()
     {
@@ -100,66 +72,40 @@ public class CombatPipelineTests
         player.PY = Gpy;
         sim.RegisterEntity(1, def, player);
 
-        var npc = TestHelpers.NpcState(0f, 3.5f);
+        var npc = TestHelpers.NpcState(0f, 1.5f);
         npc.PY = TestHelpers.GroundPY(TestHelpers.EngineDef);
         sim.RegisterEntity(100, TestHelpers.EngineDef, npc);
 
-        // Build the aim input once
         var aimInput = TestHelpers.Input(activeSlot: AbilitySlots.A, aiming: true, aimDistance: 500);
         var releaseInput = new InputState { ActiveSlot = AbilitySlots.A, AimDistance = 500, IsAiming = false };
 
-        // Tick 0: press Q with aim
         sim.Tick(new() { { 1, aimInput }, { 100, default } });
-        Assert.Equal(ActionState.Aiming, sim.GetState(1).State);
+        Assert.Equal(ActionState.Attacking, sim.GetState(1).State);
 
-        // Hold for 8 more ticks (so AttackElapsedTicks reaches 9+, exceeding 8)
         for (int i = 0; i < 8; i++)
             sim.Tick(new() { { 1, aimInput }, { 100, default } });
 
-        // Release: IsAiming=false triggers transition, AimDistance=500 gives cached dist=5m
         for (int i = 0; i < 3; i++)
             sim.Tick(new() { { 1, releaseInput }, { 100, default } });
 
-        // Wait for projectile flight (~22 ticks) + explosion + margin
         for (int i = 0; i < 60; i++)
             sim.Tick(new() { { 1, default }, { 100, default } });
 
         var npcAfter = sim.GetState(100);
 
-        // NPC should have taken SOME damage from projectile or explosion
         Assert.True(npcAfter.DamagePercent > 0,
             $"NPC should have taken damage from Q projectile or explosion, got {npcAfter.DamagePercent}");
 
-        // The first ground contact deals the small landing pop.
         Assert.True(npcAfter.DamagePercent >= 3,
-            $"Landing pop = 3 damage minimum, got {npcAfter.DamagePercent}");
-        // Both direct hit (stun=28) and explosion (stun=20) are ≤30 → HitstunLevel = 0
+            $"Bomb blast deals damage, got {npcAfter.DamagePercent}");
         Assert.Equal(0, (int)npcAfter.HitstunLevel);
     }
 
 
-    // ═══════════════════════════════════════════════════════════════════
-    // EDGE CASE: Mutual combat — two entities attack each other
-    // ═══════════════════════════════════════════════════════════════════
-    //
-    // Both Player (1) and NPC (100) press LMB simultaneously. Their hitboxes
-    // overlap due to close proximity. This tests that:
-    //   1. Both hitboxes resolve without crashing
-    //   2. Both entities receive damage/knockback/hitstun
-    //   3. The simulation doesn't corrupt state when both sides are hit
-    //
-    // NOTE on ability interruption: ServerAbility has no OnInterrupt. When an
-    // entity is hitstunned, its ability.Tick() continues running in the
-    // TickAbilities phase. If EndAbility() fires during hitstun, it overwrites
-    // State=Idle, clearing the hitstun state. This is a known design gap.
-    // This test verifies the sim doesn't crash under these conditions.
 
 
 
 
-    // ═══════════════════════════════════════════════════════════════════
-    // VERTICAL KNOCKBACK VERIFICATION
-    // ═══════════════════════════════════════════════════════════════════
 
     [Fact]
     public void LightProfile_ApplyKnockback_HasVerticalComponent()

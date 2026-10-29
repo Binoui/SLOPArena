@@ -1484,7 +1484,7 @@ public sealed class CharacterPackageAuthoringService
 
     internal static CharacterCookProfile ProfileFor(string packageId)
         => packageId == "fightguy" || packageId == "wibou" || packageId == "bonk" || packageId == "manki" || packageId == "bashie"
-           || packageId == "salamander" ? CharacterCookProfile.TrustedBuiltIn : CharacterCookProfile.Workshop;
+           || packageId == "salamander" || packageId == "nyx" ? CharacterCookProfile.TrustedBuiltIn : CharacterCookProfile.Workshop;
 
     private string CharacterPackagesFullRoot() => Path.Combine(_projectRoot, CharacterPackagesRoot.Replace('/', Path.DirectorySeparatorChar));
     private string PackageRootFor(string packageId) => CharacterPackagesRoot + "/" + packageId;
@@ -1745,6 +1745,7 @@ public static class CharacterPackageAssetOwnershipRegistry
             ["manki"] = new[] { "Assets/Resources/Audio/SFX/Manki/", "Assets/Art/Characters/manki/", "Assets/CharacterPackages/manki/", "Assets/Resources/Characters/Manki.prefab", "Assets/Resources/WeaponConfigs/Manki.asset" },
             ["bashie"] = new[] { "Assets/Resources/Audio/SFX/Bashie/", "Assets/Art/Characters/bashie/", "Assets/CharacterPackages/bashie/" },
             ["salamander"] = new[] { "Assets/Art/Characters/salamander/", "Assets/CharacterPackages/salamander/" },
+            ["nyx"] = new[] { "Assets/Art/Characters/nyx/", "Assets/CharacterPackages/nyx/" },
         };
 
     public static bool IsOwnedBy(string packageId, string projectRelativePath)

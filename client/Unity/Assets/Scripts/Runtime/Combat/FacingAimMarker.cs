@@ -49,8 +49,6 @@ namespace SlopArena.Client.Combat
 
         private static readonly Dictionary<Type, Func<CookedCapabilityParameters, FacingAimShape>> ByCapability = new()
         {
-            [typeof(CookedMankiAerosolInfernoCapabilityParameters)] =
-                parameters => Cone((CookedMankiAerosolInfernoCapabilityParameters)parameters),
             [typeof(CookedChargedStreamCapabilityParameters)] = parameters =>
             {
                 var stream = (CookedChargedStreamCapabilityParameters)parameters;
@@ -78,17 +76,7 @@ namespace SlopArena.Client.Combat
         private static float Travel(CookedProjectile projectile)
             => projectile.Speed * projectile.MaxFlightTicks * SlopArena.Shared.Simulation.TickDt;
 
-        private static FacingAimShape Cone(CookedMankiAerosolInfernoCapabilityParameters flame)
-        {
-            // Shared keeps charging an early release up to the minimum, so a tap still fires the first tier.
-            var byTick = new float[flame.MaxChargeTicks + 1];
-            for (int tick = 0; tick < byTick.Length; tick++)
-                byTick[tick] = flame.GetChargeTier((ushort)Math.Max(tick, flame.MinimumChargeTicks)).ReachScale;
-            var tiers = new float[flame.ChargeTiers?.Count ?? 0];
-            for (int i = 0; i < tiers.Length; i++)
-                tiers[i] = flame.ChargeTiers![i].ReachScale;
-            return new FacingAimShape(FacingAimShapeKind.Cone, flame.EndOffsetZ, flame.HitboxRadius, byTick, tiers);
-        }
+
     }
 
     /// <summary>

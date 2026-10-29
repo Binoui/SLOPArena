@@ -535,7 +535,8 @@ public sealed class HeuristicBotPolicy
         float rangeScale = 1f + (((float)rng.NextDouble() * 2f) - 1f) * profile.RangeError;
         bool allowRecoveryMove = !IsNearEdge(self, in arena);
         float maxReach = MaxConnectReach(self, rangeScale, allowRecoveryMove, in arena, activeMove);
-        bool inRange = dist <= maxReach;
+        bool inRange = dist <= maxReach || ReadyDashStrikeTip(in self, in target, allowRecoveryMove, in arena, activeMove)
+            || ReadyFlash(in self, in target, allowRecoveryMove, in arena, activeMove);
         if (!inRange && !targetOffstage)
         {
             input.MoveX = dx / dist;
@@ -1007,6 +1008,10 @@ public sealed class HeuristicBotPolicy
         bool allowRecoveryMove, in ArenaDefinition arena, CookedSlotDefinition? activeMove)
     {
         bool air = !self.IsGrounded;
+        if (ReadyDashStrikeTip(in self, in target, allowRecoveryMove, in arena, activeMove))
+            return air ? _airProfile[5] : _profile[5];
+        if (ReadyFlash(in self, in target, allowRecoveryMove, in arena, activeMove))
+            return air ? _airProfile[FlashIndex] : _profile[FlashIndex];
         Span<MoveCandidate> viable = stackalloc MoveCandidate[Slots.Length];
         int count = 0;
         int damagingCount = 0;
@@ -1075,6 +1080,37 @@ public sealed class HeuristicBotPolicy
         return best[rng.Next(bestCount)];
     }
 
+
+    private static readonly int FlashIndex = Array.IndexOf(Slots, AbilitySlots.F);
+
+    /// <summary>F is worth its long cooldown when the target will still be inside the lock sphere when the stance ends.</summary>
+    private bool ReadyFlash(in CharacterState self, in CpuObservation target,
+        bool allowRecoveryMove, in ArenaDefinition arena, CookedSlotDefinition? activeMove)
+    {
+        bool air = !self.IsGrounded;
+        CookedFlashCutCapabilityParameters? flash = null;
+        foreach (var operation in _profileDefinition!.GetCookedSlotAbility(AbilitySlots.F, air)?.Timeline.Stages[0].Operations
+                     ?? Array.Empty<CookedTimelineOperation>())
+            if (operation is CookedStartCapabilityOperation { Parameters: CookedFlashCutCapabilityParameters p }) flash = p;
+        if (flash == null || FlashIndex < 0) return false;
+        float dx = target.PX - self.PX, dy = target.PY - self.PY, dz = target.PZ - self.PZ;
+        float drift = MathF.Sqrt(target.VX * target.VX + target.VZ * target.VZ) * flash.StanceTicks * Simulation.TickDt;
+        var candidate = air ? _airProfile[FlashIndex] : _profile[FlashIndex];
+        return MathF.Sqrt(dx * dx + dy * dy + dz * dz) + drift <= flash.LockRange
+            && IsCandidateAvailable(self, candidate, air, allowRecoveryMove, in arena, activeMove);
+    }
+
+    private bool ReadyDashStrikeTip(in CharacterState self, in CpuObservation target,
+        bool allowRecoveryMove, in ArenaDefinition arena, CookedSlotDefinition? activeMove)
+    {
+        bool air = !self.IsGrounded;
+        var dash = DashStrikeReach.Parameters(_profileDefinition!.GetCookedSlotAbility(AbilitySlots.R, air));
+        if (dash == null || target.State == ActionState.Shielding) return false;
+        var observed = new CharacterState { PX = target.PX, PY = target.PY, PZ = target.PZ };
+        var candidate = air ? _airProfile[5] : _profile[5];
+        return DashStrikeReach.Classify(dash, in self, in observed, _profileDefinition) == DashStrikeContact.Tip
+            && IsCandidateAvailable(self, candidate, air, allowRecoveryMove, in arena, activeMove);
+    }
 
     private static float Score(in MoveCandidate candidate, float dist, bool threatening)
         => (candidate.HasDamage ? 100f : 10f)
@@ -1177,13 +1213,11 @@ public sealed class HeuristicBotPolicy
                                 hitReach = MathF.Max(hitReach, committed
                                     + MathF.Max(cyclone.BodyRadius, cyclone.SideOffset + cyclone.SideRadius));
                             }
-                            else if (capability.Parameters is CookedChargedDirectionalDashCapabilityParameters dash)
+                            else if (capability.Parameters is CookedDashStrikeCapabilityParameters dash)
                             {
-                                float distance = dash.GetDashDistance(AimHoldTicks);
-                                forwardTravel = MathF.Max(forwardTravel, distance);
-                                var finisher = CookedCharacterRuntimeAdapter.ToHitboxEvent(dash.FinisherHitbox, dash.FinisherSeekTick);
-                                hitReach = MathF.Max(hitReach, distance + PoseForwardReach(def, finisher,
-                                    activeSlot, airborne, animationNames, (byte)stageIndex, baked));
+                                forwardTravel = MathF.Max(forwardTravel, dash.Distance);
+                                hitReach = MathF.Max(hitReach, dash.Distance + dash.TipHitbox.OffsetZ
+                                    + dash.TipHitbox.EndOffsetZ + dash.TipHitbox.Radius);
                             }
                             break;
                     }
@@ -1228,13 +1262,14 @@ public sealed class HeuristicBotPolicy
             or CookedChargedProjectileCapabilityParameters
             or CookedChargedStreamCapabilityParameters
             or CookedFingerGunsCapabilityParameters
-            or CookedChargedDirectionalDashCapabilityParameters
+            or CookedDashStrikeCapabilityParameters
             or CookedWibouRisingSlashCapabilityParameters
-            or CookedWibouBladeFlurryCapabilityParameters
+            or CookedFlashCutCapabilityParameters
             or CookedTargetedLeapCapabilityParameters
             or CookedSteeredChargeCapabilityParameters
             or CookedThrustCapabilityParameters
             or CookedTetherCapabilityParameters
+            or CookedCannonballCapabilityParameters
             or CookedMankiRoundBombCapabilityParameters
             or CookedMankiJetpackBoostCapabilityParameters
             or CookedMankiBazookaCapabilityParameters;
@@ -1271,13 +1306,10 @@ public sealed class HeuristicBotPolicy
                 hitReach = MathF.Max(hitReach, x.ForwardSpeed * x.DurationTicks / 60f
                     + MathF.Max(x.BodyRadius, x.SideOffset + x.SideRadius));
                 damage += x.Damage; hasDamage |= x.Damage > 0f; hasMovement = true; break;
-            case CookedChargedDirectionalDashCapabilityParameters x:
-                hitReach = MathF.Max(hitReach, x.GetDashDistance(AimHoldTicks)
-                    + MathF.Max(x.FinisherHitbox.OffsetZ, x.FinisherHitbox.EndOffsetZ)
-                    + x.FinisherHitbox.Radius);
-                damage += x.TraversalHitbox.Damage + x.GetFinisherDamage(AimHoldTicks);
-                hasMovement = true;
-                hasDamage |= x.TraversalHitbox.Damage > 0f || x.GetFinisherDamage(AimHoldTicks) > 0f;
+            case CookedDashStrikeCapabilityParameters x:
+                hitReach = MathF.Max(hitReach, x.Distance + x.TipHitbox.OffsetZ + x.TipHitbox.EndOffsetZ + x.TipHitbox.Radius);
+                damage += MathF.Max(x.LightHitbox.Damage, x.TipHitbox.Damage);
+                hasMovement = true; hasDamage |= x.LightHitbox.Damage > 0 || x.TipHitbox.Damage > 0;
                 break;
             case CookedWibouRisingSlashCapabilityParameters x:
                 hitReach = MathF.Max(hitReach, x.HomingRange);
@@ -1287,9 +1319,10 @@ public sealed class HeuristicBotPolicy
                     x.RiseSpeed * x.RiseTicks / 60f);
                 recoveryRequiresDelayedOpponent = true;
                 hasMovement = true; hasDamage = true; break;
-            case CookedWibouBladeFlurryCapabilityParameters x:
-                hitReach = MathF.Max(hitReach, x.ForwardSpeed * (x.AscentEndTick - x.AscentStartTick + 1) / 60f);
-                hasMovement = true; hasDamage = true; break;
+            case CookedFlashCutCapabilityParameters x:
+                // Anyone inside the lock sphere when the stance ends is cut, wherever they run.
+                hitReach = MathF.Max(hitReach, x.LockRange);
+                damage += x.CutHitbox.Damage; hasDamage = true; hasMovement = true; break;
             case CookedTargetedLeapCapabilityParameters x:
                 hitReach = MathF.Max(hitReach, x.MaxRange + MathF.Max(x.Hitbox.OffsetZ, x.Hitbox.EndOffsetZ) + x.Hitbox.Radius);
                 damage += x.Hitbox.Damage; hasDamage |= x.Hitbox.Damage > 0f; hasMovement = true; break;
@@ -1298,6 +1331,10 @@ public sealed class HeuristicBotPolicy
                 float pitch = MathF.Max(x.NeutralPitchDegrees, x.StickPitchDegrees) * MathF.PI / 180f;
                 recoveryHorizontal = MathF.Max(recoveryHorizontal, x.Speed * MathF.Cos(pitch) * x.ThrustTicks / 60f);
                 recoveryVertical = MathF.Max(recoveryVertical, x.Speed * MathF.Sin(pitch) * x.ThrustTicks / 60f);
+                hasMovement = true; break;
+            case CookedCannonballCapabilityParameters x:
+                // The hop only travels; the shell's splash is not part of the move.
+                movementReach = MathF.Max(movementReach, x.MaxRange);
                 hasMovement = true; break;
             case CookedTetherCapabilityParameters x:
                 // The ring is thrown like a projectile; the catch and the reel are not modelled.
@@ -1312,8 +1349,8 @@ public sealed class HeuristicBotPolicy
                 recoveryHorizontal = MathF.Max(recoveryHorizontal, x.GallopSpeed * x.AirStrideTicks / 60f);
                 damage += x.LanceHitbox.Damage; hasDamage |= x.LanceHitbox.Damage > 0f; hasMovement = true; break;
             case CookedMankiRoundBombCapabilityParameters x:
-                hitReach = MathF.Max(hitReach, x.MaxRange + x.ExplosionRadius);
-                damage += x.Damage + x.ExplosionDamage; hasDamage |= x.Damage > 0f || x.ExplosionDamage > 0f; break;
+                hitReach = MathF.Max(hitReach, x.ExplosionRadius);
+                damage += x.ExplosionDamage; hasDamage |= x.ExplosionDamage > 0f; break;
             case CookedMankiJetpackBoostCapabilityParameters x:
                 hitReach = MathF.Max(hitReach, x.HorizontalSpeed + x.ExplosionRadius);
                 recoveryHorizontal = MathF.Max(recoveryHorizontal, x.HorizontalSpeed);
@@ -1332,11 +1369,13 @@ public sealed class HeuristicBotPolicy
             CookedChargedProjectileCapabilityParameters x => x.FireTriggerTick,
             CookedChargedStreamCapabilityParameters x => x.FireTriggerTick,
             CookedTetherCapabilityParameters x => x.ThrowTick,
+            CookedCannonballCapabilityParameters x => x.TakeoffTick,
             CookedFingerGunsCapabilityParameters x => x.FireTriggerTick,
-            CookedChargedDirectionalDashCapabilityParameters _ => 0,
+            CookedDashStrikeCapabilityParameters _ => 0,
+            CookedFlashCutCapabilityParameters x => x.StanceTicks,
             CookedWibouRisingSlashCapabilityParameters _ => 0,
             CookedTargetedLeapCapabilityParameters x => x.MaxAimTicks,
-            CookedMankiRoundBombCapabilityParameters x => x.ThrowTriggerTick,
+            CookedMankiRoundBombCapabilityParameters _ => 0,
             CookedMankiJetpackBoostCapabilityParameters x => x.StartupTicks,
             CookedMankiBazookaCapabilityParameters x => x.FireTriggerTick,
             _ => 0,
@@ -1373,9 +1412,6 @@ public sealed class HeuristicBotPolicy
                 break;
             case CookedMankiRoundBombCapabilityParameters x:
                 travelTicks = Math.Max(travelTicks, x.MaxFlightTicks);
-                if (x.MaxFlightTicks > 0)
-                    travelSpeed = MathF.Max(travelSpeed,
-                        x.MaxRange * (1f / Simulation.TickDt) / x.MaxFlightTicks);
                 travelOffset = MathF.Max(travelOffset, x.HitboxRadius);
                 break;
             case CookedMankiBazookaCapabilityParameters x:

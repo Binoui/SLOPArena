@@ -45,22 +45,23 @@ public partial class ServerSimulation
         for (int index = 0; index < ids.Count; index++)
         {
             ulong id = ids[index];
-            _spellResolver.RemoveMankiCans(id);
+            _spellResolver.RemoveContactBombs(id);
             if (_mayhem!.Inactive(id)) continue;
             var previous = _states[id];
             if (previous.InteractionId != 0) InterruptInteraction(ref previous);
             CancelAttackRuntime(id, ref previous, removeProjectiles: false);
             var start = MatchFormat.MankiMayhem.StartFor(_arena, index, ids.Count);
-            start.Y = _arena.Arcade!.Mayhem!.DeckTop + _defs[id].CapsuleHeight * .5f;
+            start.Y = _arena.Arcade!.Mayhem!.DeckTop + Def(id).CapsuleHeight * .5f;
             _states[id] = new CharacterState
             {
                 EntityId = id, PX = start.X, PY = start.Y, PZ = start.Z, FacingYaw = start.Yaw,
                 IsGrounded = true, State = ActionState.Idle, MatchState = previous.MatchState,
                 DamagePercent = previous.DamagePercent, Deaths = previous.Deaths,
-                JumpsLeft = _defs[id].Movement.MaxJumps, AirDodgesLeft = 1,
+                JumpsLeft = Def(id).Movement.MaxJumps, AirDodgesLeft = 1,
                 AttackSequence = previous.AttackSequence, AutoLockSuppressed = previous.AutoLockSuppressed,
                 LastTerminalInteractionId = previous.LastTerminalInteractionId,
                 InteractionTerminalTick = previous.InteractionTerminalTick,
+                Form = new FormState { Active = previous.Form.Active },
             };
             _animFrames[id] = 0; _prevAnimIndex[id] = -1;
             SetRespawnPosition(id, start.X, start.Y, start.Z, start.Yaw);
@@ -83,7 +84,7 @@ public partial class ServerSimulation
             var state = _states[id];
             if (IsEliminated(state)) continue;
             var before = state;
-            _mayhem.Solids.Constrain(_mayhemPrevious[id], ref state, _defs[id]);
+            _mayhem.Solids.Constrain(_mayhemPrevious[id], ref state, Def(id));
             StopShellAtRuntimeWall(id, in before, ref state);
             _states[id] = state;
         }
@@ -95,7 +96,8 @@ public partial class ServerSimulation
         ulong target = hit.TargetEntityId;
         if (!MayhemWalls.Any(w => w.EntityId == target && w.Blocks)) return;
         float damage = hit.Damage, force = hit.BaseKnockback;
-        ContactAbility(hit)?.OnHitObject(ref owner, _defs[hit.OwnerEntityId], ref damage, ref force);
+        if (ContactAbility(hit) is { } ability)
+            ability.OnHitObject(ref owner, ability.CharacterDef ?? Def(hit.OwnerEntityId), ref damage, ref force);
         if (damage > 0)
         {
             _mayhem.HitWall(_tick, hit.TargetEntityId);

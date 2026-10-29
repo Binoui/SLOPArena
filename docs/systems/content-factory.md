@@ -28,12 +28,15 @@ chosen one (★).
 
 These buttons start an agent run:
 
-- **Propose clips** asks the designer for 5 to 7 new ideas. It reads the latest
-  scout reports first.
+- **Propose clips** asks the designer for 5 to 7 new ideas. It builds the batch
+  around your open requests in the Scout inbox ("a clip of the defensive
+  options"), then reads the latest scout reports. It closes each request with a
+  designer report that names the ideas answering it.
 - **Render approved** renders every idea in Approved.
 - **Redo with note** sends one clip back with the note as its brief. The new
   take lands in To review beside the old ones.
-- **Run scout** turns the open inbox items into a report for the designer.
+- **Run scout** turns the open inbox links into a report for the designer. It
+  leaves requests for Propose.
 
 Each run becomes one T3 thread named `Factory #<run>: <action>`, which the T3
 phone app shows. The thread appears about two minutes after the press, because

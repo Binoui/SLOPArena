@@ -36,6 +36,9 @@ A brief is JSON. Paths are relative to the rig pack. Keys:
   props_shown {"Weapon<k>": [[first, last], ...]}: ticks a pack weapon (the k-th in mapping.json) shows in the Unity
     renders, as the game's hide rules show it; unlisted weapons always show. Sir Bonk's pot lid rides his shoulder
     (Weapon2) until the grab and his hand (Weapon1) until the release, so the renders draw it once
+  meshes_shown {"<skinned mesh>": [[first, last], ...]}: ticks a skinned mesh draws in the Unity renders; unlisted pack
+    meshes always draw. Nyx's swaps show one form before the flash and the other after it, and her hand-held pole only
+    while it is out of the backpack (2026-10-29). A mesh outside the pack (the other form) is drawn only in its windows
 """
 from __future__ import annotations
 

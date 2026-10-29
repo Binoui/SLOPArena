@@ -128,11 +128,15 @@ public static class ArcadeRecordCompatibility
         if (course && stage.Course!.HasMultiHitTargets)
             bytes = bytes.Concat(JsonSerializer.SerializeToUtf8Bytes(
                 new { TargetHits = stage.Course.Targets.Select(t => (int)t.Hits).ToArray() })).ToArray();
-        // The shell stance (ADR-0045) joins only for fighters that have one, so other fighters keep their records.
+        // The shell (ADR-0045, ADR-0050) joins only for fighters that have one, so other fighters keep their records.
         if (c.Shell != null || c.Slots.Any(slot => slot.ShellPolicy != ShellPolicy.PopOut))
             bytes = bytes.Concat(JsonSerializer.SerializeToUtf8Bytes(new
             {
-                Shell = c.Shell == null ? null : c.Shell with { HitPresentationId = null },
+                Shell = c.Shell == null ? null : c.Shell with
+                {
+                    Splash = c.Shell.Splash == null ? null : c.Shell.Splash with { PresentationId = null },
+                    Ride = c.Shell.Ride == null ? null : c.Shell.Ride with { HitPresentationId = null },
+                },
                 ShellPose = Pose(d.ShellAnim),
                 Tucks = c.Slots.Where(slot => slot.ShellPolicy != ShellPolicy.PopOut).Select(slot => slot.Ordinal).ToArray(),
             }, new JsonSerializerOptions { IncludeFields = true })).ToArray();
@@ -156,6 +160,7 @@ public static class ArcadeRecordCompatibility
             CookedStartCapabilityOperation c => new { c.CapabilityId, c.CapabilityVersion,
                 Parameters = Parameters(c.Parameters) },
             CookedCompleteTimelineOperation => null,
+            CookedSwapFormOperation => null,
             _ => throw new ArgumentException("Update the Arcade comparison policy for this operation."),
         };
         return new { op.Tick, op.Unit, op.Kind, Data = data };
@@ -190,7 +195,9 @@ public static class ArcadeRecordCompatibility
         CookedMankiRoundBombCapabilityParameters x => x with { ExplosionPresentationId = "" },
         CookedMankiJetpackBoostCapabilityParameters x => x with { ExplosionPresentationId = "" },
         CookedMankiBazookaCapabilityParameters x => x with { ExplosionPresentationId = "" },
+        CookedMankiKamikazeCapabilityParameters x => x with { ExplosionPresentationId = "" },
         CookedTetherCapabilityParameters x => x with { ThrowPresentationId = "", RetractPresentationId = "" },
+        CookedCannonballCapabilityParameters x => x with { LaunchPresentationId = "" },
         CookedChargedProjectileCapabilityParameters x => new
         {
             x.MaxChargeTicks, x.Tier2Ticks, x.Tier3Ticks, x.FireTriggerTick, x.Tier2Radius, x.Tier3Radius,
@@ -201,11 +208,19 @@ public static class ArcadeRecordCompatibility
             x.FireTriggerTick, x.RecoveryTicks, x.ShotsPerReload, x.ReloadTicks,
             x.AirMaxFallSpeed, x.AirRecoilSpeed, Projectile = Projectile(x.Projectile),
         },
+        CookedDashStrikeCapabilityParameters x => new
+        {
+            x.Distance, x.Speed, x.TipPoseTick, x.RecoveryTicks, x.LightHitbox, x.TipHitbox,
+        },
+        CookedFlashCutCapabilityParameters x => new
+        {
+            x.StanceTicks, x.LockRange, x.MaxTargets, x.LegTicks, x.PassThroughDistance, x.SheatheTicks,
+            x.RecoveryTicks, x.WhiffTicks, x.CutHitbox,
+        },
         CookedAimedRecoveryCapabilityParameters or CookedThrustCapabilityParameters
             or CookedRisingDragonCapabilityParameters or CookedChargedStreamCapabilityParameters
-            or CookedCycloneKickCapabilityParameters or CookedChargedDirectionalDashCapabilityParameters
-            or CookedWibouRisingSlashCapabilityParameters or CookedWibouBladeFlurryCapabilityParameters
-            or CookedMankiAerosolInfernoCapabilityParameters => p,
+            or CookedCycloneKickCapabilityParameters
+            or CookedWibouRisingSlashCapabilityParameters => p,
         _ => throw new ArgumentException("Update the Arcade comparison policy for this capability."),
     };
 }

@@ -107,6 +107,7 @@ public sealed record AbilityLabTimelineProjection
         StartCapabilityOperationSource => CookedOperationKind.StartCapability,
         EmitPresentationOperationSource => CookedOperationKind.EmitPresentation,
         CompleteTimelineOperationSource => CookedOperationKind.CompleteTimeline,
+        SwapFormOperationSource => CookedOperationKind.SwapForm,
         StartupAimCorrectionOperationSource => CookedOperationKind.StartupAimCorrection,
         _ => throw new InvalidDataException($"Unknown timeline operation type '{operation.GetType().FullName}'."),
     };
@@ -123,6 +124,7 @@ public sealed record AbilityLabTimelineProjection
         StartCapabilityOperationSource => "Start ability",
         EmitPresentationOperationSource => "Presentation",
         CompleteTimelineOperationSource => "Complete move",
+        SwapFormOperationSource => "Swap form",
         StartupAimCorrectionOperationSource => "Startup aim correction",
         _ => throw new InvalidDataException($"Unknown timeline operation type '{operation.GetType().FullName}'."),
     };

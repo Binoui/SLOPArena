@@ -6,6 +6,7 @@ SLOPArena is a Unity 6 C# 3D platform fighter with a server-authoritative 60 Hz 
 
 - Explain the problem and intended change once, then complete the approved scope. Reuse authorization already given; approval covers the bounded task, not a new confirmation for every step.
 - Preserve unrelated working-tree changes and explicitly selected checkouts. Never stage every file in a shared dirty tree. Commit and push require explicit authorization: commit authorizes a commit, push authorizes pushing existing commits, and commit push authorizes both. Reading or invoking a skill grants neither. Follow `docs/contributing/conventions.md`; rewrite or squash history only when requested.
+- In a shared dirty tree, never run Git commands that discard or set aside changes across the tree, a directory or a glob (`git checkout -- .`, `git restore .`, `git reset --hard`, `git clean -f`, `git stash`): they destroy other threads' uncommitted work. Undo your own edits by editing them back.
 - Ask before installing tools. User-supplied numeric choices are binding; raise a correctness issue once if needed, then follow the agreed value.
 - For architecture changes, document options and get approval first. State the problem and intended change before editing; trace input → catalog/package → Shared simulation → state/event → Unity presentation when debugging.
 

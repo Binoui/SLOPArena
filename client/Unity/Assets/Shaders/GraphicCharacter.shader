@@ -3,6 +3,7 @@ Shader "SLOPArena/GraphicCharacter"
     Properties
     {
         [MainTexture] _BaseMap("Base Map", 2D) = "white" {}
+        [Enum(UnityEngine.Rendering.CullMode)] _Cull("Cull", Float) = 2
         [MainColor] _BaseColor("Base Color", Color) = (1, 1, 1, 1)
         _ShadowColor("Shadow Tint", Color) = (0.20, 0.24, 0.34, 1)
         _RimColor("Rim Color", Color) = (1.0, 0.72, 0.20, 1)
@@ -21,6 +22,8 @@ Shader "SLOPArena/GraphicCharacter"
             "RenderPipeline" = "UniversalPipeline"
             "Queue" = "Geometry"
         }
+
+        Cull [_Cull]
 
         Pass
         {
@@ -81,10 +84,10 @@ Shader "SLOPArena/GraphicCharacter"
                 return output;
             }
 
-            half4 Frag(Varyings input) : SV_Target
+            half4 Frag(Varyings input, FRONT_FACE_TYPE facing : FRONT_FACE_SEMANTIC) : SV_Target
             {
                 half4 albedo = SAMPLE_TEXTURE2D(_BaseMap, sampler_BaseMap, input.uv) * _BaseColor;
-                half3 normalWS = normalize(input.normalWS);
+                half3 normalWS = normalize(input.normalWS) * IS_FRONT_VFACE(facing, 1.0h, -1.0h);
                 Light mainLight = GetMainLight(TransformWorldToShadowCoord(input.positionWS));
                 half wrappedLight = saturate(dot(normalWS, mainLight.direction) * 0.5h + 0.5h);
                 // Broad, soft steps retain the graphic look without cutting across faces.

@@ -35,7 +35,7 @@ namespace SlopArena.EditorTools
         public static object Apply(
             [CliArg("stage", "Lowercase snake_case stage key with a source scene Assets/Stages/<stage>/<stage>.unity.", Required = true)] string stage,
             [CliArg("from", "Shell JSON written by layout.py --unity-shell (absolute or repository-relative).", Required = true)] string from,
-            [CliArg("spawns", "verify (default) checks the spawn markers and kill plane against the layout; move sets them.")] string spawns = "verify",
+            [CliArg("spawns", "verify (default) checks the spawn markers and kill plane against the layout; move sets them and creates a missing kill plane marker.")] string spawns = "verify",
             [CliArg("remove", "Comma list of GameplayGeometry children the new shell replaces, such as a previous blockout; any other unexpected child stops the rebuild.")] string remove = null,
             [CliArg("create", "Create the source scene of a new stage (Stage_<key> root, GameplayGeometry, the layout's spawn markers, AuthoringAids/KillPlane) when it does not exist yet.")] bool create = false)
         {
@@ -153,7 +153,16 @@ namespace SlopArena.EditorTools
                 }
                 var aids = root.transform.Find("AuthoringAids") ?? throw new InvalidOperationException("AuthoringAids not found.");
                 var kill = aids.Find("KillPlane");
-                if (kill == null && !markersOnly) throw new InvalidOperationException("AuthoringAids/KillPlane marker not found.");
+                // Hand-built scenes from before the shell format (Training) have no marker; move sets it like the spawns.
+                if (kill == null && !markersOnly && spawns == "move")
+                {
+                    kill = new GameObject("KillPlane").transform;
+                    kill.SetParent(aids, false);
+                    kill.position = new Vector3(0f, killY, 0f);
+                    markers.Add(new { name = "KillPlane", before = (float[])null, position = new[] { 0f, killY, 0f }, yaw = 0f });
+                }
+                if (kill == null && !markersOnly)
+                    throw new InvalidOperationException("AuthoringAids/KillPlane marker not found; pass --spawns move to create it at the layout's kill height.");
                 if (kill != null && spawns == "move")
                     kill.position = new Vector3(kill.position.x, killY, kill.position.z);
                 else if (kill != null && Mathf.Abs(kill.position.y - killY) > 1e-4f)

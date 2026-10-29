@@ -63,6 +63,13 @@ float referenceTime = reference != null ? (int)reference["tick"] / (float)fps : 
 var compareClip = Bound(compareId);
 float[] P(UnityEngine.Vector3 v) => new[] { v.x, v.y, v.z };
 
+// One body per form on a shared skeleton (unity_rigpack.py --meshes): show only the pack's skinned meshes on the instance.
+void ShowMeshes(UnityEngine.GameObject instance) {
+  if (job["meshes"] == null || job["meshes"].Type != Newtonsoft.Json.Linq.JTokenType.Array) return;
+  var shown = job["meshes"].ToObject<string[]>();
+  foreach (var sk in instance.GetComponentsInChildren<UnityEngine.SkinnedMeshRenderer>(true))
+    sk.gameObject.SetActive(System.Array.IndexOf(shown, sk.name) >= 0);
+}
 var scene = UnityEditor.SceneManagement.EditorSceneManager.NewPreviewScene();
 var spawned = new System.Collections.Generic.List<UnityEngine.GameObject>();
 var temporary = new System.Collections.Generic.List<UnityEngine.Object>();  // destroyed after the instances
@@ -72,6 +79,7 @@ try {
   (UnityEngine.GameObject actor, UnityEngine.Animator animator, UnityEngine.Transform[] bones, System.Action restore,
    System.Action constrain, UnityEngine.SkinnedMeshRenderer[] skins) Spawn() {
     var actor = (UnityEngine.GameObject)UnityEngine.Object.Instantiate(prefab);
+    ShowMeshes(actor);
     spawned.Add(actor);
     UnityEngine.SceneManagement.SceneManager.MoveGameObjectToScene(actor, scene);
     actor.hideFlags = UnityEngine.HideFlags.HideAndDontSave;
@@ -414,7 +422,7 @@ try {
     if (feet[0] == null || feet[1] == null) throw new System.Exception("Sole grounding requires both Humanoid feet");
     var soleVertices = new System.Collections.Generic.List<(UnityEngine.SkinnedMeshRenderer skin, int[] indices)>();
     foreach (var sk in player.skins) {
-      if (!sk.enabled || sk.sharedMesh == null) continue;
+      if (!sk.enabled || !sk.gameObject.activeInHierarchy || sk.sharedMesh == null) continue;
       var indices = new System.Collections.Generic.List<int>();
       var weights = sk.sharedMesh.boneWeights;
       for (int v = 0; v < weights.Length; v++) {

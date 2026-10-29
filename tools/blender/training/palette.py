@@ -1,0 +1,12 @@
+"""Neutral fighting surfaces and restrained test-hall safety colours, in sRGB."""
+FLOOR = (0.45, 0.45, 0.45)
+STEEL = (0.31, 0.35, 0.38)
+DARK = (0.12, 0.15, 0.18)
+WALL = (0.62, 0.65, 0.66)
+YELLOW = (0.85, 0.66, 0.12)
+BLACK = (0.065, 0.075, 0.08)
+WHITE = (0.72, 0.74, 0.74)
+TEAL = (0.12, 0.43, 0.45)
+RED = (0.68, 0.12, 0.10)
+FOAM = (0.34, 0.43, 0.50)
+GLASS = (0.23, 0.36, 0.42)

@@ -9,7 +9,7 @@ namespace SlopArena.Shared
     /// Spawn hitboxes via Spawn(), then call Tick() each server tick.
     /// Handles: movement (projectiles), sphere-sphere collision, aging, knockback.
     /// </summary>
-    public partial class SpellResolver
+    public class SpellResolver
     {
         private readonly List<Hitbox> _hitboxes = new();
         private ulong _lastEmissionId;
@@ -88,6 +88,8 @@ namespace SlopArena.Shared
             public byte AttackSequence;
             /// <summary>True when the originating ability activation began airborne.</summary>
             public bool Airborne;
+            /// <summary>The attacker's form whose move produced the hit (ADR-0051).</summary>
+            public byte Form;
             /// <summary>Returning projectile leg: 0 none, 1 flying out, 2 coming back to its owner.</summary>
             public byte ReturnPhase;
             public float Damage;
@@ -105,7 +107,7 @@ namespace SlopArena.Shared
             public bool ArmorProtected;
             /// <summary>If true, the hit freezes the owner too (melee contact, ADR-0012).</summary>
             public bool FreezesOwner;
-            /// <summary>True when a fighter-state window (the shell's bowling hitbox) made the contact.</summary>
+            /// <summary>True when a fighter-state window (her ride's wave, ADR-0050) made the contact.</summary>
             public bool OwnerWindow;
             /// <summary>World-space contact point resolved from the colliding shapes.</summary>
             public float HitX, HitY, HitZ;
@@ -200,6 +202,31 @@ namespace SlopArena.Shared
             return false;
         }
 
+        /// <summary>Who her live wave holds (ADR-0050); empty when she has none.</summary>
+        internal IReadOnlyCollection<ulong> OwnerWindowHits(ulong ownerId)
+        {
+            foreach (var hitbox in _hitboxes)
+                if (hitbox.OwnerWindow && hitbox.Active && hitbox.OwnerId == ownerId && hitbox.HitEntities != null)
+                    return hitbox.HitEntities;
+            return System.Array.Empty<ulong>();
+        }
+
+        /// <summary>Drops one contact from her wave's hit set, so a refused catch can be tried again later.</summary>
+        internal void ForgetOwnerWindowContact(ulong ownerId, ulong entityId)
+        {
+            foreach (var hitbox in _hitboxes)
+                if (hitbox.OwnerWindow && hitbox.OwnerId == ownerId)
+                    hitbox.HitEntities?.Remove(entityId);
+        }
+
+        /// <summary>Drops one fighter from every wave but one, so a carried fighter has a single carrier.</summary>
+        internal void ForgetOwnerWindowContacts(ulong entityId, ulong exceptOwnerId)
+        {
+            foreach (var hitbox in _hitboxes)
+                if (hitbox.OwnerWindow && hitbox.OwnerId != exceptOwnerId)
+                    hitbox.HitEntities?.Remove(entityId);
+        }
+
         internal void RemoveOwnerWindow(ulong ownerId)
         {
             for (int i = _hitboxes.Count - 1; i >= 0; i--)
@@ -223,7 +250,7 @@ namespace SlopArena.Shared
                 _hitboxes.RemoveAt(i);
             }
             _pendingExplosions.RemoveAll(explosion => explosion.ownerId == ownerId);
-            RemoveMankiCans(ownerId);
+            RemoveContactBombs(ownerId);
         }
 
 
@@ -487,10 +514,19 @@ namespace SlopArena.Shared
         /// <summary>
         /// Clear all hitboxes (e.g., on match reset).
         /// </summary>
+        internal void RemoveContactBombs(ulong owner)
+        {
+            _hitboxes.RemoveAll(h => h.OwnerId == owner && h.ContactExplosion);
+            _pendingExplosions.RemoveAll(e => e.ownerId == owner && e.explosion.SelfPushSpeed > 0f);
+        }
+
+        internal void QueueExplosion(float x, float y, float z, ProjectileExplosion explosion,
+            ulong owner, byte slot, ulong activation, bool airborne, byte sequence)
+            => _pendingExplosions.Add((x, y, z, explosion, owner, slot, activation, airborne, sequence));
+
         public void Clear()
         {
             _hitboxes.Clear();
-            _mankiCans.Clear();
             _lastTickChecked.Clear();
             _pendingExplosions.Clear();
         }
@@ -504,7 +540,6 @@ namespace SlopArena.Shared
             w.WriteInt(_hitboxes.Count);
             foreach (var hb in _hitboxes)
                 SnapshotCodecs.Write(w, hb, ownerContent);
-            WriteMankiCans(w);
             w.WriteInt(_pendingExplosions.Count);
             foreach (var (x, y, z, explosion, ownerId, attackSlot, activationId, airborne, attackSequence) in _pendingExplosions)
             {
@@ -524,7 +559,6 @@ namespace SlopArena.Shared
         internal sealed class SnapshotData
         {
             public ulong LastEmissionId;
-            public readonly List<MankiCanState> Cans = new();
             public readonly List<Hitbox> Hitboxes = new();
             public readonly List<(float x, float y, float z, ProjectileExplosion explosion, ulong ownerId, byte attackSlot, ulong activationId, bool airborne, byte attackSequence)> Explosions = new();
         }
@@ -543,7 +577,6 @@ namespace SlopArena.Shared
                     throw SnapshotReader.Malformed("hitbox emission identity");
                 data.Hitboxes.Add(hitbox);
             }
-            ReadMankiCans(r, data, ownerContent);
             int explosions = r.ReadCount(1);
             for (int i = 0; i < explosions; i++)
             {
@@ -559,11 +592,9 @@ namespace SlopArena.Shared
         {
             _lastEmissionId = data.LastEmissionId;
             _hitboxes.Clear();
-            _mankiCans.Clear();
             _lastTickChecked.Clear();
             _pendingExplosions.Clear();
             _hitboxes.AddRange(data.Hitboxes);
-            _mankiCans.AddRange(data.Cans);
             _pendingExplosions.AddRange(data.Explosions);
         }
 
@@ -579,11 +610,37 @@ namespace SlopArena.Shared
         }
 
         /// <summary>
-        /// Check remaining active projectiles for ground collision.
-        /// Samples the arena heightmap at each projectile's XZ position.
-        /// If the projectile has reached or crossed the terrain surface,
-        /// spawns the explosion at ground level and deactivates the projectile.
+        /// Project a spherical, straight-down contact bomb onto its first floor.
+        /// Uses authoritative upward triangle contact before the heightmap, without
+        /// advancing the resolver or changing the arena. The caller supplies scratch
+        /// space for every arena triangle, as with the other ArenaCollision queries.
         /// </summary>
+        public static bool TryProjectStraightDrop(in ArenaDefinition arena, float x, float y, float z,
+            float radius, int[] triangleCandidates, out float landingY)
+        {
+            float endY = MathF.Min(arena.KillHeight, y - radius);
+            if (ArenaCollision.HasTriangles(arena))
+            {
+                int candidates = ArenaCollision.GetCandidateTrianglesForSweep(x, y, z, x, endY, z,
+                    radius, radius * 2f, arena, triangleCandidates);
+                int upward = 0;
+                for (int i = 0; i < candidates; i++)
+                    if (ArenaCollision.IsUpwardFacingTriangle(triangleCandidates[i], arena))
+                        triangleCandidates[upward++] = triangleCandidates[i];
+                if (ArenaCollision.SweepCapsule(x, y, z, x, endY, z, radius, radius * 2f,
+                        arena, triangleCandidates, upward, out var contact) && contact.NormalY > .5f)
+                {
+                    landingY = y + (endY - y) * contact.Time - radius;
+                    return true;
+                }
+            }
+            landingY = arena.Heightmap.Data is { Length: > 0 } ? arena.Heightmap.Sample(x, z) : 0f;
+            return float.IsFinite(landingY) && landingY != float.MinValue && landingY <= y - radius + .001f;
+        }
+
+        /// <summary>Queue floor explosions and remove projectiles that reached their landing surface.</summary>
+        private int[] _bombGroundCandidates = Array.Empty<int>();
+
         public void CheckGroundCollision(ArenaDefinition arena)
         {
             for (int i = _hitboxes.Count - 1; i >= 0; i--)
@@ -595,16 +652,17 @@ namespace SlopArena.Shared
                 float groundY = arena.Heightmap.Data != null && arena.Heightmap.Data.Length > 0
                     ? arena.Heightmap.Sample(hb.X, hb.Z)
                     : 0f;
-                // Fallback for invalid sample (outside heightmap bounds)
-                if (groundY == float.MinValue)
+                if (hb.ContactExplosion)
                 {
-                    if (hb.MankiCan.HasValue) continue;
-                    groundY = 0f;
+                    int triangleCount = arena.CollisionTriangles?.Length ?? 0;
+                    if (_bombGroundCandidates.Length < triangleCount)
+                        _bombGroundCandidates = new int[triangleCount];
+                    float previousY = hb.Y - (hb.VY + hb.Gravity * Simulation.TickDt) * Simulation.TickDt;
+                    if (!TryProjectStraightDrop(arena, hb.X, previousY, hb.Z, hb.Radius,
+                            _bombGroundCandidates, out groundY)) continue;
                 }
-
+                if (groundY == float.MinValue) groundY = 0f;
                 if (hb.Y - hb.Radius > groundY) continue;
-
-                if (hb.MankiCan.HasValue) LandMankiCan(in hb, groundY);
 
                 // Ground contact: queue explosion at ground level, deactivate
                 var exp = hb.Explosion.Value;
@@ -721,7 +779,6 @@ namespace SlopArena.Shared
                 if (hb.Gravity > 0f)
                     hb.VY -= hb.Gravity * Simulation.TickDt;
 
-                IgniteMankiCans(in hb);
                 List<EntityData> candidates = entities;
                 if (entities.Count > 1)
                 {
@@ -743,10 +800,11 @@ namespace SlopArena.Shared
                 _contacts.Clear();
                 foreach (var entity in candidates)
                 {
-                    if (!entity.Active || hb.MankiCan.HasValue || hb.IsCanIgniterOnly) continue;
+                    if (!entity.Active) continue;
                     if (entity.RuntimeSolid && (hb.Damage <= 0 || hb.OwnerId == ServerSimulation.MayhemHostEntityId)) continue;
                     if (hb.Unblockable ? entity.ShieldSurface : entity.ProtectedByShield) continue;
                     if (!hb.CanHitOwner && entity.Id == hb.OwnerId) continue;
+                    if (hb.OnlyTargetId != 0 && entity.Id != hb.OnlyTargetId) continue;
                     // Reject friendly contacts before consuming a projectile or its hit history.
                     if (canHitTarget != null && !canHitTarget(hb.OwnerId, entity.Id)) continue;
                     if (hitThisTick.Contains(entity.Id)) continue;
@@ -828,6 +886,13 @@ namespace SlopArena.Shared
                         break;
                     }
 
+                    if (hb.ContactExplosion)
+                    {
+                        removalOrigin = (contact.X, contact.Y, contact.Z);
+                        hb.Active = false;
+                        break;
+                    }
+
                     results.Add(new HitResult
                     {
                         TargetEntityId = entity.Id,
@@ -836,6 +901,7 @@ namespace SlopArena.Shared
                         AttackSlot = hb.AttackSlot,
                         ActivationId = hb.ActivationId,
                         Airborne = hb.ActivationAirborne,
+                        Form = hb.Form,
                         ReturnPhase = hb.Return.HasValue ? (hb.ReturnLeg ? (byte)2 : (byte)1) : (byte)0,
                         Damage = entity.Id == hb.OwnerId ? hb.OwnerDamage ?? hb.Damage : hb.Damage,
                         AttackSequence = hb.AttackSequence,
@@ -879,7 +945,7 @@ namespace SlopArena.Shared
                     hb.AgeTicks++;
                 if (hb.AttachedEntityId == 0 && (hb.AgeTicks >= hb.DurationTicks || !hb.Active))
                 {
-                    if (hb.Explosion.HasValue && !hb.MankiCan.HasValue)
+                    if (hb.Explosion.HasValue && (!hb.ContactExplosion || !hb.Active || hb.ExplodeOnExpiry))
                         _pendingExplosions.Add((removalOrigin.X, removalOrigin.Y, removalOrigin.Z, hb.Explosion.Value, hb.OwnerId, hb.AttackSlot,
                             hb.ActivationId, hb.ActivationAirborne, hb.AttackSequence));
                     OnHitboxRemoved?.Invoke(hb, removalOrigin.X, removalOrigin.Y, removalOrigin.Z);

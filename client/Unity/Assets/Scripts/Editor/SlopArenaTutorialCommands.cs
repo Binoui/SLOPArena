@@ -74,6 +74,7 @@ namespace SlopArena.EditorTools
                 "fightguy" => CharacterClass.FightGuy, "manki" => CharacterClass.Manki,
                 "wibou" => CharacterClass.Wibou, "bonk" => CharacterClass.Bonk, "bashie" => CharacterClass.Bashie,
                 "salamander" => CharacterClass.Salamander,
+                "nyx" => CharacterClass.Nyx,
                 _ => throw new ArgumentException("Unknown roster fighter.", nameof(fighter)),
             };
             var view = GameView();

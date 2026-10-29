@@ -275,6 +275,7 @@ client/Unity/Assets/Plugins/**/NuGet/.nuget-installed.json
 !client/Unity/Assets/CharacterPackages/fightguy/Presentation/FightGuy*.png
 !client/Unity/Assets/CharacterPackages/fightguy/Presentation/Source/*.png
 !client/Unity/Assets/CharacterPackages/wibou/Presentation/Wibou*.png
+!client/Unity/Assets/CharacterPackages/wibou/Presentation/Source/*.png
 !client/Unity/Assets/CharacterPackages/manki/Presentation/Manki*.png
 !client/Unity/Assets/CharacterPackages/bonk/Presentation/Bonk*.png
 !client/Unity/Assets/CharacterPackages/bonk/Presentation/Source/*.png
@@ -572,3 +573,10 @@ videos/*
 /.agents/skills/*/agents/*
 !/.agents/skills/*/agents/openai.yaml
 # END project skill adapters
+
+# Nyx's original two-form model and colour maps. Vendor animation copies stay local.
+!client/Unity/Assets/Art/Characters/nyx/Models/Nyx.fbx*
+!client/Unity/Assets/Art/Characters/nyx/Materials/Nyx_*.mat*
+!client/Unity/Assets/Art/Characters/nyx/Textures/Nyx_*.png*
+!client/Unity/Assets/CharacterPackages/nyx/Animations/Borrowed/crouch.anim
+!client/Unity/Assets/CharacterPackages/nyx/Animations/Borrowed/tumble.anim

@@ -323,7 +323,6 @@ namespace SlopArena.Client.Tools
         private GameObject _previewRig;
         [SerializeField] private PlayerRenderer _previewRenderer;
         [SerializeField] private PlayerRenderer _dummyRenderer;
-        private GroundDestinationIndicator? _scenarioChargeIndicator;
         public PlayerRenderer Renderer
         {
             get
@@ -452,7 +451,6 @@ namespace SlopArena.Client.Tools
             _trajectory.Clear();
             _trajDirty = "";
             Playing = false;
-            _scenarioChargeIndicator?.Clear();
         }
 
         private void RebuildScenarioTrailHistory()
@@ -490,57 +488,10 @@ namespace SlopArena.Client.Tools
             _dummyWeaponAttach?.SetHitboxTrailActive(false);
             _presentationPreviewer.SetSimulationFrame(Scenario.PresentationEvents, frame.MatchTick,
                 _presentationBindings, _previewRenderer, _previewRenderer.transform, _scenarioActorHistory);
-            UpdateScenarioChargeCue(frame.Actor, airborne);
             _weaponAttach?.RefreshPresentation();
             if (ShowDummy) _dummyWeaponAttach?.RefreshPresentation();
             QueueEditorRefresh();
         }
-        private void UpdateScenarioChargeCue(in CharacterState actor, bool airborne)
-        {
-            if (Scenario == null || actor.State != ActionState.Aiming || !actor.IsAiming ||
-                !CanonicalSlotProjection.TryGet(Scenario.Options.Action, out var address))
-            {
-                _scenarioChargeIndicator?.Clear();
-                return;
-            }
-            int index = Array.IndexOf(SlotNames, address.InputLabel);
-            if (index < 0)
-            {
-                _scenarioChargeIndicator?.Clear();
-                return;
-            }
-            var cookedSlot = Def.GetCookedSlotAbility(CanonicalSlotProjection.ToWire(CanonicalSlotProjection.All[index]), airborne);
-            CookedChargedDirectionalDashCapabilityParameters? parameters = null;
-            if (cookedSlot != null)
-                foreach (var stage in cookedSlot.Timeline.Stages)
-                foreach (var operation in stage.Operations)
-                    if (operation is CookedStartCapabilityOperation
-                        { Parameters: CookedChargedDirectionalDashCapabilityParameters charged })
-                    {
-                        parameters = charged;
-                        break;
-                    }
-            if (parameters == null)
-            {
-                _scenarioChargeIndicator?.Clear();
-                return;
-            }
-            if (_scenarioChargeIndicator == null)
-            {
-                var cue = new GameObject("AbilityLabChargedDashCue") { hideFlags = HideFlags.DontSave };
-                cue.transform.SetParent(transform, false);
-                _scenarioChargeIndicator = cue.AddComponent<GroundDestinationIndicator>();
-            }
-            float distance = parameters.GetDashDistance(actor.ChargeTicks);
-            Vector3 direction = new(Mathf.Sin(actor.AimYaw), 0f, Mathf.Cos(actor.AimYaw));
-            Vector3 position = new(actor.PX, actor.PY - Def.CapsuleHeight * 0.5f + 0.06f, actor.PZ);
-            position += direction * distance;
-            float scale = Mathf.Lerp(0.7f, 1.3f,
-                Mathf.InverseLerp(parameters.MinDistance, parameters.MaxDistance, distance));
-            _scenarioChargeIndicator.SetDestination(position, direction, 0.55f,
-                parameters.GetChargeTier(actor.ChargeTicks), scale);
-        }
-
         private static double PreviewClock()
         {
 #if UNITY_EDITOR

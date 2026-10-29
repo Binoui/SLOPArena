@@ -3,7 +3,7 @@ id: "manki"
 name: "Manki"
 title: "The Mad Bomber Monkey"
 status: "Package-native cooked character"
-archetype: "Hybrid Zoner / Recovery Skirmisher. Controls space with persistent cans, flies through danger with Jetpack Flight, pokes with homing rockets, and commits with Aerosol Inferno."
+archetype: "Flying bomber. Take off, drop bombs, fire homing rockets and commit to Kamikaze."
 source_image: "manki_action.png"
 palette:
   fur: "#D84315"
@@ -29,21 +29,21 @@ kit:
     type: "melee"
     description: "Slow windup (16 tick startup) downward spike punch. High knockback, spikes opponents straight down."
   - slot: "Q"
-    name: "Can Bomb"
+    name: "Bombs Away"
     type: "projectile"
-    description: "Hold to lob a can. Landing pops for 3 damage, then a 4-second fuse gives a 10-damage blast. Own fire/blasts trigger a warned 16-damage chain. Three independently regenerating charges."
+    description: "Three charges. Flying drops a contact bomb straight down. Otherwise hop backward and leave a one-second contact bomb. Opponent-only damage and zero-damage self-push."
   - slot: "E"
     name: "Jetpack Flight"
     type: "recovery"
-    description: "Ignite in 3 ticks, then steer a 2-second powered flight at 12 m/s. Neutral holds heading; jump supplies lift; E again cuts fuel. Exhaust ignites cans."
+    description: "Three-tick ignition, then 180 fuel ticks at 12 m/s. Stick steers, neutral holds heading and jump bursts lift. Q/R keep flight. Normal, hit, E again or empty fuel ends it. Refuel on landing; 210-tick cooldown from exit."
   - slot: "R"
     name: "Bazooka"
     type: "artillery"
-    description: "Press to fire a homing rocket at the current target after a short cast. Tracking breaks when the target becomes invalid or passes behind the rocket. Explosions keep 4 self-damage and ignite owned cans."
+    description: "Existing press-to-fire homing rocket, usable during flight. Tracking breaks on an invalid target or a pass behind it. Existing 4 self-damage remains."
   - slot: "F"
-    name: "Aerosol Inferno"
-    type: "area denial"
-    description: "Walk at 35% speed while charging, then release the existing flame. The stream ignites owned cans."
+    name: "Kamikaze"
+    type: "finisher"
+    description: "Lock onto the current target and fly into a 24-damage, strong-knockback blast. From flight it dives. Without a target run along facing. Self-push has no damage or stun."
 ---
 
 # Manki — Mad Bomber Monkey
@@ -65,13 +65,12 @@ A pyromaniac/inventor macaque monkey. Always tinkering with explosives — bombs
 
 ## Archetype
 
-**Floaty explosive skirmisher / Jetpack-bazooka hybrid** — sustained airtime and strong aerial repositioning distinguish Manki from FightGuy's baseline.
-- Place cans with Q, then ignite them with F, E, R, another landing pop, or another can blast.
-- Steer Jetpack Flight with the stick and tap jump for lift. E again or empty fuel restores ordinary falling.
-- Use the cans to control the floor, fly past them, and cook them from range.
-- E has three vulnerable startup ticks, a small ignition hitbox, and 120 powered ticks. Its exhaust ignites cans.
-- R is a press-to-fire homing poke against the current target. Sidesteps and air dodges can break its tracking.
-- F charges while walking at 0.35 speed. Its existing forward flame starts can chains.
+Manki takes off, makes a bombing run with Q, fires R in flight and commits to F for a kill threat.
+The visible fuel bar and 210-tick cooldown after flight give opponents a grounded punish window.
+Any accepted hit knocks him out of Flying. Normals end flight and use their air variant.
+
+Current specials follow [ADR-0049](../adr/0049-manki-flying-bomber.md). Earlier dated design notes
+below describe prior iterations. Their tuning does not override the current kit rows.
 
 ### Local gamefeel tuning — 2026-10-03
 
@@ -234,10 +233,10 @@ see the [grounding tool](../../tools/character_sizes/README.md).
 | **RMB** | Aerosol + Lighter | Shake aerosol (hold) → cone flame (release) | Two-phase charge: tap = quick burst (8 dmg), hold >45 ticks = charged (14 dmg) |
 | **Air LMB** | Air Kick (2 hits) | Two air kicks | 2-hit combo, first kick lunges, second has higher KB |
 | **Air RMB** | Knuckle Spike | Double knuckle punch down (hold to charge) | Two-phase charge: tap = quick spike (10 dmg), hold >45 ticks = charged spike (14 dmg). Downward, high KB |
-| **Q** | Can Bomb | Hold cursor, release to lob, landing pop, then persistent fuse | Three charges, each regenerating in 360 ticks. Landing deals 3 damage in 1.1 m. Fuse lasts 240 ticks and blasts for 10 in 3 m. Own fire/blasts start an 8-tick red warning, then 16 damage in 4 m. Can blasts push Manki with zero self-damage. |
-| **E** | Jetpack Flight | Three-tick ignition, then steerable powered flight | Ignition deals 10 damage in 1.5 m. Fuel lasts 120 ticks at 12 m/s. Initial lift is 8 m/s for 12 ticks, then 1.2 m/s sink. Jump gives 12 ticks at 10 m/s. Neutral retains heading; E again ends flight. Exhaust ignites cans. |
-| **R** | Bazooka | Short cast → fire rocket at the current target | Press-to-fire homing rocket. Sidesteps and air dodges can break tracking. Explodes on impact and ignites owned cans. Existing 4 self-damage remains. |
-| **F** | Aerosol Inferno | Hold aerosol can → release into a tall orange flame column | 18-tick minimum charge while walking at 0.35 speed; camera yaw tracks facing; queued release fires after 8 startup ticks; 44-tick flame window, five charge tiers (10–26 damage), 30° launch, 30 ticks stun; flame ignites cans |
+| **Q** | Bombs Away | projectile | Three charges. Flying drops a contact bomb straight down. Otherwise hop backward and leave a one-second contact bomb. Opponent-only damage and zero-damage self-push. |
+| **E** | Jetpack Flight | recovery | Three-tick ignition, then 180 fuel ticks at 12 m/s. Stick steers, neutral holds heading and jump bursts lift. Q/R keep flight. Normal, hit, E again or empty fuel ends it. Refuel on landing; 210-tick cooldown from exit. |
+| **R** | Bazooka | artillery | Existing press-to-fire homing rocket, usable during flight. Tracking breaks on an invalid target or a pass behind it. Existing 4 self-damage remains. |
+| **F** | Kamikaze | finisher | Lock onto the current target and fly into a 24-damage, strong-knockback blast. From flight it dives. Without a target run along facing. Self-push has no damage or stun. |
 
 ## Explosions and bomb aim — 2026-10-18
 
@@ -263,7 +262,7 @@ on completion/cancellation, so time spent aiming is separate. Source-compiled
 Shared ground/air timer and expiry probes passed; persisted cooked content and
 roster pins are unchanged.
 
-## Design Notes
+## Previous design notes
 - **E**: Jetpack Boost. On activation, Manki compresses for 3 vulnerable ticks while preserving vertical fall velocity and clearing horizontal velocity. On ignition, the authoritative simulation samples the current movement stick, normalizes it when above 0.001 magnitude, and launches at `VY=15` with horizontal speed `3.5` along that direction. A single owner-centered sphere (radius 1.25, damage 4, 75° angle, base 2, growth 8, stun 8, duration 4) resolves the ignition hit. The ascent is unsteerable; gravity is active immediately, and normal air drift/actions return when `VY <= 0`. Cooldown: 210 ticks. The move is a recovery move and aliases `air.E` to `ground.E`.
 - **R**: Bazooka. Press to fire, with no aim hold or camera change. The 20-tick cast spawns one rocket at tick 6, followed by 15 recovery ticks. At spawn it aims at the current soft or locked target's chest, including airborne fighters, balls, and course targets. Without a valid target it fires horizontally along facing. The rocket keeps its launch target and turns toward its current position by at most `homingTurnDegPerTick`, preserving speed before gravity. Tracking ends permanently if the target becomes invalid or passes behind the rocket, so sidesteps and air dodges can beat it. First-pass Training values are speed 30 m/s, turn 2.5 degrees per tick, lifetime 60 ticks, and gravity 15 m/s². The 3 m explosion still has `CanHitOwner=true` and deals 4 self-damage. Aiming at your feet for a rocket jump is no longer available. Cooldown stays 240 ticks.
 
@@ -285,10 +284,10 @@ The workflow is the [character VFX pass](../../skills/sloparena-character-vfx-pa
 | Move | Presentation |
 | --- | --- |
 | Normals (ground and air 1–4) | An orange toon swoosh behind the striking limb and a puff of smoke. Hits use `normal.hit`: a soot-rimmed orange "pow" with sparks. Ground and air 4 use `normal.heavy-hit`, which adds a flash star and a nut flying off. |
-| Can Bomb (A) | A yellow floor can with a red band and fuse spark reads Shared state. The early-warning countdown swells it and glows red. The existing `blast.hit` effect draws the compact landing pop. Existing Manki explosion effects draw the 3 m fuse blast or 4 m early blast. Floor visuals disappear on KO/reset and reconcile after rollback. The held prop retains the existing binding in this prototype. |
-| Jetpack Flight (E) | Existing ignition, pack exhaust, and puff trail remain. Exhaust lasts through the 120-tick fuel phase and follows the pack at `bone.spine2`. The attack-bound flame ends with flight. A late cough is scheduled at tick 115. No new animation or art pipeline is introduced. |
+| Bombs Away (A) | A round black bomb with a bright fuse follows resolver identity, including stationary fused drops. Existing Manki blast effects show impact or fuse detonation. The dotted fighter drop line shows the landing below. |
+| Jetpack Flight (E) | Existing ignition, pack exhaust and trail. A visible fuel bar follows the fighter. State-owned exhaust lasts through Q/R and ends when Flying does. |
 | Bazooka (R) | A glint and a clunk-click as he shoulders it (`bazooka.ready`, tick 0). The shot: a flash star and a short flame at the muzzle, and a comically oversized backblast out of the back end that singes his fur, which smokes for a moment (`bazooka.singe`, on his head). The rocket is a red toon rocket that flies point-first, with a wobbly smoke trail that lingers after impact. The explosion is the Round Bomb's, bigger, with the grin. Contacts use `blast.hit`. |
-| Aerosol Inferno (F) | While he charges, the can itself shows the charge time: it grows up to 35%, shakes harder, heats from yellow to red and throbs once full (`ChargePropFeedback`, added 2026-10-17 at the owner's request). It rattles and leaks mist, and a pilot flame on the nozzle grows at each of the five charge tiers with a spark pop and a rattle (`aerosol-inferno.charge`). He holds a chunky red lighter, sized like his cartoon can, in his free hand from the first shake (`MankiLighterHeld`, a slot prop like the can, owner 2026-10-21). When he releases, it flicks on at its hood with sparks and burns until the stream ends (`aerosol-inferno.lighter`, ticks 1–52), and its flame flares forward into the spray as the stream lights at tick 8, selling the homemade aerosol-and-lighter flamethrower (added 2026-10-17 at the owner's request). The stream is a toon flame that licks forward, with soot rolling off the top. It scales with the charge like the hitbox, and from tier 4 the nozzle burns white-hot. Hits use `aerosol-inferno.hit`: a soot puff, licks of flame and embers. |
+| Kamikaze (F) | Existing pack trail and scaled Manki explosion. The retained shake loop is the temporary run pose. Mayhem still uses this clip. |
 
 - **Ground 4 ribbon (2026-10-22):** Head Slam's existing heavy swoosh starts at tick 6,
   during the downward swing, with a head-local offset of `(0, 0.24, 0)` and a 12-tick
@@ -530,8 +529,8 @@ clips' backups in the local `artifacts/manki-f-shake-20261021/`.
 | `anim.manki.ga` | Round bomb | Ground `A` |
 | `anim.manki.ge` | Jetpack Boost | Ground `E` and Air `E` alias |
 | `anim.manki.gr` | Bazooka | Ground `R` |
-| `anim.manki.gf-loop` | Aerosol Inferno hold loop: the can's piston shake (`manki_gf_shake_loop`) | Ground `F` while held |
-| `anim.manki.gf-atk` | Aerosol Inferno release: can and lighter in front (`manki_gf_fire`) | Ground `F` after release |
+| `anim.manki.gf-loop` | Aerosol Inferno hold loop: the can's piston shake (`manki_gf_shake_loop`) | Mayhem host and temporary Kamikaze pose |
+| `anim.manki.gf-atk` | Aerosol Inferno release: can and lighter in front (`manki_gf_fire`) | Retained asset, no current kit binding |
 
 ## Files
 - `client/Unity/Assets/CharacterPackages/manki/package.json` — package identity and license

@@ -1,0 +1,103 @@
+{
+  "name": "nyx-fake-e",
+  "rigpack": "artifacts/genra-rigpacks/nyx-unity-fake",
+  "character": "Nyx (Mixamo joints in a Humanoid body: Hips, Spine, Spine1, Spine2, Neck, Head, LeftShoulder/LeftArm/LeftForeArm/LeftHand with five full fingers, the same on the right, LeftUpLeg/LeftLeg/LeftFoot/LeftToeBase and the right leg; no tail). An adult woman, about 1.70 m tall in the rig (the game draws her 1.04 times bigger). Measured on the rig: thigh 0.395 m, shin 0.298 m, upper arm 0.223 m, forearm 0.212 m, hand 0.118 m from wrist to middle fingertip, shoulders 0.346 m apart. She wears tall platform boots: with a flat boot the ankle joint (Foot) sits about 0.187 m above the floor and the toe joint about 0.01 m above it; standing straight her hip joint is about 0.88 m above the floor. Her waist-length straight black hair is rigid on her head and hangs down her back: hands swung behind her head or back pass through it, so keep them in front of, beside or above it. Fake form: a backpack sits on her upper back, rigid on joint Nyx_Backpack under Spine2, with a pole rising above her LEFT shoulder that holds a big ring light, its top about 0.51 m above that shoulder. Arms must not pass through the backpack, the pole or the ring.",
+  "notes": "Nyx fake form ground.E (anim.nyx.fake.ge), from her pose sheet fake-e (2026-10-29). Proposed game timing: {\"total\": 50, \"model\": \"slop.ability.aimed-recovery.v1 (ADR-0051); salamander Sombrero Copter 50 (16 startup)\", \"phases\": \"startup 0-12 (grab the straps), the game lifts her from 12\"}; authored at 1x. Candidate only: nothing binds before the owner approves.",
+  "description": "Nyxxie's E, Ring Light Rise: her recovery. The ring light spins like a helicopter rotor above her and lifts her by the backpack (the spin is an effect); she hangs from the straps, legs dangling and kicking, filming herself.\n\nWho she is. Nyxxie, Nyx's fake form (image 1): the same woman as a parody goth e-girl influencer, with a cat-ear headband, huge lashes, fishnets, a pink-and-black pleated skirt, pink-buckled platform boots, a backpack with a ring light on a pole above her left shoulder, and her phone. She never stops moving: loose and bouncy, a show-off who performs for her phone and films herself, and she fights like a brawler. Weight shifts, hip pops, bouncing knees, a toss of the head; overlap and follow-through everywhere.\n\nThe phone. She always holds one smartphone in her RIGHT hand, but the rig has no phone mesh yet: keep the right hand closed around an invisible phone the whole clip (fingers curled loosely as around a slim 7 x 15 cm slab, thumb on its face), whatever the arm does. It never changes hands. Her LEFT hand is the free one.\n\nHow the game plays it. The match camera sits straight behind her and a little above, so the action must read from behind: gestures out to the side, up or well ahead of her, not hidden in front of her chest. The fighter does not travel in the clip; the game moves her. The game crossfades in and out over about 0.1 s.\n\nFlow. Generated moves read stiff by default, and for this job the flow check's warnings count as failures. Stagger arrivals (the hips first, then the chest, the arms one or two ticks later, the head last), keep every hold drifting one way by a few degrees, and let the free hand, the fingers and the head trail the main action by one to three ticks (Clip.overlap). Recover in waves.\n\nIn the air. The entry reference is a borrowed fall that only sets the frame; tick 0 is free. Her airborne pose, where this clip starts and ends: knees bent and lifted a little, one higher than the other, the phone hand up near her right shoulder, the left arm out for balance, a bounce in her body. There is no floor. The first and last ticks are the same airborne pose.\n\nThe clip (50 ticks, played once):\n- Tick 0: Her airborne pose.\n- Tick 8: Grab: both hands grab the backpack's shoulder straps at the front of her shoulders (the right hand still holding the phone), knees pulling up, a little crouch of the whole body.\n- Tick 12: Lift-off: the shoulders hike up 3-4 cm as if the backpack pulls her up by the straps, the legs dropping to hang below her.\n- Tick 24: Hanging and rising: the left hand on its strap, the right hand lifting the phone out in front of her face to film herself; the legs dangle and kick in turn (the left knee lifts).\n- Tick 36: The right knee lifts while the left drops; she grins at the phone.\n- Tick 50: Still hanging and rising, the left knee lifting again (the game moves on to her fall).",
+  "references": {
+    "fall": "references/fall.usda",
+    "idle": "references/idle.usda"
+  },
+  "entry": {
+    "reference": "fall",
+    "tick": 0,
+    "match": false
+  },
+  "clock": {
+    "duration_ticks": 50
+  },
+  "timing": {
+    "fixed": [
+      "50 ticks played once"
+    ],
+    "adjustable": [
+      "small pose details (angles, reach) that keep the sheet pose and the timing"
+    ]
+  },
+  "views": [
+    "gameplay",
+    "profile",
+    "three-quarter-right"
+  ],
+  "images": [
+    "../../../tmp/nyx-model/renders/fake/q3.png",
+    "../../../tmp/nyx-model/anim-sheets/sheets/fake-e.png"
+  ],
+  "image_notes": "1: Nyx's fake form model (three-quarter render). 2: the pose sheet for this move (generated art on her model; she faces LEFT in it, so 'toward the left' on the sheet is straight ahead of her in this frame). Its poses read left to right: pose 1 'jump': jumping, both hands grabbing the backpack shoulder straps; pose 2 'spin-up': the ring light above her head spinning like a helicopter rotor (flat white-and-pink motion arcs), her legs dangling; pose 3 'rise': rising, legs kicking, the phone hand filming herself. Sheet note: The ring light spins as a rotor; her body hangs from the backpack. Follow this brief's text and ticks where the sheet differs.",
+  "keys": [
+    0,
+    8,
+    12,
+    24,
+    36,
+    50
+  ],
+  "review_ticks": [
+    0,
+    4,
+    8,
+    10,
+    12,
+    18,
+    24,
+    30,
+    36,
+    43,
+    50
+  ],
+  "targets": [
+    {
+      "name": "grab: left hand on the strap at her shoulder (m)",
+      "kind": "distance",
+      "a": "LeftHand",
+      "b": "LeftArm",
+      "tick": 8,
+      "max": 0.22
+    },
+    {
+      "name": "grab: right hand on the strap at her shoulder (m)",
+      "kind": "distance",
+      "a": "RightHand",
+      "b": "RightArm",
+      "tick": 8,
+      "max": 0.22
+    },
+    {
+      "name": "hanging: left hand stays on the strap (m)",
+      "kind": "distance",
+      "a": "LeftHand",
+      "b": "LeftArm",
+      "tick": 36,
+      "max": 0.22
+    },
+    {
+      "name": "filming: phone ahead of her face (m)",
+      "kind": "ahead",
+      "a": "RightHand",
+      "b": "Head",
+      "tick": 36,
+      "min": 0.22
+    },
+    {
+      "name": "legs kick (m)",
+      "kind": "range",
+      "a": "LeftFoot",
+      "axis": "up",
+      "window": [
+        12,
+        50
+      ],
+      "min": 0.08
+    }
+  ]
+}

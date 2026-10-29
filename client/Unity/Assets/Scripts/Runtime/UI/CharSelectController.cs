@@ -118,6 +118,13 @@ namespace SlopArena.Client.UI
                     btn.Add(name);
                     btn.Add(check);
                     btn.Add(markers);
+                    // Her player picks the starting form here (ADR-0051); online starts in form 0 until the lobby carries it.
+                    if (MenuRoster.HasForms(cls) && MatchConfig.Mode != GameMode.PvP)
+                    {
+                        var form = new Button(() => ToggleForm(capturedCls, _context)) { name = $"char-{cls}-form" };
+                        form.AddToClassList("char-card-form");
+                        btn.Add(form);
+                    }
                     grid.Add(btn);
                     _gridButtons.Add(btn);
                 }
@@ -293,7 +300,8 @@ namespace SlopArena.Client.UI
         private void RenderChallengeSeat()
         {
             for (int player = 1; player <= 4; player++) _rosterPanel.Q<VisualElement>($"solo-slot-p{player}")?.RemoveFromHierarchy();
-            var seat = FighterPanel.Build(1, "YOU", "PLAYER", _selected == CharacterClass.None ? null : _selected, "A: PICK FIGHTER");
+            var seat = FighterPanel.Build(1, "YOU", "PLAYER", _selected == CharacterClass.None ? null : _selected, "A: PICK FIGHTER",
+                form: MatchConfig.PlayerForm);
             seat.name = "solo-slot-p1";
             _rosterPanel.Insert(0, seat);
             if (!HumanCourse) return;
@@ -301,7 +309,8 @@ namespace SlopArena.Client.UI
             {
                 bool joined = MatchConfig.Seat(player).Kind == SeatKind.LocalPlayer;
                 var panel = FighterPanel.Build(player, joined ? $"PLAYER {player}" : "", joined ? "PLAYER" : "OPEN",
-                    joined ? MatchConfig.Seat(player).Fighter : null, joined ? "LB/RB · B LEAVES" : "PAD: PRESS A TO JOIN", interactive: false);
+                    joined ? MatchConfig.Seat(player).Fighter : null, joined ? "LB/RB · B LEAVES" : "PAD: PRESS A TO JOIN", interactive: false,
+                    form: MatchConfig.Seat(player).Form);
                 panel.name = $"solo-slot-p{player}";
                 _rosterPanel.Insert(player - 1, panel);
             }
@@ -376,10 +385,42 @@ namespace SlopArena.Client.UI
 
             var nameLabel = context.Q<Label>("char-name");
             if (nameLabel != null)
-                nameLabel.text = MenuRoster.Name(cls).ToUpperInvariant();
+                nameLabel.text = MenuRoster.Name(cls, EditingForm).ToUpperInvariant();
             var roleLabel = context.Q<Label>("char-role");
             if (roleLabel != null)
                 roleLabel.text = MenuRoster.Description(cls);
+            RefreshFormCards();
+        }
+
+        private bool EditsSeat => (MatchConfig.Mode is GameMode.Solo or GameMode.Training) && _editingSeat > 1;
+        private byte EditingForm => EditsSeat ? MatchConfig.Seat(_editingSeat).Form : MatchConfig.PlayerForm;
+
+        /// <summary>Flip the editing seat's starting form, picking the fighter first when the seat has another one.</summary>
+        private void ToggleForm(CharacterClass cls, FrontendPageContext context)
+        {
+            var picked = EditsSeat ? MatchConfig.Seat(_editingSeat).Fighter : MatchConfig.PlayerClass;
+            if (picked == cls)
+            {
+                if (EditsSeat) MatchConfig.Seat(_editingSeat).Form ^= 1;
+                else MatchConfig.PlayerForm ^= 1;
+            }
+            SelectCharacter(cls, context);
+        }
+
+        /// <summary>A two-form fighter's card shows the editing seat's form and names the other one on its toggle.</summary>
+        private void RefreshFormCards()
+        {
+            byte form = EditingForm;
+            foreach (var btn in _gridButtons)
+            {
+                var toggle = btn.Q<Button>($"{btn.name}-form");
+                if (toggle == null || !Enum.TryParse(btn.name.Substring(5), out CharacterClass cls)) continue;
+                toggle.text = $"SWAP TO {MenuRoster.Name(cls, (byte)(form ^ 1)).ToUpperInvariant()}";
+                var portrait = btn.Q<VisualElement>("char-portrait");
+                var texture = Resources.Load<Texture2D>(MenuRoster.PortraitPath(cls, form))
+                    ?? Resources.Load<Texture2D>(MenuRoster.PortraitPath(cls, 0));
+                if (portrait != null && texture != null) portrait.style.backgroundImage = new StyleBackground(texture);
+            }
         }
 
         private void RenderSoloRoster()
@@ -415,7 +456,7 @@ namespace SlopArena.Client.UI
                     open ? "OPEN" : kind == SeatKind.Cpu ? "CPU" : "PLAYER", open ? null : fighter,
                     practiceOpen ? "TRAINING · ONE PRACTICE CPU" : open ? "A: ADD CPU\nPAD: PRESS A TO JOIN"
                         : player == 1 || MatchConfig.Mode == GameMode.Training ? "A: PICK FIGHTER" : kind == SeatKind.LocalPlayer ? "LB/RB · B LEAVES" : "PAD: PRESS A TO JOIN",
-                    interactive: !practiceOpen);
+                    interactive: !practiceOpen, form: MatchConfig.FormOf(player));
                 panel.name = $"solo-slot-p{player}";
                 if (practiceOpen) panel.SetEnabled(false);
                 if (_editingSeat == player && !open) FighterPanel.Frame(panel, player);

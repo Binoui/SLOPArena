@@ -41,17 +41,26 @@ owner's favourite). Reuse them before staging new ones.
 
 ## Propose
 
-1. Read the latest scout reports (`factory.py reports --limit 3`) and what changed since the newest
+1. Read the open inbox (`factory.py inbox`). Every item that asks for a clip, a theme or a change
+   of direction is an owner request, and requests come first: they are the owner's videos.
+2. Read the latest scout reports (`factory.py reports --limit 3`) and what changed since the newest
    idea: `git log --since=<date> --stat`, new or changed packages under
    `client/Unity/Assets/CharacterPackages/`, stages, modes and recent `docs/adr/`. Skip work that
    is not playable in a PvP photo shoot.
-2. Add 5 to 7 ideas with `factory.py add` (status `proposed`), mixing formats. Prefer the newest
-   playable content and a clear payoff in the first second. Each idea names its fighters, stage and
-   the exchange (lead-in, hit, payoff); point `spec` at an existing spec when one fits.
-3. Stop. The owner approves or rejects on the board.
+3. Add 5 to 7 ideas with `factory.py add` (status `proposed`). Answer every request first, with two
+   or three different takes on it when it is broad (separate clips, or an explainer with its shots);
+   a request that sets a theme for the batch makes the whole batch that theme. Fill the rest with a
+   mix of formats, preferring the newest playable content and a clear payoff in the first second.
+   Each idea names its fighters, stage and the exchange (lead-in, hit, payoff); point `spec` at an
+   existing spec when one fits. When a request cannot be shot yet (see "Not supported yet"), say so
+   instead of swapping in something else.
+4. Close the requests with `factory.py report designer <file> --inbox <ids>`: one line per request,
+   naming the ideas that answer it. Add the report to the run's `--made`.
+5. Stop. The owner approves or rejects on the board.
 
 Show only Sir Bonk, FightGuy, Manki and Wibou unless the owner approves a reveal of a newer fighter
-in that idea. Manki Mayhem is not ready to show.
+in that idea; an owner request that names a newer fighter counts as that approval. Manki Mayhem is
+not ready to show.
 
 ## Render or redo an idea
 
@@ -93,7 +102,8 @@ The owner drops links and thoughts in the board's Scout inbox (`factory.py inbox
 (open a link's page or oEmbed for its title, author and format; say so when a page cannot be read),
 then write one short report for the designer with `factory.py report scout <file> --inbox <ids>`:
 the hooks, formats and timings worth borrowing, each tied to a SLOPArena fighter or feature that
-could do it. The scout reports; it does not add ideas.
+could do it. The scout reports; it does not add ideas. Leave owner requests (an item asking for a
+clip or a theme, not sharing something to learn from) open: Propose answers them.
 
 ## Staging rules
 

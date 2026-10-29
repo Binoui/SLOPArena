@@ -16,7 +16,8 @@ namespace SlopArena.Shared
         // 5 was Nilus, retired: old match requests still carry it, so it must never parse again.
         Bashie = 6,
         // Working name until the fighter #6 salamander gunslinger has his own (2026-10-26).
-        Salamander = 7
+        Salamander = 7,
+        Nyx = 8
     }
 
     [Serializable]
@@ -197,6 +198,30 @@ namespace SlopArena.Shared
             if (CookedSlots == null || !CanonicalSlotProjection.TryGet(wireSlot, airborne, out var address))
                 return null;
             return address.Ordinal < CookedSlots.Count ? CookedSlots[address.Ordinal] : null;
+        }
+
+        /// <summary>The form this definition plays (ADR-0051): 0 is the package's top-level kit, 1 its alternateForm.</summary>
+        public byte Form { get; private init; }
+        private CharacterDefinition? _realForm;
+        private CharacterDefinition? _alternateForm;
+        /// <summary>The form-1 definition of a two-form fighter; null for fighters without forms.</summary>
+        public CharacterDefinition? AlternateForm => (_realForm ?? this)._alternateForm;
+        /// <summary>The definition of <paramref name="form"/>, from either form's definition. A fighter without forms
+        /// always returns its one definition.</summary>
+        public CharacterDefinition ForForm(byte form)
+            => form == 1 && AlternateForm is { } alternate ? alternate : _realForm ?? this;
+
+        /// <summary>Links a fighter's two forms and returns form 0. They share identity and body, and differ in
+        /// movement, presentation roles and slots.</summary>
+        public static CharacterDefinition WithForms(CharacterDefinition real, CharacterDefinition alternate)
+        {
+            var linkedReal = real with { Form = 0 };
+            var linkedAlternate = alternate with { Form = 1 };
+            linkedReal._realForm = null;
+            linkedReal._alternateForm = linkedAlternate;
+            linkedAlternate._realForm = linkedReal;
+            linkedAlternate._alternateForm = null;
+            return linkedReal;
         }
 
         private static IReadOnlyList<T>? Copy<T>(IReadOnlyList<T>? values)

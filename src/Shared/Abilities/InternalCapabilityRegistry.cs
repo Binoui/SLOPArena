@@ -42,13 +42,13 @@ public static class InternalCapabilityRegistry
             case "slop.internal.wibou.rising-slash.v1" when parameters is CookedWibouRisingSlashCapabilityParameters rising:
                 capability = new WibouRisingSlash(rising);
                 return true;
-            case CharacterPackageCompiler.BladeFlurryCapabilityId when parameters is CookedWibouBladeFlurryCapabilityParameters flurry:
-                capability = new WibouUltFlurry(flurry);
+            case CharacterPackageCompiler.FlashCutCapabilityId when parameters is CookedFlashCutCapabilityParameters flash:
+                capability = new FlashCutAbility(flash);
                 return true;
-            case CharacterPackageCompiler.ChargedDirectionalDashCapabilityId
-                when capabilityVersion == CharacterPackageCompiler.ChargedDirectionalDashCapabilityVersion &&
-                     parameters is CookedChargedDirectionalDashCapabilityParameters dash:
-                capability = new ChargedDirectionalDashAbility(dash);
+            case CharacterPackageCompiler.DashStrikeCapabilityId
+                when capabilityVersion == CharacterPackageCompiler.DashStrikeCapabilityVersion &&
+                     parameters is CookedDashStrikeCapabilityParameters dash:
+                capability = new DashStrikeAbility(dash);
                 return true;
             case CharacterPackageCompiler.TargetedLeapCapabilityId when parameters is CookedTargetedLeapCapabilityParameters leap:
                 capability = new TargetedLeapAbility(leap);
@@ -59,20 +59,23 @@ public static class InternalCapabilityRegistry
             case CharacterPackageCompiler.ThrustCapabilityId when parameters is CookedThrustCapabilityParameters thrust:
                 capability = new ThrustAbility(thrust);
                 return true;
+            case CharacterPackageCompiler.CannonballCapabilityId when parameters is CookedCannonballCapabilityParameters cannonball:
+                capability = new CannonballAbility(cannonball);
+                return true;
             case CharacterPackageCompiler.TetherCapabilityId when parameters is CookedTetherCapabilityParameters tether:
                 capability = new TetherAbility(tether);
                 return true;
-            case "slop.internal.manki.round-bomb.v2" when parameters is CookedMankiRoundBombCapabilityParameters bomb:
+            case "slop.internal.manki.round-bomb.v3" when parameters is CookedMankiRoundBombCapabilityParameters bomb:
                 capability = new MankiRoundBomb(bomb);
                 return true;
-            case "slop.internal.manki.jetpack-boost.v2" when parameters is CookedMankiJetpackBoostCapabilityParameters jetpack:
+            case "slop.internal.manki.jetpack-boost.v3" when parameters is CookedMankiJetpackBoostCapabilityParameters jetpack:
                 capability = new MankiJetpackBoost(jetpack);
+                return true;
+            case "slop.internal.manki.kamikaze.v1" when parameters is CookedMankiKamikazeCapabilityParameters kamikaze:
+                capability = new MankiKamikaze(kamikaze);
                 return true;
             case "slop.internal.manki.bazooka.v2" when parameters is CookedMankiBazookaCapabilityParameters bazooka:
                 capability = new MankiBazooka(bazooka);
-                return true;
-            case "slop.internal.manki.aerosol-inferno.v1" when parameters is CookedMankiAerosolInfernoCapabilityParameters aerosol:
-                capability = new MankiAerosolInferno(aerosol);
                 return true;
             default:
                 return false;

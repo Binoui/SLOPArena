@@ -16,7 +16,7 @@ public static class CookedCharacterRuntimeAdapter
             Class = legacySelector,
             DisplayName = c.DisplayName,
             Weight = c.Weight,
-            Movement = new MovementStats { RunSpeed=c.Movement.RunSpeed, RunAccelerationA=c.Movement.RunAccelerationA, RunAccelerationB=c.Movement.RunAccelerationB, DashSpeed=c.Movement.DashSpeed, AirDodgeSpeed=c.Movement.AirDodgeSpeed, AirSpeedMax=c.Movement.AirSpeedMax, AirAccelStick=c.Movement.AirAccelStick, AirAccelBase=c.Movement.AirAccelBase, JumpForce=c.Movement.JumpForce, ShortHopForce=c.Movement.ShortHopForce, AirJumpVMultiplier=c.Movement.AirJumpVMultiplier, AirJumpHMultiplier=c.Movement.AirJumpHMultiplier, Gravity=c.Movement.Gravity, AirFloatGravity=c.Movement.AirFloatGravity, DashDurationTicks=c.Movement.DashDurationTicks, DashCooldownTicks=c.Movement.DashCooldownTicks, GroundFriction=c.Movement.GroundFriction, AirFriction=c.Movement.AirFriction, MaxFallSpeed=c.Movement.MaxFallSpeed, FastFallSpeed=c.Movement.FastFallSpeed, MaxJumps=c.Movement.MaxJumps, JumpSquatTicks=c.Movement.JumpSquatTicks, FloatWindowTicks=c.Movement.FloatWindowTicks, RushTicks=c.Movement.RushTicks },
+            Movement = ToMovementStats(c.Movement),
             CapsuleRadius=c.CapsuleRadius, CapsuleHeight=c.CapsuleHeight, HipHeight=c.HipHeight, HurtboxRadius=c.HurtboxRadius, ShieldRadius=c.ShieldRadius,
             CaptureGeometry = c.CaptureGeometry,
             HurtboxCapsules=c.HurtboxCapsules.Select(x=>new HurtboxCapsule(x.StartX,x.StartY,x.StartZ,x.EndX,x.EndY,x.EndZ,x.Radius)).ToArray(),
@@ -33,8 +33,28 @@ public static class CookedCharacterRuntimeAdapter
             HitSmallAnim=c.Presentation.HitSmall, HitMediumAnim=c.Presentation.HitMedium, HitHardAnim=c.Presentation.HitHard, TumbleAnim=c.Presentation.Tumble, LandStartOffset=c.Presentation.LandStartOffsetSeconds,
             CookedSlots = c.Slots,
         };
-        return result;
+        if (c.AlternateForm is not { } form) return result;
+        var p = form.Presentation;
+        // An empty role plays form 0's clip: one rig carries both bodies (ADR-0051).
+        string Or(string role, string real) => string.IsNullOrEmpty(role) ? real : role;
+        var alternate = result with
+        {
+            DisplayName = form.DisplayName,
+            Movement = ToMovementStats(form.Movement),
+            IdleAnim = Or(p.Idle, result.IdleAnim), RunAnim = Or(p.Run, result.RunAnim), DashAnim = Or(p.Dash, result.DashAnim),
+            JumpAnim = Or(p.Jump, result.JumpAnim), FallAnim = Or(p.Fall, result.FallAnim),
+            HitSmallAnim = Or(p.HitSmall, result.HitSmallAnim), HitMediumAnim = Or(p.HitMedium, result.HitMediumAnim),
+            HitHardAnim = Or(p.HitHard, result.HitHardAnim), TumbleAnim = Or(p.Tumble, result.TumbleAnim),
+            ShieldAnim = Or(p.Shield, result.ShieldAnim), GrabAnim = Or(p.Grab, result.GrabAnim),
+            GrabbedAnim = Or(p.Grabbed, result.GrabbedAnim), ThrowForwardAnim = Or(p.ThrowForward, result.ThrowForwardAnim),
+            AirDodgeAnim = Or(p.AirDodge, result.AirDodgeAnim),
+            CookedSlots = form.Slots,
+        };
+        return CharacterDefinition.WithForms(result, alternate);
     }
+
+    private static MovementStats ToMovementStats(CookedMovement m)
+        => new() { RunSpeed=m.RunSpeed, RunAccelerationA=m.RunAccelerationA, RunAccelerationB=m.RunAccelerationB, DashSpeed=m.DashSpeed, AirDodgeSpeed=m.AirDodgeSpeed, AirSpeedMax=m.AirSpeedMax, AirAccelStick=m.AirAccelStick, AirAccelBase=m.AirAccelBase, JumpForce=m.JumpForce, ShortHopForce=m.ShortHopForce, AirJumpVMultiplier=m.AirJumpVMultiplier, AirJumpHMultiplier=m.AirJumpHMultiplier, Gravity=m.Gravity, AirFloatGravity=m.AirFloatGravity, DashDurationTicks=m.DashDurationTicks, DashCooldownTicks=m.DashCooldownTicks, GroundFriction=m.GroundFriction, AirFriction=m.AirFriction, MaxFallSpeed=m.MaxFallSpeed, FastFallSpeed=m.FastFallSpeed, MaxJumps=m.MaxJumps, JumpSquatTicks=m.JumpSquatTicks, FloatWindowTicks=m.FloatWindowTicks, RushTicks=m.RushTicks };
 
     /// <summary>Read authored melee operations as independent geometry values for previews and reports.</summary>
     public static HitboxEvent[] ReadHitboxes(this CookedStage stage)

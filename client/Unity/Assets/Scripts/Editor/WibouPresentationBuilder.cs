@@ -43,7 +43,7 @@ namespace SlopArena.EditorTools
 
         private sealed class Materials
         {
-            public Material Glow, Glint, Pixel, Glyphs, Slash, Ring, Burst, Edge, TrailBand;
+            public Material Glow, Glint, Pixel, Glyphs, Slash, Ring, Burst, Edge, TrailBand, Nani;
             public Mesh Crescent;
         }
 
@@ -63,8 +63,7 @@ namespace SlopArena.EditorTools
                 ("presentation.wibou.code-rain", CodeRain()),
                 ("presentation.wibou.rising.crescent", RisingCrescent()),
                 ("presentation.wibou.skyfall.draw", SkyfallDraw()),
-                ("presentation.wibou.skyfall.launch", SkyfallLaunch()),
-                ("presentation.wibou.skyfall.spike", SkyfallSpike()),
+                ("presentation.wibou.flash.nani", FlashNani()),
                 ("presentation.wibou.dash.charge", DashCharge()),
                 ("presentation.wibou.dash.cut", DashCut()),
             };
@@ -265,8 +264,8 @@ namespace SlopArena.EditorTools
         }
 
         /// <summary>
-        /// Skyfall startup: a curtain of code rain falling around Wibou, a pixel ring bursting from
-        /// the feet, a big glint and the blade-draw sting.
+        /// The flash's stance (Skyfall's old startup cue): a curtain of code rain falling around Wibou, a pixel ring
+        /// bursting from the feet, a big glint and the blade-draw sting.
         /// </summary>
         private static GameObject SkyfallDraw()
         {
@@ -312,73 +311,36 @@ namespace SlopArena.EditorTools
             return _kit.Save(root);
         }
 
-        /// <summary>Skyfall launch: a vertical blade column, upward speed lines and shards.</summary>
-        private static GameObject SkyfallLaunch()
+        /// <summary>
+        /// The flash's reveal over each still-held victim, placeholder until its VFX concept pass (ADR-0052):
+        /// NANI?! pops in his lettering (pale faces, a green extrusion, his dark rim) and drifts up.
+        /// </summary>
+        private static GameObject FlashNani()
         {
-            var root = _kit.NewRoot("WibouSkyfallLaunch", attackBound: false);
-            var column = Particles(root, "Column", _materials.Slash, 0.3f);
-            Burst(column, 2);
-            var main = column.main;
-            main.startLifetime = new ParticleSystem.MinMaxCurve(0.18f, 0.24f);
-            // The slash runs along the quad's X; a quarter turn stands it upright.
+            var root = _kit.NewRoot("WibouFlashNani", attackBound: false);
+            var word = Particles(root, "NANI?!", _materials.Nani, 0.95f);
+            Burst(word, 1);
+            var main = word.main;
+            main.startLifetime = 0.9f;
             main.startSize3D = true;
-            main.startSizeX = new ParticleSystem.MinMaxCurve(2.8f, 3.4f);
-            main.startSizeY = new ParticleSystem.MinMaxCurve(0.3f, 0.4f);
+            main.startSizeX = 1.3f;
+            var lettering = _materials.Nani.GetTexture("_BaseMap");
+            main.startSizeY = 1.3f * lettering.height / lettering.width;
             main.startSizeZ = 1f;
-            main.startRotation = Mathf.PI * 0.5f;
-            var shape = column.shape;
-            shape.enabled = true;
-            shape.shapeType = ParticleSystemShapeType.Sphere;
-            shape.radius = 0.15f;
-            column.transform.localPosition = new Vector3(0f, 1.2f, 0f);
-            SizeOverLife(column, Curve((0f, 0.5f), (0.25f, 1f), (1f, 1.05f)), Curve((0f, 1f), (0.5f, 1f), (1f, 0.15f)));
-            Fade(column, 0.6f);
-            var lines = Particles(root, "Speed lines", _materials.Slash, 0.3f);
-            Burst(lines, 14);
-            main = lines.main;
-            main.startLifetime = new ParticleSystem.MinMaxCurve(0.18f, 0.28f);
-            main.startSize = 0.09f;
-            main.startSpeed = 0f;
-            shape = lines.shape;
-            shape.enabled = true;
-            shape.shapeType = ParticleSystemShapeType.Circle;
-            shape.radius = 0.6f;
-            shape.rotation = new Vector3(-90f, 0f, 0f);
-            var velocity = lines.velocityOverLifetime;
+            main.startRotation = new ParticleSystem.MinMaxCurve(0.1f);
+            var velocity = word.velocityOverLifetime;
             velocity.enabled = true;
-            velocity.space = ParticleSystemSimulationSpace.Local;
+            velocity.space = ParticleSystemSimulationSpace.World;
             velocity.x = new ParticleSystem.MinMaxCurve(0f, 0f);
-            velocity.y = new ParticleSystem.MinMaxCurve(14f, 20f);
+            velocity.y = new ParticleSystem.MinMaxCurve(0.25f, 0.25f);
             velocity.z = new ParticleSystem.MinMaxCurve(0f, 0f);
-            Stretch(lines, 0.06f, 2f);
-            Fade(lines, 0.5f);
-            Shards(root, 18, 0.55f, 0.13f, 7f, 30f, ParticleSystemScalingMode.Local, upward: true);
-            _kit.Sound(root, "wibou_slice_02", 0.65f, 1.05f);
-            return _kit.Save(root);
-        }
-
-        /// <summary>Skyfall spike: a big crescent cutting forward and down, downward lines and a heavy slice.</summary>
-        private static GameObject SkyfallSpike()
-        {
-            var root = _kit.NewRoot("WibouSkyfallSpike", attackBound: false);
-            // As the Rising Slash crescent, then tipped 35° so the apex cuts forward and down.
-            Crescent(root, "Crescent", 0.28f, 1.8f, Quaternion.AngleAxis(35f, Vector3.right) * Quaternion.Euler(0f, 90f, 90f));
-            var lines = Particles(root, "Down lines", _materials.Slash, 0.3f);
-            Burst(lines, 12);
-            var main = lines.main;
-            main.startLifetime = new ParticleSystem.MinMaxCurve(0.14f, 0.24f);
-            main.startSize = 0.09f;
-            main.startSpeed = new ParticleSystem.MinMaxCurve(12f, 18f);
-            var shape = lines.shape;
-            shape.enabled = true;
-            shape.shapeType = ParticleSystemShapeType.Cone;
-            shape.angle = 10f;
-            shape.radius = 0.5f;
-            shape.rotation = new Vector3(90f, 0f, 0f);
-            Stretch(lines, 0.06f, 2f);
-            Fade(lines, 0.5f);
-            Shards(root, 20, 0.5f, 0.15f, 7.5f, 80f, ParticleSystemScalingMode.Local);
-            _kit.Sound(root, "wibou_slice_01", 0.8f, 0.86f);
+            word.transform.localPosition = new Vector3(0f, 0.55f, 0f);
+            SizeOverLife(word, Curve((0f, 0.2f), (0.12f, 1.18f), (0.24f, 0.96f), (0.34f, 1f), (1f, 1.03f)));
+            Fade(word, 0.75f);
+            var renderer = word.GetComponent<ParticleSystemRenderer>();
+            renderer.sortingFudge = -18f;
+            // Toward the camera, so the word sits in front of the frozen fighter.
+            renderer.pivot = new Vector3(0f, 0f, 1f);
             return _kit.Save(root);
         }
 
@@ -652,6 +614,8 @@ namespace SlopArena.EditorTools
 
         // ── Assets ───────────────────────────────────────────────────────────────
 
+        private const string NaniMaskPath = "Assets/CharacterPackages/wibou/Presentation/Source/Nani.png";
+
         private static Materials BuildMaterials() => new()
         {
             Glow = _kit.ParticleMaterial("WibouGlowAdd", _kit.BakeTexture("WibouGlow", 128, 128,
@@ -666,7 +630,65 @@ namespace SlopArena.EditorTools
             Burst = _kit.ParticleMaterial("WibouBurst", _kit.BakeTexture("WibouBurst", 256, 256, BurstPixel)),
             Edge = _kit.ParticleMaterial("WibouCrescentEdge", _kit.BakeTexture("WibouCrescentEdge", 64, 64, EdgePixel)),
             Crescent = CrescentMesh("WibouCrescent"),
+            Nani = WordMaterial("WibouNani", NaniMaskPath, 512, 4.5f, 2.2f),
         };
+
+        /// <summary>
+        /// Lettering from a glyph mask, cropped to its ink, as Bonk's words are: pale faces with a rim line, a green
+        /// extrusion that darkens with depth and his dark rim around both. Widths are in texels.
+        /// </summary>
+        private static Material WordMaterial(string name, string maskPath, int width, float outline, float faceLine)
+        {
+            var mask = new MaskField(maskPath);
+            float u0 = 1f, u1 = 0f, v0 = 1f, v1 = 0f;
+            const int grid = 256;
+            for (int y = 0; y < grid; y++)
+                for (int x = 0; x < grid; x++)
+                {
+                    float u = (x + 0.5f) / grid, v = (y + 0.5f) / grid;
+                    if (mask.Sample(u, v) >= 0f) continue;
+                    u0 = Mathf.Min(u0, u); u1 = Mathf.Max(u1, u);
+                    v0 = Mathf.Min(v0, v); v1 = Mathf.Max(v1, v);
+                }
+            float ink = v1 - v0;
+            var extrude = new Vector2(0.055f * ink, -0.085f * ink);
+            const float pad = 0.025f;
+            float bandU0 = Mathf.Max(0f, u0 - pad), bandU1 = Mathf.Min(1f, u1 + pad + extrude.x);
+            float bandV0 = Mathf.Max(0f, v0 - pad + extrude.y), bandV1 = Mathf.Min(1f, v1 + pad);
+            int height = Mathf.Max(8, Mathf.RoundToInt(width * (bandV1 - bandV0) / (bandU1 - bandU0)));
+            float texels = width / ((bandU1 - bandU0) * mask.Width);
+            return _kit.ParticleMaterial(name, _kit.BakeTexture(name, width, height, (u, v) =>
+            {
+                float mu = Mathf.Lerp(bandU0, bandU1, u), mv = Mathf.Lerp(bandV0, bandV1, v);
+                float face = mask.Sample(mu, mv) * texels;
+                float extrusion = float.MaxValue, depth = 1f;
+                const int steps = 12;
+                for (int k = 1; k <= steps; k++)
+                {
+                    float t = k / (float)steps;
+                    float d = mask.Sample(mu - extrude.x * t, mv - extrude.y * t) * texels;
+                    if (d < 0f && depth >= 1f) depth = t;
+                    extrusion = Mathf.Min(extrusion, d);
+                }
+                Color color = Ink(Mathf.Min(face, extrusion) - outline, Rim);
+                color = Layer(color, Ink(extrusion, Color.Lerp(Green, Rim, depth * 0.6f)));
+                color = Layer(color, Ink(face - faceLine, Rim));
+                return Layer(color, Ink(face, Pale));
+            }));
+        }
+
+        /// <summary>A flat fill inside a signed distance, antialiased over one texel.</summary>
+        private static Color Ink(float distance, Color color)
+            => new(color.r, color.g, color.b, Mathf.Clamp01(0.5f - distance));
+
+        private static Color Layer(Color under, Color over)
+        {
+            float a = over.a + under.a * (1f - over.a);
+            if (a <= 0f) return new Color(0f, 0f, 0f, 0f);
+            return new Color((over.r * over.a + under.r * under.a * (1f - over.a)) / a,
+                (over.g * over.a + under.g * under.a * (1f - over.a)) / a,
+                (over.b * over.a + under.b * under.a * (1f - over.a)) / a, a);
+        }
 
         /// <summary>Toon bands with Wibou's dark green rim.</summary>
         private static Color Bands(float distance, float rimWidth, float accentWidth, Color accent, Color core)

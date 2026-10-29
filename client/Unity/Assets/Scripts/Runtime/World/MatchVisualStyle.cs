@@ -106,6 +106,8 @@ namespace SlopArena.Client.World
                         }
                         if (original.HasProperty("_BaseColor"))
                             material.SetColor("_BaseColor", original.GetColor("_BaseColor"));
+                        if (original.HasProperty("_Cull"))
+                            material.SetFloat("_Cull", original.GetFloat("_Cull"));
 
                         material.SetColor("_ShadowColor", new Color(0.16f, 0.18f, 0.28f));
                         material.SetColor("_RimColor", rimColor);

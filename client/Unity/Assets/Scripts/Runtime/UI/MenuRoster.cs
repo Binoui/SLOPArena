@@ -16,6 +16,7 @@ namespace SlopArena.Client.UI
     public static class MenuRoster
     {
         private static readonly Dictionary<CharacterClass, string> Names = new();
+        private static readonly Dictionary<CharacterClass, string> AlternateNames = new();
         public static readonly CharacterClass[] Classes = LoadClasses();
 
         /// <summary>
@@ -24,6 +25,17 @@ namespace SlopArena.Client.UI
         /// </summary>
         public static string Name(CharacterClass characterClass) =>
             Names.TryGetValue(characterClass, out var name) ? name : characterClass.ToString();
+
+        /// <summary>True for a fighter with two forms (ADR-0051), whose card picks the starting form.</summary>
+        public static bool HasForms(CharacterClass characterClass) => AlternateNames.ContainsKey(characterClass);
+
+        /// <summary>The name of one of the fighter's forms ("Nyxxie" for Nyx's form 1).</summary>
+        public static string Name(CharacterClass characterClass, byte form) =>
+            form == 1 && AlternateNames.TryGetValue(characterClass, out var name) ? name : Name(characterClass);
+
+        /// <summary>The portrait resource of one of the fighter's forms; form 1 adds "_Fake".</summary>
+        public static string PortraitPath(CharacterClass characterClass, byte form) =>
+            form == 1 && HasForms(characterClass) ? $"UI/Portraits/{characterClass}_Fake" : $"UI/Portraits/{characterClass}";
 
         private static CharacterClass[] LoadClasses()
         {
@@ -44,8 +56,13 @@ namespace SlopArena.Client.UI
 
                     BuiltInRosterManifest manifest = BuiltInRosterManifestCodec.Load(path);
                     foreach (var entry in manifest.Entries)
-                        if (ReadDisplayName(Path.Combine(root, entry.PackageId, "character.runtime.json")) is { } name)
+                    {
+                        string runtime = Path.Combine(root, entry.PackageId, "character.runtime.json");
+                        if (ReadDisplayName(runtime) is { } name)
                             Names[entry.Selector] = name;
+                        if (ReadDisplayName(runtime, "alternateForm") is { } alternate)
+                            AlternateNames[entry.Selector] = alternate;
+                    }
                     return manifest.Entries.Select(entry => entry.Selector).ToArray();
                 }
 
@@ -58,14 +75,15 @@ namespace SlopArena.Client.UI
             }
         }
 
-        private static string? ReadDisplayName(string path)
+        private static string? ReadDisplayName(string path, string? block = null)
         {
             try
             {
                 if (!File.Exists(path)) return null;
                 using var document = JsonDocument.Parse(File.ReadAllBytes(path));
-                return document.RootElement.TryGetProperty("character", out var character)
-                    && character.TryGetProperty("displayName", out var name)
+                if (!document.RootElement.TryGetProperty("character", out var character)) return null;
+                if (block != null && !character.TryGetProperty(block, out character)) return null;
+                return character.TryGetProperty("displayName", out var name)
                     && name.GetString() is { Length: > 0 } text ? text : null;
             }
             catch (Exception ex)
@@ -89,6 +107,7 @@ namespace SlopArena.Client.UI
                 CharacterClass.Bonk => "Sir Bonk do bonky bonks.",
                 CharacterClass.Bashie => "NO RUNNING! (She speed-walks.)",
                 CharacterClass.Salamander => "The fastest fingers in the West.",
+                CharacterClass.Nyx => "A witch with another side.",
                 _ => "Admitted fighter with a style all its own.",
             };
         }
