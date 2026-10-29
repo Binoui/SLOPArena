@@ -1,0 +1,19 @@
+{
+	admin off
+	auto_https off
+}
+
+:8765 {
+	@consoleRoot path /console
+	redir @consoleRoot /console/ 308
+	handle_path /console/* {
+		reverse_proxy console:4173 {
+			header_up -Authorization
+			header_up -X-Console-Key
+			header_up X-Console-Gateway {$CONSOLE_GATEWAY_TOKEN}
+		}
+	}
+	handle {
+		reverse_proxy factory:8765
+	}
+}

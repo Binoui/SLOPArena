@@ -1,5 +1,21 @@
 # Deployed by deploy.sh to ~/content-factory on alfred. Tailnet only: Docker's published ports skip UFW.
+# Caddy is the one published port: /console/ goes to the Master console, everything else to the factory.
+# secrets/ is provisioned once by hand (docs/systems/slop-factory.md) and never copied by deploy.sh.
 services:
+  front:
+    image: caddy:2.10-alpine
+    container_name: slop-factory-front
+    restart: unless-stopped
+    user: "1000:1000"
+    environment:
+      XDG_DATA_HOME: /tmp
+      XDG_CONFIG_HOME: /tmp
+    env_file: ./secrets/caddy.env
+    volumes:
+      - ./app/Caddyfile:/etc/caddy/Caddyfile:ro
+    ports:
+      - "100.68.254.9:8765:8765"
+
   factory:
     image: python:3.13-alpine
     container_name: content-factory
@@ -9,5 +25,47 @@ services:
     volumes:
       - ./app:/app:ro
       - ./data:/data
-    ports:
-      - "100.68.254.9:8765:8765"
+
+  console:
+    image: sloparena-console:alfred
+    container_name: master-console
+    restart: unless-stopped
+    user: "1000:1000"
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    environment:
+      CONSOLE_MODE: hosted
+      MASTER_URL: http://master:8080
+      MASTER_CONSOLE_KEY_FILE: /run/secrets/master_console_key
+      CONSOLE_GATEWAY_TOKEN_FILE: /run/secrets/console_gateway_token
+    secrets: [master_console_key, console_gateway_token]
+    depends_on: [tunnel]
+
+  # Master's private address on the VPS; recheck it after a VPS replacement.
+  tunnel:
+    build:
+      context: .
+      dockerfile_inline: |
+        FROM alpine:3.22
+        RUN apk add --no-cache openssh-client && adduser -D -u 1000 tunnel
+    image: slop-factory-tunnel
+    container_name: master-tunnel
+    restart: unless-stopped
+    user: "1000:1000"
+    command: >-
+      ssh -N -o BatchMode=yes -o ExitOnForwardFailure=yes -o ServerAliveInterval=20 -o ServerAliveCountMax=3
+      -o StrictHostKeyChecking=yes -o UserKnownHostsFile=/secrets/known_hosts -i /secrets/tunnel_key
+      -L 0.0.0.0:8080:${MASTER_PRIVATE:-172.30.12.2:8080} binoui@135.125.100.228
+    volumes:
+      - ./secrets/tunnel_key:/secrets/tunnel_key:ro
+      - ./secrets/known_hosts:/secrets/known_hosts:ro
+    networks:
+      default:
+        aliases: [master]
+
+secrets:
+  master_console_key:
+    file: ./secrets/master_console_key
+  console_gateway_token:
+    file: ./secrets/console_gateway_token

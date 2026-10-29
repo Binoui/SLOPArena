@@ -68,3 +68,29 @@ python3 tools/factory.py check import tmp/checks-import/checks.json
 The existing `<data>/factory.db` stores `checks` and `check_notes`. Attachments
 live under `<data>/media/check-<id>/`. Verdict notes retain their original status
 in the body so later moves cannot change an outcome waiting for the relay.
+
+## Run it on alfred
+
+`tools/content_factory/deploy.sh` copies the app to `~/content-factory` on alfred
+and starts four containers. `front` is Caddy and owns the only published port,
+`100.68.254.9:8765` on the tailnet. It sends `/console/` to the Master console and
+everything else to `factory`. `console` runs the `SlopArena-console` image in hosted
+mode, built on alfred from that checkout's committed `HEAD` (`CONSOLE_REPO`
+overrides the path). `tunnel` holds an SSH forward to Master's private address on
+the VPS under the network alias `master`, so the console's fixed
+`http://master:8080` reaches it.
+
+The console trusts only requests that carry Caddy's `X-Console-Gateway` token, and
+only the console reads the Master key. Provision `~/content-factory/secrets` once,
+each file mode 600 and owned by alfred's uid 1000:
+
+- `tunnel_key` and `tunnel_key.pub`: an ed25519 key generated on alfred. Its VPS
+  `authorized_keys` line is
+  `restrict,port-forwarding,permitopen="<master-ip>:8080",command="/usr/sbin/nologin" ssh-ed25519 ... alfred-console-tunnel`.
+- `known_hosts`: the VPS host key from the desk's `known_hosts`.
+- `master_console_key`: the dedicated console key.
+- `console_gateway_token` and `caddy.env` (`CONSOLE_GATEWAY_TOKEN=<same token>`):
+  32 random bytes as hex.
+
+After a VPS replacement, recheck Master's private address. Update the
+`permitopen` line and set `MASTER_PRIVATE=<ip>:8080` in `~/content-factory/.env`.
