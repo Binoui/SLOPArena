@@ -358,15 +358,20 @@ namespace SlopArena.EditorTools.MoveReview
         public readonly Dictionary<byte, Dictionary<string, object>> Forms = new();
         public readonly Dictionary<string, CookedSlotDefinition> Slots = new();
         public CharacterDefinition Definition;
+        public CharacterClass DummyClass;
     }
     internal static class PackageCheck
     {
         public static Coverage Check(MoveRecipe recipe)
         {
-            if (!ClientSession.TryBuildLocalMatchCatalog(out var catalog, out var error)) throw new InvalidOperationException("Local catalog: " + error);
+            var catalog = ClientSession.MatchContentCatalog;
+            // Rebuilding development content destroys the animation catalogs used by the live match.
+            if (!Application.isPlaying && !ClientSession.TryBuildLocalMatchCatalog(out catalog, out var error))
+                throw new InvalidOperationException("Local catalog: " + error);
+            if (catalog == null) throw new InvalidOperationException("Training has no installed match catalog.");
             var entry = catalog.ResolvePackage(recipe.Package) ?? throw new ArgumentException("Recipe package is not admitted: " + recipe.Package);
-            if (catalog.ResolvePackage(recipe.Dummy.Package) == null) throw new ArgumentException("Dummy package is not admitted: " + recipe.Dummy.Package);
-            var coverage = new Coverage { Definition = entry.Definition };
+            var dummy = catalog.ResolvePackage(recipe.Dummy.Package) ?? throw new ArgumentException("Dummy package is not admitted: " + recipe.Dummy.Package);
+            var coverage = new Coverage { Definition = entry.Definition, DummyClass = dummy.Definition.Class };
             for (byte form = 0; form <= (entry.Definition.AlternateForm != null ? 1 : 0); form++)
             {
                 var def = entry.Definition.ForForm(form);

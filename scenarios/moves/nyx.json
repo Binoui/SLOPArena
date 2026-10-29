@@ -207,16 +207,16 @@
         },
         {
           "ticks": 1,
-          "slot": "A"
+          "slot": "R"
         },
         {
-          "ticks": 79
+          "ticks": 119
         }
       ],
       "phases": [
         {
           "name": "flight",
-          "at": "start+18"
+          "at": "cue:presentation.nyx.crow-launch+1"
         },
         {
           "name": "perched",
@@ -228,7 +228,7 @@
         },
         {
           "name": "late",
-          "at": "start+217"
+          "at": "cue:presentation.nyx.crow-pop+16"
         }
       ]
     },
@@ -256,6 +256,20 @@
         },
         {
           "ticks": 100
+        }
+      ],
+      "phases": [
+        {
+          "name": "wind-up",
+          "at": "start"
+        },
+        {
+          "name": "peak",
+          "at": "start+18"
+        },
+        {
+          "name": "fade",
+          "at": "start+45"
         }
       ]
     },
@@ -361,6 +375,20 @@
         },
         {
           "ticks": 114
+        }
+      ],
+      "phases": [
+        {
+          "name": "wind-up",
+          "at": "start"
+        },
+        {
+          "name": "flight",
+          "at": "cue:presentation.nyx.crow-launch+1"
+        },
+        {
+          "name": "perched",
+          "at": "start+35"
         }
       ]
     },
@@ -626,6 +654,20 @@
         },
         {
           "ticks": 100
+        }
+      ],
+      "phases": [
+        {
+          "name": "wind-up",
+          "at": "start"
+        },
+        {
+          "name": "peak",
+          "at": "start+18"
+        },
+        {
+          "name": "fade",
+          "at": "start+45"
         }
       ]
     },

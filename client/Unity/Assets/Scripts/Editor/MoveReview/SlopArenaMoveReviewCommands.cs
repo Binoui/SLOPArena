@@ -73,17 +73,17 @@ namespace SlopArena.EditorTools.MoveReview
             if (MoveRecipeParser.Hash(File.ReadAllBytes(MoveRecipeParser.Resolve(recipe))) != parsed.Sha256)
                 throw new InvalidOperationException("The recipe changed after preparation; prepare a fresh run.");
             var spec = parsed.Move(move);
-            var coverage = PackageCheck.Check(parsed);
             string directory = MoveRecipeParser.Resolve(output, true);
             if (Directory.Exists(directory)) throw new ArgumentException("The take output must be a fresh directory.");
             int jpgQuality = quality ?? parsed.Quality;
             if (jpgQuality < 50 || jpgQuality > 100) throw new ArgumentException("quality must be 50–100.");
             var requestedSize = size == null ? parsed.Size : MoveRecipeParser.ParseSize(size);
             var match = await Ready();
+            var coverage = PackageCheck.Check(parsed);
             if (TakeSession.IsActive || SlopArenaPhotoCommands.LiveActive || SlopArenaGamepadCommands.Active || VirtualPadTimeline.Active)
                 throw new InvalidOperationException("Another input/capture session is active.");
             if (match.CaptureSimulation.GetDefinition(MatchConfig.LocalEntityId).Class != coverage.Definition.Class
-                || match.CaptureSimulation.GetDefinition(match.SelectedNpcId).Class != ResolveDummy(parsed.Dummy.Package))
+                || match.CaptureSimulation.GetDefinition(match.SelectedNpcId).Class != coverage.DummyClass)
                 throw new InvalidOperationException("The Training fighter or selected dummy does not match the recipe.");
             var mount = Object.FindFirstObjectByType<CameraMount>();
             if (mount == null || !mount.isActiveAndEnabled || mount.RenderCamera == null) throw new InvalidOperationException("An enabled gameplay CameraMount is required.");
@@ -129,11 +129,6 @@ namespace SlopArena.EditorTools.MoveReview
             finally { TakeSession.EndIfActive(); }
         }
 
-        private static CharacterClass ResolveDummy(string package)
-        {
-            if (!SlopArena.Client.ClientSession.TryBuildLocalMatchCatalog(out var catalog, out var error)) throw new InvalidOperationException(error);
-            return catalog.ResolvePackage(package)?.Definition.Class ?? throw new ArgumentException("Missing dummy package.");
-        }
         internal static async Task<TrainingMatch> Ready()
         {
             double deadline = EditorApplication.timeSinceStartup + 20;

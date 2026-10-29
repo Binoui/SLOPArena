@@ -96,7 +96,32 @@ boxes and each camera's observed render tick. All views render after the same
 input and Shared step. The final `take.json` is written only after all JPGs and
 rows complete. Failed takes keep their partial evidence and cannot be overwritten.
 
-Nyx's ground E recipes are neutral recovery takes anchored to startup rather than
-hits. They have no legacy hit baseline. `real-q` deliberately includes the crow,
-a form swap and the alternate follow-up to expose the perch and pop presentation.
+Nyx's ground and air E recipes use startup anchors because these recovery takes
+do not hit the dummy. The ground cases have no legacy hit baseline. The real air
+crow uses startup and launch-cue anchors. `real-q` deliberately plays A, F, then R
+over 270 ticks to expose the crow's flight, perch, Selfie Grab release, and pop.
+Its late phase follows the observed pop cue.
 Gameplay targeting aids retain their existing gameplay-camera orientation in v1.
+
+## Review media
+
+The run directory contains `plan.json`, immutable completed takes, gateway logs,
+`timing.json`, and `summary.json`. Below `media/`, `sheets/<id>.jpg` has one row per
+view and one column per phase. Each cell includes the full frame and a nearest-neighbor
+zoom of pixels from that same frame. Crops have ten percent padding when space
+allows. Large action boxes use a smaller central crop to keep the inset enlarged;
+the full frame retains the surrounding action. The adjacent JSON records the
+original action box, actual crop, source frame, and zoom.
+
+`clips/<id>/<view>.mp4` contains a 60 fps H.264 yuv420p view. `clips/<id>/all.mp4`
+is a synchronized mosaic with an info tile. Ten views use a 4-by-3 grid.
+`montage/form-<n>.mp4` concatenates that form's move mosaics. Boards below
+`board/` stay under 30 KB, reference images by absolute path, and fit a 390 px
+viewport. Return their paths to the owner's thread for rendering.
+
+`run` accepts `--moves` with comma-separated ids or globs, `--views`, `--size`,
+`--quality`, an optional `--recipe`, and a fresh `--output` below `tmp/moves/`.
+`--dry-run` prints the batch without using the Editor. `media` validates complete
+receipts, contiguous frame and Shared ticks, equal camera ticks, and every JPG
+before rebuilding. A take without `take.json` is reported missing. Capture failures
+retain their partial evidence and return a nonzero exit code.

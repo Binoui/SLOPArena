@@ -43,8 +43,11 @@ away.
    (`tools/genra/run.py --stage keys`) before any motion.
 6. **Motion.** Run one authoring round per clip. Show each take on its own, and let the owner
    pick before any revision.
-7. **In game.** Promote, bind and wire the clips, cook, and show the move from Play Mode
-   captures. The owner then plays it in Training from the Slop Factory check.
+7. **In game.** Promote, bind and wire the clips, cook, and capture the bound move with
+   `python3 tools/move_review.py run <package> --moves <id>`. Add or update its
+   [move recipe](../../scenarios/moves/README.md), then inspect the synchronized
+   views and return the form board's absolute path to the owner's thread.
+   The owner then plays it in Training from the Slop Factory check.
 8. **Effects.** Paint concepts over real captures and make a sound tour video. After the
    owner's picks, build the effects, then capture "after" frames and a review video
    ([VFX pass](../sloparena-character-vfx-pass/SKILL.md)). Key footstep cues to the clip's
