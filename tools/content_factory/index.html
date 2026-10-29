@@ -131,6 +131,8 @@ function count(k, s) {
 }
 function draw() {
   for (const name of ["clips", "checks"]) document.getElementById(name + "-area").classList.toggle("on", area === name);
+  const waiting = B.checks.filter(c => c.status === "to-try" || c.status === "redo").length;
+  document.getElementById("checks-area").innerHTML = "Checks" + (waiting ? `<b>${waiting}</b>` : "");
   document.getElementById("running").parentElement.hidden = area === "checks";
   if (area === "checks") return drawChecks();
   document.getElementById("tabs").innerHTML = TABS.map(([k, l, s]) => {

@@ -25,6 +25,7 @@ services:
     volumes:
       - ./app:/app:ro
       - ./data:/data
+      - /etc/localtime:/etc/localtime:ro  # the board reads stored times as the owner's local time
 
   console:
     image: sloparena-console:alfred
