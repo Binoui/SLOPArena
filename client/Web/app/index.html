@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="theme-color" content="#1b1a18">
-<meta name="description" content="Try SLOPArena in your browser. Pick a fighter, play a Brawl or chase a Slopball streak, then bring your friends to Steam.">
+<meta name="description" content="Try SLOPArena in your browser. Earn your Fighter's License, play a Brawl or chase a Slopball streak, then bring your friends to Steam.">
 <title>SLOPArena · browser demo</title>
 <style>
   :root { --ink: #1b1a18; --deep: #161513; --paper: #f0eee8; --muted: #57544e; --accent: #ffcc22; --orange: #e05c2a; --rule: #b5b0a5; color-scheme: dark; }
@@ -42,8 +42,17 @@
   .pick:hover { border-color: var(--ink); background: #e3dfd5; }
   .pick.on { border-color: var(--ink); background: var(--accent); }
   #pickMode .pick { font-size: 16px; min-width: 118px; font-family: 'Archivo Black', sans-serif; font-weight: 400; }
-  #pickStage { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); }
-  #pickStage .pick { padding-inline: 5px; font-size: 12px; }
+  .badge { display: inline-block; margin-left: 8px; padding: 1px 6px; background: var(--orange); color: var(--paper); font: 800 10px/1.5 system-ui, sans-serif; letter-spacing: .06em; text-transform: uppercase; vertical-align: 3px; }
+  #pickYou, #pickCpu { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); }
+  .pick.fighter-tile { position: relative; min-width: 0; padding: 3px; border: 2px solid var(--ink); border-bottom-width: 4px; font-size: 10px; text-transform: uppercase; }
+  .fighter-tile img { display: block; width: 100%; height: 76px; object-fit: cover; object-position: top; }
+  .fighter-tile span { display: block; padding-top: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .fighter-tile .wip { position: absolute; top: 5px; right: 5px; background: var(--ink); color: var(--paper); padding: 1px 3px; font: 800 8px/1.4 system-ui, sans-serif; }
+  #pickCpu .fighter-tile img { height: 42px; }
+  #pickCpu .fighter-tile { font-size: 9px; }
+  #pickStage { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); }
+  .pick.stage-tile { padding: 3px 3px 4px; font-size: 10px; }
+  .stage-tile img { display: block; width: 100%; aspect-ratio: 16 / 9; object-fit: cover; margin-bottom: 2px; }
   .mode-help { margin: 2px 0 0; font-size: 12px; color: var(--muted); }
   .start-row { display: flex; align-items: center; gap: 18px; margin-top: 1px; padding-top: 13px; border-top: 1px solid var(--rule); }
   .go { min-height: 52px; min-width: 190px; padding: 8px 30px; font-size: 26px; border: 2px solid var(--ink); border-bottom-width: 5px; background: var(--accent); color: var(--ink); }
@@ -72,6 +81,7 @@
   .card.score .pct { font-size: 62px; color: var(--paper); }
   .card.score .sub { font-size: 12px; font-weight: 600; }
   #status { position: fixed; top: 12px; left: 12px; font-size: 11px; color: #e6e1d6; background: #161513b8; padding: 4px 7px; z-index: 2; white-space: pre-wrap; max-width: calc(100% - 90px); font-weight: 500; pointer-events: none; }
+  #status.quiet { visibility: hidden; }
   body:not(.playing) #status { z-index: 6; top: auto; bottom: 3px; left: 5px; background: transparent; color: var(--muted); font-size: 10px; }
   body.slopball #status { top: auto; bottom: 8px; }
   #banner { position: fixed; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; padding: 24px; z-index: 3; pointer-events: none; text-align: center; }
@@ -82,6 +92,36 @@
   #bannerCta { display: none; margin-top: 22px; max-width: 360px; pointer-events: auto; }
   #banner.is-result #bannerCta { display: block; }
   #bannerCta p { font-size: 19px; margin: 0 0 14px; }
+  .tutorial { position: fixed; right: 12px; top: 64px; z-index: 3; width: min(340px, calc(100% - 24px)); padding: 14px 16px 12px; background: #161513e0; border-left: 4px solid var(--accent); transition: border-color .2s; pointer-events: none; }
+  .tutorial.passed { border-left-color: #78d678; }
+  .t-eyebrow { font-size: 12px; font-weight: 800; letter-spacing: .06em; color: var(--accent); }
+  .t-title { margin-top: 2px; font: 400 30px/1.1 'Archivo Black', sans-serif; letter-spacing: -.03em; }
+  .t-hint { margin: 4px 0 8px; font-size: 14px; color: #cdc8be; }
+  .t-objectives { list-style: none; margin: 0; padding: 0; }
+  .t-objectives li { display: flex; align-items: center; margin-top: 7px; font-size: 14px; }
+  .t-check { flex-shrink: 0; display: grid; place-items: center; width: 18px; height: 18px; margin-right: 10px; border: 2px solid var(--paper); }
+  .t-key { flex-shrink: 0; min-width: 30px; margin-right: 9px; padding: 2px 6px; background: var(--paper); border: 0; border-radius: 3px; color: var(--ink); font: 700 12px/1.4 system-ui, sans-serif; text-align: center; }
+  .t-text { flex: 1; min-width: 0; }
+  .t-amount { flex-shrink: 0; margin-left: 8px; font-size: 12px; color: var(--accent); }
+  .t-objectives li.done .t-check { background: var(--accent); border-color: var(--accent); }
+  .t-objectives li.done .t-check::after { content: ''; width: 9px; height: 5px; border: solid var(--ink); border-width: 0 0 2.5px 2.5px; transform: translateY(-1px) rotate(-45deg); }
+  .t-objectives li.done .t-text { color: #96928a; }
+  .t-objectives li.done .t-key { opacity: .45; }
+  .t-footer { margin-top: 12px; font-size: 10px; color: #96928a; }
+  /* The PASSED stamp slams in, holds, then fades (TutorialView: in .12 s, hold 1.05 s, out .3 s). */
+  #tutorialStamp { position: fixed; left: 0; right: 0; top: 19%; z-index: 3; display: flex; justify-content: center; pointer-events: none; animation: stamp 1.47s linear forwards; }
+  #tutorialStamp .plate { display: flex; flex-direction: column; align-items: center; padding: 8px 36px 14px; background: #161513c7; border: 6px solid #78d678; border-radius: 12px; rotate: -6deg; }
+  #tutorialStamp .detail { font-size: 15px; font-weight: 800; letter-spacing: .2em; text-align: center; }
+  #tutorialStamp .word { margin-top: -4px; font: 400 clamp(48px, 9vw, 86px)/1.1 'Archivo Black', sans-serif; letter-spacing: .07em; color: #78d678; }
+  #tutorialStamp.license .plate { border-color: var(--accent); }
+  #tutorialStamp.license .word { font-size: clamp(34px, 6.5vw, 62px); letter-spacing: .04em; color: var(--accent); }
+  @keyframes stamp { 0% { transform: scale(1.8); opacity: 0; animation-timing-function: ease-in; } 8.2% { transform: scale(1); opacity: 1; } 79.6% { opacity: 1; } 100% { transform: scale(1); opacity: 0; } }
+  #pause { position: fixed; inset: 0; z-index: 6; display: flex; align-items: center; justify-content: center; padding: 20px; background: #161513b0; }
+  .pause-box { display: flex; flex-direction: column; gap: 10px; width: min(300px, 100%); padding: 22px 26px 26px; background: var(--ink); border-top: 5px solid var(--accent); box-shadow: 6px 6px 0 var(--orange); }
+  .pause-box h2 { margin: 0 0 6px; font: 400 34px/1.1 'Archivo Black', sans-serif; letter-spacing: -.03em; }
+  .pause-box button { min-height: 46px; padding: 8px 16px; background: var(--paper); border: 2px solid var(--ink); color: var(--ink); font-size: 17px; font-weight: 800; }
+  .pause-box button.primary { background: var(--accent); }
+  .pause-box button:hover { outline: 2px solid var(--orange); }
   .pop { position: fixed; z-index: 2; font-family: 'Archivo Black', sans-serif; font-size: 22px; pointer-events: none; text-shadow: 0 2px 0 #000a; transition: transform .6s ease-out, opacity .6s ease-in; }
   @media (min-width: 1500px) { .menu-grid { grid-template-columns: 300px minmax(0,1fr); } .invite h2 { font-size: 38px; } }
   @media (min-width: 1001px) and (max-height: 780px) {
@@ -92,11 +132,17 @@
     .setup { gap: 10px; }
     .pick { min-height: 36px; padding-block: 5px; }
     .go { min-height: 48px; }
+    .fighter-tile img { height: 64px; }
+    #pickCpu .fighter-tile img { height: 38px; }
     .start-row { padding-top: 10px; }
     .keys { margin-top: 12px; }
   }
   @media (max-width: 1000px) { .menu-grid { grid-template-columns: 220px minmax(0,1fr); gap: 24px; } .overlay { padding: 24px; } #pickStage { grid-template-columns: repeat(3,minmax(0,1fr)); } .invite { padding: 20px 18px; } .invite h2 { font-size: 28px; } .pick { padding-inline: 9px; } }
   @media (max-width: 700px) {
+    #pickYou { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+    #pickCpu { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+    .fighter-tile img { height: 80px; }
+    #pickCpu .fighter-tile img { height: 48px; }
     .overlay { padding: 22px 18px 30px; }
     .menu-inner { justify-content: flex-start; }
     .masthead { gap: 9px; flex-wrap: wrap; padding-bottom: 15px; margin-bottom: 20px; }
@@ -129,6 +175,9 @@
     #bannerSub { font-size: 16px; }
     #bannerCta p { font-size: 17px; }
     #status { font-size: 9px; }
+    .tutorial { top: 56px; padding: 10px 12px; }
+    .t-title { font-size: 22px; }
+    .t-hint, .t-objectives li { font-size: 12px; }
   }
   @media (prefers-reduced-motion: reduce) { *, *::before, *::after { transition: none !important; } }
   .pad-focus { outline: 4px solid #1a1420; outline-offset: 3px; box-shadow: 0 0 0 9px #ffcf3a99; }
@@ -139,6 +188,7 @@
   #start .sub { margin-top: 8px; color: #fff7e8cc; font-weight: 600; }
   @keyframes pulse { 50% { opacity: .55; } }
 </style>
+<link rel="stylesheet" href="./hud.css">
 <script type="importmap">{ "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js", "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/" } }</script>
 </head>
 <body>
@@ -158,7 +208,7 @@
       </aside>
       <div class="setup" aria-label="Match setup">
         <section><h2 id="modeLabel">Mode</h2><div class="row" id="pickMode" role="group" aria-labelledby="modeLabel"></div><p id="modeHelp" class="mode-help">Knock out the CPUs. Last fighter standing wins.</p></section>
-        <section><h2 id="youLabel">Your fighter</h2><div class="row" id="pickYou" role="group" aria-labelledby="youLabel"></div></section>
+        <section><h2 id="youLabel">Your fighter</h2><div class="row" id="pickYou" role="group" aria-labelledby="youLabel"></div><p id="fighterHelp" class="mode-help"></p></section>
         <section id="secCpu"><h2 id="cpuLabel">CPU opponents · choose up to 3</h2><div class="row" id="pickCpu" role="group" aria-labelledby="cpuLabel"></div></section>
         <section id="secStage"><h2 id="stageLabel">Stage</h2><div class="row" id="pickStage" role="group" aria-labelledby="stageLabel"></div></section>
         <section id="secLevel"><h2 id="levelLabel">CPU level</h2><div class="row" id="pickLevel" role="group" aria-labelledby="levelLabel"></div></section>
@@ -173,6 +223,19 @@
   </div>
 </main>
 <div id="hud" aria-label="Match HUD"></div>
+<div id="moveDeck" aria-label="Your moves"></div>
+<aside id="tutorial" class="tutorial hidden" aria-label="Fighter's License checklist" aria-live="polite">
+  <div class="t-eyebrow"></div><div class="t-title"></div><p class="t-hint"></p><ul class="t-objectives"></ul>
+  <div class="t-footer">ESC / START · PAUSE TO SKIP OR RESTART A LESSON</div>
+</aside>
+<div id="tutorialStamp" class="hidden" aria-hidden="true"><div class="plate"><div class="detail"></div><div class="word"></div></div></div>
+<div id="pause" class="hidden" role="dialog" aria-modal="true" aria-labelledby="pauseTitle"><div class="pause-box">
+  <h2 id="pauseTitle">PAUSED</h2>
+  <button id="pauseResume" class="primary" type="button">RESUME</button>
+  <button id="pauseSkip" type="button">SKIP LESSON</button>
+  <button id="pauseRestart" type="button">RESTART LESSON</button>
+  <button id="pauseLeave" type="button">LEAVE TUTORIAL</button>
+</div></div>
 <div id="banner" class="hidden"><div class="big" id="bannerText"></div><div id="bannerSub"></div><aside id="bannerCta" aria-label="Continue on Steam"><p>Play online with friends on Steam.</p><a class="steam-link" href="https://store.steampowered.com/app/5324910/" target="_blank" rel="noopener noreferrer">Wishlist SLOPArena<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 18 18 6M6 6h12v12"/></svg></a><a class="discord-link" href="https://discord.gg/VvfaxDCF6Z" target="_blank" rel="noopener noreferrer">Join the Discord<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14m-6-6 6 6-6 6"/></svg></a></aside></div>
 <script type="module" src="./cta.js"></script>
 <script type="module" src="./main.js"></script>

@@ -2,10 +2,22 @@ import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { DRACOLoader } from 'three/addons/loaders/DRACOLoader.js';
 
-const exported = new Set(['after_hours', 'slop_pit', 'splash_deck', 'table_manners', 'log_off', 'hamster_habitat', 'training', 'slopball']);
+const exported = new Set(['after_hours', 'slop_pit', 'splash_deck', 'table_manners', 'log_off', 'hamster_habitat', 'training', 'slopball', 'license_test']);
 const loaders = new Map();
 
 export const hasStageArt = stageId => exported.has(stageId);
+
+// Unity's StageSightHoles (SlopArenaStageCutaway.hlsl): stage geometry above a fighter's feet dithers away inside a
+// camera-to-fighter cone, so walls never hide the fight and the camera never pulls in. Radius, edge and opacity
+// are Unity's defaults; Shared positions are capsule centres and the roster's shortest half height keeps floors whole.
+const SIGHT_SHAPE = new THREE.Vector3(1.8, 0.5, 0);
+const FEET_BELOW_CENTRE = 0.75;
+const sightCentres = [];
+// points: up to four capsule centres in three.js world space, the player first; none closes every hole.
+export function setSightHoles(points) {
+  sightCentres.length = 0;
+  for (const p of points.slice(0, 4)) sightCentres.push(p);
+}
 
 export async function loadStageArt(stageId, { paths }) {
   if (!exported.has(stageId)) return null;
@@ -26,7 +38,7 @@ export async function loadStageArt(stageId, { paths }) {
     for (const mesh of meshes) {
       if (!materials.has(mesh.material)) materials.set(mesh.material, stageMaterial(mesh.material, gltf.parser, environment));
     }
-    const eye = new THREE.Vector3();
+    const eye = new THREE.Vector3(), centre = new THREE.Vector3(), feet = new THREE.Vector3();
     for (const mesh of meshes) {
       const original = mesh.material;
       mesh.material = await materials.get(original);
@@ -60,6 +72,12 @@ export async function loadStageArt(stageId, { paths }) {
         camera.getWorldPosition(eye);
         mesh.worldToLocal(eye);
         u.eyeSim.value.copy(eye);
+        u.sightCount.value = sightCentres.length;
+        sightCentres.forEach((p, i) => {
+          mesh.worldToLocal(centre.copy(p));
+          mesh.worldToLocal(feet.set(p.x, p.y - FEET_BELOW_CENTRE, p.z));
+          u.sightTargets.value[i].set(centre.x, centre.y, centre.z, feet.y);
+        });
       };
       // Shader travel can wrap hundreds of metres away from its original bounds.
       if (mesh.geometry.hasAttribute('_stage_travel')) mesh.frustumCulled = false;
@@ -219,7 +237,36 @@ uniform float foamStrength, foamSpeed;
 uniform vec3 reflectionSky, reflectionHorizon, foamColor;
 vec3 ripple(vec2 uv) { return (texture2D(rippleMap, uv).rgb * 2.0 - 1.0).rbg; }
 #endif
+uniform vec4 sightTargets[4];
+uniform float sightCount;
+uniform vec3 sightShape;
+// Unity's 4x4 Bayer matrix, bayer[y][x].
+float bayer2(vec2 p) { return 2.0 * abs(p.x - p.y) + p.y; }
+float bayer4(vec2 p) { vec2 q = mod(floor(p), 4.0); return 4.0 * bayer2(mod(q, 2.0)) + bayer2(floor(q * .5)); }
+void sightHoles() {
+  if (sightCount <= 0.0) return;
+  float coverage = 1.0;
+  for (int i = 0; i < 4; i++) {
+    if (float(i) >= sightCount) break;
+    vec4 target = sightTargets[i];
+    if (simPosition.y <= target.w + 0.1) continue;
+    vec3 toTarget = target.xyz - eye;
+    float len = length(toTarget);
+    if (len <= 0.0001) continue;
+    vec3 dir = toTarget / len;
+    vec3 rel = simPosition - eye;
+    float along = dot(rel, dir);
+    if (along <= 0.0) continue;
+    float radius = sightShape.x * along / len;
+    float soft = sightShape.y * along / len;
+    float perp = length(rel - dir * along);
+    float hole = (1.0 - smoothstep(radius - soft, radius, perp)) * smoothstep(len + 0.3, len - 0.1, along);
+    coverage = min(coverage, mix(1.0, sightShape.z, hole));
+  }
+  if (coverage < (bayer4(gl_FragCoord.xy) + 0.5) / 16.0) discard;
+}
 void main() {
+  sightHoles();
   vec3 n = normalize(simNormal) * (gl_FrontFacing ? 1.0 : -1.0);
   vec3 viewDir = normalize(eye - simPosition);
   vec4 tex = sampleAtlas();
@@ -323,6 +370,9 @@ async function stageMaterial(original, parser, environment) {
   uniform('hasDetail', detail ? 1 : 0);
   uniform('rippleMap', ripples);
   uniform('eyeSim', new THREE.Vector3());
+  uniform('sightTargets', Array.from({ length: 4 }, () => new THREE.Vector4()));
+  uniform('sightCount', 0);
+  uniform('sightShape', SIGHT_SHAPE);
   uniform('clock', 0);
   colour('sky', atmosphere.ambientSky ?? [.6, .65, .75]);
   colour('ground', atmosphere.ambientGround ?? [.25, .2, .2]);

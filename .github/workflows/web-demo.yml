@@ -39,6 +39,8 @@ jobs:
         run: client/Web/scripts/build.sh
       - name: Smoke-test a headless match
         run: node client/Web/scripts/smoke.mjs brawl after_hours fightguy,manki
+      - name: Smoke-test the tutorial
+        run: node client/Web/scripts/smoke.mjs tutorial license_test fightguy,bonk
       - name: Package
         run: node client/Web/scripts/package.mjs
       - name: Deploy to Cloudflare Pages

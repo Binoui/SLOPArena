@@ -202,6 +202,11 @@ export function createAudio({ paths }) {
           if (kind === 'Missed') sound('slopball-miss', 'slopball_miss', 0.55);
         }
       }
+      // Unity's TutorialView: a click per finished objective, the countdown beat on PASSED.
+      if (mode === 'tutorial' && frame.mode) {
+        if (frame.mode.completed) sound('tutorial-check', 'click', 0.32);
+        if (frame.mode.passed) sound('tutorial-passed', 'slopball_beep', 0.4, 1.5);
+      }
       if (frame.ended) finish();
     },
     onMatchEnd() {

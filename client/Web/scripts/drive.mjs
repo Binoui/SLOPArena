@@ -9,6 +9,7 @@ const port = Number(script.port ?? 9333);
 const [width, height] = (script.size ?? '1280x720').split('x').map(Number);
 const chrome = spawn('google-chrome-stable', ['--headless=new', `--remote-debugging-port=${port}`, `--user-data-dir=/tmp/webdemo-chrome-${port}`,
   `--window-size=${width},${height}`, '--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--no-first-run', '--mute-audio', 'about:blank'], { stdio: 'ignore' });
+process.once('exit', () => chrome.kill());
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 let ws;
 for (let i = 0; i < 50 && !ws; i++) {
@@ -36,8 +37,8 @@ const evalJs = async expr => {
   return r.result?.result?.value;
 };
 const shot = async name => { const r = await send('Page.captureScreenshot', { format: 'png' }); writeFileSync(`${out}/${name}.png`, Buffer.from(r.result.data, 'base64')); };
-const CODES = { Space: [' ', 32], KeyW: ['w', 87], KeyA: ['a', 65], KeyS: ['s', 83], KeyD: ['d', 68], Digit1: ['1', 49], Digit2: ['2', 50], Digit3: ['3', 51], Digit4: ['4', 52], KeyQ: ['q', 81], KeyE: ['e', 69], KeyR: ['r', 82], KeyF: ['f', 70], Enter: ['Enter', 13], Escape: ['Escape', 27], ShiftLeft: ['Shift', 16], KeyH: ['h', 72] };
-const key = async (code, type) => { const [k, vk] = CODES[code]; await send('Input.dispatchKeyEvent', { type, code, key: k, windowsVirtualKeyCode: vk }); };
+const CODES = { ArrowUp: ['ArrowUp', 38], ArrowDown: ['ArrowDown', 40], ArrowLeft: ['ArrowLeft', 37], ArrowRight: ['ArrowRight', 39], Space: [' ', 32], KeyW: ['w', 87], KeyA: ['a', 65], KeyS: ['s', 83], KeyD: ['d', 68], Digit1: ['1', 49], Digit2: ['2', 50], Digit3: ['3', 51], Digit4: ['4', 52], KeyQ: ['q', 81], KeyE: ['e', 69], KeyR: ['r', 82], KeyF: ['f', 70], Enter: ['Enter', 13], Escape: ['Escape', 27], ShiftLeft: ['Shift', 16], KeyH: ['h', 72], KeyX: ['x', 88], KeyC: ['c', 67] };
+const key = async (code, type) => { const [k, vk] = CODES[code]; await send('Input.dispatchKeyEvent', { type, code, key: k, windowsVirtualKeyCode: vk, text: type === 'keyDown' && code === 'Enter' ? '\r' : undefined }); };
 await send('Runtime.enable'); await send('Page.enable');
 await send('Emulation.setDeviceMetricsOverride', { width, height, deviceScaleFactor: 1, mobile: false });
 await send('Network.enable'); await send('Network.setCacheDisabled', { cacheDisabled: true });
@@ -60,7 +61,9 @@ for (const [i, step] of (script.steps ?? []).entries()) {
   if (step.until) {
     const t = Date.now();
     while (Date.now() - t < (step.timeout ?? 60000) && !(await evalJs(step.until))) await sleep(250);
-    console.log('until', step.until, '->', await evalJs(step.until), `after ${((Date.now() - t) / 1000).toFixed(1)} s`);
+    const reached = await evalJs(step.until);
+    console.log('until', step.until, '->', reached, `after ${((Date.now() - t) / 1000).toFixed(1)} s`);
+    if (!reached) throw new Error('Timed out waiting for ' + step.until);
   }
   if (step.cdp) { const result = await send(step.cdp, step.params ?? {}); if (step.save) writeFileSync(`${out}/${step.save}`, JSON.stringify(result.result)); }
   if (step.eval) console.log('eval:', await evalJs(step.eval));
