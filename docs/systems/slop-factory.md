@@ -1,7 +1,8 @@
 # File and answer human checks
 
 Slop Factory has **Clips** for social videos, **Checks** for human playtests, and a
-**Console** link to `/console/`. Open the factory board on the phone or desk.
+**Console** tab that opens the live Master station at `/console/` and shows how many
+players are online. Open the factory board on the phone or desk.
 Checks stay in To try, Redo, Good, or Dropped until someone moves them.
 
 ## File a check
