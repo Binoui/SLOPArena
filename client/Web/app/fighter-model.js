@@ -1,7 +1,8 @@
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import * as SkeletonUtils from 'three/addons/utils/SkeletonUtils.js';
-import { seatRing, shieldBubble, createFlash } from './fighters.js';
+import { shieldBubble, createFlash } from './fighters.js';
+import { GroundMarker } from './ground-marker.js';
 import { SEMANTIC_BONES } from './geometry.js';
 
 // Real fighter models exported from Unity by client/Web/tools/fighter_glb.py. Each clip is named by its semantic id
@@ -18,7 +19,7 @@ export function loadFighterModel(pkg, assets) {
 }
 
 export class ModelFighter {
-  constructor({ world, info, gltf, seatColor }) {
+  constructor({ world, info, gltf, seatColor, floorAt }) {
     this.world = world;
     this.info = info;
     this.root = new THREE.Group();
@@ -59,10 +60,10 @@ export class ModelFighter {
     this.current = null;
     this.previous = null;
     this.blend = 1;
-    this.ring = seatRing(seatColor);
+    this.marker = new GroundMarker({ world, half: info.half, seatColor, floorAt });
     this.shield = shieldBubble(seatColor);
     this.root.add(this.shield);
-    world.add(this.root, this.ring);
+    world.add(this.root);
   }
 
   play(anim, frame, dt) {
@@ -91,7 +92,8 @@ export class ModelFighter {
   update(f, out, now) {
     const dt = this.lastNow ? Math.min((now - this.lastNow) / 1000, 0.1) : 0;
     this.lastNow = now; this.frame = f;
-    this.root.visible = this.ring.visible = !out;
+    this.root.visible = !out;
+    this.marker.update(f, out);
     if (out) return;
     const jitter = f.stop > 0 ? (Math.random() - 0.5) * 0.05 : 0;
     this.root.position.set(f.p[0] + jitter, f.p[1] + this.info.modelYOffset, f.p[2]);
@@ -107,7 +109,6 @@ export class ModelFighter {
     if (this.formParts) this.formParts.forEach((parts, form) => parts.forEach(o => { o.visible = form === (f.form === 1 ? 1 : 0); }));
     const attacking = f.state === 'Attacking' || f.state === 'Aiming';
     for (const w of this.weapons) w.node.visible = w.slot === 0 || (attacking && w.slot === f.slot);
-    this.ring.position.set(f.p[0], f.p[1] - this.info.half + 0.03, f.p[2]);
     const shielding = /Shield/.test(f.state);
     this.shield.visible = shielding;
     if (shielding) {
@@ -157,7 +158,8 @@ export class ModelFighter {
   }
 
   dispose() {
-    this.world.remove(this.root, this.ring);
+    this.marker.dispose();
+    this.world.remove(this.root);
     this.mixer.stopAllAction();
   }
 }

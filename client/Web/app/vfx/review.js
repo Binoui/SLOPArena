@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { SEATS } from '../seat-colours.js';
 import { floorSampler } from './floor.js';
 import { toThree } from '../geometry.js';
 import { loadStageArt } from '../stage-art.js';
@@ -15,7 +16,7 @@ export async function createReview({ world, scene, renderer, camera, vfx, Demo, 
   await loadModels(Object.keys(fighterInfo));
   let views = [], frame, press = 40, captured = -1;
   const hits = [], events = [], deaths = [];
-  const context = () => ({ infoOf: pkg => fighterInfo[pkg], viewOf: id => views[id - 1], arena, floorAt: arena.floorAt, fighterOf: id => frame.fighters.find(f => f.id === id), seatOf: id => id - 1, seatColor: id => [0xff4b4b, 0x3f8cff][id] ?? 0xffffff,
+  const context = () => ({ infoOf: pkg => fighterInfo[pkg], viewOf: id => views[id - 1], arena, floorAt: arena.floorAt, fighterOf: id => frame.fighters.find(f => f.id === id), seatOf: id => id - 1, seatColor: id => SEATS[id] ?? 0xffffff,
     boneFrame: (id, bone) => views[id - 1]?.boneFrame?.(bone) ?? null,
     boneWorld: (id, bone) => views[id - 1]?.boneWorld(bone) ?? null });
   let focus, distance;
@@ -43,7 +44,7 @@ export async function createReview({ world, scene, renderer, camera, vfx, Demo, 
   return {
     async start(pkg, move, options = {}) {
       for (const v of views) v.dispose();
-      views = [pkg, pkg === 'bonk' ? 'bashie' : 'bonk'].map((p, i) => createFighterView(p, i));
+      views = [pkg, pkg === 'bonk' ? 'bashie' : 'bonk'].map((p, i) => createFighterView(p, i, arena.floorAt));
       hits.length = 0; events.length = 0; deaths.length = 0;
       const slot = { 1: 3, 3: 8, 4: 9, A: 11, E: 4, R: 5, F: 6 }[move];
       const spacing = options.distance ?? (move === 'A' ? 4 : move === 'R' ? 1.5 : 1.3);

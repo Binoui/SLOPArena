@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { GroundMarker } from './ground-marker.js';
 import { UP, unitSphere, unitCylinder, placeSegment, placeBall, SEMANTIC_BONES } from './geometry.js';
 
 // A fighter view draws one fighter from its frame entry. Every view exposes:
@@ -8,7 +9,7 @@ import { UP, unitSphere, unitCylinder, placeSegment, placeBall, SEMANTIC_BONES }
 
 // Limbless capsule fighter posed from the cooked hurtbox skeleton (poses.bin).
 export class Puppet {
-  constructor({ world, info, seatColor, bodyColor }) {
+  constructor({ world, info, seatColor, bodyColor, floorAt }) {
     const bones = info.bones;
     const idx = name => bones.findIndex(b => b.endsWith(name));
     this.b = {
@@ -36,13 +37,11 @@ export class Puppet {
     this.toes = [m(unitSphere, dark), m(unitSphere, dark), m(unitSphere, dark), m(unitSphere, dark)];
     this.blade = this.b.tip >= 0 && this.b.hilt >= 0
       ? m(unitCylinder, new THREE.MeshStandardMaterial({ color: 0xdfe6f0, metalness: 0.8, roughness: 0.25 })) : null;
-    this.ring = seatRing(seatColor);
-    this.group.add(this.ring);
+    this.marker = new GroundMarker({ world, half: info.half, seatColor, floorAt });
     this.shield = shieldBubble(seatColor);
     this.group.add(this.shield);
     this.flash = createFlash(this.mats);
     this.L = 0;
-    this.half = info.half;
     this.frame = null;
     world.add(this.group);
   }
@@ -56,6 +55,7 @@ export class Puppet {
   }
   update(f, out, now) {
     this.frame = f;
+    this.marker.update(f, out);
     this.group.visible = !out && f.pts.length > 0;
     if (!this.group.visible) return;
     const P = name => this.pt(f, this.b[name]);
@@ -96,19 +96,12 @@ export class Puppet {
       this.blade.visible = !!(tip && hilt);
       if (tip && hilt) placeSegment(this.blade, hilt, tip, s * 0.035);
     }
-    this.ring.position.set(f.p[0], f.p[1] - this.half + 0.03, f.p[2]);
     const shielding = /Shield/.test(f.state);
     this.shield.visible = shielding;
     if (shielding) placeBall(this.shield, hips.clone().lerp(chest, 0.5), s * 1.3);
     this.flash(f, now);
   }
-  dispose() { this.world.remove(this.group); }
-}
-
-export function seatRing(color) {
-  const ring = new THREE.Mesh(new THREE.TorusGeometry(0.5, 0.05, 8, 32), new THREE.MeshBasicMaterial({ color }));
-  ring.rotation.x = Math.PI / 2;
-  return ring;
+  dispose() { this.marker.dispose(); this.world.remove(this.group); }
 }
 
 export function shieldBubble(color) {
