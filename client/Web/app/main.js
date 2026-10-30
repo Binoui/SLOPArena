@@ -1,8 +1,9 @@
 import * as THREE from 'three';
 import { toThree, unitSphere, unitCylinder, placeSegment, placeBall } from './geometry.js';
-import { Puppet } from './fighters.js';
+import { Puppet, flashVictims } from './fighters.js';
 import { ModelFighter, loadFighterModel } from './fighter-model.js';
 import { createVfx } from './vfx.js';
+import { floorSampler } from './vfx/floor.js';
 import { loadStageArt, hasStageArt } from './stage-art.js';
 import { createAudio } from './audio.js';
 import { createCamera } from './camera.js';
@@ -194,7 +195,10 @@ const KEY_SLOTS = { Digit1: SLOT.Slot1, Digit2: SLOT.Slot3, Digit3: SLOT.Slot4, 
 // Unity's face order: south, west, north, east.
 const PAD_FACE = [0, 2, 3, 1];
 const PAD_NORMAL = [0, SLOT.Slot1, SLOT.Slot3, SLOT.Slot4];
-const PAD_SPECIAL = [SLOT.A, SLOT.R, SLOT.E, SLOT.F];
+// ADR-0042 right-stick specials: a flick past 60% presses the special laid out like the face diamond
+// (up E, left R, right F, down Q); another one needs the stick back under 35%.
+const STICK_PRESS = 0.6, STICK_RELEASE = 0.35;
+let stickArmed = true;
 const held = new Set();
 const edges = { jump: false, slot: 0, shield: false, grab: false, dash: false, down: false, retarget: false };
 let padPrev = [];
@@ -220,20 +224,25 @@ function readPad() {
   if (!pad) return null;
   const b = i => !!pad.buttons[i]?.pressed;
   const pressed = i => b(i) && !padPrev[i];
-  const lb = b(4);
   PAD_FACE.forEach((btn, face) => {
     if (!pressed(btn)) return;
-    const slot = lb ? PAD_SPECIAL[face] : PAD_NORMAL[face];
-    if (slot) edges.slot = slot; else edges.jump = true;
+    if (PAD_NORMAL[face]) edges.slot = PAD_NORMAL[face]; else edges.jump = true;
   });
+  const [ax, ay, rx = 0, ry = 0] = pad.axes;
+  const rmag = Math.hypot(rx, ry);
+  if (rmag < STICK_RELEASE) stickArmed = true;
+  else if (stickArmed && rmag >= STICK_PRESS) {
+    stickArmed = false;
+    edges.slot = Math.abs(rx) > Math.abs(ry) ? (rx > 0 ? SLOT.F : SLOT.R) : (ry < 0 ? SLOT.E : SLOT.A);
+  }
+  if (pressed(4)) edges.grab = true;
   if (pressed(5)) edges.dash = true;
-  if (pressed(7)) { if (lb) edges.grab = true; else edges.shield = true; }
+  if (pressed(7)) edges.shield = true;
   if (pressed(6)) edges.down = true;
   if (pressed(15)) edges.retarget = true;
   padPrev = pad.buttons.map(x => x.pressed);
-  const [ax, ay] = pad.axes;
   const mag = Math.hypot(ax, ay);
-  return { x: mag > 0.25 ? ax : 0, y: mag > 0.25 ? -ay : 0, jump: b(0) && !lb, shield: b(7) && !lb, down: b(6) };
+  return { x: mag > 0.25 ? ax : 0, y: mag > 0.25 ? -ay : 0, jump: b(0), shield: b(7), down: b(6) };
 }
 
 // Unity keeps the camera basis a held direction started with, so a camera turn does not bend a run underway;
@@ -421,8 +430,13 @@ function frameContext(frame) {
   const seatOf = id => frame.fighters.findIndex(f => f.id === id);
   return {
     seatOf,
+    infoOf: pkg => fighterInfo[pkg],
+    viewOf: id => match?.views[seatOf(id)],
     seatColor: seat => SEATS[seat] ?? 0xffffff,
     arena,
+    floorAt: arena?.floorAt,
+    fighterOf: id => frame.fighters.find(f => f.id === id),
+    boneFrame: (id, boneId) => match?.views[seatOf(id)]?.boneFrame?.(boneId) ?? null,
     boneWorld: (id, boneId) => match?.views[seatOf(id)]?.boneWorld(boneId) ?? null,
   };
 }
@@ -435,6 +449,7 @@ async function startMatch() {
   const stageId = mode.stage();
   const [, , color] = STAGES.find(s => s[0] === stageId);
   arena = JSON.parse(Demo.LoadArena(await bytes(`${PATHS.arenas}${stageId}.arena`)));
+  arena.floorAt = floorSampler(Demo.ArenaTriangles());
   const pkgs = mode.packages();
   await loadModels(pkgs);
   const started = JSON.parse(Demo.Start(pick.mode, pkgs.join(','), STOCKS, pick.level, (Math.random() * 1e9) | 0));
@@ -489,6 +504,7 @@ function step() {
   match.stepMs += performance.now() - t;
   match.steps++;
   match.frame = frame;
+  flashVictims(frame, id => match.views[frame.fighters.findIndex(f => f.id === id)], t);
   const ctx = frameContext(frame);
   vfx.onFrame(frame, ctx);
   audio.onFrame(frame, ctx);
@@ -503,12 +519,16 @@ function updateCamera(dt) {
   const target = frame.fighters.find(f => f.id === self.target && alive(f))
     ?? frame.fighters.filter(f => f !== self && alive(f) && f.p[1] > arena.killHeight + 3)
       .sort((a, b) => Math.hypot(a.p[0] - self.p[0], a.p[2] - self.p[2]) - Math.hypot(b.p[0] - self.p[0], b.p[2] - self.p[2]))[0];
-  cam.steady(self, target?.p ?? null, dt);
+  // Unity's FramingSubject.Launched also counts post-hitstun flight, which the frame does not carry.
+  const subjects = frame.fighters.filter(f => f !== self && alive(f))
+    .map(f => ({ id: f.id, p: f.p, launched: !f.grounded && f.state === 'Hitstun' }));
+  cam.steady(self, target?.p ?? null, dt, { modelYOffset: match.views[0].info.modelYOffset, subjects });
 }
 
 // ── Frame loop: fixed 60 Hz simulation, render every display frame ──
 let acc = 0, last = performance.now(), fpsFrames = 0, fpsT = last, fps = 0;
 function loop(now) {
+  const frameStart = performance.now();
   requestAnimationFrame(loop);
   pollMenuPad();
   const dt = Math.min(now - last, 100);
@@ -529,6 +549,11 @@ function loop(now) {
   }
   vfx.update(dt / 1000);
   renderer.render(scene, camera);
+  if (QUERY.has('vfxbench') && match && !match.ended) {
+    const b = globalThis.__vfxBench ??= { cpu: [], raf: [], ticks: 0, last: now };
+    if (b.cpu.length < 1200) { b.cpu.push(performance.now() - frameStart); b.raf.push(now - b.last); }
+    b.ticks = match.frame.tick; b.last = now; b.vfx = vfx.stats; b.drawCalls = renderer.info.render.calls; b.triangles = renderer.info.render.triangles; b.fighters = match.frame.fighters.map(f => f.pkg);
+  }
   fpsFrames++;
   if (now - fpsT > 500) {
     fps = Math.round(fpsFrames * 1000 / (now - fpsT));
@@ -631,4 +656,8 @@ renderMenu();
 $('menu').classList.remove('hidden');
 audio.onMenu();
 status(`ready · boot ${bootMs.toFixed(0)} ms`);
-requestAnimationFrame(loop);
+if (QUERY.has('vfxreview')) {
+  const { createReview } = await import('./vfx/review.js');
+  globalThis.__review = await createReview({ world, scene, renderer, camera, vfx, Demo, PATHS, fighterInfo,
+    loadModels, createFighterView, applyEnvironment, frameContext });
+} else requestAnimationFrame(loop);

@@ -86,6 +86,7 @@ public static partial class Demo
             first = false;
             sb.Append("{\"id\":").Append(Str(e.Identity.PackageId)).Append(",\"name\":").Append(Str(e.DisplayName))
               .Append(",\"half\":").Append(F(e.Definition.CapsuleHeight * 0.5f))
+              .Append(",\"shieldRadius\":").Append(F(e.Definition.ShieldRadius))
               .Append(",\"visualScale\":").Append(F(e.Definition.VisualScale)).Append(",\"modelYOffset\":").Append(F(e.Definition.ModelYOffset)).Append(",\"bones\":[");
             var names = e.BakedAnimation?.BoneNames ?? Array.Empty<string>();
             for (int i = 0; i < names.Count; i++) { if (i > 0) sb.Append(','); sb.Append(Str(names[i])); }
@@ -183,6 +184,8 @@ public static partial class Demo
               .Append(",\"deaths\":").Append(s.Deaths)
               .Append(",\"state\":").Append(Str(s.State.ToString()))
               .Append(",\"slot\":").Append(s.AttackSlot)
+              .Append(",\"sequence\":").Append(s.AttackSequence)
+              .Append(",\"attackTick\":").Append(s.AttackElapsedTicks)
               .Append(",\"grounded\":").Append(s.IsGrounded ? 1 : 0)
               .Append(",\"inv\":").Append(s.InvincibilityTicks)
               .Append(",\"stop\":").Append(s.HitstopTicks)
@@ -210,6 +213,7 @@ public static partial class Demo
                 sb.Append(']');
             }
             else sb.Append("null,\"frame\":0,\"pts\":[]");
+            WritePresentationState(sb, sim, f.Id, in s);
             sb.Append('}');
         }
         sb.Append("],\"hitboxes\":[");
@@ -224,6 +228,10 @@ public static partial class Demo
               .Append(F(capsule ? h.EndZ : h.Z)).Append("],\"r\":").Append(F(h.Radius))
               .Append(",\"shape\":").Append((int)h.Shape).Append(",\"owner\":").Append(h.OwnerId)
               .Append(",\"slot\":").Append(h.AttackSlot).Append(",\"air\":").Append(h.ActivationAirborne ? 1 : 0)
+              .Append(",\"projectile\":").Append(h.StickyFuseTicks > 0 || h.ContactExplosion && h.AttackSlot == AbilitySlots.A || h.Perch.HasValue ? 1 : 0)
+              .Append(",\"activation\":").Append(h.ActivationId).Append(",\"operation\":").Append(h.VisualOperationIndex)
+              .Append(",\"attached\":").Append(h.AttachedEntityId).Append(",\"perch\":").Append(h.Perch.HasValue ? 1 : 0)
+              .Append(",\"visualScale\":").Append(F(ProjectileScale(sim, in h)))
               .Append(",\"emit\":").Append(h.EmissionId).Append(",\"age\":").Append(h.AgeTicks)
               .Append(",\"v\":[").Append(F(h.VX)).Append(',').Append(F(h.VY)).Append(',').Append(F(h.VZ)).Append("]}");
         }
@@ -240,7 +248,13 @@ public static partial class Demo
             }
             sb.Append('[').Append(hit.TargetEntityId).Append(',').Append(hit.OwnerEntityId).Append(',').Append(F(hit.Damage))
               .Append(',').Append(hit.Blocked ? 1 : 0).Append(',').Append(F(tx)).Append(',').Append(F(ty))
-              .Append(',').Append(F(tz)).Append(',').Append(hit.HitstopTicks).Append(',').Append(hit.AttackSlot).Append(']');
+              .Append(',').Append(F(tz)).Append(',').Append(hit.HitstopTicks).Append(',').Append(hit.AttackSlot);
+            var slot = hit.AttackSlot > 0
+                ? sim.GetDefinition(hit.OwnerEntityId)?.ForForm(hit.Form).GetCookedSlotAbility(hit.AttackSlot, hit.Airborne)
+                : null;
+            sb.Append(',').Append(hit.StunTicks).Append(',').Append(string.IsNullOrEmpty(slot?.HitPresentationId) ? 0 : 1)
+              .Append(',').Append(F(hit.ImpactForce)).Append(',').Append(F(hit.DirX)).Append(',').Append(F(hit.DirZ)).Append(',').Append(hit.KnockbackAngle)
+              .Append(',').Append(F(hit.HitX)).Append(',').Append(F(hit.HitY)).Append(',').Append(F(hit.HitZ)).Append(']');
         }
         sb.Append("],\"deaths\":[");
         first = true;
@@ -265,12 +279,52 @@ public static partial class Demo
               .Append(",\"bone\":").Append(pl.AttachmentMode == AuthoringPresentationAttachmentMode.Bone && pl.BoneId != null ? Str(pl.BoneId) : "null")
               .Append(",\"local\":[").Append(F(pl.LocalPositionX)).Append(',').Append(F(pl.LocalPositionY)).Append(',').Append(F(pl.LocalPositionZ))
               .Append("],\"scale\":[").Append(F(pl.LocalScaleX)).Append(',').Append(F(pl.LocalScaleY)).Append(',').Append(F(pl.LocalScaleZ))
-              .Append("],\"ticks\":").Append(pl.DurationTicks).Append('}');
+              .Append("],\"rotation\":[").Append(F(pl.LocalRotationX)).Append(',').Append(F(pl.LocalRotationY)).Append(',').Append(F(pl.LocalRotationZ))
+              .Append("],\"sequence\":").Append(e.AttackSequence)
+              .Append(",\"ticks\":").Append(pl.DurationTicks).Append('}');
         }
         sb.Append("],\"mode\":");
         m.WriteFrame(sb);
         sb.Append(",\"ended\":").Append(m.Ended ? "true" : "false");
         return sb.Append('}').ToString();
+    }
+
+    static IEnumerable<CookedCapabilityParameters> Capabilities(CookedSlotDefinition? slot)
+    {
+        if (slot == null) yield break;
+        foreach (var stage in slot.Timeline.Stages)
+        foreach (var operation in stage.Operations)
+            if (operation is CookedStartCapabilityOperation start) yield return start.Parameters;
+    }
+
+    static float ProjectileScale(ServerSimulation sim, in Hitbox hitbox)
+    {
+        var slot = sim.GetDefinition(hitbox.OwnerId)?.ForForm(hitbox.Form).GetCookedSlotAbility(hitbox.AttackSlot, hitbox.ActivationAirborne);
+        foreach (var capability in Capabilities(slot))
+            if (capability is CookedChargedProjectileCapabilityParameters charge)
+                return hitbox.Radius / charge.Projectile.Radius;
+        return 1f;
+    }
+
+    static void WritePresentationState(StringBuilder sb, ServerSimulation sim, ulong id, in CharacterState state)
+    {
+        int tier = -1;
+        float progress = 0;
+        var slot = sim.GetActiveMove(id)?.Slot;
+        foreach (var capability in Capabilities(slot))
+        {
+            if (capability is CookedChargedProjectileCapabilityParameters charge)
+            {
+                tier = charge.GetChargeTier(state.ChargeTicks);
+                progress = Math.Min(1f, state.ChargeTicks / (float)charge.MaxChargeTicks);
+            }
+            if (capability is CookedChargedStreamCapabilityParameters stream) progress = stream.GetCharge(state.ChargeTicks);
+            if (capability is CookedFlashCutCapabilityParameters flash)
+                sb.Append(",\"flash\":{\"stanceTicks\":").Append(flash.StanceTicks)
+                  .Append(",\"legTicks\":").Append(flash.LegTicks).Append(",\"legAnimationId\":").Append(Str(flash.LegAnimationId)).Append('}');
+        }
+        sb.Append(",\"chargeTier\":").Append(tier).Append(",\"chargeProgress\":").Append(F(progress))
+          .Append(",\"partner\":").Append(state.InteractionPartnerId);
     }
 
     internal static string F(float v) => float.IsFinite(v) ? v.ToString("0.####", CultureInfo.InvariantCulture) : "0";
