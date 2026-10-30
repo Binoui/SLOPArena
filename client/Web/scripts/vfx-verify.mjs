@@ -17,7 +17,7 @@ async function browserChecks() {
   const fx = createVfx({world,camera,legacy:false});
   const fighters = ['fightguy','manki','wibou','bonk','bashie','nyx','salamander'].map((pkg,i)=>({id:i+1,pkg,yaw:0,p:[0,1,0],state:'Attacking',slot:3,sequence:1,attackTick:0,anim:'',grounded:1}));
   const bone = new THREE.Vector3(1,2,3);
-  const ctx = {seatOf:id=>id-1,seatColor:()=>0x45d36b,infoOf:()=>({half:.85,shieldRadius:.98}),
+  const ctx = {seatOf:id=>id-1,seatColor:()=>0x14b8a6,infoOf:()=>({half:.85,shieldRadius:.98}),
     boneWorld:()=>bone,boneFrame:()=>new THREE.Matrix4().makeTranslation(...bone.toArray()),fighterOf:id=>fighters.find(f=>f.id===id),floorAt:()=>0};
   let tick=0;
   const frame = extra => ({tick:++tick,fighters,hits:[],events:[],deaths:[],hitboxes:[],...extra});
@@ -104,7 +104,7 @@ async function gallery() {
   floor.position.y = -0.2; world.add(floor);
   const fx = createVfx({ world, camera });
   const fighters = ['fightguy', 'manki', 'wibou', 'bonk', 'bashie', 'nyx', 'salamander'].map((pkg, i) => ({ id: i + 1, pkg, yaw: 0 }));
-  const ctx = { seatOf: id => id - 1, seatColor: () => 0x45d36b, arena: { bounds: [-10, 10, -5, 5], killHeight: -20 }, boneWorld: () => null };
+  const ctx = { seatOf: id => id - 1, seatColor: () => 0x14b8a6, arena: { bounds: [-10, 10, -5, 5], killHeight: -20 }, boneWorld: () => null };
   const projectiles = [['fightguy', 11], ['manki', 11], ['manki', 5], ['wibou', 11], ['bonk', 11], ['bashie', 11], ['nyx', 11]];
   const hitboxes = projectiles.map(([pkg, slot], i) => ({ owner: fighters.find(f => f.pkg === pkg).id, slot, air: false,
     emit: i, age: 1, shape: 0, a: [-7.5 + i * 2.5, 1, -2.8], b: [0, 0, 0], r: slot === 5 ? 0.5 : 0.43, v: [1, 0, 1] }));

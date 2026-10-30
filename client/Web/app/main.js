@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { SEATS } from './seat-colours.js';
 import { toThree, unitSphere, unitCylinder, placeSegment, placeBall } from './geometry.js';
 import { Puppet, flashVictims } from './fighters.js';
 import { ModelFighter, loadFighterModel } from './fighter-model.js';
@@ -37,7 +38,6 @@ const STAGES = [
   ['training', 'Training', 0x6c7d8e],
   ['slopball', 'Slopball Court', 0x3b5a8a],
 ];
-const SEATS = [0xff4b4b, 0x3f8cff, 0xffc93a, 0x45d36b];
 const BODY = {
   fightguy: 0xff8a3d, manki: 0x9a6334, wibou: 0x9d7bff, bonk: 0xb9c2d4,
   bashie: 0x3fcf9f, salamander: 0xff5f3a, nyx: 0x3a3450,
@@ -419,12 +419,12 @@ async function loadModels(pkgs) {
   if (QUERY.has('puppets')) return;
   await Promise.all(pkgs.map(async pkg => { models.set(pkg, await loadFighterModel(pkg, PATHS.assets)); }));
 }
-function createFighterView(pkg, seat) {
+function createFighterView(pkg, seat, floorAt = arena.floorAt) {
   const gltf = models.get(pkg);
   const info = fighterInfo[pkg];
   return gltf
-    ? new ModelFighter({ world, info, gltf, seatColor: SEATS[seat] })
-    : new Puppet({ world, info, seatColor: SEATS[seat], bodyColor: BODY[pkg] ?? 0xdddddd });
+    ? new ModelFighter({ world, info, gltf, seatColor: SEATS[seat], floorAt })
+    : new Puppet({ world, info, seatColor: SEATS[seat], floorAt, bodyColor: BODY[pkg] ?? 0xdddddd });
 }
 function frameContext(frame) {
   const seatOf = id => frame.fighters.findIndex(f => f.id === id);
