@@ -28,6 +28,11 @@ such a set.
 Query flags: `?stocks=N`, `?autoplay` (a CPU drives P1 in Brawl), and
 `?fw=build` (loads the debug-enabled build output, about 4x slower per tick).
 
+Automated browsers (`navigator.webdriver`: Playwright, headless Chrome) start with
+sound output silenced; the audio logic still runs, so `SLOPA_AUDIO` stats stay
+testable. Add `?sound=1` to hear it. Agents driving the page should also launch
+Chrome with `--mute-audio`, as `scripts/drive.mjs` does.
+
 ## Fighter models
 
 `tools/fighter_glb.py` turns a read-only Unity snapshot of each package's catalog
@@ -59,7 +64,15 @@ node client/Web/scripts/package.mjs            # writes client/Web/dist/
 `dist/` is a static site containing the page, the trimmed runtime, the roster's
 cooked packages, the stages listed in `STAGES`, and everything in `assets/`
 (fighter models, stage art, audio). A match downloads only the fighters it uses.
-three.js loads from jsDelivr. Serve `.wasm`, `.glb` and `.json` with gzip.
+`package.mjs` vendors three.js and the Draco decoder, so `dist/` needs no CDN.
+
+The `web demo` workflow builds, smoke-tests and packages on every change to the
+demo, the Shared sim, cooked content or arenas. On `main` it deploys `dist/` to
+the Cloudflare Pages project `sloparena-play`, which playsloparena.com/demo
+serves. `assets/` is not tracked: CI downloads the bundle pinned by
+`client/Web/assets.lock` from the `web-assets` release. After re-exporting
+anything in `assets/`, run `client/Web/scripts/assets.sh upload` and commit the
+new `assets.lock`.
 
 ## Layout
 

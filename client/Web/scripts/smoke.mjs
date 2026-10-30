@@ -54,3 +54,4 @@ const ms = performance.now() - t1;
 console.log(`ticks ${ticks} in ${ms.toFixed(0)} ms = ${(ms / ticks).toFixed(3)} ms/tick; hits ${hits}, deaths ${deaths}, ended ${frame.ended}`);
 console.log(frame.fighters.map(f => `${f.pkg} dmg ${f.dmg} deaths ${f.deaths} state ${f.state}`).join(' | '));
 if (frame.mode) console.log('slopball events', JSON.stringify(counts), 'best', frame.mode.best, 'heat', frame.mode.heat);
+if (mode === 'brawl' && (!frame.ended || hits === 0)) { console.error('smoke: the brawl did not play out'); process.exit(1); }
