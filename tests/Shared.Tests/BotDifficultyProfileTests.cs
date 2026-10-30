@@ -29,33 +29,29 @@ public sealed class BotDifficultyProfileTests
         var normal = BotDifficultyProfile.ForDifficulty(CpuDifficulty.Normal);
         var hard = BotDifficultyProfile.ForDifficulty(CpuDifficulty.Hard);
 
-        Assert.True(easy.DecisionIntervalTicks > normal.DecisionIntervalTicks);
-        Assert.True(normal.DecisionIntervalTicks > hard.DecisionIntervalTicks);
+        Assert.True(easy.HesitationMax > normal.HesitationMax);
+        Assert.True(normal.HesitationMax > hard.HesitationMax);
         Assert.True(easy.RangeError > normal.RangeError);
         Assert.True(normal.RangeError > hard.RangeError);
-        Assert.True(easy.AttackChance < normal.AttackChance);
-        Assert.True(normal.AttackChance < hard.AttackChance);
-        Assert.True(easy.DefenseChance < normal.DefenseChance);
-        Assert.True(normal.DefenseChance < hard.DefenseChance);
-        Assert.True(easy.PunishChance < normal.PunishChance);
-        Assert.True(normal.PunishChance < hard.PunishChance);
-        Assert.True(easy.ComboChance < normal.ComboChance);
-        Assert.True(normal.ComboChance < hard.ComboChance);
+        Assert.True(easy.PunishRecognition < normal.PunishRecognition);
+        Assert.True(normal.PunishRecognition < hard.PunishRecognition);
+        Assert.True(easy.ThreatRecognition < normal.ThreatRecognition);
+        Assert.True(normal.ThreatRecognition < hard.ThreatRecognition);
+        Assert.True(easy.PunishRecognition < normal.PunishRecognition);
+        Assert.True(normal.PunishRecognition < hard.PunishRecognition);
+        Assert.True(easy.ConfirmReliability < normal.ConfirmReliability);
+        Assert.True(normal.ConfirmReliability < hard.ConfirmReliability);
     }
 
-    [Fact]
-    public void ProfilesKeepSpecialUseBelowNormalUse()
+    [Theory]
+    [InlineData(CpuDifficulty.Easy, 6, 12, 12, 1)]
+    [InlineData(CpuDifficulty.Normal, 2, 6, 6, 2)]
+    [InlineData(CpuDifficulty.Hard, 0, 2, 3, 3)]
+    public void PlansUseBoundedHesitationMarginsAndPressure(CpuDifficulty tier, int min, int max, int margin, int budget)
     {
-        var easy = BotDifficultyProfile.ForDifficulty(CpuDifficulty.Easy);
-        var normal = BotDifficultyProfile.ForDifficulty(CpuDifficulty.Normal);
-        var hard = BotDifficultyProfile.ForDifficulty(CpuDifficulty.Hard);
-
-        Assert.InRange(easy.SpecialChance, 0f, 1f);
-        Assert.InRange(normal.SpecialChance, 0f, 1f);
-        Assert.InRange(hard.SpecialChance, 0f, 1f);
-        Assert.True(easy.SpecialChance < normal.SpecialChance);
-        Assert.True(normal.SpecialChance < hard.SpecialChance);
-        Assert.All(new[] { easy, normal, hard }, profile => Assert.True(profile.SpecialChance < 0.5f));
+        var profile = BotDifficultyProfile.ForDifficulty(tier);
+        Assert.Equal(min, profile.HesitationMin); Assert.Equal(max, profile.HesitationMax);
+        Assert.Equal(margin, profile.PunishMargin); Assert.Equal(budget, profile.PressureBudget);
     }
 
     [Fact]
@@ -64,7 +60,7 @@ public sealed class BotDifficultyProfileTests
         var hard = BotDifficultyProfile.ForDifficulty(CpuDifficulty.Hard);
 
         Assert.InRange(hard.RangeError, float.Epsilon, 1f);
-        Assert.True(hard.PunishChance > 0f);
-        Assert.True(hard.ComboChance > 0f);
+        Assert.True(hard.PunishRecognition > 0f);
+        Assert.True(hard.ConfirmReliability > 0f);
     }
 }

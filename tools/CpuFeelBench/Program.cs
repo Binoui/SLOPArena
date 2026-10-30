@@ -15,12 +15,15 @@ namespace SlopArena.CpuFeelBench;
 /// and moving targets, holding footwork, using the kit, grabbing a shield, and the cost of a decision.
 /// Run it before and after a CPU change. The numbers are diagnostics; the owner judges feel in play.
 /// </summary>
-internal static class Program
+internal static partial class Program
 {
     private const string Usage = """
         Usage: dotnet run --project tools/CpuFeelBench -p:SkipUnityPluginCopy=true -- [scenario ...] [--out report.md]
 
         Scenarios: reach, edge, contact, moves, shieldwall, cost, costmap (every stage), all (default).
+        Combat scenarios: plans, whiff, approaches, defend, tiers, pressure.
+        --script name filters combat scripts; --stage arena filters stage sweeps; --seed n selects a reach trial.
+        --trace-deaths writes death trails and unreached trials to stderr. Exclude it from timed comparisons.
         Reads the admitted roster in content-cooked/ and the stages in data/arenas/.
         """;
 
@@ -29,6 +32,9 @@ internal static class Program
     private static readonly string[] SlotNames = { "", "", "", "1", "E", "R", "F", "", "3", "4", "", "A" };
     private static readonly StringBuilder Report = new();
     private static string _root = "";
+    private static bool _traceDeaths;
+    private static string? _stage, _script;
+    private static int? _seed;
 
     private static int Main(string[] args)
     {
@@ -37,11 +43,20 @@ internal static class Program
             Console.WriteLine(Usage);
             return 0;
         }
+        _traceDeaths = args.Contains("--trace-deaths");
+        int stageIndex = Array.IndexOf(args, "--stage"), seedIndex = Array.IndexOf(args, "--seed"), scriptIndex = Array.IndexOf(args, "--script");
+        _script = scriptIndex >= 0 ? args[scriptIndex + 1] : null;
+        _stage = stageIndex >= 0 ? args[stageIndex + 1] : null;
+        _seed = seedIndex >= 0 ? int.Parse(args[seedIndex + 1]) : null;
         _root = FindRoot();
         Directory.SetCurrentDirectory(_root);
         int outIndex = Array.IndexOf(args, "--out");
         string? outPath = outIndex >= 0 && outIndex + 1 < args.Length ? args[outIndex + 1] : null;
-        var scenarios = args.Where((a, i) => !a.StartsWith("--") && (outIndex < 0 || i != outIndex + 1)).ToList();
+        var scenarios = args.Where((a, i) => !a.StartsWith("--")
+            && (outIndex < 0 || i != outIndex + 1)
+            && (stageIndex < 0 || i != stageIndex + 1)
+            && (scriptIndex < 0 || i != scriptIndex + 1)
+            && (seedIndex < 0 || i != seedIndex + 1)).ToList();
         if (scenarios.Count == 0 || scenarios.Contains("all"))
             scenarios = new() { "reach", "edge", "contact", "moves", "shieldwall", "cost" };
         Line($"# CPU feel bench, {DateTime.Now:yyyy-MM-dd HH:mm}");
@@ -49,6 +64,12 @@ internal static class Program
         {
             switch (scenario)
             {
+                case "plans": CombatBench("plans"); break;
+                case "whiff": CombatBench("whiff"); break;
+                case "approaches": CombatBench("approaches"); break;
+                case "defend": CombatBench("defend"); break;
+                case "tiers": CombatBench("tiers"); break;
+                case "pressure": CombatBench("pressure"); break;
                 case "reach": Reach(); break;
                 case "edge": Edge(); break;
                 case "contact": Contact(); break;
@@ -99,6 +120,7 @@ internal static class Program
     {
         foreach (var file in Directory.GetFiles(Path.Combine(_root, "data", "arenas"), "*.arena").OrderBy(f => f))
         {
+            if (_stage != null && Path.GetFileNameWithoutExtension(file) != _stage) continue;
             var arena = ArenaBinaryFormat.LoadFromFile(file);
             if (arena is { } loaded && loaded.Heightmap.Data != null && loaded.MaxX > loaded.MinX
                 && loaded.SpawnPoints is { Length: > 0 })
@@ -161,6 +183,7 @@ internal static class Program
         private readonly BotMemory _memory;
         private readonly Random _rng;
         private readonly Dictionary<ulong, InputState> _inputs = new();
+        private readonly Queue<string> _trace = new();
 
         public Duel(in ArenaDefinition arena, MatchContentEntry cpu, MatchContentEntry target, CpuDifficulty difficulty,
             int seed, CharacterState cpuStart, CharacterState targetStart, HeuristicBotPolicy? policy = null)
@@ -176,6 +199,14 @@ internal static class Program
             _rng = new Random(seed);
         }
 
+        public void ResetSelf(in CharacterState state)
+        {
+            Sim.SetState(CpuId, state);
+            _memory.Reset();
+        }
+
+        public CpuPlanTrace Trace => _memory.CombatTrace;
+        public int WalkProbes => _memory.WalkProbesThisTick;
         public CharacterState Self => Sim.GetState(CpuId);
         public CharacterState Other => Sim.GetState(TargetId);
 
@@ -190,9 +221,17 @@ internal static class Program
         {
             var self = Sim.GetState(CpuId);
             var other = Sim.GetState(TargetId);
-            _policy.ObserveOpponent(_memory, other, Sim.GetDefinition(TargetId), _target.Baked);
+            _policy.ObserveOpponent(_memory, other, Sim.GetDefinition(TargetId), _target.Baked, Sim.GetActiveMove(TargetId)?.Slot);
             CpuInput = _policy.Decide(self, _cpu.Definition.ForForm(self.Form.Active), _rng, _memory, Arena, _cpu.Baked,
                 CpuBehavior.Attack, Sim.GetActiveMove(CpuId)?.Slot, canSwapCancel: Sim.CanSwapCancel(CpuId));
+            if (_traceDeaths)
+            {
+                var verdict = StageWalk.Probe(self, _cpu.Definition, Arena, CpuInput.MoveX, CpuInput.MoveY,
+                    _cpu.Definition.Movement.RunSpeed * 0.3f, 4f);
+                _memory.TryGetDelayedOpponent(out var seen);
+                _trace.Enqueue($"{Tick} pos={self.PX:F3},{self.PY:F3},{self.PZ:F3} v={self.VX:F2},{self.VY:F2},{self.VZ:F2} ground={self.IsGrounded} state={self.State} heading={CpuInput.MoveX:F3},{CpuInput.MoveY:F3} walk={verdict.End}/{verdict.Covered:F2}/{verdict.Height:F2} climb={_memory.ClimbTicks} slot={CpuInput.ActiveSlot} jump={CpuInput.Jump} plan={_memory.PlanKind}/{_memory.PlanSlot} intent={_memory.CombatTrace.Kind}/{_memory.CombatTrace.Phase} dash={CpuInput.DashPressed} seen={seen.PX:F2},{seen.PY:F2},{seen.PZ:F2}/{seen.State}/stun={seen.HitstunTicks}/flight={seen.InPostHitstunFlight}/v={seen.VX:F2},{seen.VY:F2},{seen.VZ:F2}");
+                if (_trace.Count > 360) _trace.Dequeue();
+            }
             _inputs[CpuId] = CpuInput;
             _inputs[TargetId] = targetInput;
             if (record)
@@ -201,11 +240,13 @@ internal static class Program
                 Recorder.RecordPresses(Sim, Tick, _inputs, _cpu.Definition);
             }
             Sim.Tick(_inputs);
+            if (_traceDeaths && Self.Deaths > self.Deaths)
+                foreach (string line in _trace) Console.Error.WriteLine(line);
             if (record) Recorder.RecordTick(Sim, Tick, _inputs, _cpu.Definition);
             var post = Sim.GetState(TargetId);
             foreach (var hit in Sim.LastTickHits)
-                if (!hit.Blocked && hit.OwnerEntityId == CpuId && hit.TargetEntityId == TargetId)
-                    _memory.RecordOpponentHit(hit.AttackSlot, !post.IsGrounded, post, post.HitstunTicks, hit.HitstopTicks);
+                if (hit.OwnerEntityId == CpuId && hit.TargetEntityId == TargetId)
+                    _memory.RecordOpponentContact(hit.AttackSlot, hit.Blocked ? CpuContactKind.Block : CpuContactKind.Hit, post, hit.HitstopTicks);
             Tick++;
         }
     }
@@ -283,6 +324,7 @@ internal static class Program
                 bool admitsDuel = true;
                 for (int i = 0; i < spots.Count && admitsDuel; i += stride)
                 {
+                    if (_seed.HasValue && i + 1 != _seed.Value) continue;
                     var spawn = arena.SpawnPoints[(i / stride) % arena.SpawnPoints.Length];
                     var (sx, sz) = spots[i];
                     if (MathF.Sqrt((sx - spawn.X) * (sx - spawn.X) + (sz - spawn.Z) * (sz - spawn.Z)) < 4f) continue;
@@ -316,9 +358,12 @@ internal static class Program
                         if (self.Deaths > 0)
                         {
                             deaths++;
+                            if (_traceDeaths) Console.Error.WriteLine($"DEATH stage={name} tier={difficulty} seed={i + 1} start={sx},{sz} target={spawn.X},{spawn.Y},{spawn.Z}");
                             break;
                         }
                         duel.Step(default);
+                        if (_traceDeaths && tick == 359)
+                            Console.Error.WriteLine($"UNREACHED stage={name} tier={difficulty} seed={i + 1} start={sx},{sz} target={spawn.X},{spawn.Y},{spawn.Z} ended={duel.Self.PX},{duel.Self.PY},{duel.Self.PZ}");
                     }
                 }
                 if (trials == 0) continue;
@@ -568,6 +613,8 @@ internal static class Program
         var inputs = new Dictionary<ulong, InputState>();
         var decide = new List<double>();
         var ticks = new List<double>();
+        var transitions = new List<double>();
+        var continuations = new List<double>();
         long allocated = 0;
         int decisions = 0;
         for (int tick = 0; tick < 1200; tick++)
@@ -582,15 +629,18 @@ internal static class Program
                 var targetDefinition = sim.GetDefinition(TargetId);
                 var activeMove = sim.GetActiveMove(id)?.Slot;
                 bool canSwap = sim.CanSwapCancel(id);
+                uint serial = memories[i].CombatTrace.Serial;
                 long before = GC.GetAllocatedBytesForCurrentThread();
                 long start = Stopwatch.GetTimestamp();
-                policy.ObserveOpponent(memories[i], other, targetDefinition, target.Baked);
+                policy.ObserveOpponent(memories[i], other, targetDefinition, target.Baked, sim.GetActiveMove(TargetId)?.Slot);
                 inputs[id] = policy.Decide(self, form, rngs[i], memories[i], arena, roster[i].Baked, CpuBehavior.Attack,
                     activeMove, canSwapCancel: canSwap);
                 long elapsed = Stopwatch.GetTimestamp() - start;
                 if (!measure) continue;
                 allocated += GC.GetAllocatedBytesForCurrentThread() - before;
-                decide.Add(elapsed * 1e6 / Stopwatch.Frequency);
+                double microseconds = elapsed * 1e6 / Stopwatch.Frequency;
+                decide.Add(microseconds);
+                (memories[i].CombatTrace.Serial == serial ? continuations : transitions).Add(microseconds);
                 decisions++;
             }
             inputs[TargetId] = new InputState { MoveX = tick / 45 % 2 == 0 ? 1f : -1f };
@@ -609,6 +659,12 @@ internal static class Program
         Line($"| Decide per CPU (µs) | {decide.Average():F1} | {decide[(int)(decide.Count * 0.99)]:F1} | {decide.Last():F1} |");
         Line($"| Simulation tick, all fighters (µs) | {ticks.Average():F1} | {ticks[(int)(ticks.Count * 0.99)]:F1} | {ticks.Last():F1} |");
         Line($"| Bytes allocated per observe and Decide | {allocated / (double)Math.Max(1, decisions):F0} | | |");
+        foreach (var bucket in new[] { ("Continuation", continuations), ("Transition", transitions) })
+        {
+            bucket.Item2.Sort();
+            if (bucket.Item2.Count == 0) Line($"{bucket.Item1}: n=0.");
+            else Line($"{bucket.Item1}: n={bucket.Item2.Count}, mean={bucket.Item2.Average():F1} µs, p99={bucket.Item2[(int)(bucket.Item2.Count * 0.99)]:F1}, max={bucket.Item2.Last():F1}.");
+        }
         CostMap(arena);
     }
 
@@ -621,6 +677,7 @@ internal static class Program
         var fighter = BuiltInContentResolver.Resolve(CharacterClass.FightGuy);
         var worst = new List<double>();
         var all = new List<double>();
+        int maxProbes = 0;
         for (float x = arena.MinX + 1f; x < arena.MaxX - 1f; x += 2f)
         for (float z = arena.MinZ + 1f; z < arena.MaxZ - 1f; z += 2f)
         {
@@ -654,6 +711,7 @@ internal static class Program
                 duel.Step(default);
                 double elapsed = (Stopwatch.GetTimestamp() - start) * 1e6 / Stopwatch.Frequency;
                 all.Add(elapsed);
+                maxProbes = Math.Max(maxProbes, duel.WalkProbes);
                 spotWorst = Math.Max(spotWorst, elapsed);
             }
             worst.Add(spotWorst);
@@ -668,5 +726,6 @@ internal static class Program
         Line("|---|---|---|---|---|---|");
         Line($"| {worst.Count} | {worst[worst.Count / 2]:F0} | {worst[(int)(worst.Count * 0.9)]:F0} | {worst.Last():F0} | "
             + $"{worst.Count(w => w > 1000)} | {all[(int)(all.Count * 0.99)]:F0} |");
+        Line($"Maximum walk probes in one CPU tick: {maxProbes}.");
     }
 }

@@ -1867,7 +1867,7 @@ namespace SlopArena.Shared
             if (isLocomotion) s.State = ActionState.Run;
         }
 
-        private static void ProcessAirMovement(
+        internal static void ProcessAirMovement(
             ref CharacterState s, MovementStats stats,
             InputState input, float dirX, float dirZ)
         {

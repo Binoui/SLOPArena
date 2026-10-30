@@ -57,6 +57,7 @@ public sealed class CpuMovementTests
         public readonly ServerSimulation Sim;
         private readonly ArenaDefinition _arena;
         private readonly MatchContentEntry _cpu;
+        private readonly BakedAnimationData? _targetBaked;
         private readonly HeuristicBotPolicy _policy = new();
         private readonly BotMemory _memory;
         private readonly Random _rng;
@@ -66,11 +67,12 @@ public sealed class CpuMovementTests
         public int Hits { get; private set; }
 
         public Duel(ArenaDefinition arena, CharacterClass cpu, float cpuX, float cpuZ, float targetX, float targetZ,
-            float? cpuFloor = null, float? targetFloor = null, CpuDifficulty difficulty = CpuDifficulty.Normal, int seed = 3)
+            float? cpuFloor = null, float? targetFloor = null, CpuDifficulty difficulty = CpuDifficulty.Normal, int seed = 3, bool observeBakedTarget = false)
         {
             _arena = arena;
             _cpu = BuiltInContentResolver.Resolve(cpu);
             var target = BuiltInContentResolver.Resolve(CharacterClass.FightGuy);
+            _targetBaked = observeBakedTarget ? target.BakedAnimation : null;
             Sim = new ServerSimulation(arena);
             Sim.RegisterEntity(Cpu, _cpu.Definition, Standing(Cpu, _cpu.Definition, arena, cpuX, cpuZ, cpuFloor), _cpu.BakedAnimation);
             Sim.RegisterEntity(Target, target.Definition, Standing(Target, target.Definition, arena, targetX, targetZ, targetFloor),
@@ -90,6 +92,7 @@ public sealed class CpuMovementTests
             };
         }
 
+        public int WalkProbes => _memory.WalkProbesThisTick;
         public CharacterState Self => Sim.GetState(Cpu);
         public CharacterState Opponent => Sim.GetState(Target);
         public float Separation
@@ -103,23 +106,111 @@ public sealed class CpuMovementTests
         }
         public float Feet => Self.PY - _cpu.Definition.CapsuleHeight * 0.5f;
 
-        public InputState Step()
+        public void Settle(int ticks)
+        {
+            _inputs[Cpu] = _inputs[Target] = default;
+            for (int tick = 0; tick < ticks; tick++) Sim.Tick(_inputs);
+        }
+
+        public InputState Step(InputState targetInput = default)
         {
             var self = Self;
-            _policy.ObserveOpponent(_memory, Opponent, Sim.GetDefinition(Target));
+            _policy.ObserveOpponent(_memory, Opponent, Sim.GetDefinition(Target), _targetBaked);
             var input = _policy.Decide(self, _cpu.Definition.ForForm(self.Form.Active), _rng, _memory, _arena,
                 _cpu.BakedAnimation, CpuBehavior.Attack, Sim.GetActiveMove(Cpu)?.Slot, canSwapCancel: Sim.CanSwapCancel(Cpu));
             _inputs[Cpu] = input;
-            _inputs[Target] = default;
+            _inputs[Target] = targetInput;
             Sim.Tick(_inputs);
             foreach (var hit in Sim.LastTickHits)
             {
-                if (hit.Blocked || hit.OwnerEntityId != Cpu || hit.TargetEntityId != Target) continue;
-                Hits++;
+                if (hit.OwnerEntityId != Cpu || hit.TargetEntityId != Target) continue;
+                if (!hit.Blocked) Hits++;
                 var after = Opponent;
-                _memory.RecordOpponentHit(hit.AttackSlot, !after.IsGrounded, after, after.HitstunTicks, hit.HitstopTicks);
+                _memory.RecordOpponentContact(hit.AttackSlot, hit.Blocked ? CpuContactKind.Block : CpuContactKind.Hit, after, hit.HitstopTicks);
             }
             return input;
+        }
+    }
+
+    [Theory]
+    [InlineData(CpuDifficulty.Normal, 169, 12.5f, -5.4f)]
+    [InlineData(CpuDifficulty.Hard, 169, 12.5f, -5.4f)]
+    [InlineData(CpuDifficulty.Normal, 217, 22.5f, -9.4f)]
+    [InlineData(CpuDifficulty.Hard, 217, 22.5f, -9.4f)]
+    public void HamsterHabitatCpuDoesNotMistakeThePitRimForALanding(CpuDifficulty difficulty,
+        int seed, float x, float z)
+    {
+        var duel = new Duel(Stage("hamster_habitat"), CharacterClass.FightGuy, x, z, -27.3f, 7.15f,
+            targetFloor: 0f, difficulty: difficulty, seed: seed);
+        duel.Settle(6);
+        for (int tick = 0; tick < 360; tick++)
+        {
+            duel.Step();
+            Assert.True(duel.Self.Deaths == 0,
+                $"fell into the pit at tick {tick}, from ({x}, {z}), seed {seed}, {difficulty}");
+        }
+    }
+
+    [Theory]
+    [InlineData("hamster_habitat", CpuDifficulty.Normal, 249, 28.5f, -5.3999996f, -27.3f, 7.15f)]
+    [InlineData("industrial_rooftop", CpuDifficulty.Normal, 99, 0f, 20f, 12f, -5f)]
+    [InlineData("industrial_rooftop", CpuDifficulty.Normal, 123, 4f, 16f, 12f, -5f)]
+    [InlineData("log_off", CpuDifficulty.Normal, 171, 16.5f, -2.88f, 7f, -5f)]
+    [InlineData("log_off", CpuDifficulty.Hard, 1, -17.5f, -2.88f, -7f, 5f)]
+    public void CpuFinishesItsClimbInsteadOfCancellingIntoTheVoid(string stage, CpuDifficulty difficulty,
+        int seed, float x, float z, float targetX, float targetZ)
+    {
+        var duel = new Duel(Stage(stage), CharacterClass.FightGuy, x, z, targetX, targetZ,
+            targetFloor: 0f, difficulty: difficulty, seed: seed);
+        duel.Settle(6);
+        for (int tick = 0; tick < 360; tick++)
+        {
+            duel.Step();
+            Assert.True(duel.Self.Deaths == 0, $"{stage}, {difficulty}, seed {seed}, death at tick {tick}");
+        }
+    }
+
+    [Theory]
+    [InlineData(CpuDifficulty.Normal)]
+    [InlineData(CpuDifficulty.Hard)]
+    public void HamsterLateralChaseRecoversInsteadOfAttackingAboveAFalseFloor(CpuDifficulty difficulty)
+    {
+        var arena = Stage("hamster_habitat");
+        float cpuFloor = arena.Heightmap.Sample(0f, -6f), targetFloor = arena.Heightmap.Sample(0f, 0f);
+        for (int seed = 1; seed <= 32; seed++)
+        {
+            var duel = new Duel(arena, CharacterClass.FightGuy, 0f, -6f, 0f, 0f,
+                cpuFloor: cpuFloor > float.MinValue ? cpuFloor : 0f,
+                targetFloor: targetFloor > float.MinValue ? targetFloor : 0f,
+                difficulty: difficulty, seed: seed, observeBakedTarget: true);
+            var targetStart = duel.Opponent with { FacingYaw = MathF.PI };
+            duel.Sim.SetState(Target, targetStart);
+            duel.Settle(6);
+            for (int tick = 0; tick < 900; tick++)
+            {
+                duel.Step(new InputState { MoveX = tick / 47 % 2 == 0 ? 1f : -1f, FaceToCamera = true, AimYaw = 18000 });
+                Assert.True(duel.Self.Deaths == 0, $"{difficulty} seed {seed} died at tick {tick}");
+                if (duel.Opponent.Deaths > 0 || duel.Opponent.DamagePercent > 80)
+                    duel.Sim.SetState(Target, targetStart);
+            }
+        }
+    }
+
+    [Fact]
+    public void DenseStageWalkSearchHasAFixedPerTickProbeBudget()
+    {
+        var arena = Stage("hamster_habitat");
+        for (float x = 8.5f; x <= 16.5f; x += 2f)
+        {
+            var duel = new Duel(arena, CharacterClass.FightGuy, x, -5.4f, -27.3f, 7.15f,
+                targetFloor: 0f, difficulty: CpuDifficulty.Hard);
+            duel.Settle(6);
+            for (int tick = 0; tick < 240; tick++)
+            {
+                duel.Step();
+                Assert.True(duel.WalkProbes <= 2,
+                    $"x={x}, tick={tick}, used {duel.WalkProbes} probes in one CPU tick");
+            }
         }
     }
 

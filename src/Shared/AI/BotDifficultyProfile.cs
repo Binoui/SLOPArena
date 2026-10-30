@@ -17,39 +17,16 @@ public enum CpuDifficulty
 /// </summary>
 public readonly struct BotDifficultyProfile
 {
-    public readonly int DecisionIntervalTicks;
     public readonly int ReactionDelayTicks;
-    public readonly float AttackChance;
-    public readonly float RetreatChance;
-    public readonly float DefenseChance;
-    public readonly float JumpChance;
-    public readonly float RangeError;
-    public readonly float PunishChance;
-    public readonly float ComboChance;
-    /// <summary>Chance of selecting a special when a usable normal is also in range.</summary>
-    public readonly float SpecialChance;
-    private BotDifficultyProfile(
-        int decisionIntervalTicks,
-        int reactionDelayTicks,
-        float attackChance,
-        float retreatChance,
-        float defenseChance,
-        float jumpChance,
-        float rangeError,
-        float punishChance,
-        float comboChance,
-        float specialChance)
+    public readonly float RangeError, ThreatRecognition, PunishRecognition, ConfirmReliability;
+    public readonly ushort HesitationMin, HesitationMax, PunishMargin;
+    public readonly byte PressureBudget;
+    private BotDifficultyProfile(int delay, float range, float threat, float punish, float confirm,
+        ushort hesitationMin, ushort hesitationMax, ushort margin, byte budget)
     {
-        DecisionIntervalTicks = decisionIntervalTicks;
-        ReactionDelayTicks = reactionDelayTicks;
-        AttackChance = attackChance;
-        RetreatChance = retreatChance;
-        DefenseChance = defenseChance;
-        JumpChance = jumpChance;
-        RangeError = rangeError;
-        PunishChance = punishChance;
-        ComboChance = comboChance;
-        SpecialChance = specialChance;
+        ReactionDelayTicks = delay; RangeError = range; ThreatRecognition = threat;
+        PunishRecognition = punish; ConfirmReliability = confirm; HesitationMin = hesitationMin;
+        HesitationMax = hesitationMax; PunishMargin = margin; PressureBudget = budget;
     }
 
     /// <summary>
@@ -76,9 +53,9 @@ public readonly struct BotDifficultyProfile
     {
         return Normalize(difficulty) switch
         {
-            CpuDifficulty.Easy => new(30, 24, 0.20f, 0.35f, 0.05f, 0.20f, 0.45f, 0.00f, 0.00f, 0.08f),
-            CpuDifficulty.Normal => new(14, 18, 0.56f, 0.21f, 0.30f, 0.50f, 0.20f, 0.32f, 0.22f, 0.15f),
-            _ => new(4, 12, 0.88f, 0.10f, 0.62f, 0.60f, 0.05f, 0.85f, 0.72f, 0.25f),
+            CpuDifficulty.Easy => new(24, .45f, .35f, .20f, .10f, 6, 12, 12, 1),
+            CpuDifficulty.Normal => new(18, .20f, .70f, .65f, .50f, 2, 6, 6, 2),
+            _ => new(12, .05f, .90f, .90f, .85f, 0, 2, 3, 3),
         };
     }
 }
