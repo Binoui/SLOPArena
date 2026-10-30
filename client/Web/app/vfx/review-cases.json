@@ -1,0 +1,422 @@
+[
+  {
+    "pkg": "bonk",
+    "move": "1",
+    "ticks": [
+      11,
+      17
+    ]
+  },
+  {
+    "pkg": "bonk",
+    "move": "3",
+    "ticks": [
+      21,
+      28
+    ]
+  },
+  {
+    "pkg": "bonk",
+    "move": "4",
+    "ticks": [
+      48,
+      55
+    ]
+  },
+  {
+    "pkg": "bonk",
+    "move": "A",
+    "ticks": [
+      20,
+      29
+    ]
+  },
+  {
+    "pkg": "bonk",
+    "move": "E",
+    "ticks": [
+      20,
+      40
+    ]
+  },
+  {
+    "pkg": "bonk",
+    "move": "R",
+    "ticks": [
+      32,
+      40
+    ]
+  },
+  {
+    "pkg": "bonk",
+    "move": "F",
+    "ticks": [
+      42,
+      101
+    ]
+  },
+  {
+    "pkg": "bashie",
+    "move": "1",
+    "ticks": [
+      10,
+      20
+    ]
+  },
+  {
+    "pkg": "bashie",
+    "move": "3",
+    "ticks": [
+      15,
+      25
+    ]
+  },
+  {
+    "pkg": "bashie",
+    "move": "4",
+    "ticks": [
+      14,
+      24
+    ]
+  },
+  {
+    "pkg": "bashie",
+    "move": "A",
+    "ticks": [
+      12,
+      20
+    ]
+  },
+  {
+    "pkg": "bashie",
+    "move": "E",
+    "ticks": [
+      15,
+      35
+    ]
+  },
+  {
+    "pkg": "bashie",
+    "move": "R",
+    "ticks": [
+      15,
+      25
+    ]
+  },
+  {
+    "pkg": "bashie",
+    "move": "F",
+    "ticks": [
+      24,
+      40
+    ]
+  },
+  {
+    "pkg": "fightguy",
+    "move": "1",
+    "ticks": [
+      6,
+      12
+    ]
+  },
+  {
+    "pkg": "fightguy",
+    "move": "3",
+    "ticks": [
+      9,
+      15
+    ]
+  },
+  {
+    "pkg": "fightguy",
+    "move": "4",
+    "ticks": [
+      12,
+      18
+    ]
+  },
+  {
+    "pkg": "fightguy",
+    "move": "A",
+    "ticks": [
+      18,
+      24
+    ]
+  },
+  {
+    "pkg": "fightguy",
+    "move": "E",
+    "ticks": [
+      6,
+      12
+    ]
+  },
+  {
+    "pkg": "fightguy",
+    "move": "R",
+    "ticks": [
+      7,
+      13
+    ]
+  },
+  {
+    "pkg": "fightguy",
+    "move": "F",
+    "ticks": [
+      1,
+      7
+    ]
+  },
+  {
+    "pkg": "manki",
+    "move": "1",
+    "ticks": [
+      9,
+      15
+    ]
+  },
+  {
+    "pkg": "manki",
+    "move": "3",
+    "ticks": [
+      11,
+      17
+    ]
+  },
+  {
+    "pkg": "manki",
+    "move": "4",
+    "ticks": [
+      20,
+      32
+    ]
+  },
+  {
+    "pkg": "manki",
+    "move": "A",
+    "ticks": [
+      18,
+      35
+    ]
+  },
+  {
+    "pkg": "manki",
+    "move": "E",
+    "ticks": [
+      3,
+      9
+    ]
+  },
+  {
+    "pkg": "manki",
+    "move": "R",
+    "ticks": [
+      6,
+      12
+    ]
+  },
+  {
+    "pkg": "manki",
+    "move": "F",
+    "ticks": [
+      2,
+      8
+    ]
+  },
+  {
+    "pkg": "wibou",
+    "move": "1",
+    "ticks": [
+      17,
+      23
+    ]
+  },
+  {
+    "pkg": "wibou",
+    "move": "3",
+    "ticks": [
+      14,
+      20
+    ]
+  },
+  {
+    "pkg": "wibou",
+    "move": "4",
+    "ticks": [
+      44,
+      50
+    ]
+  },
+  {
+    "pkg": "wibou",
+    "move": "A",
+    "ticks": [
+      16,
+      22
+    ]
+  },
+  {
+    "pkg": "wibou",
+    "move": "E",
+    "ticks": [
+      20,
+      40
+    ]
+  },
+  {
+    "pkg": "wibou",
+    "move": "R",
+    "ticks": [
+      2,
+      8
+    ]
+  },
+  {
+    "pkg": "wibou",
+    "move": "F",
+    "ticks": [
+      25,
+      31
+    ]
+  },
+  {
+    "pkg": "nyx",
+    "move": "1",
+    "ticks": [
+      11,
+      17
+    ]
+  },
+  {
+    "pkg": "nyx",
+    "move": "3",
+    "ticks": [
+      18,
+      24
+    ]
+  },
+  {
+    "pkg": "nyx",
+    "move": "4",
+    "ticks": [
+      30,
+      36
+    ]
+  },
+  {
+    "pkg": "nyx",
+    "move": "A",
+    "ticks": [
+      18,
+      30
+    ]
+  },
+  {
+    "pkg": "nyx",
+    "move": "E",
+    "ticks": [
+      20,
+      35
+    ]
+  },
+  {
+    "pkg": "nyx",
+    "move": "R",
+    "ticks": [
+      30,
+      36
+    ]
+  },
+  {
+    "pkg": "nyx",
+    "move": "F",
+    "ticks": [
+      11,
+      17
+    ]
+  },
+  {
+    "pkg": "salamander",
+    "move": "1",
+    "ticks": [
+      31,
+      37
+    ]
+  },
+  {
+    "pkg": "salamander",
+    "move": "3",
+    "ticks": [
+      31,
+      37
+    ]
+  },
+  {
+    "pkg": "salamander",
+    "move": "4",
+    "ticks": [
+      21,
+      27
+    ]
+  },
+  {
+    "pkg": "salamander",
+    "move": "A",
+    "ticks": [
+      14,
+      20
+    ]
+  },
+  {
+    "pkg": "salamander",
+    "move": "E",
+    "ticks": [
+      18,
+      35
+    ]
+  },
+  {
+    "pkg": "salamander",
+    "move": "R",
+    "ticks": [
+      18,
+      35
+    ]
+  },
+  {
+    "pkg": "salamander",
+    "move": "F",
+    "ticks": [
+      10,
+      16
+    ]
+  },
+  {
+    "pkg": "salamander",
+    "move": "4",
+    "key": "shared-ko",
+    "ticks": [
+      115,
+      125
+    ],
+    "options": {
+      "damage": 300
+    },
+    "unity": "shared-ko/4",
+    "note": "The real 300% duel crosses the blast line. The shader pins the flyer inside the screen."
+  },
+  {
+    "pkg": "salamander",
+    "move": "A",
+    "key": "shared-block",
+    "ticks": [
+      12,
+      16
+    ],
+    "options": {
+      "shield": true
+    },
+    "unity": "shared-block/A",
+    "note": "The block-contact semantic event owns the ripple. The blocked hit row does not spawn another graphic."
+  }
+]

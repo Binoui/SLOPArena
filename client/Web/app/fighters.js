@@ -116,17 +116,12 @@ export function shieldBubble(color) {
     color, transparent: true, opacity: 0.28, emissive: color, emissiveIntensity: 0.6, depthWrite: false }));
 }
 
-// Unity's FighterHitFeel: two white frames scaled by hit tier, then a four-frame fading rim pulse. A hit starts it
-// when the fighter's hitstop begins. Respawn invincibility is a faint glow, never transparency.
+// Unity's FighterHitFeel: two white frames scaled by hit tier, then a four-frame fading rim pulse. Only the hit's
+// victim flashes (CombatFeedback.ReceiveHit). Respawn invincibility is a faint glow, never transparency.
 const FLASH_WHITE = [0.55, 0.7, 0.85, 0.9];
 export function createFlash(mats) {
-  let start = -Infinity, tier = 0, lastStop = 0;
-  return (f, now) => {
-    if (f.stop > 0 && lastStop === 0) {
-      start = now;
-      tier = f.stop >= 12 ? 3 : f.stop >= 8 ? 2 : f.stop >= 4 ? 1 : 0;
-    }
-    lastStop = f.stop;
+  let start = -Infinity, tier = 0;
+  const flash = (f, now) => {
     const frames = (now - start) * 0.06;
     const white = frames < 2 ? FLASH_WHITE[tier] : 0;
     const rim = frames >= 2 && frames < 6 ? (1 - (frames - 2) / 4) * 0.5 : 0;
@@ -137,4 +132,11 @@ export function createFlash(mats) {
       mat.emissiveIntensity = amount;
     }
   };
+  flash.hit = (stop, now) => { start = now; tier = stop >= 12 ? 3 : stop >= 8 ? 2 : stop >= 4 ? 1 : 0; };
+  return flash;
+}
+
+export function flashVictims(frame, viewOf, now) {
+  for (const [target, , damage, blocked, , , , stop, , stun] of frame.hits ?? [])
+    if (!blocked && (damage > 0 || stun > 0)) viewOf(target)?.flash.hit(stop, now);
 }

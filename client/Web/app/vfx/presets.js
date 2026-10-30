@@ -1,5 +1,4 @@
-// Unity source paths, particle settings and material references: unity-references.json.
-// Explicit entries keep newly cooked presentation ids visible to the coverage check.
+// Frozen generic kit retained for the development-only legacyvfx comparisons.
 export const PRESENTATION_PRESETS = {
   'presentation.bashie.shell.air-strike-tuck': { color: 0x71e7f4, size: 0.85, duration: 0.30, kit: ["slash", "trail"] },
   'presentation.bashie.shell.flip-tuck': { color: 0x71e7f4, size: 0.85, duration: 0.30, kit: ["dust", "ring"] },

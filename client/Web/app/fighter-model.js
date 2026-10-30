@@ -34,14 +34,21 @@ export class ModelFighter {
         o.castShadow = true;
         o.frustumCulled = false;
         o.material = o.material.clone();
+        o.material.userData.cutHeight = { value: -10000 };
+        o.material.userData.baseColor = o.material.color?.clone();
+        o.material.onBeforeCompile = shader => {
+          shader.uniforms.codeCutHeight = o.material.userData.cutHeight;
+          shader.vertexShader = 'varying float codeWorldY;\n' + shader.vertexShader.replace('#include <worldpos_vertex>', '#include <worldpos_vertex>\ncodeWorldY=(modelMatrix*vec4(transformed,1.)).y;');
+          shader.fragmentShader = 'uniform float codeCutHeight;varying float codeWorldY;\n' + shader.fragmentShader.replace('#include <clipping_planes_fragment>', '#include <clipping_planes_fragment>\nif(codeWorldY<codeCutHeight)discard;');
+        };
         this.mats.push(o.material);
       }
       if (o.isBone || o.type === 'Object3D') this.bones[o.name] ??= o;
       const weapon = /^weapon:(\d+):/.exec(o.name);
-      if (weapon) this.weapons.push({ node: o, slot: Number(weapon[1]) });
+      if (weapon) this.weapons.push({ node: o, slot: Number(weapon[1]), rest: {p:o.position.clone(),q:o.quaternion.clone(),s:o.scale.clone()} });
     });
     this.semantic = Object.fromEntries(Object.entries(SEMANTIC_BONES)
-      .map(([id, suffix]) => [id, Object.values(this.bones).find(b => b.name.endsWith(suffix))]));
+      .map(([id, suffix]) => [id, Object.values(this.bones).find(b => b.name.endsWith(THREE.PropertyBinding.sanitizeNodeName(suffix)))]));
     // Two-form fighters (Nyx) list each form's parts by node name; the sim reports the active form.
     const forms = gltf.userData?.forms;
     this.formParts = forms ? [0, 1].map(k => (forms[k] ?? []).map(name => this.model.getObjectByName(name)).filter(Boolean)) : null;
@@ -83,13 +90,19 @@ export class ModelFighter {
 
   update(f, out, now) {
     const dt = this.lastNow ? Math.min((now - this.lastNow) / 1000, 0.1) : 0;
-    this.lastNow = now;
+    this.lastNow = now; this.frame = f;
     this.root.visible = this.ring.visible = !out;
     if (out) return;
     const jitter = f.stop > 0 ? (Math.random() - 0.5) * 0.05 : 0;
     this.root.position.set(f.p[0] + jitter, f.p[1] + this.info.modelYOffset, f.p[2]);
     this.root.rotation.y = f.yaw;
     this.root.scale.setScalar(this.info.visualScale);
+    this.model.visible = true;
+    for (const mat of this.mats) {
+      mat.userData.cutHeight.value = -10000;
+      if (mat.color && mat.userData.baseColor) mat.color.copy(mat.userData.baseColor);
+    }
+    for (const w of this.weapons) { w.node.position.copy(w.rest.p); w.node.quaternion.copy(w.rest.q); w.node.scale.copy(w.rest.s); }
     this.play(f.anim, f.frame, dt);
     if (this.formParts) this.formParts.forEach((parts, form) => parts.forEach(o => { o.visible = form === (f.form === 1 ? 1 : 0); }));
     const attacking = f.state === 'Attacking' || f.state === 'Aiming';
@@ -104,11 +117,43 @@ export class ModelFighter {
     this.flash(f, now);
   }
 
+  overrideProps(spec) {
+    if (this.frame?.form !== spec._form) return;
+    for (const [names, visible] of [[spec._show, true], [spec._hide, false]]) for (const name of names ?? []) {
+      const node = this.model.getObjectByName(name); if (node) node.visible = visible;
+    }
+  }
+
+  dissolve(hidden, cutHeight) {
+    this.model.visible = !hidden;
+    for (const mat of this.mats) mat.userData.cutHeight.value = cutHeight;
+  }
+
+  chargeProp(spec, progress, age) {
+    const prop = this.weapons.find(w => w.slot === spec.Slot); if (!prop) return;
+    const throb = progress >= 1 ? .5 + .5 * Math.sin(age * Math.PI * 10) : 0;
+    const size = 1 + spec.Grow * progress + .04 * throb;
+    prop.node.scale.copy(prop.rest.s).multiplyScalar(size);
+    const degrees = (spec.ShakeStart + (spec.ShakeFull - spec.ShakeStart) * progress) * Math.PI / 180;
+    prop.node.quaternion.copy(prop.rest.q).multiply(new THREE.Quaternion().setFromEuler(new THREE.Euler(
+      Math.sin(age * 71) * degrees, Math.sin(age * 97) * degrees, Math.sin(age * 113) * degrees)));
+    prop.node.position.copy(prop.rest.p).add(new THREE.Vector3(Math.sin(age * 101), Math.sin(age * 127), Math.sin(age * 139)).multiplyScalar(spec.Jitter * progress));
+    const heat = Math.min(1, .9 * progress * progress + .15 * throb), hot = new THREE.Color().setRGB(spec.Hot.r, spec.Hot.g, spec.Hot.b);
+    prop.node.traverse(o => { if (o.material?.color) o.material.color.copy(o.material.userData.baseColor).multiply(new THREE.Color(1,1,1).lerp(hot,heat)); });
+  }
+
   boneWorld(boneId) {
     const bone = this.semantic[boneId];
     if (!bone) return null;
     this.root.updateMatrixWorld(true);
     return this.world.worldToLocal(bone.getWorldPosition(new THREE.Vector3()));
+  }
+
+  boneFrame(boneId) {
+    const bone = this.semantic[boneId];
+    if (!bone) return null;
+    this.root.updateMatrixWorld(true);
+    return new THREE.Matrix4().copy(this.world.matrixWorld).invert().multiply(bone.matrixWorld);
   }
 
   dispose() {
