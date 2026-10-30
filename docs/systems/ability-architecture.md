@@ -246,23 +246,30 @@ duration is the empty ring's time home. Its slot is one tick-zero lifecycle in o
 IASA disabled and only presentation alongside; it cannot tuck. Compiler and cooked loader enforce the same rules
 (`TetherSlotError`, `TetherBoundsError`). Ability Lab does not edit it yet.
 
-`slop.ability.clinch.v1` requires runtime API `1.17.0`
-([ADR-0053](../adr/0053-fightguy-title-match-clinch.md), FightGuy's Title Match). It opens a two-stage `meleeCombo`
-with no aim, carry or charge pool. Stage 0 is the lunge: it holds only the tick-zero clinch and presentation, has IASA
-disabled and lasts exactly the lunge's travel ticks plus one. The lunge dashes `lungeDistance` (0–8 m) at `lungeSpeed`
-(0–60 m/s, at most 60 travel ticks) along the current target's bearing at the press (its facing without one), level
-and with gravity off, carrying `catchHitbox`: a root-relative sphere (radius up to 3 m, hit group 0, no knockback or
-stun) refreshed each travel tick, whose per-tick travel may not exceed twice its radius. Its first fighter contact,
-before the shield check, pairs both fighters (`DefenseInteractionPhase.Clinching`, victim `ActionState.Clinched`) unless
-the fighter is already paired, captive or damaged this batch; air-dodge invincibility ignores it, and two catches on
-each other's owners in one batch clash. Stage 1 is the hold: the holder's clinch places the victim each tick
-`anchorDistance` (0–3 m, at least body contact) in front of its feet through the body mover, gravity off for both, and
-the activation's own hits on the held fighter deal damage and hitstop only. On the hold stage's `releaseTick` (inside
-the stage, no IASA before it) the pair ends and the victim stays `Clinched` unpaired for `releaseLockTicks` (1–60). A
-lunge that ends empty (range, a wall, a dodge) holds stage 0 for `whiffRecoveryTicks` (1–120), then the move ends; a
-lost pair ends the move at once; a lunge meeting an object (course target, ball, Mayhem wall) plays the hold stage on
-it unpaired. Compiler and cooked loader enforce the same rules (`ClinchContract`). Ability Lab previews it; it does not
-edit it yet.
+`slop.ability.command-grab.v1` requires runtime API `1.18.0`, and `1.20.0` for its optional `level`,
+`anchorDistance`, `releaseLockTicks`, `whiffRecoveryTicks`, a missing `launch` or a capture with damage
+([ADR-0057](../adr/0057-one-command-grab.md); Nyx's Selfie Grab, FightGuy's Title Match). At the press the fighter
+turns to its current target and lunges `lungeTicks` (0–60) at `lungeSpeed` (0–60 m/s), stopping once that target is
+within `stopDistance` (0–5 m, 0 never stops); the last travel tick takes the distance that remains. A `level` lunge
+keeps its height with gravity off, and a travel tick a wall cuts below 60% whiffs the grab. From `captureTick` (1–120)
+the `capture` (a root-relative sphere or capsule, radius up to 3 m, hit group 0, damage ≥ 0, no knockback or stun) is
+placed afresh each tick for its `durationTicks` (1–30); per-tick travel may not exceed twice its radius. Its first
+fighter contact, before the shield check and through armour, pairs both fighters (`DefenseInteractionPhase.CommandHold`,
+victim `ActionState.CommandGrabbed`) unless the fighter is paired, cut-held or damaged this batch; a grab taking the
+grabber on that tick clashes, two captures on each other's owners clash, and air-dodge invincibility ignores it. A
+capture with damage credits it with no launch or hitstop. The victim is held `anchorDistance` (0–3 m, at least body
+contact) in front through the body mover, facing the grabber, or at the grabber's grab anchor when that is absent;
+gravity is off for both and the activation's own hits on it deal damage and hitstop only. At `releaseTick` (ticks
+from the press, after the capture window, at most 240) the pair ends: the authored `launch` (damage 0–100, angle ±90,
+stun to 240) lands as the grabber's hit, or without one the victim stays `CommandGrabbed` unpaired for
+`releaseLockTicks` (1–60) so the timeline's finisher meets it. Without `whiffRecoveryTicks` the slot is one tick-zero
+`meleeCombo` stage holding the release, IASA only after it, and a whiff, clash or lost pair leaves the rest of the
+stage as recovery. With it (1–120) the slot has two stages: stage 0 holds only the grab and presentation, ends as the
+capture closes and has IASA disabled; stage 1 is the hold stage holding the release. A miss then holds stage 0 for the
+whiff recovery and ends the move, a lost pair ends it at once, and a capture with damage that meets an object (course
+target, ball, Mayhem wall) plays the hold stage on it unpaired. No aim, carry, charge pool or tuck. Compiler and cooked
+loader enforce the same rules (`CommandGrabContract`). `slop.ability.clinch.v1` is retired into it. Ability Lab
+previews it; it does not edit it yet.
 
 Under the same runtime API `1.17.0`, a timeline hitbox may name its own `hitPresentationId`, played at its contacts
 instead of the slot's, and an `emitPresentation` may carry `condition: "sweetspotHit"`: it plays only once the

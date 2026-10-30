@@ -876,10 +876,10 @@ namespace SlopArena.Client.Entities
         // Where the stand-in reeled pose holds the small-hit clip: past its flinch, before it recovers.
         private const int ReeledPoseTicks = 6;
 
-        // A clinched fighter (ADR-0053) flinches again with each of its holder's hits: the hitstop the hit set
+        // A command-grabbed fighter (ADR-0057) flinches again with each of its grabber's hits: the hitstop the hit set
         // replays the small-hit clip into the held frame, so no grabbed clip is needed.
         private static int CaptivePoseTicks(in CharacterState state)
-            => state.State == ActionState.Clinched
+            => state.State == ActionState.CommandGrabbed
                 ? ReeledPoseTicks - Mathf.Min(state.HitstopTicks, ReeledPoseTicks) : ReeledPoseTicks;
 
         private bool TryResolveGrabAnimation(in CharacterState snapshot, out AnimationClip clip, out float time)

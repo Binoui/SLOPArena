@@ -179,6 +179,8 @@ def main():
                 timing['moves'][form + '-run']['game']['total'] = ticks
                 timing['moves'][form + '-run']['retimedClipTicks'] = ticks
             atomic_json(args.timing, timing)
+        print('Rebuild sloparena.presentation.nyx.build, then run sloparena.presentation.nyx.verify-timing: '
+              'paper effect layers are keyed to these ticks.')
 
 
 if __name__ == '__main__':

@@ -33,8 +33,8 @@ namespace SlopArena.Shared
 
         /// <summary>
         /// Two catches that meet each other's owners in one batch clash, as reciprocal grabs do: both contacts drop.
-        /// Rings are spent, so both throwers reel back empty; clinch lunges cannot catch each other again and run on.
-        /// A shield stops a ring, never a clinch (ADR-0053).
+        /// Rings are spent, so both throwers reel back empty; command grab captures cannot catch each other again and
+        /// stay open. A shield stops a ring, never a command grab (ADR-0057).
         /// </summary>
         private void ClashCatches(List<SpellResolver.HitResult> hits)
         {
@@ -42,7 +42,7 @@ namespace SlopArena.Shared
             for (int i = 0; i < hits.Count; i++)
                 if (ContactAbility(hits[i]) is { } ability && _states.TryGetValue(hits[i].TargetEntityId, out var target)
                     && (ability.Tether is { Catches: true } && target.State != ActionState.Shielding
-                        || ability.Clinch is { Catches: true } || ability.CommandGrab is { Catches: true }))
+                        || ability.CommandGrab is { Catches: true }))
                     (rings ??= new List<int>()).Add(i);
             if (rings == null || rings.Count < 2) return;
             var clashed = new SortedSet<int>();

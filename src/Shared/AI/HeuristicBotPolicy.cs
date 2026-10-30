@@ -620,7 +620,7 @@ public sealed class HeuristicBotPolicy
         bool inRange = memory.Engaged
             || ReadyDashStrikeTip(in self, in target, allowRecoveryMove, in arena, activeMove)
             || ReadyFlash(in self, in target, allowRecoveryMove, in arena, activeMove)
-            || ReadyClinch(in self, in target, allowRecoveryMove, in arena, activeMove);
+            || ReadyFinisherGrab(in self, in target, allowRecoveryMove, in arena, activeMove);
 
         if (decisionTick)
         {
@@ -678,7 +678,7 @@ public sealed class HeuristicBotPolicy
         MoveCandidate? candidate = null;
         if (self.IsGrounded && self.BlockStunTicks == 0 && target.IsGrounded
             && target.State == ActionState.Shielding && InCaptureVolume(self, target, def)
-            && !ReadyClinch(in self, in target, allowRecoveryMove, in arena, activeMove)
+            && !ReadyFinisherGrab(in self, in target, allowRecoveryMove, in arena, activeMove)
             && !ReadyCommandGrab(self, target, dist, allowRecoveryMove, in arena, activeMove).HasValue)
         {
             // Grab beats shield; with the roll failed, swinging into the shield is no better.
@@ -1337,7 +1337,7 @@ public sealed class HeuristicBotPolicy
         if (ReadyDashStrikeTip(in self, in target, allowRecoveryMove, in arena, activeMove))
             return Move(AbilitySlots.R, air);
         if (ReadyFlash(in self, in target, allowRecoveryMove, in arena, activeMove)
-            || ReadyClinch(in self, in target, allowRecoveryMove, in arena, activeMove))
+            || ReadyFinisherGrab(in self, in target, allowRecoveryMove, in arena, activeMove))
             return Move(AbilitySlots.F, air);
         if (target.State == ActionState.Shielding
             && ReadyCommandGrab(self, target, dist, allowRecoveryMove, in arena, activeMove) is { } commandGrab)
@@ -1422,13 +1422,13 @@ public sealed class HeuristicBotPolicy
         return write;
     }
 
-    /// <summary>A command grab special that is available and reaches the target.</summary>
+    /// <summary>A command grab special without a hold stage that is available and reaches the target.</summary>
     private MoveCandidate? ReadyCommandGrab(in CharacterState self, in CpuObservation target, float dist,
         bool allowRecoveryMove, in ArenaDefinition arena, CookedSlotDefinition? activeMove)
     {
         bool air = !self.IsGrounded;
         foreach (var grab in air ? _airProfile : _profile)
-            if (Capability<CookedCommandGrabCapabilityParameters>(_profileDefinition!.GetCookedSlotAbility(grab.Slot, air)) != null
+            if (Capability<CookedCommandGrabCapabilityParameters>(_profileDefinition!.GetCookedSlotAbility(grab.Slot, air)) is { HasHoldStage: false }
                 && dist <= grab.Reach + VictimRadiusMargin
                 && IsCandidateAvailable(self, grab, air, allowRecoveryMove, in arena, activeMove))
                 return grab;
@@ -1466,25 +1466,26 @@ public sealed class HeuristicBotPolicy
     }
 
     /// <summary>
-    /// A clinch is worth its long cooldown where a shield cannot stop it, or when the launch at the end can KO: the
-    /// target stands where the lunge's catch will reach it, shielding or at <see cref="ClinchKillPercent"/> or more.
+    /// An F command grab whose hold stage ends in the timeline's finisher (Title Match) is worth its long cooldown where a
+    /// shield cannot stop it, or when that finisher can KO: the target stands where the lunge's capture will reach it,
+    /// shielding or at <see cref="FinisherKillPercent"/> or more.
     /// </summary>
-    private bool ReadyClinch(in CharacterState self, in CpuObservation target,
+    private bool ReadyFinisherGrab(in CharacterState self, in CpuObservation target,
         bool allowRecoveryMove, in ArenaDefinition arena, CookedSlotDefinition? activeMove)
     {
         bool air = !self.IsGrounded;
-        if (target.State != ActionState.Shielding && target.DamagePercent < ClinchKillPercent) return false;
-        var clinch = Capability<CookedClinchCapabilityParameters>(_profileDefinition!.GetCookedSlotAbility(AbilitySlots.F, air));
-        if (clinch == null) return false;
+        if (target.State != ActionState.Shielding && target.DamagePercent < FinisherKillPercent) return false;
+        if (Capability<CookedCommandGrabCapabilityParameters>(_profileDefinition!.GetCookedSlotAbility(AbilitySlots.F, air))
+            is not { HasHoldStage: true } grab) return false;
         float dx = target.PX - self.PX, dy = target.PY - self.PY, dz = target.PZ - self.PZ;
-        float reach = clinch.LungeDistance + clinch.CatchHitbox.OffsetZ + clinch.CatchHitbox.Radius;
+        float reach = grab.LungeSpeed * grab.LungeTicks / 60f + grab.Capture.OffsetZ + grab.Capture.Radius;
         var candidate = Move(AbilitySlots.F, air);
-        return MathF.Sqrt(dx * dx + dz * dz) <= reach && MathF.Abs(dy) <= clinch.CatchHitbox.Radius + 0.5f
+        return MathF.Sqrt(dx * dx + dz * dz) <= reach && MathF.Abs(dy) <= grab.Capture.Radius + 0.5f
             && IsCandidateAvailable(self, candidate, air, allowRecoveryMove, in arena, activeMove);
     }
 
     // Title Match's launch KOs off Training from about 75% (ADR-0053); a little earlier still carries it.
-    private const ushort ClinchKillPercent = 70;
+    private const ushort FinisherKillPercent = 70;
 
     private bool ReadyDashStrikeTip(in CharacterState self, in CpuObservation target,
         bool allowRecoveryMove, in ArenaDefinition arena, CookedSlotDefinition? activeMove)
@@ -1617,8 +1618,6 @@ public sealed class HeuristicBotPolicy
                             }
                             else if (capability.Parameters is CookedCommandGrabCapabilityParameters grab)
                                 forwardTravel = MathF.Max(forwardTravel, grab.LungeSpeed * grab.LungeTicks / 60f);
-                            else if (capability.Parameters is CookedClinchCapabilityParameters clinch)
-                                forwardTravel = MathF.Max(forwardTravel, clinch.LungeDistance);
                             else if (capability.Parameters is CookedDashStrikeCapabilityParameters dash)
                             {
                                 forwardTravel = MathF.Max(forwardTravel, dash.Distance);
@@ -1678,7 +1677,6 @@ public sealed class HeuristicBotPolicy
             or CookedSteeredChargeCapabilityParameters
             or CookedThrustCapabilityParameters
             or CookedTetherCapabilityParameters
-            or CookedClinchCapabilityParameters
             or CookedCommandGrabCapabilityParameters
             or CookedCannonballCapabilityParameters
             or CookedMankiRoundBombCapabilityParameters
@@ -1761,13 +1759,10 @@ public sealed class HeuristicBotPolicy
                 hasDamage |= ring.Damage > 0f;
                 break;
             case CookedCommandGrabCapabilityParameters x:
+                // The lunge catches whoever its capture meets; a hold stage's hits are its own hitboxes.
                 hitReach = MathF.Max(hitReach, x.LungeSpeed * x.LungeTicks / 60f
                     + MathF.Max(x.Capture.OffsetZ, x.Capture.EndOffsetZ) + x.Capture.Radius);
-                damage += x.Launch.Damage; hasDamage = true; hasMovement = true; break;
-            case CookedClinchCapabilityParameters x:
-                // The lunge catches whoever its sphere meets; the held hits are the hold stage's own hitboxes.
-                hitReach = MathF.Max(hitReach, x.LungeDistance + x.CatchHitbox.OffsetZ + x.CatchHitbox.Radius);
-                damage += x.CatchHitbox.Damage; hasDamage = true; hasMovement = true; break;
+                damage += x.Capture.Damage + (x.Launch?.Damage ?? 0f); hasDamage = true; hasMovement = true; break;
             case CookedSteeredChargeCapabilityParameters x:
                 hitReach = MathF.Max(hitReach, x.GallopSpeed * x.MaxGallopTicks / 60f
                     + MathF.Max(x.LanceHitbox.OffsetZ, x.LanceHitbox.EndOffsetZ) + x.LanceHitbox.Radius);

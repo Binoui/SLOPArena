@@ -107,6 +107,10 @@ _Avoid_: hook, pull, ranged grab
 **Reeled**:
 The caught fighter's state on a Tether. While the line holds, the thrower's tether is its only mover and it takes no input. Delivered, it stays Reeled for a short arrival window with ordinary gravity and no launch, then becomes Idle. Any hit ends it with that hit's own reaction.
 
+**Command grab**:
+A special that grabs (ADR-0057, `slop.ability.command-grab.v1`; Nyx's Selfie Grab, FightGuy's Title Match). Its capture beats shields and armour. The caught fighter is CommandGrabbed: held by the grabber's move, its only mover, which may hit it for damage and hitstop only, then released with an authored launch or a short lock before the move's finisher. It is a paired interaction like a Grab, with phase `CommandHold`.
+_Avoid_: clinch (the retired capability)
+
 **CrouchBrace**:
 Reduced ordinary launch strength for a fighter already settled motionless in Crouch when a hit connects. The contact snapshot survives Hitstop and release; damage, freeze and Hitstun remain unchanged. Sliding, entry/braking crouch and fixed/custom forces do not qualify.
 

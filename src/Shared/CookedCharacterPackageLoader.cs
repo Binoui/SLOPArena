@@ -31,7 +31,7 @@ public sealed class CookedCharacterPackageLoadResult
 public static class CookedCharacterPackageLoader
 {
     private static readonly HashSet<string> SupportedRuntimeApiMinimums = new(
-        Enumerable.Range(0, 20).Select(minor => $"1.{minor}.0"), StringComparer.Ordinal);
+        Enumerable.Range(0, 21).Select(minor => $"1.{minor}.0"), StringComparer.Ordinal);
 
     /// <summary>True when an admitted 1.N.0 runtime API minimum is at least 1.<paramref name="minor"/>.0.</summary>
     private static bool ApiAtLeast(string runtimeApiMin, int minor)
@@ -122,7 +122,6 @@ public static class CookedCharacterPackageLoader
             ValidateShellStance(package.Definition, m.RuntimeApiMin, d);
             ValidateTethers(package.Definition, m.RuntimeApiMin, d);
             ValidateHomingAndPerch(package.Definition, m.RuntimeApiMin, d);
-            ValidateClinches(package.Definition, m.RuntimeApiMin, d);
             ValidateCommandGrabs(package.Definition, m.RuntimeApiMin, d);
             ValidateForms(package.Definition, m.RuntimeApiMin, d);
             ValidateHitPresentations(package.Definition, m.RuntimeApiMin, d);
@@ -599,38 +598,7 @@ public static class CookedCharacterPackageLoader
         }
     }
 
-    /// <summary>Mirrors the compiler's clinch rules (ADR-0053).</summary>
-    private static void ValidateClinches(
-        CookedCharacterDefinition definition, string runtimeApiMin, List<CharacterDiagnostic> diagnostics)
-    {
-        foreach (var slot in definition.AllSlots)
-        {
-            var clinches = slot.Timeline.Stages.SelectMany(stage => stage.Operations).OfType<CookedStartCapabilityOperation>()
-                .Where(op => op.CapabilityId == CharacterPackageCompiler.ClinchCapabilityId).ToArray();
-            if (clinches.Length == 0) continue;
-            string path = slot.Id + ".clinch";
-            if (!ApiAtLeast(runtimeApiMin, 17))
-                diagnostics.Add(Error("package.compatibility.unsupported", path, "The clinch requires runtime API 1.17.0."));
-            if (clinches[0].Parameters is not CookedClinchCapabilityParameters p)
-            {
-                diagnostics.Add(Error("package.capability.parameters-invalid", path, "Clinch parameter type is invalid."));
-                continue;
-            }
-            var stages = slot.Timeline.Stages;
-            var lunge = stages[0];
-            var hold = stages.Count > 1 ? stages[1] : null;
-            foreach (var error in new[] { ClinchContract.BoundsError(p),
-                ClinchContract.SlotError(clinches.Length, stages.Count, clinches[0].Tick, slot.Behavior, slot.AimMode,
-                    slot.ShellPolicy, slot.AllowSlideCarry, slot.ChargePool != null,
-                    !lunge.Operations.Contains(clinches[0])
-                        || lunge.Operations.Any(x => x != clinches[0] && x is not CookedEmitPresentationOperation),
-                    lunge.DurationTicks, lunge.IasaTicks, hold?.DurationTicks ?? 0, hold?.IasaTicks ?? 0, p) })
-                if (error != null) diagnostics.Add(Error("package.capability.parameters-invalid", path, error));
-            ValidateChargedHitbox(p.CatchHitbox, definition, path + ".catchHitbox", diagnostics);
-        }
-    }
-
-    /// <summary>Mirrors the compiler's command grab rules (ADR-0051).</summary>
+    /// <summary>Mirrors the compiler's command grab rules (ADR-0057).</summary>
     private static void ValidateCommandGrabs(
         CookedCharacterDefinition definition, string runtimeApiMin, List<CharacterDiagnostic> diagnostics)
     {
@@ -647,14 +615,20 @@ public static class CookedCharacterPackageLoader
                 diagnostics.Add(Error("package.capability.parameters-invalid", path, "Command grab parameter type is invalid."));
                 continue;
             }
-            var stage = slot.Timeline.Stages[0];
+            if (p.NeedsRuntimeApi120 && !ApiAtLeast(runtimeApiMin, 20))
+                diagnostics.Add(Error("package.compatibility.unsupported", path,
+                    "A level lunge, a hold stage, a lock release or a credited catch requires runtime API 1.20.0."));
+            var stages = slot.Timeline.Stages;
+            var first = stages[0];
+            var hold = stages.Count > 1 ? stages[1] : null;
             foreach (var error in new[] { CommandGrabContract.BoundsError(p),
-                CommandGrabContract.SlotError(grabs.Length, slot.Timeline.Stages.Count, grabs[0].Tick, slot.Behavior,
+                CommandGrabContract.SlotError(grabs.Length, stages.Count, grabs[0].Tick, slot.Behavior,
                     slot.AimMode, slot.ShellPolicy, slot.AllowSlideCarry, slot.ChargePool != null,
-                    !stage.Operations.Contains(grabs[0])
-                        || stage.Operations.Any(x => x != grabs[0] && x is not CookedEmitPresentationOperation),
-                    stage.DurationTicks, stage.IasaTicks, p) })
+                    !first.Operations.Contains(grabs[0])
+                        || first.Operations.Any(x => x != grabs[0] && x is not CookedEmitPresentationOperation),
+                    first.DurationTicks, first.IasaTicks, hold?.DurationTicks ?? 0, hold?.IasaTicks ?? 0, p) })
                 if (error != null) diagnostics.Add(Error("package.capability.parameters-invalid", path, error));
+            ValidateChargedHitbox(p.Capture, definition, path + ".capture", diagnostics);
             foreach (string id in new[] { p.CatchPresentationId, p.ReleasePresentationId })
                 if (id.Length > 0 && !definition.PresentationIds.Contains(id, StringComparer.Ordinal))
                     diagnostics.Add(Error("package.capability.parameters-invalid", path, "Presentation ID is not declared."));
@@ -1276,11 +1250,10 @@ public static class CookedCharacterPackageLoader
                 "slop.ability.tether.v1" => Tether(OOptional(e, TetherOptional, "throwTick", "projectile", "reelSpeed",
                     "anchorDistance", "arrivalStunTicks", "maxReelTicks", "retractSpeed", "missRecoveryTicks", "airGravityScale",
                     "reelAnimationId", "retractAnimationId", "throwPresentationId", "retractPresentationId", "atTarget")),
-                CharacterPackageCompiler.CommandGrabCapabilityId => CommandGrab(OOptional(e,
-                    new[] { "catchPresentationId", "releasePresentationId" }, "lungeTicks", "lungeSpeed", "stopDistance",
-                    "captureTick", "capture", "releaseTick", "launch", "catchPresentationId", "releasePresentationId")),
-                CharacterPackageCompiler.ClinchCapabilityId => Clinch(O(e, "lungeDistance", "lungeSpeed", "catchHitbox",
-                    "anchorDistance", "whiffRecoveryTicks", "releaseTick", "releaseLockTicks")),
+                CharacterPackageCompiler.CommandGrabCapabilityId => CommandGrab(OOptional(e, CommandGrabOptional,
+                    "lungeTicks", "lungeSpeed", "stopDistance", "captureTick", "capture", "releaseTick", "launch",
+                    "catchPresentationId", "releasePresentationId", "level", "anchorDistance", "releaseLockTicks",
+                    "whiffRecoveryTicks")),
                 "slop.ability.cannonball.v1" => Cannonball(OOptional(e, new[] { "launchPresentationId" }, "takeoffTick",
                     "maxRange", "noTargetDistance", "minFlightTicks", "maxFlightTicks", "maxLaunchSpeed", "launchPresentationId")),
                 "slop.ability.thrust.v1" => Thrust(OOptional(e, new[] { "trailHitbox" }, "aim", "targetConeDegrees", "neutralPitchDegrees",
@@ -1338,17 +1311,26 @@ public static class CookedCharacterPackageLoader
             "projectile", "retractSpeed", "reelAnimationId", "retractAnimationId", "throwPresentationId",
             "retractPresentationId", "atTarget",
         };
+        private static readonly string[] CommandGrabOptional =
+        {
+            "launch", "catchPresentationId", "releasePresentationId", "level", "anchorDistance", "releaseLockTicks",
+            "whiffRecoveryTicks",
+        };
         private static CookedCapabilityParameters CommandGrab(Dictionary<string, JsonElement> q)
         {
-            var l = O(q["launch"], "damage", "angle", "baseKnockback", "knockbackGrowth", "stunTicks");
+            CookedGrabLaunch? launch = null;
+            if (q.TryGetValue("launch", out var e))
+            {
+                var l = O(e, "damage", "angle", "baseKnockback", "knockbackGrowth", "stunTicks");
+                launch = new CookedGrabLaunch(F(l, "damage"), F(l, "angle"), F(l, "baseKnockback"), F(l, "knockbackGrowth"),
+                    U(l, "stunTicks"));
+            }
             return new CookedCommandGrabCapabilityParameters(U(q, "lungeTicks"), F(q, "lungeSpeed"), F(q, "stopDistance"),
-                U(q, "captureTick"), ParseHitbox(q["capture"]), U(q, "releaseTick"),
-                new CookedGrabLaunch(F(l, "damage"), F(l, "angle"), F(l, "baseKnockback"), F(l, "knockbackGrowth"), U(l, "stunTicks")),
-                SO(q, "catchPresentationId", ""), SO(q, "releasePresentationId", ""));
+                U(q, "captureTick"), ParseHitbox(q["capture"]), U(q, "releaseTick"), launch,
+                SO(q, "catchPresentationId", ""), SO(q, "releasePresentationId", ""), BoOrDefault(q, "level", false),
+                q.ContainsKey("anchorDistance") ? F(q, "anchorDistance") : null, UOrDefault(q, "releaseLockTicks", 0),
+                UOrDefault(q, "whiffRecoveryTicks", 0));
         }
-        private static CookedCapabilityParameters Clinch(Dictionary<string, JsonElement> q)
-            => new CookedClinchCapabilityParameters(F(q, "lungeDistance"), F(q, "lungeSpeed"), ParseHitbox(q["catchHitbox"]),
-                F(q, "anchorDistance"), U(q, "whiffRecoveryTicks"), U(q, "releaseTick"), U(q, "releaseLockTicks"));
         /// <summary>A thrown ring has its projectile and retract speed; a placed catch has its atTarget block instead.</summary>
         private static CookedCapabilityParameters Tether(Dictionary<string, JsonElement> q)
         {

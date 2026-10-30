@@ -15,7 +15,8 @@ namespace SlopArena.Client.Combat
             if (Drag != null)
             {
                 Drag.gameObject.SetActive(true);
-                Drag.localScale = new Vector3(1f, 1f, Mathf.Clamp(direction.magnitude * .4f, .4f, 2.5f));
+                // The tendril mesh is one metre long: stretched, it reaches back to her hand.
+                Drag.localScale = new Vector3(1f, 1f, Mathf.Max(.4f, direction.magnitude));
             }
         }
     }

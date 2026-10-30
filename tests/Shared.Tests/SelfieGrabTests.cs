@@ -6,8 +6,8 @@ using Xunit;
 namespace SlopArena.Shared.Tests;
 
 /// <summary>
-/// slop.ability.command-grab.v1 (ADR-0051, Nyx's Selfie Grab) on an engine fixture: a lunge, the capture, a hold with
-/// the victim Grabbed in the command-hold phase, and a release with an authored launch. Values are fixture values.
+/// slop.ability.command-grab.v1 (ADR-0057, Nyx's Selfie Grab) on an engine fixture: a lunge, the capture, a hold with
+/// the victim CommandGrabbed in the command-hold phase, and a release with an authored launch. Values are fixture values.
 /// </summary>
 public sealed class SelfieGrabTests
 {
@@ -88,7 +88,7 @@ public sealed class SelfieGrabTests
     }
 
     [Fact]
-    public void TheCaptureTakesAShieldingFighterAndHoldsItGrabbed()
+    public void TheCaptureTakesAShieldingFighterAndHoldsIt()
     {
         var sim = Sim();
         var shield = new InputState { ShieldHeld = true };
@@ -100,7 +100,7 @@ public sealed class SelfieGrabTests
         var her = sim.GetState(Nyx);
         var victim = sim.GetState(Dummy);
         Assert.Equal(ActionState.Attacking, her.State);
-        Assert.Equal(ActionState.Grabbed, victim.State);
+        Assert.Equal(ActionState.CommandGrabbed, victim.State);
         Assert.Equal(her.InteractionId, victim.InteractionId);
         Assert.Equal((byte)DefenseInteractionPhase.CommandHold, her.InteractionPhase);
         Assert.Equal((byte)DefenseInteractionPhase.CommandHold, victim.InteractionPhase);
@@ -108,7 +108,7 @@ public sealed class SelfieGrabTests
 
         for (int tick = 0; tick < 20; tick++) Step(sim, dummy: shield with { Jump = true, MoveX = 1f });
         victim = sim.GetState(Dummy);
-        Assert.Equal(ActionState.Grabbed, victim.State);
+        Assert.Equal(ActionState.CommandGrabbed, victim.State);
         Assert.InRange(victim.PZ - sim.GetState(Nyx).PZ, 0.3f, 0.5f);
     }
 
@@ -140,8 +140,8 @@ public sealed class SelfieGrabTests
         Step(sim);
         Assert.Equal(0ul, sim.GetState(Nyx).InteractionId);
         Assert.Equal(0ul, sim.GetState(Dummy).InteractionId);
-        Assert.NotEqual(ActionState.Grabbed, sim.GetState(Dummy).State);
-        Assert.NotEqual(ActionState.Grabbed, sim.GetState(Nyx).State);
+        Assert.NotEqual(ActionState.CommandGrabbed, sim.GetState(Dummy).State);
+        Assert.NotEqual(ActionState.CommandGrabbed, sim.GetState(Nyx).State);
         Assert.True(sim.GetState(Dummy).StateTicks <= DefenseConfig.GrabClashRecoveryTicks, "the ordinary grab took the clash recovery");
     }
 
@@ -167,7 +167,7 @@ public sealed class SelfieGrabTests
         var hits = new List<SpellResolver.HitResult>();
         while (sim.CurrentTick < pressed + ReleaseTick - 2) Step(sim, hits: hits);
         Assert.Empty(hits);
-        Assert.Equal(ActionState.Grabbed, sim.GetState(Dummy).State);
+        Assert.Equal(ActionState.CommandGrabbed, sim.GetState(Dummy).State);
         Step(sim);
         Assert.Equal(0ul, sim.GetState(Nyx).InteractionId);
         var launch = Assert.Single(sim.LastTickHits);
@@ -199,7 +199,7 @@ public sealed class SelfieGrabTests
         Step(sim);
         Assert.Equal(0ul, sim.GetState(Nyx).InteractionId);
         Assert.Equal(0ul, sim.GetState(Dummy).InteractionId);
-        Assert.NotEqual(ActionState.Grabbed, sim.GetState(Dummy).State);
+        Assert.NotEqual(ActionState.CommandGrabbed, sim.GetState(Dummy).State);
     }
 
     [Fact]

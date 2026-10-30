@@ -1326,7 +1326,7 @@ public sealed class CharacterPackageAssemblerTests
 
     [Theory]
     [InlineData("wibou", "1.15.0", "1.14.0")]
-    [InlineData("fightguy", "1.17.0", "1.16.0")]
+    [InlineData("fightguy", "1.20.0", "1.19.0")]
     [InlineData("bonk", "1.8.0", "1.7.0")]
     public void CookedLoaderRestoresParametersAndEnforcesApiFloor(string id, string api, string incompatibleApi)
     {
@@ -1353,10 +1353,10 @@ public sealed class CharacterPackageAssemblerTests
             Assert.Equal(20f, charge.Projectile.Speed);
             Assert.Equal((ushort)112, charge.Projectile.MaxFlightTicks);
             var source = package.Definition.Slots.Single(slot => slot.Id == "ground.F");
-            var clinch = Assert.IsType<CookedClinchCapabilityParameters>(loaded.Package!.Definition.Slots
+            var grab = Assert.IsType<CookedCommandGrabCapabilityParameters>(loaded.Package!.Definition.Slots
                 .Single(slot => slot.Id == "ground.F").Timeline.Stages[0].Operations
                 .OfType<CookedStartCapabilityOperation>().Single().Parameters);
-            Assert.Equal(source.Timeline.Stages[0].Operations.OfType<CookedStartCapabilityOperation>().Single().Parameters, clinch);
+            Assert.Equal(source.Timeline.Stages[0].Operations.OfType<CookedStartCapabilityOperation>().Single().Parameters, grab);
         }
         if (id == "bonk")
             Assert.All(loaded.Package!.Definition.Slots.Where(slot => slot.Id.EndsWith(".F")),

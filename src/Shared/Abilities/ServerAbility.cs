@@ -39,11 +39,9 @@ namespace SlopArena.Shared.Abilities
         public virtual bool HoldsFighterPushboxPosition => false;
         /// <summary>The tether this activation runs, if any (ADR-0048): its contacts catch instead of hitting.</summary>
         public virtual TetherAbility? Tether => null;
-        /// <summary>The clinch this activation runs, if any (ADR-0053): its lunge catches and it holds the caught fighter.</summary>
-        public virtual ClinchAbility? Clinch => null;
-        /// <summary>The command grab this activation runs, if any (ADR-0051): its capture holds instead of hitting.</summary>
+        /// <summary>The command grab this activation runs, if any (ADR-0057): its capture holds the fighter it catches.</summary>
         public virtual CommandGrabAbility? CommandGrab => null;
-        /// <summary>A capability that keeps its timeline in the current stage past the stage's length (a clinch's whiff).</summary>
+        /// <summary>A capability that keeps its timeline in the current stage past the stage's length (a command grab's whiff).</summary>
         internal virtual bool HoldsStage => false;
 
         /// <summary>The hold this activation's contact puts on that victim (ADR-0052), or null for an ordinary hit.</summary>

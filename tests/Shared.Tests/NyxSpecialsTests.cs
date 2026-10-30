@@ -55,7 +55,7 @@ public sealed class NyxSpecialsTests
                     .OfType<CookedSpawnHitboxOperation>().Sum(op => ServerSimulation.ComputeHitstopTicks(op.Hitbox.Damage))
                 + move.Slot.Timeline.Stages.SelectMany(stage => stage.Operations)
                     .OfType<CookedStartCapabilityOperation>().Select(op => op.Parameters)
-                    .OfType<CookedCommandGrabCapabilityParameters>().Sum(p => ServerSimulation.ComputeHitstopTicks(p.Launch.Damage))
+                    .OfType<CookedCommandGrabCapabilityParameters>().Sum(p => ServerSimulation.ComputeHitstopTicks(p.Launch!.Damage))
                 + sim.GetState(Nyx).HitstopTicks + 1);
         for (int tick = 0; tick < maxTicks && !done(); tick++) Step(sim);
         Assert.True(done(), $"not reached within {maxTicks} ticks");

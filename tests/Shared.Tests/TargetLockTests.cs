@@ -303,7 +303,7 @@ public class TargetLockTests : KitScenarioTests
         var def = TestHelpers.FightGuyDef;
         AssertLockedAttackDoesNotFace(def, AbilitySlots.E, 18000);
         AssertLockedAttackDoesNotFace(def, AbilitySlots.R);
-        // F, Title Match, lunges at the current target by design (ADR-0053); ClinchTests covers its bearing.
+        // F, Title Match, lunges at the current target by design (ADR-0053); TitleMatchTests covers its bearing.
     }
 
     private static void AssertLockedAttackDoesNotFace(CharacterDefinition def, byte activeSlot, short aimYaw = 0)

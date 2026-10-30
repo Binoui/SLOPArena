@@ -319,7 +319,7 @@
       "capabilityVersion": "1"
     },
     {
-      "capabilityId": "slop.ability.clinch.v1",
+      "capabilityId": "slop.ability.command-grab.v1",
       "capabilityVersion": "1"
     }
   ],
@@ -1486,12 +1486,14 @@
                 "kind": "startCapability",
                 "tick": 0,
                 "unit": "ticks",
-                "capabilityId": "slop.ability.clinch.v1",
+                "capabilityId": "slop.ability.command-grab.v1",
                 "capabilityVersion": "1",
                 "parameters": {
-                  "lungeDistance": 2,
+                  "lungeTicks": 6,
                   "lungeSpeed": 20,
-                  "catchHitbox": {
+                  "stopDistance": 0,
+                  "captureTick": 1,
+                  "capture": {
                     "shape": "sphere",
                     "radius": 0.6,
                     "offsetX": 0,
@@ -1507,15 +1509,16 @@
                     "baseKnockback": 0,
                     "knockbackGrowth": 0,
                     "stunTicks": 0,
-                    "durationTicks": 1,
+                    "durationTicks": 6,
                     "interruptible": true,
                     "hitGroup": 0,
                     "knockbackDirection": "awayFromOwner"
                   },
+                  "releaseTick": 94,
+                  "level": true,
                   "anchorDistance": 0.8,
-                  "whiffRecoveryTicks": 24,
-                  "releaseTick": 87,
-                  "releaseLockTicks": 6
+                  "releaseLockTicks": 6,
+                  "whiffRecoveryTicks": 24
                 }
               }
             ]

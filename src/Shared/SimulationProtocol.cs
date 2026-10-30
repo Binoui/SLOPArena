@@ -70,6 +70,11 @@ namespace SlopArena.Shared
         // changed since the previous release tag while this value (and the Master's Protocol) did not.
         // Note simulation changes below; the release bump folds them into one numbered line.
         // Unreleased:
+        // - One command grab (ADR-0057): slop.ability.clinch.v1 is retired into slop.ability.command-grab.v1, which gains
+        //   optional level, anchorDistance, releaseLockTicks and whiffRecoveryTicks, an optional launch and a capture
+        //   with damage (runtime API 1.20.0). ActionState 31 is CommandGrabbed for every command grab victim, the hold
+        //   phase is CommandHold (7) and 6 is reserved; the capture is placed afresh each tick. World Snapshot layout
+        //   unchanged; the command grab's own snapshot record changed.
         public const byte Version = 31;
     }
 }

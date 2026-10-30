@@ -472,7 +472,6 @@ public static class CharacterPackageSourceCodec
             SteeredChargeCapabilityParameters x => x with { LanceHitbox = x.LanceHitbox with { } },
             ThrustCapabilityParameters x => x with { TrailHitbox = x.TrailHitbox == null ? null : x.TrailHitbox with { } },
             TetherCapabilityParameters x => x with { Projectile = x.Projectile == null ? null : x.Projectile with { }, AtTarget = x.AtTarget == null ? null : x.AtTarget with { } },
-            ClinchCapabilityParameters x => x with { CatchHitbox = x.CatchHitbox with { } },
             CommandGrabCapabilityParameters x => x with { Capture = x.Capture with { } },
             CannonballCapabilityParameters x => x with { },
             MankiRoundBombCapabilityParameters x => x with { },
@@ -893,18 +892,19 @@ public static class CharacterPackageSourceCodec
                 w.WriteNumber("lungeTicks", p.LungeTicks); Number(w, "lungeSpeed", p.LungeSpeed);
                 Number(w, "stopDistance", p.StopDistance); w.WriteNumber("captureTick", p.CaptureTick);
                 WriteHitboxNamed(w, p.Capture, "capture"); w.WriteNumber("releaseTick", p.ReleaseTick);
-                w.WritePropertyName("launch"); w.WriteStartObject();
-                Number(w, "damage", p.Launch.Damage); Number(w, "angle", p.Launch.Angle);
-                Number(w, "baseKnockback", p.Launch.BaseKnockback); Number(w, "knockbackGrowth", p.Launch.KnockbackGrowth);
-                w.WriteNumber("stunTicks", p.Launch.StunTicks); w.WriteEndObject();
+                if (p.Launch is { } launch)
+                {
+                    w.WritePropertyName("launch"); w.WriteStartObject();
+                    Number(w, "damage", launch.Damage); Number(w, "angle", launch.Angle);
+                    Number(w, "baseKnockback", launch.BaseKnockback); Number(w, "knockbackGrowth", launch.KnockbackGrowth);
+                    w.WriteNumber("stunTicks", launch.StunTicks); w.WriteEndObject();
+                }
                 OptionalString(w, "catchPresentationId", p.CatchPresentationId);
                 OptionalString(w, "releasePresentationId", p.ReleasePresentationId);
-                break;
-            case ClinchCapabilityParameters p:
-                Number(w, "lungeDistance", p.LungeDistance); Number(w, "lungeSpeed", p.LungeSpeed);
-                WriteHitboxNamed(w, p.CatchHitbox, "catchHitbox"); Number(w, "anchorDistance", p.AnchorDistance);
-                w.WriteNumber("whiffRecoveryTicks", p.WhiffRecoveryTicks); w.WriteNumber("releaseTick", p.ReleaseTick);
-                w.WriteNumber("releaseLockTicks", p.ReleaseLockTicks);
+                if (p.Level) w.WriteBoolean("level", true);
+                if (p.AnchorDistance is { } anchor) Number(w, "anchorDistance", anchor);
+                if (p.ReleaseLockTicks != 0) w.WriteNumber("releaseLockTicks", p.ReleaseLockTicks);
+                if (p.WhiffRecoveryTicks != 0) w.WriteNumber("whiffRecoveryTicks", p.WhiffRecoveryTicks);
                 break;
             case MankiRoundBombCapabilityParameters p: w.WriteNumber("fuseTicks", p.FuseTicks); w.WriteNumber("maxFlightTicks", p.MaxFlightTicks); Number(w, "gravity", p.Gravity); Number(w, "hitboxRadius", p.HitboxRadius); Number(w, "hopBackSpeed", p.HopBackSpeed); Number(w, "hopUpSpeed", p.HopUpSpeed); Number(w, "explosionDamage", p.ExplosionDamage); Number(w, "explosionRadius", p.ExplosionRadius); Number(w, "explosionKbBase", p.ExplosionKbBase); Number(w, "explosionKbGrowth", p.ExplosionKbGrowth); w.WriteNumber("explosionStunTicks", p.ExplosionStunTicks); w.WriteNumber("explosionDurationTicks", p.ExplosionDurationTicks); Number(w, "explosionKbAngle", p.ExplosionKbAngle); Number(w, "selfPushSpeed", p.SelfPushSpeed); OptionalString(w, "explosionPresentationId", p.ExplosionPresentationId); break;
             case MankiJetpackBoostCapabilityParameters p: w.WriteNumber("startupTicks", p.StartupTicks); Number(w, "verticalSpeed", p.VerticalSpeed); Number(w, "horizontalSpeed", p.HorizontalSpeed); Number(w, "explosionRadius", p.ExplosionRadius); Number(w, "explosionDamage", p.ExplosionDamage); Number(w, "explosionKbAngle", p.ExplosionKbAngle); Number(w, "explosionKbBase", p.ExplosionKbBase); Number(w, "explosionKbGrowth", p.ExplosionKbGrowth); w.WriteNumber("explosionStunTicks", p.ExplosionStunTicks); w.WriteNumber("explosionDurationTicks", p.ExplosionDurationTicks); OptionalString(w, "explosionPresentationId", p.ExplosionPresentationId); w.WriteNumber("fuelTicks", p.FuelTicks); Number(w, "sinkSpeed", p.SinkSpeed); Number(w, "jumpBurstSpeed", p.JumpBurstSpeed); w.WriteNumber("jumpBurstTicks", p.JumpBurstTicks); break;
@@ -1416,8 +1416,7 @@ public static class CharacterPackageSourceCodec
             "slop.ability.steered-charge.v1" => SteeredChargeFields,
             "slop.ability.thrust.v1" => ThrustFields,
             "slop.ability.tether.v1" => TetherFields,
-            CharacterPackageCompiler.CommandGrabCapabilityId => new[] { "lungeTicks", "lungeSpeed", "stopDistance", "captureTick", "capture", "releaseTick", "launch", "catchPresentationId", "releasePresentationId" },
-            CharacterPackageCompiler.ClinchCapabilityId => new[] { "lungeDistance", "lungeSpeed", "catchHitbox", "anchorDistance", "whiffRecoveryTicks", "releaseTick", "releaseLockTicks" },
+            CharacterPackageCompiler.CommandGrabCapabilityId => new[] { "lungeTicks", "lungeSpeed", "stopDistance", "captureTick", "capture", "releaseTick", "launch", "catchPresentationId", "releasePresentationId", "level", "anchorDistance", "releaseLockTicks", "whiffRecoveryTicks" },
             "slop.ability.cannonball.v1" => CannonballFields,
             "slop.internal.manki.round-bomb.v3" => new[] { "fuseTicks", "maxFlightTicks", "gravity", "hitboxRadius", "hopBackSpeed", "hopUpSpeed", "explosionDamage", "explosionRadius", "explosionKbBase", "explosionKbGrowth", "explosionStunTicks", "explosionDurationTicks", "explosionKbAngle", "selfPushSpeed", "explosionPresentationId" },
             "slop.internal.manki.jetpack-boost.v3" => new[] { "startupTicks", "verticalSpeed", "horizontalSpeed", "explosionRadius", "explosionDamage", "explosionKbAngle", "explosionKbBase", "explosionKbGrowth", "explosionStunTicks", "explosionDurationTicks", "explosionPresentationId", "fuelTicks", "sinkSpeed", "jumpBurstSpeed", "jumpBurstTicks" },
@@ -1436,26 +1435,25 @@ public static class CharacterPackageSourceCodec
         if (id == CharacterPackageCompiler.CommandGrabCapabilityId)
         {
             string at = path + ".parameters.";
-            var launch = Object(p, "launch", at + "launch", d, "damage", "angle", "baseKnockback", "knockbackGrowth", "stunTicks");
+            GrabLaunchSource? launch = null;
+            if (p.ContainsKey("launch"))
+            {
+                var l = Object(p, "launch", at + "launch", d, "damage", "angle", "baseKnockback", "knockbackGrowth", "stunTicks");
+                launch = new GrabLaunchSource(Float(l, "damage", at + "launch.damage", d), Float(l, "angle", at + "launch.angle", d),
+                    Float(l, "baseKnockback", at + "launch.baseKnockback", d),
+                    Float(l, "knockbackGrowth", at + "launch.knockbackGrowth", d),
+                    UShort(l, "stunTicks", at + "launch.stunTicks", d));
+            }
             return new CommandGrabCapabilityParameters(
                 UShort(p, "lungeTicks", at + "lungeTicks", d), Float(p, "lungeSpeed", at + "lungeSpeed", d),
                 Float(p, "stopDistance", at + "stopDistance", d), UShort(p, "captureTick", at + "captureTick", d),
-                ParseHitboxNamed(p, "capture", at + "capture", d), UShort(p, "releaseTick", at + "releaseTick", d),
-                new GrabLaunchSource(Float(launch, "damage", at + "launch.damage", d), Float(launch, "angle", at + "launch.angle", d),
-                    Float(launch, "baseKnockback", at + "launch.baseKnockback", d),
-                    Float(launch, "knockbackGrowth", at + "launch.knockbackGrowth", d),
-                    UShort(launch, "stunTicks", at + "launch.stunTicks", d)),
+                ParseHitboxNamed(p, "capture", at + "capture", d), UShort(p, "releaseTick", at + "releaseTick", d), launch,
                 OptionalString(p, "catchPresentationId", at + "catchPresentationId", d) ?? "",
-                OptionalString(p, "releasePresentationId", at + "releasePresentationId", d) ?? "");
-        }
-        if (id == CharacterPackageCompiler.ClinchCapabilityId)
-        {
-            string at = path + ".parameters.";
-            return new ClinchCapabilityParameters(
-                Float(p, "lungeDistance", at + "lungeDistance", d), Float(p, "lungeSpeed", at + "lungeSpeed", d),
-                ParseHitboxNamed(p, "catchHitbox", at + "catchHitbox", d), Float(p, "anchorDistance", at + "anchorDistance", d),
-                UShort(p, "whiffRecoveryTicks", at + "whiffRecoveryTicks", d), UShort(p, "releaseTick", at + "releaseTick", d),
-                UShort(p, "releaseLockTicks", at + "releaseLockTicks", d));
+                OptionalString(p, "releasePresentationId", at + "releasePresentationId", d) ?? "",
+                OptionalBool(p, "level", at + "level", d),
+                p.ContainsKey("anchorDistance") ? Float(p, "anchorDistance", at + "anchorDistance", d) : null,
+                OptionalUShort(p, "releaseLockTicks", at + "releaseLockTicks", d, 0),
+                OptionalUShort(p, "whiffRecoveryTicks", at + "whiffRecoveryTicks", d, 0));
         }
         if (id == CharacterPackageCompiler.CannonballCapabilityId)
             return ParseCannonball(p, path + ".parameters", d);

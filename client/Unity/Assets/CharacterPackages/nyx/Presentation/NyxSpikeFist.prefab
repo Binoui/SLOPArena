@@ -26,7 +26,7 @@ Transform:
   m_GameObject: {fileID: 553115993398007448}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: -0.0088, y: -0.9806678, z: 0.25326654}
+  m_LocalPosition: {x: 0, y: -1.1332337, z: 0.25024}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
@@ -46,6 +46,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   ViewRightOffset: 0
+  ViewBackOffset: 0
 --- !u!1 &3197550331819972741
 GameObject:
   m_ObjectHideFlags: 0
@@ -73,7 +74,7 @@ Transform:
   m_GameObject: {fileID: 3197550331819972741}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0.0088, y: 0.9806678, z: -0.25326654}
+  m_LocalPosition: {x: 0, y: 1.1332337, z: -0.25024}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -194,11 +195,12 @@ MonoBehaviour:
   OriginBoneId: 
   Layers:
   - Content: {fileID: 7124173203349024339}
-    StartTick: 20
-    EndTick: 28
-    From: {x: 0, y: 0, z: 0}
-    To: {x: 0, y: 0, z: 0}
+    StartTick: 25
+    EndTick: 35
+    From: {x: 0, y: 0, z: 0.35}
+    To: {x: 0, y: 0, z: 0.35}
     Scale: {x: 1, y: 1, z: 1}
+    ScaleTo: {x: 0.9, y: 0.9, z: 0.9}
     TurnDegreesPerTick: 0
 --- !u!1 &8137559436670840971
 GameObject:
@@ -225,7 +227,7 @@ Transform:
   m_GameObject: {fileID: 8137559436670840971}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalPosition: {x: 0, y: 0, z: 0.35}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:

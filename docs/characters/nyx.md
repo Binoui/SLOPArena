@@ -18,7 +18,7 @@ Both forms have authored normals, hit-confirmed F cancels, and their recoveries.
 | Move concepts | Shown 2026-10-29, verdict pending | [Board](../design/references/nyx/nyx-moves.jpg) |
 | Animation pose sheets | 24 made 2026-10-29; all resulting motion candidates approved the same day | Ignored `tmp/nyx-model/anim-sheets/board/` |
 | Rig | Built 2026-10-29: one shared 116-bone skeleton and twelve dress spring chains. The body delegate's spine fit is installed; extreme hem/boot clearance still needs review | [nyx_rig](../../tools/blender/nyx_rig/README.md); build in ignored `tmp/nyx-model/rig-build-v1/` |
-| Two-form engine | Phases 0 and 1 built 2026-10-29, uncommitted: two grids, swap on F (Going Live pulls, Logging Off pushes, 300-tick shared clock), per-form E clocks, start form picked on Fighter Select. Phases 4 to 6 built 2026-10-29, uncommitted: the tether's placed catch, homing and perching projectiles with the pop, and `slop.ability.command-grab.v1` | [ADR-0051](../adr/0051-nyx-two-forms.md) |
+| Two-form engine | Phases 0 and 1 built 2026-10-29, uncommitted: two grids, swap on F (Going Live pulls, Logging Off pushes, 300-tick shared clock), per-form E clocks, start form picked on Fighter Select. Phases 4 to 6 built 2026-10-29, uncommitted: the tether's placed catch, homing and perching projectiles with the pop, and `slop.ability.command-grab.v1` (shared with Title Match since [ADR-0057](../adr/0057-one-command-grab.md); its victim shows the captive small-hit pose) | [ADR-0051](../adr/0051-nyx-two-forms.md) |
 | Package | `nyx`, `CharacterClass` 8, admitted 2026-10-29. The 24 approved clips replace attack, idle and run placeholders | `client/Unity/Assets/CharacterPackages/nyx/` |
 | Normals and existing-capability specials | Phase 2 and 3 implementation, 2026-10-29. Bat Scatter uses immediate thrust with no invincibility; Ring Light Rise steers during ascent; Ring Light now filters fighters by facing | [ADR-0051](../adr/0051-nyx-two-forms.md) |
 | Grasp, Hex Crow, Selfie Grab | Phase 4 to 6 implementation, 2026-10-29, uncommitted. Combos 1 to 3 connect in the Shared sim and in Training. Grasp now shows a warning, shadow hand and drag; Hex Crow uses its own flying/perched paper bird. Phase 7 adds the facing filter, form-aware CPU, HUD decks and Lab form selector | [ADR-0051](../adr/0051-nyx-two-forms.md) |
@@ -206,15 +206,28 @@ restored attack clock, so their active silhouettes stop during hitstop and on in
 `PresentationBuilderKit`. It preserves the existing phone and pole bindings and never
 writes `NyxRig.prefab`.
 
-The direction-readability pass replaces Ring Light's filled pyramid with a small hoop and
-six separated pink/white rays. Hands turn toward the gameplay camera around their own
-up axes; the aerial claw/fist have open centres, and Grasp's catch and carried hand are
-smaller and offset beside the victim. Bat,
-launch-feather and swap-scrap faces use the same yaw-facing presentation with varied rolls.
-Going Live uses one thin hoop about 1.5 fighter heights across, a small flash and hearts.
-Contact stars have a shorter peak and smaller fragments. These changes preserve the
-attack clock, gameplay data, rig and flat comic palette. Eight-view before/after evidence
-and remaining limits are recorded locally in `tmp/nyx-model/vfx-direction-fix/REPORT.md`.
+The concept-fidelity pass (2026-10-30) brings the shapes closer to the approved concept art
+while keeping gameplay data, animations and the attack clock unchanged:
+
+- **Timing.** Each layer's ticks come from its cue in `character.json`. Before this, the
+  10-29 retime had left the layers on the old clock: Ring Light showed for 2 ticks, and
+  the Selfie Grab flash and Grasp's catch never showed.
+- **Shapes.** Claws, arcs, rings, rays and the lash are flat comic strokes with ink edges
+  and a pale core line, pointed at both tips. Flashes are uneven inked starbursts.
+- **Specials.** Ring Light is a hoop with twelve light spikes, hearts and sparkles. Selfie
+  Grab pops a starburst and hearts at the phone. Grasp opens a torn shadow pool, grips the
+  victim with a hand drawn behind them and stretches shadow tendrils back to Nyx's hand.
+  Going Live flashes a pink starburst behind her with focus lines and hearts. Logging Off
+  shatters into violet shards over a jagged floor crown. Bat Scatter leaves a stream of
+  bats along its flight, the crow trails violet shards, and the crow pop is a bigger burst.
+- **Readability.** Hands and claw marks still turn toward the camera around their up axis.
+  Bursts on the swaps sit behind Nyx's chest and Grasp's hand sits behind the victim. Rays,
+  focus lines and shards keep gaps between them. Contact bursts, the Selfie flash and Ring
+  Light still cross faces for a few frames on payoff hits; that balance awaits the owner's play.
+
+Close and gameplay-distance captures, the concept comparison board and the decision log are
+local in `tmp/nyx-polish/`. The 10-29 direction pass evidence remains in
+`tmp/nyx-model/vfx-direction-fix/REPORT.md`.
 
 All IDs below have the prefix `presentation.nyx.`.
 
@@ -245,7 +258,8 @@ All IDs below have the prefix `presentation.nyx.`.
 The crow's projectile profile binds both A variants. Resolver attachment places it on the
 victim's head; its wings fold on a perch. Only the authored pop makes feathers and shadow.
 Grasp warning/catch cues use its existing capability events. The placed-tether presenter
-carries a bound shadow-hand prefab during the drag and suppresses the borrowed ring/rope.
+carries a bound shadow-hand prefab during the drag, stretches its tendrils back to Nyx's
+hand and suppresses the borrowed ring/rope.
 
 ## Open items
 

@@ -229,7 +229,6 @@ public static class ArcadeRecordCompatibility
         {
             x.Distance, x.Speed, x.TipPoseTick, x.RecoveryTicks, x.LightHitbox, x.TipHitbox,
         },
-        CookedClinchCapabilityParameters x => x,
         CookedCommandGrabCapabilityParameters x => x with { CatchPresentationId = "", ReleasePresentationId = "" },
         CookedFlashCutCapabilityParameters x => new
         {

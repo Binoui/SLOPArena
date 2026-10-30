@@ -1424,11 +1424,9 @@ namespace SlopArena.Shared
 					}
 					continue;
 				}
-				if (owner.InteractionPhase is (byte)DefenseInteractionPhase.Reeling or (byte)DefenseInteractionPhase.Clinching)
+				if (owner.InteractionPhase == (byte)DefenseInteractionPhase.Reeling)
 				{
-					bool holds = owner.InteractionPhase == (byte)DefenseInteractionPhase.Reeling
-						? TetherHolds(ownerId, in owner) : ClinchHolds(ownerId, in owner);
-					if (!holds)
+					if (!TetherHolds(ownerId, in owner))
 					{
 						InterruptInteraction(ref owner);
 						_states[ownerId] = owner;
@@ -1665,9 +1663,9 @@ namespace SlopArena.Shared
                     // She rides under the fighters her wave carries.
                     if (first.State == ActionState.Shell || second.State == ActionState.Shell)
                         continue;
-                    // A line being reeled in, or a clinch, has one writer: the thrower's tether (ADR-0048), the holder's clinch (ADR-0053).
-                    if (first.State is ActionState.Reeled or ActionState.Clinched && first.InteractionId != 0
-                        || second.State is ActionState.Reeled or ActionState.Clinched && second.InteractionId != 0)
+                    // A line being reeled in, or a command hold, has one writer: the thrower's tether (ADR-0048), the grabber's grab (ADR-0057).
+                    if (first.State is ActionState.Reeled or ActionState.CommandGrabbed && first.InteractionId != 0
+                        || second.State is ActionState.Reeled or ActionState.CommandGrabbed && second.InteractionId != 0)
                         continue;
                     if ((_activeAbilities.TryGetValue(firstId, out var firstAbility)
                             && firstAbility.IgnoresFighterPushboxes)
@@ -2420,32 +2418,25 @@ namespace SlopArena.Shared
 					_states[hit.TargetEntityId] = targetState;
 					continue;
 				}
-				// A clinch's lunge catches through a shield; its own move's hits on the fighter it holds land as
-				// damage and hitstop only (ADR-0053).
-				if (attackerExists && ContactAbility(hit)?.Clinch is { } clinch)
+				// A command grab's capture holds through a shield and armour; its own move's hits on the fighter it holds
+				// land as damage and hitstop only, and its release is an ordinary hit (ADR-0057). A contact without damage
+				// is never an ordinary hit, nor a hit contact.
+				if (attackerExists && ContactAbility(hit)?.CommandGrab is { } grab)
 				{
-					bool ownHeldVictim = clinch.Holding && targetState.State == ActionState.Clinched
+					bool ownHeldVictim = grab.Holding && targetState.State == ActionState.CommandGrabbed
 						&& targetState.InteractionId != 0 && targetState.InteractionId == attackerState.InteractionId
 						&& targetState.InteractionPartnerId == hit.OwnerEntityId;
-					if (clinch.Catches || ownHeldVictim)
+					if (grab.Catches || ownHeldVictim || hit.Damage <= 0f)
 					{
-						if (clinch.Catches)
-							CatchOnClinch(in hit, clinch, ref attackerState, ref targetState, inputs, hitContactOperationIndex++);
+						if (!ownHeldVictim)
+							CatchOnCommandGrab(in hit, grab, ref attackerState, ref targetState, inputs,
+								hit.Damage > 0f ? hitContactOperationIndex++ : hitContactOperationIndex);
 						else
-							HitClinchedFighter(in hit, ref targetState, ref attackerState, inputs, hitContactOperationIndex++);
+							HitCommandGrabbedFighter(in hit, ref targetState, ref attackerState, inputs, hitContactOperationIndex++);
 						_states[hit.OwnerEntityId] = attackerState;
 						_states[hit.TargetEntityId] = targetState;
 						continue;
 					}
-				}
-				// A command grab's capture (no damage) holds through a shield and armour (ADR-0051); its release is an
-				// ordinary hit.
-				if (attackerExists && hit.Damage <= 0f && ContactAbility(hit)?.CommandGrab is { } commandGrab)
-				{
-					CatchOnCommandGrab(in hit, commandGrab, ref attackerState, ref targetState);
-					_states[hit.OwnerEntityId] = attackerState;
-					_states[hit.TargetEntityId] = targetState;
-					continue;
 				}
 				if (!PredictCoupledInteractions && targetState.InteractionId != 0) continue;
 				if (targetState.State == ActionState.Shielding && !hit.Unblockable)

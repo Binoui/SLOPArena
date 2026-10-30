@@ -91,7 +91,8 @@ public sealed class SweetspotFeedbackTests
         Assert.All(CookedObjects(fightguy, "radius", "hitPresentationId"), x => Assert.Equal(SweetHit, x.GetString()));
         Assert.Equal(2 * 3, CookedObjects(fightguy, "radius", "hitPresentationId").Count);
         Assert.Equal(2, CookedObjects(fightguy, "operationIndex", "condition").Count);
-        Assert.Equal("1.17.0", fightguy.Metadata.RuntimeApiMin);
+        // Title Match's hold stage (ADR-0057) raises his minimum past the sweetspot fields' 1.17.0.
+        Assert.Equal("1.20.0", fightguy.Metadata.RuntimeApiMin);
     }
 
     /// <summary>The <paramref name="field"/> values of every cooked object that also has <paramref name="marker"/>.</summary>

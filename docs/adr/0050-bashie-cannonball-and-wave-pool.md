@@ -1,8 +1,8 @@
 # ADR-0050: Bashie's Cannonball and Wave Pool: the shell splashes and rides
 
 **Status:** Accepted for the Training prototype — 2026-10-29. The maintainer approved the kit ("this sounds very
-cool. lets go for it"). The values under [Prototype defaults](#prototype-defaults) are the coordinator's and stay
-open to the maintainer's play verdict.
+cool. lets go for it"). The values under [Prototype defaults](#prototype-defaults) are the coordinator's; the
+maintainer's Training verdict on them the same day was GOOD.
 **Supersedes:** [ADR-0045](0045-bashie-shell-state.md)'s skate model, bowling window, walk-off coast and Hydro Jet
 landing skate, and the stun in [the NO RUNNING! plan](../plans/2026-10-26-bashie-no-running.md).
 **Extends:** ADR-0045 (`ActionState.Shell`, tuck moves, thrust) and [ADR-0048](0048-bashie-rescue-ring-tether.md)

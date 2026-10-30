@@ -9,42 +9,44 @@ using Xunit;
 namespace SlopArena.Shared.Tests;
 
 /// <summary>
-/// slop.ability.clinch.v1 (ADR-0053), FightGuy's Title Match, through his live package: the lunge catches through a
-/// shield, the hold stage's hits land on the held fighter as damage and hitstop only, the kick launches after the
-/// release, an empty lunge ends after the whiff recovery, and every way the pair can end converges on free fighters.
+/// FightGuy's Title Match (ADR-0053) through his live package, a command grab with a hold stage (ADR-0057): the lunge
+/// catches through a shield, the hold stage's hits land on the held fighter as damage and hitstop only, the kick launches
+/// after the release, an empty lunge ends after the whiff recovery, and every way the pair can end converges on free
+/// fighters.
 /// </summary>
-public sealed class ClinchTests
+public sealed class TitleMatchTests
 {
     private const ulong Guy = 1, Victim = 2, Third = 3;
     private static readonly InputState Grab = new() { ActiveSlot = AbilitySlots.F, TargetEntityId = (byte)Victim };
     private static readonly (CharacterDefinition Def, BakedAnimationData Poses) Fighter =
         (TestHelpers.ResolveSourceDef("fightguy"), BuiltInContentResolver.Resolve(CharacterClass.FightGuy).BakedAnimation!);
     private static CookedSlotDefinition Move => Fighter.Def.GetCookedSlotAbility(AbilitySlots.F, false)!;
-    private static CookedClinchCapabilityParameters P => (CookedClinchCapabilityParameters)Move.Timeline.Stages[0]
+    private static CookedCommandGrabCapabilityParameters P => (CookedCommandGrabCapabilityParameters)Move.Timeline.Stages[0]
         .Operations.OfType<CookedStartCapabilityOperation>().Single().Parameters;
+    private static int LungeStageTicks => P.CaptureTick + P.Capture.DurationTicks;
 
     [Fact]
     public void ACatchThroughAShieldPairsBothFightersAndHoldsTheVictimInFront()
     {
         var duel = new Duel().With(Victim, Standing(0f, 2f, 180f));
         duel.Step(Grab, (Victim, new InputState { ShieldHeld = true, ShieldPressed = true }));
-        duel.RunUntil(() => duel.State(Victim).State == ActionState.Clinched, 20, (Victim, new InputState { ShieldHeld = true }));
+        duel.RunUntil(() => duel.State(Victim).State == ActionState.CommandGrabbed, 20, (Victim, new InputState { ShieldHeld = true }));
         var holder = duel.State(Guy);
         var victim = duel.State(Victim);
         Assert.Equal(ActionState.Attacking, holder.State);
         Assert.NotEqual(0ul, holder.InteractionId);
         Assert.Equal(holder.InteractionId, victim.InteractionId);
-        Assert.Equal((byte)DefenseInteractionPhase.Clinching, holder.InteractionPhase);
-        Assert.Equal((byte)DefenseInteractionPhase.Clinching, victim.InteractionPhase);
+        Assert.Equal((byte)DefenseInteractionPhase.CommandHold, holder.InteractionPhase);
+        Assert.Equal((byte)DefenseInteractionPhase.CommandHold, victim.InteractionPhase);
         Assert.DoesNotContain(duel.Hits, h => h.Blocked);
 
         duel.Step(default, (Victim, new InputState { ShieldHeld = true }));
         holder = duel.State(Guy);
         victim = duel.State(Victim);
-        float expected = MathF.Max(P.AnchorDistance, Fighter.Def.CapsuleRadius * 2f + .05f);
+        float expected = MathF.Max(P.AnchorDistance!.Value, Fighter.Def.CapsuleRadius * 2f + .05f);
         float dx = victim.PX - holder.PX, dz = victim.PZ - holder.PZ;
         Assert.Equal(expected, MathF.Sqrt(dx * dx + dz * dz), 2);
-        Assert.Equal(ActionState.Clinched, victim.State);
+        Assert.Equal(ActionState.CommandGrabbed, victim.State);
     }
 
     [Fact]
@@ -53,7 +55,7 @@ public sealed class ClinchTests
         var duel = new Duel().With(Victim, Standing(1.5f, 1.5f, 225f));
         duel.Step(Grab);
         Assert.Equal(MathF.PI / 4f, duel.State(Guy).FacingYaw, 3);
-        duel.RunUntil(() => duel.State(Victim).State == ActionState.Clinched, 20);
+        duel.RunUntil(() => duel.State(Victim).State == ActionState.CommandGrabbed, 20);
     }
 
     [Fact]
@@ -64,7 +66,7 @@ public sealed class ClinchTests
         duel.RunUntil(() =>
         {
             var v = duel.State(Victim);
-            if (v.State == ActionState.Clinched) Assert.Equal((ushort)0, v.HitstunTicks);
+            if (v.State == ActionState.CommandGrabbed) Assert.Equal((ushort)0, v.HitstunTicks);
             return v.State == ActionState.Hitstun;
         }, 300);
         var hold = Move.Timeline.Stages[1].Operations.OfType<CookedSpawnHitboxOperation>()
@@ -72,7 +74,7 @@ public sealed class ClinchTests
         var onVictim = duel.Hits.Where(h => h.OwnerEntityId == Guy && h.TargetEntityId == Victim).ToArray();
         Assert.Equal(1 + hold.Length, onVictim.Length);
         Assert.All(onVictim.Skip(1).SkipLast(1), h => Assert.True(h.HitstopTicks > 0, "each held hit freezes"));
-        Assert.Equal(P.CatchHitbox.Damage + hold.Sum(h => h.Damage), duel.State(Victim).DamagePercent);
+        Assert.Equal(P.Capture.Damage + hold.Sum(h => h.Damage), duel.State(Victim).DamagePercent);
         var kick = duel.State(Victim);
         Assert.True(Simulation.HasKnockback(kick) || kick.HitstopTicks > 0, "the kick launches after its freeze");
         Assert.Equal(0ul, kick.InteractionId);
@@ -97,8 +99,8 @@ public sealed class ClinchTests
         int ticks = 2;
         while (duel.Sim.GetActiveAbility(Guy) != null && ticks < 200) { duel.Step(); ticks++; }
         Assert.DoesNotContain(duel.Hits, h => h.OwnerEntityId == Guy);
-        Assert.NotEqual(ActionState.Clinched, duel.State(Victim).State);
-        Assert.InRange(ticks, P.WhiffRecoveryTicks + 1, P.LungeStageTicks + P.WhiffRecoveryTicks);
+        Assert.NotEqual(ActionState.CommandGrabbed, duel.State(Victim).State);
+        Assert.InRange(ticks, P.WhiffRecoveryTicks + 1, LungeStageTicks + P.WhiffRecoveryTicks);
         Assert.DoesNotContain(duel.Events, e => e.PresentationId == "presentation.fightguy.fist-of-fury.focus");
         var guy = duel.State(Guy);
         Assert.Equal((ushort)0, guy.AnimLockTicks);
@@ -117,7 +119,7 @@ public sealed class ClinchTests
         var victim = duel.State(Victim);
         Assert.Equal(0ul, victim.InteractionId);
         Assert.Equal(0ul, duel.State(Guy).InteractionId);
-        Assert.NotEqual(ActionState.Clinched, victim.State);
+        Assert.NotEqual(ActionState.CommandGrabbed, victim.State);
         Assert.Contains(duel.Hits, h => h.OwnerEntityId == Third && h.TargetEntityId == struck);
         // His move pauses through the freeze of his own last hit, then ends instead of punching air.
         duel.RunUntil(() => duel.Sim.GetActiveAbility(Guy) == null, 20);
@@ -142,7 +144,7 @@ public sealed class ClinchTests
         {
             if (!duel.Sim.GetAllStates().TryGetValue(id, out var s)) continue;
             Assert.Equal(0ul, s.InteractionId);
-            Assert.NotEqual(ActionState.Clinched, s.State);
+            Assert.NotEqual(ActionState.CommandGrabbed, s.State);
         }
         if (end != "holder removed") duel.RunUntil(() => duel.Sim.GetActiveAbility(Guy) == null, 20);
     }
@@ -152,7 +154,7 @@ public sealed class ClinchTests
     {
         var duel = new Duel(airborne: 3f).With(Victim, Airborne(Standing(0f, 1.8f, 180f), 3f));
         duel.Step(Grab);
-        duel.RunUntil(() => duel.State(Victim).State == ActionState.Clinched, 20);
+        duel.RunUntil(() => duel.State(Victim).State == ActionState.CommandGrabbed, 20);
         float holderY = duel.State(Guy).PY, victimY = duel.State(Victim).PY;
         duel.RunUntil(() => duel.State(Victim).InteractionId == 0, 300);
         Assert.Equal(holderY, duel.State(Guy).PY, 3);
@@ -193,7 +195,7 @@ public sealed class ClinchTests
     [InlineData(136)]
     [InlineData(140)]
     [InlineData(150)]
-    public void RestoringAWorldSnapshotMidClinchMatchesTheContinuousRun(int restoreAt)
+    public void RestoringAWorldSnapshotMidHoldMatchesTheContinuousRun(int restoreAt)
     {
         var continuous = Holdable();
         Duel? restored = null;
@@ -242,33 +244,39 @@ public sealed class ClinchTests
     }
 
     [Fact]
-    public void ThePackageOpensItsFWithAClinchThatReleasesOneTickBeforeTheKick()
+    public void ThePackageOpensItsFWithAGrabThatReleasesOneTickBeforeTheKick()
     {
         foreach (bool air in new[] { false, true })
         {
             var slot = Fighter.Def.GetCookedSlotAbility(AbilitySlots.F, air)!;
             Assert.Equal(2, slot.Timeline.Stages.Count);
-            Assert.Equal(P.LungeStageTicks, slot.Timeline.Stages[0].DurationTicks);
+            Assert.True(P.HasHoldStage);
+            Assert.Null(P.Launch);
+            Assert.Equal(LungeStageTicks, slot.Timeline.Stages[0].DurationTicks);
             var kick = slot.Timeline.Stages[1].Operations.OfType<CookedSpawnHitboxOperation>().MaxBy(op => op.Hitbox.Damage)!;
-            Assert.Equal(kick.Tick - 1, P.ReleaseTick);
+            Assert.Equal(LungeStageTicks + kick.Tick - 1, P.ReleaseTick);
             Assert.DoesNotContain(slot.Timeline.Stages[1].Operations.OfType<CookedSpawnHitboxOperation>(),
                 op => op.Hitbox.KnockbackDirection == AuthoringKnockbackDirection.TowardOwner || op.Hitbox.FixedHitstunTicks > 0);
         }
     }
 
-    public static IEnumerable<object[]> InvalidClinchSlots() => new[]
+    public static IEnumerable<object[]> InvalidHoldStageGrabs() => new[]
     {
         new object[] { "lunge stage length", (Action<JsonObject>)(ch => Stage(ch, 0)["durationTicks"] = 30) },
         new object[] { "one stage", (Action<JsonObject>)(ch => FSlot(ch)["timeline"]!["stages"]!.AsArray().RemoveAt(1)) },
-        new object[] { "a launching catch", (Action<JsonObject>)(ch => Catch(ch)["baseKnockback"] = 20) },
-        new object[] { "a release outside the hold", (Action<JsonObject>)(ch => Clinch(ch)["releaseTick"] = 500) },
+        new object[] { "no whiff recovery", (Action<JsonObject>)(ch => Parameters(ch).Remove("whiffRecoveryTicks")) },
+        new object[] { "a launching catch", (Action<JsonObject>)(ch => Capture(ch)["baseKnockback"] = 20) },
+        new object[] { "a release outside the hold", (Action<JsonObject>)(ch => Parameters(ch)["releaseTick"] = 7) },
+        new object[] { "no launch and no lock", (Action<JsonObject>)(ch => Parameters(ch).Remove("releaseLockTicks")) },
+        new object[] { "the retired clinch", (Action<JsonObject>)(ch => FSlot(ch)["timeline"]!["stages"]![0]!["operations"]!
+            .AsArray().Single(op => op!["kind"]!.GetValue<string>() == "startCapability")!["capabilityId"] = "slop.ability.clinch.v1") },
         new object[] { "a hitbox beside the lunge", (Action<JsonObject>)(ch => Stage(ch, 0)["operations"]!.AsArray()
             .Add(Stage(ch, 1)["operations"]!.AsArray().First(op => op!["kind"]!.GetValue<string>() == "spawnHitbox")!.DeepClone())) },
     };
 
     [Theory]
-    [MemberData(nameof(InvalidClinchSlots))]
-    public void TheCompilerRejectsInvalidClinchSlots(string name, Action<JsonObject> edit)
+    [MemberData(nameof(InvalidHoldStageGrabs))]
+    public void TheCompilerRejectsInvalidHoldStageGrabs(string name, Action<JsonObject> edit)
     {
         var json = JsonNode.Parse(System.IO.File.ReadAllText(SourcePath("character.json")))!.AsObject();
         edit(json);
@@ -282,16 +290,16 @@ public sealed class ClinchTests
     private static JsonObject FSlot(JsonObject ch)
         => ch["slots"]!.AsArray().Single(s => s!["id"]!.GetValue<string>() == "ground.F")!.AsObject();
     private static JsonObject Stage(JsonObject ch, int index) => FSlot(ch)["timeline"]!["stages"]![index]!.AsObject();
-    private static JsonObject Clinch(JsonObject ch) => Stage(ch, 0)["operations"]!.AsArray()
+    private static JsonObject Parameters(JsonObject ch) => Stage(ch, 0)["operations"]!.AsArray()
         .Single(op => op!["kind"]!.GetValue<string>() == "startCapability")!["parameters"]!.AsObject();
-    private static JsonObject Catch(JsonObject ch) => Clinch(ch)["catchHitbox"]!.AsObject();
+    private static JsonObject Capture(JsonObject ch) => Parameters(ch)["capture"]!.AsObject();
 
-    /// <summary>A clinch in its hold stage, with a third fighter standing by.</summary>
+    /// <summary>Title Match in its hold stage, with a third fighter standing by.</summary>
     private static Duel Holding()
     {
         var duel = new Duel().With(Victim, Standing(0f, 1.5f, 180f)).With(Third, Standing(4f, 0f, 270f));
         duel.Step(Grab);
-        duel.RunUntil(() => duel.State(Victim).State == ActionState.Clinched, 20);
+        duel.RunUntil(() => duel.State(Victim).State == ActionState.CommandGrabbed, 20);
         duel.RunUntil(() => duel.Hits.Count(h => h.OwnerEntityId == Guy) >= 2, 40);
         return duel;
     }
@@ -366,8 +374,9 @@ public sealed class ClinchTests
 }
 
 /// <summary>
-/// FightGuy's source without ADR-0053's runtime API 1.17.0 features (Title Match's lunge stage, the Dragon's own hit
-/// presentation and conditioned finger), for tests that use him as a reference package for other features.
+/// FightGuy's source without Title Match's lunge stage (runtime API 1.20.0, ADR-0057) and ADR-0053's runtime API 1.17.0
+/// features (the Dragon's own hit presentation and conditioned finger), for tests that use him as a reference package for
+/// other features.
 /// </summary>
 internal static class FightGuyFixture
 {
@@ -377,7 +386,7 @@ internal static class FightGuyFixture
         {
             var stages = slot!["timeline"]!["stages"]!.AsArray();
             if (stages.Count == 2 && stages[0]!["operations"]!.AsArray()
-                    .Any(op => (string?)op!["capabilityId"] == CharacterPackageCompiler.ClinchCapabilityId))
+                    .Any(op => (string?)op!["capabilityId"] == CharacterPackageCompiler.CommandGrabCapabilityId))
                 stages.RemoveAt(0);
             foreach (var stage in stages)
                 foreach (var op in stage!["operations"]!.AsArray())
@@ -388,7 +397,7 @@ internal static class FightGuyFixture
         }
         var requirements = character["capabilityRequirements"]!.AsArray();
         for (int i = requirements.Count - 1; i >= 0; i--)
-            if ((string?)requirements[i]!["capabilityId"] == CharacterPackageCompiler.ClinchCapabilityId)
+            if ((string?)requirements[i]!["capabilityId"] == CharacterPackageCompiler.CommandGrabCapabilityId)
                 requirements.RemoveAt(i);
         var ids = character["presentationIds"]!.AsArray();
         for (int i = ids.Count - 1; i >= 0; i--)

@@ -12,7 +12,7 @@ namespace SlopArena.Client.World
         {
             public Transform Content;
             public int StartTick, EndTick;
-            public Vector3 From, To, Scale;
+            public Vector3 From, To, Scale, ScaleTo;
             public float TurnDegreesPerTick;
         }
 
@@ -26,6 +26,9 @@ namespace SlopArena.Client.World
         {
             _owner = owner;
             _sequence = owner != null ? owner.CurrentAttackSequence : (byte)0;
+            // The cue tracks its owner itself. Left under the hips bone it would inherit the hit-feel
+            // squash through a rotated bone as shear, tipping floor shapes into the floor.
+            if (FollowOwner && transform.parent != null) transform.SetParent(null, true);
             Apply();
         }
 
@@ -54,8 +57,11 @@ namespace SlopArena.Client.World
                 float t = Mathf.Clamp01(age / Mathf.Max(1f, layer.EndTick - layer.StartTick - 1));
                 layer.Content.localPosition = Vector3.LerpUnclamped(layer.From, layer.To, t);
                 layer.Content.localRotation = Quaternion.Euler(0f, age * layer.TurnDegreesPerTick, 0f);
-                // The full silhouette is present on the first active tick. Snap away after the last.
-                layer.Content.localScale = layer.Scale * (1f + .035f * Mathf.Sin(t * Mathf.PI));
+                // The full silhouette is present on the first active tick and eases toward ScaleTo
+                // (a burst pops outward, a slash thins). Snap away after the last.
+                Vector3 end = layer.ScaleTo == Vector3.zero ? layer.Scale : layer.ScaleTo;
+                float eased = 1f - (1f - t) * (1f - t);
+                layer.Content.localScale = Vector3.LerpUnclamped(layer.Scale, end, eased) * (1f + .035f * Mathf.Sin(t * Mathf.PI));
             }
         }
 

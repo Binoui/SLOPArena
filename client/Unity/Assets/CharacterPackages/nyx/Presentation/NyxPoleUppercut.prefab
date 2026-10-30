@@ -148,9 +148,10 @@ MonoBehaviour:
   OriginBoneId: 
   Layers:
   - Content: {fileID: 1926066891707509718}
-    StartTick: 16
-    EndTick: 25
+    StartTick: 20
+    EndTick: 31
     From: {x: 0, y: 0, z: 0}
     To: {x: 0, y: 0, z: 0}
     Scale: {x: 1, y: 1, z: 1}
+    ScaleTo: {x: 0.9, y: 0.9, z: 0.9}
     TurnDegreesPerTick: 0

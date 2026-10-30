@@ -348,9 +348,8 @@ namespace SlopArena.Shared
         Terminal = 4,
         /// <summary>A tether holds the pair (ADR-0048): the thrower is Attacking in her tether, the victim Reeled.</summary>
         Reeling = 5,
-        /// <summary>A clinch holds the pair (ADR-0053): the holder is Attacking in its clinch, the victim Clinched.</summary>
-        Clinching = 6,
-        /// <summary>A command grab holds the pair (ADR-0051): the grabber is Attacking in its grab, the victim Grabbed.</summary>
+        // 6 was the clinch's own phase (ADR-0053), merged into CommandHold (ADR-0057); the value stays reserved.
+        /// <summary>A command grab holds the pair (ADR-0057): the grabber is Attacking in its grab, the victim CommandGrabbed.</summary>
         CommandHold = 7,
         /// <summary>The universal grab's neutral up-toss windup (ADR-0054); a stick fling winds up in Throwing.</summary>
         UpTossing = 8,

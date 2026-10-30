@@ -170,8 +170,8 @@ namespace SlopArena.Shared
             movementActionAccepted = false;
             if (s.InteractionId != 0 && ActionStates.MovedByPartner(s.State))
             {
-                // A clinched fighter takes its holder's hits as hitstop alone (ADR-0053); nothing else runs it down.
-                if (s.State == ActionState.Clinched && s.HitstopTicks > 0) s.HitstopTicks--;
+                // A command-grabbed fighter takes its grabber's hits as hitstop alone (ADR-0057); nothing else runs it down.
+                if (s.State == ActionState.CommandGrabbed && s.HitstopTicks > 0) s.HitstopTicks--;
                 TickTimers(ref s);
                 return;
             }

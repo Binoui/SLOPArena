@@ -13,6 +13,7 @@ internal static class RetiredCapabilities
         ["slop.internal.wibou.blade-flurry.v1"] = "Blade Flurry v1 has been retired. Use slop.ability.flash-cut.v1 (the flash, ADR-0052).",
         ["slop.internal.wibou.blade-flurry.v2"] = "Blade Flurry (Skyfall) has been retired. Use slop.ability.flash-cut.v1 (the flash, ADR-0052).",
         ["slop.ability.shell-stance.v1"] = "Shell stance v1 (the skate and the bowl) has been retired. Use slop.ability.shell-stance.v2 with a splash and a ride (ADR-0050).",
+        ["slop.ability.clinch.v1"] = "Clinch v1 (Title Match) has been retired. Use slop.ability.command-grab.v1 with level, anchorDistance, releaseLockTicks and whiffRecoveryTicks (ADR-0057).",
     };
 
     internal static bool TryGetReason(string id, out string reason) => Reasons.TryGetValue(id, out reason!);

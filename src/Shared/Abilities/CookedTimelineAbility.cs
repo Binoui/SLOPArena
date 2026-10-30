@@ -70,16 +70,6 @@ public sealed class CookedTimelineAbility : ServerAbility
             return null;
         }
     }
-    public override ClinchAbility? Clinch
-    {
-        get
-        {
-            for (var i = 0; i < _capabilities.Count; i++)
-                if (_capabilities[i].Clinch is { } clinch)
-                    return clinch;
-            return null;
-        }
-    }
     public override CommandGrabAbility? CommandGrab
     {
         get
