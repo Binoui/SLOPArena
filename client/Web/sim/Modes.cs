@@ -92,7 +92,7 @@ public sealed class BrawlMode : MatchMode
             f.Target = t;
         }
         if (f.Target == 0) return default;
-        f.Policy.ObserveOpponent(f.Memory, Sim.GetState(f.Target), Sim.GetDefinition(f.Target));
+        f.Policy.ObserveOpponent(f.Memory, Sim.GetState(f.Target), Sim.GetDefinition(f.Target), activeMove: Sim.GetActiveMove(f.Target)?.Slot);
         var cpu = f.Policy.Decide(self, f.Entry.Definition.ForForm(self.Form.Active), f.Rng, f.Memory, Arena,
             f.Entry.BakedAnimation, activeMove: Sim.GetActiveMove(f.Id)?.Slot, canSwapCancel: Sim.CanSwapCancel(f.Id));
         cpu.TargetEntityId = (byte)f.Target;
