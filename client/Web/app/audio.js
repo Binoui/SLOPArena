@@ -5,6 +5,10 @@ export function createAudio({ paths }) {
   let muted = false;
   try { muted = localStorage.getItem('sloparena.muted') === '1'; } catch {}
   stats.muted = muted;
+  // Automated browsers (Playwright, headless CDP) stay silent; ?sound=1 opts back in.
+  const silent = navigator.webdriver === true && !new URLSearchParams(location.search).has('sound');
+  stats.silent = silent;
+  const level = () => (muted || silent ? 0 : 0.8);
   let context, master, music, manifest, mode, lastTick = -1, finished = false;
   let previous = new Map(), best = 0, returns = 0, countdown = 0;
   const buffers = new Map(), voices = new Set(), sequence = new Map(), cooldown = new Map();
@@ -31,7 +35,7 @@ export function createAudio({ paths }) {
         if (!AudioContextClass) return;
         context = new AudioContextClass();
         master = context.createGain();
-        master.gain.value = muted ? 0 : 0.8;
+        master.gain.value = level();
         master.connect(context.destination);
       }
       // Call play/resume in the gesture itself, including on Safari.
@@ -40,7 +44,7 @@ export function createAudio({ paths }) {
         music = new Audio(base + 'MainTheme.mp3');
         music.loop = true;
         music.preload = 'auto';
-        music.muted = muted;
+        music.muted = muted || silent;
         music.volume = mode ? 0.16 : 0.25;
         music.addEventListener('error', () => stats.errors.push('MainTheme could not load'));
         music.addEventListener('playing', () => count(stats.played, 'music'));
@@ -94,8 +98,8 @@ export function createAudio({ paths }) {
     muted = !muted;
     stats.muted = muted;
     try { localStorage.setItem('sloparena.muted', muted ? '1' : '0'); } catch {}
-    if (master) master.gain.setValueAtTime(muted ? 0 : 0.8, context.currentTime);
-    if (music) music.muted = muted;
+    if (master) master.gain.setValueAtTime(level(), context.currentTime);
+    if (music) music.muted = muted || silent;
     updateButton();
     if (!muted) unlock();
   }
