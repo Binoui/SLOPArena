@@ -108,9 +108,9 @@ public sealed class BrawlMode : MatchMode
             if (!f.Cpu) continue;
             foreach (var hit in Sim.LastTickHits)
             {
-                if (hit.OwnerEntityId != f.Id || hit.Blocked || hit.TargetEntityId != f.Target) continue;
-                var o = Sim.GetState(hit.TargetEntityId);
-                f.Memory.RecordOpponentHit(hit.AttackSlot, !o.IsGrounded, o, o.HitstunTicks, hit.HitstopTicks);
+                if (hit.OwnerEntityId != f.Id || hit.TargetEntityId != f.Target) continue;
+                f.Memory.RecordOpponentContact(hit.AttackSlot, hit.Blocked ? CpuContactKind.Block : CpuContactKind.Hit,
+                    Sim.GetState(hit.TargetEntityId), hit.HitstopTicks);
             }
         }
     }
