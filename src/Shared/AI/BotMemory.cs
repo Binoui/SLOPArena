@@ -9,21 +9,26 @@ namespace SlopArena.Shared.AI;
 public readonly struct CpuObservation
 {
     public readonly int ObservationTick;
+    internal readonly int AgeTicks;
+    internal readonly CpuTimingSnapshot Timing;
     public readonly float PX, PY, PZ;
     public readonly float VX, VY, VZ;
     public readonly float ThreatReach;
     public readonly ActionState State;
     public readonly ushort StateTicks;
     public readonly bool IsGrounded;
+    public readonly bool InPostHitstunFlight;
     public readonly ushort DamagePercent;
     public readonly ushort AttackElapsedTicks;
     public readonly byte AttackSlot, ComboStage;
     public readonly ushort AnimLockTicks, LandingLagTicks, ChargeTicks;
     public readonly ushort HitstunTicks, HitstopTicks;
 
-    private CpuObservation(int observationTick, in CharacterState state, float threatReach)
+    private CpuObservation(int observationTick, in CharacterState state, float threatReach, in CpuTimingSnapshot timing)
     {
         ObservationTick = observationTick;
+        AgeTicks = 0;
+        Timing = timing;
         ThreatReach = threatReach;
         PX = state.PX;
         PY = state.PY;
@@ -34,6 +39,7 @@ public readonly struct CpuObservation
         State = state.State;
         StateTicks = state.StateTicks;
         IsGrounded = state.IsGrounded;
+        InPostHitstunFlight = state.InPostHitstunFlight;
         DamagePercent = state.DamagePercent;
         AttackElapsedTicks = state.AttackElapsedTicks;
         AttackSlot = state.AttackSlot;
@@ -45,8 +51,16 @@ public readonly struct CpuObservation
         HitstopTicks = state.HitstopTicks;
     }
 
-    internal static CpuObservation Capture(int observationTick, in CharacterState state, float threatReach)
-        => new(observationTick, state, threatReach);
+    private CpuObservation(in CpuObservation source, int ageTicks)
+    {
+        this = source;
+        AgeTicks = Math.Max(0, ageTicks);
+    }
+
+    internal CpuObservation WithAge(int ageTicks) => new(this, ageTicks);
+
+    internal static CpuObservation Capture(int observationTick, in CharacterState state, float threatReach,
+        CpuTimingSnapshot timing = default) => new(observationTick, state, threatReach, timing);
 
     public bool IsThreatening
         => State is ActionState.Attacking or ActionState.Aiming or ActionState.Warping
@@ -54,8 +68,11 @@ public readonly struct CpuObservation
             || LandingLagTicks > 0;
 }
 
-internal readonly struct CpuHitObservation
+public enum CpuContactKind : byte { Hit, Block }
+
+internal readonly struct CpuContactObservation
 {
+    public readonly CpuContactKind Kind;
     public readonly int Sequence;
     public readonly int RecordedTick;
     public readonly int AvailableTick;
@@ -66,9 +83,10 @@ internal readonly struct CpuHitObservation
     public readonly float PX, PY, PZ;
     public readonly float VX, VY, VZ;
 
-    public CpuHitObservation(int sequence, int recordedTick, int availableTick, byte slot, bool airborne,
+    public CpuContactObservation(CpuContactKind kind, int sequence, int recordedTick, int availableTick, byte slot, bool airborne,
         ushort hitstunTicks, ushort hitstopTicks, in CharacterState target)
     {
+        Kind = kind;
         Sequence = sequence;
         RecordedTick = recordedTick;
         AvailableTick = availableTick;
@@ -93,22 +111,9 @@ internal enum BotPlanPhase : byte
     AimHold,
 }
 
-/// <summary>How a CPU moves between decisions.</summary>
-internal enum Footwork : byte
-{
-    /// <summary>Close to the engage band around the observed opponent, then stand inside it.</summary>
-    Engage,
-    /// <summary>Back away from the observed opponent for a window.</summary>
-    Retreat,
-    /// <summary>Circle the observed opponent on <see cref="BotMemory.Side"/> for a window.</summary>
-    Circle,
-}
-
 internal enum BotPlanKind : byte
 {
     Ordinary,
-    TrueCombo,
-    PressureString,
     Recovery,
     /// <summary>Universal grab: press, wait out the attempt, hold for the reaction delay, throw forward.</summary>
     Grab,
@@ -137,12 +142,16 @@ public sealed class BotMemory
         public int Count, WriteIndex;
         public byte Deaths;
         public int SeenAt = int.MinValue;
+        public uint NextEpisode, AttackEpisode, LandingEpisode;
+        public ActionState PreviousState;
+        public byte PreviousSlot;
+        public ushort PreviousElapsed, PreviousLanding;
     }
 
     private readonly OpponentTrack[] _tracks = new OpponentTrack[MaxOpponents];
     private int _trackCount;
-    private readonly CpuHitObservation[] _combatHistory = new CpuHitObservation[CombatHistoryCapacity];
-    private readonly CpuHitObservation[] _pendingHits = new CpuHitObservation[CombatHistoryCapacity];
+    private readonly CpuContactObservation[] _combatHistory = new CpuContactObservation[CombatHistoryCapacity];
+    private readonly CpuContactObservation[] _pendingContacts = new CpuContactObservation[CombatHistoryCapacity];
     /// <summary>
     /// One step per CPU tick. The first observation after a decision opens a tick; observing a fighter
     /// already seen in the open tick opens the next one (callers that observe without deciding).
@@ -155,9 +164,9 @@ public sealed class BotMemory
     private byte _opponentDeaths;
     private int _dwellUntil;
     private int _chosenAt = int.MinValue;
-    private int _nextHitSequence;
-    private int _lastEvaluatedHitSequence;
-    private int _pendingHitCount;
+    private int _nextContactSequence, _recordedContactSequence;
+    private int _lastEvaluatedContactSequence;
+    private int _pendingContactCount;
 
     public BotMemory()
     {
@@ -176,26 +185,32 @@ public sealed class BotMemory
 
     /// <summary>Named CPU difficulty selected for this bot.</summary>
     public CpuDifficulty Difficulty = CpuDifficulty.Normal;
+    internal CpuCombatPlan Combat;
+    internal uint PlanSerial, EvaluatedThreat, EvaluatedRecovery;
+    internal int ThreatEvaluations, RecoveryEvaluations, ContactEvaluations;
+    internal CpuPlanEnd LastEnd;
+    internal bool SpaceNext;
+    internal byte WalkBag, JumpBag, DashBag;
+    internal CpuApproachKind? LastApproach;
+    public CpuPlanTrace CombatTrace => new(PlanSerial, Combat.Kind, Combat.Approach, Combat.Started,
+        (byte)Combat.Phase, LastEnd, ThreatEvaluations, RecoveryEvaluations, ContactEvaluations);
+    internal void BeginCombat(in CpuCombatPlan plan) { Combat = plan; Side = plan.Execution.Side; PlanSerial++; }
+    internal void EndCombat(CpuPlanEnd reason, bool space = false)
+    { Combat = default; LastEnd = reason; SpaceNext = space; }
+    internal void ForgetCombat()
+    { EndCombat(CpuPlanEnd.Interrupted); EvaluatedThreat = EvaluatedRecovery = 0; WalkBag = JumpBag = DashBag = 0; LastApproach = null; }
+
     internal CpuBehavior Behavior;
 
-    /// <summary>Ticks remaining before a fresh attack/pressure decision.</summary>
-    public int DecisionTicksRemaining;
-
-    /// <summary>Preferred lateral side, -1 or +1 once rolled: the circling side and the first detour tried.</summary>
+    /// <summary>Preferred detour side, initialized at plan entry and updated when steering accepts the other side.</summary>
     internal sbyte Side;
-
-    /// <summary>The held footwork. Retreat and Circle count down once per decision call, then return to Engage.</summary>
-    internal Footwork Footwork;
-    internal int FootworkTicksLeft;
-
-    /// <summary>Perceived-reach error, rolled on decision ticks only and reused until the next one.</summary>
-    internal float RangeScale = 1f;
+    internal int WalkProbesThisTick;
+    internal int DetourCursor;
+    internal bool Recovering;
+    internal byte RecoveryDeaths;
 
     /// <summary>Inside the engage band: approach resumes only once the opponent is past its outer edge.</summary>
     internal bool Engaged;
-
-    /// <summary>A special was fired from outside normal reach since the CPU was last inside the engage band.</summary>
-    internal bool FiredOnApproach;
 
     /// <summary>
     /// A ledge climb in progress: ticks since the jump press (0 when not climbing), the heading held toward
@@ -230,19 +245,38 @@ public sealed class BotMemory
     /// retrieve it after the selected difficulty's delay; a fighter whose deaths changed starts a fresh history.
     /// </summary>
     public void ObserveOpponent(in CharacterState state, float threatReach = float.PositiveInfinity)
+        => ObserveOpponent(state, threatReach, CpuAttackModel.WithoutActivation(state));
+
+    internal void ObserveOpponent(in CharacterState state, float threatReach, in CpuTimingSnapshot timing)
     {
         var track = Track(state.EntityId) ?? AddTrack(state.EntityId);
         if (!_tickOpen || track.SeenAt == _clock)
         {
             _clock++;
             _tickOpen = true;
-            ReleasePendingHits();
+            ReleasePendingContacts();
         }
         if (track.Count > 0 && track.Deaths != state.Deaths)
+        {
             track.Count = track.WriteIndex = 0;
+            track.PreviousState = ActionState.Idle; track.PreviousSlot = 0;
+            track.PreviousElapsed = track.PreviousLanding = 0;
+        }
         track.Deaths = state.Deaths;
         track.SeenAt = _clock;
-        track.History[track.WriteIndex] = CpuObservation.Capture(_clock, state, threatReach);
+        bool attacking = IsAttackEpisode(state.State);
+        bool previousAttack = IsAttackEpisode(track.PreviousState);
+        if (attacking && (!previousAttack || state.AttackSlot != track.PreviousSlot
+            || state.AttackSlot != 0 && state.AttackElapsedTicks < track.PreviousElapsed))
+            track.AttackEpisode = ++track.NextEpisode;
+        if (state.LandingLagTicks > 0 && (track.PreviousLanding == 0 || state.LandingLagTicks > track.PreviousLanding))
+            track.LandingEpisode = ++track.NextEpisode;
+        uint recovery = timing.Phase == CpuAttackPhase.Recovery
+            ? state.LandingLagTicks > 0 ? track.LandingEpisode : track.AttackEpisode : 0;
+        var captured = new CpuTimingSnapshot(timing.Phase, timing.LockTicks, attacking ? track.AttackEpisode : 0, recovery);
+        track.History[track.WriteIndex] = CpuObservation.Capture(_clock, state, threatReach, captured);
+        track.PreviousState = state.State; track.PreviousSlot = state.AttackSlot;
+        track.PreviousElapsed = state.AttackElapsedTicks; track.PreviousLanding = state.LandingLagTicks;
         track.WriteIndex = (track.WriteIndex + 1) % track.History.Length;
         if (track.Count < track.History.Length)
             track.Count++;
@@ -312,7 +346,13 @@ public sealed class BotMemory
     }
 
     /// <summary>Close the tick: the next observation starts a new one. Called once at the end of every decision.</summary>
+    internal int Clock => _clock;
+
     internal void EndTick() => _tickOpen = false;
+
+    private static bool IsAttackEpisode(ActionState state)
+        => state is ActionState.Attacking or ActionState.Aiming or ActionState.HomingDashFloat
+            or ActionState.HomingDash or ActionState.HomingDashArrive or ActionState.HomingDashMiss;
 
     private bool ObservedThisTick(OpponentTrack track) => _tickOpen && track.SeenAt == _clock;
 
@@ -338,70 +378,67 @@ public sealed class BotMemory
         }
         track.EntityId = entityId;
         track.Count = track.WriteIndex = 0;
+        track.NextEpisode = track.AttackEpisode = track.LandingEpisode = 0;
+        track.PreviousState = ActionState.Idle; track.PreviousSlot = 0;
+        track.PreviousElapsed = track.PreviousLanding = 0;
         track.SeenAt = int.MinValue;
         return track;
     }
 
     /// <summary>
-    /// Drop what was about the previous engagement: plan, footwork, climb, decision countdown, pending and
-    /// unevaluated hits. A live recovery or grab plan is kept.
+    /// Drop what was about the previous engagement: plans, climb, pending and
+    /// unevaluated contacts. A live recovery or grab plan is kept.
     /// </summary>
     private void ForgetEngagement()
     {
         if (PlanKind is not (BotPlanKind.Recovery or BotPlanKind.Grab))
             ClearPlan();
-        EndFootwork();
+
         EndClimb();
+        ForgetCombat();
         Engaged = false;
-        FiredOnApproach = false;
-        DecisionTicksRemaining = 0;
-        _pendingHitCount = 0;
-        _lastEvaluatedHitSequence = _nextHitSequence;
+
+        DetourCursor = 0;
+
+        _pendingContactCount = 0;
+        _lastEvaluatedContactSequence = _nextContactSequence;
     }
 
-    private void ReleasePendingHits()
+    private void ReleasePendingContacts()
     {
-        while (_pendingHitCount > 0 && _pendingHits[0].AvailableTick <= _clock)
+        while (_pendingContactCount > 0 && _pendingContacts[0].AvailableTick <= _clock)
         {
-            var hit = _pendingHits[0];
+            var hit = _pendingContacts[0];
             _combatHistory[hit.Sequence % _combatHistory.Length] = hit;
-            _nextHitSequence = hit.Sequence;
-            for (int i = 1; i < _pendingHitCount; i++)
-                _pendingHits[i - 1] = _pendingHits[i];
-            _pendingHitCount--;
+            _nextContactSequence = hit.Sequence;
+            for (int i = 1; i < _pendingContactCount; i++)
+                _pendingContacts[i - 1] = _pendingContacts[i];
+            _pendingContactCount--;
         }
     }
 
     /// <summary>
-    /// Record an authoritative resolver hit by this CPU. Hits on anyone but the current opponent are ignored,
-    /// so callers pass every unblocked hit they own. The event is withheld until the selected CPU
+    /// Record an authoritative resolver contact by this CPU. Contacts on anyone but the current opponent are ignored,
+    /// so callers pass every hit or block they own. The event is withheld until the selected CPU
     /// reaction delay expires, then retained long enough to survive hitstop and action locks.
     /// </summary>
-    public void RecordOpponentHit(byte slot, bool airborne, in CharacterState target,
-        ushort hitstunTicks, ushort hitstopTicks)
+    public void RecordOpponentContact(byte slot, CpuContactKind kind, in CharacterState target, ushort hitstopTicks)
     {
         if (_trackCount == 0 || _opponentChosen && !_hasOpponent || target.EntityId != OpponentId)
             return;
         int delay = BotDifficultyProfile.ForDifficulty(Difficulty).ReactionDelayTicks;
-        if (_pendingHitCount == _pendingHits.Length)
+        if (_pendingContactCount == _pendingContacts.Length)
         {
-            for (int i = 1; i < _pendingHitCount; i++)
-                _pendingHits[i - 1] = _pendingHits[i];
-            _pendingHitCount--;
+            for (int i = 1; i < _pendingContactCount; i++)
+                _pendingContacts[i - 1] = _pendingContacts[i];
+            _pendingContactCount--;
         }
-        int sequence = _nextHitSequence + _pendingHitCount + 1;
-        _pendingHits[_pendingHitCount++] = new CpuHitObservation(
-            sequence, _clock, _clock + delay, slot, airborne,
-            hitstunTicks, hitstopTicks, target);
+        int sequence = ++_recordedContactSequence;
+        _pendingContacts[_pendingContactCount++] = new CpuContactObservation(kind,
+            sequence, _clock, _clock + delay, slot, !target.IsGrounded,
+            kind == CpuContactKind.Hit ? target.HitstunTicks : (ushort)0, hitstopTicks, target);
     }
 
-    /// <summary>Compatibility overload for callers that only have the post-hit target state.</summary>
-    public void RecordOpponentHit(byte slot, in CharacterState target)
-        => RecordOpponentHit(slot, !target.IsGrounded, target, target.HitstunTicks, target.HitstopTicks);
-
-    public void RecordOpponentHit(byte slot, in CharacterState target,
-        ushort hitstunTicks, ushort hitstopTicks)
-        => RecordOpponentHit(slot, !target.IsGrounded, target, hitstunTicks, hitstopTicks);
     /// <summary>The current opponent's observation from the reaction delay ago; false when none is available.</summary>
     internal bool TryGetDelayedOpponent(out CpuObservation observation)
     {
@@ -423,20 +460,21 @@ public sealed class BotMemory
 
         int index = track.WriteIndex - 1 - delay;
         if (index < 0) index += track.History.Length;
-        observation = track.History[index];
+        var recorded = track.History[index];
+        observation = recorded.WithAge(_clock - recorded.ObservationTick);
         return true;
     }
 
-    internal bool TryGetNewHit(out CpuHitObservation hit)
+    internal bool TryGetNewContact(out CpuContactObservation hit)
     {
         for (int i = 0; i < _combatHistory.Length; i++)
         {
-            int index = (_nextHitSequence - i) % _combatHistory.Length;
+            int index = (_nextContactSequence - i) % _combatHistory.Length;
             if (index < 0) index += _combatHistory.Length;
             var candidate = _combatHistory[index];
             if (candidate.Sequence == 0)
                 break;
-            if (candidate.Sequence <= _lastEvaluatedHitSequence)
+            if (candidate.Sequence <= _lastEvaluatedContactSequence)
                 break;
             if (_clock - candidate.AvailableTick > CombatHistoryWindowTicks)
                 break;
@@ -447,43 +485,42 @@ public sealed class BotMemory
         return false;
     }
 
-    internal int RemainingHitstun(in CpuHitObservation hit)
+    internal CpuObservation ContactObservation(in CpuContactObservation hit)
     {
+        var state = new CharacterState
+        {
+            PX = hit.PX, PY = hit.PY, PZ = hit.PZ, VX = hit.VX, VY = hit.VY, VZ = hit.VZ,
+            IsGrounded = !hit.Airborne, State = hit.Kind == CpuContactKind.Hit ? ActionState.Hitstun : ActionState.Shielding,
+            HitstunTicks = hit.HitstunTicks, HitstopTicks = hit.HitstopTicks,
+        };
+        return CpuObservation.Capture(hit.RecordedTick, state, float.PositiveInfinity)
+            .WithAge(_clock - hit.RecordedTick);
+    }
+
+    internal int RemainingHitstun(in CpuContactObservation hit)
+    {
+        if (hit.Kind != CpuContactKind.Hit) return 0;
         int elapsed = Math.Max(0, _clock - hit.RecordedTick - hit.HitstopTicks);
         return Math.Max(0, hit.HitstunTicks - elapsed);
     }
 
-    internal void MarkHitEvaluated(in CpuHitObservation hit)
-        => _lastEvaluatedHitSequence = Math.Max(_lastEvaluatedHitSequence, hit.Sequence);
+    internal void MarkContactEvaluated(in CpuContactObservation hit)
+        => _lastEvaluatedContactSequence = Math.Max(_lastEvaluatedContactSequence, hit.Sequence);
 
-    internal void QueueFollowUp(byte slot, BotPlanKind kind, short aimYaw, short aimPitch,
-        ushort aimDistance, ushort holdTicks, byte deaths, bool wasGrounded)
-    {
-        EndFootwork();
-        PlanKind = kind;
-        PlanPhase = holdTicks > 0 ? BotPlanPhase.AimHold : BotPlanPhase.PendingPress;
-        PlanPressIssued = false;
-        PlanSlot = slot;
-        PlanTicks = 0;
-        PlanHoldTicks = holdTicks;
-        PlanAimYaw = aimYaw;
-        PlanAimPitch = aimPitch;
-        PlanAimDistance = aimDistance;
-        PlanDeaths = deaths;
-        PlanWasAirborne = !wasGrounded;
-    }
     /// <summary>
     /// Reset runner-owned transient state before a match or CPU life starts: the engagement, every fighter's
     /// history and the opponent lock. The selected difficulty and <see cref="OpponentSwitches"/> are preserved.
     /// </summary>
     public void Reset()
     {
-        DecisionTicksRemaining = 0;
+        ForgetCombat();
+        ThreatEvaluations = RecoveryEvaluations = ContactEvaluations = 0; PlanSerial = 0;
         Side = 0;
-        EndFootwork();
-        RangeScale = 1f;
+        DetourCursor = WalkProbesThisTick = 0;
+        Recovering = false; RecoveryDeaths = 0;
+
         Engaged = false;
-        FiredOnApproach = false;
+
         EndClimb();
         ClearPlan();
         _trackCount = 0;
@@ -495,9 +532,9 @@ public sealed class BotMemory
         _opponentDeaths = 0;
         _dwellUntil = 0;
         _chosenAt = int.MinValue;
-        _nextHitSequence = 0;
-        _lastEvaluatedHitSequence = 0;
-        _pendingHitCount = 0;
+        _nextContactSequence = _recordedContactSequence = 0;
+        _lastEvaluatedContactSequence = 0;
+        _pendingContactCount = 0;
         Array.Clear(_combatHistory, 0, _combatHistory.Length);
     }
 
@@ -505,7 +542,6 @@ public sealed class BotMemory
         ushort aimDistance, ushort holdTicks, byte deaths, bool wasGrounded,
         bool pressIssued = true, BotPlanKind kind = BotPlanKind.Ordinary)
     {
-        EndFootwork();
         PlanPhase = requiresAim ? BotPlanPhase.AimHold : BotPlanPhase.PendingPress;
         PlanKind = kind;
         PlanPressIssued = pressIssued;
@@ -517,18 +553,6 @@ public sealed class BotMemory
         PlanAimDistance = aimDistance;
         PlanDeaths = deaths;
         PlanWasAirborne = !wasGrounded;
-    }
-
-    internal void HoldFootwork(Footwork footwork, int ticks)
-    {
-        Footwork = footwork;
-        FootworkTicksLeft = ticks;
-    }
-
-    internal void EndFootwork()
-    {
-        Footwork = Footwork.Engage;
-        FootworkTicksLeft = 0;
     }
 
     internal void StartClimb(float x, float z, byte deaths)

@@ -49,10 +49,10 @@ public sealed class CpuGrabTests
             inputs[Target] = new InputState { ShieldHeld = true };
             sim.Tick(inputs);
             foreach (var hit in sim.LastTickHits)
-                if (!hit.Blocked && hit.OwnerEntityId == Cpu)
+                if (hit.OwnerEntityId == Cpu)
                 {
                     var victim = sim.GetState(hit.TargetEntityId);
-                    memory.RecordOpponentHit(hit.AttackSlot, !victim.IsGrounded, victim, victim.HitstunTicks, hit.HitstopTicks);
+                    memory.RecordOpponentContact(hit.AttackSlot, hit.Blocked ? CpuContactKind.Block : CpuContactKind.Hit, victim, hit.HitstopTicks);
                 }
             var state = sim.GetState(Cpu).State;
             if (state is ActionState.GrabAttempt or ActionState.Grabbing or ActionState.Throwing

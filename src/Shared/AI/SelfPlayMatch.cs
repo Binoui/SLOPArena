@@ -53,8 +53,8 @@ public static class SelfPlayMatch
         {
             var sA = sim.GetState(EntityA);
             var sB = sim.GetState(EntityB);
-            policy.ObserveOpponent(memA, sB, sim.GetDefinition(EntityB), baked);
-            policy.ObserveOpponent(memB, sA, sim.GetDefinition(EntityA), baked);
+            policy.ObserveOpponent(memA, sB, sim.GetDefinition(EntityB), baked, sim.GetActiveMove(EntityB)?.Slot);
+            policy.ObserveOpponent(memB, sA, sim.GetDefinition(EntityA), baked, sim.GetActiveMove(EntityA)?.Slot);
             memA.ChooseOpponent(sA);
             memB.ChooseOpponent(sB);
             inputs[EntityA] = policy.Decide(sA, sim.GetDefinition(EntityA), rng, memA, arena, baked,
@@ -86,13 +86,10 @@ public static class SelfPlayMatch
 
             foreach (var hit in sim.LastTickHits)
             {
-                if (hit.Blocked) continue;
                 if (!respawnedA && hit.OwnerEntityId == EntityA)
-                    memA.RecordOpponentHit(hit.AttackSlot, !postB.IsGrounded, postB,
-                        postB.HitstunTicks, hit.HitstopTicks);
+                    memA.RecordOpponentContact(hit.AttackSlot, hit.Blocked ? CpuContactKind.Block : CpuContactKind.Hit, postB, hit.HitstopTicks);
                 if (!respawnedB && hit.OwnerEntityId == EntityB)
-                    memB.RecordOpponentHit(hit.AttackSlot, !postA.IsGrounded, postA,
-                        postA.HitstunTicks, hit.HitstopTicks);
+                    memB.RecordOpponentContact(hit.AttackSlot, hit.Blocked ? CpuContactKind.Block : CpuContactKind.Hit, postA, hit.HitstopTicks);
             }
 
             var outcome = rule.Evaluate(sim.GetAllStates());

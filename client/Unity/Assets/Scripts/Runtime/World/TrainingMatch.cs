@@ -738,14 +738,13 @@ namespace SlopArena.Client.World
                     continue;
                 }
 
-                // BotMemory keeps only hits on the opponent it chose.
+                // BotMemory keeps only contacts on the opponent it chose.
                 foreach (var hit in _bridge.LastTickHits)
                 {
-                    if (hit.Blocked || hit.OwnerEntityId != npc.Id)
+                    if (hit.OwnerEntityId != npc.Id)
                         continue;
                     var victim = _bridge.GetState(hit.TargetEntityId);
-                    npc.Memory.RecordOpponentHit(hit.AttackSlot, !victim.IsGrounded,
-                        victim, victim.HitstunTicks, hit.HitstopTicks);
+                    npc.Memory.RecordOpponentContact(hit.AttackSlot, hit.Blocked ? CpuContactKind.Block : CpuContactKind.Hit, victim, hit.HitstopTicks);
                 }
             }
 
@@ -953,7 +952,7 @@ namespace SlopArena.Client.World
                 if (pair.Key == slot.Id || (MatchConfig.Mode == GameMode.Solo
                         ? _bridge.InternalSim.IsEntityInactive(pair.Key) : pair.Key != PlayerEntityId))
                     continue;
-                _npcPolicy.ObserveOpponent(slot.Memory, pair.Value, _bridge.InternalSim.GetDefinition(pair.Key));
+                _npcPolicy.ObserveOpponent(slot.Memory, pair.Value, _bridge.InternalSim.GetDefinition(pair.Key), activeMove: _bridge.GetActiveMove(pair.Key)?.Slot);
             }
             ulong opponent = slot.Memory.ChooseOpponent(npcState);
             if (MatchConfig.Mode == GameMode.Solo && opponent != previous && opponent != 0)

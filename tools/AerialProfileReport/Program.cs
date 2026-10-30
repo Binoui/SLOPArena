@@ -510,11 +510,13 @@ internal static class Program
 
         public InputState Decide(in CharacterState self, in CharacterState target,
             CharacterDefinition def, Random rng, BotMemory memory, in ArenaDefinition arena,
-            BakedAnimationData? baked, CookedSlotDefinition? activeMove)
+            BakedAnimationData? baked, CookedSlotDefinition? activeMove, CookedSlotDefinition? targetMove)
         {
             _delayedTarget.Observe(target);
             LastDelayedObservationAvailable = _delayedTarget.TryGet(out var delayedTarget);
-            var baseInput = _basePolicy.Decide(self, target, def, rng, memory, arena, baked, activeMove: activeMove);
+            _basePolicy.ObserveOpponent(memory, target, def, baked, targetMove);
+            memory.ChooseOpponent(self);
+            var baseInput = _basePolicy.Decide(self, def, rng, memory, arena, baked, activeMove: activeMove);
             LastApproach = LastDelayedObservationAvailable && IsApproach(self, delayedTarget, baseInput);
             LastJumpOverride = false;
             LastJumpSuppressed = false;
@@ -690,8 +692,8 @@ internal static class Program
         {
             var preA = sim.GetState(SelfPlayMatch.EntityA);
             var preB = sim.GetState(SelfPlayMatch.EntityB);
-            var inputA = controllerA.Decide(preA, preB, def, rng, memA, arena, baked, sim.GetActiveMove(SelfPlayMatch.EntityA)?.Slot);
-            var inputB = controllerB.Decide(preB, preA, def, rng, memB, arena, baked, sim.GetActiveMove(SelfPlayMatch.EntityB)?.Slot);
+            var inputA = controllerA.Decide(preA, preB, def, rng, memA, arena, baked, sim.GetActiveMove(SelfPlayMatch.EntityA)?.Slot, sim.GetActiveMove(SelfPlayMatch.EntityB)?.Slot);
+            var inputB = controllerB.Decide(preB, preA, def, rng, memB, arena, baked, sim.GetActiveMove(SelfPlayMatch.EntityB)?.Slot, sim.GetActiveMove(SelfPlayMatch.EntityA)?.Slot);
             inputs[SelfPlayMatch.EntityA] = inputA;
             inputs[SelfPlayMatch.EntityB] = inputB;
             RecordInputTrace(trace, tick, SelfPlayMatch.EntityA, PolicyName(sideSwapped ? scenario.B : scenario.A), preA, inputA, controllerA, def, arena);
@@ -728,11 +730,10 @@ internal static class Program
             }
             foreach (var hit in sim.LastTickHits)
             {
-                if (hit.Blocked) continue;
                 if (!respawnedA && hit.TargetEntityId == SelfPlayMatch.EntityB)
-                    memA.RecordOpponentHit(hit.AttackSlot, !postB.IsGrounded, postB, postB.HitstunTicks, hit.HitstopTicks);
+                    memA.RecordOpponentContact(hit.AttackSlot, hit.Blocked ? CpuContactKind.Block : CpuContactKind.Hit, postB, hit.HitstopTicks);
                 if (!respawnedB && hit.TargetEntityId == SelfPlayMatch.EntityA)
-                    memB.RecordOpponentHit(hit.AttackSlot, !postA.IsGrounded, postA, postA.HitstunTicks, hit.HitstopTicks);
+                    memB.RecordOpponentContact(hit.AttackSlot, hit.Blocked ? CpuContactKind.Block : CpuContactKind.Hit, postA, hit.HitstopTicks);
             }
             var outcome = rule.Evaluate(sim.GetAllStates());
             if (outcome.IsEnded)

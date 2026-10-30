@@ -12,28 +12,10 @@ public enum CpuBehavior
 }
 
 /// <summary>
-/// Deterministic heuristic bot policy v1 (issue #148): approach the opponent, attack when the
-/// opponent is within the bot's (seeded-jittered) perceived range, pick from the move set with
-/// seeded variation, back off after each swing and after being hit so fights develop spacing,
-/// and jump toward an airborne opponent. The seeded jitter makes the bot sometimes attack at
-/// the edge of its reach (whiffs) and use a mix of moves — without it, two identical bots
-/// trading at guaranteed-connect range produce degenerate telemetry (100% hit rate, no KOs).
-///
-/// Attack reach is the move's ACTUAL hitbox reach (OffX/OffZ extent + radius + lunge), NOT the
-/// authored <c>AttackRange</c> (the sim's engage distance, far beyond where the hitbox
-/// connects). The sim normalizes <c>MoveX/Y</c> (no analog easing), so the policy approaches
-/// outright rather than trying to slow precisely.
-///
-/// The sim consumes <see cref="InputState.MoveX"/>/<c>MoveY</c> as WORLD-SPACE X/Z and auto-faces
-/// on movement input (<c>Atan2</c>); the policy also snaps facing via <c>AimYaw</c> +
-/// <c>FaceToCamera</c> (ADR-0017).
-///
-/// Invariants: <c>MoveX/MoveY</c> magnitude ≤ 1; no action input while
-/// hitstun/hitstop/recovery/landing-lag/anim-lock; no slot press on cooldown or while its
-/// returning projectile is out.
-/// Same <c>Random</c> stream → same decisions.
+/// Delayed opponent facts select a persistent combat intent. Shared owns admission and action results.
+/// Movement input is world-space and normalized by the mover; the Engage latch owns stopping.
 /// </summary>
-public sealed class HeuristicBotPolicy
+public sealed partial class HeuristicBotPolicy
 {
     /// <summary>
     /// Canonical functional combat slots, each once: 1, 3, 4, A, E, R, F. The grounded and aerial profiles
@@ -61,19 +43,30 @@ public sealed class HeuristicBotPolicy
         public readonly bool RequiresAim;
         public readonly bool IsRecovery;
         public readonly ushort StartupTicks;
-        public readonly ushort TravelTicks;
-        public readonly float TravelSpeed;
-        public readonly float TravelOffset;
         public readonly float ForwardTravel;
         public readonly int CommitmentTicks;
+        public readonly CpuMoveTiming AimTiming;
+        public readonly bool VerticalKnown;
+        public readonly float LowReach, HighReach, LaunchStrength;
+        public readonly CookedDashStrikeCapabilityParameters? DashStrike;
+        public readonly CookedFlashCutCapabilityParameters? Flash;
+        /// <summary>A command grab whose hold stage ends in the finisher (Title Match), and one without a hold stage.</summary>
+        public readonly CookedCommandGrabCapabilityParameters? Finisher, CommandGrab;
 
         public MoveCandidate(byte slot, float reach, float damage, bool functional,
             bool hasDamage, bool hasMovement, bool requiresAim, bool isRecovery,
             ushort startupTicks, ushort travelTicks = 0, float travelSpeed = 0f,
             float travelOffset = 0f, float recoveryHorizontal = 0f,
             float recoveryVertical = 0f, bool recoveryRequiresDelayedOpponent = false,
-            float forwardTravel = 0f, int commitmentTicks = 0)
+            float forwardTravel = 0f, int commitmentTicks = 0, CookedSlotDefinition? cooked = null)
         {
+            var extent = MoveExtent(cooked);
+            VerticalKnown = extent.Known; LowReach = extent.Low; HighReach = extent.High; LaunchStrength = extent.Launch;
+            DashStrike = Capability<CookedDashStrikeCapabilityParameters>(cooked);
+            Flash = Capability<CookedFlashCutCapabilityParameters>(cooked);
+            var grab = Capability<CookedCommandGrabCapabilityParameters>(cooked);
+            Finisher = grab is { HasHoldStage: true } ? grab : null;
+            CommandGrab = grab is { HasHoldStage: false } ? grab : null;
             Slot = slot;
             Reach = MathF.Max(0f, reach);
             Damage = MathF.Max(0f, damage);
@@ -86,11 +79,10 @@ public sealed class HeuristicBotPolicy
             RequiresAim = requiresAim;
             IsRecovery = isRecovery;
             StartupTicks = startupTicks;
-            TravelTicks = travelTicks;
-            TravelSpeed = MathF.Max(0f, travelSpeed);
-            TravelOffset = MathF.Max(0f, travelOffset);
             ForwardTravel = MathF.Max(0f, forwardTravel);
             CommitmentTicks = commitmentTicks + (requiresAim ? AimHoldTicks : 0);
+            AimTiming = new CpuMoveTiming(startupTicks + (requiresAim ? AimHoldTicks : 0),
+                travelTicks, travelSpeed, travelOffset);
         }
     }
     private readonly struct RecoveryTarget
@@ -128,6 +120,21 @@ public sealed class HeuristicBotPolicy
                 in arena, _recoveryTriangleCandidates, out _);
     }
 
+    private bool HasLandingBelow(in CharacterState state, in ArenaDefinition arena)
+    {
+        if (!ArenaCollision.HasTriangles(arena)) return HasSupportAt(state.PX, state.PY, state.PZ, arena);
+        float bottom = arena.KillHeight + _recoveryCapsuleHeight * .5f;
+        if (state.PY <= bottom) return false;
+        float radius = _profileDefinition!.CapsuleRadius;
+        int count = ArenaCollision.GetCandidateTrianglesForSweep(state.PX, state.PY, state.PZ,
+            state.PX, bottom, state.PZ, radius, _recoveryCapsuleHeight, arena, _recoveryTriangleCandidates);
+        if (count == 0 || !ArenaCollision.SweepCapsule(state.PX, state.PY, state.PZ, state.PX, bottom, state.PZ,
+            radius, _recoveryCapsuleHeight, arena, _recoveryTriangleCandidates, count, out var contact)
+            || contact.NormalY <= .5f) return false;
+        float y = state.PY + (bottom - state.PY) * contact.Time;
+        return ArenaCollision.IsTriangleInteriorContact(state.PX, y, state.PZ, radius, _recoveryCapsuleHeight, arena, contact);
+    }
+
     private bool IsOffstage(in CharacterState state, in ArenaDefinition arena,
         float minSurface = float.MinValue)
     {
@@ -139,7 +146,9 @@ public sealed class HeuristicBotPolicy
         if (outside)
             return true;
         if (HasSupportAt(state.PX, state.PY, state.PZ, in arena))
-            return false;
+            // Moving falls retain the landing route already admitted by steering.
+            return !state.IsGrounded && state.VX * state.VX + state.VZ * state.VZ < 1f
+                && !HasLandingBelow(state, arena);
         return true;
     }
 
@@ -334,6 +343,13 @@ public sealed class HeuristicBotPolicy
         }
         return selected;
     }
+    private bool NeedsRecovery(in CharacterState self, CharacterDefinition def, in ArenaDefinition arena, BotMemory memory)
+    {
+        if (memory.Recovering && (self.Deaths != memory.RecoveryDeaths
+            || HasLandingBelow(self, arena))) memory.Recovering = false;
+        return memory.Recovering || IsOffstage(self, arena);
+    }
+
     private bool TryBuildRecoveryInput(in CharacterState self, CharacterDefinition def,
         in ArenaDefinition arena, BotMemory memory, out InputState input, CookedSlotDefinition? activeMove)
     {
@@ -349,8 +365,8 @@ public sealed class HeuristicBotPolicy
             }
             return true;
         }
-        if (!IsOffstage(self, arena, _recoveryMinSurface))
-            return false;
+        if (!NeedsRecovery(self, def, arena, memory)) return false;
+        memory.Recovering = true; memory.RecoveryDeaths = self.Deaths;
         if (!TryGetRecoveryTarget(self, in def, in arena, memory,
                 out var target, out float distance, activeMove))
         {
@@ -395,9 +411,34 @@ public sealed class HeuristicBotPolicy
     }
 
 
-    private sealed record MoveProfile(CharacterDefinition Definition, BakedAnimationData? Baked,
-        MoveCandidate[] Ground, MoveCandidate[] Air);
+    private sealed class MoveProfile
+    {
+        public readonly CharacterDefinition Definition;
+        public readonly BakedAnimationData? Baked;
+        public readonly MoveCandidate[] Ground, Air;
+        public readonly float GroundReach, AirReach;
+        public readonly CpuMoveTiming GroundTiming, AirTiming;
+        public MoveProfile(CharacterDefinition definition, BakedAnimationData? baked, MoveCandidate[] ground, MoveCandidate[] air)
+        {
+            Definition = definition; Baked = baked; Ground = ground; Air = air;
+            (GroundReach, GroundTiming) = NeutralMetadata(ground);
+            (AirReach, AirTiming) = NeutralMetadata(air);
+        }
+        private static (float, CpuMoveTiming) NeutralMetadata(MoveCandidate[] moves)
+        {
+            MoveCandidate best = default;
+            foreach (var move in moves)
+                if (move.Functional && IsNormalSlot(move.Slot) && move.Reach > best.Reach) best = move;
+            float reach = best.Reach;
+            if (reach == 0f)
+                foreach (var move in moves)
+                    if (move.Functional && move.HasDamage) reach = MathF.Max(reach, MathF.Min(6f, move.Reach));
+            return (reach + VictimRadiusMargin, best.AimTiming);
+        }
+    }
     private readonly List<MoveProfile> _profiles = new();
+    private readonly Dictionary<CookedSlotDefinition, CpuAttackModel> _timingModels = new();
+    private MoveProfile? _currentProfile;
     private CharacterDefinition? _profileDefinition;
     private BakedAnimationData? _profileBaked;
     private MoveCandidate[] _profile = Array.Empty<MoveCandidate>();
@@ -405,14 +446,16 @@ public sealed class HeuristicBotPolicy
 
     /// <summary>Capture the target's current-form reach with the observation, subject to the same reaction delay.</summary>
     public void ObserveOpponent(BotMemory memory, in CharacterState target, CharacterDefinition definition,
-        BakedAnimationData? baked = null)
+        BakedAnimationData? baked = null, CookedSlotDefinition? activeMove = null)
     {
         var profile = FindProfile(definition.ForForm(target.Form.Active), baked);
         float reach = 0f;
         foreach (var move in target.IsGrounded ? profile.Ground : profile.Air)
-            if (target.AttackSlot == 0 || move.Slot == target.AttackSlot)
+            if (target.AttackSlot == 0 ? IsNormalSlot(move.Slot) : move.Slot == target.AttackSlot)
                 reach = MathF.Max(reach, move.Reach);
-        memory.ObserveOpponent(target, reach);
+        var timing = activeMove != null && _timingModels.TryGetValue(activeMove, out var model)
+            ? model.Capture(target) : CpuAttackModel.WithoutActivation(target);
+        memory.ObserveOpponent(target, reach, timing);
     }
 
     private static bool Threatens(in CharacterState self, in CpuObservation target)
@@ -454,23 +497,33 @@ public sealed class HeuristicBotPolicy
         CpuBehavior behavior = CpuBehavior.Attack, CookedSlotDefinition? activeMove = null,
         MayhemThreats? mayhemThreats = null, bool canSwapCancel = false)
     {
-        if (memory.FootworkTicksLeft > 0)
-            memory.FootworkTicksLeft--;
+        memory.WalkProbesThisTick = 0;
         InputState input;
         if (mayhemThreats.HasValue && mayhemThreats.Value.TryAvoid(self, def, arena, out input))
         {
             memory.ClearPlan();
+            memory.ForgetCombat();
             memory.EndClimb();
         }
         else
         {
             def = def.ForForm(self.Form.Active);
-            input = DecideAction(self, def, rng, memory, in arena, baked, behavior, activeMove, canSwapCancel,
-                out var step);
-            // Recovery, ledge hang and Mayhem escape write the stick directly and may cross an edge.
-            // Every other step walks only where the engine's own mover says it can.
-            if (!ContinueClimb(ref input, self, def, memory))
-                ApplyFootstep(ref input, step, self, def, in arena, memory);
+            input = default;
+            if (memory.Behavior != behavior) memory.EndClimb();
+            // Finish a validated climb before selecting attacks or a recovery. Either can cancel the full jump
+            // against the face before the capsule reaches the ledge top.
+            if (!ContinueClimb(ref input, self, def, arena, memory))
+            {
+                input = DecideAction(self, def, rng, memory, in arena, baked, behavior, activeMove, canSwapCancel,
+                    out var step);
+                // Attacks and neutral input keep run momentum; Shield is the immediate brake.
+                if (!step.Moves && input.ActiveSlot == 0 && !input.GrabPressed && !input.Jump
+                    && !input.IsAiming && self.IsGrounded && OwnWait(self, activeMove) == 0
+                    && Admits(self, activeMove) && !HasSafeCoast(self, arena)) input.ShieldHeld = true;
+                if (ApplyFootstep(ref input, step, self, def, in arena, memory) == FootstepOutcome.Blocked
+                    && memory.Combat.Kind != CpuCombatPlanKind.None)
+                    memory.EndCombat(CpuPlanEnd.Blocked, space: true);
+            }
         }
         // Startup aim correction prefers the input's target, so it turns toward the fighter the CPU chose.
         ulong opponent = memory.OpponentId;
@@ -486,256 +539,60 @@ public sealed class HeuristicBotPolicy
     {
         step = default;
         if (memory.Behavior != behavior)
-        {
-            memory.ClearPlan();
-            memory.EndClimb();
-            memory.EndFootwork();
-            memory.DecisionTicksRemaining = 0;
-            memory.Behavior = behavior;
-        }
-        if (self.HitstunTicks > 0)
-            memory.EndFootwork();
+        { memory.ClearPlan(); memory.ForgetCombat(); memory.EndClimb(); memory.Behavior = behavior; }
         EnsureProfile(def, baked);
         EnsureRecoveryTargets(in arena, in def);
-
-        if (self.State == ActionState.LedgeHang)
+        if (self.HitstunTicks > 0 || memory.Combat.Kind != CpuCombatPlanKind.None && self.Deaths != memory.Combat.Life)
+        { memory.ClearPlan(); memory.ForgetCombat(); return default; }
+        bool actionable = OwnWait(self, activeMove) == 0 && Admits(self, activeMove);
+        if (self.State == ActionState.LedgeHang || actionable && memory.PlanKind != BotPlanKind.Recovery && NeedsRecovery(self, def, arena, memory))
         {
-            memory.EndClimb();
-            return TryBuildRecoveryInput(self, def, in arena, memory, out var ledgeInput, activeMove)
-                ? ledgeInput : default;
+            memory.EndCombat(CpuPlanEnd.Interrupted);
+            return TryBuildRecoveryInput(self, def, arena, memory, out var recovery, activeMove) ? recovery : default;
         }
-        bool movementAllowed = self.HitstunTicks == 0
-            && self.HitstopTicks == 0
-            && self.LandingLagTicks == 0;
-        bool actionable = movementAllowed
-            && (self.AnimLockTicks == 0 || Simulation.IsIasaUnlocked(in self, activeMove))
-            && (ActionStates.AdmitsActions(self.State)
-                || Simulation.IsIasaUnlocked(in self, activeMove));
-        if (behavior == CpuBehavior.Attack && movementAllowed && self.BlockStunTicks == 0 && canSwapCancel
-            && memory.Difficulty != CpuDifficulty.Easy && self.AttackSlot != AbilitySlots.F
-            && def.AlternateForm != null && self.GetCooldown(AbilitySlots.F) == 0
-            && memory.TryGetNewHit(out var confirmed) && confirmed.Slot == self.AttackSlot)
+        if (behavior == CpuBehavior.Attack && self.LandingLagTicks == 0 && self.HitstopTicks == 0 && self.HitstunTicks == 0
+            && self.BlockStunTicks == 0 && canSwapCancel && memory.Difficulty != CpuDifficulty.Easy
+            && self.AttackSlot != AbilitySlots.F && def.AlternateForm != null && self.GetCooldown(AbilitySlots.F) == 0
+            && memory.TryGetNewContact(out var confirmed) && confirmed.Kind == CpuContactKind.Hit && confirmed.Slot == self.AttackSlot)
         {
-            memory.MarkHitEvaluated(confirmed);
-            memory.ClearPlan();
+            memory.MarkContactEvaluated(confirmed); memory.ClearPlan(); memory.EndCombat(CpuPlanEnd.Completed);
             return new InputState { ActiveSlot = AbilitySlots.F,
                 AimYaw = AimYaw(confirmed.PX - self.PX, confirmed.PZ - self.PZ), FaceToCamera = true };
         }
-        if (memory.PlanPhase != BotPlanPhase.None
-            && memory.PlanKind != BotPlanKind.Recovery)
-        {
-            if (actionable
-                && TryBuildRecoveryInput(self, def, in arena, memory, out var recoveryInput, activeMove))
-                return recoveryInput;
-            if (!self.IsGrounded)
-                memory.PlanWasAirborne = true;
-            return ContinuePlan(self, def, memory, in arena, activeMove);
-        }
         if (memory.PlanPhase != BotPlanPhase.None)
         {
-            if (!self.IsGrounded)
-                memory.PlanWasAirborne = true;
-            return ContinuePlan(self, def, memory, in arena, activeMove);
-        }
-
-        var profile = BotDifficultyProfile.ForDifficulty(memory.Difficulty);
-        if (memory.DecisionTicksRemaining > 0)
-            memory.DecisionTicksRemaining--;
-
-        var input = new InputState();
-        if (self.State == ActionState.Shielding)
-            return behavior == CpuBehavior.Shield
-                || behavior == CpuBehavior.Attack
-                    && memory.TryGetDelayedOpponent(out var threat) && Threatens(self, threat)
-                ? new InputState { ShieldHeld = true }
-                : default;
-        if (!actionable)
-            return input;
-        if (TryBuildRecoveryInput(self, def, in arena, memory, out input, activeMove))
-        {
-            memory.EndClimb();
-            return input;
+            if (!self.IsGrounded) memory.PlanWasAirborne = true;
+            var result = ContinuePlan(self, def, memory, arena, activeMove, out var execution);
+            if (execution == CpuExecutionResult.Rejected) memory.EndCombat(CpuPlanEnd.Rejected, space: true);
+            else if (execution == CpuExecutionResult.Accepted) memory.Combat.Accepted();
+            return result;
         }
         if (behavior == CpuBehavior.Shield)
-            return self.IsGrounded ? new InputState { ShieldHeld = true } : default;
+            return actionable && self.IsGrounded || self.State == ActionState.Shielding
+                ? new InputState { ShieldHeld = true } : default;
         if (!memory.TryGetDelayedOpponent(out var target))
-            return input;
-
-        if (behavior == CpuBehavior.Avoid)
-            return BuildAvoidInput(self, target, def, rng, memory, profile, out step);
-
-        if (memory.TryGetNewHit(out var hit))
-        {
-            QueueFollowUp(self, target, hit, def, profile, rng, memory, in arena, activeMove);
-            memory.MarkHitEvaluated(hit);
-            if (memory.PlanPhase != BotPlanPhase.None)
-                return ContinuePlan(self, def, memory, in arena, activeMove);
-        }
-
-        float dx = target.PX - self.PX;
-        float dz = target.PZ - self.PZ;
-        float dist = MathF.Sqrt(dx * dx + dz * dz);
-        bool hasTarget = dist > 0.001f;
-        if (!hasTarget)
-            return input;
-
-        input.AimYaw = AimYaw(dx, dz);
-        input.FaceToCamera = true;
-        if (def.AlternateForm != null && memory.DecisionTicksRemaining == 0
-            && CanPress(self, def, AbilitySlots.F, activeMove))
-        {
-            var fake = FindProfile(def.ForForm(1), baked);
-            var closeMoves = self.IsGrounded ? fake.Ground : fake.Air;
-            float closeRange = 0f;
-            foreach (var move in closeMoves)
-                if (IsNormalSlot(move.Slot) && move.Functional)
-                    closeRange = MathF.Max(closeRange, move.Reach + VictimRadiusMargin);
-            byte desiredForm = dist <= closeRange ? (byte)1 : (byte)0;
-            if (desiredForm != self.Form.Active)
-            {
-                input.ActiveSlot = AbilitySlots.F;
-                memory.DecisionTicksRemaining = profile.DecisionIntervalTicks;
-                return input;
-            }
-        }
-        bool targetOffstage = IsOffstage(target, in arena, _recoveryMinSurface);
-
-        // Range error is an intentional tier-specific spacing error around real reach. It is rolled once per
-        // decision: re-rolled every tick, the CPU alternates approach and stop at the edge of its reach.
-        bool decisionTick = memory.DecisionTicksRemaining == 0;
-        if (decisionTick)
-            memory.RangeScale = 1f + (((float)rng.NextDouble() * 2f) - 1f) * profile.RangeError;
-        bool allowRecoveryMove = !IsNearEdge(self, in arena);
-        // A shield is answered with a grab, so close to grab reach instead of swinging into it.
-        float engageReach = target.State == ActionState.Shielding && target.IsGrounded && def.CaptureGeometry != null
-            ? def.CaptureGeometry.Reach + def.CapsuleRadius
-            : MaxConnectReach(self, memory.RangeScale, allowRecoveryMove, in arena, activeMove);
-        if (dist <= engageReach)
-        {
-            memory.Engaged = true;
-            memory.FiredOnApproach = false;
-        }
-        else if (dist > engageReach + def.CapsuleRadius)
-            memory.Engaged = false;
-        bool inRange = memory.Engaged
-            || ReadyDashStrikeTip(in self, in target, allowRecoveryMove, in arena, activeMove)
-            || ReadyFlash(in self, in target, allowRecoveryMove, in arena, activeMove)
-            || ReadyFinisherGrab(in self, in target, allowRecoveryMove, in arena, activeMove);
-
-        if (decisionTick)
-        {
-            memory.DecisionTicksRemaining = profile.DecisionIntervalTicks;
-            if (DecideOnce(ref input, self, target, def, rng, memory, profile, in arena, activeMove,
-                    inRange, targetOffstage, allowRecoveryMove))
-                return input;
-        }
-        step = ResolveFootwork(self, target, memory, engageReach, targetOffstage);
-        return input;
+        { memory.EndCombat(CpuPlanEnd.Interrupted); return default; }
+        var facts = new CpuFacts(self, target, def, arena, activeMove, memory.Clock, OwnWait(self, activeMove), baked);
+        if (behavior == CpuBehavior.Avoid) return Avoid(facts, rng, memory, out step);
+        return ContinueCombatPlan(facts, rng, memory, out step);
     }
 
-    /// <summary>
-    /// One decision: a shield, jump or attack press (true), or, when every roll fails and no footwork is held,
-    /// a Retreat or Circle window that the following ticks walk.
-    /// </summary>
-    private bool DecideOnce(ref InputState input, in CharacterState self, in CpuObservation target,
-        CharacterDefinition def, Random rng, BotMemory memory, in BotDifficultyProfile profile,
-        in ArenaDefinition arena, CookedSlotDefinition? activeMove, bool inRange, bool targetOffstage,
-        bool allowRecoveryMove)
+    private static bool StartAttack(ref InputState input, in CpuMoveChoice selected, in CharacterState self,
+        in CpuObservation target, in ArenaDefinition arena, BotMemory memory)
     {
-        float dx = target.PX - self.PX, dz = target.PZ - self.PZ;
-        float dist = Distance(dx, dz), dy = target.PY - self.PY;
-        bool targetThreatening = Threatens(self, target);
-        // A fighter with every attack cooling down still needs to guard nearby
-        // pressure; offensive reach must not disable the defensive decision.
-        if (!inRange && self.IsGrounded && targetThreatening
-            && dist <= 2f * def.CapsuleRadius
-            && rng.NextDouble() < profile.DefenseChance)
-            return RaiseShield(ref input, memory);
-        if (!inRange)
+        if (selected.Kind == CpuActionKind.Grab)
         {
-            // Fire one reaching special on the way in, which is the grounded approach, then keep closing to the
-            // engage reach: a special without a cooldown would otherwise chain at range. An airborne CPU lands
-            // first, and there is no way in to an offstage target.
-            if (targetOffstage || !self.IsGrounded || memory.FiredOnApproach)
-                return false;
-            var special = ChooseSlot(self, target, dist, memory.RangeScale, rng, profile.SpecialChance,
-                allowRecoveryMove, in arena, activeMove, outsideReach: true);
-            if (!special.HasValue || rng.NextDouble() >= profile.AttackChance)
-                return false;
-            memory.FiredOnApproach = true;
-            return StartAttack(ref input, special.GetValueOrDefault(), self, dist, dy, memory);
+            input.AimYaw = selected.AimYaw;
+            return StartGrab(ref input, self, BotDifficultyProfile.ForDifficulty(memory.Difficulty), memory);
         }
-
-        bool targetIsHigherOrAirborne = !target.IsGrounded || dy > JumpGap;
-        float jumpChance = targetIsHigherOrAirborne ? profile.JumpChance : profile.JumpChance * 0.18f;
-        if (self.IsGrounded && !targetOffstage && rng.NextDouble() < jumpChance)
-        {
-            input.Jump = true;
-            input.JumpHeld = true;
-            return true;
-        }
-
-        MoveCandidate? candidate = null;
-        if (self.IsGrounded && self.BlockStunTicks == 0 && target.IsGrounded
-            && target.State == ActionState.Shielding && InCaptureVolume(self, target, def)
-            && !ReadyFinisherGrab(in self, in target, allowRecoveryMove, in arena, activeMove)
-            && !ReadyCommandGrab(self, target, dist, allowRecoveryMove, in arena, activeMove).HasValue)
-        {
-            // Grab beats shield; with the roll failed, swinging into the shield is no better.
-            if (rng.NextDouble() < profile.AttackChance)
-                return StartGrab(ref input, self, profile, memory);
-        }
-        else
-        {
-            candidate = ChooseSlot(self, target, dist, memory.RangeScale, rng,
-                profile.SpecialChance, allowRecoveryMove, in arena, activeMove);
-            bool punish = candidate.HasValue
-                && targetThreatening
-                && rng.NextDouble() < profile.PunishChance;
-            if (candidate.HasValue && (punish || rng.NextDouble() < profile.AttackChance))
-                return StartAttack(ref input, candidate.GetValueOrDefault(), self, dist, dy, memory);
-        }
-
-        bool held = memory.Footwork != Footwork.Engage;
-        if (targetOffstage && self.IsGrounded)
-        {
-            // Edgeguard from a safe stage-side position; never chase an unreachable
-            // offstage target with a jump or forward movement.
-            if (!held)
-                memory.HoldFootwork(Footwork.Retreat, FootworkWindow(profile, rng));
-            return false;
-        }
-
-        if (targetThreatening && rng.NextDouble() < profile.DefenseChance)
-        {
-            if (self.IsGrounded)
-                return RaiseShield(ref input, memory);
-            if (!held)
-                memory.HoldFootwork(Footwork.Retreat, FootworkWindow(profile, rng));
-            return false;
-        }
-        if (held)
-            return false;
-
-        bool pointBlankWithoutAttack = dist <= 0.35f && !candidate.HasValue;
-        if (targetThreatening || pointBlankWithoutAttack || rng.NextDouble() < profile.RetreatChance)
-            memory.HoldFootwork(Footwork.Retreat, FootworkWindow(profile, rng));
-        else
-        {
-            if (memory.Side == 0)
-                memory.Side = rng.Next(2) == 0 ? (sbyte)-1 : (sbyte)1;
-            memory.HoldFootwork(Footwork.Circle, FootworkWindow(profile, rng));
-        }
-        return false;
-    }
-
-    private static bool StartAttack(ref InputState input, in MoveCandidate selected, in CharacterState self,
-        float dist, float dy, BotMemory memory)
-    {
-        input.ActiveSlot = selected.Slot;
+        var point = selected.Point;
+        float dist = point.DistanceFrom(self), dy = point.Y - self.PY;
+        input.AimYaw = dist > 0.001f ? AimYaw(point.X - self.PX, point.Z - self.PZ)
+            : AimYaw(target.PX - self.PX, target.PZ - self.PZ);
+        input.ActiveSlot = selected.WireSlot;
         input.AimPitch = AimPitch(dy, dist);
         input.AimDistance = AimDistance(dist);
-        memory.StartPlan(selected.Slot, selected.RequiresAim,
+        memory.StartPlan(selected.WireSlot, selected.RequiresAim,
             input.AimYaw, input.AimPitch, input.AimDistance,
             selected.RequiresAim ? AimHoldTicks : (ushort)0,
             self.Deaths, self.IsGrounded);
@@ -757,16 +614,16 @@ public sealed class HeuristicBotPolicy
     /// Facing the target, the cooked capture volume would reach it: within its forward reach and overlapping its
     /// height, with this fighter's own capsule standing in for the target's.
     /// </summary>
-    private static bool InCaptureVolume(in CharacterState self, in CpuObservation target, CharacterDefinition def)
+    private static bool InCaptureVolume(in CharacterState self, in CpuTargetPoint target, CharacterDefinition def)
     {
         var capture = def.CaptureGeometry;
         if (capture == null)
             return false;
         float bottom = self.PY + capture.OffsetY - capture.Height * 0.5f;
         float half = def.CapsuleHeight * 0.5f;
-        return Distance(target.PX - self.PX, target.PZ - self.PZ) <= capture.Reach + def.CapsuleRadius
-            && target.PY - half <= bottom + capture.Height + def.CapsuleRadius
-            && target.PY + half >= bottom - def.CapsuleRadius;
+        return Distance(target.X - self.PX, target.Z - self.PZ) <= capture.Reach + def.CapsuleRadius
+            && target.Y - half <= bottom + capture.Height + def.CapsuleRadius
+            && target.Y + half >= bottom - def.CapsuleRadius;
     }
 
     /// <summary>
@@ -795,64 +652,6 @@ public sealed class HeuristicBotPolicy
         return default;
     }
 
-    private static bool RaiseShield(ref InputState input, BotMemory memory)
-    {
-        memory.EndFootwork();
-        input.ShieldHeld = input.ShieldPressed = true;
-        return true;
-    }
-
-    /// <summary>Retreat and Circle outlast Hard's decision cadence so they read as intent, not a twitch.</summary>
-    private static int FootworkWindow(in BotDifficultyProfile profile, Random rng)
-        => Math.Max(profile.DecisionIntervalTicks, 18) + rng.Next(13);
-
-    /// <summary>
-    /// This tick's step for the held footwork. Engage approaches to the engage reach and stands inside the band,
-    /// and stands while the opponent is offstage; Retreat ends at twice the reach; Circle ends when the band breaks.
-    /// </summary>
-    private static Footstep ResolveFootwork(in CharacterState self, in CpuObservation target,
-        BotMemory memory, float engageReach, bool targetOffstage)
-    {
-        float dx = target.PX - self.PX, dz = target.PZ - self.PZ;
-        float dist = Distance(dx, dz);
-        if (memory.Footwork == Footwork.Retreat && (memory.FootworkTicksLeft == 0 || dist >= 2f * engageReach)
-            || memory.Footwork == Footwork.Circle && (memory.FootworkTicksLeft == 0 || !memory.Engaged))
-            memory.EndFootwork();
-        return memory.Footwork switch
-        {
-            Footwork.Retreat => new Footstep(-dx / dist, -dz / dist),
-            Footwork.Circle => new Footstep(-dz / dist * memory.Side, dx / dist * memory.Side),
-            _ => targetOffstage || memory.Engaged ? default : new Footstep(dx / dist, dz / dist, dist, target.PY - self.PY),
-        };
-    }
-
-    private static InputState BuildAvoidInput(in CharacterState self, in CpuObservation target,
-        CharacterDefinition def, Random rng, BotMemory memory, in BotDifficultyProfile profile, out Footstep step)
-    {
-        step = default;
-        float dx = self.PX - target.PX;
-        float dz = self.PZ - target.PZ;
-        float distance = MathF.Sqrt(dx * dx + dz * dz);
-        float spacing = MathF.Max(5f, def.CapsuleRadius * 6f);
-        var input = new InputState();
-        if (distance >= spacing)
-            return input;
-        if (distance <= 0.001f)
-        {
-            dx = MathF.Sin(self.FacingYaw);
-            dz = MathF.Cos(self.FacingYaw);
-            distance = 1f;
-        }
-        step = new Footstep(dx / distance, dz / distance);
-        if (!self.IsGrounded && Threatens(self, target) && self.AirDodgesLeft > 0
-            && memory.DecisionTicksRemaining == 0)
-        {
-            memory.DecisionTicksRemaining = profile.DecisionIntervalTicks;
-            input.ShieldPressed = rng.NextDouble() < profile.DefenseChance;
-        }
-        return input;
-    }
-
     /// <summary>What the decision asks the feet to do this tick, before stage safety. Default stands still.</summary>
     private readonly struct Footstep
     {
@@ -875,18 +674,20 @@ public sealed class HeuristicBotPolicy
         public bool HasGoal => GoalDistance < float.PositiveInfinity;
     }
 
-    private static void ApplyFootstep(ref InputState input, in Footstep step, in CharacterState self,
+    private enum FootstepOutcome : byte { Standing, Walking, ClimbStarted, Blocked }
+
+    private static FootstepOutcome ApplyFootstep(ref InputState input, in Footstep step, in CharacterState self,
         CharacterDefinition def, in ArenaDefinition arena, BotMemory memory)
     {
         if (!step.Moves)
-            return;
+            return FootstepOutcome.Standing;
         if (self.IsGrounded && self.State != ActionState.LedgeHang && InsideBounds(self, def, in arena))
         {
-            Steer(ref input, step, self, def, in arena, memory);
-            return;
+            return Steer(ref input, step, self, def, in arena, memory);
         }
         input.MoveX = step.DirX;
         input.MoveY = step.DirZ;
+        return FootstepOutcome.Walking;
     }
 
     private static bool InsideBounds(in CharacterState self, CharacterDefinition def, in ArenaDefinition arena)
@@ -898,50 +699,77 @@ public sealed class HeuristicBotPolicy
     /// Walk the heading the engine's mover accepts: the asked heading, else the wall tangent, then 45 and 90
     /// degrees off it, preferred side first. A raised goal behind a jumpable ledge starts a climb.
     /// </summary>
-    private static void Steer(ref InputState input, in Footstep step, in CharacterState self,
+    private static FootstepOutcome Steer(ref InputState input, in Footstep step, in CharacterState self,
         CharacterDefinition def, in ArenaDefinition arena, BotMemory memory)
     {
         float runStep = def.Movement.RunSpeed * Simulation.TickDt;
-        float length = MathF.Max(0.75f, def.Movement.RunSpeed * 0.3f);
+        bool dense = arena.CollisionTriangles != null
+            && arena.CollisionTriangles.Length > StageWalk.DenseTriangleThreshold;
+        int probeBudget = dense ? 2 : 6;
+        float length = dense ? MathF.Max(0.6f, runStep * 2f)
+            : MathF.Max(0.75f, def.Movement.RunSpeed * 0.3f);
         if (step.HasGoal)
             length = MathF.Max(runStep, MathF.Min(length, step.GoalDistance + def.CapsuleRadius));
         float rise = JumpRise(def);
         int side = memory.Side == 0 ? 1 : memory.Side;
 
+        memory.WalkProbesThisTick++;
         var verdict = StageWalk.Probe(self, def, in arena, step.DirX, step.DirZ, length, rise);
         if (TryWalk(ref input, verdict, step.DirX, step.DirZ, step, self, def, memory))
-            return;
-        if (verdict.End is WalkEnd.Wall or WalkEnd.Ledge)
         {
-            float tangentX = -verdict.NormalZ, tangentZ = verdict.NormalX;
-            float along = tangentX * step.DirX + tangentZ * step.DirZ;
-            float left = tangentX * -step.DirZ + tangentZ * step.DirX;
-            if (along < -0.001f || MathF.Abs(along) <= 0.001f && left * side < 0f)
+            memory.DetourCursor = 0;
+            return memory.Climbing ? FootstepOutcome.ClimbStarted : FootstepOutcome.Walking;
+        }
+        bool wall = verdict.End is WalkEnd.Wall or WalkEnd.Ledge;
+        int count = wall ? 5 : 4;
+        int cursor = dense ? memory.DetourCursor % count : 0;
+        int attempted = 0;
+        while (attempted < count && memory.WalkProbesThisTick < probeBudget)
+        {
+            float x, z;
+            int turn;
+            if (wall && cursor == 0)
             {
-                tangentX = -tangentX;
-                tangentZ = -tangentZ;
-                left = -left;
+                x = -verdict.NormalZ;
+                z = verdict.NormalX;
+                float along = x * step.DirX + z * step.DirZ;
+                float left = x * -step.DirZ + z * step.DirX;
+                if (along < -0.001f || MathF.Abs(along) <= 0.001f && left * side < 0f)
+                {
+                    x = -x;
+                    z = -z;
+                    left = -left;
+                }
+                turn = left >= 0f ? 1 : -1;
             }
-            if (TryDetour(ref input, tangentX, tangentZ, left >= 0f ? 1 : -1, step, self, def, in arena,
-                    length, rise, memory))
-                return;
+            else
+            {
+                int i = cursor - (wall ? 1 : 0);
+                turn = (i & 1) == 0 ? side : -side;
+                float cos = i < 2 ? HalfSqrt2 : 0f, sin = turn * (i < 2 ? HalfSqrt2 : 1f);
+                x = step.DirX * cos - step.DirZ * sin;
+                z = step.DirZ * cos + step.DirX * sin;
+            }
+            if (TryDetour(ref input, x, z, turn, step, self, def, in arena, length, rise, memory))
+            {
+                memory.DetourCursor = cursor;
+                return memory.Climbing ? FootstepOutcome.ClimbStarted : FootstepOutcome.Walking;
+            }
+            cursor = (cursor + 1) % count;
+            attempted++;
         }
-        for (int i = 0; i < 4; i++)
-        {
-            int turn = (i & 1) == 0 ? side : -side;
-            float cos = i < 2 ? HalfSqrt2 : 0f, sin = turn * (i < 2 ? HalfSqrt2 : 1f);
-            if (TryDetour(ref input, step.DirX * cos - step.DirZ * sin, step.DirZ * cos + step.DirX * sin, turn,
-                    step, self, def, in arena, length, rise, memory))
-                return;
-        }
+        memory.DetourCursor = cursor;
         input.MoveX = input.MoveY = 0f;
-        memory.EndFootwork();
+        // Neutral coasts for twenty ticks. Shield is the ordinary input that stops before a refused edge.
+        input.ShieldHeld = self.VX * self.VX + self.VZ * self.VZ > 0.0001f;
+        return FootstepOutcome.Blocked;
     }
 
     private static bool TryDetour(ref InputState input, float x, float z, int turn, in Footstep step,
         in CharacterState self, CharacterDefinition def, in ArenaDefinition arena, float length, float rise,
         BotMemory memory)
     {
+        memory.WalkProbesThisTick++;
         var verdict = StageWalk.Probe(self, def, in arena, x, z, length, rise);
         if (!TryWalk(ref input, verdict, x, z, step, self, def, memory))
             return false;
@@ -997,7 +825,7 @@ public sealed class HeuristicBotPolicy
     /// the ledge, until the CPU lands again. An action, a plan, hitstun or death ends it.
     /// </summary>
     private static bool ContinueClimb(ref InputState input, in CharacterState self, CharacterDefinition def,
-        BotMemory memory)
+        in ArenaDefinition arena, BotMemory memory)
     {
         if (!memory.Climbing)
             return false;
@@ -1005,7 +833,9 @@ public sealed class HeuristicBotPolicy
             memory.ClimbLeftGround = true;
         if (memory.PlanPhase != BotPlanPhase.None || input.ActiveSlot != 0 || input.ShieldHeld || input.GrabPressed
             || self.HitstunTicks > 0 || self.Deaths != memory.ClimbDeaths
-            || memory.ClimbLeftGround && self.IsGrounded || memory.ClimbTicks > ClimbTicksMax)
+            || memory.Behavior != CpuBehavior.Attack
+            || memory.ClimbLeftGround && self.IsGrounded && StageWalk.HasLanding(self, def, arena)
+            || memory.ClimbTicks > ClimbTicksMax)
         {
             memory.EndClimb();
             return false;
@@ -1025,68 +855,49 @@ public sealed class HeuristicBotPolicy
         => def.Movement.JumpForce * def.Movement.JumpForce / MathF.Max(1f, 2f * def.Movement.Gravity);
 
     private InputState ContinuePlan(in CharacterState self, CharacterDefinition def,
-        BotMemory memory, in ArenaDefinition arena, CookedSlotDefinition? activeMove)
+        BotMemory memory, in ArenaDefinition arena, CookedSlotDefinition? activeMove, out CpuExecutionResult execution)
     {
+        execution = CpuExecutionResult.Continuing;
         if (memory.PlanKind == BotPlanKind.Grab)
-            return ContinueGrab(self, memory);
-        if (PlanInvalidated(self, memory))
         {
-            memory.ClearPlan();
-            return default;
+            var input = ContinueGrab(self, memory);
+            if (memory.PlanPhase == BotPlanPhase.None) execution = self.State == ActionState.Grabbing
+                ? CpuExecutionResult.Accepted : CpuExecutionResult.Rejected;
+            return input;
         }
-
+        if (PlanInvalidated(self, memory))
+        { memory.ClearPlan(); execution = CpuExecutionResult.Rejected; return default; }
+        if (self.HitstopTicks > 0) return PlanInput(memory, memory.PlanPhase == BotPlanPhase.AimHold);
         if (!memory.PlanPressIssued)
         {
-            if (!CanPress(self, def, memory.PlanSlot, activeMove))
-                return default;
-
+            if (!CanPress(self, def, memory.PlanSlot, activeMove)) return default;
             var candidates = self.IsGrounded ? _profile : _airProfile;
             for (int i = 0; i < candidates.Length; i++)
-                if (candidates[i].Slot == memory.PlanSlot
-                    && !HasSafeAttackTravel(self, candidates[i], in arena))
-                {
-                    memory.ClearPlan();
-                    return default;
-                }
-
+                if (candidates[i].Slot == memory.PlanSlot && !HasSafeAttackTravel(self, candidates[i], arena))
+                { memory.ClearPlan(); execution = CpuExecutionResult.Rejected; return default; }
             memory.PlanPressIssued = true;
             return PlanPressInput(memory);
         }
-
-        if (memory.PlanPhase == BotPlanPhase.AimHold
-            && self.State == ActionState.Aiming
-            && self.AttackSlot == memory.PlanSlot)
+        if (memory.PlanPhase == BotPlanPhase.AimHold && self.State == ActionState.Aiming && self.AttackSlot == memory.PlanSlot)
         {
             bool aiming = memory.PlanTicks < memory.PlanHoldTicks;
             var planned = PlanInput(memory, aiming);
-            if (aiming)
-                memory.PlanTicks++;
-            else
-                memory.ClearPlan();
+            if (aiming) memory.PlanTicks++;
+            else { memory.ClearPlan(); execution = CpuExecutionResult.Accepted; }
             return planned;
         }
-
-        // A non-aim press was accepted, or an aim plan reached its release phase.
-        if ((self.State is ActionState.Attacking or ActionState.Aiming)
-            && self.AttackSlot == memory.PlanSlot)
-        {
-            memory.ClearPlan();
-            return default;
-        }
-
-        // The simulation rejected or interrupted the precommitment. Do not replay it
-        // from a fresh current-state read.
-        memory.ClearPlan();
-        return default;
+        execution = (self.State is ActionState.Attacking or ActionState.Aiming) && self.AttackSlot == memory.PlanSlot
+            ? CpuExecutionResult.Accepted : CpuExecutionResult.Rejected;
+        memory.ClearPlan(); return default;
     }
 
     private static bool CanPress(in CharacterState self, CharacterDefinition def, byte slot, CookedSlotDefinition? activeMove)
         => self.HitstunTicks == 0
             && self.HitstopTicks == 0
+            && self.BlockStunTicks == 0
             && self.LandingLagTicks == 0
             && (self.AnimLockTicks == 0 || Simulation.IsIasaUnlocked(in self, activeMove))
-            && (ActionStates.AdmitsActions(self.State)
-                || Simulation.IsIasaUnlocked(in self, activeMove))
+            && Admits(self, activeMove)
             && !HasCooldown(self, def, slot, activeMove)
             && (def.GetCookedSlotAbility(slot, !self.IsGrounded) != null);
 
@@ -1106,102 +917,6 @@ public sealed class HeuristicBotPolicy
             AimPitch = memory.PlanAimPitch,
             AimDistance = memory.PlanAimDistance,
         };
-
-    private void QueueFollowUp(in CharacterState self, in CpuObservation target,
-        in CpuHitObservation hit, CharacterDefinition def, BotDifficultyProfile profile,
-        Random rng, BotMemory memory, in ArenaDefinition arena, CookedSlotDefinition? activeMove)
-    {
-        float rangeScale = memory.RangeScale;
-        bool allowRecoveryMove = !IsNearEdge(self, in arena);
-        var trueCombo = ChooseTrueCombo(self, hit, memory.RemainingHitstun(hit),
-            rangeScale, profile.SpecialChance, rng, allowRecoveryMove, in arena, activeMove);
-        if (trueCombo.HasValue && rng.NextDouble() < profile.ComboChance)
-        {
-            var selected = trueCombo.GetValueOrDefault();
-            short yaw = AimYaw(hit.PX - self.PX, hit.PZ - self.PZ);
-            memory.QueueFollowUp(selected.Slot, BotPlanKind.TrueCombo, yaw,
-                AimPitch(hit.PY - self.PY, Distance(hit.PX - self.PX, hit.PZ - self.PZ)),
-                AimDistance(Distance(hit.PX - self.PX, hit.PZ - self.PZ)),
-                selected.RequiresAim ? AimHoldTicks : (ushort)0, self.Deaths, self.IsGrounded);
-            return;
-        }
-
-        float dx = target.PX - self.PX;
-        float dz = target.PZ - self.PZ;
-        float dist = Distance(dx, dz);
-        var pressure = ChooseSlot(self, target, dist, rangeScale, rng,
-            profile.SpecialChance, allowRecoveryMove, in arena, activeMove);
-        if (!pressure.HasValue || (!Threatens(self, target) && memory.RemainingHitstun(hit) == 0))
-            return;
-        if (!Threatens(self, target) && rng.NextDouble() >= profile.AttackChance)
-            return;
-
-        var pressureMove = pressure.GetValueOrDefault();
-        memory.QueueFollowUp(pressureMove.Slot, BotPlanKind.PressureString,
-            AimYaw(dx, dz), AimPitch(target.PY - self.PY, dist), AimDistance(dist),
-            pressureMove.RequiresAim ? AimHoldTicks : (ushort)0, self.Deaths, self.IsGrounded);
-    }
-
-    private MoveCandidate? ChooseTrueCombo(in CharacterState self, in CpuHitObservation hit,
-        int remainingHitstun, float rangeScale, float specialChance, Random rng,
-        bool allowRecoveryMove, in ArenaDefinition arena, CookedSlotDefinition? activeMove)
-    {
-        if (remainingHitstun <= 0)
-            return null;
-
-        bool air = !self.IsGrounded;
-        Span<MoveCandidate> viable = stackalloc MoveCandidate[Slots.Length];
-        int count = 0;
-        for (int i = 0; i < Slots.Length; i++)
-        {
-            var candidate = air ? _airProfile[i] : _profile[i];
-            if (!IsCandidateAvailable(self, candidate, air, allowRecoveryMove, in arena, activeMove)
-                || !candidate.HasDamage)
-                continue;
-
-            int timing = candidate.StartupTicks;
-            float predictedX = hit.PX + hit.VX * timing * Simulation.TickDt;
-            float predictedZ = hit.PZ + hit.VZ * timing * Simulation.TickDt;
-            float dist = Distance(predictedX - self.PX, predictedZ - self.PZ);
-            if (candidate.TravelSpeed > 0f)
-            {
-                float flightDistance = MathF.Max(0f, dist - candidate.TravelOffset);
-                int travel = (int)MathF.Ceiling(flightDistance / candidate.TravelSpeed
-                    * (1f / Simulation.TickDt));
-                timing += Math.Min(travel, candidate.TravelTicks);
-                predictedX = hit.PX + hit.VX * timing * Simulation.TickDt;
-                predictedZ = hit.PZ + hit.VZ * timing * Simulation.TickDt;
-                dist = Distance(predictedX - self.PX, predictedZ - self.PZ);
-            }
-            else
-            {
-                timing += candidate.TravelTicks;
-                predictedX = hit.PX + hit.VX * timing * Simulation.TickDt;
-                predictedZ = hit.PZ + hit.VZ * timing * Simulation.TickDt;
-                dist = Distance(predictedX - self.PX, predictedZ - self.PZ);
-            }
-            if (timing <= remainingHitstun
-                && dist <= (candidate.Reach + VictimRadiusMargin) * rangeScale)
-                viable[count++] = candidate;
-        }
-
-        if (count == 0)
-            return null;
-        count = PickKind(viable, count, specialChance, rng);
-
-
-        float bestScore = float.NegativeInfinity;
-        for (int i = 0; i < count; i++)
-            bestScore = MathF.Max(bestScore, Score(viable[i], viable[i].Reach, false));
-        Span<MoveCandidate> best = stackalloc MoveCandidate[Slots.Length];
-        int bestCount = 0;
-        for (int i = 0; i < count; i++)
-            if (Score(viable[i], viable[i].Reach, false) >= bestScore - 2f)
-                best[bestCount++] = viable[i];
-        return best[rng.Next(bestCount)];
-    }
-
-
 
     private static float Distance(float x, float z)
         => MathF.Sqrt(x * x + z * z);
@@ -1226,7 +941,6 @@ public sealed class HeuristicBotPolicy
             AimDistance = memory.PlanAimDistance,
         };
 
-    private MoveCandidate Move(byte slot, bool air) => (air ? _airProfile : _profile)[Array.IndexOf(Slots, slot)];
 
     private MoveProfile FindProfile(CharacterDefinition def, BakedAnimationData? baked)
     {
@@ -1239,6 +953,11 @@ public sealed class HeuristicBotPolicy
         {
             EvaluateMove(def, Slots[i], false, baked, out ground[i]);
             EvaluateMove(def, Slots[i], true, baked, out air[i]);
+            foreach (bool airborne in new[] { false, true })
+            {
+                var slot = def.GetCookedSlotAbility(Slots[i], airborne);
+                if (slot != null && !_timingModels.ContainsKey(slot)) _timingModels.Add(slot, new CpuAttackModel(slot));
+            }
         }
         var result = new MoveProfile(def, baked, ground, air);
         _profiles.Add(result);
@@ -1250,21 +969,41 @@ public sealed class HeuristicBotPolicy
     {
         if (ReferenceEquals(_profileDefinition, def) && ReferenceEquals(_profileBaked, baked)) return;
         var profile = FindProfile(def, baked);
+        _currentProfile = profile;
         _profileDefinition = def;
         _profileBaked = baked;
         _profile = profile.Ground;
         _airProfile = profile.Air;
     }
+    private bool HasSafeCoast(in CharacterState self, in ArenaDefinition arena)
+    {
+        if (!HasArenaBounds(arena) || self.VX * self.VX + self.VZ * self.VZ < .0001f) return true;
+        float x = self.VX * GroundSpeedTuning.StopTicks * Simulation.TickDt;
+        float z = self.VZ * GroundSpeedTuning.StopTicks * Simulation.TickDt;
+        float distance = Distance(x, z);
+        int steps = Math.Min(16, Math.Max(1, (int)MathF.Ceiling(distance / .5f)));
+        for (int step = 1; step <= steps; step++)
+        {
+            var point = self;
+            point.PX += x * step / steps; point.PZ += z * step / steps;
+            if (!InsideBounds(point, _profileDefinition!, arena) || !HasLandingBelow(point, arena)) return false;
+        }
+        return true;
+    }
+
     private bool HasSafeAttackTravel(in CharacterState self, in MoveCandidate candidate,
-        in ArenaDefinition arena)
+        in ArenaDefinition arena, float routeX = 0f, float routeZ = 0f, bool checkLanding = true, bool checkCoast = true)
     {
         if (!HasArenaBounds(arena))
             return true;
 
+        if (checkLanding && !self.IsGrounded && !HasLandingBelow(self, arena)) return false;
+
         // Lunges capture facing before this tick's facing input. Other aerial moves
         // inherit velocity, including a previous lunge's momentum during their lock.
         float dx, dz;
-        if (candidate.ForwardTravel > 0f)
+        if (routeX != 0f || routeZ != 0f) { dx = routeX; dz = routeZ; }
+        else if (candidate.ForwardTravel > 0f)
         {
             dx = MathF.Sin(self.FacingYaw) * candidate.ForwardTravel;
             dz = MathF.Cos(self.FacingYaw) * candidate.ForwardTravel;
@@ -1275,12 +1014,13 @@ public sealed class HeuristicBotPolicy
             dz = self.VZ * candidate.CommitmentTicks * Simulation.TickDt;
         }
         else
-            return true;
+            return !checkCoast || HasSafeCoast(self, arena);
 
         float travel = Distance(dx, dz);
         if (travel <= 0f)
             return true;
         float radius = _profileDefinition!.CapsuleRadius;
+        bool route = routeX != 0f || routeZ != 0f;
         int steps = Math.Max(1, (int)MathF.Ceiling(travel / 0.5f));
         for (int step = 1; step <= steps; step++)
         {
@@ -1291,6 +1031,15 @@ public sealed class HeuristicBotPolicy
                 || z < arena.MinZ + radius || z > arena.MaxZ - radius
                 || !HasSupportAt(x, self.PY, z, in arena))
                 return false;
+            if ((route || candidate.ForwardTravel > 0f && self.IsGrounded) && arena.Heightmap.Data != null)
+            {
+                float floor = arena.Heightmap.Sample(x, z);
+                float feet = route && !self.IsGrounded ? arena.Heightmap.Sample(self.PX, self.PZ)
+                    : self.PY - _profileDefinition.CapsuleHeight * .5f;
+                if (MathF.Abs(floor - feet) > .35f
+                    || !HasSupportAt(x + radius, self.PY, z, arena) || !HasSupportAt(x - radius, self.PY, z, arena)
+                    || !HasSupportAt(x, self.PY, z + radius, arena) || !HasSupportAt(x, self.PY, z - radius, arena)) return false;
+            }
         }
         return true;
     }
@@ -1303,139 +1052,11 @@ public sealed class HeuristicBotPolicy
             && (allowRecoveryMove || !candidate.IsRecovery)
             && !HasCooldown(self, _profileDefinition!, candidate.Slot, activeMove)
             && !IsChargePoolExhausted(self, candidate.Slot, air)
-            && HasSafeAttackTravel(self, candidate, in arena);
-    private float MaxConnectReach(in CharacterState self, float rangeScale,
-        bool allowRecoveryMove, in ArenaDefinition arena, CookedSlotDefinition? activeMove)
-    {
-        bool air = !self.IsGrounded;
-        float normalMax = 0f;
-        float specialMax = 0f;
-        for (int i = 0; i < Slots.Length; i++)
-        {
-            var candidate = air ? _airProfile[i] : _profile[i];
-            if (!IsCandidateAvailable(self, candidate, air, allowRecoveryMove, in arena, activeMove))
-                continue;
-            float reach = (candidate.Reach + VictimRadiusMargin) * rangeScale;
-            if (IsNormalSlot(candidate.Slot))
-                normalMax = MathF.Max(normalMax, reach);
-            else
-                specialMax = MathF.Max(specialMax, reach);
-        }
-        return _profileDefinition!.AlternateForm != null ? MathF.Max(normalMax, specialMax)
-            : normalMax > 0f ? normalMax : specialMax;
-    }
-    /// <summary>
-    /// Kit priority responses first, then the ordinary pool: viable normals or viable specials, one roll at
-    /// <paramref name="specialChance"/> when both are viable. Outside normal reach only damaging specials count.
-    /// </summary>
-    private MoveCandidate? ChooseSlot(in CharacterState self, in CpuObservation target,
-        float dist, float rangeScale, Random rng, float specialChance,
-        bool allowRecoveryMove, in ArenaDefinition arena, CookedSlotDefinition? activeMove,
-        bool outsideReach = false)
-    {
-        bool air = !self.IsGrounded;
-        if (ReadyDashStrikeTip(in self, in target, allowRecoveryMove, in arena, activeMove))
-            return Move(AbilitySlots.R, air);
-        if (ReadyFlash(in self, in target, allowRecoveryMove, in arena, activeMove)
-            || ReadyFinisherGrab(in self, in target, allowRecoveryMove, in arena, activeMove))
-            return Move(AbilitySlots.F, air);
-        if (target.State == ActionState.Shielding
-            && ReadyCommandGrab(self, target, dist, allowRecoveryMove, in arena, activeMove) is { } commandGrab)
-            return commandGrab;
-        Span<MoveCandidate> viable = stackalloc MoveCandidate[Slots.Length];
-        int count = 0;
-        int damagingCount = 0;
-        float bestDamageReach = 0f;
-        for (int i = 0; i < Slots.Length; i++)
-        {
-            var candidate = air ? _airProfile[i] : _profile[i];
-            if (!IsCandidateAvailable(self, candidate, air, allowRecoveryMove, in arena, activeMove)
-                || outsideReach && (IsNormalSlot(candidate.Slot) || !candidate.HasDamage))
-                continue;
+            && HasSafeAttackTravel(self, candidate, in arena, checkLanding: false, checkCoast: false);
+    private CpuMoveTiming EngageTiming(in CharacterState self)
+        => self.IsGrounded ? _currentProfile!.GroundTiming : _currentProfile!.AirTiming;
 
-            bool inReach = candidate.Reach > 0f
-                && (candidate.Reach + VictimRadiusMargin) * rangeScale >= dist * SlotReachTolerance;
-            if (inReach && candidate.HasDamage)
-            {
-                damagingCount++;
-                bestDamageReach = MathF.Max(bestDamageReach, candidate.Reach);
-            }
-        }
-
-        for (int i = 0; i < Slots.Length; i++)
-        {
-            var candidate = air ? _airProfile[i] : _profile[i];
-            if (!IsCandidateAvailable(self, candidate, air, allowRecoveryMove, in arena, activeMove)
-                || outsideReach && (IsNormalSlot(candidate.Slot) || !candidate.HasDamage))
-                continue;
-
-            bool inReach = candidate.Reach > 0f
-                && (candidate.Reach + VictimRadiusMargin) * rangeScale >= dist * SlotReachTolerance;
-            bool usefulMovement = !candidate.HasDamage
-                && candidate.HasMovement
-                && (dist > bestDamageReach + VictimRadiusMargin || !target.IsGrounded && candidate.IsRecovery);
-            if (!inReach || damagingCount > 0 && !candidate.HasDamage)
-            {
-                if (!usefulMovement) continue;
-            }
-
-            viable[count++] = candidate;
-        }
-
-        if (count == 0)
-            return null;
-        count = PickKind(viable, count, specialChance, rng);
-
-
-        // Keep all similarly good options in the seeded tie pool. There is no per-slot memory,
-        // so a clearly strong response remains eligible to repeat.
-        float bestScore = float.NegativeInfinity;
-        for (int i = 0; i < count; i++)
-            bestScore = MathF.Max(bestScore, Score(viable[i], dist, Threatens(self, target)));
-
-        Span<MoveCandidate> best = stackalloc MoveCandidate[Slots.Length];
-        int bestCount = 0;
-        for (int i = 0; i < count; i++)
-            if (Score(viable[i], dist, Threatens(self, target)) >= bestScore - 2f)
-                best[bestCount++] = viable[i];
-        return best[rng.Next(bestCount)];
-    }
-
-
-    /// <summary>
-    /// With both normals and specials viable, one roll at the special chance keeps the specials, otherwise the
-    /// normals; a lone kind is kept as it is. Returns the kept count, compacted to the front.
-    /// </summary>
-    private static int PickKind(Span<MoveCandidate> viable, int count, float specialChance, Random rng)
-    {
-        int normalCount = 0;
-        for (int i = 0; i < count; i++)
-            if (IsNormalSlot(viable[i].Slot))
-                normalCount++;
-        if (normalCount == 0 || normalCount == count)
-            return count;
-        bool specials = rng.NextDouble() < specialChance;
-        int write = 0;
-        for (int i = 0; i < count; i++)
-            if (IsNormalSlot(viable[i].Slot) != specials)
-                viable[write++] = viable[i];
-        return write;
-    }
-
-    /// <summary>A command grab special without a hold stage that is available and reaches the target.</summary>
-    private MoveCandidate? ReadyCommandGrab(in CharacterState self, in CpuObservation target, float dist,
-        bool allowRecoveryMove, in ArenaDefinition arena, CookedSlotDefinition? activeMove)
-    {
-        bool air = !self.IsGrounded;
-        foreach (var grab in air ? _airProfile : _profile)
-            if (Capability<CookedCommandGrabCapabilityParameters>(_profileDefinition!.GetCookedSlotAbility(grab.Slot, air)) is { HasHoldStage: false }
-                && dist <= grab.Reach + VictimRadiusMargin
-                && IsCandidateAvailable(self, grab, air, allowRecoveryMove, in arena, activeMove))
-                return grab;
-        return null;
-    }
-
-    /// <summary>The first capability of this type that a slot's timeline starts. Allocation-free: it runs every tick.</summary>
+    /// <summary>The first capability of this type, resolved when caching a move profile.</summary>
     private static T? Capability<T>(CookedSlotDefinition? slot) where T : CookedCapabilityParameters
     {
         if (slot == null)
@@ -1451,61 +1072,7 @@ public sealed class HeuristicBotPolicy
         return null;
     }
 
-    /// <summary>F is worth its long cooldown when the target will still be inside the lock sphere when the stance ends.</summary>
-    private bool ReadyFlash(in CharacterState self, in CpuObservation target,
-        bool allowRecoveryMove, in ArenaDefinition arena, CookedSlotDefinition? activeMove)
-    {
-        bool air = !self.IsGrounded;
-        var flash = Capability<CookedFlashCutCapabilityParameters>(_profileDefinition!.GetCookedSlotAbility(AbilitySlots.F, air));
-        if (flash == null) return false;
-        float dx = target.PX - self.PX, dy = target.PY - self.PY, dz = target.PZ - self.PZ;
-        float drift = MathF.Sqrt(target.VX * target.VX + target.VZ * target.VZ) * flash.StanceTicks * Simulation.TickDt;
-        var candidate = Move(AbilitySlots.F, air);
-        return MathF.Sqrt(dx * dx + dy * dy + dz * dz) + drift <= flash.LockRange
-            && IsCandidateAvailable(self, candidate, air, allowRecoveryMove, in arena, activeMove);
-    }
-
-    /// <summary>
-    /// An F command grab whose hold stage ends in the timeline's finisher (Title Match) is worth its long cooldown where a
-    /// shield cannot stop it, or when that finisher can KO: the target stands where the lunge's capture will reach it,
-    /// shielding or at <see cref="FinisherKillPercent"/> or more.
-    /// </summary>
-    private bool ReadyFinisherGrab(in CharacterState self, in CpuObservation target,
-        bool allowRecoveryMove, in ArenaDefinition arena, CookedSlotDefinition? activeMove)
-    {
-        bool air = !self.IsGrounded;
-        if (target.State != ActionState.Shielding && target.DamagePercent < FinisherKillPercent) return false;
-        if (Capability<CookedCommandGrabCapabilityParameters>(_profileDefinition!.GetCookedSlotAbility(AbilitySlots.F, air))
-            is not { HasHoldStage: true } grab) return false;
-        float dx = target.PX - self.PX, dy = target.PY - self.PY, dz = target.PZ - self.PZ;
-        float reach = grab.LungeSpeed * grab.LungeTicks / 60f + grab.Capture.OffsetZ + grab.Capture.Radius;
-        var candidate = Move(AbilitySlots.F, air);
-        return MathF.Sqrt(dx * dx + dz * dz) <= reach && MathF.Abs(dy) <= grab.Capture.Radius + 0.5f
-            && IsCandidateAvailable(self, candidate, air, allowRecoveryMove, in arena, activeMove);
-    }
-
-    // Title Match's launch KOs off Training from about 75% (ADR-0053); a little earlier still carries it.
     private const ushort FinisherKillPercent = 70;
-
-    private bool ReadyDashStrikeTip(in CharacterState self, in CpuObservation target,
-        bool allowRecoveryMove, in ArenaDefinition arena, CookedSlotDefinition? activeMove)
-    {
-        bool air = !self.IsGrounded;
-        var dash = Capability<CookedDashStrikeCapabilityParameters>(_profileDefinition!.GetCookedSlotAbility(AbilitySlots.R, air));
-        if (dash == null || target.State == ActionState.Shielding) return false;
-        var observed = new CharacterState { PX = target.PX, PY = target.PY, PZ = target.PZ };
-        var candidate = Move(AbilitySlots.R, air);
-        return DashStrikeReach.Classify(dash, in self, in observed, _profileDefinition) == DashStrikeContact.Tip
-            && IsCandidateAvailable(self, candidate, air, allowRecoveryMove, in arena, activeMove);
-    }
-
-    private float Score(in MoveCandidate candidate, float dist, bool threatening)
-        => (candidate.HasDamage ? 100f : 10f)
-            + (threatening && candidate.HasDamage ? 5f : 0f)
-            + candidate.Damage * 0.1f
-            - (_profileDefinition!.AlternateForm != null ? MathF.Max(0f, dist - candidate.Reach)
-                : MathF.Abs(candidate.Reach - dist)) * 0.2f
-            - candidate.StartupTicks * 0.05f;
 
     private bool IsChargePoolExhausted(in CharacterState state, byte slot, bool air)
     {
@@ -1641,7 +1208,7 @@ public sealed class HeuristicBotPolicy
                 startup == int.MaxValue ? (ushort)0 : (ushort)Math.Min(startup, ushort.MaxValue),
                 (ushort)Math.Min(travelTicks, ushort.MaxValue), travelSpeed, travelOffset,
                 recoveryHorizontal, recoveryVertical, recoveryRequiresDelayedOpponent,
-                forwardTravel, timelineTicks);
+                forwardTravel, timelineTicks, cooked);
             return functional;
         }
 

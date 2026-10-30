@@ -90,12 +90,15 @@ internal static class Program
         int tick = 0;
         for (; tick < maxTicks; tick++)
         {
-            inputs[SelfPlayMatch.EntityA] = policy.Decide(
-                sim.GetState(SelfPlayMatch.EntityA), sim.GetState(SelfPlayMatch.EntityB),
-                def, rng, memA, arena, baked, activeMove: sim.GetActiveMove(SelfPlayMatch.EntityA)?.Slot);
-            inputs[SelfPlayMatch.EntityB] = policy.Decide(
-                sim.GetState(SelfPlayMatch.EntityB), sim.GetState(SelfPlayMatch.EntityA),
-                def, rng, memB, arena, baked, activeMove: sim.GetActiveMove(SelfPlayMatch.EntityB)?.Slot);
+            var preA = sim.GetState(SelfPlayMatch.EntityA);
+            var preB = sim.GetState(SelfPlayMatch.EntityB);
+            policy.ObserveOpponent(memA, preB, def, baked, sim.GetActiveMove(SelfPlayMatch.EntityB)?.Slot);
+            policy.ObserveOpponent(memB, preA, def, baked, sim.GetActiveMove(SelfPlayMatch.EntityA)?.Slot);
+            memA.ChooseOpponent(preA); memB.ChooseOpponent(preB);
+            inputs[SelfPlayMatch.EntityA] = policy.Decide(preA, def, rng, memA, arena, baked,
+                activeMove: sim.GetActiveMove(SelfPlayMatch.EntityA)?.Slot);
+            inputs[SelfPlayMatch.EntityB] = policy.Decide(preB, def, rng, memB, arena, baked,
+                activeMove: sim.GetActiveMove(SelfPlayMatch.EntityB)?.Slot);
             recorder.RecordInputs(tick, inputs);
 
             recorder.RecordPresses(sim, tick, inputs, def); // swings from pre-tick presses
@@ -119,13 +122,10 @@ internal static class Program
             }
             foreach (var hit in sim.LastTickHits)
             {
-                if (hit.Blocked) continue;
                 if (!respawnedA && hit.TargetEntityId == SelfPlayMatch.EntityB)
-                    memA.RecordOpponentHit(hit.AttackSlot, !postB.IsGrounded, postB,
-                        postB.HitstunTicks, hit.HitstopTicks);
+                    memA.RecordOpponentContact(hit.AttackSlot, hit.Blocked ? CpuContactKind.Block : CpuContactKind.Hit, postB, hit.HitstopTicks);
                 if (!respawnedB && hit.TargetEntityId == SelfPlayMatch.EntityA)
-                    memB.RecordOpponentHit(hit.AttackSlot, !postA.IsGrounded, postA,
-                        postA.HitstunTicks, hit.HitstopTicks);
+                    memB.RecordOpponentContact(hit.AttackSlot, hit.Blocked ? CpuContactKind.Block : CpuContactKind.Hit, postA, hit.HitstopTicks);
             }
 
             if (jsonPath != null)

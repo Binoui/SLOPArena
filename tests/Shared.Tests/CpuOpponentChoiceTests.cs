@@ -146,14 +146,14 @@ public sealed class CpuOpponentChoiceTests
     public void OnlyHitsOnTheCurrentOpponentBecomeFollowUps()
     {
         var room = Started(out _);
-        room.Memory.RecordOpponentHit(AbilitySlots.Slot1, false, room.Others[1], 30, 0);
+        room.Memory.RecordOpponentContact(AbilitySlots.Slot1, CpuContactKind.Hit, room.Others[1] with { HitstunTicks = 30 }, 0);
         for (int tick = 0; tick <= Delay; tick++)
             room.Tick();
-        Assert.False(room.Memory.TryGetNewHit(out _));
-        room.Memory.RecordOpponentHit(AbilitySlots.Slot1, false, room.Others[0], 30, 0);
+        Assert.False(room.Memory.TryGetNewContact(out _));
+        room.Memory.RecordOpponentContact(AbilitySlots.Slot1, CpuContactKind.Hit, room.Others[0] with { HitstunTicks = 30 }, 0);
         for (int tick = 0; tick <= Delay; tick++)
             room.Tick();
-        Assert.True(room.Memory.TryGetNewHit(out var hit));
+        Assert.True(room.Memory.TryGetNewContact(out var hit));
         Assert.Equal(AbilitySlots.Slot1, hit.Slot);
     }
 

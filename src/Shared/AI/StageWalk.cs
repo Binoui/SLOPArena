@@ -5,7 +5,7 @@ namespace SlopArena.Shared.AI;
 /// <summary>How a probed grounded walk ends.</summary>
 internal enum WalkEnd : byte
 {
-    /// <summary>The engine's mover covered the whole length on walkable ground.</summary>
+    /// <summary>The engine's mover covered a walkable prefix long enough for the next input.</summary>
     Clear,
     /// <summary>The walk left its floor and the fall landed on a lower floor.</summary>
     Drop,
@@ -45,8 +45,7 @@ internal readonly struct WalkVerdict
 /// </summary>
 internal static class StageWalk
 {
-    private const int MaxFallTicks = 90;
-
+    internal const int DenseTriangleThreshold = 1024;
     [ThreadStatic]
     private static int[]? _candidates;
 
@@ -71,7 +70,9 @@ internal static class StageWalk
         s.InPostHitstunFlight = false;
         float increment = MathF.Max(0.05f, MathF.Min(def.Movement.RunSpeed * Simulation.TickDt, def.CapsuleRadius));
         float covered = 0f;
-        while (covered < length - 0.0001f)
+        int moves = 0;
+        int maxMoves = arena.CollisionTriangles!.Length > DenseTriangleThreshold ? 3 : 64;
+        while (covered < length - 0.0001f && moves++ < maxMoves)
         {
             float step = MathF.Min(increment, length - covered);
             float x0 = s.PX, z0 = s.PZ;
@@ -97,27 +98,50 @@ internal static class StageWalk
         return new WalkVerdict(WalkEnd.Clear, covered);
     }
 
-    /// <summary>
-    /// Continues a walk-off with the engine's gravity and mover. Run speed is carried along the heading with
-    /// no air drift; a gap between two floors therefore falls into the gap.
-    /// </summary>
-    private static WalkVerdict Fall(CharacterState s, float startY, CharacterDefinition def, in ArenaDefinition arena,
-        float dirX, float dirZ, float covered)
+    /// <summary>A grazing rim contact is not a landing. Use ordinary air drift and require interior floor support.</summary>
+    private static WalkVerdict Fall(CharacterState s, float startY, CharacterDefinition def,
+        in ArenaDefinition arena, float dirX, float dirZ, float covered)
     {
         s.VX = dirX * def.Movement.RunSpeed;
         s.VZ = dirZ * def.Movement.RunSpeed;
-        for (int tick = 0; tick < MaxFallTicks; tick++)
+        int contacts = 0;
+        int[] candidates = Candidates(arena);
+        for (int tick = 0; tick < 90; tick++)
         {
+            Simulation.ProcessAirMovement(ref s, def.Movement, default, dirX, dirZ);
             Simulation.ApplyGravity(ref s, def.Movement, 1f);
-            Simulation.MoveThroughStage(ref s, def, arena,
-                s.VX * Simulation.TickDt, s.VY * Simulation.TickDt, s.VZ * Simulation.TickDt);
+            float x = s.PX + s.VX * Simulation.TickDt;
+            float y = s.PY + s.VY * Simulation.TickDt;
+            float z = s.PZ + s.VZ * Simulation.TickDt;
+            int count = ArenaCollision.GetCandidateTrianglesForSweep(s.PX, s.PY, s.PZ, x, y, z,
+                def.CapsuleRadius, def.CapsuleHeight, in arena, candidates);
+            if (!ArenaCollision.SweepCapsule(s.PX, s.PY, s.PZ, x, y, z, def.CapsuleRadius,
+                    def.CapsuleHeight, in arena, candidates, count, out _))
+            {
+                s.PX = x;
+                s.PY = y;
+                s.PZ = z;
+            }
+            else
+            {
+                if (++contacts > 4) return new WalkVerdict(WalkEnd.Hazard, covered);
+                Simulation.MoveThroughStage(ref s, def, arena,
+                    s.VX * Simulation.TickDt, s.VY * Simulation.TickDt, s.VZ * Simulation.TickDt);
+            }
             if (s.PY < arena.KillHeight || OutsideBounds(s.PX, s.PZ, def, arena))
                 return new WalkVerdict(WalkEnd.Hazard, covered);
-            if (s.IsGrounded)
+            if (s.IsGrounded && HasLanding(s, def, arena))
                 return new WalkVerdict(WalkEnd.Drop, covered, startY - s.PY);
         }
         return new WalkVerdict(WalkEnd.Hazard, covered);
     }
+
+    internal static bool HasLanding(in CharacterState s, CharacterDefinition def, in ArenaDefinition arena)
+        => !ArenaCollision.HasTriangles(arena)
+            || ArenaCollision.TryFindSupport(s.PX, s.PY, s.PZ, def.CapsuleRadius, def.CapsuleHeight,
+                in arena, Candidates(arena), out var support)
+            && ArenaCollision.IsTriangleInteriorContact(s.PX, s.PY, s.PZ, def.CapsuleRadius,
+                def.CapsuleHeight, in arena, support);
 
     /// <summary>Sweeps the capsule down from <paramref name="maxRise"/> above the floor, one radius past the face.</summary>
     private static bool TryFindTop(in CharacterState stopped, CharacterDefinition def, in ArenaDefinition arena,
@@ -126,9 +150,7 @@ internal static class StageWalk
         rise = 0f;
         if (maxRise <= 0f)
             return false;
-        int required = arena.CollisionTriangles!.Length;
-        if (_candidates == null || _candidates.Length < required)
-            _candidates = new int[required];
+        Candidates(arena);
         float x = stopped.PX + dirX * def.CapsuleRadius * 2f;
         float z = stopped.PZ + dirZ * def.CapsuleRadius * 2f;
         float top = stopped.PY + maxRise;
@@ -167,6 +189,14 @@ internal static class StageWalk
             covered += step;
         }
         return new WalkVerdict(WalkEnd.Clear, covered);
+    }
+
+    private static int[] Candidates(in ArenaDefinition arena)
+    {
+        int required = arena.CollisionTriangles!.Length;
+        if (_candidates == null || _candidates.Length < required)
+            _candidates = new int[required];
+        return _candidates;
     }
 
     private static bool OutsideBounds(float x, float z, CharacterDefinition def, in ArenaDefinition arena)

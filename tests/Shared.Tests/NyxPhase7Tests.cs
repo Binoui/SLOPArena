@@ -150,7 +150,7 @@ public sealed class NyxCpuTests
         self.State = ActionState.Attacking; self.AttackSlot = AbilitySlots.Slot1; self.AnimLockTicks = 30;
         var target = TestHelpers.NpcState(0, 1);
         var memory = Memory(difficulty, target);
-        memory.RecordOpponentHit(AbilitySlots.Slot1, false, target, 30, 0);
+        memory.RecordOpponentContact(AbilitySlots.Slot1, CpuContactKind.Hit, target with { HitstunTicks = 30 }, 0);
         for (int i = 0; i < 30; i++) memory.ObserveOpponent(target);
         var input = new HeuristicBotPolicy().Decide(self, def, new Random(7), memory, default(ArenaDefinition),
             activeMove: def.GetCookedSlotAbility(AbilitySlots.Slot1, false), canSwapCancel: true);
@@ -176,7 +176,7 @@ public sealed class NyxCpuTests
         if (gate == "landing") self.LandingLagTicks = 5;
         var target = TestHelpers.NpcState(0, 1);
         var memory = Memory(CpuDifficulty.Hard, target);
-        memory.RecordOpponentHit(AbilitySlots.Slot1, false, target, 30, 0);
+        memory.RecordOpponentContact(AbilitySlots.Slot1, CpuContactKind.Hit, target with { HitstunTicks = 30 }, 0);
         for (int i = 0; i < 30; i++) memory.ObserveOpponent(target);
         var input = new HeuristicBotPolicy().Decide(self, def, new Random(7), memory, default(ArenaDefinition),
             activeMove: def.GetCookedSlotAbility(AbilitySlots.Slot1, false), canSwapCancel: gate != "whiff");
@@ -230,7 +230,16 @@ public sealed class NyxCpuTests
         self.Form.Active = 0; target.PZ = 6; target.State = ActionState.Idle;
         var used = new HashSet<byte>();
         for (int seed = 0; seed < 100; seed++)
-            used.Add(policy.Decide(self, def, new Random(seed), Memory(CpuDifficulty.Hard, target)).ActiveSlot);
+        {
+            var memory = Memory(CpuDifficulty.Hard, target); var rng = new Random(seed);
+            for (int tick = 0; tick < 30; tick++)
+            {
+                policy.ObserveOpponent(memory, target, def);
+                var input = policy.Decide(self, def, rng, memory);
+                if (input.ActiveSlot == 0) continue;
+                used.Add(input.ActiveSlot); break;
+            }
+        }
         Assert.Contains(AbilitySlots.A, used);
         Assert.Contains(AbilitySlots.R, used);
     }

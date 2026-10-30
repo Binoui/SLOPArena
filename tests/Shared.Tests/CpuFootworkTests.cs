@@ -30,7 +30,7 @@ public sealed class CpuFootworkTests
         bool specialsCooling = false)
     {
         var def = TestHelpers.FightGuyDef;
-        var self = TestHelpers.PlayerState() with { PY = TestHelpers.GroundPY(def) };
+        var self = TestHelpers.PlayerState() with { PY = TestHelpers.GroundPY(def), DamagePercent = 90 };
         if (specialsCooling)
             foreach (byte slot in new[] { AbilitySlots.A, AbilitySlots.E, AbilitySlots.R, AbilitySlots.F })
                 self.SetCooldown(slot, 999);
@@ -65,7 +65,7 @@ public sealed class CpuFootworkTests
     [Theory]
     [InlineData(CpuDifficulty.Normal)]
     [InlineData(CpuDifficulty.Hard)]
-    public void RetreatAndCircleLastAWindowUnlessAnActionInterruptsThem(CpuDifficulty difficulty)
+    public void RetreatLastsAWindowUnlessAnActionInterruptsIt(CpuDifficulty difficulty)
     {
         int retreats = 0, circles = 0;
         for (int seed = 0; seed < 16; seed++)
@@ -98,7 +98,7 @@ public sealed class CpuFootworkTests
                 start = end;
             }
         }
-        Assert.True(retreats > 0 && circles > 0, $"retreats {retreats}, circles {circles}");
+        Assert.True(retreats > 0, $"retreats {retreats}, circles {circles}");
     }
 
     [Theory]

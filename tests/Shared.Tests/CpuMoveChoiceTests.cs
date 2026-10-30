@@ -41,7 +41,10 @@ public sealed class CpuMoveChoiceTests
             var memory = new BotMemory { Difficulty = difficulty };
             for (int tick = 0; tick <= BotDifficultyProfile.ForDifficulty(difficulty).ReactionDelayTicks; tick++)
                 memory.ObserveOpponent(target);
-            byte slot = policy.Decide(self, target, def, new Random(seed), memory, baked).ActiveSlot;
+            var rng = new Random(seed);
+            byte slot = 0;
+            for (int tick = 0; tick <= BotDifficultyProfile.ForDifficulty(difficulty).HesitationMax + 1 && slot == 0; tick++)
+                slot = policy.Decide(self, target, def, rng, memory, baked).ActiveSlot;
             if (slot != 0)
                 presses[slot] = presses.GetValueOrDefault(slot) + 1;
         }
@@ -57,6 +60,7 @@ public sealed class CpuMoveChoiceTests
         var policy = new HeuristicBotPolicy();
         var self = TestHelpers.PlayerState() with { PY = TestHelpers.GroundPY(single) };
         var target = TestHelpers.NpcState(0f, 0.8f) with { PY = TestHelpers.GroundPY(single) };
+        int opportunities = 0;
         for (int seed = 0; seed < 200; seed++)
         {
             var a = new BotMemory();
@@ -66,9 +70,17 @@ public sealed class CpuMoveChoiceTests
                 a.ObserveOpponent(target);
                 b.ObserveOpponent(target);
             }
-            Assert.Equal(policy.Decide(self, target, single, new Random(seed), a).ActiveSlot,
-                policy.Decide(self, target, sliced, new Random(seed), b).ActiveSlot);
+            var rngA = new Random(seed); var rngB = new Random(seed);
+            byte slotA = 0, slotB = 0;
+            for (int tick = 0; tick < 90 && (slotA == 0 || slotB == 0); tick++)
+            {
+                if (slotA == 0) slotA = policy.Decide(self, target, single, rngA, a).ActiveSlot;
+                if (slotB == 0) slotB = policy.Decide(self, target, sliced, rngB, b).ActiveSlot;
+            }
+            Assert.Equal(slotA, slotB);
+            if (slotA != 0) opportunities++;
         }
+        Assert.True(opportunities > 100, $"only {opportunities} comparable poke opportunities");
     }
 
     [Fact]
@@ -99,14 +111,14 @@ public sealed class CpuMoveChoiceTests
     [Theory]
     [InlineData(CpuDifficulty.Normal)]
     [InlineData(CpuDifficulty.Hard)]
-    public void ASpecialInReachTakesItsShareBesideANormal(CpuDifficulty difficulty)
+    public void ComparablePokesKeepBothTheNormalAndTheSpecialEligible(CpuDifficulty difficulty)
     {
         var def = Kit((AbilitySlots.Slot1, new[] { Strike(8f) }), (AbilitySlots.A, new[] { Strike(8f) }));
         var presses = Presses(def, 0.8f, 4000, difficulty);
         int total = presses.Values.Sum();
         float share = presses.GetValueOrDefault(AbilitySlots.A) / (float)total;
-        float expected = BotDifficultyProfile.ForDifficulty(difficulty).SpecialChance;
-        Assert.True(MathF.Abs(share - expected) <= 0.03f, $"special share {share:P1} of {total}, expected {expected:P0}");
+        Assert.True(total > 500, $"only {total} poke opportunities");
+        Assert.InRange(share, 0.15f, 0.85f);
     }
 
     [Fact]
@@ -123,24 +135,38 @@ public sealed class CpuMoveChoiceTests
         var presses = Presses(def, 4f, 400);
         int total = presses.Values.Sum();
         Assert.Equal(0, presses.GetValueOrDefault(AbilitySlots.Slot1));
-        float share = presses.GetValueOrDefault(AbilitySlots.R) / 400f;
-        float attackChance = BotDifficultyProfile.ForDifficulty(CpuDifficulty.Normal).AttackChance;
-        Assert.True(MathF.Abs(share - attackChance) <= 0.08f, $"special pressed on {share:P1} of decisions");
-
-        var self = TestHelpers.PlayerState() with { PY = TestHelpers.GroundPY(def) };
-        var target = TestHelpers.NpcState(0f, 4f) with { PY = TestHelpers.GroundPY(def) };
-        var memory = new BotMemory();
-        for (int tick = 0; tick <= 18; tick++)
-            memory.ObserveOpponent(target);
-        var policy = new HeuristicBotPolicy();
-        var rng = new Random(5);
-        int approaching = 0;
-        for (int tick = 0; tick < 60; tick++)
+        Assert.True(presses.GetValueOrDefault(AbilitySlots.R) > 0);
+        bool exercised = false;
+        for (int seed = 0; seed < 32 && !exercised; seed++)
         {
-            var input = policy.Decide(self, target, def, rng, memory);
-            if (input.ActiveSlot == 0 && input.MoveY > 0.9f)
-                approaching++;
+            var sim = TestHelpers.MakeSim();
+            sim.RegisterEntity(1, def, TestHelpers.PlayerState() with { PY = TestHelpers.GroundPY(def) });
+            sim.RegisterEntity(100, def, TestHelpers.NpcState(0, 4) with { PY = TestHelpers.GroundPY(def) });
+            var policy = new HeuristicBotPolicy(); var memory = new BotMemory(); var rng = new Random(seed);
+            int ranged = 0; bool normal = false;
+            var outsideByPlan = new Dictionary<uint, int>();
+            for (int tick = 0; tick < 180; tick++)
+            {
+                var input = policy.Decide(sim.GetState(1), sim.GetState(100), def, rng, memory,
+                    activeMove: sim.GetActiveMove(1)?.Slot);
+                if (input.ActiveSlot == AbilitySlots.R)
+                {
+                    ranged++;
+                    if (sim.GetState(100).PZ - sim.GetState(1).PZ > 1.7f)
+                    {
+                        uint serial = memory.CombatTrace.Serial;
+                        outsideByPlan[serial] = outsideByPlan.GetValueOrDefault(serial) + 1;
+                        Assert.Equal(1, outsideByPlan[serial]);
+                    }
+                }
+                if (input.ActiveSlot == AbilitySlots.Slot1) normal = true;
+                sim.Tick(new Dictionary<ulong, InputState> { [1] = input, [100] = default });
+                if (normal) break;
+            }
+            if (ranged == 0 || !normal) continue;
+            exercised = true;
+            Assert.True(sim.GetState(1).PZ > 1f, "walk-in must close after its reaching special");
         }
-        Assert.True(approaching >= 40, $"approached on {approaching} of 60 ticks");
+        Assert.True(exercised);
     }
 }

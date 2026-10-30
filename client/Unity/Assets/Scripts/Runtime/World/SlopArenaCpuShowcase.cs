@@ -171,7 +171,7 @@ namespace SlopArena.EditorTools
                 foreach (var other in _fighters)
                     if (other.Id != fighter.Id)
                         fighter.Policy.ObserveOpponent(fighter.Memory, _bridge.GetState(other.Id),
-                            _bridge.InternalSim.GetDefinition(other.Id));
+                            _bridge.InternalSim.GetDefinition(other.Id), activeMove: _bridge.GetActiveMove(other.Id)?.Slot);
                 fighter.Memory.ChooseOpponent(self);
                 var input = fighter.Policy.Decide(self, fighter.Entry.Definition.ForForm(self.Form.Active),
                     fighter.Random, fighter.Memory, _arena, fighter.Entry.BakedAnimation,
@@ -194,12 +194,11 @@ namespace SlopArena.EditorTools
                 foreach (var hit in _bridge.LastTickHits)
                 {
                     if (hit.OwnerEntityId != fighter.Id) continue;
-                    if (hit.Blocked) { _blocks++; continue; }
-                    fighter.Hits++; _acceptedHits++;
-                    // BotMemory keeps only hits on the opponent it chose.
+                    if (hit.Blocked) _blocks++;
+                    else { fighter.Hits++; _acceptedHits++; }
+                    // BotMemory keeps only contacts on the opponent it chose.
                     var opponent = _bridge.GetState(hit.TargetEntityId);
-                    fighter.Memory.RecordOpponentHit(hit.AttackSlot, !opponent.IsGrounded,
-                        opponent, opponent.HitstunTicks, hit.HitstopTicks);
+                    fighter.Memory.RecordOpponentContact(hit.AttackSlot, hit.Blocked ? CpuContactKind.Block : CpuContactKind.Hit, opponent, hit.HitstopTicks);
                 }
                 fighter.Renderer.ApplyServerState(state, _bridge.GetActiveMove(fighter.Id)?.Slot);
             }
