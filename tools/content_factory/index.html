@@ -20,6 +20,7 @@ h4{font-size:14px;margin:12px 0 6px}
 #msg{font-weight:700;min-height:22px;margin-bottom:6px}
 .tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px}
 .tab{border:3px solid #1b1a18;padding:6px 10px 4px;font-size:13px;white-space:nowrap;cursor:pointer;background:#fff}
+.tab .online{background:#2e9a47;color:#1b1a18;padding:0 6px;margin-left:6px;font-style:normal}
 .tab.on{background:#1b1a18;color:#ffcc22}.tab b{background:#f05b35;color:#fff;padding:0 6px;margin-left:6px}
 .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:16px}
 .card{background:#fff;border:3px solid #1b1a18;box-shadow:5px 5px 0 #161513;cursor:pointer;display:flex;flex-direction:column;position:relative}
@@ -79,7 +80,7 @@ table.list input{width:80px;border:2px solid #1b1a18;padding:2px 4px}
 <div class="tabs" id="areas">
   <button class="tab" id="clips-area" onclick="pickArea('clips')">Clips</button>
   <button class="tab" id="checks-area" onclick="pickArea('checks')">Checks</button>
-  <a class="tab" href="/console/" target="_blank" rel="noopener" style="color:inherit;text-decoration:none">Console ↗</a>
+  <a class="tab" id="console-area" href="/console/" style="color:inherit;text-decoration:none">Console<span id="console-online" class="online" hidden></span></a>
 </div>
 <div class="bar">
   <div class="run" id="running">Loading...</div>
@@ -116,7 +117,19 @@ const pickTake = d => d.takes.find(t => t.n === shown[d.id]) || d.takes.find(t =
 const busy = id => B.runs.find(r => r.idea === id && ACTIVE.includes(r.state));
 const runName = r => `${r.kind}${r.idea ? " " + (byId(r.idea)?.title || r.idea) : ""}`;
 
+async function loadConsoleBadge() {
+  const badge = document.getElementById('console-online');
+  try {
+    const response = await fetch('/console/api/observation', {signal: AbortSignal.timeout(6000)});
+    if (!response.ok) throw new Error('Console observation unavailable');
+    const snapshot = await response.json();
+    const count = snapshot.players.filter(player => player.masterConnected).length;
+    badge.textContent = count ? `${count} on` : '';
+    badge.hidden = !count;
+  } catch { badge.hidden = true; }
+}
 async function load() {
+  void loadConsoleBadge();
   B = await (await fetch("/api/board")).json();
   const active = B.runs.filter(r => ACTIVE.includes(r.state));
   document.getElementById("running").innerHTML = `<span class="dot ${active.length ? "busy" : ""}"></span><b>Running:</b> ` +
@@ -345,7 +358,9 @@ function openReport(n) {
 }
 load().then(() => {
   const hash = decodeURIComponent(location.hash.slice(1)), check = hash.match(/^check-(\d+)$/);
-  if (check && checkById(+check[1])) {
+  if (hash === 'clips' || hash === 'checks') {
+    pickArea(hash);
+  } else if (check && checkById(+check[1])) {
     area = localStorage.area = "checks"; checkTab = localStorage.checkTab = checkById(+check[1]).status; showCheck(+check[1]);
   } else openIdea(hash);
 }).catch(e => say("Could not load: " + e.message));
