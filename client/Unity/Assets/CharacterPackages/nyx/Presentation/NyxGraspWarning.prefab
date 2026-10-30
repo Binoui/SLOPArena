@@ -62,11 +62,12 @@ MonoBehaviour:
   OriginBoneId: 
   Layers:
   - Content: {fileID: 1704857665457644973}
-    StartTick: 12
-    EndTick: 24
+    StartTick: 15
+    EndTick: 30
     From: {x: 0, y: 0, z: 0}
     To: {x: 0, y: 0, z: 0}
     Scale: {x: 1, y: 1, z: 1}
+    ScaleTo: {x: 1, y: 1, z: 1}
     TurnDegreesPerTick: 4
 --- !u!1 &5929248689128066624
 GameObject:

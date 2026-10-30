@@ -19,7 +19,8 @@ now have Whirlpool Spin after ADR-0042. Ground 4 has Rising Shell and air 4 its 
 have Shell Flip. Rescue Ring replaced Hose Down on A the same day
 ([ADR-0048](../adr/0048-bashie-rescue-ring-tether.md)), also a Training prototype. On 2026-10-29 the Cannonball (R) and
 Wave Pool (F) replaced Shell Shift and NO RUNNING! ([ADR-0050](../adr/0050-bashie-cannonball-and-wave-pool.md)), also
-a Training prototype. Her movement still comes from Manki.
+a Training prototype. The owner's Training verdict the same day was GOOD for the Rescue Ring, the Cannonball, Wave
+Pool and her walk. Her movement still comes from Manki.
 
 **Package (owner, 2026-10-22):** "im totally down to steal all of manki's slots especially normals just to have her
 ingame. its fine if specials looks weird until we do them properly".
@@ -281,7 +282,8 @@ values, open to play:
   spray clip retracts. Her life ring prop flies as the projectile and sits on the caught fighter's hips. A rope runs
   from her right hand ([`TetherRopePresenter`](../../client/Unity/Assets/Scripts/Runtime/Combat/TetherRopePresenter.cs)).
   The caught fighter holds a small-hit pose. Capture: `tmp/bashie-ring/ingame/rescue-ring-training.mp4`.
-- **Open:** the owner's play verdict on these values, real clips, effects and sounds. The CPU sees only the throw.
+- **Verdict:** GOOD in Training on 2026-10-29, catch and punish included.
+- **Open:** real clips, effects and sounds. The CPU sees only the throw.
 
 ### Hose Down (A, retired 2026-10-28)
 
@@ -320,6 +322,10 @@ now does two things, a splash and a ride ("this sounds very cool. lets go for it
   cue waits out the whistle); the shell pose is `anim.bashie.gr-slide`; the plop is the splash; the surf wave, grown
   2.2 times, shows while she rides; carried fighters hold the small-hit pose like Reeled ones; `WhistlePuff` paces the
   accepted puff to the blow cue. No new art, VFX or sounds yet.
+- **Verdict:** GOOD in Training on 2026-10-29: R, jump then R, Hydro Jet then R, the wave into an aerial, and Q then
+  R as the ring delivers.
+- **Open:** real clips, effects and sounds, and the untested mode cases (the Slopball ball, Mayhem walls, course
+  targets, a reset mid-ride).
 
 ### Shell Shift and the skate (R, retired 2026-10-29)
 

@@ -1,32 +1,32 @@
 {
   "prefabReferences": 144,
   "uniquePrefabs": 135,
-  "systems": 391,
+  "systems": 396,
   "modules": {
     "ClampVelocityModule": 67,
     "CollisionModule": 7,
     "ColorModule": 322,
-    "EmissionModule": 390,
-    "InitialModule": 391,
+    "EmissionModule": 395,
+    "InitialModule": 396,
     "NoiseModule": 3,
     "RotationModule": 64,
-    "ShapeModule": 175,
-    "SizeModule": 276,
+    "ShapeModule": 180,
+    "SizeModule": 281,
     "TrailModule": 6,
     "UVModule": 96,
     "VelocityModule": 46
   },
-  "uniqueSystems": 369,
+  "uniqueSystems": 372,
   "uniqueModules": {
     "ClampVelocityModule": 67,
     "CollisionModule": 7,
     "ColorModule": 308,
-    "EmissionModule": 368,
-    "InitialModule": 369,
+    "EmissionModule": 371,
+    "InitialModule": 372,
     "NoiseModule": 2,
     "RotationModule": 60,
-    "ShapeModule": 169,
-    "SizeModule": 263,
+    "ShapeModule": 172,
+    "SizeModule": 266,
     "TrailModule": 6,
     "UVModule": 94,
     "VelocityModule": 44
@@ -1334,7 +1334,7 @@
     }
   ],
   "textureBytes": 2454253,
-  "dataBytes": 9497584,
+  "dataBytes": 11130791,
   "resolvedImportedPrefabs": [
     "client/Unity/Assets/CharacterPackages/bashie/Presentation/BashieRing.prefab",
     "client/Unity/Assets/CharacterPackages/bonk/Presentation/BonkPotLidProjectile.prefab",
@@ -1932,6 +1932,12 @@
       "ShapeModule exported fields not played: alignToDirection, boxThickness, donutRadius, length, m_Mesh, m_MeshMaterialIndex, m_MeshNormalOffset, m_MeshRenderer, m_MeshSpawn, m_SkinnedMeshRenderer, m_Sprite, m_SpriteRenderer, m_Texture, m_TextureAlphaAffectsParticles, m_TextureBilinearFiltering, m_TextureClipChannel, m_TextureClipThreshold, m_TextureColorAffectsParticles, m_TextureUVChannel, m_UseMeshColors, m_UseMeshMaterialIndex, placementMode, randomDirectionAmount, randomPositionAmount, sphericalDirectionAmount",
       "UVModule exported fields not played: animationType, flipU, flipV, rowIndex, rowMode, speedRange, sprites, uvChannelMask"
     ],
+    "client/Unity/Assets/CharacterPackages/nyx/Presentation/NyxBatScatter.prefab": [
+      "InitialModule fields not played: customEmitterVelocity, gravitySource",
+      "ParticleSystem serialization/control fields not played: autoRandomSeed, cullingMode, emitterVelocityMode, m_CorrespondingSourceObject, m_GameObject, m_ObjectHideFlags, m_PrefabAsset, m_PrefabInstance, moveWithCustomTransform, randomSeed, ringBufferLoopRange, ringBufferMode, serializedVersion, stopAction, useUnscaledTime",
+      "ParticleSystemRenderer fields not played: m_AllowRoll, m_ApplyActiveColorSpace, m_AutoUVMaxAngle, m_AutoUVMaxDistance, m_CastShadows, m_CorrespondingSourceObject, m_DynamicOccludee, m_EnableGPUInstancing, m_Enabled, m_Flip, m_FreeformStretching, m_GameObject, m_IgnoreNormalsForChartDetection, m_ImportantGI, m_LightProbeUsage, m_LightProbeVolumeOverride, m_LightmapParameters, m_MaskInteraction, m_MaxParticleSize, m_Mesh1, m_Mesh2, m_Mesh3, m_MeshDistribution, m_MeshWeighting, m_MeshWeighting1, m_MeshWeighting2, m_MeshWeighting3, m_MinParticleSize, m_MinimumChartSize, m_MotionVectors, m_NormalDirection, m_ObjectHideFlags, m_PrefabAsset, m_PrefabInstance, m_PreserveUVs, m_ProbeAnchor, m_RayTraceProcedural, m_RayTracingAccelStructBuildFlags, m_RayTracingAccelStructBuildFlagsOverride, m_RayTracingMode, m_ReceiveGI, m_ReceiveShadows, m_ReflectionProbeUsage, m_RendererPriority, m_RenderingLayerMask, m_RotateWithStretchDirection, m_ScaleInLightmap, m_SelectedEditorRenderState, m_ShadowBias, m_SmallMeshCulling, m_SortMode, m_SortingLayer, m_SortingLayerID, m_StaticBatchInfo, m_StaticBatchRoot, m_StaticShadowCaster, m_StitchLightmapSeams, m_TrailVertexStreams, m_UseCustomTrailVertexStreams, m_UseCustomVertexStreams, m_VertexStreams, serializedVersion",
+      "ShapeModule exported fields not played: alignToDirection, boxThickness, donutRadius, length, m_Mesh, m_MeshMaterialIndex, m_MeshNormalOffset, m_MeshRenderer, m_MeshSpawn, m_SkinnedMeshRenderer, m_Sprite, m_SpriteRenderer, m_Texture, m_TextureAlphaAffectsParticles, m_TextureBilinearFiltering, m_TextureClipChannel, m_TextureClipThreshold, m_TextureColorAffectsParticles, m_TextureUVChannel, m_UseMeshColors, m_UseMeshMaterialIndex, placementMode, randomDirectionAmount, randomPositionAmount, sphericalDirectionAmount"
+    ],
     "client/Unity/Assets/CharacterPackages/nyx/Presentation/NyxCrowPop.prefab": [
       "InitialModule fields not played: customEmitterVelocity, gravitySource",
       "ParticleSystem serialization/control fields not played: autoRandomSeed, cullingMode, emitterVelocityMode, m_CorrespondingSourceObject, m_GameObject, m_ObjectHideFlags, m_PrefabAsset, m_PrefabInstance, moveWithCustomTransform, randomSeed, ringBufferLoopRange, ringBufferMode, serializedVersion, stopAction, useUnscaledTime",
@@ -1943,6 +1949,12 @@
     ],
     "client/Unity/Assets/CharacterPackages/nyx/Presentation/NyxGraspDrag.prefab": [
       "PlacedTetherVisual partner placement played; TetherRopePresenter rope/retract lifecycle not reproduced"
+    ],
+    "client/Unity/Assets/CharacterPackages/nyx/Presentation/NyxHexCrow.prefab": [
+      "InitialModule fields not played: customEmitterVelocity, gravitySource",
+      "ParticleSystem serialization/control fields not played: autoRandomSeed, cullingMode, emitterVelocityMode, m_CorrespondingSourceObject, m_GameObject, m_ObjectHideFlags, m_PrefabAsset, m_PrefabInstance, moveWithCustomTransform, randomSeed, ringBufferLoopRange, ringBufferMode, serializedVersion, stopAction, useUnscaledTime",
+      "ParticleSystemRenderer fields not played: m_AllowRoll, m_ApplyActiveColorSpace, m_AutoUVMaxAngle, m_AutoUVMaxDistance, m_CastShadows, m_CorrespondingSourceObject, m_DynamicOccludee, m_EnableGPUInstancing, m_Enabled, m_Flip, m_FreeformStretching, m_GameObject, m_IgnoreNormalsForChartDetection, m_ImportantGI, m_LightProbeUsage, m_LightProbeVolumeOverride, m_LightmapParameters, m_MaskInteraction, m_MaxParticleSize, m_Mesh1, m_Mesh2, m_Mesh3, m_MeshDistribution, m_MeshWeighting, m_MeshWeighting1, m_MeshWeighting2, m_MeshWeighting3, m_MinParticleSize, m_MinimumChartSize, m_MotionVectors, m_NormalDirection, m_ObjectHideFlags, m_PrefabAsset, m_PrefabInstance, m_PreserveUVs, m_ProbeAnchor, m_RayTraceProcedural, m_RayTracingAccelStructBuildFlags, m_RayTracingAccelStructBuildFlagsOverride, m_RayTracingMode, m_ReceiveGI, m_ReceiveShadows, m_ReflectionProbeUsage, m_RendererPriority, m_RenderingLayerMask, m_RotateWithStretchDirection, m_ScaleInLightmap, m_SelectedEditorRenderState, m_ShadowBias, m_SmallMeshCulling, m_SortMode, m_SortingLayer, m_SortingLayerID, m_StaticBatchInfo, m_StaticBatchRoot, m_StaticShadowCaster, m_StitchLightmapSeams, m_TrailVertexStreams, m_UseCustomTrailVertexStreams, m_UseCustomVertexStreams, m_VertexStreams, serializedVersion",
+      "ShapeModule exported fields not played: alignToDirection, boxThickness, donutRadius, length, m_Mesh, m_MeshMaterialIndex, m_MeshNormalOffset, m_MeshRenderer, m_MeshSpawn, m_SkinnedMeshRenderer, m_Sprite, m_SpriteRenderer, m_Texture, m_TextureAlphaAffectsParticles, m_TextureBilinearFiltering, m_TextureClipChannel, m_TextureClipThreshold, m_TextureColorAffectsParticles, m_TextureUVChannel, m_UseMeshColors, m_UseMeshMaterialIndex, placementMode, randomDirectionAmount, randomPositionAmount, sphericalDirectionAmount"
     ],
     "client/Unity/Assets/CharacterPackages/nyx/Presentation/NyxPinkHit.prefab": [
       "InitialModule fields not played: customEmitterVelocity, gravitySource",

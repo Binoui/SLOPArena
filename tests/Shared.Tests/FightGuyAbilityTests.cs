@@ -246,7 +246,7 @@ public class FightGuyAbilityTests
             "ordinary body contact must push the caster again after the move ends");
     }
 
-    // Title Match (F, ADR-0053) is covered through his package in ClinchTests.
+    // Title Match (F, ADR-0053) is covered through his package in TitleMatchTests.
 
     // ── Bone-attached hitbox ──
 

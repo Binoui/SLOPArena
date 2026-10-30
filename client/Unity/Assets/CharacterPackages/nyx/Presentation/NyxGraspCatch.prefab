@@ -1,6 +1,6 @@
 %YAML 1.1
 %TAG !u! tag:unity3d.com,2011:
---- !u!1 &3325874901069572749
+--- !u!1 &1044952244585764696
 GameObject:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -8,46 +8,46 @@ GameObject:
   m_PrefabAsset: {fileID: 0}
   serializedVersion: 6
   m_Component:
-  - component: {fileID: 60512294448551419}
-  - component: {fileID: 7393883296768946227}
-  - component: {fileID: 2388705950239978293}
+  - component: {fileID: 2179670285935426366}
+  - component: {fileID: 3278103755525822943}
+  - component: {fileID: 4599723285246532986}
   m_Layer: 0
-  m_Name: Rising target hand comic face
+  m_Name: Shadow pool
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!4 &60512294448551419
+  m_IsActive: 0
+--- !u!4 &2179670285935426366
 Transform:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 3325874901069572749}
+  m_GameObject: {fileID: 1044952244585764696}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: -0.01275, y: -1.1232, z: -0.06461121}
-  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_LocalPosition: {x: 0, y: 0.02, z: 0}
+  m_LocalScale: {x: 0.55, y: 0.55, z: 0.55}
   m_ConstrainProportionsScale: 0
   m_Children: []
-  m_Father: {fileID: 7852928100371124553}
+  m_Father: {fileID: 7539577979282193435}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!33 &7393883296768946227
+--- !u!33 &3278103755525822943
 MeshFilter:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 3325874901069572749}
-  m_Mesh: {fileID: 4300000, guid: 025abecab4e9bfbd7ac7b3bdc238235b, type: 2}
---- !u!23 &2388705950239978293
+  m_GameObject: {fileID: 1044952244585764696}
+  m_Mesh: {fileID: 4300000, guid: 66ccee7538ddbae8998e0ad5133d91be, type: 2}
+--- !u!23 &4599723285246532986
 MeshRenderer:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 3325874901069572749}
+  m_GameObject: {fileID: 1044952244585764696}
   m_Enabled: 1
   m_CastShadows: 0
   m_ReceiveShadows: 0
@@ -118,7 +118,7 @@ Transform:
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
-  - {fileID: 4782725231882634015}
+  - {fileID: 2179670285935426366}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!114 &6674175703638693770
@@ -148,12 +148,13 @@ MonoBehaviour:
   FollowOwner: 0
   OriginBoneId: 
   Layers:
-  - Content: {fileID: 4782725231882634015}
-    StartTick: 24
-    EndTick: 29
-    From: {x: 0, y: 0.1, z: 0}
-    To: {x: 0, y: 0.1, z: 0}
-    Scale: {x: 0.48, y: 0.48, z: 0.48}
+  - Content: {fileID: 2179670285935426366}
+    StartTick: 30
+    EndTick: 36
+    From: {x: 0, y: 0.02, z: 0}
+    To: {x: 0, y: 0.02, z: 0}
+    Scale: {x: 0.55, y: 0.55, z: 0.55}
+    ScaleTo: {x: 1.15, y: 1.15, z: 1.15}
     TurnDegreesPerTick: 0
 --- !u!114 &2543920548238950566
 MonoBehaviour:
@@ -169,81 +170,3 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   DragPrefab: {fileID: 2542167021418792844, guid: 419a866019a82cd49a437be2435cb781, type: 3}
   Drag: {fileID: 0}
---- !u!1 &8236252717955568003
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 7852928100371124553}
-  - component: {fileID: 3997890735088961876}
-  m_Layer: 0
-  m_Name: Rising target hand view pivot
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!4 &7852928100371124553
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 8236252717955568003}
-  serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0.01275, y: 1.1232, z: 0.06461121}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children:
-  - {fileID: 60512294448551419}
-  m_Father: {fileID: 4782725231882634015}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &3997890735088961876
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 8236252717955568003}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 3f0f7a695ceccc132b075ecaea4c8bb6, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  ViewRightOffset: 0.6
---- !u!1 &9042042645346368315
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 4782725231882634015}
-  m_Layer: 0
-  m_Name: Rising target hand
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 0
---- !u!4 &4782725231882634015
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 9042042645346368315}
-  serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0.1, z: 0}
-  m_LocalScale: {x: 0.48, y: 0.48, z: 0.48}
-  m_ConstrainProportionsScale: 0
-  m_Children:
-  - {fileID: 7852928100371124553}
-  m_Father: {fileID: 7539577979282193435}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}

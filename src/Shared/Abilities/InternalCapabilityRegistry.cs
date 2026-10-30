@@ -65,9 +65,6 @@ public static class InternalCapabilityRegistry
             case CharacterPackageCompiler.TetherCapabilityId when parameters is CookedTetherCapabilityParameters tether:
                 capability = new TetherAbility(tether);
                 return true;
-            case CharacterPackageCompiler.ClinchCapabilityId when parameters is CookedClinchCapabilityParameters clinch:
-                capability = new ClinchAbility(clinch);
-                return true;
             case CharacterPackageCompiler.CommandGrabCapabilityId when parameters is CookedCommandGrabCapabilityParameters grab:
                 capability = new CommandGrabAbility(grab);
                 return true;

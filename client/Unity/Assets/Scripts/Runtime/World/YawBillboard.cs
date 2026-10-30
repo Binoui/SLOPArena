@@ -8,6 +8,8 @@ namespace SlopArena.Client.World
     public sealed class YawBillboard : MonoBehaviour
     {
         public float ViewRightOffset;
+        // Pushes the silhouette away from the camera, so a burst drawn behind its fighter stays behind.
+        public float ViewBackOffset;
         private Vector3 _anchor;
 
         private void Awake() => _anchor = transform.localPosition;
@@ -23,7 +25,7 @@ namespace SlopArena.Client.World
             if (facing.sqrMagnitude < .0001f) return;
             transform.rotation = Quaternion.LookRotation(facing, up);
             Vector3 origin = transform.parent != null ? transform.parent.TransformPoint(_anchor) : _anchor;
-            transform.position = origin + camera.transform.right * ViewRightOffset;
+            transform.position = origin + camera.transform.right * ViewRightOffset + camera.transform.forward * ViewBackOffset;
         }
     }
 }

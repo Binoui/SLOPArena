@@ -2,9 +2,10 @@
 
 **Status:** Accepted for the Training prototype, 2026-10-29. The maintainer picked Title Match for FightGuy's F
 ("i like title match") and approved option (c) ("go for C"). Built 2026-10-29 (see [Build notes](#build-notes)). The
-values under [Prototype defaults](#prototype-defaults) stay open to the maintainer's play verdict.
+values under [Prototype defaults](#prototype-defaults) were judged GOOD by the maintainer in Training on 2026-10-29 and stay open to tuning.
 **Extends:** [ADR-0048](0048-bashie-rescue-ring-tether.md) (paired interactions beyond the grab) and
 [ADR-0039](0039-full-world-rollback.md) (World Snapshots)
+**Merged:** the clinch is now `slop.ability.command-grab.v1` with a hold stage ([ADR-0057](0057-one-command-grab.md)).
 
 ## Context
 

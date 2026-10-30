@@ -27,8 +27,8 @@ Transform:
   m_GameObject: {fileID: 425830971657521736}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: -0.42, y: 1.2, z: -0.4}
-  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_LocalPosition: {x: -0.55, y: 1.2, z: -0.5}
+  m_LocalScale: {x: 1.3, y: 1.3, z: 1.3}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 5395857725700622417}
@@ -152,39 +152,44 @@ MonoBehaviour:
   OriginBoneId: 
   Layers:
   - Content: {fileID: 1779521505221740944}
-    StartTick: 12
-    EndTick: 50
+    StartTick: 15
+    EndTick: 63
     From: {x: 0, y: 0, z: 0}
     To: {x: 0, y: 0, z: 0}
     Scale: {x: 1, y: 1, z: 1}
+    ScaleTo: {x: 1, y: 1, z: 1}
     TurnDegreesPerTick: 35
   - Content: {fileID: 617656849394687015}
-    StartTick: 12
-    EndTick: 50
-    From: {x: -0.42, y: 1.2, z: -0.4}
-    To: {x: -0.42, y: 1.2, z: -0.4}
-    Scale: {x: 1, y: 1, z: 1}
+    StartTick: 15
+    EndTick: 63
+    From: {x: -0.55, y: 1.2, z: -0.5}
+    To: {x: -0.55, y: 1.2, z: -0.5}
+    Scale: {x: 1.3, y: 1.3, z: 1.3}
+    ScaleTo: {x: 1.3, y: 1.3, z: 1.3}
     TurnDegreesPerTick: -12
   - Content: {fileID: 5676337184214532821}
-    StartTick: 12
-    EndTick: 50
-    From: {x: 0.42, y: 1.2, z: -0.4}
-    To: {x: 0.42, y: 1.2, z: -0.4}
-    Scale: {x: 1, y: 1, z: 1}
+    StartTick: 15
+    EndTick: 63
+    From: {x: 0.55, y: 1.2, z: -0.5}
+    To: {x: 0.55, y: 1.2, z: -0.5}
+    Scale: {x: 1.3, y: 1.3, z: 1.3}
+    ScaleTo: {x: 1.3, y: 1.3, z: 1.3}
     TurnDegreesPerTick: -12
   - Content: {fileID: 2077224939791020512}
-    StartTick: 12
-    EndTick: 50
-    From: {x: -0.42, y: 1.2, z: 0.4}
-    To: {x: -0.42, y: 1.2, z: 0.4}
-    Scale: {x: 1, y: 1, z: 1}
+    StartTick: 15
+    EndTick: 63
+    From: {x: -0.55, y: 1.2, z: 0.5}
+    To: {x: -0.55, y: 1.2, z: 0.5}
+    Scale: {x: 1.3, y: 1.3, z: 1.3}
+    ScaleTo: {x: 1.3, y: 1.3, z: 1.3}
     TurnDegreesPerTick: -12
   - Content: {fileID: 5796404577918642272}
-    StartTick: 12
-    EndTick: 50
-    From: {x: 0.42, y: 1.2, z: 0.4}
-    To: {x: 0.42, y: 1.2, z: 0.4}
-    Scale: {x: 1, y: 1, z: 1}
+    StartTick: 15
+    EndTick: 63
+    From: {x: 0.55, y: 1.2, z: 0.5}
+    To: {x: 0.55, y: 1.2, z: 0.5}
+    Scale: {x: 1.3, y: 1.3, z: 1.3}
+    ScaleTo: {x: 1.3, y: 1.3, z: 1.3}
     TurnDegreesPerTick: -12
 --- !u!1 &1967460553794836886
 GameObject:
@@ -213,8 +218,8 @@ Transform:
   m_GameObject: {fileID: 1967460553794836886}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: -0.42, y: 1.2, z: 0.4}
-  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_LocalPosition: {x: -0.55, y: 1.2, z: 0.5}
+  m_LocalScale: {x: 1.3, y: 1.3, z: 1.3}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 5395857725700622417}
@@ -299,8 +304,8 @@ Transform:
   m_GameObject: {fileID: 2044799081018370219}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0.42, y: 1.2, z: 0.4}
-  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_LocalPosition: {x: 0.55, y: 1.2, z: 0.5}
+  m_LocalScale: {x: 1.3, y: 1.3, z: 1.3}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 5395857725700622417}
@@ -471,8 +476,8 @@ Transform:
   m_GameObject: {fileID: 8970087567278898047}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0.42, y: 1.2, z: -0.4}
-  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_LocalPosition: {x: 0.55, y: 1.2, z: -0.5}
+  m_LocalScale: {x: 1.3, y: 1.3, z: 1.3}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 5395857725700622417}

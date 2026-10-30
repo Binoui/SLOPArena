@@ -7,6 +7,7 @@ answered this record's six questions the same day and asked for the build to go 
 [ADR-0042](0042-controller-layout-three-normals-homing-dash.md) (slot grid),
 [ADR-0045](0045-bashie-shell-state.md) (a fighter state that moves read, `slop.ability.thrust.v1`) and
 [ADR-0048](0048-bashie-rescue-ring-tether.md) (tether, `Reeled`)
+**Merged:** Selfie Grab's command grab also runs Title Match; its victim is `CommandGrabbed` ([ADR-0057](0057-one-command-grab.md)).
 
 ## Context
 

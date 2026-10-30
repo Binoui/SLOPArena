@@ -4,10 +4,13 @@ The package owns its approved clips, source meshes, palette, shader and generate
 The 2026-10-29 local evidence and the exact gateway batches are in
 `tmp/nyx-model/integration/`.
 
-Run `python3 tools/nyx/build_paper_assets.py` to generate the 25 source OBJ meshes and
-point-sampled eight-color palette. Silhouettes are closed beveled solids, ribbons
-are swept 16-facet bands, impacts intersect three closed blade fans, and bird wings
-have a dihedral fold. The generator rejects open surfaces or any axis below 2 cm;
+Run `python3 tools/nyx/build_paper_assets.py` to generate the 28 source OBJ meshes and
+point-sampled eight-color palette. Silhouettes are closed beveled solids. Slashes, arcs,
+rings, rays and the lash are flat comic strokes (`Mesh.stroke`): the bands run across the
+width, so each has ink edges, a dark band, the accent and a pale core line, and crescent
+widths give pointed tips. Flashes are uneven starbursts (`burst`), floor marks lie flat with
+upright torn teeth, Grasp's tendrils are swept 16-facet bands, and bird wings have a
+dihedral fold. The generator rejects open surfaces or any axis below 2 cm;
 `NyxPaperMeshes.json` records the generated bounds in metres. This does not operate
 Unity or edit the rig.
 
@@ -22,11 +25,17 @@ Use the canonical gateway with your own lease for these native commands:
 - `sloparena.animation.nyx.integrate` remaps Bat Scatter and both swaps to existing
   gameplay clocks, assigns one pose track per approved clip and retires unused bindings.
 - `sloparena.presentation.nyx.build` uses `PresentationBuilderKit` to assemble separate
-  prefabs. It preserves the three phone/pole bindings and refreshes mesh GPU streams
-  after saving, so an Editor rebuild displays the persisted band data. Vertex
+  prefabs. It preserves the three phone/pole bindings. Layer ticks come from the cues in
+  `character.json` (each `emitPresentation` tick and lifetime, Grasp's warning and catch,
+  Bat Scatter's thrust and Ring Light Rise's startup), so rebuild after a retime. It
+  force-reimports the meshes it saved, so an Editor rebuild never draws stale GPU buffers.
+- `sloparena.presentation.nyx.verify-timing` fails when a paper layer falls outside its cue's
+  lifetime in `character.json`. Nothing runs it automatically: run it after `retime.py --write`
+  and a rebuild. Vertex
   colours use packed `Color32` because particle mesh streams misread Float32 white.
-  The package shader writes depth, and contact materials keep depth testing for
-  correct occlusion within the solid bursts.
+  The package shader writes depth, and contact materials keep depth testing, so the parts of
+  a burst inside a fighter stay hidden. The crow pop's burst is pivoted toward the camera
+  instead, so the perched crow and the victim's head cannot hide it.
 - `sloparena.character.inspect --target nyx`, `sloparena.character.cook --target nyx`
   and `sloparena.character.verify --target nyx` validate the saved integration.
 

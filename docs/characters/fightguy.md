@@ -121,7 +121,7 @@ FightGuy specials are cooked timeline and capability bindings:
 - A: Ki Shot — public `slop.ability.charged-projectile.v1`, three charge tiers
 - E: Rising Dragon
 - R: Cyclone Kick
-- F: Title Match (public `slop.ability.clinch.v1`, [ADR-0053](../adr/0053-fightguy-title-match-clinch.md))
+- F: Title Match (public `slop.ability.command-grab.v1` with a hold stage, [ADR-0053](../adr/0053-fightguy-title-match-clinch.md), [ADR-0057](../adr/0057-one-command-grab.md))
 
 Ground and air A (physical Q) hold a stationary charge until release. Tier 2 starts
 at 20 held ticks (0.33 s), tier 3 at 45 ticks (0.75 s); charge caps at 60 ticks
@@ -181,16 +181,16 @@ spawn 0, with or without sideways DI, which only turns the horizontal part of a 
 Double Kick needs 90–95% there. It lands on a Beeline arrival (1.0 m gap) and
 out of shield after blocking FightGuy's g1, g3 or g4 at 0%, before the attacker can act.
 A late catch during the rise, including most anti-air catches, gets the sourspot.
-Cooked 2026-10-29; Training verdict pending.
+Cooked 2026-10-29; Training verdict GOOD (2026-10-29, with the sweetspot feedback below).
 
 **Sweetspot feedback (2026-10-29, ADR-0053).** The three sweet hitboxes name their own hit presentation,
 `presentation.fightguy.rising-dragon.sweet-hit`: the gold ego burst with the 肉 seal (the Fist of Fury finisher
 prefab, which its 14-damage contact scales to). The sourspot keeps the blue Dragon hit. The apex "#1" finger
 carries `condition: "sweetspotHit"`, so it plays only after a sweet hit: a sourspot or a whiff shows no finger.
-Checked in Training (`tmp/fightguy-specials/ingame/s4-dragon-sweet.mp4`, `s5-dragon-whiff.mp4`); verdict pending.
+Checked in Training (`tmp/fightguy-specials/ingame/s4-dragon-sweet.mp4`, `s5-dragon-whiff.mp4`); maintainer verdict GOOD (2026-10-29).
 
 **Title Match (F, 2026-10-29, [ADR-0053](../adr/0053-fightguy-title-match-clinch.md)).** Fist of Fury became a
-command grab. F lunges 2 m at 20 m/s along his current target's bearing (his facing without one), level and with
+command grab, since [ADR-0057](../adr/0057-one-command-grab.md) the same capability as Nyx's Selfie Grab. F lunges 2 m at 20 m/s along his current target's bearing (his facing without one), level and with
 gravity off, with a catch sphere 0.6 m ahead. The first fighter it meets is clinched: a shield does not stop it, an
 air dodge does. The held fighter floats 0.8 m in front of him, on the ground or in the air, while the old flurry
 (`anim.fist-of-fury`, `fightguy_spell_f_2`, its ghost fists and hits unchanged) deals damage and hitstop only. One
@@ -200,7 +200,7 @@ at 75%, against 95% for Double Kick and 110% for the old F. A miss (range, a wal
 for 24 ticks: he acts again 30 ticks after the press. On a full hit he acts again at tick 178. A third party's hit on
 either fighter frees both, and the move ends at once if the victim is taken. On the courses a lunge that meets a bonus
 target punches it as before. Ground and air F share the timeline. Cooldown stays 720 ticks. Training captures:
-`tmp/fightguy-specials/ingame/`; verdict pending.
+`tmp/fightguy-specials/ingame/`; maintainer verdict GOOD (2026-10-29).
 
 ## Combat presentation — 2026-10-17
 

@@ -2,7 +2,7 @@
 
 **Status:** Accepted for the Training prototype — 2026-10-28. The maintainer chose the Rescue Ring over Hose Down
 ("Ring") with the behaviour below. The values under [Prototype defaults](#prototype-defaults) are the
-coordinator's and stay open to the maintainer's play verdict.
+coordinator's; the maintainer's Training verdict on them, on 2026-10-29, was GOOD.
 **Extends:** [ADR-0045](0045-bashie-shell-state.md) (Bashie's shell) and
 [ADR-0039](0039-full-world-rollback.md) (World Snapshots)
 
