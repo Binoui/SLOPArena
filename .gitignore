@@ -536,6 +536,16 @@ videos/*
 !client/Unity/Assets/Stages/fightguy_pier/Presentation/Course/*.png
 !client/Unity/Assets/Stages/fightguy_pier/Presentation/Course/*.mat
 !client/Unity/Assets/Stages/fightguy_pier/Presentation/Course/Source/*.png
+# Two-Faced Manor (Nyx's course): tools/blender/nyx_manor art plus its generated course feel.
+!client/Unity/Assets/Stages/nyx_manor/Presentation/Manor/*.fbx
+!client/Unity/Assets/Stages/nyx_manor/Presentation/Manor/*.png
+!client/Unity/Assets/Stages/nyx_manor/Presentation/Manor/*.mat
+!client/Unity/Assets/Stages/nyx_manor/Presentation/Graybox/*.fbx
+!client/Unity/Assets/Stages/nyx_manor/Presentation/Graybox/*.png
+!client/Unity/Assets/Stages/nyx_manor/Presentation/Graybox/*.mat
+!client/Unity/Assets/Stages/nyx_manor/Presentation/Course/*.fbx
+!client/Unity/Assets/Stages/nyx_manor/Presentation/Course/*.png
+!client/Unity/Assets/Stages/nyx_manor/Presentation/Course/*.mat
 # Slopball's court greybox, its Night Court room and its mascot ball
 # (SlopballPresentationBuilder, which reads the word masks in Ball/Source).
 !client/Unity/Assets/Stages/slopball/*.mat

@@ -71,11 +71,7 @@ namespace SlopArena.Shared
         //   with damage (runtime API 1.20.0). ActionState 31 is CommandGrabbed for every command grab victim, the hold
         //   phase is CommandHold (7) and 6 is reserved; the capture is placed afresh each tick. World Snapshot layout
         //   unchanged; the command grab's own snapshot record changed.
-        //
-        // Bump once per deploy, never per change: release prepare refuses a release whose src/Shared
-        // changed since the previous release tag while this value (and the Master's Protocol) did not.
-        // Note simulation changes below; the release bump folds them into one numbered line.
-        // Unreleased:
+        // 33: the 0.2.0-playtest.41 release:
         // - Manki proximity mines, captured-target charged rocket and 600-tick flight-exit cooldown (ADR-0049).
         //   World Snapshot v22 stores mine phases/clocks and the charged rocket target.
         // - Manki's charged rocket faces its captured target independently of Flying heading.
@@ -87,6 +83,11 @@ namespace SlopArena.Shared
         // - Nyxxie's Ring Light Overhead (fake air.3) hits with its pole chop: the capsule opens at tick 10 instead of
         //   15 and runs along the pole's swing, from (-0.15, 1.3, -0.1) to (-0.05, 0.6, 1.0), radius 0.45. Damage,
         //   knockback, its 14 active ticks and the 55-tick move are unchanged. Package data only.
-        public const byte Version = 32;
+        //
+        // Bump once per deploy, never per change: release prepare refuses a release whose src/Shared
+        // changed since the previous release tag while this value (and the Master's Protocol) did not.
+        // Note simulation changes below; the release bump folds them into one numbered line.
+        // Unreleased:
+        public const byte Version = 33;
     }
 }
