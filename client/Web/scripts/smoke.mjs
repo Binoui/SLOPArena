@@ -1,6 +1,7 @@
 // Headless match through the published WASM sim.
 //   node smoke.mjs brawl after_hours fightguy,manki,nyx,bashie
 //   node smoke.mjs slopball slopball fightguy        (a scripted P1 chases and swats the ball)
+import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 const repo = new URL('../../../', import.meta.url).pathname;
@@ -39,6 +40,80 @@ function chase(self, ball) {
   return buf;
 }
 let swing = 0;
+
+assert.deepEqual(start.deck.map(row => row.key), ['dash', 'slot1', 'slot3', 'slot4', 'A', 'E', 'R', 'F']);
+if (mode === 'brawl') {
+  const special = start.deck.find(row => row.key === 'A' && !row.locked && row.max > 0);
+  assert(special, 'P1 has a special with a cooldown');
+  const neutral = new Uint8Array(22);
+  neutral[21] = Demo.ProtocolVersion();
+  let probe = JSON.parse(Demo.Step(neutral));
+  for (let i = 0; i < 180 && !probe.fighters[0].grounded; i++) probe = JSON.parse(Demo.Step(neutral));
+  const cast = neutral.slice(); cast[9] = special.slot;
+  probe = JSON.parse(Demo.Step(cast));
+  for (let i = 0; i < 180 && probe.fighters[0].cooldowns[special.slot] === 0; i++) probe = JSON.parse(Demo.Step(neutral));
+  const began = probe.fighters[0].cooldowns[special.slot], initialDeaths = probe.fighters[0].deaths;
+  assert(began > 0, 'using a special publishes a nonzero cooldown');
+  let previous = began, decreased = false;
+  for (let i = 0; i < special.max + 180 && previous > 0; i++) {
+    probe = JSON.parse(Demo.Step(neutral));
+    const current = probe.fighters[0].cooldowns[special.slot];
+    assert(current <= previous, 'the cooldown does not increase without another cast');
+    assert(previous - current <= 1, 'the cooldown counts down instead of resetting');
+    decreased ||= current < previous;
+    previous = current;
+  }
+  assert(decreased && previous === 0, 'the special becomes ready again');
+  assert.equal(probe.fighters[0].deaths, initialDeaths, 'the cooldown completes without a respawn reset');
+  console.log(`special cooldown: ${special.name}, ${began} ticks -> 0`);
+  Demo.Start(mode, pkgs, 3, 1, 42);
+}
+
+// Tutorial: run for the first lesson, land a real quick hit in Attacks, skip the rest through the pause
+// command, and check the knockout setup and the end.
+//   node smoke.mjs tutorial license_test fightguy,bonk
+if (mode === 'tutorial') {
+  const fail = message => { console.error('smoke: ' + message); process.exit(1); };
+  const court = start.court;
+  const toward = (self, p, slot = 0) => {
+    buf.fill(0);
+    const dx = p[0] - self.p[0], dz = p[2] - self.p[2], d = Math.hypot(dx, dz);
+    if (d > 1.4) { view.setFloat32(0, dx / d, true); view.setFloat32(4, dz / d, true); }
+    const yaw = Math.round(Math.atan2(dx, dz) * 18000 / Math.PI);
+    view.setInt16(10, yaw, true); view.setInt16(12, yaw, true);
+    buf[9] = d <= 1.6 ? slot : 0;
+    buf[20] = 1; buf[21] = Demo.ProtocolVersion();
+    return buf;
+  };
+  let frame = JSON.parse(Demo.Step(new Uint8Array(0)));
+  const lesson = () => court.lessons[frame.mode.lesson].id;
+  const until = (done, input, limit) => {
+    for (let i = 0; i < limit && !done(); i++) frame = JSON.parse(Demo.Step(input()));
+    return done();
+  };
+  console.log('lessons', court.lessons.map(l => l.id).join(','), 'moves', JSON.stringify(court.moves));
+  until(() => false, () => toward(frame.fighters[0], [frame.fighters[0].p[0] + 5, 0, frame.fighters[0].p[2] + 5]), 180);
+  console.log('run after 3 s:', frame.mode.amounts[0], 'm');
+  if (!(frame.mode.amounts[0] > 5)) fail('running did not count toward Move & Look');
+  const skip = () => {
+    const from = frame.mode.lesson;
+    Demo.Command('skip');
+    if (!until(() => frame.mode.lesson !== from || frame.ended, () => new Uint8Array(0), 5)) fail('skip did not advance from ' + court.lessons[from].id);
+  };
+  while (lesson() !== 'Attacks') skip();
+  const passed = until(() => frame.mode.passed || frame.mode.amounts[0] >= 1,
+    () => toward(frame.fighters[0], frame.fighters[1].p, 3), 600);
+  console.log('Attacks quick hit:', passed, 'dummy dmg', frame.fighters[1].dmg);
+  if (!passed) fail('a ground Slot1 hit did not count in Attacks');
+  while (lesson() !== 'Knockout') skip();
+  const dummy = frame.fighters[1];
+  console.log('Knockout setup: dummy dmg', dummy.dmg, 'at', dummy.p.map(v => v.toFixed(1)).join(','));
+  if (dummy.dmg !== 100) fail('the knockout dummy is not at 100%');
+  Demo.Command('skip');
+  if (!until(() => frame.ended, () => new Uint8Array(0), 200)) fail('the last lesson did not end the tutorial');
+  console.log('tutorial ended at tick', frame.tick);
+  process.exit(0);
+}
 
 let frame = JSON.parse(Demo.Step(new Uint8Array(0)));
 const t1 = performance.now(), counts = {};

@@ -21,7 +21,7 @@ ROOT = Path(__file__).resolve().parents[3]
 DEST = ROOT / 'client/Web/assets/stages'
 STAGES = ['rec_center_roof', 'after_hours', 'picnic_panic', 'industrial_rooftop',
           'last_stop', 'slop_pit', 'splash_deck', 'table_manners', 'log_off',
-          'hamster_habitat', 'training', 'slopball']
+          'hamster_habitat', 'training', 'slopball', 'license_test']
 
 
 def source(stage):

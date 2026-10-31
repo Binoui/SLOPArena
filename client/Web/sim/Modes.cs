@@ -26,7 +26,12 @@ public abstract class MatchMode
     public abstract string? Begin(string[] packages, MatchContentCatalog catalog, int difficulty, int seed);
     public abstract InputState HumanInput(Fighter f, InputState input);
     public virtual InputState CpuInput(Fighter f, uint tick) => default;
+    public virtual void BeforeTick() { }
     public virtual void AfterTick() { }
+    // Page commands outside the input stream, such as the tutorial's pause-menu skip.
+    public virtual void Command(string name) { }
+    // Degrees the page camera turned since the last tick: presentation input, never simulated.
+    public float CameraTurn;
     public abstract bool Ended { get; }
     // Static facts the page needs once, such as the Slopball net.
     public virtual void WriteCourt(StringBuilder sb) => sb.Append("{}");
@@ -204,5 +209,175 @@ public sealed class SlopballMode : MatchMode
             sb.Append("[").Append(Demo.Str(e.Kind.ToString())).Append(',').Append(e.Returns).Append(']');
         }
         sb.Append("]}");
+    }
+}
+
+// Fighter's License: Unity's TutorialMatch on the license_test deck. Shared's TutorialProgress owns every
+// lesson rule and only observes the tick; the dummy is an ordinary fighter fed TutorialDummy input.
+public sealed class TutorialMode : MatchMode
+{
+    const ulong PlayerId = 1, DummyId = 100;
+    // Pause between a passed lesson and the next one, so the stamp reads.
+    const int LessonGapTicks = 90;
+    static TutorialStageLayout Layout => TutorialCurriculum.LicenseTest;
+    static readonly byte[] Slots =
+        { AbilitySlots.Slot1, AbilitySlots.Slot3, AbilitySlots.Slot4, AbilitySlots.A, AbilitySlots.E, AbilitySlots.R, AbilitySlots.F };
+    TutorialProgress _progress = null!;
+    MatchContentEntry _player = null!, _dummy = null!;
+    CharacterState _playerBefore, _dummyBefore;
+    int _nextLessonTicks = -1, _completed;
+    bool _passed, _finished;
+
+    public override IMatchRule Rule => NoWinMatchRule.Instance;
+    public override bool Ended => _finished;
+
+    // packages: the player, then the dummy (the page picks it as TutorialMatch does).
+    public override string? Begin(string[] packages, MatchContentCatalog catalog, int difficulty, int seed)
+    {
+        if (Arena.SpawnPoints is not { Length: >= 2 }) return "the tutorial needs a stage with two spawns";
+        var player = catalog.ResolvePackage(packages[0]);
+        if (player == null) return "missing package " + packages[0];
+        _player = player;
+        _dummy = (packages.Length > 1 ? catalog.ResolvePackage(packages[1]) : null) ?? player;
+        Fighters.Add(new Fighter { Id = PlayerId, Entry = _player });
+        Fighters.Add(new Fighter { Id = DummyId, Entry = _dummy, Cpu = true });
+        Place(PlayerId, _player, Arena.SpawnPoints[0], 0, 0);
+        Place(DummyId, _dummy, Arena.SpawnPoints[1], 0, 0);
+        _progress = new TutorialProgress(Layout, _player.Definition.CapsuleHeight);
+        BeginLesson();
+        return null;
+    }
+
+    public override void BeforeTick()
+    {
+        _playerBefore = Sim.GetState(PlayerId);
+        _dummyBefore = Sim.GetState(DummyId);
+    }
+
+    public override InputState HumanInput(Fighter f, InputState input)
+    {
+        if (_finished) return default;
+        if (input.TargetEntityId == 0) input.TargetEntityId = (byte)DummyId;
+        return input;
+    }
+
+    public override InputState CpuInput(Fighter f, uint tick)
+        => f.Id == DummyId ? TutorialDummy.Build(_progress.DummyBehavior, _dummyBefore, _playerBefore, tick) : default;
+
+    public override void AfterTick()
+    {
+        _completed = _progress.Observe(new TutorialFrame(_playerBefore, Sim.GetState(PlayerId), _dummyBefore,
+            Sim.GetState(DummyId), Sim.LastTickHits, CameraTurn));
+        CameraTurn = 0;
+        _passed = false;
+        if (_progress.LessonComplete && _nextLessonTicks < 0 && !_finished)
+        {
+            _nextLessonTicks = LessonGapTicks;
+            _passed = true;
+        }
+        else if (_nextLessonTicks > 0 && --_nextLessonTicks == 0)
+        {
+            _nextLessonTicks = -1;
+            if (_progress.StartNextLesson()) BeginLesson();
+            else _finished = true;
+        }
+    }
+
+    public override void Command(string name)
+    {
+        if (_finished) return;
+        if (name == "skip" && !_progress.LessonComplete)
+        {
+            _progress.SkipLesson();
+            _nextLessonTicks = 1;
+        }
+        else if (name == "restart")
+        {
+            _nextLessonTicks = -1;
+            _progress.RestartLesson();
+            BeginLesson();
+        }
+    }
+
+    // Lesson setup: fresh cooldowns (or none, for practice), and the dummy placed as the lesson needs.
+    void BeginLesson()
+    {
+        var lesson = _progress.Lesson;
+        byte deaths = Sim.GetState(DummyId).Deaths;
+        if (lesson.DummySetup == TutorialDummySetup.Reset)
+            Place(DummyId, _dummy, Arena.SpawnPoints[1], lesson.DummyPercent, deaths);
+        else if (lesson.DummySetup == TutorialDummySetup.KnockoutReady)
+            Place(DummyId, _dummy, new SpawnPoint { X = Layout.KnockoutX, Y = Layout.FloorHeight, Z = Layout.KnockoutZ, Yaw = Layout.KnockoutYaw },
+                lesson.DummyPercent, deaths);
+        Sim.NoCooldownsEntityId = lesson.NoCooldowns ? PlayerId : null;
+        var player = Sim.GetState(PlayerId);
+        for (byte slot = 1; slot <= AbilitySlots.Count; slot++) player.SetCooldown(slot, 0);
+        Sim.SetState(PlayerId, player);
+    }
+
+    // Register a fighter fresh at a spot (floor-snapped), keeping its life count.
+    void Place(ulong id, MatchContentEntry entry, SpawnPoint spot, ushort percent, byte deaths)
+    {
+        var def = entry.Definition;
+        float y = spot.Y <= Layout.FloorHeight + 0.01f ? Layout.FloorHeight + def.CapsuleHeight * 0.5f : spot.Y;
+        Sim.RemoveEntity(id);
+        Sim.RegisterEntity(id, def, new CharacterState
+        {
+            PX = spot.X, PY = y, PZ = spot.Z, FacingYaw = spot.Yaw, AimYaw = spot.Yaw, IsGrounded = true,
+            JumpsLeft = def.Movement.MaxJumps, AirDodgesLeft = 1, DamagePercent = percent, Deaths = deaths,
+            MatchState = MatchState.Playing,
+        }, entry.BakedAnimation);
+        if (id == DummyId)
+        {
+            var home = Arena.SpawnPoints[1];
+            Sim.SetRespawnPosition(id, home.X, home.Y, home.Z, home.Yaw);
+        }
+        else Sim.SetRespawnPosition(id, spot.X, y, spot.Z, spot.Yaw);
+    }
+
+    // The checklist and the player's move names; the page owns the wording, as TutorialView does in Unity.
+    public override void WriteCourt(StringBuilder sb)
+    {
+        var def = _player.Definition;
+        sb.Append("{\"tallBlock\":").Append(Demo.F(Layout.TallBlockHeight)).Append(",\"lessons\":[");
+        for (int i = 0; i < _progress.Lessons.Count; i++)
+        {
+            var lesson = _progress.Lessons[i];
+            if (i > 0) sb.Append(',');
+            sb.Append("{\"id\":").Append(Demo.Str(lesson.Id.ToString())).Append(",\"objectives\":[");
+            for (int o = 0; o < lesson.Objectives.Count; o++)
+            {
+                if (o > 0) sb.Append(',');
+                sb.Append('[').Append(Demo.Str(lesson.Objectives[o].Id.ToString())).Append(',').Append(Demo.F(lesson.Objectives[o].Goal)).Append(']');
+            }
+            sb.Append("]}");
+        }
+        sb.Append("],\"moves\":{");
+        for (int i = 0; i < Slots.Length; i++)
+        {
+            if (i > 0) sb.Append(',');
+            sb.Append('"').Append(Slots[i]).Append("\":[").Append(Demo.Str(MoveName(def, Slots[i], false))).Append(',')
+              .Append(Demo.Str(MoveName(def, Slots[i], true))).Append(']');
+        }
+        sb.Append("}}");
+    }
+
+    public override void WriteFrame(StringBuilder sb)
+    {
+        sb.Append("{\"lesson\":").Append(_progress.LessonIndex).Append(",\"amounts\":[");
+        for (int i = 0; i < _progress.Lesson.Objectives.Count; i++)
+        {
+            if (i > 0) sb.Append(',');
+            sb.Append(Demo.F(_progress.Amount(i)));
+        }
+        sb.Append("],\"completed\":").Append(_completed).Append(",\"passed\":").Append(_passed ? "true" : "false")
+          .Append(",\"between\":").Append(_nextLessonTicks >= 0 ? "true" : "false")
+          .Append(",\"license\":").Append(_progress.Finished ? "true" : "false").Append('}');
+    }
+
+    static string MoveName(CharacterDefinition def, byte slot, bool airborne)
+    {
+        var spec = def.GetCookedSlotAbility(slot, airborne) ?? def.GetCookedSlotAbility(slot, !airborne);
+        return spec != null && !string.IsNullOrWhiteSpace(spec.Name) ? spec.Name : "that move";
     }
 }

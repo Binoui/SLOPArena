@@ -21,6 +21,13 @@ public static partial class Demo
     static MatchMode? _mode;
     static readonly Dictionary<ulong, InputState> _inputs = new();
     static uint _tick;
+    static byte _deckForm;
+    static readonly (string Key, byte Slot)[] DeckSlots =
+    {
+        ("dash", 0), ("slot1", AbilitySlots.Slot1), ("slot3", AbilitySlots.Slot3),
+        ("slot4", AbilitySlots.Slot4), ("A", AbilitySlots.A), ("E", AbilitySlots.E),
+        ("R", AbilitySlots.R), ("F", AbilitySlots.F),
+    };
 
     static readonly MethodInfo ResolveBoneAnimFrame = typeof(ServerSimulation).GetMethod("ResolveBoneAnimFrame",
         BindingFlags.NonPublic | BindingFlags.Instance)!;
@@ -85,7 +92,7 @@ public static partial class Demo
             if (!first) sb.Append(',');
             first = false;
             sb.Append("{\"id\":").Append(Str(e.Identity.PackageId)).Append(",\"name\":").Append(Str(e.DisplayName))
-              .Append(",\"half\":").Append(F(e.Definition.CapsuleHeight * 0.5f))
+              .Append(",\"alternateName\":").Append(Str(e.Definition.ForForm(1).DisplayName)).Append(",\"half\":").Append(F(e.Definition.CapsuleHeight * 0.5f))
               .Append(",\"shieldRadius\":").Append(F(e.Definition.ShieldRadius))
               .Append(",\"visualScale\":").Append(F(e.Definition.VisualScale)).Append(",\"modelYOffset\":").Append(F(e.Definition.ModelYOffset)).Append(",\"bones\":[");
             var names = e.BakedAnimation?.BoneNames ?? Array.Empty<string>();
@@ -128,7 +135,7 @@ public static partial class Demo
         return data;
     }
 
-    // mode: brawl or slopball. packages: comma list, first is the human, the rest are CPUs.
+    // mode: brawl, slopball or tutorial. packages: comma list, first is the human, the rest are CPUs.
     // Returns {"error":...} or {"court":{...}} with the mode's static layout.
     [JSExport]
     public static string Start(string mode, string packages, int stocks, int difficulty, int seed)
@@ -136,6 +143,7 @@ public static partial class Demo
         MatchMode m = mode switch
         {
             "slopball" => new SlopballMode(),
+            "tutorial" => new TutorialMode(),
             _ => new BrawlMode(stocks),
         };
         m.Arena = _arena;
@@ -146,6 +154,9 @@ public static partial class Demo
         _tick = 0;
         var sb = new StringBuilder("{\"court\":");
         m.WriteCourt(sb);
+        _deckForm = m.Sim.GetState(m.Fighters[0].Id).Form.Active;
+        sb.Append(",\"deck\":");
+        WriteDeck(sb, m.Fighters[0].Entry.Definition.ForForm(_deckForm));
         return sb.Append('}').ToString();
     }
 
@@ -155,6 +166,7 @@ public static partial class Demo
     {
         var m = _mode!;
         _inputs.Clear();
+        m.BeforeTick();
         foreach (var f in m.Fighters)
             _inputs[f.Id] = !f.Cpu && input.Length == InputState.Size
                 ? m.HumanInput(f, InputState.Deserialize(input))
@@ -164,6 +176,10 @@ public static partial class Demo
         m.AfterTick();
         return Frame();
     }
+
+    [JSExport] public static void Command(string name) => _mode?.Command(name);
+
+    [JSExport] public static void CameraTurned(double degrees) { if (_mode != null) _mode.CameraTurn += (float)degrees; }
 
     static string Frame()
     {
@@ -213,6 +229,19 @@ public static partial class Demo
                 sb.Append(']');
             }
             else sb.Append("null,\"frame\":0,\"pts\":[]");
+            if (i == 0)
+            {
+                sb.Append(",\"cooldowns\":{");
+                for (int k = 1; k < DeckSlots.Length; k++)
+                {
+                    if (k > 1) sb.Append(',');
+                    byte slot = DeckSlots[k].Slot;
+                    sb.Append('"').Append(slot).Append("\":").Append(s.GetCooldown(slot));
+                }
+                sb.Append("},\"dashCooldown\":").Append(s.HomingDashCooldownTicks)
+                  .Append(",\"dashAirUsed\":").Append(s.HomingDashAirUsed ? "true" : "false")
+                  .Append(",\"returningSlot\":").Append(s.ReturningProjectileSlot);
+            }
             WritePresentationState(sb, sim, f.Id, in s);
             sb.Append('}');
         }
@@ -285,8 +314,36 @@ public static partial class Demo
         }
         sb.Append("],\"mode\":");
         m.WriteFrame(sb);
+        var form = sim.GetState(m.Fighters[0].Id).Form.Active;
+        if (form != _deckForm)
+        {
+            _deckForm = form;
+            sb.Append(",\"deck\":");
+            WriteDeck(sb, m.Fighters[0].Entry.Definition.ForForm(form));
+        }
         sb.Append(",\"ended\":").Append(m.Ended ? "true" : "false");
         return sb.Append('}').ToString();
+    }
+
+    static void WriteDeck(StringBuilder sb, CharacterDefinition def)
+    {
+        sb.Append('[');
+        for (int i = 0; i < DeckSlots.Length; i++)
+        {
+            if (i > 0) sb.Append(',');
+            var (key, slot) = DeckSlots[i];
+            var ground = slot == 0 ? null : def.GetCookedSlotAbility(slot, false);
+            var air = slot == 0 ? null : def.GetCookedSlotAbility(slot, true);
+            var move = ground ?? air;
+            bool swap = slot == AbilitySlots.F && def.AlternateForm != null;
+            string name = slot == 0 ? "BEELINE" : swap ? def.ForForm((byte)(def.Form ^ 1)).DisplayName : move?.Name ?? "UNAVAILABLE";
+            string icon = swap ? (def.Form == 0 ? "nyx_fake" : "nyx") : move?.IconId ?? "";
+            int max = slot == 0 ? HomingDashConfig.CooldownTicks : Math.Max(ground?.CooldownTicks ?? 0, air?.CooldownTicks ?? 0);
+            sb.Append("{\"key\":").Append(Str(key)).Append(",\"slot\":").Append(slot)
+              .Append(",\"name\":").Append(Str(name)).Append(",\"icon\":").Append(Str(icon))
+              .Append(",\"max\":").Append(max).Append(",\"locked\":").Append(slot != 0 && move == null ? "true" : "false").Append('}');
+        }
+        sb.Append(']');
     }
 
     static IEnumerable<CookedCapabilityParameters> Capabilities(CookedSlotDefinition? slot)

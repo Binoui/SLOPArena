@@ -1,17 +1,23 @@
 import * as THREE from 'three';
+import { SLOT, KEY_SLOTS } from './bindings.js';
+import { createHud } from './hud.js';
+import { ROSTER_UI, portrait } from './roster-ui.js';
 import { SEATS } from './seat-colours.js';
 import { toThree, unitSphere, unitCylinder, placeSegment, placeBall } from './geometry.js';
 import { Puppet, flashVictims } from './fighters.js';
 import { ModelFighter, loadFighterModel } from './fighter-model.js';
 import { createVfx } from './vfx.js';
 import { floorSampler } from './vfx/floor.js';
-import { loadStageArt, hasStageArt } from './stage-art.js';
+import { loadStageArt, hasStageArt, setSightHoles } from './stage-art.js';
 import { createAudio } from './audio.js';
 import { createCamera } from './camera.js';
+import { createTutorialPanel, tutorialCompleted, markTutorialCompleted } from './tutorial.js';
 
 const QUERY = new URLSearchParams(location.search);
 const STOCKS = Number(QUERY.get('stocks')) || 3;
 const AUTOPLAY = QUERY.has('autoplay');
+// ?stats shows the frame rate, sim cost and the H hitbox toggle; players see the status line only while loading or on errors.
+const STATS = QUERY.has('stats');
 // ?fw=build loads the debug-enabled build output, about 4x slower per tick than the published one.
 // A packaged build sets SLOPA_PATHS in its index.html; the dev page reads the repo directly.
 const PATHS = globalThis.SLOPA_PATHS ?? {
@@ -37,6 +43,7 @@ const STAGES = [
   ['hamster_habitat', 'Hamster Habitat', 0xd2a861],
   ['training', 'Training', 0x6c7d8e],
   ['slopball', 'Slopball Court', 0x3b5a8a],
+  ['license_test', "Fighter's License", 0x24374d],
 ];
 const BODY = {
   fightguy: 0xff8a3d, manki: 0x9a6334, wibou: 0x9d7bff, bonk: 0xb9c2d4,
@@ -45,7 +52,7 @@ const BODY = {
 const LEVELS = ['Easy', 'Normal', 'Hard'];
 
 const $ = id => document.getElementById(id);
-const status = t => { $('status').textContent = t; };
+const status = (t, quiet = false) => { $('status').textContent = t; $('status').classList.toggle('quiet', quiet && !STATS); };
 
 // ── Simulation (Shared C# compiled to WebAssembly) ──
 status('starting .NET runtime…');
@@ -190,24 +197,35 @@ function buildStage(color) {
 }
 
 // ── Input: keyboard by physical key position (as in Unity), plus the first gamepad ──
-const SLOT = { Slot1: 3, Slot3: 8, Slot4: 9, A: 11, E: 4, R: 5, F: 6 };
-const KEY_SLOTS = { Digit1: SLOT.Slot1, Digit2: SLOT.Slot3, Digit3: SLOT.Slot4, KeyQ: SLOT.A, KeyE: SLOT.E, KeyR: SLOT.R, KeyF: SLOT.F };
 // Unity's face order: south, west, north, east.
 const PAD_FACE = [0, 2, 3, 1];
-const PAD_NORMAL = [0, SLOT.Slot1, SLOT.Slot3, SLOT.Slot4];
+const PAD_NORMAL = [0, SLOT.slot1, SLOT.slot3, SLOT.slot4];
 // ADR-0042 right-stick specials: a flick past 60% presses the special laid out like the face diamond
 // (up E, left R, right F, down Q); another one needs the stick back under 35%.
 const STICK_PRESS = 0.6, STICK_RELEASE = 0.35;
 let stickArmed = true;
+// Which device the player last used, for the tutorial's key prompts.
+let usingPad = false;
 const held = new Set();
 const edges = { jump: false, slot: 0, shield: false, grab: false, dash: false, down: false, retarget: false };
 let padPrev = [];
 addEventListener('keydown', e => {
   if (e.code === 'Tab') e.preventDefault();
+  if (!match && !startScreen && e.code.startsWith('Arrow')) {
+    e.preventDefault(); moveFocus(e.code === 'ArrowRight' ? 1 : e.code === 'ArrowLeft' ? -1 : 0,
+      e.code === 'ArrowDown' ? 1 : e.code === 'ArrowUp' ? -1 : 0);
+    menuFocus?.focus({ preventScroll: true }); return;
+  }
   if (e.repeat) return;
   held.add(e.code);
-  if (e.code === 'Escape') { leaveMatch(); return; }
-  if (e.code === 'KeyH') vfx.toggleHitboxes();
+  usingPad = false;
+  if (e.code === 'Escape') { escapeMatch(); return; }
+  if (match?.paused) {
+    if (e.code === 'ArrowUp' || e.code === 'ArrowDown') moveFocus(0, e.code === 'ArrowUp' ? -1 : 1);
+    if (e.code === 'Enter' || e.code === 'Space') { e.preventDefault(); menuFocus?.click(); }
+    return;
+  }
+  if (STATS && e.code === 'KeyH') vfx.toggleHitboxes();
   if (e.code === 'Space') edges.jump = true;
   if (KEY_SLOTS[e.code]) edges.slot = KEY_SLOTS[e.code];
   if (e.code === 'ShiftLeft') edges.shield = true;
@@ -229,6 +247,7 @@ function readPad() {
     if (PAD_NORMAL[face]) edges.slot = PAD_NORMAL[face]; else edges.jump = true;
   });
   const [ax, ay, rx = 0, ry = 0] = pad.axes;
+  if (pad.buttons.some(x => x.pressed) || Math.hypot(ax, ay) > 0.5 || Math.hypot(rx, ry) > 0.5) usingPad = true;
   const rmag = Math.hypot(rx, ry);
   if (rmag < STICK_RELEASE) stickArmed = true;
   else if (stickArmed && rmag >= STICK_PRESS) {
@@ -291,8 +310,40 @@ function buildInput(self) {
 
 // ── Modes. Each owns its menu rows, stage, HUD, per-tick reactions and camera focus. ──
 const hex = c => `#${c.toString(16).padStart(6, '0')}`;
-const alive = f => f.deaths < STOCKS;
+// Stock modes drop a fighter after STOCKS lives; the tutorial respawns everyone forever.
+const alive = f => match?.mode.endless || f.deaths < STOCKS;
 const MODES = {
+  // Fighter's License (Unity's TutorialMatch): the player against a dummy on the license_test deck.
+  tutorial: {
+    label: 'Tutorial',
+    camera: 'steady',
+    endless: true,
+    pausable: true,
+    countsCameraTurns: true,
+    rows: [],
+    stage: () => 'license_test',
+    // A different, roomy fighter stands in as the dummy so the two never look alike.
+    packages: () => [pick.you, pick.you === 'bonk' ? 'fightguy' : 'bonk'],
+    ready: () => true,
+    begin(frame, court) {
+      this.hud = createHud({ frame, deck: this.deck, assets: PATHS.assets, info: fighterInfo, stocks: 0, dummy: true });
+      this.panel = createTutorialPanel({ court, pkg: frame.fighters[0].pkg });
+      this.panel.present(frame.mode, usingPad);
+    },
+    onFrame(frame) {
+      this.hud.present(frame, usingPad);
+      this.panel.present(frame.mode, usingPad);
+      if (frame.ended) {
+        markTutorialCompleted();
+        pick.mode = 'brawl';
+        renderMenu();
+        finishMatch('LICENSE GRANTED', 'Every test passed. Take on the CPUs, or bring your friends to Steam.', 4200);
+      }
+    },
+    pause(paused) { this.panel.setPaused(paused); },
+    dispose() { this.panel.dispose(); this.hud.dispose(); },
+  },
+
   brawl: {
     label: 'Brawl',
     camera: 'steady',
@@ -301,31 +352,17 @@ const MODES = {
     packages: () => [pick.you, ...pick.cpus],
     ready: () => pick.cpus.length > 0,
     begin(frame) {
-      $('hud').innerHTML = frame.fighters.map((f, i) => `
-        <div class="card" style="--seat:${hex(SEATS[i])}">
-          <div class="who">${i === 0 ? 'P1' : 'CPU'} · ${fighterInfo[f.pkg].name}</div>
-          <div class="pct" id="pct${i}">0%</div>
-          <div class="stocks" id="stk${i}">${'<i></i>'.repeat(STOCKS)}</div>
-        </div>`).join('');
+      this.hud = createHud({ frame, deck: this.deck, assets: PATHS.assets, info: fighterInfo, stocks: STOCKS });
       banner('GO!', '', 900);
     },
     onFrame(frame) {
-      for (const [id] of frame.deaths) {
-        const seat = frame.fighters.findIndex(f => f.id === id);
-        banner('KO!', fighterInfo[frame.fighters[seat].pkg].name, 900);
-      }
-      frame.fighters.forEach((f, i) => {
-        const pct = `${Math.floor(f.dmg)}%`;
-        const el = $(`pct${i}`);
-        if (el.textContent !== pct) el.textContent = pct;
-        el.style.color = `hsl(${Math.max(0, 50 - f.dmg / 3)}, 100%, ${Math.max(60, 95 - f.dmg / 4)}%)`;
-        [...$(`stk${i}`).children].forEach((dot, k) => dot.classList.toggle('lost', k >= STOCKS - f.deaths));
-      });
+      this.hud.present(frame, usingPad);
       if (frame.ended) {
         const left = frame.fighters.filter(alive);
         finishMatch('GAME!', left.length === 1 ? `${fighterInfo[left[0].pkg].name} wins` : 'draw');
       }
     },
+    dispose() { this.hud.dispose(); },
     focus: frame => frame.fighters.filter(f => alive(f) && f.p[1] > arena.killHeight + 3).map(f => f.p),
   },
 
@@ -375,9 +412,11 @@ const MODES = {
           <div class="pct" id="returns">0</div>
           <div class="sub"><span id="best">best 0</span> · <span id="heat"></span></div>
         </div>`;
+      this.hud = createHud({ frame, deck: this.deck, assets: PATHS.assets, info: fighterInfo, cards: false });
       this.lastBeat = -1;
     },
     onFrame(frame) {
+      this.hud.present(frame, usingPad);
       const s = frame.mode;
       if (s.phase === 'Countdown') {
         const beat = Math.ceil(s.countdown / 60);
@@ -408,7 +447,7 @@ const MODES = {
       if (frame.mode.ball.active) pts.push(frame.mode.ball.p);
       return pts;
     },
-    dispose() { world.remove(this.props); },
+    dispose() { world.remove(this.props); this.hud.dispose(); },
   },
 };
 
@@ -441,6 +480,21 @@ function frameContext(frame) {
   };
 }
 
+// The camera's obstruction probe: the stage's collision triangles in sim space, as Unity raycasts its colliders.
+function sightProbe(triangles) {
+  const geometry = new THREE.BufferGeometry();
+  geometry.setAttribute('position', new THREE.BufferAttribute(new Float32Array(triangles), 3));
+  const mesh = new THREE.Mesh(geometry, new THREE.MeshBasicMaterial({ side: THREE.DoubleSide }));
+  const ray = new THREE.Raycaster(), from = new THREE.Vector3(), to = new THREE.Vector3();
+  return (a, b) => {
+    from.set(...a);
+    to.set(...b).sub(from);
+    ray.far = to.length();
+    ray.set(from, to.normalize());
+    return ray.intersectObject(mesh, false).length > 0;
+  };
+}
+
 // ── Match lifecycle ──
 let match = null;
 const stageCache = new Map();
@@ -449,7 +503,9 @@ async function startMatch() {
   const stageId = mode.stage();
   const [, , color] = STAGES.find(s => s[0] === stageId);
   arena = JSON.parse(Demo.LoadArena(await bytes(`${PATHS.arenas}${stageId}.arena`)));
-  arena.floorAt = floorSampler(Demo.ArenaTriangles());
+  const triangles = Demo.ArenaTriangles();
+  arena.floorAt = floorSampler(triangles);
+  arena.sightBlocked = sightProbe(triangles);
   const pkgs = mode.packages();
   await loadModels(pkgs);
   const started = JSON.parse(Demo.Start(pick.mode, pkgs.join(','), STOCKS, pick.level, (Math.random() * 1e9) | 0));
@@ -467,23 +523,48 @@ async function startMatch() {
   world.add(stageGroup);
   applyEnvironment(stageGroup.userData.art?.userData.environment);
   const frame = JSON.parse(Demo.Step(new Uint8Array(0)));
-  match = { mode, modeId: pick.mode, frame, views: pkgs.map((p, i) => createFighterView(p, i)), ended: false, stepMs: 0, steps: 0 };
+  match = { mode, modeId: pick.mode, frame, views: pkgs.map((p, i) => createFighterView(p, i)), ended: false, paused: false,
+    stepMs: 0, steps: 0, cameraTurn: 0, cameraYaw: null };
   audio.onMatchStart(pick.mode);
   cam.reset();
   $('menu').classList.add('hidden');
+  mode.deck = started.deck;
   mode.begin(frame, started.court, { stageArt: stageGroup.userData.art ?? null });
 }
-function finishMatch(title, sub) {
+function finishMatch(title, sub, ms = 2600) {
   match.ended = true;
-  banner(title, sub, 2600);
-  setTimeout(leaveMatch, 2800);
+  banner(title, sub, ms);
+  setTimeout(leaveMatch, ms + 200);
 }
+// Esc / Start: pausable modes open the pause card (skip or restart a lesson); the others go back to the menu.
+function escapeMatch() {
+  if (!match) return;
+  if (match.mode.pausable && !match.ended) setPaused(!match.paused);
+  else leaveMatch();
+}
+function setPaused(paused) {
+  match.paused = paused;
+  match.mode.pause?.(paused);
+  $('pause').classList.toggle('hidden', !paused);
+  if (paused) focusMenu($('pauseResume'));
+  else {
+    focusMenu(null);
+    // Nothing pressed while paused reaches the fighter: the button that resumed is still down.
+    for (const k in edges) edges[k] = k === 'slot' ? 0 : false;
+    padPrev = [...(navigator.getGamepads?.() ?? [])].find(Boolean)?.buttons.map(x => x.pressed) ?? [];
+  }
+}
+for (const [id, run] of [['pauseResume', () => {}], ['pauseSkip', () => Demo.Command('skip')], ['pauseRestart', () => Demo.Command('restart')]])
+  $(id).onclick = () => { run(); setPaused(false); };
+$('pauseLeave').onclick = () => leaveMatch();
 function leaveMatch() {
   if (!match) return;
+  if (match.paused) { $('pause').classList.add('hidden'); focusMenu(null); }
   match.views.forEach(v => v.dispose());
   match.mode.dispose?.();
   audio.onMatchEnd();
   match = null;
+  setSightHoles([]);
   $('hud').innerHTML = '';
   $('hud').classList.remove('top');
   $('menu').classList.remove('hidden');
@@ -500,6 +581,7 @@ function banner(text, sub, ms) {
 function step() {
   const self = match.frame.fighters[0];
   const t = performance.now();
+  if (match.cameraTurn) { Demo.CameraTurned(match.cameraTurn); match.cameraTurn = 0; }
   const frame = JSON.parse(Demo.Step(AUTOPLAY ? new Uint8Array(0) : buildInput(self)));
   match.stepMs += performance.now() - t;
   match.steps++;
@@ -522,7 +604,11 @@ function updateCamera(dt) {
   // Unity's FramingSubject.Launched also counts post-hitstun flight, which the frame does not carry.
   const subjects = frame.fighters.filter(f => f !== self && alive(f))
     .map(f => ({ id: f.id, p: f.p, launched: !f.grounded && f.state === 'Hitstun' }));
-  cam.steady(self, target?.p ?? null, dt, { modelYOffset: match.views[0].info.modelYOffset, subjects });
+  cam.steady(self, target?.p ?? null, dt, { modelYOffset: match.views[0].info.modelYOffset, subjects, blocked: arena.sightBlocked });
+  // The tutorial's look lesson counts how far the camera turns; the first call only snaps behind the fighter.
+  if (!match.mode.countsCameraTurns) return;
+  if (match.cameraYaw !== null) match.cameraTurn += Math.abs(((cam.yaw - match.cameraYaw + 540) % 360) - 180);
+  match.cameraYaw = cam.yaw;
 }
 
 // ── Frame loop: fixed 60 Hz simulation, render every display frame ──
@@ -533,15 +619,19 @@ function loop(now) {
   pollMenuPad();
   const dt = Math.min(now - last, 100);
   last = now;
-  if (match && !match.ended) {
+  if (match && !match.ended && !match.paused) {
     acc += dt;
     while (acc >= TICK_MS) { step(); acc -= TICK_MS; }
   } else acc = 0;
   if (match) {
     match.frame.fighters.forEach((f, i) => match.views[i].update(f, !alive(f), now));
+    // Sight holes toward the player and the three nearest others, as CameraMount publishes them.
+    const [self, ...others] = match.frame.fighters;
+    const near = f => (f.p[0] - self.p[0]) ** 2 + (f.p[1] - self.p[1]) ** 2 + (f.p[2] - self.p[2]) ** 2;
+    setSightHoles([self, ...others.filter(alive).sort((a, b) => near(a) - near(b)).slice(0, 3)].map(f => toThree(...f.p)));
     vfx.drawHitboxes(match.frame.hitboxes);
     match.mode.draw?.(match.frame);
-    updateCamera(dt / 1000);
+    if (!match.paused) updateCamera(dt / 1000);
   } else {
     const a = now / 6000;
     camera.position.set(Math.sin(a) * 26, 14, Math.cos(a) * 26);
@@ -555,7 +645,7 @@ function loop(now) {
     b.ticks = match.frame.tick; b.last = now; b.vfx = vfx.stats; b.drawCalls = renderer.info.render.calls; b.triangles = renderer.info.render.triangles; b.fighters = match.frame.fighters.map(f => f.pkg);
   }
   fpsFrames++;
-  if (now - fpsT > 500) {
+  if (STATS && now - fpsT > 500) {
     fps = Math.round(fpsFrames * 1000 / (now - fpsT));
     fpsFrames = 0; fpsT = now;
     const sim = match?.steps ? `sim ${(match.stepMs / match.steps).toFixed(2)} ms/tick · ` : '';
@@ -565,16 +655,52 @@ function loop(now) {
 
 // ── Menu ──
 // The public menu lists finished stages only; ?allstages adds the grey boxes for development.
-const MENU_STAGES = STAGES.filter(([id]) => id !== 'slopball' && (hasStageArt(id) || QUERY.has('allstages')));
-const pick = { mode: 'brawl', you: 'fightguy', cpus: ['manki'], stage: 'after_hours', level: 1 };
+// Stages that belong to a mode stay off the Brawl picker.
+const MODE_STAGES = new Set(['slopball', 'license_test']);
+const MENU_STAGES = STAGES.filter(([id]) => !MODE_STAGES.has(id) && (hasStageArt(id) || QUERY.has('allstages')));
+// New players start on the tutorial until they finish it once in this browser, as on Unity's Home.
+const pick = { mode: tutorialCompleted() ? 'brawl' : 'tutorial', you: 'fightguy', cpus: ['manki'], stage: 'after_hours', level: 1 };
 function renderMenu() {
-  const btn = (label, on, fn) => { const b = document.createElement('button'); b.className = 'pick' + (on ? ' on' : ''); b.textContent = label; b.onclick = () => { fn(); renderMenu(); }; return b; };
-  $('pickMode').replaceChildren(...Object.entries(MODES).map(([id, m]) => btn(m.label, pick.mode === id, () => { pick.mode = id; })));
-  $('pickYou').replaceChildren(...catalog.fighters.map(f => btn(f.name, pick.you === f.id, () => { pick.you = f.id; })));
-  $('pickCpu').replaceChildren(...catalog.fighters.map(f => btn(f.name, pick.cpus.includes(f.id), () => {
+  const btn = (label, on, fn) => {
+    const b = document.createElement('button');
+    b.className = 'pick' + (on ? ' on' : ''); b.textContent = label;
+    b.onclick = () => {
+      const focused = document.activeElement === b, row = b.parentElement, index = [...row.children].indexOf(b);
+      fn(); renderMenu();
+      if (focused) { focusMenu(row.children[index]); row.children[index].focus({ preventScroll: true }); }
+    };
+    return b;
+  };
+  const fighterTile = (f, on, fn) => {
+    const b = btn('', on, fn);
+    b.dataset.fighter = f.id;
+    b.classList.add('fighter-tile'); b.setAttribute('aria-label', f.name + (ROSTER_UI[f.id].wip ? ' (WIP)' : ''));
+    const img = document.createElement('img');
+    img.src = portrait(PATHS.assets, f.id); img.alt = '';
+    const name = document.createElement('span'); name.textContent = f.name;
+    b.append(img, name);
+    if (ROSTER_UI[f.id].wip) b.insertAdjacentHTML('beforeend', '<small class="wip">WIP</small>');
+    return b;
+  };
+  $('pickMode').replaceChildren(...Object.entries(MODES).map(([id, m]) => {
+    const b = btn(m.label, pick.mode === id, () => { pick.mode = id; });
+    b.dataset.mode = id;
+    if (id === 'tutorial' && !tutorialCompleted()) b.insertAdjacentHTML('beforeend', '<small class="badge">New here?</small>');
+    return b;
+  }));
+  $('pickYou').replaceChildren(...catalog.fighters.map(f => fighterTile(f, pick.you === f.id, () => { pick.you = f.id; })));
+  $('fighterHelp').textContent = ROSTER_UI[pick.you].description;
+  $('pickCpu').replaceChildren(...catalog.fighters.map(f => fighterTile(f, pick.cpus.includes(f.id), () => {
     pick.cpus = pick.cpus.includes(f.id) ? pick.cpus.filter(x => x !== f.id) : [...pick.cpus, f.id].slice(-3);
   })));
-  $('pickStage').replaceChildren(...MENU_STAGES.map(([id, name]) => btn(name, pick.stage === id, () => { pick.stage = id; })));
+  $('pickStage').replaceChildren(...MENU_STAGES.map(([id, name]) => {
+    const b = btn(name, pick.stage === id, () => { pick.stage = id; });
+    const img = document.createElement('img');
+    img.src = `${PATHS.assets}ui/stages/${id}.webp`; img.alt = '';
+    b.dataset.stage = id;
+    b.prepend(img); b.classList.add('stage-tile');
+    return b;
+  }));
   $('pickLevel').replaceChildren(...LEVELS.map((name, i) => btn(name, pick.level === i, () => { pick.level = i; })));
   for (const id of ['secCpu', 'secStage', 'secLevel']) $(id).classList.toggle('hidden', !MODES[pick.mode].rows.includes(id));
 }
@@ -599,7 +725,8 @@ addEventListener('keydown', dismissStart, { capture: true });
 addEventListener('pointerdown', dismissStart, { capture: true });
 
 let menuPadPrev = [], menuFocus = null, repeatAt = 0;
-const focusables = () => [...document.querySelectorAll('#menu button, #menu a, #menu summary')].filter(el => el.offsetParent);
+const focusables = () => [...document.querySelectorAll(match?.paused ? '#pause button' : '#menu button, #menu a, #menu summary')]
+  .filter(el => el.offsetParent);
 function focusMenu(el) {
   menuFocus?.classList.remove('pad-focus');
   menuFocus = el;
@@ -629,8 +756,8 @@ function pollMenuPad() {
   const b = i => !!pad.buttons[i]?.pressed;
   const pressed = i => b(i) && !menuPadPrev[i];
   const any = pad.buttons.some((_, i) => pressed(i));
-  if (match) {
-    if (pressed(9)) leaveMatch();
+  if (match && !match.paused) {
+    if (pressed(9)) escapeMatch();
   } else if (startScreen) {
     if (any) dismissStart();
   } else {
@@ -648,14 +775,14 @@ function pollMenuPad() {
       // renderMenu rebuilds the buttons; keep the focus on the same choice.
       focusMenu(focusables().find(el => (el.id || el.textContent) === keep) ?? focusables()[0]);
     }
-    if (pressed(9)) $('go').click();
+    if (pressed(9)) { if (match) escapeMatch(); else $('go').click(); }
   }
   menuPadPrev = pad.buttons.map(x => x.pressed);
 }
 renderMenu();
 $('menu').classList.remove('hidden');
 audio.onMenu();
-status(`ready · boot ${bootMs.toFixed(0)} ms`);
+status(`ready · boot ${bootMs.toFixed(0)} ms`, true);
 if (QUERY.has('vfxreview')) {
   const { createReview } = await import('./vfx/review.js');
   globalThis.__review = await createReview({ world, scene, renderer, camera, vfx, Demo, PATHS, fighterInfo,

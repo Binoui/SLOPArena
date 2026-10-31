@@ -8,6 +8,10 @@ its cooked `poses.bin`.
 
 Modes:
 
+- **Tutorial** is Unity's Fighter's License on the `license_test` deck: 13 lessons
+  against a dummy, judged by Shared's `TutorialProgress`. It is selected by default
+  until a player finishes it once in that browser (`localStorage`
+  `sloparena.tutorial.completed`). Esc or Start pauses it to skip or restart a lesson.
 - **Brawl** is a stock fight on a PvP stage, with P1 against one to three CPUs.
 - **Slopball** is the solo Arcade challenge. You return the Launcher's serves
   over the net, chasing a combo and a best streak.
@@ -25,13 +29,17 @@ A fresh cook whose roster pin hasn't caught up yet loads by the package's own
 identity with a console warning. `scripts/package.mjs` refuses to publish
 such a set.
 
-Query flags: `?stocks=N`, `?autoplay` (a CPU drives P1 in Brawl), and
+Query flags: `?stocks=N`, `?autoplay` (a CPU drives P1 in Brawl), `?stats` (frame rate,
+sim cost per tick, and H to toggle hitboxes), and
 `?fw=build` (loads the debug-enabled build output, about 4x slower per tick).
 
 Automated browsers (`navigator.webdriver`: Playwright, headless Chrome) start with
 sound output silenced; the audio logic still runs, so `SLOPA_AUDIO` stats stay
 testable. Add `?sound=1` to hear it. Agents driving the page should also launch
 Chrome with `--mute-audio`, as `scripts/drive.mjs` does.
+
+Run `python3 client/Web/scripts/export-ui.py` to refresh the HUD icons, portraits,
+and menu stage thumbnails in `assets/ui/` from Unity at twice their display size.
 
 ## Fighter models
 
@@ -82,10 +90,12 @@ new `assets.lock`.
 - `app/` is the page. `main.js` boots the sim and runs the loop and menu. It keeps a
   `MODES` table that mirrors the C# modes (menu rows, HUD, per-tick reactions,
   camera). `fighter-model.js` and `fighters.js` draw fighters, `camera.js` holds
-  Unity's Steady camera, and `vfx.js`, `stage-art.js` and `audio.js` own effects,
-  stage art and sound.
+  Unity's Steady camera (with its drift off blocked views), `tutorial.js` the tutorial's
+  checklist and wording, and `vfx.js`, `stage-art.js` and `audio.js` own effects,
+  stage art (with Unity's sight holes) and sound.
 - `scripts/smoke.mjs` runs a headless match in Node through the published WASM,
-  for example `node smoke.mjs slopball slopball fightguy`.
+  for example `node smoke.mjs slopball slopball fightguy` or
+  `node smoke.mjs tutorial license_test fightguy,bonk`.
 - `scripts/drive.mjs` drives the page in headless Chrome over CDP and saves screenshots.
 
 ## Adding a mode
