@@ -1,14 +1,15 @@
 import * as THREE from 'three';
-import { SLOT, KEY_SLOTS } from './bindings.js';
+import { createInput } from './input.js';
 import { createHud } from './hud.js';
-import { ROSTER_UI, portrait } from './roster-ui.js';
+import { createMenu } from './menu.js';
 import { SEATS } from './seat-colours.js';
-import { toThree, unitSphere, unitCylinder, placeSegment, placeBall } from './geometry.js';
+import { toThree } from './geometry.js';
+import { createSlopballCourt } from './slopball-court.js';
 import { Puppet, flashVictims } from './fighters.js';
 import { ModelFighter, loadFighterModel } from './fighter-model.js';
 import { createVfx } from './vfx.js';
 import { floorSampler } from './vfx/floor.js';
-import { loadStageArt, hasStageArt, setSightHoles } from './stage-art.js';
+import { loadStageArt, hasStageArt, setSightHoles, sunDirection } from './stage-art.js';
 import { createAudio } from './audio.js';
 import { createCamera } from './camera.js';
 import { createTutorialPanel, tutorialCompleted, markTutorialCompleted } from './tutorial.js';
@@ -18,6 +19,13 @@ const STOCKS = Number(QUERY.get('stocks')) || 3;
 const AUTOPLAY = QUERY.has('autoplay');
 // ?stats shows the frame rate, sim cost and the H hitbox toggle; players see the status line only while loading or on errors.
 const STATS = QUERY.has('stats');
+function recordVfxBench(now, frameStart) {
+  if (QUERY.has('vfxbench') && match && !match.ended) {
+    const b = globalThis.__vfxBench ??= { cpu: [], raf: [], ticks: 0, last: now };
+    if (b.cpu.length < 1200) { b.cpu.push(performance.now() - frameStart); b.raf.push(now - b.last); }
+    b.ticks = match.frame.tick; b.last = now; b.vfx = vfx.stats; b.drawCalls = renderer.info.render.calls; b.triangles = renderer.info.render.triangles; b.fighters = match.frame.fighters.map(f => f.pkg);
+  }
+}
 // ?fw=build loads the debug-enabled build output, about 4x slower per tick than the published one.
 // A packaged build sets SLOPA_PATHS in its index.html; the dev page reads the repo directly.
 const PATHS = globalThis.SLOPA_PATHS ?? {
@@ -49,7 +57,6 @@ const BODY = {
   fightguy: 0xff8a3d, manki: 0x9a6334, wibou: 0x9d7bff, bonk: 0xb9c2d4,
   bashie: 0x3fcf9f, salamander: 0xff5f3a, nyx: 0x3a3450,
 };
-const LEVELS = ['Easy', 'Normal', 'Hard'];
 
 const $ = id => document.getElementById(id);
 const status = (t, quiet = false) => { $('status').textContent = t; $('status').classList.toggle('quiet', quiet && !STATS); };
@@ -127,10 +134,7 @@ function applyEnvironment(env) {
   sun.color.set(0xffffff);
   sun.position.set(-8, 20, 10);
   if (key) {
-    // Same reading as stage-art.js: a sun's azimuth/elevation, or a Unity rotation's x (elevation) and y (azimuth).
-    const elevation = THREE.MathUtils.degToRad(key.sun?.elevation ?? key.rotation?.[0] ?? 55);
-    const azimuth = THREE.MathUtils.degToRad(key.sun?.azimuth ?? key.rotation?.[1] ?? 30);
-    sun.position.copy(toThree(-Math.sin(azimuth) * Math.cos(elevation), Math.sin(elevation), -Math.cos(azimuth) * Math.cos(elevation))).multiplyScalar(40);
+    sun.position.copy(toThree(...sunDirection(key).toArray())).multiplyScalar(40);
     sun.color.lerp(linear(key.color), STAGE_TINT);
   }
   camera.far = Math.max(300, env?.cameraFar ?? 0);
@@ -196,117 +200,16 @@ function buildStage(color) {
   return g;
 }
 
-// ── Input: keyboard by physical key position (as in Unity), plus the first gamepad ──
-// Unity's face order: south, west, north, east.
-const PAD_FACE = [0, 2, 3, 1];
-const PAD_NORMAL = [0, SLOT.slot1, SLOT.slot3, SLOT.slot4];
-// ADR-0042 right-stick specials: a flick past 60% presses the special laid out like the face diamond
-// (up E, left R, right F, down Q); another one needs the stick back under 35%.
-const STICK_PRESS = 0.6, STICK_RELEASE = 0.35;
-let stickArmed = true;
-// Which device the player last used, for the tutorial's key prompts.
-let usingPad = false;
-const held = new Set();
-const edges = { jump: false, slot: 0, shield: false, grab: false, dash: false, down: false, retarget: false };
-let padPrev = [];
-addEventListener('keydown', e => {
-  if (e.code === 'Tab') e.preventDefault();
-  if (!match && !startScreen && e.code.startsWith('Arrow')) {
-    e.preventDefault(); moveFocus(e.code === 'ArrowRight' ? 1 : e.code === 'ArrowLeft' ? -1 : 0,
-      e.code === 'ArrowDown' ? 1 : e.code === 'ArrowUp' ? -1 : 0);
-    menuFocus?.focus({ preventScroll: true }); return;
-  }
-  if (e.repeat) return;
-  held.add(e.code);
-  usingPad = false;
-  if (e.code === 'Escape') { escapeMatch(); return; }
-  if (match?.paused) {
-    if (e.code === 'ArrowUp' || e.code === 'ArrowDown') moveFocus(0, e.code === 'ArrowUp' ? -1 : 1);
-    if (e.code === 'Enter' || e.code === 'Space') { e.preventDefault(); menuFocus?.click(); }
-    return;
-  }
-  if (STATS && e.code === 'KeyH') vfx.toggleHitboxes();
-  if (e.code === 'Space') edges.jump = true;
-  if (KEY_SLOTS[e.code]) edges.slot = KEY_SLOTS[e.code];
-  if (e.code === 'ShiftLeft') edges.shield = true;
-  if (e.code === 'KeyC') edges.grab = true;
-  if (e.code === 'Digit4') edges.dash = true;
-  if (e.code === 'KeyX') edges.down = true;
-  if (e.code === 'Tab') edges.retarget = true;
+const input = createInput({
+  protocol: PROTOCOL,
+  cameraYaw: () => cam.yaw,
+  navigateKey: e => menu.navigateKey(e),
+  pressKey(e) {
+    if (e.code === 'Escape') { escapeMatch(); return true; }
+    if (menu.pressKey(e)) return true;
+    if (STATS && e.code === 'KeyH') vfx.toggleHitboxes();
+  },
 });
-addEventListener('keyup', e => held.delete(e.code));
-addEventListener('blur', () => held.clear());
-
-function readPad() {
-  const pad = [...(navigator.getGamepads?.() ?? [])].find(Boolean);
-  if (!pad) return null;
-  const b = i => !!pad.buttons[i]?.pressed;
-  const pressed = i => b(i) && !padPrev[i];
-  PAD_FACE.forEach((btn, face) => {
-    if (!pressed(btn)) return;
-    if (PAD_NORMAL[face]) edges.slot = PAD_NORMAL[face]; else edges.jump = true;
-  });
-  const [ax, ay, rx = 0, ry = 0] = pad.axes;
-  if (pad.buttons.some(x => x.pressed) || Math.hypot(ax, ay) > 0.5 || Math.hypot(rx, ry) > 0.5) usingPad = true;
-  const rmag = Math.hypot(rx, ry);
-  if (rmag < STICK_RELEASE) stickArmed = true;
-  else if (stickArmed && rmag >= STICK_PRESS) {
-    stickArmed = false;
-    edges.slot = Math.abs(rx) > Math.abs(ry) ? (rx > 0 ? SLOT.F : SLOT.R) : (ry < 0 ? SLOT.E : SLOT.A);
-  }
-  if (pressed(4)) edges.grab = true;
-  if (pressed(5)) edges.dash = true;
-  if (pressed(7)) edges.shield = true;
-  if (pressed(6)) edges.down = true;
-  if (pressed(15)) edges.retarget = true;
-  padPrev = pad.buttons.map(x => x.pressed);
-  const mag = Math.hypot(ax, ay);
-  return { x: mag > 0.25 ? ax : 0, y: mag > 0.25 ? -ay : 0, jump: b(0), shield: b(7), down: b(6) };
-}
-
-// Unity keeps the camera basis a held direction started with, so a camera turn does not bend a run underway;
-// a new direction (more than 40 degrees away) re-reads the camera.
-let heldBasis = null, heldAngle = 0;
-function cameraRelative(mx, my) {
-  if (mx === 0 && my === 0) { heldBasis = null; return [0, 0]; }
-  const angle = Math.atan2(mx, my) * 180 / Math.PI;
-  if (heldBasis === null || Math.abs(((angle - heldAngle + 540) % 360) - 180) > 40) { heldBasis = cam.yaw; heldAngle = angle; }
-  const y = heldBasis * Math.PI / 180;
-  return [my * Math.sin(y) + mx * Math.cos(y), my * Math.cos(y) - mx * Math.sin(y)];
-}
-const inputBuf = new Uint8Array(22);
-const inputView = new DataView(inputBuf.buffer);
-function buildInput(self) {
-  const pad = readPad();
-  let mx = (held.has('KeyD') ? 1 : 0) - (held.has('KeyA') ? 1 : 0);
-  let my = (held.has('KeyW') ? 1 : 0) - (held.has('KeyS') ? 1 : 0);
-  if (pad && (pad.x || pad.y)) { mx = pad.x; my = pad.y; }
-  const m = Math.hypot(mx, my);
-  if (m > 0) { mx /= m; my /= m; }
-  [mx, my] = cameraRelative(mx, my);
-  const wrapDeg = r => { let d = (r * 180 / Math.PI) % 360; if (d > 180) d -= 360; if (d < -180) d += 360; return d; };
-  const yaw = Math.round(wrapDeg(self?.yaw ?? 0) * 100);
-  const down = held.has('KeyX') || !!pad?.down;
-  const flags = (my > 0.3 ? 1 : 0) | (down ? 2 : 0) | (mx < -0.3 ? 4 : 0) | (mx > 0.3 ? 8 : 0)
-    | (edges.jump ? 0x10 : 0) | (edges.dash ? 0x20 : 0);
-  const flags2 = ((held.has('Space') || pad?.jump) ? 1 : 0) | (edges.down ? 8 : 0)
-    | ((held.has('ShiftLeft') || pad?.shield) ? 0x10 : 0) | (edges.shield ? 0x20 : 0)
-    | (edges.grab ? 0x40 : 0) | (edges.retarget ? 0x80 : 0);
-  inputView.setFloat32(0, mx, true);
-  inputView.setFloat32(4, my, true);
-  inputBuf[8] = flags;
-  inputBuf[9] = edges.slot;
-  inputView.setInt16(10, yaw, true);
-  inputView.setInt16(12, yaw, true);
-  inputView.setInt16(14, 0, true);
-  inputView.setUint16(16, 0, true);
-  inputBuf[18] = 0;
-  inputBuf[19] = flags2;
-  inputBuf[20] = 1; // TargetLockMode.Always, the shipped default
-  inputBuf[21] = PROTOCOL;
-  for (const k in edges) edges[k] = k === 'slot' ? 0 : false;
-  return inputBuf;
-}
 
 // ── Modes. Each owns its menu rows, stage, HUD, per-tick reactions and camera focus. ──
 const hex = c => `#${c.toString(16).padStart(6, '0')}`;
@@ -328,15 +231,15 @@ const MODES = {
     begin(frame, court) {
       this.hud = createHud({ frame, deck: this.deck, assets: PATHS.assets, info: fighterInfo, stocks: 0, dummy: true });
       this.panel = createTutorialPanel({ court, pkg: frame.fighters[0].pkg });
-      this.panel.present(frame.mode, usingPad);
+      this.panel.present(frame.mode, input.usingPad);
     },
     onFrame(frame) {
-      this.hud.present(frame, usingPad);
-      this.panel.present(frame.mode, usingPad);
+      this.hud.present(frame, input.usingPad);
+      this.panel.present(frame.mode, input.usingPad);
       if (frame.ended) {
         markTutorialCompleted();
         pick.mode = 'brawl';
-        renderMenu();
+        menu.renderMenu();
         finishMatch('LICENSE GRANTED', 'Every test passed. Take on the CPUs, or bring your friends to Steam.', 4200);
       }
     },
@@ -356,7 +259,7 @@ const MODES = {
       banner('GO!', '', 900);
     },
     onFrame(frame) {
-      this.hud.present(frame, usingPad);
+      this.hud.present(frame, input.usingPad);
       if (frame.ended) {
         const left = frame.fighters.filter(alive);
         finishMatch('GAME!', left.length === 1 ? `${fighterInfo[left[0].pkg].name} wins` : 'draw');
@@ -375,36 +278,7 @@ const MODES = {
     ready: () => true,
     begin(frame, court, { stageArt }) {
       this.court = court;
-      this.props = new THREE.Group();
-      // The exported Night Court carries its own net; the prototype one stands in on the grey box.
-      const ownNet = !!stageArt?.getObjectByName('Court Net');
-      const width = court.landing[0] * 2 + 3;
-      const net = new THREE.Mesh(new THREE.BoxGeometry(width, court.netTop - court.floorY, Math.max(court.netHalf * 2, 0.08)),
-        new THREE.MeshStandardMaterial({ color: 0xf4efe2, transparent: true, opacity: 0.55, roughness: 0.9 }));
-      net.position.set(0, (court.floorY + court.netTop) / 2, court.netZ);
-      const tape = new THREE.Mesh(new THREE.BoxGeometry(width, 0.08, 0.1), new THREE.MeshStandardMaterial({ color: 0xffcf3a }));
-      tape.position.set(0, court.netTop, court.netZ);
-      for (const x of [-width / 2, width / 2]) {
-        const post = new THREE.Mesh(unitCylinder, new THREE.MeshStandardMaterial({ color: 0x2b2438 }));
-        placeSegment(post, new THREE.Vector3(x, court.floorY, court.netZ), new THREE.Vector3(x, court.netTop + 0.1, court.netZ), 0.07);
-        this.props.add(post);
-      }
-      this.launcher = new THREE.Group();
-      const body = new THREE.Mesh(new THREE.CylinderGeometry(0.7, 0.9, 1, 20), new THREE.MeshStandardMaterial({ color: 0x3a3150, roughness: 0.6 }));
-      body.position.y = 0.5;
-      const barrel = new THREE.Mesh(new THREE.CylinderGeometry(0.32, 0.4, 1.3, 16), new THREE.MeshStandardMaterial({ color: 0xff6b3d, roughness: 0.4 }));
-      barrel.position.set(0, 1.2, -0.35);
-      barrel.rotation.x = -0.9;
-      this.launcher.add(body, barrel);
-      this.ball = new THREE.Mesh(unitSphere, new THREE.MeshStandardMaterial({ color: 0xffd23a, emissive: 0xff7a00, emissiveIntensity: 0.4, roughness: 0.35 }));
-      this.ball.castShadow = true;
-      this.marker = new THREE.Mesh(new THREE.RingGeometry(0.7, 0.85, 32), new THREE.MeshBasicMaterial({ color: 0xffd23a, transparent: true, opacity: 0.8, side: THREE.DoubleSide }));
-      this.marker.rotation.x = -Math.PI / 2;
-      this.drop = new THREE.Mesh(unitCylinder, new THREE.MeshBasicMaterial({ color: 0xffd23a, transparent: true, opacity: 0.25 }));
-      if (ownNet) this.props.children.slice().forEach(post => this.props.remove(post));
-      else this.props.add(net, tape);
-      this.props.add(this.launcher, this.ball, this.marker, this.drop);
-      world.add(this.props);
+      this.courtView = createSlopballCourt({ world, court, stageArt });
       $('hud').classList.add('top');
       $('hud').innerHTML = `
         <div class="card score" style="--seat:${hex(SEATS[0])}">
@@ -416,7 +290,7 @@ const MODES = {
       this.lastBeat = -1;
     },
     onFrame(frame) {
-      this.hud.present(frame, usingPad);
+      this.hud.present(frame, input.usingPad);
       const s = frame.mode;
       if (s.phase === 'Countdown') {
         const beat = Math.ceil(s.countdown / 60);
@@ -431,23 +305,13 @@ const MODES = {
       $('best').textContent = `best ${s.best}`;
       $('heat').textContent = '🔥'.repeat(s.heat) || 'cool';
     },
-    draw(frame) {
-      const s = frame.mode, b = s.ball, c = this.court;
-      this.launcher.position.set(s.launcher[0], c.floorY, s.launcher[2]);
-      for (const m of [this.ball, this.marker, this.drop]) m.visible = b.active;
-      if (!b.active) return;
-      placeBall(this.ball, new THREE.Vector3(...b.p), b.r);
-      this.ball.material.emissiveIntensity = 0.3 + s.heat * 0.3;
-      this.marker.position.set(b.p[0], c.floorY + 0.02, b.p[2]);
-      this.marker.scale.setScalar(Math.max(0.4, b.r * 1.6));
-      placeSegment(this.drop, new THREE.Vector3(b.p[0], c.floorY, b.p[2]), new THREE.Vector3(...b.p), 0.03);
-    },
+    draw(frame) { this.courtView.draw(frame.mode); },
     focus(frame) {
       const pts = [frame.fighters[0].p, [0, this.court.floorY, this.court.netZ]];
       if (frame.mode.ball.active) pts.push(frame.mode.ball.p);
       return pts;
     },
-    dispose() { world.remove(this.props); this.hud.dispose(); },
+    dispose() { this.courtView.dispose(); this.hud.dispose(); },
   },
 };
 
@@ -546,12 +410,11 @@ function setPaused(paused) {
   match.paused = paused;
   match.mode.pause?.(paused);
   $('pause').classList.toggle('hidden', !paused);
-  if (paused) focusMenu($('pauseResume'));
+  if (paused) menu.focusMenu($('pauseResume'));
   else {
-    focusMenu(null);
+    menu.focusMenu(null);
     // Nothing pressed while paused reaches the fighter: the button that resumed is still down.
-    for (const k in edges) edges[k] = k === 'slot' ? 0 : false;
-    padPrev = [...(navigator.getGamepads?.() ?? [])].find(Boolean)?.buttons.map(x => x.pressed) ?? [];
+    input.clearEdges();
   }
 }
 for (const [id, run] of [['pauseResume', () => {}], ['pauseSkip', () => Demo.Command('skip')], ['pauseRestart', () => Demo.Command('restart')]])
@@ -559,7 +422,7 @@ for (const [id, run] of [['pauseResume', () => {}], ['pauseSkip', () => Demo.Com
 $('pauseLeave').onclick = () => leaveMatch();
 function leaveMatch() {
   if (!match) return;
-  if (match.paused) { $('pause').classList.add('hidden'); focusMenu(null); }
+  if (match.paused) { $('pause').classList.add('hidden'); menu.focusMenu(null); }
   match.views.forEach(v => v.dispose());
   match.mode.dispose?.();
   audio.onMatchEnd();
@@ -582,7 +445,7 @@ function step() {
   const self = match.frame.fighters[0];
   const t = performance.now();
   if (match.cameraTurn) { Demo.CameraTurned(match.cameraTurn); match.cameraTurn = 0; }
-  const frame = JSON.parse(Demo.Step(AUTOPLAY ? new Uint8Array(0) : buildInput(self)));
+  const frame = JSON.parse(Demo.Step(AUTOPLAY ? new Uint8Array(0) : input.buildInput(self)));
   match.stepMs += performance.now() - t;
   match.steps++;
   match.frame = frame;
@@ -616,7 +479,11 @@ let acc = 0, last = performance.now(), fpsFrames = 0, fpsT = last, fps = 0;
 function loop(now) {
   const frameStart = performance.now();
   requestAnimationFrame(loop);
-  pollMenuPad();
+  const pad = input.poll();
+  if (match && !match.paused) {
+    if (pad?.pressed(9)) escapeMatch();
+    else input.gameplay();
+  } else menu.pollPad(pad);
   const dt = Math.min(now - last, 100);
   last = now;
   if (match && !match.ended && !match.paused) {
@@ -639,11 +506,7 @@ function loop(now) {
   }
   vfx.update(dt / 1000);
   renderer.render(scene, camera);
-  if (QUERY.has('vfxbench') && match && !match.ended) {
-    const b = globalThis.__vfxBench ??= { cpu: [], raf: [], ticks: 0, last: now };
-    if (b.cpu.length < 1200) { b.cpu.push(performance.now() - frameStart); b.raf.push(now - b.last); }
-    b.ticks = match.frame.tick; b.last = now; b.vfx = vfx.stats; b.drawCalls = renderer.info.render.calls; b.triangles = renderer.info.render.triangles; b.fighters = match.frame.fighters.map(f => f.pkg);
-  }
+  recordVfxBench(now, frameStart);
   fpsFrames++;
   if (STATS && now - fpsT > 500) {
     fps = Math.round(fpsFrames * 1000 / (now - fpsT));
@@ -660,126 +523,14 @@ const MODE_STAGES = new Set(['slopball', 'license_test']);
 const MENU_STAGES = STAGES.filter(([id]) => !MODE_STAGES.has(id) && (hasStageArt(id) || QUERY.has('allstages')));
 // New players start on the tutorial until they finish it once in this browser, as on Unity's Home.
 const pick = { mode: tutorialCompleted() ? 'brawl' : 'tutorial', you: 'fightguy', cpus: ['manki'], stage: 'after_hours', level: 1 };
-function renderMenu() {
-  const btn = (label, on, fn) => {
-    const b = document.createElement('button');
-    b.className = 'pick' + (on ? ' on' : ''); b.textContent = label;
-    b.onclick = () => {
-      const focused = document.activeElement === b, row = b.parentElement, index = [...row.children].indexOf(b);
-      fn(); renderMenu();
-      if (focused) { focusMenu(row.children[index]); row.children[index].focus({ preventScroll: true }); }
-    };
-    return b;
-  };
-  const fighterTile = (f, on, fn) => {
-    const b = btn('', on, fn);
-    b.dataset.fighter = f.id;
-    b.classList.add('fighter-tile'); b.setAttribute('aria-label', f.name + (ROSTER_UI[f.id].wip ? ' (WIP)' : ''));
-    const img = document.createElement('img');
-    img.src = portrait(PATHS.assets, f.id); img.alt = '';
-    const name = document.createElement('span'); name.textContent = f.name;
-    b.append(img, name);
-    if (ROSTER_UI[f.id].wip) b.insertAdjacentHTML('beforeend', '<small class="wip">WIP</small>');
-    return b;
-  };
-  $('pickMode').replaceChildren(...Object.entries(MODES).map(([id, m]) => {
-    const b = btn(m.label, pick.mode === id, () => { pick.mode = id; });
-    b.dataset.mode = id;
-    if (id === 'tutorial' && !tutorialCompleted()) b.insertAdjacentHTML('beforeend', '<small class="badge">New here?</small>');
-    return b;
-  }));
-  $('pickYou').replaceChildren(...catalog.fighters.map(f => fighterTile(f, pick.you === f.id, () => { pick.you = f.id; })));
-  $('fighterHelp').textContent = ROSTER_UI[pick.you].description;
-  $('pickCpu').replaceChildren(...catalog.fighters.map(f => fighterTile(f, pick.cpus.includes(f.id), () => {
-    pick.cpus = pick.cpus.includes(f.id) ? pick.cpus.filter(x => x !== f.id) : [...pick.cpus, f.id].slice(-3);
-  })));
-  $('pickStage').replaceChildren(...MENU_STAGES.map(([id, name]) => {
-    const b = btn(name, pick.stage === id, () => { pick.stage = id; });
-    const img = document.createElement('img');
-    img.src = `${PATHS.assets}ui/stages/${id}.webp`; img.alt = '';
-    b.dataset.stage = id;
-    b.prepend(img); b.classList.add('stage-tile');
-    return b;
-  }));
-  $('pickLevel').replaceChildren(...LEVELS.map((name, i) => btn(name, pick.level === i, () => { pick.level = i; })));
-  for (const id of ['secCpu', 'secStage', 'secLevel']) $(id).classList.toggle('hidden', !MODES[pick.mode].rows.includes(id));
-}
-$('go').onclick = () => { if (MODES[pick.mode].ready()) startMatch().catch(e => { console.error(e); status(String(e)); }); };
-addEventListener('keydown', e => { if (e.code === 'Enter' && !match && !startScreen) $('go').click(); });
-
-// ── Gamepad outside play: the start screen, menu navigation (D-pad or stick, A selects, B steps back,
-// Start fights) and Start to leave a match. Browsers only count clicks and keys as the gesture that unlocks
-// sound, so the start screen asks for one and a pad still dismisses it (silently) if that's all there is.
-let startScreen = document.createElement('div');
-startScreen.id = 'start';
-startScreen.innerHTML = '<div class="press">Click or press any key</div><div class="sub">Gamepad ready: press A</div>';
-document.body.append(startScreen);
-function dismissStart(e) {
-  if (!startScreen) return;
-  e?.stopImmediatePropagation?.();
-  startScreen.remove();
-  startScreen = null;
-  focusMenu(document.querySelector('#pickMode .pick.on') ?? $('go'));
-}
-addEventListener('keydown', dismissStart, { capture: true });
-addEventListener('pointerdown', dismissStart, { capture: true });
-
-let menuPadPrev = [], menuFocus = null, repeatAt = 0;
-const focusables = () => [...document.querySelectorAll(match?.paused ? '#pause button' : '#menu button, #menu a, #menu summary')]
-  .filter(el => el.offsetParent);
-function focusMenu(el) {
-  menuFocus?.classList.remove('pad-focus');
-  menuFocus = el;
-  el?.classList.add('pad-focus');
-  el?.scrollIntoView({ block: 'nearest' });
-}
-function moveFocus(dx, dy) {
-  const all = focusables();
-  if (!menuFocus || !all.includes(menuFocus)) return focusMenu(all[0]);
-  const from = menuFocus.getBoundingClientRect();
-  const cx = from.x + from.width / 2, cy = from.y + from.height / 2;
-  let best = null, bestScore = Infinity;
-  for (const el of all) {
-    if (el === menuFocus) continue;
-    const r = el.getBoundingClientRect();
-    const ex = r.x + r.width / 2 - cx, ey = r.y + r.height / 2 - cy;
-    const along = ex * dx + ey * dy;
-    if (along <= 4) continue;
-    const score = along + 3 * Math.abs(ex * dy - ey * dx);
-    if (score < bestScore) { bestScore = score; best = el; }
-  }
-  if (best) focusMenu(best);
-}
-function pollMenuPad() {
-  const pad = [...(navigator.getGamepads?.() ?? [])].find(Boolean);
-  if (!pad) return;
-  const b = i => !!pad.buttons[i]?.pressed;
-  const pressed = i => b(i) && !menuPadPrev[i];
-  const any = pad.buttons.some((_, i) => pressed(i));
-  if (match && !match.paused) {
-    if (pressed(9)) escapeMatch();
-  } else if (startScreen) {
-    if (any) dismissStart();
-  } else {
-    const [ax, ay] = pad.axes;
-    const dx = (b(15) ? 1 : 0) - (b(14) ? 1 : 0) || (Math.abs(ax) > 0.5 ? Math.sign(ax) : 0);
-    const dy = (b(13) ? 1 : 0) - (b(12) ? 1 : 0) || (Math.abs(ay) > 0.5 ? Math.sign(ay) : 0);
-    const now = performance.now();
-    if ((dx || dy) && now >= repeatAt) {
-      moveFocus(dx, dx ? 0 : dy);
-      repeatAt = now + (repeatAt === 0 ? 350 : 140);
-    } else if (!dx && !dy) repeatAt = 0;
-    if (pressed(0) && menuFocus) {
-      const keep = menuFocus.id || menuFocus.textContent;
-      menuFocus.click();
-      // renderMenu rebuilds the buttons; keep the focus on the same choice.
-      focusMenu(focusables().find(el => (el.id || el.textContent) === keep) ?? focusables()[0]);
-    }
-    if (pressed(9)) { if (match) escapeMatch(); else $('go').click(); }
-  }
-  menuPadPrev = pad.buttons.map(x => x.pressed);
-}
-renderMenu();
+const menu = createMenu({
+  catalog, modes: MODES, stages: MENU_STAGES, paths: PATHS, pick,
+  go: () => { if (MODES[pick.mode].ready()) startMatch().catch(e => { console.error(e); status(String(e)); }); },
+  isPaused: () => !!match?.paused,
+  inMatch: () => !!match,
+  escapeMatch,
+});
+menu.renderMenu();
 $('menu').classList.remove('hidden');
 audio.onMenu();
 status(`ready · boot ${bootMs.toFixed(0)} ms`, true);
