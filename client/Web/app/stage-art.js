@@ -341,15 +341,20 @@ function linear(rgb) {
   return new THREE.Color(...rgb.slice(0, 3)).convertSRGBToLinear();
 }
 
+// A sun's azimuth/elevation, or a Unity rotation's x (elevation) and y (azimuth).
+export function sunDirection(key) {
+  const elevation = THREE.MathUtils.degToRad(key.sun?.elevation ?? key.rotation?.[0] ?? 55);
+  const azimuth = THREE.MathUtils.degToRad(key.sun?.azimuth ?? key.rotation?.[1] ?? 30);
+  return new THREE.Vector3(-Math.sin(azimuth) * Math.cos(elevation), Math.sin(elevation), -Math.cos(azimuth) * Math.cos(elevation));
+}
+
 async function stageMaterial(original, parser, environment) {
   const spec = original.userData.stageSurface;
   if (!spec) return original;
   const f = spec.floats ?? {}, c = spec.colors ?? {}, v = spec.vectors ?? {};
   const atmosphere = environment.atmosphere ?? {};
   const key = environment.lights?.find(l => l.type === 'directional') ?? {};
-  const elevation = THREE.MathUtils.degToRad(key.sun?.elevation ?? key.rotation?.[0] ?? 55);
-  const azimuth = THREE.MathUtils.degToRad(key.sun?.azimuth ?? key.rotation?.[1] ?? 30);
-  const direction = new THREE.Vector3(-Math.sin(azimuth) * Math.cos(elevation), Math.sin(elevation), -Math.cos(azimuth) * Math.cos(elevation));
+  const direction = sunDirection(key);
   const points = environment.lights?.filter(l => l.type === 'point').slice(0, 6) ?? [];
   const kind = { StageVertexLit: 'VERTEX_LIT', StageNeon: 'NEON', StageWater: 'WATER', StageGlass: 'GLASS', Additive: 'ADDITIVE' }[spec.shader.split('/').at(-1)];
   if (!kind) return original;

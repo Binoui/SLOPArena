@@ -8,7 +8,7 @@ import { Puppet, flashVictims } from './fighters.js';
 import { ModelFighter, loadFighterModel } from './fighter-model.js';
 import { createVfx } from './vfx.js';
 import { floorSampler } from './vfx/floor.js';
-import { loadStageArt, hasStageArt, setSightHoles } from './stage-art.js';
+import { loadStageArt, hasStageArt, setSightHoles, sunDirection } from './stage-art.js';
 import { createAudio } from './audio.js';
 import { createCamera } from './camera.js';
 import { createTutorialPanel, tutorialCompleted, markTutorialCompleted } from './tutorial.js';
@@ -18,6 +18,13 @@ const STOCKS = Number(QUERY.get('stocks')) || 3;
 const AUTOPLAY = QUERY.has('autoplay');
 // ?stats shows the frame rate, sim cost and the H hitbox toggle; players see the status line only while loading or on errors.
 const STATS = QUERY.has('stats');
+function recordVfxBench(now, frameStart) {
+  if (QUERY.has('vfxbench') && match && !match.ended) {
+    const b = globalThis.__vfxBench ??= { cpu: [], raf: [], ticks: 0, last: now };
+    if (b.cpu.length < 1200) { b.cpu.push(performance.now() - frameStart); b.raf.push(now - b.last); }
+    b.ticks = match.frame.tick; b.last = now; b.vfx = vfx.stats; b.drawCalls = renderer.info.render.calls; b.triangles = renderer.info.render.triangles; b.fighters = match.frame.fighters.map(f => f.pkg);
+  }
+}
 // ?fw=build loads the debug-enabled build output, about 4x slower per tick than the published one.
 // A packaged build sets SLOPA_PATHS in its index.html; the dev page reads the repo directly.
 const PATHS = globalThis.SLOPA_PATHS ?? {
@@ -127,10 +134,7 @@ function applyEnvironment(env) {
   sun.color.set(0xffffff);
   sun.position.set(-8, 20, 10);
   if (key) {
-    // Same reading as stage-art.js: a sun's azimuth/elevation, or a Unity rotation's x (elevation) and y (azimuth).
-    const elevation = THREE.MathUtils.degToRad(key.sun?.elevation ?? key.rotation?.[0] ?? 55);
-    const azimuth = THREE.MathUtils.degToRad(key.sun?.azimuth ?? key.rotation?.[1] ?? 30);
-    sun.position.copy(toThree(-Math.sin(azimuth) * Math.cos(elevation), Math.sin(elevation), -Math.cos(azimuth) * Math.cos(elevation))).multiplyScalar(40);
+    sun.position.copy(toThree(...sunDirection(key).toArray())).multiplyScalar(40);
     sun.color.lerp(linear(key.color), STAGE_TINT);
   }
   camera.far = Math.max(300, env?.cameraFar ?? 0);
@@ -639,11 +643,7 @@ function loop(now) {
   }
   vfx.update(dt / 1000);
   renderer.render(scene, camera);
-  if (QUERY.has('vfxbench') && match && !match.ended) {
-    const b = globalThis.__vfxBench ??= { cpu: [], raf: [], ticks: 0, last: now };
-    if (b.cpu.length < 1200) { b.cpu.push(performance.now() - frameStart); b.raf.push(now - b.last); }
-    b.ticks = match.frame.tick; b.last = now; b.vfx = vfx.stats; b.drawCalls = renderer.info.render.calls; b.triangles = renderer.info.render.triangles; b.fighters = match.frame.fighters.map(f => f.pkg);
-  }
+  recordVfxBench(now, frameStart);
   fpsFrames++;
   if (STATS && now - fpsT > 500) {
     fps = Math.round(fpsFrames * 1000 / (now - fpsT));
