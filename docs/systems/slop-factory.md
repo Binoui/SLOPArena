@@ -32,6 +32,24 @@ After fixing a Redo, answer it with `check ready`; this moves it back to To try.
 Only the owner records acceptance. A thread chip shows its title and copies its
 id; browser links cannot open T3 threads.
 
+## Report independent QA
+
+Every new check gets independent QA. `check add` prints a QA brief after the new
+check's id; the filing agent hands that brief, unchanged, to one fresh subagent
+in the background and does not wait for it. `check qa-brief <id>` reprints it.
+The QA agent reads only the check and the build, never the builder's report.
+Checks whose lines are all judgment calls get a quick partial result. QA posts one
+result per run: `pass` when every step it could test held, `partial` when some
+steps need the owner's judgment or could not run, `fail` when a step broke. The
+report lists each step with its outcome and evidence. The board shows the latest
+result as a chip on the card. QA notes never reach the thread and never change the
+check's status; the owner still decides.
+
+```sh
+python3 tools/factory.py check qa 32 --result pass --report tmp/qa-32.md \
+  --clip tmp/qa-32-timing.png
+```
+
 ## Deliver owner feedback from the desk
 
 The owner marks Good, Redo, or Dropped on the board. Redo requires a note. Verdicts

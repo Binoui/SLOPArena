@@ -59,7 +59,8 @@ table.list input{width:80px;border:2px solid #1b1a18;padding:2px 4px}
 .check-card{align-self:start}
 .check-card img,.check-card .noimg{aspect-ratio:16/9}
 .check-card .t{font-size:16px}.check-card .meta{display:flex;gap:6px;flex-wrap:wrap;align-items:center;padding:4px 8px 8px}
-.check-card .chip{margin:0}.age{font-size:12px;color:#625f58}
+.check-card .chip{margin:0}.chip.qa-pass{background:#2f9e44;color:#fff}.chip.qa-partial{background:#ffcc22;color:#1b1a18}.chip.qa-fail{background:#b22;color:#fff}
+.notes div.qa{border-left-color:#2f9e44}.age{font-size:12px;color:#625f58}
 .thread{display:flex;align-items:center;gap:6px;background:#f0eee8;border:2px solid #1b1a18;padding:4px 6px;font-size:12px;min-width:0;max-width:100%;margin:0 0 8px}
 .thread span{overflow-wrap:anywhere;flex:1;min-width:0}.thread .btn{flex-shrink:0}
 .check-sheet{grid-template-rows:auto 1fr;row-gap:0}.check-sheet>div{min-width:0}
@@ -240,6 +241,7 @@ function checkCard(d) {
     onkeydown="if(event.target===this && ['Enter',' '].includes(event.key)){event.preventDefault();showCheck(${d.id})}">${poster}
     <div class="t">${esc(d.title)}</div><div class="meta">${d.area ? `<span class="chip">${esc(d.area)}</span>` : ""}
     ${d.thread ? `<span class="chip" title="${esc(d.thread_title || d.thread)}">Thread</span>` : ""}
+    ${d.qa ? `<span class="chip qa-${esc(d.qa)}">QA ${esc(d.qa)}</span>` : ""}
     <time class="age" datetime="${esc(d.created)}" title="${esc(d.created)}">${age(d.created)}</time></div></div>`;
 }
 function showCheck(id, scroll = true) {
@@ -253,8 +255,9 @@ function showCheck(id, scroll = true) {
     : `<a href="${m}" target="_blank" rel="noopener"><img src="${m}" alt="${esc(d.title)}"></a>`).join("") || `<div class="empty">No media attached</div>`}</div>`;
   sheet.innerHTML = `<div class="check-intro"><h3>${esc(d.title)}</h3><span class="chip" style="margin:0;display:inline-block">#${d.id} &middot; ${esc(d.status)}</span>
     ${d.area ? `<span class="chip" style="display:inline-block">${esc(d.area)}</span>` : ""}
+    ${d.qa ? `<span class="chip qa-${esc(d.qa)}" style="display:inline-block">QA ${esc(d.qa)}</span>` : ""}
     <div class="report checksteps">${md(d.steps)}</div>${threadChip(d)}
-    </div>${media}<div class="check-feedback"><h4>Notes</h4><div class="notes">${d.notes.map(n => `<div class="${n.author === "agent" ? "agent" : ""}"><small>${n.author === "owner" ? "You" : "Agent"} ${esc(n.at.replace("T"," "))}</small> ${esc(n.body)}${n.send ? `<small class="delivery ${n.error && !n.delivered ? "error" : ""}">${n.delivered ? "Sent to thread" : n.error ? "Error: " + esc(n.error) : "Waiting for desk"}</small>` : ""}</div>`).join("") || `<p>No notes yet.</p>`}</div>
+    </div>${media}<div class="check-feedback"><h4>Notes</h4><div class="notes">${d.notes.map(n => `<div class="${n.author === "owner" ? "" : n.author}"><small>${{owner: "You", agent: "Agent", qa: "QA"}[n.author]} ${esc(n.at.replace("T"," "))}</small> ${esc(n.body)}${n.send ? `<small class="delivery ${n.error && !n.delivered ? "error" : ""}">${n.delivered ? "Sent to thread" : n.error ? "Error: " + esc(n.error) : "Waiting for desk"}</small>` : ""}</div>`).join("") || `<p>No notes yet.</p>`}</div>
     <textarea id="checkNote" placeholder="What happened? What needs to change?" aria-label="Check note">${esc(note)}</textarea>
     ${d.thread ? `<label class="send-note"><input type="checkbox" id="sendNote" ${sendToThread ? "checked" : ""}>Send note to thread</label>` : `<p class="age">No thread linked. Notes stay on this check.</p>`}
     <div class="acts">${CHECK_ACTIONS[d.status].map(([status,label,kind]) => `<button class="btn ${kind}" onclick="checkAct(${d.id},'${status}')">${label}</button>`).join("")}

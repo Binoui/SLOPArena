@@ -54,6 +54,7 @@ CHECK_MOVES = {"to-try": {"good", "redo", "dropped"}, "redo": {"to-try", "good",
                "good": {"to-try"}, "dropped": {"to-try"}}
 CHECK_FIELDS = {"title", "steps", "area", "thread", "thread_title"}
 CHECK_MEDIA = {".mp4": "video/mp4", ".jpg": "image/jpeg", ".png": "image/png"}
+QA_RESULT = re.compile(r"QA: (PASS|PARTIAL|FAIL)\.")
 TAKE_FROM = {"proposed", "approved", "rendered"}
 RUN_KINDS = {"propose", "render", "redo", "scout"}
 RUN_STATES = {"queued", "sent", "running", "done", "failed"}
@@ -121,8 +122,9 @@ def full_check(con: sqlite3.Connection, row: sqlite3.Row) -> dict:
     folder = DATA / "media" / f"check-{row['id']}"
     media = [f"/media/check-{row['id']}/{quote(p.name)}" for p in sorted(folder.iterdir())
              if p.is_file() and p.suffix.lower() in CHECK_MEDIA] if folder.is_dir() else []
-    return dict(row) | {"notes": [dict(n) for n in con.execute(
-        "SELECT * FROM check_notes WHERE check_id = ? ORDER BY id", (row["id"],))], "media": media}
+    notes = [dict(n) for n in con.execute("SELECT * FROM check_notes WHERE check_id = ? ORDER BY id", (row["id"],))]
+    qa = next((QA_RESULT.match(n["body"])[1].lower() for n in reversed(notes) if n["author"] == "qa"), None)
+    return dict(row) | {"notes": notes, "media": media, "qa": qa}
 
 
 def check_fields(body: dict, creating: bool = False) -> dict:
@@ -166,8 +168,10 @@ def patch_check(check_id: int, body: dict) -> dict:
 
 
 def check_note(con: sqlite3.Connection, check_id: int, author: str, body: str, send: bool) -> None:
-    if author not in {"owner", "agent"} or not isinstance(body, str) or not body.strip():
-        raise Refused("a note needs an author (owner or agent) and a body")
+    if author not in {"owner", "agent", "qa"} or not isinstance(body, str) or not body.strip():
+        raise Refused("a note needs an author (owner, agent or qa) and a body")
+    if author == "qa" and not QA_RESULT.match(body.strip()):
+        raise Refused("a QA note starts with QA: PASS., QA: PARTIAL. or QA: FAIL.")
     if not isinstance(send, bool):
         raise Refused("send must be true or false")
     if send and author != "owner":

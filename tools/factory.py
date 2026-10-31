@@ -26,6 +26,8 @@ skills/social-clips/SKILL.md owns the workflow. Its address comes from $SLOPAREN
     python3 tools/factory.py check ready <id> [--note "what changed"]
     python3 tools/factory.py check drop <id> [--note "why superseded"]
     python3 tools/factory.py check attach <id> <file>...
+    python3 tools/factory.py check qa-brief <id>            # the brief an independent QA subagent runs from
+    python3 tools/factory.py check qa <id> --result pass|partial|fail --report <file.md|-> [--clip <file> ...]
     python3 tools/factory.py check import <checks.json>
     python3 tools/factory.py relay [--once] [--interval 20]  # desk outbox worker, T3_CLI overrides t3
 """
@@ -152,6 +154,30 @@ def attach_check(check_id: int, files: list[Path]) -> None:
              headers={"Content-Type": "application/octet-stream"})
 
 
+QA_BRIEF = """You are an independent QA tester for SLOPArena in {root}. Test Slop Factory check #{id} and report what you
+find. You did not build this change: work only from the check, the repo docs and the build. Do not read the builder's
+thread or reports. You test and report; you never fix, judge taste, or decide the verdict.
+
+1. Read the check: `python3 tools/factory.py check get {id}`. Read AGENTS.md, docs/testing.md and the section
+   "Report independent QA" in docs/systems/slop-factory.md.
+2. If every "Look for" line is a judgment call (feel, looks, preference), stop and report partial with
+   "Nothing a machine can test." Otherwise test every line a machine can observe: run the build, drive the Editor
+   or the game, read real values, capture screenshots or clips.
+3. Leave things as you found them. Do not edit tracked files; put everything under tmp/qa-{id}/. Before you start,
+   snapshot `git status` and hashes of anything you might touch, and compare at the end; other threads have
+   uncommitted edits. Do not save or cook packages unless the check says to.
+4. The Unity Editor is shared. Use the gateway with your own identity and your own bounded lease, per
+   docs/contributing/unity-editor-coordination.md. Wait for it; never take over another batch. If it stays
+   blocked, mark the affected lines NOT TESTED and say why.
+5. Never press verdict buttons on the live factory, change a check's status, or message real T3 threads. To test
+   the factory itself, run a local server with a fake T3_CLI as the slop-factory doc describes.
+6. Report once, at the end:
+   `python3 tools/factory.py check qa {id} --result pass|partial|fail --report tmp/qa-{id}/report.md --clip <files>`
+   pass: every line tested and held. partial: some lines need the owner or could not run. fail: a line broke.
+   The report has one numbered entry per step: PASS, FAIL or NOT TESTED, the evidence (numbers, screenshot
+   names), then one line on method, and anything in the check's wording that was ambiguous."""
+
+
 def create_check(title: str, steps: str, area: str | None, thread: str | None, clips: list[Path]) -> int:
     for path in clips:
         if not path.is_file() or path.suffix.lower() not in {".mp4", ".jpg", ".png"}:
@@ -166,7 +192,11 @@ def create_check(title: str, steps: str, area: str | None, thread: str | None, c
 def check_command(args) -> None:
     if args.check_command == "add":
         steps = sys.stdin.read() if args.steps == "-" else Path(args.steps).read_text()
-        create_check(args.title, steps, args.area, args.thread, args.clip)
+        check_id = create_check(args.title, steps, args.area, args.thread, args.clip)
+        print("\nStart one fresh subagent in the background with this QA brief, unchanged "
+              "(reprint it with `check qa-brief`):\n\n" + QA_BRIEF.format(id=check_id, root=ROOT))
+    elif args.check_command == "qa-brief":
+        print(QA_BRIEF.format(id=args.id, root=ROOT))
     elif args.check_command == "list":
         for check in call("GET", "/api/board")["checks"]:
             if not args.status or check["status"] == args.status:
@@ -178,6 +208,11 @@ def check_command(args) -> None:
         print(json.dumps(check, indent=1, ensure_ascii=False))
     elif args.check_command == "note":
         call("POST", f"/api/checks/{args.id}/notes", {"author": "agent", "body": args.text, "send": False})
+    elif args.check_command == "qa":
+        report = sys.stdin.read() if args.report == "-" else Path(args.report).read_text()
+        call("POST", f"/api/checks/{args.id}/notes",
+             {"author": "qa", "body": f"QA: {args.result.upper()}.\n\n{report.strip()}", "send": False})
+        attach_check(args.id, args.clip)
     elif args.check_command in {"ready", "drop"}:
         call("POST", f"/api/checks/{args.id}/verdict",
              {"status": {"ready": "to-try", "drop": "dropped"}[args.check_command],
@@ -280,6 +315,12 @@ def main() -> None:
     note = checks.add_parser("note")
     note.add_argument("id", type=int)
     note.add_argument("text")
+    checks.add_parser("qa-brief").add_argument("id", type=int)
+    qa = checks.add_parser("qa")
+    qa.add_argument("id", type=int)
+    qa.add_argument("--result", required=True, choices=["pass", "partial", "fail"])
+    qa.add_argument("--report", required=True)
+    qa.add_argument("--clip", nargs="+", type=Path, default=[])
     for command in ("ready", "drop"):
         move = checks.add_parser(command)
         move.add_argument("id", type=int)
