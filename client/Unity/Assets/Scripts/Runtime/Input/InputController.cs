@@ -534,6 +534,9 @@ namespace SlopArena.Client.Input
                 moveDirection = moveDirection.normalized;
             }
 
+            float stickMagnitude = Act("MoveStick").ReadValue<Vector2>().magnitude;
+            input.Walk = Act("Walk").IsPressed()
+                || (!keyboardMovement && stickMagnitude > 0f && stickMagnitude <= 0.7f);
             input.MoveX = moveDirection.x;
             input.MoveY = moveDirection.z;
             input.Up = moveDirection.z > 0.3f;
@@ -583,6 +586,7 @@ namespace SlopArena.Client.Input
             // FSM movement gate: zero out input if state disallows movement
             if (aimCtx.LocksMovement || (canMove != null && !canMove()))
             {
+                input.Walk = false;
                 input.MoveX = 0f;
                 input.MoveY = 0f;
                 input.Up = input.Left = input.Right = false;

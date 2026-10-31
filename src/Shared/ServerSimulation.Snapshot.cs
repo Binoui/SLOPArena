@@ -26,7 +26,8 @@ namespace SlopArena.Shared
         // 18: a timeline activation records its confirmed fighter contact for form swap-cancels.
         // 19: a hitbox's own hit presentation and the activation's sweetspot contact (ADR-0053).
         // 20: perching projectiles and their queued pops (ADR-0051).
-        public const uint SnapshotFormatVersion = 21;
+        // 23: Kamikaze's vulnerable startup/travel phase.
+        public const uint SnapshotFormatVersion = 23;
 
         private readonly List<ulong> _abilityOrder = new();
 

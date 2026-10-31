@@ -227,13 +227,19 @@ def check_command(args) -> None:
 
 def relay_message(note: dict) -> str:
     body = note["body"]
-    match = re.fullmatch(r"Verdict: (TO-TRY|GOOD|REDO|DROPPED)\.(?:\n\n(.*))?", body, re.DOTALL)
+    match = re.fullmatch(r"Verdict: (TO-TRY|GOOD|REDO|DROPPED)( \+ COMMIT)?\.(?:\n\n(.*))?", body, re.DOTALL)
     if match:
-        verdict, text = match[1], match[2]
+        verdict, commit, text = match[1], match[2], match[3]
         message = f'Owner checked "{note["title"]}" (factory check #{note["check_id"]}): {verdict}.'
         if text:
             message += f"\n\n{text}"
-        if verdict == "REDO":
+        if commit:
+            message += ("\n\nThe owner authorizes a commit (no push). Commit only this work's changes "
+                        "(git commit -- <paths>; where a file also holds other threads' uncommitted edits, stage "
+                        "only your hunks), following docs/contributing/conventions.md, and reply with the sha. "
+                        "Then settle this thread (t3_thread_organize, action settle). If the commit cannot be "
+                        "made cleanly, say why and leave the thread active.")
+        elif verdict == "REDO":
             message += (f'\n\nWhen fixed, run: python3 tools/factory.py check ready {note["check_id"]} '
                         '--note "<what changed>"')
         elif verdict == "TO-TRY":

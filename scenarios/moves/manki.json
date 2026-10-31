@@ -1,0 +1,493 @@
+{
+  "package": "manki",
+  "stage": "splash_deck",
+  "facing": 0,
+  "dummy": {
+    "package": "fightguy",
+    "behavior": "Idle",
+    "damage": 0
+  },
+  "camera": {
+    "distance": 10,
+    "fov": 45,
+    "look": 0.0,
+    "gameplayPitch": 35
+  },
+  "phases": [
+    {
+      "name": "set",
+      "at": "0"
+    },
+    {
+      "name": "armed",
+      "at": "32"
+    },
+    {
+      "name": "blast",
+      "at": "44"
+    }
+  ],
+  "moves": [
+    {
+      "id": "ground-mine",
+      "slot": "ground.A",
+      "dummy": {
+        "distance": 4,
+        "input": {
+          "ticks": 130,
+          "space": "camera",
+          "events": [
+            {
+              "tick": 0,
+              "move": [
+                0,
+                0
+              ]
+            },
+            {
+              "tick": 45,
+              "move": [
+                0,
+                -1
+              ]
+            },
+            {
+              "tick": 63,
+              "move": [
+                0,
+                0
+              ]
+            }
+          ]
+        }
+      },
+      "input": [
+        {
+          "ticks": 8
+        },
+        {
+          "ticks": 1,
+          "slot": "A"
+        },
+        {
+          "ticks": 121
+        }
+      ],
+      "phases": [
+        {
+          "name": "arming",
+          "at": "13"
+        },
+        {
+          "name": "armed wink",
+          "at": "43"
+        },
+        {
+          "name": "triggered",
+          "at": "hit-7"
+        },
+        {
+          "name": "blast",
+          "at": "hit"
+        }
+      ]
+    },
+    {
+      "id": "flying-mine",
+      "slot": "air.A",
+      "dummy": {
+        "distance": 7,
+        "input": {
+          "ticks": 180,
+          "space": "camera",
+          "events": [
+            {
+              "tick": 0,
+              "move": [
+                0,
+                0
+              ]
+            },
+            {
+              "tick": 90,
+              "move": [
+                0,
+                -1
+              ]
+            },
+            {
+              "tick": 120,
+              "move": [
+                0,
+                0
+              ]
+            }
+          ]
+        }
+      },
+      "phases": [
+        {
+          "name": "drop",
+          "at": "20"
+        },
+        {
+          "name": "land",
+          "at": "65"
+        },
+        {
+          "name": "trigger",
+          "at": "hit"
+        }
+      ],
+      "input": [
+        {
+          "ticks": 1,
+          "slot": "E",
+          "moveY": 1
+        },
+        {
+          "ticks": 18,
+          "moveY": 1
+        },
+        {
+          "ticks": 1,
+          "slot": "A",
+          "moveY": -1
+        },
+        {
+          "ticks": 20,
+          "moveY": -1
+        },
+        {
+          "ticks": 1,
+          "slot": "E"
+        },
+        {
+          "ticks": 139
+        }
+      ]
+    },
+    {
+      "id": "charged-rocket",
+      "slot": "ground.R",
+      "dummy": {
+        "distance": 8,
+        "input": {
+          "ticks": 108,
+          "space": "camera",
+          "events": [
+            {
+              "tick": 0,
+              "move": [
+                1,
+                0
+              ]
+            },
+            {
+              "tick": 42,
+              "move": [
+                0,
+                0
+              ]
+            }
+          ]
+        }
+      },
+      "phases": [
+        {
+          "name": "charge",
+          "at": "start+4"
+        },
+        {
+          "name": "lock",
+          "at": "start+32"
+        },
+        {
+          "name": "fire",
+          "at": "cue:presentation.manki.bazooka.muzzle"
+        },
+        {
+          "name": "impact",
+          "at": "hit"
+        }
+      ],
+      "input": [
+        {
+          "ticks": 8
+        },
+        {
+          "ticks": 1,
+          "slot": "R",
+          "targetEntityId": "dummy"
+        },
+        {
+          "ticks": 99,
+          "targetEntityId": "dummy"
+        }
+      ]
+    },
+    {
+      "id": "ground-kamikaze",
+      "slot": "ground.F",
+      "dummy": {
+        "distance": 7
+      },
+      "input": [
+        {
+          "ticks": 8
+        },
+        {
+          "ticks": 1,
+          "slot": "F",
+          "targetEntityId": "dummy"
+        },
+        {
+          "ticks": 115,
+          "targetEntityId": "dummy"
+        }
+      ],
+      "phases": [
+        {
+          "name": "sputter",
+          "at": "start+3"
+        },
+        {
+          "name": "brace",
+          "at": "start+12"
+        },
+        {
+          "name": "launch",
+          "at": "cue:presentation.manki.kamikaze.trail"
+        },
+        {
+          "name": "travel",
+          "at": "start+23"
+        },
+        {
+          "name": "grin scatter",
+          "at": "cue:presentation.manki.kamikaze.explosion+5"
+        },
+        {
+          "name": "clear",
+          "at": "cue:presentation.manki.kamikaze.explosion+18"
+        }
+      ]
+    },
+    {
+      "id": "flying-kamikaze",
+      "slot": "air.F",
+      "dummy": {
+        "distance": 10
+      },
+      "input": [
+        {
+          "ticks": 1,
+          "slot": "E",
+          "moveY": 1
+        },
+        {
+          "ticks": 18,
+          "moveY": 1
+        },
+        {
+          "ticks": 1,
+          "slot": "F",
+          "targetEntityId": "dummy"
+        },
+        {
+          "ticks": 100,
+          "targetEntityId": "dummy"
+        }
+      ],
+      "phases": [
+        {
+          "name": "air startup",
+          "at": "start+5"
+        },
+        {
+          "name": "launch",
+          "at": "cue:presentation.manki.kamikaze.trail"
+        },
+        {
+          "name": "travel",
+          "at": "start+22"
+        },
+        {
+          "name": "blast",
+          "at": "cue:presentation.manki.kamikaze.explosion+5"
+        },
+        {
+          "name": "clear",
+          "at": "cue:presentation.manki.kamikaze.explosion+18"
+        }
+      ]
+    },
+    {
+      "id": "chaos",
+      "slot": "air.F",
+      "dummy": {
+        "distance": 12
+      },
+      "input": [
+        {
+          "ticks": 8
+        },
+        {
+          "ticks": 1,
+          "slot": "A"
+        },
+        {
+          "ticks": 12
+        },
+        {
+          "ticks": 10,
+          "moveX": 1
+        },
+        {
+          "ticks": 9
+        },
+        {
+          "ticks": 1,
+          "slot": "A"
+        },
+        {
+          "ticks": 12
+        },
+        {
+          "ticks": 10,
+          "moveX": 1
+        },
+        {
+          "ticks": 9
+        },
+        {
+          "ticks": 1,
+          "slot": "A"
+        },
+        {
+          "ticks": 13
+        },
+        {
+          "ticks": 1,
+          "moveY": 1,
+          "slot": "E"
+        },
+        {
+          "ticks": 9,
+          "moveY": 1
+        },
+        {
+          "ticks": 8,
+          "moveY": -1
+        },
+        {
+          "ticks": 1,
+          "moveY": -1,
+          "jumpPressed": true
+        },
+        {
+          "ticks": 1,
+          "moveY": -1
+        },
+        {
+          "ticks": 10,
+          "moveY": 1
+        },
+        {
+          "ticks": 6,
+          "moveY": -1
+        },
+        {
+          "ticks": 1,
+          "moveY": -1,
+          "jumpPressed": true
+        },
+        {
+          "ticks": 3,
+          "moveY": -1
+        },
+        {
+          "ticks": 10,
+          "moveY": 1
+        },
+        {
+          "ticks": 4,
+          "moveY": -1
+        },
+        {
+          "ticks": 1,
+          "moveY": -1,
+          "slot": "R"
+        },
+        {
+          "ticks": 5,
+          "moveY": -1
+        },
+        {
+          "ticks": 10,
+          "moveY": 1
+        },
+        {
+          "ticks": 10,
+          "moveY": -1
+        },
+        {
+          "ticks": 10,
+          "moveY": 1
+        },
+        {
+          "ticks": 10,
+          "moveY": -1
+        },
+        {
+          "ticks": 10,
+          "moveY": 1
+        },
+        {
+          "ticks": 10,
+          "moveY": -1
+        },
+        {
+          "ticks": 10,
+          "moveY": 1
+        },
+        {
+          "ticks": 1,
+          "slot": "F",
+          "targetEntityId": "dummy"
+        },
+        {
+          "ticks": 113,
+          "targetEntityId": "dummy"
+        }
+      ],
+      "phases": [
+        {
+          "name": "three mines",
+          "at": "81"
+        },
+        {
+          "name": "rocket and mines",
+          "at": "187"
+        },
+        {
+          "name": "startup stack",
+          "at": "start+8"
+        },
+        {
+          "name": "launch stack",
+          "at": "cue:presentation.manki.kamikaze.trail"
+        },
+        {
+          "name": "impact stack",
+          "at": "cue:presentation.manki.kamikaze.explosion+5"
+        },
+        {
+          "name": "clear",
+          "at": "cue:presentation.manki.kamikaze.explosion+18"
+        }
+      ]
+    }
+  ],
+  "size": "1280x720"
+}

@@ -14,9 +14,9 @@ namespace SlopArena.Shared.Tests;
 /// </summary>
 public sealed class MankiKitScenarioTests : KitScenarioTests
 {
-    private const string RoundBombCapabilityId = "slop.internal.manki.round-bomb.v3";
+    private const string RoundBombCapabilityId = "slop.internal.manki.proximity-mine.v1";
     private const string JetpackCapabilityId = "slop.internal.manki.jetpack-boost.v3";
-    private const string BazookaCapabilityId = "slop.internal.manki.bazooka.v2";
+    private const string BazookaCapabilityId = "slop.internal.manki.bazooka.v3";
     private const string KamikazeCapabilityId = "slop.internal.manki.kamikaze.v1";
 
     private static readonly CharacterDefinition Def = TestHelpers.MankiDef;
@@ -56,7 +56,7 @@ public sealed class MankiKitScenarioTests : KitScenarioTests
 
         var package = first.CookedPackage;
         Assert.Equal(4, package.Definition.CapabilityRequirements.Count);
-        Assert.Equal(new[] { BazookaCapabilityId, JetpackCapabilityId, KamikazeCapabilityId, RoundBombCapabilityId },
+        Assert.Equal(new[] { BazookaCapabilityId, JetpackCapabilityId, KamikazeCapabilityId, RoundBombCapabilityId }.OrderBy(x => x),
             package.Definition.CapabilityRequirements.Select(x => x.CapabilityId).OrderBy(x => x).ToArray());
         Assert.All(package.Definition.CapabilityRequirements, x => Assert.Equal("1", x.CapabilityVersion));
         var expectedSlots = new[]
@@ -216,19 +216,19 @@ public sealed class MankiKitScenarioTests : KitScenarioTests
     }
 
     [Fact]
-    public void R_Bazooka_PressFiresAndRecoversWithoutAiming()
+    public void R_Bazooka_ChargesThenFiresAndRecovers()
     {
         var sim = TestHelpers.MakeSim();
         sim.RegisterEntity(1, Def, GroundedPlayer() with { PX = 20f, PZ = 20f }, TestHelpers.LoadBakedData(Def));
         int spawned = 0;
-        for (int tick = 0; tick < 90; tick++)
+        for (int tick = 0; tick < 110; tick++)
         {
             sim.Tick(new() { [1] = new InputState { ActiveSlot = tick == 0 ? AbilitySlots.R : (byte)0 } });
             Assert.NotEqual(ActionState.Aiming, sim.GetState(1).State);
             foreach (var rocket in sim.Resolver.LastTickCheckedHitboxes.Where(h => h.OwnerId == 1 && h.Explosion.HasValue && h.AgeTicks == 0))
             {
                 spawned++;
-                Assert.Equal(6u, sim.CurrentTick);
+                Assert.Equal(40u, sim.CurrentTick);
                 Assert.Equal(4f, rocket.Explosion!.Value.OwnerDamage);
             }
         }

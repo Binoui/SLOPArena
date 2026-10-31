@@ -2,15 +2,16 @@ using System;
 
 namespace SlopArena.Shared.Abilities
 {
-    /// <summary>Press-to-fire rocket. Its captured target and steering live on the projectile.</summary>
     public sealed class MankiBazooka : ServerAbility
     {
         public override bool OwnsVerticalMotion => true;
 
         private readonly CookedMankiBazookaCapabilityParameters _parameters;
-        private enum BazookaPhase { Firing, Recovery }
+        private enum BazookaPhase { Charging, Firing, Recovery }
         private BazookaPhase _phase;
         private bool _projectileSpawned;
+        private ulong _targetId;
+        private float _launchYaw;
 
         public MankiBazooka(CookedMankiBazookaCapabilityParameters parameters)
             => _parameters = parameters ?? throw new ArgumentNullException(nameof(parameters));
@@ -19,16 +20,20 @@ namespace SlopArena.Shared.Abilities
             ClearVelocityOwnership(ref s);
             s.IsFastFalling = false;
 
-            _phase = BazookaPhase.Firing;
+            _phase = _parameters.ChargeTicks > 0 ? BazookaPhase.Charging : BazookaPhase.Firing;
             _projectileSpawned = false;
+            _targetId = ActivationInput.TargetEntityId != 0 && OwnerSimulation != null
+                ? OwnerSimulation.ResolveObjectTargetAlias(ActivationInput.TargetEntityId, s.EntityId) : s.TargetEntityId;
+            _launchYaw = s.FacingYaw;
+            s.ChargeTicks = 0;
 
             s.State = ActionState.Attacking;
             s.AttackSlot = (byte)(Slot + 1);
             AnimIndex = 1;
             s.ComboStage = 1;
             s.AttackElapsedTicks = 0;
-            s.IsAiming = false;
-            s.AnimLockTicks = _parameters.CastDuration;
+            s.IsAiming = _phase == BazookaPhase.Charging;
+            s.AnimLockTicks = (ushort)(_parameters.ChargeTicks + _parameters.CastDuration);
         }
 
         public override void OnEnd(ref CharacterState s)
@@ -36,6 +41,7 @@ namespace SlopArena.Shared.Abilities
             ClearVelocityOwnership(ref s);
             s.IsFastFalling = false;
             s.IsAiming = false;
+            s.ChargeTicks = 0;
             s.VY = 0f;
             if (s.IsGrounded)
                 s.VX = s.VZ = 0f;
@@ -43,10 +49,28 @@ namespace SlopArena.Shared.Abilities
 
         public override void Tick(ref CharacterState s, ref InputState input, CharacterDefinition def)
         {
-            s.IsAiming = false;
+            s.IsAiming = _phase == BazookaPhase.Charging;
+            if (_parameters.ChargeTicks > 0) s.TargetEntityId = _targetId;
             if (s.IsGrounded) s.VX = s.VZ = 0f;
             switch (_phase)
             {
+                case BazookaPhase.Charging:
+                    if (OwnerSimulation != null && OwnerSimulation.TryGetProjectileTargetPosition(s.EntityId, _targetId, out var target))
+                    {
+                        float dx = target.X - s.PX, dz = target.Z - s.PZ;
+                        if (dx * dx + dz * dz > .000001f)
+                            s.FacingYaw = MathF.Atan2(dx, dz);
+                    }
+                    else s.FacingYaw = _launchYaw;
+                    s.ChargeTicks = (ushort)Math.Min(s.AttackElapsedTicks, _parameters.ChargeTicks);
+                    if (s.AttackElapsedTicks >= _parameters.ChargeTicks)
+                    {
+                        _phase = BazookaPhase.Firing;
+                        _projectileSpawned = true;
+                        s.IsAiming = false;
+                        SpawnRocket(ref s, def);
+                    }
+                    break;
                 case BazookaPhase.Firing:
                     TickFiring(ref s, def);
                     break;
@@ -64,9 +88,10 @@ namespace SlopArena.Shared.Abilities
                 SpawnRocket(ref s, def);
             }
 
-            if (s.AttackElapsedTicks >= _parameters.CastDuration)
+            if (s.AttackElapsedTicks >= _parameters.ChargeTicks + _parameters.CastDuration)
             {
                 _phase = BazookaPhase.Recovery;
+                s.ChargeTicks = 0;
                 s.AttackElapsedTicks = 0;
                 s.AnimLockTicks = _parameters.RecoveryDuration;
             }
@@ -83,16 +108,18 @@ namespace SlopArena.Shared.Abilities
         private void SpawnRocket(ref CharacterState s, CharacterDefinition def)
         {
             float speed = _parameters.ProjectileSpeed;
-            float vx = speed * MathF.Sin(s.FacingYaw), vy = 0f, vz = speed * MathF.Cos(s.FacingYaw);
+            float yaw = _parameters.ChargeTicks > 0 ? _launchYaw : s.FacingYaw;
+            float vx = speed * MathF.Sin(yaw), vy = 0f, vz = speed * MathF.Cos(yaw);
+            ulong wantedTarget = _parameters.ChargeTicks > 0 ? _targetId : s.TargetEntityId;
             ulong targetId = 0;
             if (OwnerSimulation != null
-                && OwnerSimulation.TryGetProjectileTargetPosition(s.EntityId, s.TargetEntityId, out var target))
+                && OwnerSimulation.TryGetProjectileTargetPosition(s.EntityId, wantedTarget, out var target))
             {
                 float dx = target.X - s.PX, dy = target.Y - (s.PY + 1f), dz = target.Z - s.PZ;
                 float distance = MathF.Sqrt(dx * dx + dy * dy + dz * dz);
                 if (distance > 0.0001f)
                 {
-                    targetId = s.TargetEntityId;
+                    targetId = wantedTarget;
                     vx = dx / distance * speed;
                     vy = dy / distance * speed;
                     vz = dz / distance * speed;
@@ -142,6 +169,8 @@ namespace SlopArena.Shared.Abilities
             base.WriteSnapshot(w);
             w.WriteByte((byte)_phase);
             w.WriteBool(_projectileSpawned);
+            w.WriteULong(_targetId);
+            w.WriteFloat(_launchYaw);
         }
 
         internal override void ReadSnapshot(SnapshotReader r)
@@ -149,6 +178,8 @@ namespace SlopArena.Shared.Abilities
             base.ReadSnapshot(r);
             _phase = (BazookaPhase)r.ReadByte();
             _projectileSpawned = r.ReadBool();
+            _targetId = r.ReadULong();
+            _launchYaw = r.ReadFloat();
         }
     }
 }

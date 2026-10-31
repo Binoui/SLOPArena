@@ -10,6 +10,11 @@ picks"), and asked for a longer E that does not feel oppressive. The values unde
 [ADR-0042](0042-controller-layout-three-normals-homing-dash.md) (normal roles) and the fighter-state pattern of
 [ADR-0045](0045-bashie-shell-state.md)
 
+**Revision 2026-10-31.** The maintainer played the bomber and found it "way too much": Manki spends too long in the
+air, where he is hard to hit, and moves too much. Q loses its movement and becomes proximity mines, R charges with
+a visible lock before it fires, and E gets a long cooldown because it is his recovery. These replace the Q, R and E
+sections below. The approved VFX follow-up below adds F startup; normals are unchanged. See [Revision 2026-10-31 decisions](#revision-2026-10-31-decisions).
+
 ## Context
 
 Manki is the roster's chaotic gadget fighter. His specials were four unrelated weapons, and the first rework tied
@@ -150,3 +155,56 @@ admission, movement or contact result.
 - A fighter state that several moves read is new for the jetpack but follows Bashie's shell.
 - The kit gets smaller in code: the ignition rule and the aerosol capability go.
 - The rocket prop swap and Kamikaze's look are presentation follow-ups.
+
+## Revision 2026-10-31 decisions
+
+The maintainer asked for less air time and less movement. The coordinator chose the details below; numbers are
+starting points for play.
+
+### Q, Proximity Mines
+
+Q no longer moves Manki. The hop backward is removed, and so is the mine blast's push on him.
+
+- **Grounded:** a mine is set at his feet.
+- **Airborne, Flying or not:** he tosses the mine straight down. It falls, settles on the floor below and becomes a
+  mine there. An opponent it hits on the way down sets it off at once. Over a pit it disappears.
+- **Arming:** a set mine arms after a short delay, so it cannot be dropped point-blank on someone.
+- **Trigger:** an armed mine reacts to an opponent inside its trigger radius. It beeps for a short warning and then
+  explodes. Manki never triggers his own mines, and their blast ignores him. Teammates follow the mode's ordinary
+  hit rules.
+- **Limits:** three charges as before. At most three mines are on the field; a fourth removes the oldest without a
+  blast. An untriggered mine fizzles out after its lifetime, also without a blast.
+- **Readability:** the existing floor circle shows the blast radius. An armed mine shows a blinking light so it
+  reads as live.
+
+### R, charged lock
+
+Press R and the rocket fires after a short charge instead of at once. The target is captured on the press. During
+the charge a lock-on reticle sits on that target, visible to every player, and closes in until the rocket fires.
+With no target there is no reticle and the rocket flies along his facing. Grounded he is rooted while charging;
+Flying he keeps flying. Facing follows the captured target during charge while flight retains its movement heading.
+A hit cancels the charge. Homing after launch is unchanged.
+
+### E, long cooldown
+
+E stays his recovery and keeps its fuel. Its cooldown, still counted from the flight's end, becomes much longer
+than the roster's 210 to 240 ticks, so spending it to bomb the stage leaves him without a recovery for a while.
+
+### Revision starting values
+
+- Mine arm delay 30 ticks, trigger radius 2 m, warning 12 ticks, lifetime 600 ticks, blast radius and damage as
+  the bomb's. Grounded cast keeps the 12-tick stage.
+- R charge 40 ticks before launch.
+- E cooldown 600 ticks after the flight ends.
+
+### Approved VFX follow-up, 2026-10-31
+
+Kamikaze now has sixteen vulnerable startup ticks before its existing 54-tick travel allowance.
+Startup captures the target immediately. Manki stays rooted on the ground and falls normally in air.
+Launch retains 18 m/s and the captured target. The authored stage is 71 ticks.
+Interruption clears startup and prevents delayed travel or blast. World Snapshot v23 stores the phase.
+The protocol stays at 32 until the next release.
+
+The presentation uses a pack announcement, launch ignition, twin short jets, and separate closed soot clods.
+The blast remains 4 m with 24 damage and the same owner push and Hitstop.
+R and F keep their existing clips until the separate animation authoring task is accepted.

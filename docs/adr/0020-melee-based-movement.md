@@ -1,6 +1,6 @@
 # ADR-0020: Melee-Based Movement
 
-**Status:** Accepted 2026-08-13. Ground movement amended 2026-10-27 after the owner approved the Progressive prototype, and retuned 2026-10-28 (Start 60%, Ramp 12).
+**Status:** Accepted 2026-08-13. Ground movement amended 2026-10-27 after the owner approved the Progressive prototype, and retuned 2026-10-28 (Start 60%, Ramp 12). [ADR-0058](0058-movement-calibration-walk-takeoff-run-speeds.md) adds Walk and caps ordinary jump takeoff speed (2026-10-31).
 **Deciders:** @Binoui
 **Amends:** ADR-0001 (gravity — §3, three-phase ramp → float-window-only)
 **Related:** ADR-0015 (timing-based defense), ADR-0016 (keyboard-first input), ADR-0017 (facing), ADR-0018 (target lock), ADR-0019 (hit response), ADR-0021 (frame timing)

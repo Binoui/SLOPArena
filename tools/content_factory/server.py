@@ -195,10 +195,15 @@ def add_check_note(check_id: int, body: dict) -> dict:
 
 def check_verdict(check_id: int, body: dict) -> dict:
     status, note, author = body.get("status"), body.get("note", ""), body.get("author", "owner")
+    send, commit = body.get("send", True), body.get("commit", False)
     if not isinstance(note, str):
         raise Refused("note must be text")
     if author not in {"owner", "agent"}:
         raise Refused("author must be owner or agent")
+    if not isinstance(send, bool) or not isinstance(commit, bool):
+        raise Refused("send and commit must be true or false")
+    if commit and (status != "good" or author != "owner" or not send):
+        raise Refused("only an owner Good sent to the thread can ask for a commit")
     with db() as con:
         con.execute("BEGIN IMMEDIATE")
         row = check_row(con, check_id)
@@ -208,10 +213,13 @@ def check_verdict(check_id: int, body: dict) -> dict:
             raise Refused("agents can ready a redo or drop a superseded check", 409)
         if status == "redo" and not note.strip():
             raise Refused("redo needs a note explaining what to change")
+        if commit and not row["thread"]:
+            raise Refused(f"check {check_id} has no thread to commit", 409)
         con.execute("UPDATE checks SET status = ?, updated = ? WHERE id = ?", (status, now(), check_id))
         # Keep the verdict in the note so a later move cannot change a queued outcome.
-        text = f"Verdict: {status.upper()}." + (f"\n\n{note.strip()}" if note.strip() else "")
-        check_note(con, check_id, author, text, author == "owner" and bool(row["thread"]))
+        text = (f"Verdict: {status.upper()}{' + COMMIT' if commit else ''}."
+                + (f"\n\n{note.strip()}" if note.strip() else ""))
+        check_note(con, check_id, author, text, send and author == "owner" and bool(row["thread"]))
         return full_check(con, check_row(con, check_id))
 
 

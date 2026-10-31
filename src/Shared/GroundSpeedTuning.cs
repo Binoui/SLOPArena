@@ -4,6 +4,7 @@ namespace SlopArena.Shared;
 public static class GroundSpeedTuning
 {
     public const float StartRatio = 0.6f;
+    public const float WalkRatio = 0.4f;
     public const ushort RampTicks = 12;
     public const ushort StopTicks = 20;
 }

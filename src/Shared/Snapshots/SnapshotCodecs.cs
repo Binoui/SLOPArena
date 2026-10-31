@@ -268,7 +268,8 @@ namespace SlopArena.Shared
             w.WriteBool(input.ShieldHeld);
             w.WriteBool(input.ShieldPressed);
             w.WriteBool(input.GrabPressed);
-            w.WriteBool(input.DashPressed);
+            // Reuse the existing input byte so held Walk survives ability snapshot restoration.
+            w.WriteByte((byte)((input.DashPressed ? 0x01 : 0) | (input.Walk ? 0x40 : 0)));
             w.WriteBool(input.JumpHeld);
             w.WriteBool(input.FaceToCamera);
             w.WriteBool(input.ToggleLock);
@@ -297,7 +298,10 @@ namespace SlopArena.Shared
             input.ShieldHeld = r.ReadBool();
             input.ShieldPressed = r.ReadBool();
             input.GrabPressed = r.ReadBool();
-            input.DashPressed = r.ReadBool();
+            byte dashAndWalk = r.ReadByte();
+            if ((dashAndWalk & ~0x41) != 0) throw SnapshotReader.Malformed("input dash and walk flags");
+            input.DashPressed = (dashAndWalk & 0x01) != 0;
+            input.Walk = (dashAndWalk & 0x40) != 0;
             input.JumpHeld = r.ReadBool();
             input.FaceToCamera = r.ReadBool();
             input.ToggleLock = r.ReadBool();
@@ -548,7 +552,13 @@ namespace SlopArena.Shared
             w.WriteBool(hb.OwnerDamage.HasValue);
             if (hb.OwnerDamage.HasValue) w.WriteFloat(hb.OwnerDamage.Value);
             w.WriteBool(hb.ContactExplosion);
-            w.WriteBool(hb.ExplodeOnExpiry);
+            w.WriteByte((byte)hb.MinePhase);
+            w.WriteUShort(hb.MineTicksLeft);
+            w.WriteUShort(hb.MineArmTicks);
+            w.WriteUShort(hb.MineWarningTicks);
+            w.WriteUShort(hb.MineLifetimeTicks);
+            w.WriteFloat(hb.MineTriggerRadius);
+            w.WriteByte(hb.MineMaxCount);
             w.WriteBool(hb.Explosion.HasValue);
             if (hb.Explosion.HasValue)
                 Write(w, hb.Explosion.Value);
@@ -638,7 +648,13 @@ namespace SlopArena.Shared
                 };
             if (r.ReadBool()) hb.OwnerDamage = r.ReadFloat();
             hb.ContactExplosion = r.ReadBool();
-            hb.ExplodeOnExpiry = r.ReadBool();
+            hb.MinePhase = (MinePhase)r.ReadByte();
+            hb.MineTicksLeft = r.ReadUShort();
+            hb.MineArmTicks = r.ReadUShort();
+            hb.MineWarningTicks = r.ReadUShort();
+            hb.MineLifetimeTicks = r.ReadUShort();
+            hb.MineTriggerRadius = r.ReadFloat();
+            hb.MineMaxCount = r.ReadByte();
             if (r.ReadBool())
                 hb.Explosion = ReadProjectileExplosion(r);
             if (r.ReadBool())

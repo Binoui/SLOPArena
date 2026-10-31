@@ -4,7 +4,6 @@ using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Text;
-using System.Text.Json;
 using SlopArena.Shared;
 
 [assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Shared.Tests")]
@@ -46,7 +45,7 @@ internal static class Program
         byte form = 0;
         string cookedRoot = "content-cooked";
         string output = Path.Combine("artifacts", "hit-reliability");
-        byte[] wires = Reliability.NormalWires;
+        byte[] wires = CanonicalSlotProjection.All.Where(x => !x.IsAirborne && x.Ordinal < 3).Select(CanonicalSlotProjection.ToWire).ToArray();
         for (int i = 0; i < args.Length; i++)
         {
             switch (args[i])
@@ -60,7 +59,7 @@ internal static class Program
                     break;
                 case "--out" when i + 1 < args.Length: output = args[++i]; break;
                 case "--slots" when i + 1 < args.Length:
-                    if (Reliability.ParseSlots(args[++i]) is not { } parsed)
+                    if (ParseSlots(args[++i]) is not { } parsed)
                     {
                         Console.Error.WriteLine($"Unknown slots '{args[i]}'.\n{Usage}");
                         return 2;
@@ -78,8 +77,7 @@ internal static class Program
             return 2;
         }
 
-        var arena = Reliability.FlatArena();
-        var targets = new[] { CharacterClass.FightGuy, CharacterClass.Manki }.Select(c => BuiltInContentResolver.Resolve(c, cookedRoot)).ToArray();
+        var targets = HitReliabilityTargets.Load(cookedRoot);
         Directory.CreateDirectory(output);
         foreach (var (name, cls) in Characters.Where(x => selector == "all" || x.Key == selector))
         {
@@ -92,23 +90,34 @@ internal static class Program
                     attacker.DisplayName + " form " + form, attacker.Definition.ForForm(form), attacker.BakedAnimation,
                     attacker.CookedCharacterPackage);
             }
-            var moves = Reliability.Measure(attacker, targets, arena, wires);
+            var moves = new List<MoveReliability>();
+            foreach (bool air in new[] { false, true })
+            foreach (byte wire in wires)
+            {
+                CanonicalSlotProjection.TryGet(wire, air, out var slot);
+                var move = HitReliability.Measure(attacker.Definition, attacker.BakedAnimation, slot, targets);
+                if (move != null) moves.Add(move);
+            }
             string markdown = Markdown(attacker, moves);
             File.WriteAllText(Path.Combine(output, name + ".md"), markdown);
-            File.WriteAllText(Path.Combine(output, name + ".json"), JsonSerializer.Serialize(new
-            {
-                attacker.Identity, generatedUtc = DateTime.UtcNow.ToString("u", CultureInfo.InvariantCulture), moves,
-                // The idle targets' contact volumes at the origin facing the attacker: start xyz, end xyz, radius
-                // (x right, y up from the floor, z toward the attacker's front), for tools that test other arcs.
-                targets = targets.ToDictionary(t => t.Definition.Class.ToString(),
-                    t => Reliability.Volumes(t, arena).Select(v => new[] { v.PosX - Reliability.OriginMeters, v.PosY,
-                        v.PosZ - Reliability.OriginMeters, v.EndX - Reliability.OriginMeters, v.EndY,
-                        v.EndZ - Reliability.OriginMeters, v.Radius }).ToList()),
-            }, new JsonSerializerOptions { WriteIndented = true, IncludeFields = true }));
+            File.WriteAllText(Path.Combine(output, name + ".json"), new HitReliabilityDocument(
+                attacker.Identity, moves, targets, DateTime.UtcNow).ToJson());
             int flagged = moves.Count(x => x.Flags.Count > 0);
             Console.WriteLine($"{name}: {moves.Count} moves, {flagged} flagged → {Path.GetFullPath(Path.Combine(output, name + ".md"))}");
         }
         return 0;
+    }
+
+    internal static byte[]? ParseSlots(string text)
+    {
+        var wires = new List<byte>();
+        foreach (string key in text.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+        {
+            if (!CanonicalSlotProjection.TryGet(false, key.ToUpperInvariant(), out var slot)) return null;
+            byte wire = CanonicalSlotProjection.ToWire(slot);
+            if (!wires.Contains(wire)) wires.Add(wire);
+        }
+        return wires.Count == 0 ? null : wires.ToArray();
     }
 
     internal static string Markdown(MatchContentEntry attacker, IReadOnlyList<MoveReliability> moves)
@@ -120,7 +129,7 @@ internal static class Program
             + "columns from the cooked hitbox geometry with the attacker fixed in place.").AppendLine();
 
         md.AppendLine("## Ground moves").AppendLine();
-        md.AppendLine($"| Move | Playback | Active ticks | Touch at {Reliability.ContactProbeMeters:F0} m | Reach vs FightGuy | Reach vs Manki | At 30° | Flags |");
+        md.AppendLine($"| Move | Playback | Active ticks | Touch at {HitReliability.ContactProbeMeters:F0} m | Reach vs FightGuy | Reach vs Manki | At 30° | Flags |");
         md.AppendLine("|---|---:|---:|---:|---|---|---|---|");
         foreach (var move in moves.Where(x => !x.Air))
         {
@@ -153,7 +162,7 @@ internal static class Program
         {
             var columns = multi[0].Hits[0].Touched.Select(x => (x.Target, x.Distance)).ToList();
             md.AppendLine("## Multi-hit coverage").AppendLine();
-            md.AppendLine($"Bearings (of {Reliability.CoverageBearings}, 15° apart) at which each hit of a multi-hit ground move "
+            md.AppendLine($"Bearings (of {HitReliability.CoverageBearings}, 15° apart) at which each hit of a multi-hit ground move "
                 + "touches a standing target, from the poses the engine tests, with the attacker fixed and the target never "
                 + "knocked away. A hit with zero everywhere cannot land on that target.").AppendLine();
             md.AppendLine("| Move | Ticks | Damage | Radius | "

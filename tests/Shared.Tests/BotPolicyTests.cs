@@ -1177,7 +1177,7 @@ public sealed class MankiBazookaBotPolicyTests
             sim.RegisterEntity(100, TestHelpers.EngineDef, target);
             sim.Tick(new() { [1] = input, [100] = default });
             Assert.Equal(ActionState.Attacking, sim.GetState(1).State);
-            Assert.False(sim.GetState(1).IsAiming);
+            Assert.True(sim.GetState(1).IsAiming);
         }
         Assert.True(selected, "The bot must consider Bazooka a press projectile.");
     }

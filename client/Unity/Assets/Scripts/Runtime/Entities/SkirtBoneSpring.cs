@@ -263,6 +263,16 @@ namespace SlopArena.Client.Entities
                         bone.rotation = Quaternion.RotateTowards(_poseRotation[c][j], Quaternion.FromToRotation(rest - head, next - head) * bone.rotation, 20f);
                 }
             }
+            // The spring continues from the tips the rotation limit allowed. The skin-contact correction poses
+            // this frame only: fed back, the spring pulled the fabric into the leg and the next correction
+            // overshot, a two-frame flicker even in idle.
+            for (int c = 0; c < _chains.Length; c++)
+                for (int j = 0; j < _chains[c].Bones.Length; j++)
+                {
+                    Vector3 tip = _chains[c].Bones[j].TransformPoint(_tipLocal[c][j]);
+                    _previous[c][j] += tip - _position[c][j];
+                    _position[c][j] = tip;
+                }
             ResolveSkinContacts(scale, up);
             _reset = false;
         }
@@ -285,6 +295,8 @@ namespace SlopArena.Client.Entities
             for (int pass = 0; pass < 6; pass++)
             {
                 Array.Clear(_contactDepth, 0, _contactDepth.Length);
+                Array.Clear(_contactPoint, 0, _contactPoint.Length);
+                Array.Clear(_contactPush, 0, _contactPush.Length);
                 for (int b = 0; b < _skinMatrices.Length; b++)
                     _skinMatrices[b] = _skinBones[b].localToWorldMatrix * _bindposes[b];
                 bool contact = false;
@@ -301,7 +313,6 @@ namespace SlopArena.Client.Entities
                     Consider(w.boneIndex2, w.weight2); Consider(w.boneIndex3, w.weight3);
                     if (owner < 0 || weight < .05f) continue;
                     int c = _skinChain[owner], j = _skinSegment[owner];
-                    if (j > 0 && Vector3.Distance(point, _chains[c].Bones[j].position) < .1f * scale) j--;
                     for (int cap = 0; cap < _capsules.Length; cap++)
                     {
                         float radius = _capsuleRadius[cap];
@@ -312,13 +323,15 @@ namespace SlopArena.Client.Entities
                         Vector3 closest = a + axis * Mathf.Clamp01(Vector3.Dot(point - a, axis) / Mathf.Max(axis.sqrMagnitude, 1e-8f));
                         Vector3 away = point - closest;
                         float distance = away.magnitude, depth = radius - distance;
-                        if (depth <= .001f * scale || depth <= _contactDepth[c,j]) continue;
+                        if (depth <= .001f * scale) continue;
                         Vector3 outward = Vector3.ProjectOnPlane(_hips.TransformPoint(_rootHips[c]) - _hips.position, up).normalized;
                         Vector3 normal = distance > 1e-5f ? away / distance : outward;
                         if (Vector3.Dot(normal, outward) < 0f) normal = (normal + outward * 2f).normalized;
-                        _contactPoint[c,j] = point;
-                        _contactPush[c,j] = normal * ((depth + .006f * scale) / Mathf.Max(weight, .35f));
-                        _contactDepth[c,j] = depth;
+                        // Depth-weighted sums, not the deepest vertex: which vertex was deepest flipped between
+                        // frames while the legs strode through the fabric.
+                        _contactPoint[c,j] += point * depth;
+                        _contactPush[c,j] += normal * (depth * (depth + .006f * scale));
+                        _contactDepth[c,j] += depth;
                         contact = true;
                     }
                 }
@@ -328,20 +341,13 @@ namespace SlopArena.Client.Entities
                     {
                         if (_contactDepth[c,j] <= 0f) continue;
                         var bone = _chains[c].Bones[j];
-                        Vector3 before = _contactPoint[c,j] - bone.position;
-                        Vector3 after = before + _contactPush[c,j];
+                        Vector3 before = _contactPoint[c,j] / _contactDepth[c,j] - bone.position;
+                        Vector3 after = before + _contactPush[c,j] / _contactDepth[c,j];
                         if (before.sqrMagnitude < 1e-8f || after.sqrMagnitude < 1e-8f) continue;
                         Quaternion correction = Quaternion.FromToRotation(before, after);
                         bone.rotation = Quaternion.RotateTowards(_poseRotation[c][j], Quaternion.RotateTowards(Quaternion.identity, correction, 12f) * bone.rotation, 20f);
                     }
             }
-            for (int c = 0; c < _chains.Length; c++)
-                for (int j = 0; j < _chains[c].Bones.Length; j++)
-                {
-                    Vector3 tip = _chains[c].Bones[j].TransformPoint(_tipLocal[c][j]);
-                    _previous[c][j] += tip - _position[c][j];
-                    _position[c][j] = tip;
-                }
         }
     }
 }

@@ -50,7 +50,7 @@ public class AbilityLifecycleTests
     // ══════════════════════════════════════════════════════════════════
 
     [Fact]
-    public void MankiR_BasicActivation_EntersFiring()
+    public void MankiR_BasicActivation_EntersCharging()
     {
         var arena = TestHelpers.TestArena();
         var sim = TestHelpers.MakeSim(arena);
@@ -59,7 +59,7 @@ public class AbilityLifecycleTests
 
         var after = TestHelpers.TickN(sim, TestHelpers.Input(activeSlot: 5), 1);
         Assert.Equal(ActionState.Attacking, after.State);
-        Assert.False(after.IsAiming);
+        Assert.True(after.IsAiming);
         Assert.Equal((byte)1, after.ComboStage);
         Assert.Equal((byte)5, after.AttackSlot);
     }
@@ -72,8 +72,8 @@ public class AbilityLifecycleTests
         var state = TestHelpers.PlayerState();
         TestHelpers.RegisterPlayer(sim, Def, state);
 
-        // Total: cast_duration=20 + recovery_duration=15 = 35 ticks
-        var after = TestHelpers.TickN(sim, TestHelpers.Input(activeSlot: 5), 40);
+        // Charge, firing and recovery total 75 ticks.
+        var after = TestHelpers.TickN(sim, TestHelpers.Input(activeSlot: 5), 80);
 
         Assert.Equal(ActionState.Idle, after.State);
         Assert.Equal((byte)0, after.AttackSlot);
@@ -97,7 +97,7 @@ public class AbilityLifecycleTests
 
         var rockets = new List<Hitbox>();
         aim.IsAiming = false;
-        for (int tick = 0; tick < 15; tick++)
+        for (int tick = 0; tick < 45; tick++)
         {
             sim.Tick(new() { [1] = aim });
             rockets.AddRange(sim.Resolver.LastTickCheckedHitboxes.Where(h =>

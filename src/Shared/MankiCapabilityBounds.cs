@@ -8,14 +8,15 @@ internal static class MankiCapabilityBounds
     internal static string? Error(CookedCapabilityParameters parameters) => parameters switch
     {
         CookedMankiRoundBombCapabilityParameters q when
-            !new[] { q.Gravity, q.HitboxRadius, q.HopBackSpeed, q.HopUpSpeed, q.ExplosionDamage,
-                q.ExplosionRadius, q.ExplosionKbBase, q.ExplosionKbGrowth, q.ExplosionKbAngle, q.SelfPushSpeed }.All(float.IsFinite)
-            || q.FuseTicks is 0 or > 600 || q.MaxFlightTicks is 0 or > 600
+            !new[] { q.Gravity, q.HitboxRadius, q.TriggerRadius, q.ExplosionDamage,
+                q.ExplosionRadius, q.ExplosionKbBase, q.ExplosionKbGrowth, q.ExplosionKbAngle }.All(float.IsFinite)
+            || q.ArmTicks is 0 or > 600 || q.MaxFlightTicks is 0 or > 600
             || q.Gravity is <= 0 or > 120 || q.HitboxRadius is <= 0 or > 4
-            || q.HopBackSpeed is <= 0 or > 30 || q.HopUpSpeed is <= 0 or > 30
+            || q.TriggerRadius is <= 0 or > 12 || q.WarningTicks is 0 or > 120
+            || q.LifetimeTicks is 0 or > 3600 || q.MaxMines is 0 or > 3
             || !ValidBlast(q.ExplosionDamage, q.ExplosionRadius, q.ExplosionKbBase, q.ExplosionKbGrowth,
-                q.ExplosionKbAngle, q.ExplosionStunTicks, q.ExplosionDurationTicks, q.SelfPushSpeed)
-            => "Bombs Away requires bounded drop, hop, fuse and blast values.",
+                q.ExplosionKbAngle, q.ExplosionStunTicks, q.ExplosionDurationTicks, 0f)
+            => "Proximity Mines requires bounded drop, arming, trigger, lifetime, cap and blast values.",
         CookedMankiJetpackBoostCapabilityParameters e when
             !new[] { e.VerticalSpeed, e.HorizontalSpeed, e.SinkSpeed, e.JumpBurstSpeed,
                 e.ExplosionRadius, e.ExplosionDamage, e.ExplosionKbAngle, e.ExplosionKbBase, e.ExplosionKbGrowth }.All(float.IsFinite)

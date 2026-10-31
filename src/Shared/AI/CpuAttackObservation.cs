@@ -48,7 +48,8 @@ internal sealed class CpuAttackModel
                             case CookedWibouRisingSlashCapabilityParameters rise: last += rise.RiseTicks; break;
                             case CookedChargedProjectileCapabilityParameters shot: start += shot.FireTriggerTick; last = start + 1; break;
                             case CookedFingerGunsCapabilityParameters shot: start += shot.FireTriggerTick; last = start + 1; break;
-                            case CookedMankiBazookaCapabilityParameters shot: start += shot.FireTriggerTick; last = start + 1; break;
+                            case CookedMankiRoundBombCapabilityParameters mine: start += mine.ArmTicks + mine.WarningTicks; last = start + 1; break;
+                            case CookedMankiBazookaCapabilityParameters shot: start += shot.ChargeTicks > 0 ? shot.ChargeTicks : shot.FireTriggerTick; last = start + 1; break;
                             default: known = false; continue;
                         }
                         break;

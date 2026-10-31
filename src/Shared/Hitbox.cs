@@ -2,6 +2,8 @@ using System.Collections.Generic;
 
 namespace SlopArena.Shared
 {
+    public enum MinePhase : byte { None, Falling, Arming, Armed, Triggered }
+
     public enum HitboxShape : byte
     {
         Sphere = 0,
@@ -108,7 +110,10 @@ namespace SlopArena.Shared
         /// </summary>
         public ProjectileExplosion? Explosion;
         public bool ContactExplosion;
-        public bool ExplodeOnExpiry;
+        public MinePhase MinePhase;
+        public ushort MineTicksLeft, MineArmTicks, MineWarningTicks, MineLifetimeTicks;
+        public float MineTriggerRadius;
+        public byte MineMaxCount;
 
 
         /// <summary>Optional boomerang behaviour: the projectile flies out, turns and comes back to its owner.</summary>

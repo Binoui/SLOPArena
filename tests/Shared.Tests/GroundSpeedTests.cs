@@ -197,6 +197,83 @@ public class GroundSpeedTests
         }
     }
 
+    [Theory]
+    [InlineData(0f, 1f, 0f)]
+    [InlineData(2f, 0f, 1f)]
+    [InlineData(5.6f, -1f, 0f)]
+    public void WalkStartsAndTurnsImmediatelyAtFortyPercent(float initial, float x, float z)
+    {
+        var sim = Create();
+        var state = sim.GetState(1); state.VX = initial;
+        sim.SetState(1, state);
+        sim.Tick(new Dictionary<ulong, InputState> { [1] = new() { MoveX = x, MoveY = z, Walk = true } });
+        Assert.Equal(5.6f * x, sim.GetState(1).VX, 4);
+        Assert.Equal(5.6f * z, sim.GetState(1).VZ, 4);
+        Assert.Equal(ActionState.Run, sim.GetState(1).State);
+    }
+
+    [Theory]
+    [InlineData(1, .09333333f, .42f)]
+    [InlineData(6, .56f, .88666667f)]
+    public void WalkTapsAndReleaseHaveKnownSmallDistances(int ticks, float held, float total)
+    {
+        var metrics = MovementProbe.MeasureGroundSpeed(TestHelpers.EngineDef, TestHelpers.TestArena());
+        var tap = ticks == 1 ? metrics.Walk.Tap1 : metrics.Walk.Tap6;
+        Assert.Equal(5.6f, metrics.Walk.Speed, 4);
+        Assert.Equal(held, tap.HeldDistance, 4);
+        Assert.Equal(total, tap.TotalDistance, 4);
+        Assert.Equal(8, tap.StopTicks);
+        Assert.Equal(8, metrics.Walk.Stop.StopTicks);
+        Assert.Equal(.32666667f, metrics.Walk.Stop.StopDistance, 4);
+        Assert.Equal(12, metrics.Walk.RunToWalkBrakeTicks);
+    }
+
+    [Fact]
+    public void RunToWalkBrakesByOneTwentiethPerTickAndFollowsInput()
+    {
+        var sim = Create();
+        for (int i = 0; i < 30; i++) Step(sim, 1f);
+        for (int tick = 1; tick <= 15; tick++)
+        {
+            sim.Tick(new Dictionary<ulong, InputState> { [1] = new() { MoveY = -1f, Walk = true } });
+            Assert.Equal(0f, sim.GetState(1).VX);
+            Assert.Equal(-MathF.Max(5.6f, 14f - tick * .7f), sim.GetState(1).VZ, 4);
+        }
+    }
+
+    [Fact]
+    public void WalkToRunResumesTheSixtyPercentRamp()
+    {
+        var sim = Create();
+        sim.Tick(new Dictionary<ulong, InputState> { [1] = new() { MoveX = 1f, Walk = true } });
+        for (int tick = 1; tick <= 13; tick++)
+        {
+            Step(sim, 1f);
+            Assert.Equal(8.4f + (tick - 1) * 5.6f / 12f, sim.GetState(1).VX, 4);
+        }
+    }
+
+    [Fact]
+    public void DownFromWalkCrouchesInsteadOfSliding()
+    {
+        var sim = Create();
+        sim.Tick(new Dictionary<ulong, InputState> { [1] = new() { MoveX = 1f, Walk = true } });
+        sim.Tick(new Dictionary<ulong, InputState> { [1] = new() { MoveX = 1f, Walk = true, Down = true, DownPressed = true } });
+        Assert.Equal(ActionState.Crouching, sim.GetState(1).State);
+        Assert.InRange(Speed(sim.GetState(1)), 0f, 5.6f);
+    }
+
+    [Theory]
+    [InlineData(1f, 19.8666667f)]
+    [InlineData(-1f, -14f)]
+    public void WalkDoesNotAlterDashOverspeed(float direction, float expected)
+    {
+        var sim = Create();
+        var state = sim.GetState(1); state.VX = 20f; sim.SetState(1, state);
+        sim.Tick(new Dictionary<ulong, InputState> { [1] = new() { MoveX = direction, Walk = true } });
+        Assert.Equal(expected, sim.GetState(1).VX, 4);
+    }
+
     private static ServerSimulation Create()
     {
         var def = TestHelpers.EngineDef;

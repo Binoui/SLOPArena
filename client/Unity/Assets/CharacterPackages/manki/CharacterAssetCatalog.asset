@@ -71,7 +71,7 @@ MonoBehaviour:
     _extrapolation: 0
     _poseTrackId: anim.manki.ge
   - _semanticId: anim.manki.gr
-    _clip: {fileID: 7083634785934937742, guid: c37bf1fea2fbd914e9ff797c1e5557c7, type: 3}
+    _clip: {fileID: 7400000, guid: 0103afaf8d042ea6cb0611f2297a0aae, type: 2}
     _extrapolation: 0
     _poseTrackId: anim.manki.gr
   - _semanticId: anim.manki.gf-loop
@@ -106,10 +106,10 @@ MonoBehaviour:
     _clip: {fileID: 7400000, guid: 5b6a553dfbba487038fec8bf80406507, type: 2}
     _extrapolation: 0
     _poseTrackId: anim.manki.fly-loop
-  - _semanticId: anim.manki.gf-kamikaze
-    _clip: {fileID: 7400000, guid: 94d6229fb8e5e2b94a52f5d0d6f292bf, type: 2}
+  - _semanticId: anim.manki.gf-kamikaze-windup
+    _clip: {fileID: 7400000, guid: fa1adfe50d3f5310fb02b8ef0886926d, type: 2}
     _extrapolation: 0
-    _poseTrackId: anim.manki.gf-kamikaze
+    _poseTrackId: anim.manki.gf-kamikaze-windup
   _presentations:
   - _semanticId: presentation.manki.normal.strike
     _prefab: {fileID: 2948220418426161532, guid: ab3730744ea3c564a85621c3867afd49, type: 3}
@@ -129,6 +129,8 @@ MonoBehaviour:
     _prefab: {fileID: 5677141815702042411, guid: d894b1cd8ac18022993be04571e887c5, type: 3}
   - _semanticId: presentation.manki.kamikaze.trail
     _prefab: {fileID: 5662647244318125733, guid: ab2fa4fe5b6c6ab48b9e4f618207496b, type: 3}
+  - _semanticId: presentation.manki.kamikaze.startup
+    _prefab: {fileID: 1873967445761158503, guid: 42e458e8840965be786754251beebe63, type: 3}
   - _semanticId: presentation.manki.jetpack-boost.ignition
     _prefab: {fileID: 7426718004780168451, guid: 532e7411ae49bb9848f1a677d3d0bd4c, type: 3}
   - _semanticId: presentation.manki.jetpack-boost.exhaust

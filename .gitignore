@@ -228,6 +228,8 @@ client/Unity/Assets/Plugins/**/NuGet/.nuget-installed.json
 # Approved Manki flight and Kamikaze from the GenRA toolkit (2026-10-29).
 !client/Unity/Assets/CharacterPackages/manki/Animations/manki-fly-loop-v1.anim
 !client/Unity/Assets/CharacterPackages/manki/Animations/manki-gf-kamikaze-56-v1.anim
+!client/Unity/Assets/CharacterPackages/manki/Animations/manki_gr_gunner_brace.anim
+!client/Unity/Assets/CharacterPackages/manki/Animations/manki_gf_kamikaze_windup.anim
 !client/Unity/Assets/CharacterPackages/bonk/Animations/bonk_crouch.anim
 # Approved project-authored Bonk horizontal aerial.
 !client/Unity/Assets/CharacterPackages/bonk/Animations/bonk_air2_horizontal_slash.anim

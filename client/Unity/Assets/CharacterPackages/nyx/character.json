@@ -3,7 +3,7 @@
   "displayName": "Nyx",
   "weight": 100,
   "movement": {
-    "runSpeed": 10,
+    "runSpeed": 8.5,
     "runAccelerationA": 18,
     "runAccelerationB": 10,
     "dashSpeed": 18,
@@ -1146,13 +1146,14 @@
     "presentation.nyx.crow-pop",
     "presentation.nyx.shadow-hit",
     "presentation.nyx.pink-hit",
-    "presentation.nyx.selfie-release"
+    "presentation.nyx.selfie-release",
+    "presentation.nyx.selfie-catch"
   ],
   "alternateForm": {
     "id": "fake",
     "displayName": "Nyxxie",
     "movement": {
-      "runSpeed": 13,
+      "runSpeed": 11.1,
       "runAccelerationA": 24,
       "runAccelerationB": 14,
       "dashSpeed": 23,
@@ -1405,7 +1406,7 @@
                   "placement": {
                     "attachmentMode": "bone",
                     "boneId": "bone.hips",
-                    "durationTicks": 13
+                    "durationTicks": 20
                   }
                 }
               ]
@@ -1500,7 +1501,7 @@
                   "placement": {
                     "attachmentMode": "bone",
                     "boneId": "bone.hips",
-                    "durationTicks": 11
+                    "durationTicks": 18
                   }
                 }
               ]
@@ -1551,17 +1552,17 @@
                 },
                 {
                   "kind": "spawnHitbox",
-                  "tick": 15,
+                  "tick": 10,
                   "unit": "meters",
                   "hitbox": {
                     "shape": "capsule",
                     "radius": 0.45,
-                    "offsetX": -0.8,
-                    "offsetY": 0.9,
-                    "offsetZ": 0.25,
-                    "endOffsetX": 0.8,
-                    "endOffsetY": 0.9,
-                    "endOffsetZ": 0.25,
+                    "offsetX": -0.15,
+                    "offsetY": 1.3,
+                    "offsetZ": -0.1,
+                    "endOffsetX": 0.1,
+                    "endOffsetY": -0.7,
+                    "endOffsetZ": 1.1,
                     "startBoneId": null,
                     "endBoneId": null,
                     "damage": 10,
@@ -1577,13 +1578,13 @@
                 },
                 {
                   "kind": "emitPresentation",
-                  "tick": 15,
+                  "tick": 10,
                   "unit": "ticks",
                   "presentationId": "presentation.nyx.pole-overhead",
                   "placement": {
                     "attachmentMode": "bone",
                     "boneId": "bone.hips",
-                    "durationTicks": 14
+                    "durationTicks": 22
                   }
                 }
               ]
@@ -2056,6 +2057,17 @@
                       "stunTicks": 20
                     },
                     "releasePresentationId": "presentation.nyx.selfie-release"
+                  }
+                },
+                {
+                  "kind": "emitPresentation",
+                  "unit": "ticks",
+                  "tick": 13,
+                  "presentationId": "presentation.nyx.selfie-catch",
+                  "placement": {
+                    "attachmentMode": "bone",
+                    "boneId": "bone.hips",
+                    "durationTicks": 6
                   }
                 },
                 {

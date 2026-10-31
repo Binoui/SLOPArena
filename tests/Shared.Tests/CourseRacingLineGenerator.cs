@@ -13,8 +13,9 @@ public sealed class CourseRacingLineGenerator
         if (Environment.GetEnvironmentVariable("SLOPARENA_GENERATE_RACING_LINES") != "1") return;
         foreach (var route in CourseFinishability.Routes)
         {
+            if (Environment.GetEnvironmentVariable("SLOPARENA_RACING_LINE_STAGE") is { } key && key != route.ArenaKey) continue;
             var driver = new CourseFinishability(route.ArenaKey, CharacterClass.FightGuy);
-            driver.Run(route);
+            driver.Run(route.RacingSteps is { } steps ? route with { Steps = steps, Format = CourseFormat.Scramble } : route);
             var points = new List<Vector3>();
             foreach (var p in driver.RoutePoints)
             {

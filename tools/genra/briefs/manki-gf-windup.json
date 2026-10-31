@@ -1,0 +1,179 @@
+{
+  "name": "manki-gf-windup",
+  "notes": "Manki F, Kamikaze startup, 'Sputter, brace, GO' (owner's pick on the 2026-10-31 VFX board, tmp/manki-vfx2/concepts/f-startup-A.png). The Kamikaze gains a true 16-tick startup (MankiKamikaze.StartupTicks = 16, a Codex task, 2026-10-31): he stands still (gravity on in the air) for 16 ticks, then launches at 18 m/s toward his target. One capability on one stage, so the game plays one clip stretched over the stage. This job authors only the 16-tick windup. It ends exactly on tick 3 of the accepted dive anim.manki.gf-kamikaze (manki-gf-kamikaze-56-v1.anim, 56 ticks, owner-approved 2026-10-29, unchanged): the hunch. The dive's own ticks 0-3 (idle to hunch) would otherwise replay the anticipation after the launch, while he already travels. Binding writes one combined clip: these 16 ticks, then the accepted dive's ticks 3-56 verbatim (69 ticks). Rig pack manki-unity-kamikaze built 2026-10-31 from the live MankiRig.prefab with the bound dive as reference 'kamikaze'. Authored at game speed: the 16 ticks are a sim value, so a slower authoring clock would only be squeezed back. One loop round (loop.py --rounds 1).",
+  "rigpack": "artifacts/genra-rigpacks/manki-unity-kamikaze",
+  "character": "Manki v5 'pyro' (58 joints: a Humanoid body with Mixamo names, a big head with goggles and a spiky mane, an open vest and ragged shorts; a two-can spray-can jetpack built into the body mesh and pinned rigidly to Spine2, so it sits on his upper back and moves exactly with the chest; a TORCH-can holster on his left thigh; thumb, index, middle and ring fingers; arm stretch, forearm offset and fist deform controls; a five-joint tail Tail1..5 that a spring drives in the game). He is small: hips to head 0.38 m, thigh 0.25 m, shin 0.19 m, upper arm 0.14 m, forearm 0.15 m in this rig.",
+  "references": {
+    "idle": "references/idle.usda",
+    "kamikaze": "references/kamikaze.usda"
+  },
+  "entry": {
+    "reference": "idle",
+    "tick": 0
+  },
+  "exit": {
+    "from_tick": 16,
+    "reference": "kamikaze",
+    "tick": 3
+  },
+  "clock": {
+    "duration_ticks": 16
+  },
+  "timing": {
+    "fixed": [
+      "16 ticks at 60 Hz: the sim holds him in place for ticks 0-15 (on the ground he stands, in the air he falls under gravity), then launches him at 18 m/s toward the target at tick 16",
+      "tick 0 is idle exactly, as the accepted dive's tick 0 was: the game crossfades into it over 0.05 s from idle, run, jump, fall or the flight loop",
+      "tick 16 is exactly the accepted dive's tick 3 (reference 'kamikaze'): the hunch; the dive then plays on from its tick 4 unchanged (the uncoil into the torpedo by its tick 8)",
+      "the fighter does not move or turn in the clip; front is the target"
+    ],
+    "adjustable": [
+      "the exact ticks of the two coughs and the brace inside 0-16"
+    ]
+  },
+  "description": "Manki's F, Kamikaze, gets a real startup: before he rockets head-first into his target and explodes, he winds up for 16 ticks (0.27 s) in place. The owner picked 'Sputter, brace, GO' (image 1, left to right): he crouches low and grins at the target, the jetpack coughs and sputters, he braces, then the jets ignite and he launches. This clip is that windup. It must read clearly as 'he is about to launch at you' from the gameplay camera behind him, and feel cartoony.\n\nWho he is: a pyromaniac mad-inventor monkey with a homemade two-can spray-can jetpack. Kamikaze is the moment he decides he is the bomb, and he loves it. His jetpack is junk: it coughs before it catches.\n\nThe handoff: tick 16 must be exactly the accepted dive's tick 3 (images 2 and 3, reference 'kamikaze'): the hunch, a wound spring. Hips 4.5 cm below idle, chest curled forward over the knees, shoulders hunched, head ducked but glaring ahead, fists clenched in front of the chest, and both knees pulled up so the feet are 9-10 cm off the floor and under him. The dive continues from there: it uncoils into the flat torpedo over its ticks 3-8, while the sim launches him. So the windup ends by springing UP out of a deeper crouch into that tuck: the ignition lifts him.\n\nBeats (60 Hz):\n- Tick 0: idle exactly.\n- Ticks 0-5, compress: he drops into a low, coiled crouch, like a sprinter in the blocks. Hips down 7-10 cm, the chest pitched forward 30-45 degrees, the knees deep, the feet planted where idle has them (left forward, right back). His fists swing down to hang low in front of his knees, knuckles toward the floor. The head stays up, glaring ahead at the target with the grin. The hips lead; the chest arrives a tick later, the arms and head a tick or two after that.\n- Ticks 5-10, sputter: the jetpack coughs twice, at about ticks 6 and 9. Each cough is a sharp little jolt of the pack, and so of his chest (Spine2): it kicks up 1.5-2.5 cm and pitches back 3-5 degrees in one tick, then sinks back over 2-3 ticks. The shoulders jolt with it, the head bobs a tick late, the fists twitch. The second cough is a little bigger. Between and after them he keeps sinking slowly (a moving hold, one way).\n- Ticks 10-13, brace: he squeezes tighter. The hips sink to their lowest (8-11 cm below idle), the shoulders hunch up toward his ears, the head ducks between them (eyes still on the target), and the fists pull in and up toward the chest, clenched. Everything is loaded.\n- Ticks 13-16, GO: the jets ignite and pop him up off the floor into the dive's hunch: the hips rise to 4.5 cm below idle, both knees snap up so the feet leave the floor, the fists arrive at the chest, the chest stays curled forward. The legs lead the pop, the chest and head follow a tick behind, arriving on tick 16's pose exactly.\n\nIn the air the same clip plays while he falls, so nothing in it may need the floor: the fists hang low but never plant, and the feet just hold idle's stance.\n\nThe jets' flames, the cough puffs and the warning burst over the pack are effects; the clip only has to give them the body's jolts and the pop. Tail: do not animate Tail1..5. The game's spring drives it from the body: the crouch, the coughs and the pop are what make it whip.\n\nRead it from the gameplay camera behind him (the jetpack cans and the top of his head) and the three-quarter rear view.",
+  "planted": [],
+  "views": [
+    "gameplay",
+    "three-quarter-right",
+    "profile",
+    "front"
+  ],
+  "preview_views": [
+    "gameplay",
+    "three-quarter-right",
+    "profile"
+  ],
+  "images": [
+    "../../manki-anim2-20261031/f-startup-A.png",
+    "../../manki-anim2-20261031/kamikaze-t3-handoff.png",
+    "../../manki-anim2-20261031/kamikaze-accepted-t0-t12.png",
+    "images/idle-entry.png"
+  ],
+  "image_notes": "1: the owner's pick, 'Sputter, brace, GO' (image-generated from a real capture), left to right: the low sprinter crouch with the grin while the pack sputters (ticks 0-9), the brace with the head ducked under the pack's warning burst (ticks 10-13), and the launch (the dive that follows this clip). It is a painting: match the beats and the energy on the rig's proportions; his fists hang low but need not touch the floor. 2: the handoff pose, the accepted dive's tick 3, which this clip's tick 16 must equal exactly (side, front, gameplay camera, three-quarter rear). 3: the accepted dive's ticks 0-12 for context: it currently starts from idle at tick 0; after this windup it plays on from tick 3 (the uncoil 3-8 is the launch). 4: the idle entry pose.",
+  "keys": [
+    0,
+    3,
+    5,
+    6,
+    8,
+    9,
+    11,
+    13,
+    16
+  ],
+  "review_ticks": [
+    0,
+    2,
+    3,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12,
+    13,
+    14,
+    15,
+    16
+  ],
+  "fast_windows": [
+    [
+      5,
+      10
+    ],
+    [
+      12,
+      16
+    ]
+  ],
+  "targets": [
+    {
+      "name": "compress: hips down at tick 5 (m)",
+      "kind": "char",
+      "a": "Hips",
+      "axis": "up",
+      "tick": 5,
+      "min": -0.11,
+      "max": -0.06
+    },
+    {
+      "name": "compress: chest pitched forward, head ahead of the hips at tick 5 (m)",
+      "kind": "ahead",
+      "a": "Head",
+      "b": "Hips",
+      "tick": 5,
+      "min": 0.14
+    },
+    {
+      "name": "compress: left fist hanging low in front at tick 5 (m above the hips' rest)",
+      "kind": "char",
+      "a": "LeftHand",
+      "axis": "up",
+      "tick": 5,
+      "max": -0.06
+    },
+    {
+      "name": "compress: right fist hanging low in front at tick 5 (m above the hips' rest)",
+      "kind": "char",
+      "a": "RightHand",
+      "axis": "up",
+      "tick": 5,
+      "max": -0.06
+    },
+    {
+      "name": "compress: fists in front of the hips at tick 5 (m)",
+      "kind": "ahead",
+      "a": "RightHand",
+      "b": "Hips",
+      "tick": 5,
+      "min": 0.08
+    },
+    {
+      "name": "sputter: the pack jolts (m Spine2 travels up and down over ticks 5-11)",
+      "kind": "range",
+      "a": "Spine2",
+      "axis": "up",
+      "window": [
+        5,
+        11
+      ],
+      "min": 0.02,
+      "max": 0.07
+    },
+    {
+      "name": "brace: hips at their lowest at tick 12 (m)",
+      "kind": "char",
+      "a": "Hips",
+      "axis": "up",
+      "tick": 12,
+      "min": -0.12,
+      "max": -0.08
+    },
+    {
+      "name": "brace: head ducked low at tick 12 (m above the hips)",
+      "kind": "below",
+      "a": "Hips",
+      "b": "Head",
+      "tick": 12,
+      "max": 0.27
+    },
+    {
+      "name": "brace: left fist pulled in toward the chest at tick 13 (m)",
+      "kind": "distance",
+      "a": "LeftHand",
+      "b": "Spine2",
+      "tick": 13,
+      "max": 0.3
+    },
+    {
+      "name": "brace: right fist pulled in toward the chest at tick 13 (m)",
+      "kind": "distance",
+      "a": "RightHand",
+      "b": "Spine2",
+      "tick": 13,
+      "max": 0.3
+    }
+  ]
+}

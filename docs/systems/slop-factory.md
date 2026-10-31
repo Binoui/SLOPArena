@@ -53,7 +53,10 @@ python3 tools/factory.py check qa 32 --result pass --report tmp/qa-32.md \
 ## Deliver owner feedback from the desk
 
 The owner marks Good, Redo, or Dropped on the board. Redo requires a note. Verdicts
-on linked checks queue a message to the thread. Plain owner notes have a **Send
+on linked checks queue a message to the thread, except **Good only**, which stays on
+the board. **Good + commit** authorizes the thread to commit only its own files
+(no push), reply with the sha, and settle itself; if the commit cannot be made
+cleanly, the thread says why and stays active. Plain owner notes have a **Send
 note to thread** checkbox, enabled by default when linked. The note shows
 **Waiting for desk**, **Sent to thread**, or the delivery error. Agent notes stay
 on the board. The owner can reopen Good and Dropped checks.

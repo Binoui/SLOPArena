@@ -1,0 +1,1045 @@
+{
+ "format": 1,
+ "stage": "nyx_manor",
+ "folder": "Assets/Stages/nyx_manor/Presentation/Manor",
+ "model": "NyxManor.fbx",
+ "stamp": "NyxManor.layout.json",
+ "root": "Two-Faced Manor Art",
+ "supersededRoots": [
+  "Two-Faced Manor Graybox"
+ ],
+ "textures": [
+  {
+   "file": "MoonHalo.png",
+   "wrap": "clamp",
+   "srgb": true,
+   "maxSize": 256,
+   "aniso": 0
+  },
+  {
+   "file": "ManorGrit.png",
+   "wrap": "repeat",
+   "srgb": false,
+   "maxSize": 256,
+   "aniso": 4
+  },
+  {
+   "file": "ManorRipples.png",
+   "wrap": "repeat",
+   "srgb": false,
+   "maxSize": 256,
+   "aniso": 4
+  }
+ ],
+ "materials": [
+  {
+   "slot": "ManorLit",
+   "asset": "ManorLit",
+   "shader": "SLOPArena/StageVertexLit",
+   "baseColor": [
+    1,
+    1,
+    1,
+    1
+   ],
+   "textures": {
+    "_DetailMap": "ManorGrit.png"
+   },
+   "floats": {
+    "_DetailStrength": 0.23,
+    "_DetailScale": 1.8,
+    "_Wrap": 0.38,
+    "_Specular": 0.12,
+    "_Gloss": 30,
+    "_Emission": 0,
+    "_Cull": 2
+   },
+   "colors": {
+    "_ShadowTint": [
+     0.62,
+     0.67,
+     0.79
+    ]
+   }
+  },
+  {
+   "slot": "ManorGlow",
+   "asset": "ManorGlow",
+   "shader": "SLOPArena/StageNeon",
+   "baseColor": [
+    1,
+    1,
+    1,
+    1
+   ],
+   "floats": {
+    "_Base": 1,
+    "_Ambient": 0.15,
+    "_Shade": 0,
+    "_Glow": 1.25,
+    "_TimeScale": 0,
+    "_FogAmount": 0.35,
+    "_Cull": 0
+   }
+  },
+  {
+   "slot": "MoonSurface",
+   "asset": "MoonSurface",
+   "shader": "SLOPArena/StageNeon",
+   "baseColor": [
+    1,
+    1,
+    1,
+    1
+   ],
+   "floats": {
+    "_Base": 1,
+    "_Ambient": 0,
+    "_Shade": 0,
+    "_Glow": 0.35,
+    "_TimeScale": 0,
+    "_FogAmount": 0,
+    "_Cull": 2
+   }
+  },
+  {
+   "slot": "NightSky",
+   "asset": "NightSky",
+   "shader": "SLOPArena/StageNeon",
+   "baseColor": [
+    1,
+    1,
+    1,
+    1
+   ],
+   "floats": {
+    "_Base": 1,
+    "_Ambient": 0,
+    "_Shade": 0,
+    "_Glow": 0,
+    "_TimeScale": 0,
+    "_FogAmount": 0,
+    "_Cull": 0
+   }
+  },
+  {
+   "slot": "CandleGlow",
+   "asset": "CandleGlow",
+   "shader": "SLOPArena/StageNeon",
+   "baseColor": [
+    1,
+    1,
+    1,
+    1
+   ],
+   "floats": {
+    "_Base": 1,
+    "_Ambient": 0,
+    "_Shade": 0,
+    "_Glow": 1.7,
+    "_TimeScale": 1,
+    "_FogAmount": 0.25,
+    "_Cull": 0
+   }
+  },
+  {
+   "slot": "ManorWater",
+   "asset": "ManorWater",
+   "shader": "SLOPArena/StageWater",
+   "baseColor": [
+    1,
+    1,
+    1,
+    1
+   ],
+   "textures": {
+    "_RippleMap": "ManorRipples.png"
+   },
+   "floats": {
+    "_RippleScale": 0.09,
+    "_RippleStrength": 0.38,
+    "_RippleSpeed": 0.28,
+    "_SwellHeight": 0.15,
+    "_SwellLength": 13,
+    "_SwellFade": 320,
+    "_Diffuse": 0.8,
+    "_Fresnel": 0.65,
+    "_Specular": 0.3,
+    "_Gloss": 280,
+    "_FoamStrength": 0.15
+   },
+   "colors": {
+    "_SkyColor": [
+     0.1,
+     0.17,
+     0.27
+    ],
+    "_HorizonColor": [
+     0.27,
+     0.34,
+     0.48
+    ],
+    "_FoamColor": [
+     0.29,
+     0.35,
+     0.47
+    ]
+   }
+  },
+  {
+   "slot": "MoonHalo",
+   "asset": "MoonHalo",
+   "shader": "Universal Render Pipeline/Unlit",
+   "baseMap": "MoonHalo.png",
+   "baseColor": [
+    1,
+    1,
+    1,
+    1
+   ],
+   "floats": {
+    "_Surface": 1,
+    "_Blend": 0,
+    "_SrcBlend": 5,
+    "_DstBlend": 10,
+    "_ZWrite": 0,
+    "_Cull": 0
+   },
+   "keywords": {
+    "_SURFACE_TYPE_TRANSPARENT": true
+   }
+  }
+ ],
+ "shadows": {
+  "cast": true,
+  "receive": true,
+  "objects": {
+   "Outside Blast Scenery": {
+    "cast": false,
+    "receive": false
+   },
+   "Starry Gradient Sky": {
+    "cast": false,
+    "receive": false
+   },
+   "Moonlit Sea": {
+    "cast": false,
+    "receive": false
+   }
+  }
+ },
+ "lights": [
+  {
+   "name": "Moonlight",
+   "type": "directional",
+   "sun": {
+    "azimuth": 210,
+    "elevation": 55
+   },
+   "color": [
+    0.75,
+    0.83,
+    1
+   ],
+   "intensity": 1.05,
+   "shadows": "soft",
+   "shadowStrength": 0.4
+  },
+  {
+   "name": "Night Fill",
+   "type": "directional",
+   "rotation": [
+    30,
+    30,
+    0
+   ],
+   "color": [
+    0.7,
+    0.75,
+    0.85
+   ],
+   "intensity": 0.5,
+   "shadows": "none"
+  },
+  {
+   "name": "Pink Front Bounce",
+   "type": "point",
+   "position": [
+    0,
+    13,
+    -12
+   ],
+   "color": [
+    1,
+    0.18,
+    0.42
+   ],
+   "intensity": 7,
+   "range": 28
+  },
+  {
+   "name": "Crypt Candles",
+   "type": "point",
+   "position": [
+    0,
+    11,
+    61.5
+   ],
+   "color": [
+    1,
+    0.48,
+    0.16
+   ],
+   "intensity": 5,
+   "range": 8
+  },
+  {
+   "name": "Gate Candles",
+   "type": "point",
+   "position": [
+    0,
+    10.7,
+    47
+   ],
+   "color": [
+    1,
+    0.46,
+    0.12
+   ],
+   "intensity": 4,
+   "range": 8
+  },
+  {
+   "name": "West Plot Lantern",
+   "type": "point",
+   "position": [
+    -12,
+    10.7,
+    54
+   ],
+   "color": [
+    1,
+    0.45,
+    0.12
+   ],
+   "intensity": 4,
+   "range": 7
+  },
+  {
+   "name": "East Plot Lantern",
+   "type": "point",
+   "position": [
+    12,
+    10.7,
+    64
+   ],
+   "color": [
+    1,
+    0.45,
+    0.12
+   ],
+   "intensity": 4,
+   "range": 7
+  }
+ ],
+ "atmosphere": {
+  "background": [
+   0.025,
+   0.04,
+   0.08
+  ],
+  "ambientSky": [
+   0.42,
+   0.46,
+   0.58
+  ],
+  "ambientGround": [
+   0.21,
+   0.22,
+   0.29
+  ],
+  "ambientIntensity": 1,
+  "fog": true,
+  "fogColor": [
+   0.065,
+   0.085,
+   0.14
+  ],
+  "fogStart": 95,
+  "fogEnd": 360
+ },
+ "cameras": [
+  {
+   "name": "thumbnail",
+   "position": [
+    45,
+    42,
+    -54
+   ],
+   "target": [
+    0,
+    5,
+    -4
+   ],
+   "fov": 55
+  },
+  {
+   "name": "front",
+   "position": [
+    0,
+    17,
+    -45
+   ],
+   "target": [
+    0,
+    8,
+    -7
+   ],
+   "fov": 60
+  },
+  {
+   "name": "back",
+   "position": [
+    37,
+    35,
+    88
+   ],
+   "target": [
+    0,
+    7,
+    40
+   ],
+   "fov": 58
+  },
+  {
+   "name": "low",
+   "position": [
+    28,
+    1,
+    -28
+   ],
+   "target": [
+    0,
+    5,
+    -3
+   ],
+   "fov": 60
+  },
+  {
+   "name": "recovery",
+   "position": [
+    22,
+    1,
+    43
+   ],
+   "target": [
+    0,
+    5,
+    35
+   ],
+   "fov": 65
+  },
+  {
+   "name": "crossing",
+   "position": [
+    24,
+    22,
+    30
+   ],
+   "target": [
+    2,
+    7,
+    35
+   ],
+   "fov": 65
+  },
+  {
+   "name": "graveyard",
+   "position": [
+    22,
+    23,
+    75
+   ],
+   "target": [
+    0,
+    10,
+    55
+   ],
+   "fov": 58
+  },
+  {
+   "name": "moon",
+   "position": [
+    0,
+    20,
+    50
+   ],
+   "target": [
+    -27,
+    46,
+    115
+   ],
+   "fov": 42
+  },
+  {
+   "name": "orbit-000",
+   "position": [
+    0.0,
+    48,
+    111.0
+   ],
+   "target": [
+    0,
+    6,
+    11
+   ],
+   "fov": 65
+  },
+  {
+   "name": "orbit-015",
+   "position": [
+    25.881904510252074,
+    48,
+    107.59258262890683
+   ],
+   "target": [
+    0,
+    6,
+    11
+   ],
+   "fov": 65
+  },
+  {
+   "name": "orbit-030",
+   "position": [
+    49.99999999999999,
+    48,
+    97.60254037844388
+   ],
+   "target": [
+    0,
+    6,
+    11
+   ],
+   "fov": 65
+  },
+  {
+   "name": "orbit-045",
+   "position": [
+    70.71067811865474,
+    48,
+    81.71067811865476
+   ],
+   "target": [
+    0,
+    6,
+    11
+   ],
+   "fov": 65
+  },
+  {
+   "name": "orbit-060",
+   "position": [
+    86.60254037844386,
+    48,
+    61.000000000000014
+   ],
+   "target": [
+    0,
+    6,
+    11
+   ],
+   "fov": 65
+  },
+  {
+   "name": "orbit-075",
+   "position": [
+    96.59258262890683,
+    48,
+    36.88190451025207
+   ],
+   "target": [
+    0,
+    6,
+    11
+   ],
+   "fov": 65
+  },
+  {
+   "name": "orbit-090",
+   "position": [
+    100.0,
+    48,
+    11.000000000000005
+   ],
+   "target": [
+    0,
+    6,
+    11
+   ],
+   "fov": 65
+  },
+  {
+   "name": "orbit-105",
+   "position": [
+    96.59258262890683,
+    48,
+    -14.881904510252085
+   ],
+   "target": [
+    0,
+    6,
+    11
+   ],
+   "fov": 65
+  },
+  {
+   "name": "orbit-120",
+   "position": [
+    86.60254037844388,
+    48,
+    -38.99999999999998
+   ],
+   "target": [
+    0,
+    6,
+    11
+   ],
+   "fov": 65
+  },
+  {
+   "name": "orbit-135",
+   "position": [
+    70.71067811865476,
+    48,
+    -59.71067811865474
+   ],
+   "target": [
+    0,
+    6,
+    11
+   ],
+   "fov": 65
+  },
+  {
+   "name": "orbit-150",
+   "position": [
+    49.99999999999999,
+    48,
+    -75.60254037844388
+   ],
+   "target": [
+    0,
+    6,
+    11
+   ],
+   "fov": 65
+  },
+  {
+   "name": "orbit-165",
+   "position": [
+    25.881904510252102,
+    48,
+    -85.59258262890683
+   ],
+   "target": [
+    0,
+    6,
+    11
+   ],
+   "fov": 65
+  },
+  {
+   "name": "orbit-180",
+   "position": [
+    1.2246467991473532e-14,
+    48,
+    -89.0
+   ],
+   "target": [
+    0,
+    6,
+    11
+   ],
+   "fov": 65
+  },
+  {
+   "name": "orbit-195",
+   "position": [
+    -25.88190451025208,
+    48,
+    -85.59258262890683
+   ],
+   "target": [
+    0,
+    6,
+    11
+   ],
+   "fov": 65
+  },
+  {
+   "name": "orbit-210",
+   "position": [
+    -50.000000000000014,
+    48,
+    -75.60254037844386
+   ],
+   "target": [
+    0,
+    6,
+    11
+   ],
+   "fov": 65
+  },
+  {
+   "name": "orbit-225",
+   "position": [
+    -70.71067811865474,
+    48,
+    -59.71067811865477
+   ],
+   "target": [
+    0,
+    6,
+    11
+   ],
+   "fov": 65
+  },
+  {
+   "name": "orbit-240",
+   "position": [
+    -86.60254037844383,
+    48,
+    -39.00000000000004
+   ],
+   "target": [
+    0,
+    6,
+    11
+   ],
+   "fov": 65
+  },
+  {
+   "name": "orbit-255",
+   "position": [
+    -96.59258262890683,
+    48,
+    -14.881904510252063
+   ],
+   "target": [
+    0,
+    6,
+    11
+   ],
+   "fov": 65
+  },
+  {
+   "name": "orbit-270",
+   "position": [
+    -100.0,
+    48,
+    10.999999999999982
+   ],
+   "target": [
+    0,
+    6,
+    11
+   ],
+   "fov": 65
+  },
+  {
+   "name": "orbit-285",
+   "position": [
+    -96.59258262890684,
+    48,
+    36.88190451025203
+   ],
+   "target": [
+    0,
+    6,
+    11
+   ],
+   "fov": 65
+  },
+  {
+   "name": "orbit-300",
+   "position": [
+    -86.60254037844386,
+    48,
+    61.000000000000014
+   ],
+   "target": [
+    0,
+    6,
+    11
+   ],
+   "fov": 65
+  },
+  {
+   "name": "orbit-315",
+   "position": [
+    -70.71067811865477,
+    48,
+    81.71067811865474
+   ],
+   "target": [
+    0,
+    6,
+    11
+   ],
+   "fov": 65
+  },
+  {
+   "name": "orbit-330",
+   "position": [
+    -50.00000000000004,
+    48,
+    97.60254037844383
+   ],
+   "target": [
+    0,
+    6,
+    11
+   ],
+   "fov": 65
+  },
+  {
+   "name": "orbit-345",
+   "position": [
+    -25.881904510252067,
+    68,
+    107.59258262890683
+   ],
+   "target": [
+    0,
+    6,
+    11
+   ],
+   "fov": 65
+  },
+  {
+   "name": "rim-000",
+   "position": [
+    0.0,
+    -1,
+    93.0
+   ],
+   "target": [
+    0,
+    10,
+    11
+   ],
+   "fov": 85
+  },
+  {
+   "name": "rim-045",
+   "position": [
+    27.577164466275352,
+    -1,
+    68.98275605729691
+   ],
+   "target": [
+    0,
+    10,
+    11
+   ],
+   "fov": 85
+  },
+  {
+   "name": "rim-090",
+   "position": [
+    39.0,
+    -1,
+    11.000000000000005
+   ],
+   "target": [
+    0,
+    10,
+    11
+   ],
+   "fov": 85
+  },
+  {
+   "name": "rim-135",
+   "position": [
+    27.577164466275356,
+    -1,
+    -46.98275605729689
+   ],
+   "target": [
+    0,
+    10,
+    11
+   ],
+   "fov": 85
+  },
+  {
+   "name": "rim-180",
+   "position": [
+    4.776122516674678e-15,
+    -1,
+    -71.0
+   ],
+   "target": [
+    0,
+    10,
+    11
+   ],
+   "fov": 85
+  },
+  {
+   "name": "rim-225",
+   "position": [
+    -27.577164466275352,
+    -1,
+    -46.98275605729691
+   ],
+   "target": [
+    0,
+    10,
+    11
+   ],
+   "fov": 85
+  },
+  {
+   "name": "rim-270",
+   "position": [
+    -39.0,
+    -1,
+    10.999999999999986
+   ],
+   "target": [
+    0,
+    10,
+    11
+   ],
+   "fov": 85
+  },
+  {
+   "name": "rim-315",
+   "position": [
+    -27.57716446627536,
+    -1,
+    68.98275605729688
+   ],
+   "target": [
+    0,
+    10,
+    11
+   ],
+   "fov": 85
+  },
+  {
+   "name": "ravine-000",
+   "position": [
+    -8,
+    2,
+    45.0
+   ],
+   "target": [
+    3,
+    6,
+    35
+   ],
+   "fov": 68
+  },
+  {
+   "name": "ravine-045",
+   "position": [
+    19.09188309203678,
+    2,
+    42.071067811865476
+   ],
+   "target": [
+    3,
+    6,
+    35
+   ],
+   "fov": 68
+  },
+  {
+   "name": "ravine-090",
+   "position": [
+    27.0,
+    2,
+    35.0
+   ],
+   "target": [
+    3,
+    6,
+    35
+   ],
+   "fov": 68
+  },
+  {
+   "name": "ravine-135",
+   "position": [
+    19.091883092036785,
+    2,
+    27.928932188134524
+   ],
+   "target": [
+    3,
+    6,
+    35
+   ],
+   "fov": 68
+  },
+  {
+   "name": "ravine-180",
+   "position": [
+    -8,
+    2,
+    25.0
+   ],
+   "target": [
+    3,
+    6,
+    35
+   ],
+   "fov": 68
+  },
+  {
+   "name": "ravine-225",
+   "position": [
+    -19.09188309203678,
+    2,
+    27.928932188134524
+   ],
+   "target": [
+    3,
+    6,
+    35
+   ],
+   "fov": 68
+  },
+  {
+   "name": "ravine-270",
+   "position": [
+    -27.0,
+    2,
+    35.0
+   ],
+   "target": [
+    3,
+    6,
+    35
+   ],
+   "fov": 68
+  },
+  {
+   "name": "ravine-315",
+   "position": [
+    -19.091883092036788,
+    2,
+    42.071067811865476
+   ],
+   "target": [
+    3,
+    6,
+    35
+   ],
+   "fov": 68
+  }
+ ]
+}

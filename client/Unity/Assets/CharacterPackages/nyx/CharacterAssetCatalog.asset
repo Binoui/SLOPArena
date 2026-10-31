@@ -183,8 +183,16 @@ MonoBehaviour:
     _prefab: {fileID: 2010176586185493520, guid: 8e419f0820b1b0aba9cf9674616e945f, type: 3}
   - _semanticId: presentation.nyx.ring-light
     _prefab: {fileID: 4069924589956657962, guid: 6c482d88bd2774bffa05ccc68cf17664, type: 3}
+  - _semanticId: presentation.nyx.going-live
+    _prefab: {fileID: 3318018998172257718, guid: cb9d01b2c110396dfbd08a9454416a10, type: 3}
+  - _semanticId: presentation.nyx.logging-off
+    _prefab: {fileID: 8587875674521906963, guid: 486d83db9c14cc8858e0fa71ad530d81, type: 3}
+  - _semanticId: presentation.nyx.selfie-catch
+    _prefab: {fileID: 893338064509922802, guid: cf36be1c104078bbcbb9267cea61b68a, type: 3}
   - _semanticId: presentation.nyx.rotor-arcs
     _prefab: {fileID: 631910263223024884, guid: a8a4c0a579629d319bd03d9cdf1124c4, type: 3}
+  - _semanticId: presentation.nyx.bat-scatter
+    _prefab: {fileID: 147615454451348102, guid: 2ff0bd92e18a5fec6b71f09c7c229456, type: 3}
   - _semanticId: presentation.nyx.selfie-pop
     _prefab: {fileID: 3098619972461289785, guid: 73a80c1244fe73f9597711b7393878a2, type: 3}
   - _semanticId: presentation.nyx.selfie-release
@@ -199,12 +207,6 @@ MonoBehaviour:
     _prefab: {fileID: 4281422132899575391, guid: 865d046e59f88c025a21616b5ccc6065, type: 3}
   - _semanticId: presentation.nyx.crow
     _prefab: {fileID: 2138707077541557979, guid: 16e7cfac6f5dc9a7aa0a48b94b71fee7, type: 3}
-  - _semanticId: presentation.nyx.bat-scatter
-    _prefab: {fileID: 147615454451348102, guid: 2ff0bd92e18a5fec6b71f09c7c229456, type: 3}
-  - _semanticId: presentation.nyx.going-live
-    _prefab: {fileID: 3318018998172257718, guid: cb9d01b2c110396dfbd08a9454416a10, type: 3}
-  - _semanticId: presentation.nyx.logging-off
-    _prefab: {fileID: 8587875674521906963, guid: 486d83db9c14cc8858e0fa71ad530d81, type: 3}
   - _semanticId: presentation.nyx.grasp-drag
     _prefab: {fileID: 2542167021418792844, guid: 419a866019a82cd49a437be2435cb781, type: 3}
   - _semanticId: presentation.nyx.grasp-catch

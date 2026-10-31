@@ -104,8 +104,24 @@ special:
 
 ```bash
 dotnet run --project tools/HitReliabilityReport -p:SkipUnityPluginCopy=true -- [--char all|fightguy|manki|wibou|bonk] \
-  [--slots 1,2,3,4] [--out artifacts/hit-reliability]
+  [--slots 1,3,4,A,E,R,F] [--out artifacts/hit-reliability]
 ```
+
+Ability Lab runs this same sweep on the selected unsaved draft. Use **Moves →
+Reach**, or `sloparena.lab.reach --action ground.1 --output tmp/reach.json` through
+the Unity gateway. The command embeds `HitReliabilityDocument.ToJson()` verbatim
+under `data.result.reach`; the optional output is already a standalone report
+for `tools/genra/hitarc.py --report tmp/reach.json`.
+
+Lab documents add a `draft` block with the compiled runtime hash, unsaved state,
+form, and target cooked-content hashes. `Identity` remains the persisted cook
+that supplies the poses. CLI output omits `draft` and retains its existing format.
+For a clean package, compare the selected slot after excluding only `draft` and
+`generatedUtc`. The decimal representation is portable, but Mono and .NET can
+produce geometry coordinates that differ in the last float bit. Reach uses the
+verified existing poses and does not rebake an
+edited animation. See [Ability Lab reach](ability-lab.md#measure-reach-on-an-unsaved-move)
+for the panel, overlay, freshness rules, and output path restrictions.
 
 Each character gets `<char>.md` and `<char>.json`:
 

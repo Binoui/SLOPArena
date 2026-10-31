@@ -487,8 +487,20 @@ namespace SlopArena.Client
                 return editorDevelopmentContentProvider(out catalog, out failure);
             }
 #endif
-            return TryBuildPersistedLocalMatchCatalogCore(out catalog, out failure);
+            // Shipped cooked content cannot change while the player runs, and menus ask on every page.
+            if (playerMatchCatalog != null)
+            {
+                catalog = playerMatchCatalog;
+                failure = null;
+                return true;
+            }
+            if (!TryBuildPersistedLocalMatchCatalogCore(out catalog, out failure))
+                return false;
+            playerMatchCatalog = catalog;
+            return true;
         }
+
+        private static Shared.MatchContentCatalog? playerMatchCatalog;
 
         public static bool TryBuildPersistedLocalMatchCatalog(out Shared.MatchContentCatalog? catalog, out string? failure)
             => TryBuildPersistedLocalMatchCatalogCore(out catalog, out failure);

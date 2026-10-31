@@ -3,7 +3,7 @@
   "displayName": "Salamander",
   "weight": 100,
   "movement": {
-    "runSpeed": 11.5,
+    "runSpeed": 9.8,
     "runAccelerationA": 20,
     "runAccelerationB": 12,
     "dashSpeed": 20,

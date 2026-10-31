@@ -543,7 +543,7 @@ malformed/incompatible state datagrams without ending its receive loop. Historic
 `src/Shared/ServerEntityPacket.cs`.
 
 InputState is 22 bytes. `Flags` (byte 8) carries `0x20=DashPressed`, the homing dash edge
-(ADR-0042); `0x40` stays reserved. `Flags2` (byte 19) assigns bits `0x10=ShieldHeld`,
+(ADR-0042), and `0x40=Walk`, held walk intent in the former Burst bit (ADR-0058). `Flags2` (byte 19) assigns bits `0x10=ShieldHeld`,
 `0x20=ShieldPressed`, `0x40=GrabPressed`, and `0x80=RetargetPressed`.
 `ShieldPressed` and `GrabPressed` are one-tick edges. The sim chooses grounded shield
 versus airborne dodge from authoritative state; client-side chord binding emits

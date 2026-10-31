@@ -78,6 +78,10 @@ The end card reads *LICENSE GRANTED* and offers Training or the menu.
   player's current keyboard or controller bindings and the end card. The scene
   `Assets/Scenes/Tutorial.unity` is a copy of the offline match scene.
 - Mode `GameMode.Tutorial`: Home → Fighter Select (player only, no stage step) → scene.
+- The browser demo runs the same lessons (`client/Web/sim/Modes.cs` `TutorialMode`, wording in
+  `client/Web/app/tutorial.js`), selected by default until finished once in that browser. It has no
+  free camera, so Move & Look counts the Steady camera's turns as the player circles the dummy, and
+  its specials never aim, so the recovery hint drops the hold-and-aim step.
 
 Objective rules are deliberately lenient where the game allows several ways: any block
 counts, the tallest block can be climbed, any special activation counts even without a

@@ -1,0 +1,117 @@
+{
+  "Identity": {
+    "PackageId": "fixture",
+    "Version": "1.2.3",
+    "SourceHash": "source",
+    "CookedContentHash": "0123456789abcdef",
+    "PackageHash": "package"
+  },
+  "generatedUtc": "2026-10-31 12:34:56Z",
+  "moves": [
+    {
+      "Slot": "ground.3",
+      "Name": "Blade \u003Cswing\u003E \u00D7",
+      "Air": false,
+      "DurationTicks": 24,
+      "BakedFrames": 36,
+      "PlaybackSpeed": 1.5,
+      "ActiveTicks": 3,
+      "ContactTicksAtProbe": 2,
+      "Reach": [
+        {
+          "Nearest": 0.3,
+          "Farthest": 2.1,
+          "Target": "FightGuy",
+          "BearingDegrees": 0,
+          "Intervals": [
+            {
+              "Item1": 0.3,
+              "Item2": 0.55
+            },
+            {
+              "Item1": 0.9,
+              "Item2": 2.1
+            }
+          ]
+        }
+      ],
+      "Vertical": [
+        {
+          "Target": "Manki",
+          "Lowest": -1.5,
+          "Highest": 2
+        }
+      ],
+      "Sampling": [
+        {
+          "LostShare": 0.25,
+          "Event": 1,
+          "Anchor": "hand\u2192tip",
+          "Radius": 0.2,
+          "MaxTipStepPerTick": 0.4,
+          "TargetFeetHeight": 0,
+          "SweptPositions": 80,
+          "TestedPositions": 60
+        }
+      ],
+      "Hits": [
+        {
+          "Event": 1,
+          "FirstTick": 4,
+          "LastTick": 6,
+          "Damage": 7,
+          "Radius": 0.2,
+          "Touched": [
+            {
+              "Item1": "FightGuy",
+              "Item2": 1,
+              "Item3": 3
+            },
+            {
+              "Item1": "Manki",
+              "Item2": 1.5,
+              "Item3": 0
+            }
+          ]
+        }
+      ],
+      "Arc": [
+        {
+          "Target": "FightGuy",
+          "Distances": [
+            -0.25,
+            0,
+            0.25
+          ],
+          "Heights": [
+            1,
+            0
+          ],
+          "Rows": [
+            ".#.",
+            "###"
+          ]
+        }
+      ],
+      "ActiveHitboxes": [
+        [
+          4,
+          0,
+          1,
+          0.5,
+          0,
+          1,
+          2,
+          0.2
+        ]
+      ],
+      "Flags": [
+        "clip plays 1.50\u00D7 authored speed"
+      ]
+    }
+  ],
+  "targets": {
+    "FightGuy": [],
+    "Manki": []
+  }
+}

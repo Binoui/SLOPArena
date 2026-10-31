@@ -98,8 +98,12 @@ const ACTIONS = {rendered:[["ready","Ready to post","go"],["approved","Redo with
   proposed:[["approved","Approve","go"],["rejected","Reject",""]], approved:[["ready","Ready to post","go"],["proposed","Back to proposed",""],["rejected","Reject",""]],
   ready:[["posted","Mark posted","go"],["approved","Redo with note",""],["rejected","Reject",""]], posted:[], rejected:[["proposed","Restore",""]]};
 const CHECK_TABS = [["to-try","To try"],["redo","Redo"],["good","Good"],["dropped","Dropped"]];
-const CHECK_ACTIONS = {"to-try": [["good","Good","go"],["redo","Redo with note",""],["dropped","Drop",""]],
-  redo: [["good","Good","go"],["dropped","Drop",""]], good: [["to-try","Reopen",""]], dropped: [["to-try","Reopen",""]]};
+// The fourth field picks how a Good reaches a linked thread: "commit" asks it to commit and settle, "quiet" sends nothing.
+const CHECK_GOOD = [["good","Good + commit","go","commit"],["good","Good only","","quiet"]];
+const CHECK_ACTIONS = {"to-try": [...CHECK_GOOD,["redo","Redo with note",""],["dropped","Drop",""]],
+  redo: [...CHECK_GOOD,["dropped","Drop",""]], good: [["to-try","Reopen",""]], dropped: [["to-try","Reopen",""]]};
+const checkActions = d => d.thread ? CHECK_ACTIONS[d.status]
+  : CHECK_ACTIONS[d.status].filter(a => a[3] !== "commit").map(a => a[3] ? ["good","Good","go"] : a);
 const TAB_RUNS = {proposed: ["propose", "Propose clips", "The designer builds the batch around your open notes in the Scout inbox, then the latest scout reports and what changed in the game: 5 to 7 ideas here."],
   approved: ["render", "Render approved", "Films every idea in this tab; each take lands in To review."]};
 const ACTIVE = ["queued","sent","running"], PLATFORMS = ["tiktok","shorts","x"];
@@ -260,19 +264,20 @@ function showCheck(id, scroll = true) {
     </div>${media}<div class="check-feedback"><h4>Notes</h4><div class="notes">${d.notes.map(n => `<div class="${n.author === "owner" ? "" : n.author}"><small>${{owner: "You", agent: "Agent", qa: "QA"}[n.author]} ${esc(n.at.replace("T"," "))}</small> ${esc(n.body)}${n.send ? `<small class="delivery ${n.error && !n.delivered ? "error" : ""}">${n.delivered ? "Sent to thread" : n.error ? "Error: " + esc(n.error) : "Waiting for desk"}</small>` : ""}</div>`).join("") || `<p>No notes yet.</p>`}</div>
     <textarea id="checkNote" placeholder="What happened? What needs to change?" aria-label="Check note">${esc(note)}</textarea>
     ${d.thread ? `<label class="send-note"><input type="checkbox" id="sendNote" ${sendToThread ? "checked" : ""}>Send note to thread</label>` : `<p class="age">No thread linked. Notes stay on this check.</p>`}
-    <div class="acts">${CHECK_ACTIONS[d.status].map(([status,label,kind]) => `<button class="btn ${kind}" onclick="checkAct(${d.id},'${status}')">${label}</button>`).join("")}
+    <div class="acts">${checkActions(d).map(([status,label,kind,mode = ""]) => `<button class="btn ${kind}" onclick="checkAct(${d.id},'${status}','${mode}')">${label}</button>`).join("")}
     <button class="btn" onclick="checkAct(${d.id},'')">Save note</button><button class="btn" onclick="hide();draw()">Close</button></div>
-    ${d.thread ? `<p class="age">Verdicts always go to the thread when the desk relay is running.</p>` : ""}</div>`;
+    ${d.thread ? `<p class="age">Good + commit asks the thread to commit its files and settle. Good only stays on this board. Other verdicts go to the thread when the desk relay is running.</p>` : ""}</div>`;
   sheet.classList.add("on", "check-sheet"); draw(); if (scroll) sheet.scrollIntoView({behavior: "smooth", block: "start"});
 }
-async function checkAct(id, status) {
+async function checkAct(id, status, mode = "") {
   const note = document.getElementById("checkNote").value;
   if (status === "redo" && !note.trim()) return say("Write what to change before choosing Redo.");
   if (!status && !note.trim()) return say("Write a note first.");
   try {
-    await send("POST", `/api/checks/${id}/${status ? "verdict" : "notes"}`, status ? {status, note}
+    await send("POST", `/api/checks/${id}/${status ? "verdict" : "notes"}`, status
+      ? {status, note, commit: mode === "commit", send: mode !== "quiet"}
       : {author: "owner", body: note, send: document.getElementById("sendNote")?.checked || false});
-    say(status ? `Check #${id}: ${status}` : "Note saved");
+    say(status ? `Check #${id}: ${status}${mode === "commit" ? ", commit asked" : ""}` : "Note saved");
     if (status) { checkTab = localStorage.checkTab = status; hide(); }
     else document.getElementById("checkNote").value = "";
     await load();

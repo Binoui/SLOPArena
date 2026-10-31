@@ -55,6 +55,52 @@ def hashes(root: Path) -> dict:
 
 
 class MoveReviewTests(unittest.TestCase):
+    def test_checked_shape_overlay_projects_into_capture_pixels_and_preserves_clean_frames(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            fixture(root)
+            path = root/'takes/move-0'
+            receipt = review.read_json(path/'take.json')
+            receipt['hitboxes'] = True
+            review.write_json(path/'take.json', receipt)
+            rows = [json.loads(line) for line in (path/'frames.jsonl').read_text().splitlines()]
+            matrix = [1,0,0,0, 0,1,0,0, 0,0,1,0, 0,0,0,1]
+            for row in rows:
+                row['worldToClip'] = {view: matrix for view in ('behind', 'front')}
+                row['checkedHitboxes'] = [] if row['frame'] != 1 else [dict(owner='1', shape='Capsule',
+                    start=[-.5,-.5,0], end=[.5,-.5,0], radius=.15,
+                    sweep=[dict(start=[-.5,-.6,0], end=[.5,-.6,0])])]
+            (path/'frames.jsonl').write_text(''.join(json.dumps(row)+'\n' for row in rows))
+            before = hashes(path/'front')
+            take = review.load_run(root).takes[0]
+            overlay = review.render_hitboxes(take)
+            self.assertEqual(before, hashes(path/'front'))
+            self.assertNotEqual(take.image('front', 1), overlay.image('front', 1))
+            self.assertEqual(review.project_segment((-.5,-.5,0), (.5,-.5,0), matrix, (64,36)), ((16,27),(48,27)))
+            with Image.open(overlay.image('front', 1)) as image:
+                self.assertTrue(any(r > 170 and 70 < g < 220 and b < 90
+                                    for r,g,b in zip(*[iter(image.crop((10,26,54,33)).tobytes())]*3)))
+                self.assertLess(image.getpixel((16, 31))[0], 170)
+
+    def test_overlay_requires_geometry_and_clips_segments_behind_camera(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            fixture(root)
+            with self.assertRaisesRegex(ValueError, 'recapture'):
+                review.render_hitboxes(review.load_run(root).takes[0])
+        matrix = [1,0,0,0, 0,1,0,0, 0,0,-1,-2, 0,0,-1,0]
+        self.assertIsNone(review.project_segment((0,0,1), (1,0,1), matrix, (100,100)))
+        ring = dict(shape='Ring', start=[0,0,0], end=[0,0,0], radius=2,
+                    previousRadius=1, ringHalfWidth=.2, ringHalfHeight=.4)
+        lines = review.hitbox_lines(ring)
+        points = [point for a,b,_ in lines for point in (a,b)]
+        self.assertAlmostEqual(max(p[0] for p in points), 2.2)
+        self.assertAlmostEqual(min(p[1] for p in points), -.4)
+        self.assertAlmostEqual(max(p[1] for p in points), .4)
+        take = next(c for c in review.build_batch('r', 'tmp/x', ['test'], hitboxes=True)['commands']
+                    if c[0] == 'sloparena.moves.take')
+        self.assertEqual(take[take.index('--hitboxes')+1], 'true')
+
     def test_recipe_reader_uses_only_ids_and_selection_preserves_recipe_order(self):
         with tempfile.TemporaryDirectory() as directory:
             recipe = Path(directory)/'recipe.json'

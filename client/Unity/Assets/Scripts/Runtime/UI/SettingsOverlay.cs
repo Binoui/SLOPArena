@@ -366,7 +366,7 @@ namespace SlopArena.Client.UI
             "Slot4" => controller ? "Normal 3" : "Action 3",
             "Dash" => "Beeline",
             "SpecialModifier" => "Special Modifier",
-            "Shield" => "Shield", "Grab" => "Grab", "Jump" => "Jump",
+            "Shield" => "Shield", "Grab" => "Grab", "Walk" => "Walk", "Jump" => "Jump",
             "SlotA" => "Action A", "SlotE" => "Action E", "SlotR" => "Action R", "SlotF" => "Action F",
             _ => action,
         };

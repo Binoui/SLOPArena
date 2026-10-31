@@ -128,6 +128,11 @@ assert len(raw_mesh.vertices) == len(dress.data.vertices)
 assert [tuple(f.vertices) for f in raw_mesh.polygons] == [tuple(f.vertices) for f in dress.data.polygons]
 raw = np.array([list(v.co) for v in raw_mesh.vertices])
 points = raw+frame
+# The frame's 8 cm backward Y belongs to the bodice join only. Applied to the
+# whole bell it left 15 cm of empty fabric behind the hips (a bustle) and 5 cm
+# in front. Lean the bell forward linearly from the waist to the hem so it
+# returns over the legs; a short fade bends the straight A-line into an S.
+points[:,1] -= frame[1]*np.clip((1.0-points[:,2])/.7, 0, 1)
 for i,p in enumerate(points):
     # Keep the original bell and folds; fade the small vertical hip correction
     # toward the hem so its established height stays close to the real boots.

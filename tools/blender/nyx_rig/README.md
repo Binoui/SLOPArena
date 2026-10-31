@@ -202,3 +202,8 @@ Use `unity_import.eval.cs` through your own gateway lease. It reads this final c
 The real GenRA rig pack must be rebuilt from `Nyx_Real`, `Nyx_Real_Tights`, and `Nyx_Real_Dress`. Existing clips remain structurally compatible. The complete authored idle and g3 USDs were played on the final mesh in Blender and their bound clips were exercised in Training. Review the other real-form moves and both swaps on the new geometry, especially extreme legs and torso twists. The new rig pack does not require new animation keys solely because of this mesh fit.
 
 Blender spine comparisons, approved front/side/back silhouettes, all eight poses, full motion videos, Unity controlled captures and gateway receipts are under `tmp/nyx-model/spine-fix/`. Skin-only views do not simulate the runtime spring. Controlled spring tests still record high-kick and run-stride boot/hem contact; see the report before claiming universal clearance or owner acceptance.
+
+
+## Current dress centring
+
+`tmp/nyx-model/dress-centre/` supersedes the spine candidate for new imports. `fit_spine.py` applied the canonical frame offset (8.2 cm backward) to the whole skirt, leaving 15 cm of empty fabric behind the hips and a bustle that read as an oversized rear. The bell now leans forward linearly from the waist (no shift at z 1.0 m) to the hem (full offset back at z 0.3 m), so the waist join is unchanged and the hem centres over the boots. A short smoothstep fade was tried first; it bent the A-line into an S. Run the same `fit_spine.py`, `verify_spine.py` and `verify_rig.py` commands with `dress-centre` as the output; `side-compare.jpg` there compares approved v3, spine-fix and this fix.

@@ -410,10 +410,10 @@ public sealed class MatchRecorder
                     + x.MissRecoveryTicks),
             CookedSteeredChargeCapabilityParameters x => x.MaxGallopTicks + x.AirStrideTicks + x.LookDownTicks
                 + Math.Max(x.HitEndingTicks, x.MissEndingTicks),
-            CookedMankiRoundBombCapabilityParameters x => x.MaxFlightTicks + x.FuseTicks + x.ExplosionDurationTicks,
+            CookedMankiRoundBombCapabilityParameters x => x.MaxFlightTicks + x.LifetimeTicks + x.WarningTicks + x.ExplosionDurationTicks,
             CookedMankiJetpackBoostCapabilityParameters x => x.StartupTicks + x.FuelTicks + x.ExplosionDurationTicks,
             CookedMankiKamikazeCapabilityParameters x => x.RunTicks + x.ExplosionDurationTicks,
-            CookedMankiBazookaCapabilityParameters x => x.FireTriggerTick + x.MaxFlightTicks + x.RecoveryDuration,
+            CookedMankiBazookaCapabilityParameters x => x.ChargeTicks + x.FireTriggerTick + x.MaxFlightTicks + x.RecoveryDuration,
             CookedChargedStreamCapabilityParameters x => x.MaxChargeTicks + x.FireTriggerTick + x.MaxStreamTicks
                 + Math.Max(x.RecoveryTicks, x.Projectile.MaxFlightTicks),
             CookedFingerGunsCapabilityParameters x => x.FireTriggerTick

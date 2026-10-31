@@ -84,6 +84,8 @@ namespace SlopArena.Shared
         /// tech; tune 3-5 in playtest per ADR-0016.
         /// </summary>
         public const byte ShortHopWindowTicks = 5;
+        /// <summary>An ordinary jump leaves at no more than this multiple of AirSpeedMax, as Smash caps takeoff (ADR-0058).</summary>
+        public const float JumpTakeoffAirSpeedRatio = 1.2f;
 
         /// <summary>
         /// Horizontal speed dead zone. Below this, velocity is snapped to zero
@@ -343,12 +345,14 @@ namespace SlopArena.Shared
                         s.IsGrounded = false;
                         s.State = ActionState.Idle;
                         s.AirTimeTicks = stats.FloatWindowTicks;
-                        // A hop out of the shell keeps her skate speed.
-                        if (s.JumpTakeoff != JumpTakeoff.Shell)
+                        float jumpCap = s.JumpTakeoff switch
                         {
-                            float jumpCap = stats.RunSpeed * (s.JumpTakeoff == JumpTakeoff.Slide ? DownActionTuning.JumpCapRatio : 1f);
-                            ClampHorizontalSpeed(ref s, jumpCap);
-                        }
+                            JumpTakeoff.Standing => MathF.Min(stats.RunSpeed, stats.AirSpeedMax * JumpTakeoffAirSpeedRatio),
+                            JumpTakeoff.Slide => stats.RunSpeed * DownActionTuning.JumpCapRatio,
+                            JumpTakeoff.Shell => float.PositiveInfinity,
+                            _ => throw new ArgumentOutOfRangeException(nameof(s.JumpTakeoff)),
+                        };
+                        ClampHorizontalSpeed(ref s, jumpCap);
                         s.JumpTakeoff = JumpTakeoff.Standing;
                     }
                 // During squat: preserve horizontal momentum, no acceleration
@@ -1841,7 +1845,9 @@ namespace SlopArena.Shared
                 float span = stats.RunSpeed - start;
                 float accel = span / GroundSpeedTuning.RampTicks;
                 bool belowStart = speed < start * 0.999999f;
-                float next = belowStart ? start : MathF.Min(stats.RunSpeed, MathF.Max(start, speed) + accel);
+                float next = input.Walk
+                    ? MathF.Max(stats.RunSpeed * GroundSpeedTuning.WalkRatio, speed - stats.RunSpeed / GroundSpeedTuning.StopTicks)
+                    : belowStart ? start : MathF.Min(stats.RunSpeed, MathF.Max(start, speed) + accel);
                 if (next >= stats.RunSpeed * 0.999999f) next = stats.RunSpeed;
                 float perp = s.VX * dirZ - s.VZ * dirX;
                 bool sameInput = MathF.Abs(s.LastDirX - dirX) <= 0.001f
@@ -1849,7 +1855,7 @@ namespace SlopArena.Shared
                 bool tangentSlide = sameInput && !reverse && MathF.Abs(perp) > VelocityDeadZone
                     && ((MathF.Abs(s.VX) <= VelocityDeadZone && MathF.Abs(s.VZ) > VelocityDeadZone)
                         || (MathF.Abs(s.VZ) <= VelocityDeadZone && MathF.Abs(s.VX) > VelocityDeadZone));
-                if (tangentSlide && !belowStart)
+                if (tangentSlide && !belowStart && !input.Walk)
                 {
                     s.VX = MoveToward(s.VX, dirX * stats.RunSpeed, accel);
                     s.VZ = MoveToward(s.VZ, dirZ * stats.RunSpeed, accel);

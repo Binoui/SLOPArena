@@ -168,7 +168,29 @@ namespace SlopArena.EditorTools
                 AssetDatabase.CreateAsset(mesh, path);
                 return mesh;
             }
-            EditorUtility.CopySerialized(mesh, existing);
+            // Rewrite the asset through the Mesh API. A serialized copy (CopySerialized) over a mesh
+            // with the same vertex count kept its old GPU buffers, so Play Mode drew the previous
+            // shape (Nyx's Shadow Flick claws) even after a forced reimport.
+            using (var source = Mesh.AcquireReadOnlyMeshData(mesh))
+            {
+                var from = source[0];
+                var target = Mesh.AllocateWritableMeshData(1);
+                var to = target[0];
+                to.SetVertexBufferParams(from.vertexCount, mesh.GetVertexAttributes());
+                for (int stream = 0; stream < from.vertexBufferCount; stream++)
+                    to.GetVertexData<byte>(stream).CopyFrom(from.GetVertexData<byte>(stream));
+                int indexCount = from.indexFormat == IndexFormat.UInt16
+                    ? from.GetIndexData<ushort>().Length : from.GetIndexData<uint>().Length;
+                to.SetIndexBufferParams(indexCount, from.indexFormat);
+                if (from.indexFormat == IndexFormat.UInt16) to.GetIndexData<ushort>().CopyFrom(from.GetIndexData<ushort>());
+                else to.GetIndexData<uint>().CopyFrom(from.GetIndexData<uint>());
+                to.subMeshCount = from.subMeshCount;
+                const MeshUpdateFlags keep = MeshUpdateFlags.DontRecalculateBounds | MeshUpdateFlags.DontValidateIndices;
+                for (int i = 0; i < from.subMeshCount; i++) to.SetSubMesh(i, from.GetSubMesh(i), keep);
+                existing.Clear();
+                Mesh.ApplyAndDisposeWritableMeshData(target, existing, keep);
+            }
+            existing.bounds = mesh.bounds;
             Object.DestroyImmediate(mesh);
             EditorUtility.SetDirty(existing);
             _changedAssets.Add(existing);

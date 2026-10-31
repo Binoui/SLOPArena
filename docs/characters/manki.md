@@ -29,21 +29,21 @@ kit:
     type: "melee"
     description: "Slow windup (16 tick startup) downward spike punch. High knockback, spikes opponents straight down."
   - slot: "Q"
-    name: "Bombs Away"
+    name: "Proximity Mines"
     type: "projectile"
-    description: "Three charges. Flying drops a contact bomb straight down. Otherwise hop backward and leave a one-second contact bomb. Opponent-only damage and zero-damage self-push."
+    description: "Three charges. Set a mine at your feet or drop one straight down in air. Arms after 30 ticks, triggers within 2 m, warns for 12 ticks and blasts within 4 m. Never hits Manki. Three live mines maximum."
   - slot: "E"
     name: "Jetpack Flight"
     type: "recovery"
-    description: "Three-tick ignition, then 180 fuel ticks at 12 m/s. Stick steers, neutral holds heading and jump bursts lift. Q/R keep flight. Normal, hit, E again or empty fuel ends it. Refuel on landing; 210-tick cooldown from exit."
+    description: "Three-tick ignition, then 180 fuel ticks at 12 m/s. Stick steers, neutral holds heading and jump bursts lift. Q/R keep flight. Normal, hit, E again or empty fuel ends it. Refuel on landing; 600-tick cooldown from exit."
   - slot: "R"
     name: "Bazooka"
     type: "artillery"
-    description: "Existing press-to-fire homing rocket, usable during flight. Tracking breaks on an invalid target or a pass behind it. Existing 4 self-damage remains."
+    description: "Capture a target and face it during a 40-tick charge, then fire a homing rocket. Flying retains its movement heading. A hit cancels charge. Existing homing and 4 self-damage remain."
   - slot: "F"
     name: "Kamikaze"
     type: "finisher"
-    description: "Lock onto the current target and fly into a 24-damage, strong-knockback blast. From flight it dives. Without a target run along facing. Self-push has no damage or stun."
+    description: "Capture the target, brace for 16 vulnerable ticks, then travel at 18 m/s for up to 54 ticks into a 24-damage blast. Ground startup is rooted; airborne startup falls normally. Without a target run along facing. Self-push has no damage or stun."
 ---
 
 # Manki — Mad Bomber Monkey
@@ -58,6 +58,27 @@ kit:
 > Status: Package-native authoring source cooked and rostered. The canonical kit contract is the package-native 14-entry grid: grounded and aerial variants of `1 / 3 / 4 / A / E / R / F`. `LMB` and `RMB` are camera controls, not persisted move identities.
 > Package source: `client/Unity/Assets/CharacterPackages/manki/`; cooked runtime: `content-cooked/manki/`.
 > Inspired by: Ziggs (LoL) × rushdown brawler — pyromaniac mad inventor monkey
+
+## Combat presentation, 2026-10-31
+
+The approved follow-up keeps Manki chaotic with short, separate effects and visible gaps.
+The existing builders generate the assets. The animation authoring task remains separate.
+
+| Move | Presentation and timing |
+| --- | --- |
+| Q, Proximity Mines | The 1.2 m Masked Classic body has dark unarmed lenses, a lit-fuse armed wink, then wide pale trigger eyes and a tongue. Falling mines use the unarmed variant. Phase variants come from the predicted mine each update. Lamps stay steady, including ReducedFlashing. The existing trigger beep remains. |
+| Q, floor | A still scorched seam with sparse raised tabs follows the saved 4 m blast radius. Its interior stays open. Straight-drop projection follows the floor and hides the mark over pits. No pulse or chase. |
+| R, charged lock | Open corner brackets close over the existing 40-tick charge. A small iris sits at the muzzle for the charge; the bazooka prop stays visible through charge and cast. Shared faces the captured target each tick while Flying keeps its separate movement heading. The current `anim.manki.gr` remains a placeholder. |
+| F, startup | Sixteen vulnerable ticks precede powered motion and contact sweeps. Ground startup is rooted; airborne startup falls normally. A small cough and pack announcement precede launch ignition. The existing hunch clip stretches across the 71-tick stage pending the separate animation task. |
+| F, travel | Two short banded closed flame shapes start at the authoritative launch. Measured nozzle anchors replace the old comet offset. Each jet has at most four hot chips and no smoke ribbon. Travel remains 18 m/s with its full 54-tick allowance. |
+| F, blast | Seven closed soot clods surround an open centre. A small curved wink, crooked teeth and tongue face the viewing camera. Clods separate after six ticks and clear by sixteen; chips clear by twenty-four. Sparse tongues imply the unchanged 4 m blast reach. Damage, push and Hitstop retain their existing values. |
+
+World Snapshot v23 saves Kamikaze's Startup/Travel phase. The simulation protocol remains 32 with an Unreleased note.
+The generated Grin Mushroom material, texture and obsolete fuse mesh are retired.
+New shapes use alpha blending and no screen shake. Existing sounds are reused.
+
+Build and capture evidence is recorded in `tmp/manki-vfx2/build/REPORT.md`.
+Final in-game visual acceptance remains with the owner.
 
 ## Concept
 
@@ -234,7 +255,7 @@ see the [grounding tool](../../tools/character_sizes/README.md).
 | **Air LMB** | Air Kick (2 hits) | Two air kicks | 2-hit combo, first kick lunges, second has higher KB |
 | **Air RMB** | Knuckle Spike | Double knuckle punch down (hold to charge) | Two-phase charge: tap = quick spike (10 dmg), hold >45 ticks = charged spike (14 dmg). Downward, high KB |
 | **Q** | Bombs Away | projectile | Three charges. Flying drops a contact bomb straight down. Otherwise hop backward and leave a one-second contact bomb. Opponent-only damage and zero-damage self-push. |
-| **E** | Jetpack Flight | recovery | Three-tick ignition, then 180 fuel ticks at 12 m/s. Stick steers, neutral holds heading and jump bursts lift. Q/R keep flight. Normal, hit, E again or empty fuel ends it. Refuel on landing; 210-tick cooldown from exit. |
+| **E** | Jetpack Flight | recovery | Three-tick ignition, then 180 fuel ticks at 12 m/s. Stick steers, neutral holds heading and jump bursts lift. Q/R keep flight. Normal, hit, E again or empty fuel ends it. Refuel on landing; 600-tick cooldown from exit. |
 | **R** | Bazooka | artillery | Existing press-to-fire homing rocket, usable during flight. Tracking breaks on an invalid target or a pass behind it. Existing 4 self-damage remains. |
 | **F** | Kamikaze | finisher | Lock onto the current target and fly into a 24-damage, strong-knockback blast. From flight it dives. Without a target run along facing. Self-push has no damage or stun. |
 
@@ -286,8 +307,8 @@ The workflow is the [character VFX pass](../../skills/sloparena-character-vfx-pa
 | Normals (ground and air 1–4) | An orange toon swoosh behind the striking limb and a puff of smoke. Hits use `normal.hit`: a soot-rimmed orange "pow" with sparks. Ground and air 4 use `normal.heavy-hit`, which adds a flash star and a nut flying off. |
 | Bombs Away (A) | The generated Masked Classic bomb has a faceted black shell, red mask, open eye and wink, missing-tooth grin, curled fuse and crackling star. It faces the camera and follows resolver identity at the existing 1.2 m contact diameter. The orange ground warning is unchanged. Q retains its existing impact/fuse blast. |
 | Jetpack Flight (E) | Ignition crossfades into the package-bound 48-tick `anim.manki.fly-loop`. The arms float out and the legs trail behind the pack, with two small thrust bobs per cycle. Q/R override the upper body while the loop continues underneath, then fade back to it. State-owned exhaust and the fuel bar last through Q/R and end with Flying. |
-| Bazooka (R) | A glint and a clunk-click as he shoulders it (`bazooka.ready`, tick 0). The shot: a flash star and a short flame at the muzzle, and a comically oversized backblast out of the back end that singes his fur, which smokes for a moment (`bazooka.singe`, on his head). The rocket is a red toon rocket that flies point-first, with a wobbly smoke trail that lingers after impact. The explosion is the Round Bomb's, bigger, with the grin. Contacts use `blast.hit`. |
-| Kamikaze (F) | The accepted 56-tick `anim.manki.gf-kamikaze` plays once over the existing 55-tick stage. Its 8-tick hunch and launch open into a flat torpedo with the arms swept back. The rendered model smoothly pitches toward replicated travel velocity, carrying the Spine2 pack trail with it. `kamikaze.trail` is a short banded flame at each pack nozzle with world-space sparks and short soot puffs. The attack-bound cue follows Spine2 without an upright override, including the dive pose. `kamikaze.explosion` builds a rising Grin Mushroom with a banded fire stalk, broad winking tongue-out smoke cap, workshop junk and a floor ring. The main read clears in about 0.5 s and the final junk by 0.78 s. No screen shake. |
+| Bazooka (R) | The accepted 75-tick GenRA gunner brace replaces the FBX take. The moving shoulder hold fires at clip tick 40 and settles through recovery. R retains the Flying upper-body mask. A glint and a clunk-click as he shoulders it (`bazooka.ready`, tick 0). The shot: a flash star and a short flame at the muzzle, and a comically oversized backblast out of the back end that singes his fur, which smokes for a moment (`bazooka.singe`, on his head). The rocket is a red toon rocket that flies point-first, with a wobbly smoke trail that lingers after impact. The explosion is the Round Bomb's, bigger, with the grin. Contacts use `blast.hit`. |
+| Kamikaze (F) | The accepted combined 69-tick `anim.manki.gf-kamikaze-windup` plays over the 71-tick stage. Its sixteen-tick crouch, coughs and brace lead into the accepted dive. The startup announcement stays visible through the vulnerable startup, and twin closed toon jets ignite at tick 16. The rendered model pitches toward travel after startup. The accepted blast v2 has six small burning soot puffs, a separate masked grin, short fire tongues and chips. Puffs split by six ticks and clear by sixteen, with sparse chips ending by twenty-four. |
 
 - **Ground 4 ribbon (2026-10-22):** Head Slam's existing heavy swoosh starts at tick 6,
   during the downward swing, with a head-local offset of `(0, 0.24, 0)` and a 12-tick
@@ -529,10 +550,11 @@ clips' backups in the local `artifacts/manki-f-shake-20261021/`.
 | `anim.manki.a4` | Air smash | Air `4` |
 | `anim.manki.ga` | Round bomb | Ground `A` |
 | `anim.manki.ge` | Jetpack Boost | Ground `E` and Air `E` alias |
-| `anim.manki.gr` | Bazooka | Ground `R` |
+| `anim.manki.gr` | GenRA gunner brace (`manki_gr_gunner_brace.anim`), 75-tick one-shot | Ground `R` and Air `R` alias, upper-body layer in Flying |
 | `anim.manki.gf-loop` | Aerosol Inferno hold loop: the can's piston shake (`manki_gf_shake_loop`) | Mayhem host via `presentation.mayhemLaugh` |
 | `anim.manki.fly-loop` | GenRA flight cruise (`manki-fly-loop-v1.anim`), 48-tick loop | Flying, including beneath Q/R |
-| `anim.manki.gf-kamikaze` | GenRA hunch, launch and flat dive (`manki-gf-kamikaze-56-v1.anim`), 56-tick one-shot | Ground `F` and Air `F` alias |
+| `anim.manki.gf-kamikaze-windup` | GenRA windup plus accepted dive (`manki_gf_kamikaze_windup.anim`), 69-tick one-shot | Ground `F` and Air `F` alias over the 71-tick stage |
+| `anim.manki.gf-kamikaze` | Original accepted 56-tick dive asset, unchanged | Retained source clip, no remaining active binding |
 | `anim.manki.gf-atk` | Aerosol Inferno release: can and lighter in front (`manki_gf_fire`) | Retained asset, no current kit binding |
 
 ## Files

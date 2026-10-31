@@ -57,7 +57,7 @@ namespace SlopArena.Client.Input
         }
         public static IReadOnlyList<string> RebindableActions { get; } = new[]
         {
-            "MoveUp", "MoveDown", "MoveLeft", "MoveRight", "MoveStick", "Jump", "Down",
+            "MoveUp", "MoveDown", "MoveLeft", "MoveRight", "MoveStick", "Walk", "Jump", "Down",
             "Shield", "Grab", "Dash", "Slot1", "Slot3", "Slot4", "SlotA", "SlotE", "SlotR", "SlotF",
             "SpecialModifier", "FaceToCamera", "ToggleLock", "CameraToggle", "Retarget", "Pause", "Retry"
         };
@@ -324,6 +324,7 @@ namespace SlopArena.Client.Input
             // With the stick on the camera, LB + a face button is a special, A included, and
             // LB + RT grabs. Grab and SpecialModifier share LB; InputController reads only the one
             // the setting selects.
+            AddButton("Walk", "<Keyboard>/leftCtrl");
             AddButton("Jump", "<Keyboard>/space", "<Gamepad>/buttonSouth");
             AddButton("Shield", "<Keyboard>/leftShift", "<Gamepad>/rightTrigger");
             AddButton("Grab", "<Keyboard>/c", "<Gamepad>/leftShoulder");

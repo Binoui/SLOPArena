@@ -115,14 +115,18 @@ _Avoid_: clinch (the retired capability)
 Reduced ordinary launch strength for a fighter already settled motionless in Crouch when a hit connects. The contact snapshot survives Hitstop and release; damage, freeze and Hitstun remain unchanged. Sliding, entry/braking crouch and fixed/custom forces do not qualify.
 
 **Run**:
-The single ground locomotion tier. The first moving tick starts at 40% of RunSpeed. Twenty linear increments reach RunSpeed on completed tick 21, 350 ms. Release brakes along the velocity vector by RunSpeed/20 per tick. All fighters and modes share these constants. Tilt magnitude is ignored. Facing follows input. Stick 8-way snap is a client Controls preference, default on. Dash overspeed keeps its existing coast behavior.
-_Avoid_: walk, sprint, selectable movement model
+The ordinary ground locomotion tier. The first moving tick starts at 60% of RunSpeed. Twelve linear increments reach RunSpeed on completed tick 13, about 217 ms. Release brakes along the velocity vector by RunSpeed/20 per tick. All fighters and modes share these constants. Holding Walk caps it at walk speed. Facing follows input. Stick 8-way snap is a client Controls preference, default on. Dash overspeed keeps its existing coast behavior.
+_Avoid_: sprint, selectable movement model
 
 **Rush**:
 Retired by the 2026-10-27 amendment to ADR-0020. The old instant-start and dash-dance window have no gameplay use. Existing source/cooked fields and the snapshot ushort remain reserved compatibility data.
 
 **Turnaround**:
-An immediate grounded reversal that retains current speed, continues the Run ramp, and never starts below 40% of RunSpeed. There is no skid, turn delay, or Rush window. Reversing from dash overspeed keeps the existing pivot to RunSpeed.
+An immediate grounded reversal that retains current speed, continues the Run ramp, and never starts below 60% of RunSpeed. A reversal while walking stays at walk speed. There is no skid, turn delay, or Rush window. Reversing from dash overspeed keeps the existing pivot to RunSpeed.
+
+**Walk**:
+Held ground locomotion at 40% of RunSpeed (ADR-0058). The client sets Walk while the Walk action is held, Left Ctrl by default, or while the movement stick is tilted no more than 0.7. Below walk speed the fighter moves at walk speed at once; above it, speed brakes toward walk speed by RunSpeed/20 per tick. Release uses the Run release rule, so a walk stops in 8 ticks. The state stays Run and the Run clip slows with speed. Air movement, DI, attacks, defense and dashes ignore Walk.
+_Avoid_: tilt walk, slow run
 
 **Shield**:
 A permanent, full-body defensive state entered by holding Defense (Left Shift / RT) while actionable and grounded. It blocks ordinary attacks from every direction and freezes combat facing. Releasing enters a vulnerable 7-tick ShieldDrop; contact adds block stun and hitstop, and releasing during stun starts the full drop only after stun expires.

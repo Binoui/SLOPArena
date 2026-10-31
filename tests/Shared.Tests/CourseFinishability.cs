@@ -6,7 +6,7 @@ public abstract record RouteStep;
 public sealed record Go(float X, float Z) : RouteStep;
 public sealed record Hop(float X, float Z, float? MinLandY = null) : RouteStep;
 public sealed record Break(string TargetId) : RouteStep;
-public sealed record CourseRoute(string ArenaKey, RouteStep[] Steps, CourseFormat? Format = null, bool PlainJumpsOnly = false);
+public sealed record CourseRoute(string ArenaKey, RouteStep[] Steps, CourseFormat? Format = null, bool PlainJumpsOnly = false, RouteStep[]? RacingSteps = null);
 
 /// <summary>
 /// Drives any fighter along a course route table. Each Hop or Break searches a small set of input plans
@@ -150,6 +150,26 @@ public sealed class CourseFinishability
                 $"{course.BrokenTargets}/{course.TotalTargets} targets, deaths={State.Deaths}.");
         VerifyReplay();
         _log($"RESULT {route.ArenaKey}/{_selector} PASS ticks={course.ElapsedTicks} specials=[{string.Join(",", SpecialTargets)}]");
+    }
+
+    public void Calibrate(float x, float feet, float z, params RouteStep[] steps)
+    {
+        UsesSnapshots = _allowSnapshots && SnapshotRoundTrips();
+        var state = State;
+        state.PX = x; state.PY = feet + Fighter.CapsuleHeight * .5f; state.PZ = z;
+        state.VX = state.VY = state.VZ = 0; state.IsGrounded = true;
+        state.JumpsLeft = Fighter.Movement.MaxJumps; state.AirDodgesLeft = 1;
+        Sim.SetState(1, state);
+        foreach (var step in steps)
+        {
+            bool success = step switch
+            {
+                Go go => Walk(new(go.X, go.Z)),
+                Hop hop => Jump(hop),
+                _ => throw new ArgumentException("Calibration expects movement steps.")
+            };
+            if (!success) throw new InvalidOperationException($"Leg {_selector} {step} failed at {State.PX},{Feet},{State.PZ}.");
+        }
     }
 
     private InvalidOperationException Failure(CourseRoute route, int index, RouteStep step, string reason)
@@ -433,6 +453,8 @@ public sealed class CourseFinishability
 
     public static readonly CourseRoute[] Routes =
     {
+        new("nyx_manor", NyxManorTests.Route(-1, quick: false, low: false), RacingSteps:
+            NyxManorTests.Route(-1, quick: false, low: false).Where(s => s is not Break).ToArray()),
         new("fightguy_sanctuary", new RouteStep[]
         {
             new Go(-11,-32), new Break("target_01"), new Break("target_02"),

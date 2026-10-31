@@ -311,6 +311,7 @@ public sealed partial class AbilityLabWindow : EditorWindow
         BindToolbar();
         BindMovesPage();
         BindMovesViewport();
+        BindReach();
         BindCharacterPage();
         BindAssetsPage();
         BindPhaseAuthoring();
@@ -373,6 +374,8 @@ public sealed partial class AbilityLabWindow : EditorWindow
         if (_uiReady && EditorApplication.timeSinceStartup >= _nextPersistedStatusCheck)
         {
             _nextPersistedStatusCheck = EditorApplication.timeSinceStartup + 1d;
+            _workspace.RefreshReachTargetStamp();
+            RefreshReachPanel();
             if (_workspace.RefreshPersistedStatus())
             {
                 RefreshAll();
@@ -801,6 +804,7 @@ public sealed partial class AbilityLabWindow : EditorWindow
             BuildMoveButtons(_airborneSelector);
             RefreshInspector();
         }
+        RefreshReachPanel();
         if (scenarioEnded) RefreshInspector();
         UpdateTimelineControls();
     }

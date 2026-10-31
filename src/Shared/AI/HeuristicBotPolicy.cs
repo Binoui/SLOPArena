@@ -1336,7 +1336,7 @@ public sealed partial class HeuristicBotPolicy
                 recoveryHorizontal = MathF.Max(recoveryHorizontal, x.GallopSpeed * x.AirStrideTicks / 60f);
                 damage += x.LanceHitbox.Damage; hasDamage |= x.LanceHitbox.Damage > 0f; hasMovement = true; break;
             case CookedMankiRoundBombCapabilityParameters x:
-                hitReach = MathF.Max(hitReach, x.ExplosionRadius);
+                hitReach = MathF.Max(hitReach, x.TriggerRadius);
                 damage += x.ExplosionDamage; hasDamage |= x.ExplosionDamage > 0f; break;
             case CookedMankiJetpackBoostCapabilityParameters x:
                 hitReach = MathF.Max(hitReach, x.HorizontalSpeed + x.ExplosionRadius);
@@ -1364,9 +1364,9 @@ public sealed partial class HeuristicBotPolicy
             CookedFlashCutCapabilityParameters x => x.StanceTicks,
             CookedWibouRisingSlashCapabilityParameters _ => 0,
             CookedTargetedLeapCapabilityParameters x => x.MaxAimTicks,
-            CookedMankiRoundBombCapabilityParameters _ => 0,
+            CookedMankiRoundBombCapabilityParameters x => (ushort)(x.ArmTicks + x.WarningTicks),
             CookedMankiJetpackBoostCapabilityParameters x => x.StartupTicks,
-            CookedMankiBazookaCapabilityParameters x => x.FireTriggerTick,
+            CookedMankiBazookaCapabilityParameters x => x.ChargeTicks > 0 ? x.ChargeTicks : x.FireTriggerTick,
             _ => 0,
         };
 

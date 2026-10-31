@@ -1,18 +1,28 @@
-# Nyx's approved animation and paper-effect integration
+# Nyx animation and roster VFX integration
 
-The package owns its approved clips, source meshes, palette, shader and generated prefabs.
-The 2026-10-29 local evidence and the exact gateway batches are in
-`tmp/nyx-model/integration/`.
+Nyx's package owns the approved clips, generated particle prefabs, palette,
+and retained Hex Crow model. The effects use the shared roster toolkit.
 
-Run `python3 tools/nyx/build_paper_assets.py` to generate the 28 source OBJ meshes and
-point-sampled eight-color palette. Silhouettes are closed beveled solids. Slashes, arcs,
-rings, rays and the lash are flat comic strokes (`Mesh.stroke`): the bands run across the
-width, so each has ink edges, a dark band, the accent and a pale core line, and crescent
-widths give pointed tips. Flashes are uneven starbursts (`burst`), floor marks lie flat with
-upright torn teeth, Grasp's tendrils are swept 16-facet bands, and bird wings have a
-dihedral fold. The generator rejects open surfaces or any axis below 2 cm;
-`NyxPaperMeshes.json` records the generated bounds in metres. This does not operate
-Unity or edit the rig.
+Use the canonical Unity gateway and your own bounded lease for these commands:
+
+- `sloparena.presentation.nyx.build` rebuilds all effects with
+  `PresentationBuilderKit`, `PresentationFx`, and `ToonShapes.Bands`. It preserves
+  the three phone and pole bindings, `NyxRig.prefab`, and the crow model meshes.
+- The builder compiles gameplay source without requiring generated VFX bindings.
+  It reads active hitbox geometry and cue windows, samples Shared geometry and
+  bone sweeps against the verified pose package, and adds a small radius margin.
+  Static volumes remain at their spawn position. Bone volumes follow the owner.
+- Rebuild after a hitbox or timing retune. The builder synchronizes cue starts
+  and minimum lifetimes to attack phases, including Selfie Grab's capture cue.
+  Cook animation changes before building bone-dependent effects.
+- `sloparena.presentation.nyx.verify-timing` compares saved volume samples,
+  active windows, and motif lifetimes with current source. Rebuild on failure.
+- `sloparena.character.cook --target nyx` and
+  `sloparena.character.verify --target nyx` validate the saved presentation.
+
+The paper VFX generator and shader are retired. Only the crow's three model
+OBJs and generated model meshes remain from that asset family. Its palette is
+`Presentation/Source/NyxCrowPalette.png`. Character props remain models.
 
 `prepare_approved_integration.py` promotes the owner's 24 accepted experiment clips
 into package-owned files with distinct GUIDs. It requires the retained local GenRA
@@ -20,24 +30,8 @@ status and timing handoff. It does not bind a candidate or modify the rig.
 `wire_character.py` assigns the approved IDs and presentation cues. It asserts that
 the non-presentation gameplay document is unchanged before writing.
 
-Use the canonical gateway with your own lease for these native commands:
-
-- `sloparena.animation.nyx.integrate` remaps Bat Scatter and both swaps to existing
-  gameplay clocks, assigns one pose track per approved clip and retires unused bindings.
-- `sloparena.presentation.nyx.build` uses `PresentationBuilderKit` to assemble separate
-  prefabs. It preserves the three phone/pole bindings. Layer ticks come from the cues in
-  `character.json` (each `emitPresentation` tick and lifetime, Grasp's warning and catch,
-  Bat Scatter's thrust and Ring Light Rise's startup), so rebuild after a retime. It
-  force-reimports the meshes it saved, so an Editor rebuild never draws stale GPU buffers.
-- `sloparena.presentation.nyx.verify-timing` fails when a paper layer falls outside its cue's
-  lifetime in `character.json`. Nothing runs it automatically: run it after `retime.py --write`
-  and a rebuild. Vertex
-  colours use packed `Color32` because particle mesh streams misread Float32 white.
-  The package shader writes depth, and contact materials keep depth testing, so the parts of
-  a burst inside a fighter stay hidden. The crow pop's burst is pivoted toward the camera
-  instead, so the perched crow and the victim's head cannot hide it.
-- `sloparena.character.inspect --target nyx`, `sloparena.character.cook --target nyx`
-  and `sloparena.character.verify --target nyx` validate the saved integration.
+`sloparena.animation.nyx.integrate` remaps Bat Scatter and both swaps to their
+existing gameplay clocks and assigns one pose track per approved clip.
 
 `encode_integration.py` converts native Training JPG sequences into H.264/yuv420p.
 It converts JPEG full-range input to limited-range output explicitly and checks
@@ -60,7 +54,18 @@ It preserves poses and loop settings, rescales tangent slopes, and skips clips
 already at the target duration. It supports uncompressed text AnimationClips.
 Cook and verify Nyx through the gateway after these content changes.
 
-Depth review evidence and exact bounded gateway batches: `tmp/nyx-model/vfx-depth/REPORT.md`.
-Review all 27 effect prefabs at their full silhouette, not only the normal gameplay
-shot: CameraMount allows wrapping yaw and pitch 0–45 degrees (Steady settles at
-35). Include the side views at 0 degrees and a high supplemental view.
+Capture every recipe move with the resolver overlay:
+
+```bash
+python3 tools/move_review.py run nyx --hitboxes
+```
+
+Review all camera-ring rows, gameplay pitch 35, and the low and high views.
+`media/` remains clean. `media-hitboxes/` overlays the exact checked hitboxes
+from the same take. Rebuild overlay media without Unity with
+`python3 tools/move_review.py media <run-directory> --hitboxes`.
+See [VFX review overlays](../../docs/systems/vfx-particles.md#move-review-hitbox-overlays).
+
+The current comparison board and verification receipts live locally in
+`tmp/nyx-coverage/`. Earlier integration and depth evidence remains under
+`tmp/nyx-model/integration/` and `tmp/nyx-model/vfx-depth/`.

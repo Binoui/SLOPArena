@@ -240,7 +240,8 @@ public void AcceptedJump_WinsOverLowPosture()
         }
         Assert.False(state.IsGrounded);
         Assert.Equal(JumpTakeoff.Standing, state.JumpTakeoff);
-        float cap = Run * (slide ? DownActionTuning.JumpCapRatio : 1f);
+        float cap = slide ? Run * DownActionTuning.JumpCapRatio
+            : MathF.Min(Run, Def.Movement.AirSpeedMax * Simulation.JumpTakeoffAirSpeedRatio);
         Assert.InRange(Speed(state), cap - .3f, cap);
         float force = fullHop ? Def.Movement.JumpForce : Def.Movement.ShortHopForce;
         TestHelpers.AssertNear(force - Def.Movement.Gravity / 60f, state.VY);

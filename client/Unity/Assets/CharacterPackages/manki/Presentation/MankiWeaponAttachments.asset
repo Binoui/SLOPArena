@@ -38,7 +38,7 @@ MonoBehaviour:
     FirePositionOffset: {x: 0, y: 0, z: 0}
     FireRotationOffset: {x: 0, y: 0, z: 0}
     RotationOffset: {x: -20, y: -90, z: 0}
-    HideAfterTicks: 20
+    HideAfterTicks: 60
     ShowFromTicks: 0
     HiddenBySlot: 0
     HiddenBySlotFromTicks: 0
@@ -47,37 +47,3 @@ MonoBehaviour:
     TrailBladeWidth: 0.8
     TrailHiltAnchor: 
     TrailTipAnchor: 
-  - AttackSlot: 6
-    BoneName: mixamorig:RightHand
-    Prefab: {fileID: 549402415988426766, guid: e8283359ce6830a83b95ef89361f2f9a, type: 3}
-    PositionOffset: {x: 0, y: 0.14, z: 0.06}
-    HasFirePhaseOverride: 0
-    FirePositionOffset: {x: 0, y: 0, z: 0}
-    FireRotationOffset: {x: 0, y: 0, z: 0}
-    RotationOffset: {x: 180, y: 0, z: 0}
-    HideAfterTicks: 0
-    ShowFromTicks: 0
-    HiddenBySlot: 0
-    HiddenBySlotFromTicks: 0
-    TrailStylePrefab: {fileID: 0}
-    HitboxMotionTime: 0.12
-    TrailBladeWidth: 0.8
-    TrailHiltAnchor: 
-    TrailTipAnchor: 
-  - AttackSlot: 6
-    BoneName: mixamorig:LeftHand
-    Prefab: {fileID: 4270780758685535414, guid: 55107e155469ecf23be85cd2f02719c8, type: 3}
-    PositionOffset: {x: 0.019, y: 0.11, z: 0.014}
-    HasFirePhaseOverride: 0
-    FirePositionOffset: {x: 0, y: 0, z: 0}
-    FireRotationOffset: {x: 0, y: 0, z: 0}
-    RotationOffset: {x: 0, y: 0, z: -90}
-    HideAfterTicks: 0
-    ShowFromTicks: 0
-    HiddenBySlot: 0
-    HiddenBySlotFromTicks: 0
-    TrailStylePrefab: {fileID: 0}
-    HitboxMotionTime: 0.12
-    TrailBladeWidth: 0.8
-    TrailHiltAnchor: LighterBase
-    TrailTipAnchor: LighterHood

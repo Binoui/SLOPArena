@@ -16,7 +16,7 @@ public sealed class StageCollisionTests
             new[] { Floor(2f, -20f, 20f, -20f, 20f), FloorOther(2f, -20f, 20f, -20f, 20f),
                 WallX(2f, 2f, 10f, -20f, 20f), WallXOther(2f, 2f, 10f, -20f, 20f) },
             (2f, -20f, 20f, -20f, 20f));
-        var initial = Grounded(2f - def.CapsuleRadius - .05f, 0);
+        var initial = Grounded(2f - def.CapsuleRadius - .01f, 0);
         initial.PY += 2.05f;
         initial.IsGrounded = false;
         initial.VY = -10;

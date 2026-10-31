@@ -103,6 +103,25 @@ public class WorldSnapshotContractTests
     }
 
     [Fact]
+    public void InputStateCodecRejectsUnknownDashAndWalkBits()
+    {
+        static byte[] Encode(InputState input)
+        {
+            var w = new SnapshotWriter();
+            SnapshotCodecs.Write(w, input);
+            return w.ToArray();
+        }
+
+        byte[] plain = Encode(default);
+        byte[] flagged = Encode(new InputState { DashPressed = true, Walk = true });
+        int index = Enumerable.Range(0, plain.Length).Single(i => plain[i] != flagged[i]);
+        Assert.Equal(0x41, flagged[index]);
+
+        flagged[index] = 0x43;
+        Assert.Throws<System.IO.InvalidDataException>(() => SnapshotCodecs.ReadInputState(new SnapshotReader(flagged)));
+    }
+
+    [Fact]
     public void HitboxCodecCoversEveryFieldAndRelinksOwnerContent()
     {
         var content = BuiltInContentResolver.Resolve(CharacterClass.Wibou);

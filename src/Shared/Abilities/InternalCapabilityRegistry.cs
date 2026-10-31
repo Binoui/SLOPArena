@@ -68,7 +68,7 @@ public static class InternalCapabilityRegistry
             case CharacterPackageCompiler.CommandGrabCapabilityId when parameters is CookedCommandGrabCapabilityParameters grab:
                 capability = new CommandGrabAbility(grab);
                 return true;
-            case "slop.internal.manki.round-bomb.v3" when parameters is CookedMankiRoundBombCapabilityParameters bomb:
+            case "slop.internal.manki.proximity-mine.v1" when parameters is CookedMankiRoundBombCapabilityParameters bomb:
                 capability = new MankiRoundBomb(bomb);
                 return true;
             case "slop.internal.manki.jetpack-boost.v3" when parameters is CookedMankiJetpackBoostCapabilityParameters jetpack:
@@ -76,6 +76,9 @@ public static class InternalCapabilityRegistry
                 return true;
             case "slop.internal.manki.kamikaze.v1" when parameters is CookedMankiKamikazeCapabilityParameters kamikaze:
                 capability = new MankiKamikaze(kamikaze);
+                return true;
+            case "slop.internal.manki.bazooka.v3" when parameters is CookedMankiBazookaCapabilityParameters { ChargeTicks: > 0 } charged:
+                capability = new MankiBazooka(charged);
                 return true;
             case "slop.internal.manki.bazooka.v2" when parameters is CookedMankiBazookaCapabilityParameters bazooka:
                 capability = new MankiBazooka(bazooka);

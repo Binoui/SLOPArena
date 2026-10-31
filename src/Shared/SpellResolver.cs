@@ -169,6 +169,17 @@ namespace SlopArena.Shared
             hb.AgeTicks = 0;
             if (hb.HitsMultipleOpponents && hb.HitEntities == null)
                 hb.HitEntities = new HashSet<ulong>();
+            if (hb.MinePhase != MinePhase.None)
+            {
+                int count = 0, oldest = -1;
+                for (int i = 0; i < _hitboxes.Count; i++)
+                    if (_hitboxes[i].OwnerId == hb.OwnerId && _hitboxes[i].MinePhase != MinePhase.None)
+                    {
+                        count++;
+                        if (oldest < 0 || _hitboxes[i].EmissionId < _hitboxes[oldest].EmissionId) oldest = i;
+                    }
+                if (count >= hb.MineMaxCount && oldest >= 0) _hitboxes.RemoveAt(oldest);
+            }
             _hitboxes.Add(hb);
         }
 
@@ -667,6 +678,18 @@ namespace SlopArena.Shared
                 if (groundY == float.MinValue) groundY = 0f;
                 if (hb.Y - hb.Radius > groundY) continue;
 
+                if (hb.MinePhase == MinePhase.Falling)
+                {
+                    hb.Y = groundY + hb.Radius;
+                    hb.VX = hb.VY = hb.VZ = hb.Gravity = 0f;
+                    hb.MinePhase = MinePhase.Arming;
+                    hb.MineTicksLeft = hb.MineArmTicks;
+                    hb.AgeTicks = 0;
+                    hb.DurationTicks = hb.MineLifetimeTicks;
+                    _hitboxes[i] = hb;
+                    continue;
+                }
+
                 // Ground contact: queue explosion at ground level, deactivate
                 var exp = hb.Explosion.Value;
                 _pendingExplosions.Add((hb.X, groundY, hb.Z, exp, hb.OwnerId, hb.AttackSlot,
@@ -755,6 +778,12 @@ namespace SlopArena.Shared
             {
                 var hb = _hitboxes[i];
                 if (!hb.Active) { _hitboxes.RemoveAt(i); continue; }
+
+                if (hb.MinePhase is MinePhase.Arming or MinePhase.Armed or MinePhase.Triggered)
+                {
+                    TickMine(i, hb, entities, canHitTarget);
+                    continue;
+                }
 
                 if (hb.AttachedEntityId != 0)
                 {
@@ -957,7 +986,7 @@ namespace SlopArena.Shared
                     hb.AgeTicks++;
                 if (hb.AttachedEntityId == 0 && (hb.AgeTicks >= hb.DurationTicks || !hb.Active))
                 {
-                    if (hb.Explosion.HasValue && (!hb.ContactExplosion || !hb.Active || hb.ExplodeOnExpiry))
+                    if (hb.Explosion.HasValue && (!hb.ContactExplosion || !hb.Active))
                         _pendingExplosions.Add((removalOrigin.X, removalOrigin.Y, removalOrigin.Z, hb.Explosion.Value, hb.OwnerId, hb.AttackSlot,
                             hb.ActivationId, hb.ActivationAirborne, hb.AttackSequence));
                     OnHitboxRemoved?.Invoke(hb, removalOrigin.X, removalOrigin.Y, removalOrigin.Z);
@@ -971,6 +1000,50 @@ namespace SlopArena.Shared
 
             ReplacePerches();
             return results;
+        }
+
+        private void TickMine(int index, Hitbox mine, List<EntityData> entities, Func<ulong, ulong, bool>? canHitTarget)
+        {
+            if (mine.MinePhase == MinePhase.Triggered)
+            {
+                if (mine.MineTicksLeft > 0) mine.MineTicksLeft--;
+                if (mine.MineTicksLeft == 0)
+                {
+                    _pendingExplosions.Add((mine.X, mine.Y, mine.Z, mine.Explosion!.Value, mine.OwnerId,
+                        mine.AttackSlot, mine.ActivationId, mine.ActivationAirborne, mine.AttackSequence));
+                    _hitboxes.RemoveAt(index);
+                    return;
+                }
+            }
+            else
+            {
+                if (++mine.AgeTicks >= mine.DurationTicks)
+                {
+                    _hitboxes.RemoveAt(index);
+                    return;
+                }
+                if (mine.MinePhase == MinePhase.Arming)
+                {
+                    if (mine.MineTicksLeft > 0) mine.MineTicksLeft--;
+                    if (mine.MineTicksLeft == 0) mine.MinePhase = MinePhase.Armed;
+                }
+                if (mine.MinePhase == MinePhase.Armed)
+                {
+                    var probe = mine;
+                    probe.Radius = mine.MineTriggerRadius;
+                    foreach (var entity in entities)
+                    {
+                        if (!entity.Active || entity.Id == mine.OwnerId || entity.RuntimeSolid
+                            || canHitTarget != null && !canHitTarget(mine.OwnerId, entity.Id)) continue;
+                        if (!OverlapsAtCurrentPosition(probe, entity)) continue;
+                        mine.MinePhase = MinePhase.Triggered;
+                        mine.MineTicksLeft = mine.MineWarningTicks;
+                        break;
+                    }
+                }
+            }
+            _lastTickChecked.Add(mine);
+            _hitboxes[index] = mine;
         }
 
         private static bool OverlapsAtCurrentPosition(in Hitbox hb, in EntityData entity)

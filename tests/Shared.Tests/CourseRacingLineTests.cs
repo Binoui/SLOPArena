@@ -7,7 +7,7 @@ public sealed class CourseRacingLineTests
 {
     [Theory]
     [InlineData("fightguy_sanctuary")] [InlineData("fightguy_pier")]
-    [InlineData("manki_quarry")] [InlineData("wibou_mall")]
+    [InlineData("manki_quarry")] [InlineData("wibou_mall")] [InlineData("nyx_manor")]
     public void BakedMainPathHasNoTargetDetourReversalsOrInflatedLength(string key)
     {
         var arena = ArenaBinaryFormat.LoadFromFile(Path.Combine(CourseFinishability.Root, "data/arenas", key + ".arena"))!.Value;
@@ -33,7 +33,7 @@ public sealed class CourseRacingLineTests
 
     [Theory]
     [InlineData("fightguy_sanctuary")] [InlineData("fightguy_pier")]
-    [InlineData("manki_quarry")] [InlineData("wibou_mall")]
+    [InlineData("manki_quarry")] [InlineData("wibou_mall")] [InlineData("nyx_manor")]
     public void FollowingBakedLineKeepsProgressThroughSwitchbacks(string key)
     {
         var arena = ArenaBinaryFormat.LoadFromFile(Path.Combine(CourseFinishability.Root, "data/arenas", key + ".arena"))!.Value;
