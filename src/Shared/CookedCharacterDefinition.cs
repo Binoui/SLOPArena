@@ -807,12 +807,10 @@ public sealed record CookedTargetedLeapCapabilityParameters(
     string LaunchPresentationId = "",
     string LandingPresentationId = "") : CookedCapabilityParameters;
 public sealed record CookedMankiRoundBombCapabilityParameters(
-    ushort FuseTicks,
+    ushort ArmTicks,
     ushort MaxFlightTicks,
     float Gravity,
     float HitboxRadius,
-    float HopBackSpeed,
-    float HopUpSpeed,
     float ExplosionDamage,
     float ExplosionRadius,
     float ExplosionKbBase,
@@ -820,8 +818,11 @@ public sealed record CookedMankiRoundBombCapabilityParameters(
     ushort ExplosionStunTicks,
     ushort ExplosionDurationTicks,
     float ExplosionKbAngle,
-    float SelfPushSpeed,
-    string ExplosionPresentationId) : CookedCapabilityParameters;
+    string ExplosionPresentationId,
+    float TriggerRadius,
+    ushort WarningTicks,
+    ushort LifetimeTicks,
+    byte MaxMines) : CookedCapabilityParameters;
 public sealed record CookedMankiJetpackBoostCapabilityParameters(
     ushort StartupTicks,
     float VerticalSpeed,
@@ -858,7 +859,8 @@ public sealed record CookedMankiBazookaCapabilityParameters(
     float HomingTurnDegPerTick,
     float HomingTurnCos,
     float HomingTurnSin,
-    string ExplosionPresentationId = "") : CookedCapabilityParameters;
+    string ExplosionPresentationId = "",
+    ushort ChargeTicks = 0) : CookedCapabilityParameters;
 
 public sealed record CookedBudget(
     int SlotCount,

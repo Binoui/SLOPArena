@@ -42,13 +42,24 @@ All gameplay timing uses 60 Hz ticks. Values are authored in package data and re
 
 Every simulation uses the same immutable `GroundSpeedTuning` constants, including online prediction and replay playback.
 The first moving tick sets speed to 60% of RunSpeed. The next 12 linear increments each add RunSpeed/30.
-Full speed arrives on completed tick 13, about 217 ms at 60 Hz. Tilt magnitude is ignored.
+Full speed arrives on completed tick 13, about 217 ms at 60 Hz. Stick tilt above 0.7 always runs.
 Turns and Turnaround redirect immediately at retained speed and continue acceleration, with the same 60% floor.
 Facing follows input. Release removes RunSpeed/20 along the velocity vector per tick, so full-speed stopping takes 20 ticks.
 Dash overspeed retains its shipped coast, release braking, and pivot behavior until ordinary Run resumes.
 Rush, its dash-dance window, and its instant tap-release stop are retired.
 The Run clip plays at actual horizontal speed divided by RunSpeed, with a 0.35 playback floor.
 See the 2026-10-27 amendment to [ADR-0020](../adr/0020-melee-based-movement.md) for measured distances and the tick convention.
+
+### Walk
+
+Walk is held intent on `InputState.Walk` ([ADR-0058](../adr/0058-movement-calibration-walk-takeoff-run-speeds.md)).
+The client sets it while the Walk action is held, Left Ctrl by default, or while movement comes from the stick alone at a tilt of 0.7 or less.
+CPU opponents, course bots and scripted inputs never set it.
+With movement held, walk speed is `GroundSpeedTuning.WalkRatio` (0.4) × RunSpeed.
+Below walk speed the fighter moves at walk speed on that tick. Above it, speed brakes toward walk speed by RunSpeed/20 per tick while the direction follows input.
+Releasing Walk with movement held continues the Run ramp from its 60% floor. Releasing movement uses the Run release rule, so a walk stops in 8 ticks.
+The state stays `Run`, so the Run clip plays at 0.4 speed. Air movement, DI, attacks, Shield, grabs, dashes and jumps ignore Walk.
+An attack from a walk carries walk speed, and Down while walking crouches because Slide needs 0.65× RunSpeed.
 
 ### Permanent shield bubble
 
@@ -127,7 +138,8 @@ adds neither a second integration nor slide friction. Crouch brakes at 36 units/
 snaps below .015; release restores ordinary control that tick. Slide preserves LastDir. Walk-off clears low posture without automatically fast-falling.
 
 SlideJump uses ordinary jump squat, ShortHop and resources. Its takeoff cap is 1.15×
-RunSpeed versus ordinary RunSpeed; caps never refill velocity or restore wall-blocked
+RunSpeed. An ordinary jump takes off at no more than `min(RunSpeed, 1.2 × AirSpeedMax)`
+(`Simulation.JumpTakeoffAirSpeedRatio`, ADR-0058). Caps never refill velocity or restore wall-blocked
 components. Grounded mobility uses normal movement; character-specific mobility stays in kit abilities.
 
 The roster packages opt their grounded normals into `allowSlideCarry`.

@@ -335,6 +335,27 @@ because gameplay-distance comparisons hide these effects.
 and launches that leave the fixed frame. Use `--presets high:1.6` alone to review
 character effects at the shipped hit-feel strength.
 
+### Move-review hitbox overlays
+
+`python3 tools/move_review.py run nyx --hitboxes` records
+`Resolver.LastTickCheckedHitboxes` after each Shared step. `sloparena.moves.take`
+exposes the same optional flag as `--hitboxes true`. Both default to off.
+
+Each frame receipt contains world-space sphere, capsule, or ring geometry, its
+owner and emission ID, lifetime, sweep poses, and each capture camera's
+`projectionMatrix * worldToCameraMatrix`. This includes a window's last checked
+tick and between-tick bone sweeps. The capture uses no scene debug renderers.
+
+Python projects that geometry over the original JPGs. Orange lines show the
+fighter's current checked shape, translucent ochre lines show swept poses, and cyan lines
+show other owners. Lines remain visible through fighters and scenery. They show
+collision geometry, not occlusion. Clean images and media remain unchanged.
+
+To rebuild overlay sheets, clips, mosaics, and boards from a recorded take, run
+`python3 tools/move_review.py media <run-directory> --hitboxes`. Outputs live in
+`media-hitboxes/`, `takes/<move>/hitboxes/`, and `summary-hitboxes.json`.
+A capture without geometry must be recorded again with `--hitboxes`.
+
 ## Air dodge print slip
 
 Every fighter's air dodge prints itself out of register (concept C, picked by the owner on
@@ -517,12 +538,12 @@ The general rules still apply:
 | Wibou pixel trail, glints, code rain, crescents, kunai and hit bursts | Implemented; owner-approved 2026-10-17 | `WibouPresentationBuilder.cs`; see [Wibou](../characters/wibou.md#combat-presentation--2026-10-16) |
 | Wibou Quick Draw steel and flash code dissolve, held scanlines and pixel shatter | Direction A approved 2026-10-29; in-game acceptance pending | `WibouPresentationBuilder.cs`, `FlashDissolvePresentation.cs`, `HeldCutPresentation.cs`; see [Wibou](../characters/wibou.md#combat-presentation--2026-10-16) |
 | FightGuy "Champ's Show": ki, champion gold, 肉 brand, chalk and gags | Implemented; owner-approved 2026-10-17 | `FightGuyPresentationBuilder.cs`; see [FightGuy](../characters/fightguy.md#combat-presentation--2026-10-17) |
-| Manki "Controlled Chaos": toon blasts, gadget junk, his grin in the smoke, flame and backfiring gadgets | Implemented 2026-10-17; G4 ribbon corrected 2026-10-22; flying-bomber Masked Classic bomb, Grin Mushroom and Fire Comet added 2026-10-29; in-game owner check pending | `MankiPresentationBuilder.cs`; see [Manki](../characters/manki.md#combat-presentation--2026-10-17) |
+| Manki "Controlled Chaos": toon blasts, gadget junk, his grin in the smoke, flame and backfiring gadgets | Implemented 2026-10-17; G4 ribbon corrected 2026-10-22; 2026-10-31 mine lamps/wink and Ember stitch, charged R brackets/iris, and Kamikaze startup, twin jets and closed Grin scatter replace the mushroom/comet; in-game owner check pending | `MankiPresentationBuilder.cs`; see [Manki](../characters/manki.md#combat-presentation--2026-10-17) |
 | Bonk "BONK!": bucket-red smear, blunt thunks, a comic BONK! on big hits, armour glow, snort, dust, cracks and rubble | Implemented 2026-10-17; concepts approved, in-game check pending | `BonkPresentationBuilder.cs`; see [Bonk](../characters/bonk.md#combat-presentation--2026-10-17) |
 | Sir Bonk: wood splinters, Leap of Faith's holy light and POP!, Blade Storm's wind stripes and dust ring (sails until 2026-10-22) and tiny windmill | Implemented 2026-10-21; concepts approved, in-game check pending | `BonkPresentationBuilder.cs`; see [Bonk](../characters/bonk.md#sir-bonk-effects--2026-10-21) |
 | Sir Bonk's Joust: straw poofs for the hobby horse, NEIGH!, a pennant on the lance, clip-clop hooves, heel gouges in the skid, the look-down gag | Implemented 2026-10-21; concepts approved, in-game check pending | `BonkPresentationBuilder.cs`; see [Bonk](../characters/bonk.md#the-jousts-effects) |
 | Sir Bonk's Pot-Lid Throw: a cream wake and flat spin rings on the flying lid, a whirr, a tink and a wobbly DOOOONG on each hit, a gleam and clank on the catch, a ringing bucket, "?" and "hm?" on a self-hit | Implemented 2026-10-22; concepts approved, in-game check pending | `BonkPresentationBuilder.cs`; see [Bonk](../characters/bonk.md#the-pot-lid-throws-effects) |
-| Nyx violet paper shadows, perched crow, bats and Grasp; Nyxxie pink prop arcs, hearts, flashes and swaps | Concepts approved 2026-10-29; built and cooked, in-game acceptance pending | `NyxPresentationBuilder.cs`, `NyxPaperCue.cs`, `YawBillboard.cs`, `PlacedTetherVisual.cs`; open light rays, camera-facing hands/scraps and reduced flashes; see [Nyx](../characters/nyx.md#combat-presentation-2026-10-29) |
+| Nyx violet claws, rising hands, whip, crescents, fist, crow, bats and Grasp's hand; Nyxxie pink swing trails, slap swooshes, boot blasts, light rays, rotor, viewfinder and hearts | Motifs sized from each hitbox, no coverage fields, 2026-10-31; Shadow Flick, Ring Light Overhead and Going Live approved as the direction, the full set awaits the owner | `NyxPresentationBuilder.cs`, `NyxAttackCue.cs`, `PlacedTetherVisual.cs`. Attack-clock beats and measured weapon trails with a lead-in. See [Nyx](../characters/nyx.md#combat-presentation-2026-10-31). |
 | Character-specific hit layers | Authored per package and slot | Per-slot `hitPresentationId` |
 | Character Course feel (Sanctuary): paper-lantern targets, breaks, checkpoint frames, missed-target pillars, ALL CLEAR! and the finish | Implemented 2026-10-18; concepts approved, in-game check pending | `SanctuaryCoursePresentationBuilder.cs` + `CharacterCoursePresentation.cs`; see [Phase 4](../design/arcade-phase-4.md#feel-pass--2026-10-18) |
 

@@ -10,14 +10,14 @@ public sealed class MankiRoundBomb : ServerAbility
 
     public override void OnStart(ref CharacterState s, CharacterDefinition def)
     {
-        bool flying = s.Flight.Active;
+        bool airborne = !s.IsGrounded;
+        if (!airborne) s.VX = s.VZ = 0f;
         var blast = new ProjectileExplosion
         {
             Radius = _parameters.ExplosionRadius, Damage = _parameters.ExplosionDamage,
             Knockback = new() { Profile = KnockbackProfile.Custom, Angle = (sbyte)_parameters.ExplosionKbAngle,
                 BaseKnockback = _parameters.ExplosionKbBase, KnockbackGrowth = _parameters.ExplosionKbGrowth },
             StunTicks = _parameters.ExplosionStunTicks, DurationTicks = _parameters.ExplosionDurationTicks,
-            SelfPushSpeed = _parameters.SelfPushSpeed,
             ExplosionPresentationId = _parameters.ExplosionPresentationId,
             PresentationAttackSequence = PresentationAttackSequence,
             PresentationOperationIndex = PresentationOperationIndex, PresentationYaw = s.FacingYaw,
@@ -27,26 +27,21 @@ public sealed class MankiRoundBomb : ServerAbility
         {
             X = s.PX, Y = bombY, Z = s.PZ,
             Radius = _parameters.HitboxRadius, Shape = HitboxShape.Sphere,
-            DurationTicks = flying ? _parameters.MaxFlightTicks : _parameters.FuseTicks,
+            DurationTicks = airborne ? _parameters.MaxFlightTicks : _parameters.LifetimeTicks,
             OwnerId = s.EntityId, AttackSlot = (byte)(Slot + 1),
-            Gravity = flying ? _parameters.Gravity : 0f,
-            Explosion = blast, ContactExplosion = true, ExplodeOnExpiry = !flying,
+            Gravity = airborne ? _parameters.Gravity : 0f,
+            MinePhase = airborne ? MinePhase.Falling : MinePhase.Arming,
+            MineTicksLeft = _parameters.ArmTicks, MineArmTicks = _parameters.ArmTicks,
+            MineTriggerRadius = _parameters.TriggerRadius, MineWarningTicks = _parameters.WarningTicks,
+            MineLifetimeTicks = _parameters.LifetimeTicks, MineMaxCount = _parameters.MaxMines,
+            Explosion = blast, ContactExplosion = true,
         });
-        if (!flying)
-        {
-            float yaw = s.FacingYaw;
-            if (OwnerSimulation != null && OwnerSimulation.TryGetProjectileTargetPosition(s.EntityId, s.TargetEntityId != 0 ? s.TargetEntityId : ActivationInput.TargetEntityId, out var target))
-                yaw = MathF.Atan2(target.X - s.PX, target.Z - s.PZ);
-            ClearVelocityOwnership(ref s);
-            s.VX = -MathF.Sin(yaw) * _parameters.HopBackSpeed;
-            s.VZ = -MathF.Cos(yaw) * _parameters.HopBackSpeed;
-            s.VY = _parameters.HopUpSpeed;
-            s.IsGrounded = false;
-            s.IsFastFalling = false;
-        }
         s.State = ActionState.Attacking;
         s.IsAiming = false;
     }
 
-    public override void Tick(ref CharacterState s, ref InputState input, CharacterDefinition def) { }
+    public override void Tick(ref CharacterState s, ref InputState input, CharacterDefinition def)
+    {
+        if (s.IsGrounded) s.VX = s.VZ = 0f;
+    }
 }

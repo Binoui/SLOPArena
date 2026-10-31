@@ -1,0 +1,33 @@
+{
+  "source": "client/Unity/Assets/Stages/nyx_manor/nyx_manor.unity",
+  "sourceSha256": "2e484f7057ac6f6169c5e3da800ddf060d5b9e54740dfd3674c9e4f4281a4781",
+  "arena": "data/arenas/nyx_manor.arena",
+  "arenaSha256": "2cf71c30340a09d48e2d503e662a7cfd2807c1f729f720469863e2fe77732298",
+  "generator": "tools/blender/nyx_manor/build.py",
+  "geometryDigest": "7b66c9a9e871df6df967f9f0e243d8c97c10b863305c3b923639cefb1952f942",
+  "blender": "5.2.3 LTS",
+  "objects": [
+    "Baked Shell Skin",
+    "Dreamhouse Trim and Roses",
+    "Front Stucco Relief",
+    "Gothic Masonry",
+    "Graveyard Carving and Planting",
+    "Manor Slate Roofs",
+    "Moonlit Sea",
+    "Nyxxie Garden",
+    "Outside Blast Scenery",
+    "Ravine and Graveyard",
+    "Split Turret Details",
+    "Starry Gradient Sky"
+  ],
+  "materials": [
+    "ManorLit",
+    "ManorGlow",
+    "MoonHalo",
+    "MoonSurface",
+    "ManorWater",
+    "NightSky",
+    "CandleGlow"
+  ],
+  "problems": 0
+}

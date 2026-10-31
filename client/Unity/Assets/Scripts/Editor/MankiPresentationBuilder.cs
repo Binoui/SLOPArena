@@ -62,7 +62,7 @@ namespace SlopArena.EditorTools
         private sealed class Materials
         {
             public Material Glow, SoftGlow, Fireball, Flash, Pow, Puff, Soot, Mist, Junk, Ring, Scorch, Spark, Flame,
-                FlameJet, FlameJetHot, Grin, Ribbon, RibbonHeavy, Rattle, Rocket, BombShell, BombTrim, Mushroom, CometFlame;
+                FlameJet, FlameJetHot, Grin, Ribbon, RibbonHeavy, Rattle, Rocket, BombShell, BombArmed, BombTriggered, CometFlame, SolidInk, SolidEmber, SolidCream, SolidTongue, SootVolume, FloorStitch, TorchVolume;
             public Mesh RocketMesh, LighterMesh;
         }
 
@@ -83,6 +83,7 @@ namespace SlopArena.EditorTools
                 ("presentation.manki.round-bomb.explosion", Boom("MankiRoundBombExplosion", big: false)),
                 ("presentation.manki.kamikaze.explosion", KamikazeBlast()),
                 ("presentation.manki.kamikaze.trail", KamikazeTrail()),
+                ("presentation.manki.kamikaze.startup", KamikazeStartup()),
                 ("presentation.manki.jetpack-boost.ignition", Ignition()),
                 ("presentation.manki.jetpack-boost.exhaust", Exhaust()),
                 ("presentation.manki.jetpack-boost.trail", ExhaustTrail()),
@@ -104,12 +105,17 @@ namespace SlopArena.EditorTools
             kit.BindProjectile("air.A", bomb, ProjectileOrientation.PreservePrefab, "");
             kit.BindProjectile("ground.R", rocket, ProjectileOrientation.FlightPositiveY, "");
             kit.BindProjectile("air.R", rocket, ProjectileOrientation.FlightPositiveY, "");
-            BindHeldLighter(lighter);
-            return kit.Finish(built, new
+            BindBomberWeapons();
+            var result = kit.Finish(built, new
             {
                 bomb = AssetDatabase.GetAssetPath(bomb), rocket = AssetDatabase.GetAssetPath(rocket),
                 lighter = AssetDatabase.GetAssetPath(lighter),
             });
+            foreach (string old in new[] { "MankiKamikazeGrin.mat", "MankiKamikazeGrin.png", "MankiBombFuseMesh.asset", "MankiBombTrim.mat", "MankiBombTrim.png", "MankiScatterWinkRim.asset", "MankiStartupRim-1.asset", "MankiStartupRim0.asset", "MankiStartupRim1.asset" })
+                AssetDatabase.DeleteAsset($"{kit.Root}/{old}");
+            foreach (string guid in AssetDatabase.FindAssets("t:Mesh", new[] { kit.Root }))
+                AssetDatabase.ImportAsset(AssetDatabase.GUIDToAssetPath(guid), ImportAssetOptions.ForceUpdate);
+            return result;
         }
 
         [MenuItem("Tools/SLOPArena/Presentation/Rebuild Manki Presentation")]
@@ -389,14 +395,22 @@ namespace SlopArena.EditorTools
         private static GameObject BazookaReady()
         {
             var root = _kit.NewRoot("MankiBazookaReady", attackBound: true);
-            var glint = Particles(Frame(root), "Glint", _m.Spark, 0.3f, ParticleSystemSimulationSpace.Local);
-            Burst(glint, 1);
-            var main = glint.main;
-            main.startLifetime = 0.2f;
-            main.startSize = 0.42f;
-            SizeOverLife(glint, Curve((0f, 0.2f), (0.25f, 1.15f), (1f, 0f)));
-            Spin(glint, 220f);
-            InFront(glint);
+            var frame = Frame(root);
+            var iris = new GameObject("Muzzle iris");
+            iris.transform.SetParent(frame.transform, false);
+            foreach (var (radius, thickness, material) in new[] {
+                (.19f, .034f, _m.SolidInk), (.165f, .026f, _m.SolidEmber), (.14f, .012f, _m.SolidCream) })
+            {
+                var points = new List<Vector3>();
+                for (int i = 0; i <= 24; i++)
+                {
+                    float angle = i * Mathf.PI * 2f / 24f;
+                    points.Add(new Vector3(Mathf.Cos(angle) * radius, .015f, Mathf.Sin(angle) * radius));
+                }
+                BombMeshPart(iris, "Iris band", TubeMesh(points, "MankiIris" + radius, thickness), material);
+            }
+            var charge = iris.AddComponent<SlopArena.Client.World.MankiChargeIris>();
+            charge.ChargeTicks = 40;
             _kit.Sound(root, "manki_bazooka_ready", 0.6f, 1f);
             return Save(root);
         }
@@ -691,26 +705,14 @@ namespace SlopArena.EditorTools
             return Save(root);
         }
 
-        /// <summary>
-        /// Shows the held lighter in his left hand whenever Aerosol Inferno is held or fired. The can's
-        /// entry stays first, so <see cref="WeaponAttach.PropFor"/> (the can's charge feedback) still finds it.
-        /// </summary>
-        private static void BindHeldLighter(GameObject prefab)
+        private static void BindBomberWeapons()
         {
             const string path = "Assets/CharacterPackages/manki/Presentation/MankiWeaponAttachments.asset";
             var config = AssetDatabase.LoadAssetAtPath<WeaponAttachConfig>(path)
                 ?? throw new System.InvalidOperationException($"No weapon config at {path}.");
-            var entries = config.Entries.ToList();
-            var entry = entries.FirstOrDefault(e => e.AttackSlot == AbilitySlots.F && e.BoneName == "mixamorig:LeftHand");
-            if (entry == null)
-                entries.Add(entry = new WeaponEntry { AttackSlot = AbilitySlots.F, BoneName = "mixamorig:LeftHand" });
-            entry.Prefab = prefab;
-            entry.PositionOffset = LighterGrip;
-            entry.RotationOffset = LighterGripRotation;
-            entry.HideAfterTicks = 0;
-            entry.TrailHiltAnchor = "LighterBase";  // no trail style: only rig packs read these
-            entry.TrailTipAnchor = "LighterHood";
-            config.Entries = entries.ToArray();
+            config.Entries = config.Entries.Where(entry => entry.AttackSlot != AbilitySlots.F).ToArray();
+            foreach (var entry in config.Entries)
+                if (entry.AttackSlot == AbilitySlots.R) entry.HideAfterTicks = 60;
             EditorUtility.SetDirty(config);
             AssetDatabase.SaveAssetIfDirty(config);
         }
@@ -1215,9 +1217,16 @@ namespace SlopArena.EditorTools
             FlameJetHot = Mat("MankiFlameJetHot", 256, 128, (u, v) => FlameJetPixel(u, v, hot: true)),
             Grin = Mat("MankiGrin", 512, 512, (u, v) => GrinPixel(P(u, v))),
             CometFlame = Mat("MankiKamikazeFlame", 256, 128, (u, v) => CometPixel(u, v)),
-            Mushroom = Mat("MankiKamikazeGrin", 512, 512, (u, v) => GrinPixel(P(u, v), mushroom: true)),
-            BombShell = BombMaterial("MankiBombShell", 1024, 512, BombPixel),
-            BombTrim = BombMaterial("MankiBombTrim", 32, 32, (u, v) => u < .5f ? new Color(.19f, .20f, .21f) : new Color(1f, .56f, .14f)),
+            BombShell = BombMaterial("MankiBombShell", 1024, 512, (u, v) => BombPixel(u, v, 0)),
+            BombArmed = BombMaterial("MankiBombArmed", 1024, 512, (u, v) => BombPixel(u, v, 1)),
+            BombTriggered = BombMaterial("MankiBombTriggered", 1024, 512, (u, v) => BombPixel(u, v, 2)),
+            SolidInk = SolidMaterial("MankiSolidInk", SteelRim),
+            SolidEmber = SolidMaterial("MankiSolidEmber", Blast),
+            SolidCream = SolidMaterial("MankiSolidCream", Cream),
+            SolidTongue = SolidMaterial("MankiSolidTongue", Tongue),
+            SootVolume = SolidMaterial("MankiSootVolume", Color.white),
+            FloorStitch = SolidMaterial("MankiEmberStitch", Color.white),
+            TorchVolume = SolidMaterial("MankiTorchVolume", Blast),
             Ribbon = Mat("MankiRibbon", 128, 64, (u, v) => RibbonPixel(u, v, Soot, Blast, Fuse)),
             RibbonHeavy = Mat("MankiRibbonHeavy", 128, 64, (u, v) => RibbonPixel(u, v, Soot, Blast, Cream)),
             Rattle = Mat("MankiRattle", 256, 128, RattlePixel),

@@ -1,4 +1,4 @@
-const string Build = "/home/binoui/Documents/projects/SlopArena/tmp/nyx-model/spine-fix";
+const string Build = "/home/binoui/Documents/projects/SlopArena/tmp/nyx-model/dress-centre";
 const string Dir = "Assets/Art/Characters/nyx";
 const string Fbx = Dir + "/Models/Nyx.fbx";
 const string PrefabPath = "Assets/CharacterPackages/nyx/Presentation/NyxRig.prefab";

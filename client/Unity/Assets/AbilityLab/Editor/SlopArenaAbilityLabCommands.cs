@@ -13,7 +13,7 @@ using UnityEngine;
 
 namespace SlopArena.EditorTools;
 
-public static class SlopArenaAbilityLabCommands
+public static partial class SlopArenaAbilityLabCommands
 {
     [CliCommand(
         "sloparena.lab.open",
@@ -1472,6 +1472,8 @@ public static class SlopArenaAbilityLabCommands
 [JsonObject(MemberSerialization.OptIn)]
 public sealed class AbilityLabCommandResult
 {
+    [JsonProperty("reach", NullValueHandling = NullValueHandling.Ignore)] public Newtonsoft.Json.Linq.JRaw? Reach { get; set; }
+    [JsonProperty("reachElapsedMs", NullValueHandling = NullValueHandling.Ignore)] public double? ReachElapsedMs { get; set; }
     [JsonProperty("form")] public byte Form { get; set; }
     [JsonProperty("success")] public bool Success { get; set; }
     [JsonProperty("packageId", NullValueHandling = NullValueHandling.Ignore)] public string? PackageId { get; set; }

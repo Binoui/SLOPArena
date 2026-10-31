@@ -1,0 +1,300 @@
+{
+  "name": "manki-gr-gunner-brace",
+  "notes": "Manki R, Bazooka, 'Gunner brace' (owner's pick on the 2026-10-31 VFX board, tmp/manki-vfx2/concepts/r-charge-A.png). Replaces anim.manki.gr (manki_spell_r_attack.fbx, 48 ticks, reference 'rocket'). The move (slop.internal.manki.bazooka.v3): press -> 40-tick charge, locked in place, the sim turning his facing to the captured target every tick -> the rocket fires at tick 40 -> 20 ticks firing -> 15 recovery = 75 ticks. The bazooka stage is 600 ticks long and ended by the capability; the bazooka sets AnimIndex 1, so PlayerRenderer.GetAbilityAnimationSpeed clamps the stage to the clip's frame count and plays the clip at 1x from the press: the clip must be authored at exactly 75 ticks, not slow. The bazooka (manki_bazooka.prefab, weapon slot 5) shows in his right hand from tick 0 to the end of the move. In flight (Flying keeps R) the same clip plays on an upper-body Animancer layer (Body, Head, arms and fingers; legs from the flight loop). Rig pack manki-unity-bazooka built 2026-10-31 from the live MankiRig.prefab with --prop R. Authored at game speed by necessity; one loop round (loop.py --rounds 1).",
+  "rigpack": "artifacts/genra-rigpacks/manki-unity-bazooka",
+  "character": "Manki v5 'pyro' (61 joints: a Humanoid body with Mixamo names, a big head with goggles and a spiky mane, an open vest and ragged shorts; a two-can spray-can jetpack built into the body mesh and pinned rigidly to Spine2; thumb, index, middle and ring fingers; arm stretch, forearm offset and fist deform controls; a five-joint tail Tail1..5 that a spring drives in the game). He is small: hips to head 0.38 m, thigh 0.25 m, shin 0.19 m, upper arm 0.14 m, forearm 0.15 m, so a hand reaches about 0.29 m from its shoulder joint. His bazooka is fixed to the right hand as joint Weapon0: a 1.59 m launcher, about 0.30 m across, far bigger than him, with a rocket nose cone at the muzzle. Prop0Base is the rear end of the tube's axis and Prop0Tip the muzzle end; the right hand holds the pistol grip under the rear of the tube, about 0.10 m along the axis from Prop0Base and 0.22 m below the axis. A curved shoulder hook sits at the rear end.",
+  "references": {
+    "idle": "references/idle.usda",
+    "rocket": "references/rocket.usda"
+  },
+  "entry": {
+    "reference": "idle",
+    "tick": 0,
+    "match": false
+  },
+  "clock": {
+    "duration_ticks": 75,
+    "contact_tick": 40
+  },
+  "timing": {
+    "fixed": [
+      "75 ticks at 60 Hz, played once at 1x from the press: ticks 0-40 the charge, the rocket fires at tick 40, ticks 40-60 firing, ticks 60-75 recovery; the game ends the move at tick 75 and crossfades to idle (or back to the flight loop) and hides the bazooka",
+      "the bazooka is in his right hand on every tick from 0 to 75",
+      "the game crossfades into tick 0 over 0.05 s from whatever he was doing (idle, run, jump, fall, or the flight loop)",
+      "the sim turns the whole fighter to face the target every tick of the charge: the clip never turns him; front is always the target",
+      "he is locked in place on the ground (no travel), and keeps flying in the air, where only the hips, spine, head, arms and fingers of this clip play over the flight loop's legs",
+      "the rocket spawns at tick 40 about 1 m up from his feet and flies to the target; the muzzle flash rides the right hand at the muzzle from tick 40 for 28 ticks, and a scorch puff at his head from tick 40"
+    ],
+    "adjustable": [
+      "where the brace settles inside ticks 0-12, the exact recoil shape and the follow-through ticks inside 40-60",
+      "the end pose at tick 75 (free: the game crossfades to idle and hides the bazooka)"
+    ]
+  },
+  "description": "Manki's R, the Bazooka. He hoists his giant homemade rocket launcher onto his right shoulder, plants himself, aims down it at his locked target while the lock charges for 40 ticks, then fires: a big cartoon kick knocks him back, and he lowers it. The owner picked the 'Gunner brace' concept (image 1): both hands on the shouldered bazooka, a planted, braced stance, a held sight pose. Today's clip (image 3, reference 'rocket') waves the tube up and down over his head with one hand; this clip replaces it. The owner wants it to read clearly and feel cartoony.\n\nWho he is: a pyromaniac mad-inventor monkey with cracked goggles and a toothy grin. He LOVES this. The aim is serious and squinty, the shot is a gag.\n\nThe bazooka. It is huge (1.59 m, 0.30 m across) and rides in his right hand on the pistol grip under its rear (image 2: the current clip's hold from the side, front, top and three-quarter). In idle his right hand hangs at his hip, which points the tube straight down into the floor, so tick 0 must already be lifting it.\n\nBeats (ticks at 60 Hz, played at 1x):\n- Tick 0, the hoist: legs, hips, spine and head as idle (feet exactly where idle has them, the left foot forward and the right foot back, a natural staggered stance), the right forearm already raised so the bazooka lies about level at hip height pointing forward, never into the floor; the left hand still near its idle place.\n- Ticks 0-8, the shoulder: he heaves the tube up onto his right shoulder in one swing, the chest turning toward his right as the weight comes up, the knees giving under it; the left hand comes across and up to catch the tube's underside by tick 8.\n- Ticks 8-12, the settle: the weight lands. The hips sink 4-6 cm below idle and keep the feet planted, the knees bend, the chest leans 8-15 degrees forward into the gun, the left shoulder forward like a rifleman (chest turned 25-40 degrees to his right of the facing so the left hand reaches the tube: his hand reaches only about 0.29 m from its shoulder), and his head tilts in so his cheek rests by the tube's side and his eye sights along it. A small overshoot: the tube dips 2-3 degrees and comes back up. Both hands are on the bazooka from tick 8 to tick 60.\n- Ticks 12-40, the charge, a moving hold, not a frozen pose: tension builds one way. Over these 28 ticks he sinks another 1-2 cm and leans 2-4 degrees further into the gun, the head presses a little closer to the sight, the left hand's fingers tighten. Under that he breathes once, slowly (the chest rises about 1 cm over ticks 12-28 and holds it, as you hold your breath before a shot). The aim makes two tiny corrections, around ticks 20 and 31: the tube nudges 1-2 degrees, carried by the chest and arms, with the head following a tick or two later. Stagger everything: the hips, chest, arms and head never stop or turn back on the same tick. The tube points straight ahead along his facing throughout, level or a few degrees up.\n- Tick 40, FIRE, a cartoony kick (ticks 40-44, fast): the tube kicks up 15-25 degrees and back 6-10 cm, the right shoulder is shoved back, the chest snaps upright and back 10-15 degrees, the head jerks back and to the side a tick later (the backblast singes his face), and the hips rock back 2-4 cm with the feet still planted. The left hand stays on the tube.\n- Ticks 44-60, the follow-through: he rebounds forward past the hold a little (ticks 44-50), then settles with the tube still on his shoulder but lowered a few degrees below level, a moving settle, the head shaking off the blast once (small, 6-10 degrees, one way and back once).\n- Ticks 60-75, the recovery, plain: no flourish. The body comes back up to an idle-like stance (hips back to idle height, chest upright, head level) and the bazooka comes off the shoulder to a low carry at his right hip, its tube pointing forward and a little down, the muzzle well above the floor; the left hand lets go around tick 62 and returns to its idle place. Lead with the hips, then the chest, the arms and the head last.\n\nIn the air the same clip plays on his upper body only, over the flight loop's legs: so the aim must be held by the hips, spine, arms and head. Do not let the aim depend on the legs (no kneel, no deep lunge that tips the chest). The hips stay within about 6 cm of idle height and pitch at most 10 degrees.\n\nTail: do not animate Tail1..5. The game's spring drives it from the body's motion, so the settle, the breathing and the recoil are what make it swing.\n\nRead it from the gameplay camera behind him: the long tube over his right shoulder pointing at the target, both arms on it, the knees bent. Then from the three-quarter rear view.",
+  "planted": [
+    "LeftFoot",
+    "RightFoot",
+    "LeftToeBase",
+    "RightToeBase"
+  ],
+  "strike": [
+    "Prop0Tip"
+  ],
+  "views": [
+    "gameplay",
+    "three-quarter-right",
+    "profile",
+    "front"
+  ],
+  "preview_views": [
+    "gameplay",
+    "three-quarter-right",
+    "profile"
+  ],
+  "images": [
+    "../../manki-anim2-20261031/r-charge-A.png",
+    "../../manki-anim2-20261031/bazooka-current-r.png",
+    "../../manki-anim2-20261031/current-r-clip.png",
+    "images/idle-entry.png"
+  ],
+  "image_notes": "1: the owner's pick, 'Gunner brace' (image-generated from a real capture): left, both hands on the shouldered bazooka, cheek on the tube, low planted stance, the muzzle glowing; right, the gameplay camera behind him: the tube over his right shoulder pointing at the target. It is a painting: match the idea (shouldered, both hands, braced, level aim) on the rig's proportions; he is drawn kneeling, but keep both feet planted as in idle. 2: the bazooka on the real rig (current clip, tick 0) from the side, front, top and three-quarter: the rear shoulder hook, the right hand's pistol grip under the rear of the tube. 3: today's R clip (reference 'rocket'), which this replaces: one hand, the tube waving up overhead. 4: the idle entry pose.",
+  "keys": [
+    0,
+    4,
+    8,
+    12,
+    20,
+    31,
+    40,
+    42,
+    44,
+    50,
+    60,
+    67,
+    75
+  ],
+  "review_ticks": [
+    0,
+    4,
+    8,
+    10,
+    12,
+    20,
+    30,
+    39,
+    40,
+    41,
+    42,
+    44,
+    47,
+    50,
+    55,
+    60,
+    64,
+    68,
+    75
+  ],
+  "fast_windows": [
+    [
+      0,
+      9
+    ],
+    [
+      39,
+      45
+    ]
+  ],
+  "targets": [
+    {
+      "name": "hoist: the muzzle never below hip height at tick 0 (m above the hips' rest)",
+      "kind": "char",
+      "a": "Prop0Tip",
+      "axis": "up",
+      "tick": 0,
+      "min": -0.15
+    },
+    {
+      "name": "brace: hips sunk at tick 12 (m)",
+      "kind": "char",
+      "a": "Hips",
+      "axis": "up",
+      "tick": 12,
+      "min": -0.07,
+      "max": -0.035
+    },
+    {
+      "name": "charge: hips a little lower still at tick 39 (m)",
+      "kind": "char",
+      "a": "Hips",
+      "axis": "up",
+      "tick": 39,
+      "min": -0.08,
+      "max": -0.045
+    },
+    {
+      "name": "aim: tube points ahead at tick 12 (muzzle ahead of the rear, m of 1.59)",
+      "kind": "ahead",
+      "a": "Prop0Tip",
+      "b": "Prop0Base",
+      "tick": 12,
+      "min": 1.53
+    },
+    {
+      "name": "aim: tube points ahead at tick 25 (m of 1.59)",
+      "kind": "ahead",
+      "a": "Prop0Tip",
+      "b": "Prop0Base",
+      "tick": 25,
+      "min": 1.53
+    },
+    {
+      "name": "aim: tube points ahead at tick 39 (m of 1.59)",
+      "kind": "ahead",
+      "a": "Prop0Tip",
+      "b": "Prop0Base",
+      "tick": 39,
+      "min": 1.53
+    },
+    {
+      "name": "aim: tube level to a few degrees up at tick 25 (muzzle above the rear, m)",
+      "kind": "below",
+      "a": "Prop0Base",
+      "b": "Prop0Tip",
+      "tick": 25,
+      "min": -0.04,
+      "max": 0.14
+    },
+    {
+      "name": "aim: tube level to a few degrees up at tick 39 (m)",
+      "kind": "below",
+      "a": "Prop0Base",
+      "b": "Prop0Tip",
+      "tick": 39,
+      "min": -0.04,
+      "max": 0.14
+    },
+    {
+      "name": "shouldered: the tube's rear at head height at tick 25 (m above the hips' rest)",
+      "kind": "char",
+      "a": "Prop0Base",
+      "axis": "up",
+      "tick": 25,
+      "min": 0.28,
+      "max": 0.46
+    },
+    {
+      "name": "shouldered: the tube over his right shoulder at tick 25 (m to his right)",
+      "kind": "char",
+      "a": "Prop0Base",
+      "axis": "right",
+      "tick": 25,
+      "min": 0.0,
+      "max": 0.3
+    },
+    {
+      "name": "two hands: the left hand under the tube, ahead of the right, at tick 25 (m)",
+      "kind": "ahead",
+      "a": "LeftHand",
+      "b": "RightHand",
+      "tick": 25,
+      "min": 0.12,
+      "max": 0.38
+    },
+    {
+      "name": "two hands: the left hand just below the tube's axis at tick 25 (m)",
+      "kind": "below",
+      "a": "LeftHand",
+      "b": "Prop0Base",
+      "tick": 25,
+      "min": 0.1,
+      "max": 0.3
+    },
+    {
+      "name": "two hands: the left hand in under the tube, not out to his left, at tick 25 (m to his right)",
+      "kind": "char",
+      "a": "LeftHand",
+      "axis": "right",
+      "tick": 25,
+      "min": -0.05,
+      "max": 0.3
+    },
+    {
+      "name": "two hands: still on at tick 50 (m apart)",
+      "kind": "distance",
+      "a": "LeftHand",
+      "b": "RightHand",
+      "tick": 50,
+      "max": 0.42
+    },
+    {
+      "name": "recoil: the tube kicks up at tick 43 (muzzle above the rear, m)",
+      "kind": "below",
+      "a": "Prop0Base",
+      "b": "Prop0Tip",
+      "tick": 43,
+      "min": 0.4,
+      "max": 0.7
+    },
+    {
+      "name": "recoil: the head jerks back (m it travels front to back over ticks 39-46)",
+      "kind": "range",
+      "a": "Head",
+      "axis": "front",
+      "window": [
+        39,
+        46
+      ],
+      "min": 0.05,
+      "max": 0.14
+    },
+    {
+      "name": "recoil: the tube's rear kicks back (m it travels front to back over ticks 39-45)",
+      "kind": "range",
+      "a": "Prop0Base",
+      "axis": "front",
+      "window": [
+        39,
+        45
+      ],
+      "min": 0.06,
+      "max": 0.16
+    },
+    {
+      "name": "breath: the chest rises during the charge (m over ticks 12-30)",
+      "kind": "range",
+      "a": "Spine2",
+      "axis": "up",
+      "window": [
+        12,
+        30
+      ],
+      "min": 0.006,
+      "max": 0.03
+    },
+    {
+      "name": "recovery: hips back near idle height at tick 75 (m)",
+      "kind": "char",
+      "a": "Hips",
+      "axis": "up",
+      "tick": 75,
+      "min": -0.02,
+      "max": 0.01
+    },
+    {
+      "name": "recovery: the muzzle well above the floor at tick 75 (m above the hips' rest)",
+      "kind": "char",
+      "a": "Prop0Tip",
+      "axis": "up",
+      "tick": 75,
+      "min": -0.3
+    },
+    {
+      "name": "recovery: the muzzle forward, not swung behind, at tick 75 (m ahead of the hips)",
+      "kind": "char",
+      "a": "Prop0Tip",
+      "axis": "front",
+      "tick": 75,
+      "min": 0.6
+    }
+  ]
+}

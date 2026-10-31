@@ -378,6 +378,23 @@ public class AttackMomentumTests
         return sim;
     }
 
+    [Fact]
+    public void AttackFromWalkCarriesOnlyWalkingSpeedAndBrakesToRest()
+    {
+        var def = MakeDefinition();
+        var sim = NewSimulation(def, ActionState.Idle, 0f);
+        Tick(sim, new InputState { MoveX = 1f, Walk = true });
+        Assert.Equal(def.Movement.RunSpeed * .4f, sim.GetState(1).VX, 4);
+        for (int tick = 1; tick <= 8; tick++)
+        {
+            var state = Tick(sim, new InputState { MoveX = 1f, Walk = true,
+                ActiveSlot = tick == 1 ? AbilitySlots.Slot1 : AbilitySlots.None });
+            Assert.Equal(ActionState.Attacking, state.State);
+            Assert.True(state.SlideAttackCarryActive);
+            Assert.Equal(MathF.Max(0f, .4f - tick / 20f) * def.Movement.RunSpeed, state.VX, 4);
+        }
+    }
+
     private static CharacterDefinition MakeDefinition(bool allowCarry = true, bool preserveMomentum = false,
         ushort iasaTicks = 0, CookedTimelineOperation[]? operations = null)
     {

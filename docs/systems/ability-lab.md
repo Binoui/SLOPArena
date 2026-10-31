@@ -59,6 +59,63 @@ Regression check: **Tools → SLOPArena → Tests → Ability Lab VFX Workflow**
 It checks match/preview lifetime parity and draft-safe status refresh without
 saving or cooking character content.
 
+## Measure reach on an unsaved move
+
+In **Moves**, select a canonical move and click **Reach** beside the scenario
+controls. Reach measures the live draft against the cooked roster's idle FightGuy
+and Manki. It uses `HitReliability.Measure`, the same sweep as
+`tools/HitReliabilityReport`, without saving or cooking the attacker.
+
+The panel shows each target's ground connection intervals at 0° and 30°, the
+active ticks touching FightGuy at 1 m, the existing reliability flags, and elapsed
+Editor milliseconds. Aerial moves show target feet height intervals in the panel
+only. Empty results are valid measurements, not command failures.
+
+The viewport shows both targets together. Magenta squares mark FightGuy touches;
+cyan crosses mark Manki touches. A boxed cross means both targets are touched.
+The grid describes target feet placements with the attacker fixed at the Lab
+floor origin. Its samples are 0.25 m apart. Floor bands show simulation starting
+distances sampled every 0.05 m, including movement during the move. These are
+different experiments. Geometry and the 1 m touch count use the first timeline
+stage; simulation reach can include later activity. Capability or projectile moves
+can connect in simulation while having no authored arc geometry.
+
+One observation belongs to the Editor workspace. Selecting another move or form
+hides it. Draft edits, Undo, replaced definitions or poses, and observed target
+cook changes mark the old result **STALE** and draw it grey. Click **Reach** again
+to measure the new draft. Scrubbing and orbiting do not rerun the sweep. Target
+cook changes are observed on the existing one-second status poll.
+
+The native command measures one move synchronously and returns the completed
+CLI-format JSON under `data.result.reach`.
+
+```bash
+bun scripts/unity-editor-gateway.ts --project-path client/Unity -- \
+  sloparena.lab.reach --action ground.1 --output tmp/nyx-reach.json
+```
+
+Omit `--action` to measure the selected move. `--output` writes the same Shared
+JSON verbatim to a fresh `.json` file below repository-relative `tmp/` or
+`.ability-lab-cache/`. Absolute paths, traversal, symbolic links, and existing
+files are rejected. Other Lab commands omit the optional reach fields.
+`data.result.reachElapsedMs` includes target resolution, the sweep, and document
+construction. It excludes JSON serialization and file output.
+
+The Shared writer uses the same decimal number representation on Mono and .NET.
+Geometry calculations can still differ in the last float bit between runtimes;
+cross-runtime coordinate bit identity is not a general guarantee.
+
+The document's `Identity` names the persisted cook supplying the poses. Its
+`draft` block separately identifies the compiled runtime hash, unsaved state,
+form, and target cooked-content hashes. Even a clean Lab draft is compiled in
+memory. Reach does not rebake edited animations or bypass missing/stale preview
+prerequisites. Invalid actions, unavailable moves, target loading failures, and
+changed inputs return structured `reach.*` diagnostics without a partial report.
+
+Regression check: **Tools → SLOPArena → Tests → Ability Lab Reach**. Open a clean
+package first. The check edits and discards a temporary radius draft without
+saving or cooking.
+
 ## Agent-facing workspace commands
 
 Typed Unity Pipeline commands expose package open, Shared two-fighter scenarios,
@@ -396,8 +453,8 @@ distance, opponent behavior and starting damage.
 In package Edit Mode, active resolved hitboxes expose selection buttons and a radius
 handle in the embedded viewport. Radius changes commit through the same source workspace authority.
 Unavailable previews, playback, and non-Moves pages expose no package handles or mutation
-path. Existing `AbilityLab.OnRenderObject` remains the only visible geometry path, including
-optional baked bones.
+path. `AbilityLab.OnRenderObject` draws live combat geometry and optional baked bones.
+The Editor viewport pass draws the completed Reach observation separately.
 
 ## Agent workflow
 

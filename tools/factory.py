@@ -12,6 +12,15 @@ skills/social-clips/SKILL.md owns the workflow. Its address comes from $SLOPAREN
     python3 tools/factory.py comment <idea> "<text>"        # an agent's note on the idea
     python3 tools/factory.py take <idea> <clip.mp4> [--sheet sheet.jpg] [--note "..."]   # upload a new take
     python3 tools/factory.py fetch <idea> [--out file.mp4]  # download the chosen (or latest) take
+    python3 tools/factory.py file <idea> <final.mp4> --title "..." --format trailer [--posted 2026-10-28]
+                                      [--source <project dir>] [--idea "..."]
+                                                            # file a video made outside the factory: ready, or posted
+    python3 tools/factory.py sync [--out ~/Videos/SLOPArena-social]   # chosen takes of Ready and Posted as a folder
+    python3 tools/factory.py posted <idea> tiktok|shorts|instagram|x [<link>]   # where it is up; moves Ready to Posted
+    python3 tools/factory.py views [--dry-run]              # read TikTok/Shorts numbers into stats; links new posts
+    python3 tools/factory.py set <idea> '{"captions": {...}}'   # the caption kit, one entry per platform:
+        {"shorts": {"title": "...", "text": "..."}, "tiktok": {"text": "..."}, "instagram": {"text": "..."},
+         "x": {"text": "...", "reply": "..."}}            # docs/systems/content-factory.md has the house style
     python3 tools/factory.py run <run> running|done|failed [--summary "..."] [--made 12b-x,12c-y,report:2]
                                                             # done needs --made: every idea added or given a take, and reports
     python3 tools/factory.py inbox                          # inbox items not yet answered by a report
@@ -26,6 +35,8 @@ skills/social-clips/SKILL.md owns the workflow. Its address comes from $SLOPAREN
     python3 tools/factory.py check ready <id> [--note "what changed"]
     python3 tools/factory.py check drop <id> [--note "why superseded"]
     python3 tools/factory.py check attach <id> <file>...
+    python3 tools/factory.py check qa-brief <id>            # the brief an independent QA subagent runs from
+    python3 tools/factory.py check qa <id> --result pass|partial|fail --report <file.md|-> [--clip <file> ...]
     python3 tools/factory.py check import <checks.json>
     python3 tools/factory.py relay [--once] [--interval 20]  # desk outbox worker, T3_CLI overrides t3
 """
@@ -35,12 +46,14 @@ import argparse
 import json
 import os
 import re
+import shutil
 import subprocess
 import sys
 import tempfile
 import time
 import urllib.error
 import urllib.request
+from datetime import datetime
 from pathlib import Path
 from urllib.parse import quote
 
@@ -108,6 +121,149 @@ def fetch(idea_id: str, out: Path) -> Path:
     return out
 
 
+def file_final(idea_id: str, clip: Path, title: str, fmt: str, posted: str | None, source: str, idea: str) -> None:
+    """Every video that gets posted lives in the factory, also the ones made by hand elsewhere (trailers, edits).
+    Files it as take 1, chosen, in Ready to post, or straight in Posted with its date."""
+    if not clip.is_file():
+        raise SystemExit(f"factory: no file {clip}")
+    fields = {"id": idea_id, "title": title, "format": fmt, "status": "posted" if posted else "ready",
+              "chosen": 1, "posted": posted, "idea": idea or title}
+    if source:
+        fields["source"] = source
+    call("POST", "/api/ideas", fields)
+    take(idea_id, clip, keep=True)
+    print(f"{idea_id}: filed in {'Posted' if posted else 'Ready to post'}")
+    sync(SOCIAL)
+
+
+SOCIAL = Path.home() / "Videos/SLOPArena-social"
+
+
+def sync(out: Path) -> None:
+    """Mirror the board's Ready to post and Posted videos into a plain folder for posting by hand:
+    ready/<title>.mp4 and posted/<date> <title>.mp4. A clip that moved to Posted leaves ready/."""
+    wanted: dict[Path, dict] = {}
+    for idea in call("GET", "/api/ideas"):
+        if idea["status"] not in {"ready", "posted"} or idea.get("format") == "shot" or idea.get("usedIn"):
+            continue  # usedIn: went out only inside another video
+        name = re.sub(r"[^\w !'&,.()+-]+", " ", idea.get("title") or idea["id"]).strip()
+        name = re.sub(r" {2,}", " ", name)
+        if idea["status"] == "posted":
+            wanted[out / "posted" / f"{idea.get('posted') or ''} {name}.mp4".strip()] = idea
+        else:
+            wanted[out / "ready" / f"{name}.mp4"] = idea
+    for folder in ("ready", "posted"):
+        for old in (out / folder).glob("*.mp4") if (out / folder).is_dir() else []:
+            if old not in wanted:
+                old.unlink()
+                print(f"removed {old.relative_to(out)}")
+    for path, idea in sorted(wanted.items()):
+        if not path.is_file():
+            fetch(idea["id"], path)
+            print(f"added   {path.relative_to(out)}")
+    print(f"{out}: {sum(1 for p in wanted if p.parent.name == 'ready')} ready, "
+          f"{sum(1 for p in wanted if p.parent.name == 'posted')} posted")
+
+
+PLATFORMS = ["tiktok", "shorts", "instagram", "x"]
+
+
+def mark_posted(idea_id: str, platform: str, link: str) -> None:
+    idea = get(idea_id)
+    posts = idea.get("posts") or {}
+    posts[platform] = link or posts.get(platform) or True
+    call("PATCH", f"/api/ideas/{idea_id}", {"posts": posts})
+    if idea["status"] == "ready":
+        call("POST", f"/api/ideas/{idea_id}/verdict", {"status": "posted", "note": ""})
+    print(f"{idea_id}: on {', '.join(posts)}")
+
+
+# Public profiles the views command reads; yt-dlp needs no account or API key for these.
+CHANNELS = {"shorts": "https://www.youtube.com/@SLOPArena/shorts", "tiktok": "https://www.tiktok.com/@sloparena"}
+
+
+def ytdlp(*args: str) -> dict | None:
+    """yt-dlp JSON, or None when the site refused. Runs the latest release through uvx when yt-dlp is not
+    installed, so TikTok and YouTube breakages get upstream's fixes without a reinstall."""
+    command = ["yt-dlp"] if shutil.which("yt-dlp") else ["uvx", "yt-dlp@latest"]
+    result = subprocess.run(command + ["-J", "--skip-download", "--no-warnings", *args],
+                            capture_output=True, text=True, timeout=180)
+    if result.returncode:
+        print(f"yt-dlp {' '.join(args)}: {result.stderr.strip().splitlines()[-1:] or 'failed'}", file=sys.stderr)
+        return None
+    return json.loads(result.stdout)
+
+
+def words(text: str) -> set[str]:
+    return {w for w in re.findall(r"[a-z0-9']+", text.lower().replace("#", " ")) if len(w) > 2}
+
+
+def match_post(video: dict, ideas: list[dict], platform: str) -> dict | None:
+    """The idea a newly found post belongs to: the posted text shares most of its words with the idea's title or
+    its caption kit for that platform (owners paste the kit). Only a clear, unique winner counts."""
+    said = words(f"{video.get('title') or ''} {video.get('description') or ''}")
+    if not said:
+        return None
+    scores = []
+    for idea in ideas:
+        kit = (idea.get("captions") or {}).get(platform) or {}
+        best = max((len(said & words(t)) / len(said) for t in (idea.get("title"), kit.get("title"), kit.get("text"))
+                    if t), default=0)
+        scores.append((best, idea))
+    scores.sort(key=lambda x: -x[0])
+    if scores and scores[0][0] >= 0.6 and (len(scores) == 1 or scores[1][0] < scores[0][0] - 0.2):
+        return scores[0][1]
+    return None
+
+
+def views(dry_run: bool) -> None:
+    """Link new posts found on the public profiles, then store each linked post's views, likes and comments.
+    stats keeps <platform>, <platform>_likes, <platform>_comments and checked; history keeps one row a day."""
+    ideas = [i for i in call("GET", "/api/ideas") if i["status"] in {"ready", "posted"} and not i.get("usedIn")
+             and i.get("format") != "shot"]
+    linked = {v for i in ideas for v in (i.get("posts") or {}).values() if isinstance(v, str)}
+    for platform, channel in CHANNELS.items():
+        listing = ytdlp("--flat-playlist", channel) or {}
+        for video in listing.get("entries") or []:
+            url = video.get("url") or ""
+            if platform == "shorts":
+                url = f"https://www.youtube.com/shorts/{video['id']}"
+            if not url or url in linked:
+                continue
+            idea = match_post(video, [i for i in ideas if not isinstance((i.get("posts") or {}).get(platform), str)],
+                              platform)
+            if not idea:
+                print(f"unlinked {platform} post: {url} \"{(video.get('title') or '')[:60]}\"\n"
+                      f"  link it: python3 tools/factory.py posted <idea> {platform} {url}")
+                continue
+            print(f"{idea['id']}: found on {platform} {url}")
+            idea.setdefault("posts", {})[platform] = url
+            linked.add(url)
+            if not dry_run:
+                mark_posted(idea["id"], platform, url)
+    stamp = datetime.now().isoformat(timespec="minutes")
+    for idea in ideas:
+        stats, today = dict(idea.get("stats") or {}), {}
+        for platform, url in (idea.get("posts") or {}).items():
+            if platform not in CHANNELS or not isinstance(url, str):
+                continue
+            video = ytdlp(url)
+            if not video:
+                continue
+            for suffix, key in (("", "view_count"), ("_likes", "like_count"), ("_comments", "comment_count")):
+                if video.get(key) is not None:
+                    stats[platform + suffix] = video[key]
+            today[platform] = video.get("view_count")
+        if not today:
+            continue
+        stats["checked"] = stamp
+        history = [h for h in idea.get("history") or [] if h.get("at") != stamp[:10]] + [{"at": stamp[:10], **today}]
+        print(f"{idea['id']}: " + ", ".join(f"{p} {v}" for p, v in today.items()))
+        if not dry_run:
+            call("POST", f"/api/ideas/{idea['id']}/stats", {"stats": stats})
+            call("PATCH", f"/api/ideas/{idea['id']}", {"history": history})
+
+
 def migrate(queue: Path) -> None:
     """Move the old JSON queue in: status, fields, dated owner notes as comments, the current clip as take 1."""
     for path in sorted(queue.glob("*.json")):
@@ -152,6 +308,30 @@ def attach_check(check_id: int, files: list[Path]) -> None:
              headers={"Content-Type": "application/octet-stream"})
 
 
+QA_BRIEF = """You are an independent QA tester for SLOPArena in {root}. Test Slop Factory check #{id} and report what you
+find. You did not build this change: work only from the check, the repo docs and the build. Do not read the builder's
+thread or reports. You test and report; you never fix, judge taste, or decide the verdict.
+
+1. Read the check: `python3 tools/factory.py check get {id}`. Read AGENTS.md, docs/testing.md and the section
+   "Report independent QA" in docs/systems/slop-factory.md.
+2. If every "Look for" line is a judgment call (feel, looks, preference), stop and report partial with
+   "Nothing a machine can test." Otherwise test every line a machine can observe: run the build, drive the Editor
+   or the game, read real values, capture screenshots or clips.
+3. Leave things as you found them. Do not edit tracked files; put everything under tmp/qa-{id}/. Before you start,
+   snapshot `git status` and hashes of anything you might touch, and compare at the end; other threads have
+   uncommitted edits. Do not save or cook packages unless the check says to.
+4. The Unity Editor is shared. Use the gateway with your own identity and your own bounded lease, per
+   docs/contributing/unity-editor-coordination.md. Wait for it; never take over another batch. If it stays
+   blocked, mark the affected lines NOT TESTED and say why.
+5. Never press verdict buttons on the live factory, change a check's status, or message real T3 threads. To test
+   the factory itself, run a local server with a fake T3_CLI as the slop-factory doc describes.
+6. Report once, at the end:
+   `python3 tools/factory.py check qa {id} --result pass|partial|fail --report tmp/qa-{id}/report.md --clip <files>`
+   pass: every line tested and held. partial: some lines need the owner or could not run. fail: a line broke.
+   The report has one numbered entry per step: PASS, FAIL or NOT TESTED, the evidence (numbers, screenshot
+   names), then one line on method, and anything in the check's wording that was ambiguous."""
+
+
 def create_check(title: str, steps: str, area: str | None, thread: str | None, clips: list[Path]) -> int:
     for path in clips:
         if not path.is_file() or path.suffix.lower() not in {".mp4", ".jpg", ".png"}:
@@ -166,7 +346,11 @@ def create_check(title: str, steps: str, area: str | None, thread: str | None, c
 def check_command(args) -> None:
     if args.check_command == "add":
         steps = sys.stdin.read() if args.steps == "-" else Path(args.steps).read_text()
-        create_check(args.title, steps, args.area, args.thread, args.clip)
+        check_id = create_check(args.title, steps, args.area, args.thread, args.clip)
+        print("\nStart one fresh subagent in the background with this QA brief, unchanged "
+              "(reprint it with `check qa-brief`):\n\n" + QA_BRIEF.format(id=check_id, root=ROOT))
+    elif args.check_command == "qa-brief":
+        print(QA_BRIEF.format(id=args.id, root=ROOT))
     elif args.check_command == "list":
         for check in call("GET", "/api/board")["checks"]:
             if not args.status or check["status"] == args.status:
@@ -178,6 +362,11 @@ def check_command(args) -> None:
         print(json.dumps(check, indent=1, ensure_ascii=False))
     elif args.check_command == "note":
         call("POST", f"/api/checks/{args.id}/notes", {"author": "agent", "body": args.text, "send": False})
+    elif args.check_command == "qa":
+        report = sys.stdin.read() if args.report == "-" else Path(args.report).read_text()
+        call("POST", f"/api/checks/{args.id}/notes",
+             {"author": "qa", "body": f"QA: {args.result.upper()}.\n\n{report.strip()}", "send": False})
+        attach_check(args.id, args.clip)
     elif args.check_command in {"ready", "drop"}:
         call("POST", f"/api/checks/{args.id}/verdict",
              {"status": {"ready": "to-try", "drop": "dropped"}[args.check_command],
@@ -192,13 +381,19 @@ def check_command(args) -> None:
 
 def relay_message(note: dict) -> str:
     body = note["body"]
-    match = re.fullmatch(r"Verdict: (TO-TRY|GOOD|REDO|DROPPED)\.(?:\n\n(.*))?", body, re.DOTALL)
+    match = re.fullmatch(r"Verdict: (TO-TRY|GOOD|REDO|DROPPED)( \+ COMMIT)?\.(?:\n\n(.*))?", body, re.DOTALL)
     if match:
-        verdict, text = match[1], match[2]
+        verdict, commit, text = match[1], match[2], match[3]
         message = f'Owner checked "{note["title"]}" (factory check #{note["check_id"]}): {verdict}.'
         if text:
             message += f"\n\n{text}"
-        if verdict == "REDO":
+        if commit:
+            message += ("\n\nThe owner authorizes a commit (no push). Commit only this work's changes "
+                        "(git commit -- <paths>; where a file also holds other threads' uncommitted edits, stage "
+                        "only your hunks), following docs/contributing/conventions.md, and reply with the sha. "
+                        "Then settle this thread (t3_thread_organize, action settle). If the commit cannot be "
+                        "made cleanly, say why and leave the thread active.")
+        elif verdict == "REDO":
             message += (f'\n\nWhen fixed, run: python3 tools/factory.py check ready {note["check_id"]} '
                         '--note "<what changed>"')
         elif verdict == "TO-TRY":
@@ -252,6 +447,20 @@ def main() -> None:
     download = sub.add_parser("fetch")
     download.add_argument("idea")
     download.add_argument("--out", type=Path)
+    final = sub.add_parser("file")
+    final.add_argument("idea")
+    final.add_argument("clip", type=Path)
+    final.add_argument("--title", required=True)
+    final.add_argument("--format", required=True, help="explainer, trailer, edit, ...")
+    final.add_argument("--posted", help="YYYY-MM-DD when it is already posted; else it lands in Ready to post")
+    final.add_argument("--source", default="", help="the project that made it, relative to the repo")
+    final.add_argument("--idea", dest="idea_text", default="", help="one line on what it shows")
+    sub.add_parser("sync").add_argument("--out", type=Path, default=SOCIAL)
+    sub.add_parser("views").add_argument("--dry-run", action="store_true")
+    up = sub.add_parser("posted")
+    up.add_argument("idea")
+    up.add_argument("platform", choices=PLATFORMS)
+    up.add_argument("link", nargs="?", default="")
     run = sub.add_parser("run")
     run.add_argument("run", type=int)
     run.add_argument("state", choices=["running", "done", "failed"])
@@ -280,6 +489,12 @@ def main() -> None:
     note = checks.add_parser("note")
     note.add_argument("id", type=int)
     note.add_argument("text")
+    checks.add_parser("qa-brief").add_argument("id", type=int)
+    qa = checks.add_parser("qa")
+    qa.add_argument("id", type=int)
+    qa.add_argument("--result", required=True, choices=["pass", "partial", "fail"])
+    qa.add_argument("--report", required=True)
+    qa.add_argument("--clip", nargs="+", type=Path, default=[])
     for command in ("ready", "drop"):
         move = checks.add_parser(command)
         move.add_argument("id", type=int)
@@ -318,6 +533,15 @@ def main() -> None:
         take(args.idea, args.clip, args.sheet, args.note)
     elif args.command == "fetch":
         print(fetch(args.idea, args.out or ROOT / f"tmp/content/{args.idea}/{args.idea}-vertical.mp4"))
+    elif args.command == "file":
+        file_final(args.idea, args.clip, args.title, args.format, args.posted, args.source, args.idea_text)
+    elif args.command == "posted":
+        mark_posted(args.idea, args.platform, args.link)
+        sync(SOCIAL)
+    elif args.command == "views":
+        views(args.dry_run)
+    elif args.command == "sync":
+        sync(args.out.expanduser())
     elif args.command == "run":
         if args.state == "done" and args.made is None:
             parser.error('done needs --made (ideas added or given a take, report:<n>; --made "" when nothing)')

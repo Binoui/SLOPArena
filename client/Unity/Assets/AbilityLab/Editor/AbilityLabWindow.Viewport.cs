@@ -201,6 +201,7 @@ public sealed partial class AbilityLabWindow
             Handles.SetCamera(camera);
             RenderTexture.active = _movesViewportTarget;
             DrawPreviewHandles();
+            DrawReachOverlay();
         }
         finally
         {

@@ -57,6 +57,13 @@ namespace SlopArena.Client.World
                 "Climb the benches on the left, or take a shortcut up the blast face.",
                 "Clear the crates below as you descend to the detonator.",
             }),
+            new("nyx_manor", "TWO-FACED MANOR", "the crypt", new[]
+            {
+                "Clear the yard. The giant bat takes five hits.",
+                "Climb the scaffolding by ramps or quick steps. A fall leaves another way back up.",
+                "Cross the roof around the split turret. Targets wait where the ways meet.",
+                "Cross the aqueduct or the sea rocks and cliff stairs. Break the skull candles on the way to the crypt.",
+            }),
             new("wibou_mall", "NEO MALL", "the game store", new[]
             {
                 "Hop the planters around the closed skybridge, or cut across the gap.",

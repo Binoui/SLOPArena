@@ -19,6 +19,8 @@ namespace SlopArena.Shared
     {
         public bool Up, Down, DownPressed, Left, Right;
         public bool Jump;
+        /// <summary>Held walk intent (ADR-0058); grounded locomotion targets <c>GroundSpeedTuning.WalkRatio</c> × RunSpeed.</summary>
+        public bool Walk;
         /// <summary>Logical shield/air-dodge control held this tick.</summary>
         public bool ShieldHeld;
         /// <summary>Fresh logical defense press edge; simulation chooses ground shield or air dodge.</summary>
@@ -66,7 +68,7 @@ namespace SlopArena.Shared
         /// <summary>22 bytes: 21-byte input payload plus the protocol version.</summary>
         /// <remarks>
         /// Flags byte (byte 8): 1=Up, 2=Down, 4=Left, 8=Right, 0x10=Jump,
-        /// 0x20=DashPressed, 0x40 reserved and ignored, 0x80=IsAiming.
+        /// 0x20=DashPressed, 0x40=Walk, 0x80=IsAiming.
         /// Flags2 byte (byte 19): 1=JumpHeld, 2=FaceToCamera, 4=ToggleLock,
         /// 8=DownPressed, 0x10=ShieldHeld, 0x20=ShieldPressed, 0x40=GrabPressed,
         /// 0x80=RetargetPressed. Byte 20 is TargetLockMode; byte 21 is the exact
@@ -133,6 +135,7 @@ namespace SlopArena.Shared
             if (Right) flags |= 8;
             if (Jump) flags |= 0x10;
             if (DashPressed) flags |= 0x20;
+            if (Walk) flags |= 0x40;
             if (IsAiming) flags |= 0x80;
             buf[8] = flags;
             buf[9] = ActiveSlot;
@@ -177,6 +180,7 @@ namespace SlopArena.Shared
             input.Right = (flags & 8) != 0;
             input.Jump = (flags & 0x10) != 0;
             input.DashPressed = (flags & 0x20) != 0;
+            input.Walk = (flags & 0x40) != 0;
             input.IsAiming = (flags & 0x80) != 0;
             input.ActiveSlot = buf[9];
             input.FacingYaw = BinaryPrimitives.ReadInt16LittleEndian(buf.Slice(10));

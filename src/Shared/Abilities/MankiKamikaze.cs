@@ -4,13 +4,17 @@ namespace SlopArena.Shared.Abilities;
 
 public sealed class MankiKamikaze : ServerAbility, ILandingContinuationCapability
 {
+    public const ushort StartupTicks = 16;
+    private enum KamikazePhase : byte { Startup, Travel }
     private readonly CookedMankiKamikazeCapabilityParameters _parameters;
+    private KamikazePhase _phase;
     private ushort _elapsedTicks;
     private ulong _target;
     private float _dx, _dy, _dz, _previousX, _previousY, _previousZ;
     public override bool OwnsVerticalMotion => true;
-    public override float GravityMultiplier => 0f;
-    public override bool IgnoresFighterPushboxes => true;
+    public override float GravityMultiplier => _phase == KamikazePhase.Startup ? 1f : 0f;
+    public override bool IgnoresFighterPushboxes => _phase == KamikazePhase.Travel;
+    public override bool HoldsFighterPushboxPosition => _phase == KamikazePhase.Startup;
 
     public MankiKamikaze(CookedMankiKamikazeCapabilityParameters parameters) => _parameters = parameters;
 
@@ -20,10 +24,24 @@ public sealed class MankiKamikaze : ServerAbility, ILandingContinuationCapabilit
         s.IsFastFalling = false;
         s.State = ActionState.Attacking;
         s.IsAiming = false;
-        _target = s.TargetEntityId != 0 ? s.TargetEntityId : ActivationInput.TargetEntityId;
+        _phase = KamikazePhase.Startup;
+        _elapsedTicks = 0;
+        _target = ActivationInput.TargetEntityId != 0 && OwnerSimulation != null
+            ? OwnerSimulation.ResolveObjectTargetAlias(ActivationInput.TargetEntityId, s.EntityId) : s.TargetEntityId;
         _dx = MathF.Sin(s.FacingYaw); _dz = MathF.Cos(s.FacingYaw);
+        _dy = 0f;
+        s.VX = s.VZ = 0f;
+        if (s.IsGrounded) s.VY = 0f;
         _previousX = s.PX; _previousY = s.PY; _previousZ = s.PZ;
-        Steer(ref s);
+    }
+
+    public override void OnCancel(ref CharacterState s)
+    {
+        ClearVelocityOwnership(ref s);
+        s.IsAiming = false;
+        s.IsFastFalling = false;
+        s.VX = s.VZ = 0f;
+        if (_phase == KamikazePhase.Travel) s.VY = 0f;
     }
 
     private void Steer(ref CharacterState s)
@@ -53,6 +71,16 @@ public sealed class MankiKamikaze : ServerAbility, ILandingContinuationCapabilit
 
     public override void Tick(ref CharacterState s, ref InputState input, CharacterDefinition def)
     {
+        if (_phase == KamikazePhase.Startup)
+        {
+            s.VX = s.VZ = 0f;
+            if (++_elapsedTicks < StartupTicks) return;
+            _phase = KamikazePhase.Travel;
+            _elapsedTicks = 0;
+            _previousX = s.PX; _previousY = s.PY; _previousZ = s.PZ;
+            Steer(ref s);
+            return;
+        }
         if (++_elapsedTicks >= _parameters.RunTicks)
         {
             Resolver!.QueueExplosion(s.PX, s.PY, s.PZ, Blast(s), s.EntityId, (byte)(Slot + 1),
@@ -76,6 +104,7 @@ public sealed class MankiKamikaze : ServerAbility, ILandingContinuationCapabilit
     internal override void WriteSnapshot(SnapshotWriter w)
     {
         base.WriteSnapshot(w);
+        w.WriteByte((byte)_phase);
         w.WriteUShort(_elapsedTicks); w.WriteULong(_target);
         w.WriteFloat(_dx); w.WriteFloat(_dy); w.WriteFloat(_dz);
         w.WriteFloat(_previousX); w.WriteFloat(_previousY); w.WriteFloat(_previousZ);
@@ -84,6 +113,7 @@ public sealed class MankiKamikaze : ServerAbility, ILandingContinuationCapabilit
     internal override void ReadSnapshot(SnapshotReader r)
     {
         base.ReadSnapshot(r);
+        _phase = (KamikazePhase)r.ReadByte();
         _elapsedTicks = r.ReadUShort(); _target = r.ReadULong();
         _dx = r.ReadFloat(); _dy = r.ReadFloat(); _dz = r.ReadFloat();
         _previousX = r.ReadFloat(); _previousY = r.ReadFloat(); _previousZ = r.ReadFloat();

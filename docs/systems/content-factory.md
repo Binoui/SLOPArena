@@ -18,7 +18,7 @@ page covers using the board and operating the server.
 | Approved | Ideas waiting for the next render run |
 | Ready to post | Clips with a chosen take, each with a Download button |
 | Posted, Rejected | History |
-| Numbers | Views per platform and Steam visits for posted clips |
+| Numbers | Views, likes and comments per platform and Steam visits for posted clips; TikTok and Shorts fill themselves |
 | Scout | An inbox for links and thoughts, and the scout's reports |
 | Runs | Every agent run, its state and its one-line result |
 
@@ -46,6 +46,105 @@ them when it is back.
 
 A run closes with `factory.py run <run> done --made <ids>`, listing every idea it
 added or gave a take and any `report:<n>` it wrote. The Runs tab links to those.
+
+## Every posted video lives here
+
+The board is the one place for social videos, including the ones made outside
+it (trailers, HyperFrames edits, vertical cuts made in a thread). When such a
+video is final, file it so it lands in Ready to post, where you download it:
+
+```bash
+python3 tools/factory.py file 39-some-edit tmp/<project>/renders/final.mp4 \
+  --title "..." --format edit --source tmp/<project>
+```
+
+Add `--posted YYYY-MM-DD` when it is already up. `source` records the project
+that made it, so a re-cut starts from the right files. Never hand over a final
+only as a `tmp/` path or a thread attachment: `tmp/` gets pruned.
+
+On the desk, the same videos sit as plain files in `~/Videos/SLOPArena-social/`
+for uploading by hand (Instagram, TikTok, Shorts):
+
+```
+~/Videos/SLOPArena-social/
+  ready/<title>.mp4            # chosen take, not posted yet
+  posted/<date> <title>.mp4    # already up somewhere
+```
+
+`python3 tools/factory.py sync` refreshes it from the board (`file` runs it
+too). Run it after pressing Mark posted on the phone; the clip moves from
+`ready/` to `posted/`. The board stays the source: files you add to the folder
+by hand are removed on the next sync.
+
+### Where it is up, and the caption kit
+
+A video in Ready to post or Posted shows a badge per platform on its card:
+green where it is up, dashed where it is not yet. That is the checklist for
+posting the same video everywhere. In the video's detail view, **Posted on**
+takes a tick and an optional link per platform (TikTok, YouTube Shorts,
+Instagram, X); saving any tick on a Ready video moves it to Posted. Agents
+record the same thing with `factory.py posted <idea> <platform> [<link>]`.
+
+A clip that only went out inside a longer video carries `usedIn: <idea>` and
+gets no badges, no Numbers row and no file in the folder.
+
+Under it, **Captions** holds the text to paste on each platform, with Copy
+buttons. Whoever delivers a video for Ready to post also writes its kit with
+`factory.py set <idea> '{"captions": {...}}'` (the shape is in the
+`factory.py` docstring). House style:
+
+- **YouTube Shorts:** `title` in the owner's style ("Manki Rocket in SLOPArena
+  !"), `text` = one line on the video, then the pitch: "SLOPArena is a new F2P
+  3D Platform fighter! Online rollback netcode, built 100% open source!
+  Playtest now on Steam <store link>", then `#sloparena #shorts`.
+- **TikTok:** one or two short lines that end on the question, then
+  `#sloparena #indiegame #platformfighter #gamedev #indiedev`. TikTok captions
+  have no clickable links, so the link stays out.
+- **Instagram:** a hook line with one emoji, two or three lines on the video,
+  the question, "Playtest on Steam: link in bio.", then the same hashtags.
+- **X:** the hook and the question with no link or hashtags, and the store or
+  site link in `reply`. A link in the first post hurts its reach.
+
+Fighters shown before their reveal follow the same rules as the clip itself.
+
+### Numbers that fill themselves
+
+`python3 tools/factory.py views` reads the public profiles
+(youtube.com/@SLOPArena/shorts and tiktok.com/@sloparena) with yt-dlp, which
+needs no account or API key. It first links new posts to their video: a post
+whose text shares most of its words with one video's title or caption kit gets
+that link, so pasting the kit is enough. Then it stores each linked post's
+views, likes and comments in `stats` and one row a day in `history`. The
+Numbers tab shows those numbers read-only with a link to the post. Instagram,
+X and Steam visits are still typed in.
+
+A post it cannot match with confidence stays unlinked and is printed with the
+command that links it (`factory.py posted <idea> <platform> <link>`); read
+them with `journalctl --user -u sloparena-views -n 30`.
+
+It runs on the desk every 6 hours from a systemd user timer (not in Git, since
+it is personal machine setup):
+
+```ini
+# ~/.config/systemd/user/sloparena-views.service
+[Service]
+Type=oneshot
+WorkingDirectory=/home/binoui/Documents/projects/SlopArena
+Environment=PATH=/home/binoui/.local/bin:/usr/local/bin:/usr/bin:/bin
+ExecStart=/usr/bin/python3 tools/factory.py views
+
+# ~/.config/systemd/user/sloparena-views.timer
+[Timer]
+OnCalendar=00/6:15
+Persistent=true
+
+[Install]
+WantedBy=timers.target
+```
+
+`systemctl --user enable --now sloparena-views.timer` turns it on. yt-dlp runs
+as `uvx yt-dlp@latest`, so site changes that break it are fixed by upstream
+releases without a reinstall.
 
 ## How it works
 
@@ -112,4 +211,4 @@ The relay sits behind Cloudflare, which refuses Python's default User-Agent
   `~/.t3/worktrees/SlopArena`. The agent works in the main checkout, so these
   worktrees are unused and need occasional cleanup.
 - The analyst role (reading posted numbers to steer the designer) is not built.
-  The numbers are typed in by hand.
+  TikTok and Shorts numbers collect themselves; Instagram and X are typed in.

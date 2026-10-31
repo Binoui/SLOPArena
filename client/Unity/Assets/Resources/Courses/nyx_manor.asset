@@ -1,0 +1,94 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 27f78137fb7d3fb82be22e548c57ee18, type: 3}
+  m_Name: nyx_manor
+  m_EditorClassIdentifier: 
+  Target: {fileID: 1665908710233286732, guid: 8a7d42471b9cdefe1b8cb811a53dbb19, type: 3}
+  TargetRadius: 0.6
+  Break: {fileID: 389359371105945684, guid: 3fd3c49df4be4bcf7827a91c3caab014, type: 3}
+  Marker: {fileID: 1509357763166007609, guid: 039d437460c024bac8debe3ba4657ad8, type: 3}
+  MissedBeacon: {fileID: 7942439523284928020, guid: e4252f60611f1fa49abba009c855b627, type: 3}
+  FinishBeacon: {fileID: 2680931265604537387, guid: a27a327259cd92ac0a721c54eb5adf62, type: 3}
+  FinishBurst: {fileID: 4964023461621888437, guid: cd38fd6968a706f5aa5731571d05c255, type: 3}
+  SoundFolder: Audio/SFX/CoursePier
+  NoteSemitones: 0000000002000000040000000500000007000000090000000b0000000c0000000e00000010000000
+  TargetLooks:
+  - IdPrefix: goth_gargoyle
+    Target: {fileID: 151829727639513761, guid: 2b51773da08db8362919c299a4687f48, type: 3}
+    TargetRadius: 1
+    Break: {fileID: 2256308719027781340, guid: a5fff2dcf79c4fec38bb2041e1e1076a, type: 3}
+    Hit: {fileID: 8250957443663304604, guid: 1e4a0ab5c289c7001ad2a69bfebefda1, type: 3}
+    HitClip: 
+    BreakClip: 
+  - IdPrefix: goth_
+    Target: {fileID: 468665239093481249, guid: 9c1903e71b8d64c1a8ebba5f731eaf89, type: 3}
+    TargetRadius: 0.6
+    Break: {fileID: 2256308719027781340, guid: a5fff2dcf79c4fec38bb2041e1e1076a, type: 3}
+    Hit: {fileID: 8250957443663304604, guid: 1e4a0ab5c289c7001ad2a69bfebefda1, type: 3}
+    HitClip: 
+    BreakClip: 
+  - IdPrefix: yard_1
+    Target: {fileID: 1665908710233286732, guid: 8a7d42471b9cdefe1b8cb811a53dbb19, type: 3}
+    TargetRadius: 0.6
+    Break: {fileID: 0}
+    Hit: {fileID: 0}
+    HitClip: 
+    BreakClip: 
+  - IdPrefix: yard_2
+    Target: {fileID: 5420257223959092535, guid: e9d8e2e555f518c0ba4819aa7f9c0292, type: 3}
+    TargetRadius: 0.6
+    Break: {fileID: 0}
+    Hit: {fileID: 0}
+    HitClip: 
+    BreakClip: 
+  - IdPrefix: yard_3
+    Target: {fileID: 8522860754426423934, guid: d13dc6db06ee874a3b110f6b9a7f5efd, type: 3}
+    TargetRadius: 0.6
+    Break: {fileID: 0}
+    Hit: {fileID: 0}
+    HitClip: 
+    BreakClip: 
+  - IdPrefix: roof_1
+    Target: {fileID: 1665908710233286732, guid: 8a7d42471b9cdefe1b8cb811a53dbb19, type: 3}
+    TargetRadius: 0.6
+    Break: {fileID: 0}
+    Hit: {fileID: 0}
+    HitClip: 
+    BreakClip: 
+  - IdPrefix: roof_2
+    Target: {fileID: 8522860754426423934, guid: d13dc6db06ee874a3b110f6b9a7f5efd, type: 3}
+    TargetRadius: 0.6
+    Break: {fileID: 0}
+    Hit: {fileID: 0}
+    HitClip: 
+    BreakClip: 
+  - IdPrefix: giant_bat
+    Target: {fileID: 7276712010673399930, guid: faf539130402717cb810048752ac6932, type: 3}
+    TargetRadius: 1
+    Break: {fileID: 7635554664922216889, guid: 10230580bbc60a2c4b8aa47008f86daa, type: 3}
+    Hit: {fileID: 4897160174683137496, guid: 774e3e2263f0c7f5b8428331457abc67, type: 3}
+    HitClip: 
+    BreakClip: 
+  - IdPrefix: flamingo
+    Target: {fileID: 6050139277522097983, guid: 470c2772248b2ad3994cf55ca2cea068, type: 3}
+    TargetRadius: 1
+    Break: {fileID: 7635554664922216889, guid: 10230580bbc60a2c4b8aa47008f86daa, type: 3}
+    Hit: {fileID: 4897160174683137496, guid: 774e3e2263f0c7f5b8428331457abc67, type: 3}
+    HitClip: 
+    BreakClip: 
+  - IdPrefix: cardboard_nyxxie
+    Target: {fileID: 4277703581732519105, guid: 8f143b3d71d34e250ac61eee967584e9, type: 3}
+    TargetRadius: 1
+    Break: {fileID: 7635554664922216889, guid: 10230580bbc60a2c4b8aa47008f86daa, type: 3}
+    Hit: {fileID: 4897160174683137496, guid: 774e3e2263f0c7f5b8428331457abc67, type: 3}
+    HitClip: 
+    BreakClip: 

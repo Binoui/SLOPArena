@@ -290,6 +290,7 @@ namespace SlopArena.EditorTools
             HumanInputActions.Get("Slot1").ApplyBindingOverride(HumanInputActions.BindingIndex("Slot1", Desktop), "<Mouse>/leftButton");
             HumanInputActions.Get("SlotE").ApplyBindingOverride(HumanInputActions.BindingIndex("SlotE", Desktop), "<Mouse>/scroll/down");
             HumanInputActions.ClearBinding("FaceToCamera", Desktop);
+            HumanInputActions.Get("Walk").ApplyBindingOverride(HumanInputActions.BindingIndex("Walk", Desktop), "<Keyboard>/v");
             HumanInputActions.ClearBinding("Jump", HumanInputActions.GamepadGroup);
             string saved = HumanInputActions.SaveOverrides();
             // Simulate a fresh process, whose action map will assign new runtime GUIDs.
@@ -300,6 +301,7 @@ namespace SlopArena.EditorTools
             HumanInputActions.ApplyOverrides(saved);
             Require(Path("Slot1", Desktop) == "<Mouse>/leftButton" && Path("SlotE", Desktop) == "<Mouse>/scroll/down",
                 "Mouse or wheel bindings were lost across binding ID changes.");
+            Require(Path("Walk", Desktop) == "<Keyboard>/v", "Walk binding was lost across binding ID changes.");
             Require(Path("FaceToCamera", Desktop) == "" && Path("Jump", HumanInputActions.GamepadGroup) == "",
                 "A cleared desktop/controller binding returned after loading preferences.");
             Require(HumanInputActions.BindingLabel("Jump", HumanInputActions.GamepadGroup) == "Unbound",

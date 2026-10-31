@@ -88,6 +88,7 @@ namespace SlopArena.Client.Combat
                 _launchOffsets.Remove(key.Emission);
             }
             ClearHeldVisual(owner);
+            if (_locks.Remove(owner, out var marker) && marker != null) Destroy(marker.gameObject);
         }
 
         // A corrected history can reuse an emission number for a different owner or move.
@@ -196,6 +197,8 @@ namespace SlopArena.Client.Combat
             _activeVisuals.Clear();
             _launchOffsets.Clear();
             _heldVisuals.Clear();
+            foreach (var marker in _locks.Values) if (marker != null) Destroy(marker.gameObject);
+            _locks.Clear();
             _sim = sim;
             _config = Resources.Load<ProjectileVFXConfig>("VFXConfigs/ProjectileVisuals");
             _resolver = sim.Resolver;
@@ -208,6 +211,7 @@ namespace SlopArena.Client.Combat
         {
             if (_resolver == null) return;
 
+            UpdateMankiLocks();
             var hitboxes = _resolver.GetActiveHitboxes();
             _matchedLocal.Clear();
             for (int i = 0; i < hitboxes.Count; i++)
@@ -277,6 +281,36 @@ namespace SlopArena.Client.Combat
         }
 
         private readonly Dictionary<ulong, Transform> _heads = new();
+        private readonly Dictionary<ulong, MankiLockReticle> _locks = new();
+
+        private void UpdateMankiLocks()
+        {
+            foreach (var marker in _locks.Values) if (marker != null) marker.gameObject.SetActive(false);
+            foreach (var pair in _sim.GetAllStates())
+            {
+                var state = pair.Value;
+                if (state.AttackSlot != AbilitySlots.R || state.TargetEntityId == 0) continue;
+                var slot = _sim.GetDefinition(pair.Key)?.GetCookedSlotAbility(state.AttackSlot, !state.IsGrounded);
+                if (slot == null) continue;
+                CookedMankiBazookaCapabilityParameters charge = null;
+                foreach (var stage in slot.Timeline.Stages)
+                foreach (var op in stage.Operations)
+                    if (op is CookedStartCapabilityOperation { Parameters: CookedMankiBazookaCapabilityParameters p }
+                        && p.ChargeTicks > 0) charge = p;
+                if (charge == null || state.ChargeTicks == 0 || state.AttackElapsedTicks >= charge.ChargeTicks
+                    || !_sim.TryGetCombatTargetPosition(state.TargetEntityId, out var target)) continue;
+                if (!_locks.TryGetValue(pair.Key, out var marker) || marker == null)
+                {
+                    marker = new GameObject("Manki target lock").AddComponent<MankiLockReticle>();
+                    marker.transform.SetParent(transform, false);
+                    _locks[pair.Key] = marker;
+                }
+                marker.gameObject.SetActive(true);
+                marker.Show(new Vector3(target.X, target.Y, target.Z),
+                    state.ChargeTicks / (float)charge.ChargeTicks);
+            }
+        }
+
 
         /// <summary>
         /// A perching projectile (ADR-0051, Nyx's Hex Crow): in flight it faces its travel; perched, it sits on its
@@ -558,6 +592,8 @@ namespace SlopArena.Client.Combat
                 _resolver.OnHitboxRemoved -= OnHitboxRemoved;
             foreach (var visual in _activeVisuals.Values) DestroyVisual(visual);
             foreach (var held in _heldVisuals.Values) DestroyVisual(held.Visual);
+            foreach (var marker in _locks.Values) if (marker != null) Destroy(marker.gameObject);
+            _locks.Clear();
             _owners.Clear();
         }
     }

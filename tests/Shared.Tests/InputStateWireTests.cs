@@ -27,20 +27,43 @@ public class InputStateWireTests
         Assert.Equal(AbilitySlots.A, restored.ActiveSlot);
     }
 
-    [Fact]
-    public void ReservedInputBitIsIgnoredAndNeverReemitted()
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void WalkRoundTripsAsHeldIntentWithoutChangingPayloadSize(bool walking)
     {
-        Span<byte> buffer = stackalloc byte[InputState.Size];
-        var reserved = TestHelpers.ReservedInput(0x40);
-        Assert.Equal(default(InputState), reserved);
-        Assert.False(reserved.HasPressEdges);
-        reserved.Write(buffer);
-        Assert.Equal(0, buffer[8] & 0x40);
+        var input = new InputState { Walk = walking, Jump = true, ActiveSlot = AbilitySlots.A };
+        Span<byte> buffer = stackalloc byte[22];
+        input.Write(buffer);
+        var restored = InputState.Deserialize(buffer);
+        Assert.Equal(walking ? 0x40 : 0, buffer[8] & 0x40);
+        Assert.Equal(input, restored);
+        Assert.Equal(walking, restored.WithoutEdges().Walk);
+        Assert.False(restored.WithoutEdges().HasPressEdges);
+        Assert.Equal(walking, restored.WithoutEdges().WithEdgesFrom(new InputState { Walk = !walking }).Walk);
+        Assert.Equal(22, InputState.Size);
+    }
 
-        new InputState { ShieldPressed = true }.Write(buffer);
-        var restoredShieldPress = InputState.Deserialize(buffer);
-        Assert.Equal(0, buffer[8] & 0x40);
-        Assert.True(restoredShieldPress.ShieldPressed);
+    [Theory]
+    [InlineData(false, false)]
+    [InlineData(false, true)]
+    [InlineData(true, false)]
+    [InlineData(true, true)]
+    public void SnapshotInputKeepsWalkAndDashInTheExistingByte(bool walk, bool dash)
+    {
+        var input = new InputState { Walk = walk, DashPressed = dash, MoveX = .5f, JumpHeld = true };
+        var writer = new SnapshotWriter();
+        SnapshotCodecs.Write(writer, input);
+        byte[] bytes = writer.ToArray();
+        Assert.Equal(34, bytes.Length);
+        Assert.Equal((dash ? 0x01 : 0) | (walk ? 0x40 : 0), bytes[9]);
+        var reader = new SnapshotReader(bytes);
+        Assert.Equal(input, SnapshotCodecs.ReadInputState(reader));
+        Assert.True(reader.AtEnd);
+        bytes[9] = dash ? (byte)1 : (byte)0;
+        var legacy = SnapshotCodecs.ReadInputState(new SnapshotReader(bytes));
+        Assert.False(legacy.Walk);
+        Assert.Equal(dash, legacy.DashPressed);
     }
 
     [Fact]

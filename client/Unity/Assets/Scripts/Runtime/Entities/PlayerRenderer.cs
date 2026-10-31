@@ -123,7 +123,7 @@ namespace SlopArena.Client.Entities
         private void ApplyAttackPosePitch(CharacterState state, CharacterDefinition definition)
         {
             float travelPitch = 0f;
-            if (state.State == ActionState.Attacking && _activeMove != null
+            if (state.State == ActionState.Attacking && state.AttackElapsedTicks >= SlopArena.Shared.Abilities.MankiKamikaze.StartupTicks && _activeMove != null
                 && _activeMove.Timeline.Stages.Any(stage => stage.Operations.Any(operation =>
                     operation is CookedStartCapabilityOperation { Parameters: CookedMankiKamikazeCapabilityParameters })))
                 travelPitch = Mathf.Atan2(state.VY, Mathf.Sqrt(state.VX * state.VX + state.VZ * state.VZ));

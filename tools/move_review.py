@@ -10,7 +10,7 @@ versioned plan, completed take receipts, frame receipts and numbered JPGs.
 from __future__ import annotations
 
 import argparse
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import datetime, timezone
 import fnmatch
 import html
@@ -104,9 +104,14 @@ class Take:
     match_ticks: tuple[int, ...]
     problems: tuple[str, ...]
     root: Path
+    overlay: bool = False
 
     def image(self, view: str, frame: int) -> Path:
-        return self.root / view / f"{frame:04d}.jpg"
+        return self.images / view / f"{frame:04d}.jpg"
+
+    @property
+    def images(self) -> Path:
+        return self.root / "hitboxes" if self.overlay else self.root
 
 
 @dataclass(frozen=True)
@@ -178,7 +183,7 @@ def select(ids: list[str], patterns: str | None) -> list[str]:
 
 
 def build_batch(recipe: str, run: str, ids: list[str], views: str | None = None,
-                size: str | None = None, quality: int | None = None) -> dict:
+                size: str | None = None, quality: int | None = None, hitboxes: bool = False) -> dict:
     common = ([] if views is None else ["--views", views]) + ([] if size is None else ["--size", size])
     prepare = ["sloparena.moves.prepare", "--recipe", recipe, "--output", run, "--moves", ",".join(ids)] + common
     commands = [prepare, ["editor_play"]]
@@ -187,6 +192,8 @@ def build_batch(recipe: str, run: str, ids: list[str], views: str | None = None,
                    "--output", f"{run}/takes/{move}"] + common
         if quality is not None:
             command += ["--quality", str(quality)]
+        if hitboxes:
+            command += ["--hitboxes", "true"]
         commands.append(command + ["--timeout", "180"])
     commands.append(["get_console_logs", "--severity", "error", "--limit", "30"])
     return {"commands": commands, "restore": [["sloparena.moves.abort"], ["sloparena.photo.stop"],
@@ -330,6 +337,113 @@ def crop_box(box: Box, size: tuple[int, int]) -> tuple[int, int, int, int]:
     return x, y, x + w, y + h
 
 
+def hitbox_lines(box: dict):
+    """Wire the actual checked shape, including every between-tick sweep pose."""
+    def add(a, b):
+        return tuple(a[i] + b[i] for i in range(3))
+
+    def circle(center, radius, u, v):
+        points = [add(center, tuple(radius * (u[j] * math.cos(i * math.tau / 32)
+                                             + v[j] * math.sin(i * math.tau / 32)) for j in range(3))) for i in range(33)]
+        return list(zip(points, points[1:]))
+
+    def volume(start, end, radius):
+        delta = tuple(end[i] - start[i] for i in range(3))
+        length = math.sqrt(sum(v*v for v in delta))
+        axes = ((1, 0, 0), (0, 1, 0), (0, 0, 1))
+        lines = []
+        for center in (start,) if length < 1e-6 else (start, end):
+            for i in range(3):
+                lines += circle(center, radius, axes[i], axes[(i+1) % 3])
+        if length >= 1e-6:
+            axis = tuple(v / length for v in delta)
+            helper = (0, 1, 0) if abs(axis[1]) < .9 else (1, 0, 0)
+            u = (axis[1]*helper[2]-axis[2]*helper[1], axis[2]*helper[0]-axis[0]*helper[2], axis[0]*helper[1]-axis[1]*helper[0])
+            size = math.sqrt(sum(v*v for v in u))
+            u = tuple(v/size for v in u)
+            v = (axis[1]*u[2]-axis[2]*u[1], axis[2]*u[0]-axis[0]*u[2], axis[0]*u[1]-axis[1]*u[0])
+            lines += circle(start, radius, u, v) + circle(end, radius, u, v)
+            for i in range(8):
+                offset = tuple(radius * (u[j]*math.cos(i*math.tau/8)+v[j]*math.sin(i*math.tau/8)) for j in range(3))
+                lines.append((add(start, offset), add(end, offset)))
+        return lines
+
+    start, end, radius = box["start"], box["end"], number(box["radius"])
+    require(radius >= 0, "Negative checked hitbox radius")
+    shape = box["shape"]
+    require(shape in ("Sphere", "Capsule", "Ring"), f"Unsupported checked hitbox shape {shape}")
+    if shape == "Ring":
+        half_width, half_height = number(box["ringHalfWidth"]), number(box["ringHalfHeight"])
+        inner = max(0, min(radius, number(box["previousRadius"])) - half_width)
+        outer = max(radius, number(box["previousRadius"])) + half_width
+        lines = []
+        for r in (inner, outer):
+            for y in (-half_height, half_height):
+                lines += circle(add(start, (0, y, 0)), r, (1, 0, 0), (0, 0, 1))
+        for i in range(16):
+            for r in (inner, outer):
+                offset = (r*math.cos(i*math.tau/16), 0, r*math.sin(i*math.tau/16))
+                lines.append((add(add(start, offset), (0, -half_height, 0)), add(add(start, offset), (0, half_height, 0))))
+        return [(a, b, False) for a, b in lines]
+    lines = [(a, b, False) for a, b in volume(start, start if shape == "Sphere" else end, radius)]
+    for pose in box.get("sweep", []):
+        lines += [(a, b, True) for a, b in volume(pose["start"], pose["start"] if shape == "Sphere" else pose["end"], radius)]
+    return lines
+
+
+def project_segment(a, b, matrix, size):
+    """Unity's row-major projection * worldToCamera, with top-left image pixels."""
+    require(len(matrix) == 16 and all(math.isfinite(number(v)) for v in matrix), "Invalid capture projection")
+    def clip(point):
+        require(len(point) == 3, "Invalid checked hitbox point")
+        p = tuple(number(v) for v in point) + (1,)
+        return tuple(sum(matrix[r*4+c]*p[c] for c in range(4)) for r in range(4))
+    a, b = clip(a), clip(b)
+    for plane in (lambda p: p[3] - 1e-5, lambda p: p[2] + p[3], lambda p: p[3] - p[2]):
+        da, db = plane(a), plane(b)
+        if da < 0 and db < 0:
+            return None
+        if da < 0 or db < 0:
+            t = da / (da-db)
+            p = tuple(a[i] + (b[i]-a[i])*t for i in range(4))
+            if da < 0: a = p
+            else: b = p
+    return tuple(((p[0]/p[3]+1)*size[0]/2, (1-p[1]/p[3])*size[1]/2) for p in (a, b))
+
+
+def render_hitboxes(take: Take) -> Take:
+    require(read_json(take.root / "take.json").get("hitboxes") is True,
+            f"{take.id}: no checked hitboxes recorded; recapture with run --hitboxes")
+    with (take.root / "frames.jsonl").open(encoding="utf-8") as stream:
+        for frame, line in enumerate(stream):
+            row = json.loads(line)
+            require(isinstance(row.get("checkedHitboxes"), list), f"{take.id}: missing checked geometry at {frame}")
+            lines = [(box["owner"] == row["fighter"]["id"], segment)
+                     for box in row["checkedHitboxes"] for segment in hitbox_lines(box)]
+            for view in take.views:
+                matrix = row["worldToClip"][view.name]
+                with Image.open(take.image(view.name, frame)) as source:
+                    image = source.convert("RGB")
+                projected = [(owned, swept, project_segment(a, b, matrix, take.size))
+                             for owned, (a, b, swept) in lines]
+                swept_ink = Image.new("RGBA", take.size)
+                swept_draw = ImageDraw.Draw(swept_ink)
+                for owned, swept, segment in projected:
+                    if swept and segment is not None:
+                        swept_draw.line(segment, fill=(166, 118, 40, 50), width=1)
+                image = Image.alpha_composite(image.convert("RGBA"), swept_ink).convert("RGB")
+                draw = ImageDraw.Draw(image)
+                for owned, swept, segment in projected:
+                    if not swept and segment is not None:
+                        draw.line(segment, fill=(255, 164, 36) if owned else (64, 221, 255), width=1)
+                draw.rectangle((5, 5, min(take.size[0]-1, 280), 25), fill=BACKGROUND)
+                draw.text((8, 7), f"checked hitboxes | f{frame} | tick {row['matchTick']}", font=font(12), fill=ACCENT)
+                path = take.root / "hitboxes" / view.name / f"{frame:04d}.jpg"
+                path.parent.mkdir(parents=True, exist_ok=True)
+                image.save(path, quality=95)
+    return replace(take, overlay=True)
+
+
 def inset(take: Take, view: str, phase: Phase, size: tuple[int, int]) -> tuple[Image.Image, tuple | None]:
     if phase.frame is None:
         image = Image.new("RGB", size, BACKGROUND)
@@ -411,7 +525,7 @@ def make_view_clips(take: Take, out: Path) -> list[Path]:
                    "fontcolor=white:box=1:boxcolor=black@0.7:x=8:y=8,"
                    f"drawtext=text='frame %{{n}}':fontsize={text_size}:fontcolor=white:box=1:boxcolor=black@0.7:x=8:y=h-th-8")
         path = out / f"{view.name}.mp4"
-        ffmpeg(["-threads", "2", "-framerate", "60", "-start_number", "0", "-i", str(take.root / view.name / "%04d.jpg"),
+        ffmpeg(["-threads", "2", "-framerate", "60", "-start_number", "0", "-i", str(take.images / view.name / "%04d.jpg"),
                 "-frames:v", str(take.ticks), "-vf", filters] + encode_options() + [path.name], out)
         clips.append(path)
     return clips
@@ -496,8 +610,10 @@ def make_boards(run: Run, artifacts: dict, montages: dict[int, str], media: Path
     return paths
 
 
-def build_media(run: Run) -> dict:
-    media = run.root / "media"
+def build_media(run: Run, hitboxes: bool = False) -> dict:
+    if hitboxes:
+        run = replace(run, takes=tuple(render_hitboxes(t) for t in run.takes))
+    media = run.root / ("media-hitboxes" if hitboxes else "media")
     artifacts = {}
     for take in run.takes:
         print(f"media {take.id}", flush=True)
@@ -513,7 +629,7 @@ def build_media(run: Run) -> dict:
         if takes:
             montages[form] = str(make_montage(takes, media / "clips", media / "montage" / f"form-{form}.mp4"))
     boards = make_boards(run, artifacts, montages, media)
-    summary = {"format": 1, "package": run.plan.package, "recipe": run.plan.recipe, "recipeSha256": run.plan.sha256,
+    summary = {"format": 1, "hitboxes": hitboxes, "package": run.plan.package, "recipe": run.plan.recipe, "recipeSha256": run.plan.sha256,
                "complete": not run.missing, "missing": list(run.missing), "plannedMoves": len(run.plan.moves),
                "completedMoves": len(run.takes), "images": sum(t.ticks * len(t.views) for t in run.takes),
                "boards": [str(p) for p in boards], "montages": montages,
@@ -522,12 +638,13 @@ def build_media(run: Run) -> dict:
                           "hits": [vars(h) for h in t.hits], "phases": [vars(p) for p in t.phases],
                           "firstMatchTick": t.match_ticks[0], "lastMatchTick": t.match_ticks[-1],
                           "problems": list(t.problems), **artifacts[t.id]} for t in run.takes]}
-    write_json(run.root / "summary.json", summary)
+    write_json(run.root / ("summary-hitboxes.json" if hitboxes else "summary.json"), summary)
     return summary
 
 
 def print_summary(summary: dict, root: Path) -> None:
-    for path in summary["boards"] + list(summary["montages"].values()) + [str(root / "summary.json")]:
+    receipt = "summary-hitboxes.json" if summary.get("hitboxes") else "summary.json"
+    for path in summary["boards"] + list(summary["montages"].values()) + [str(root / receipt)]:
         print(path)
     for move in summary["moves"]:
         for problem in move["problems"]:
@@ -543,7 +660,7 @@ def cmd_run(args) -> int:
     ids = select(recipe_move_ids(recipe), args.moves)
     root = (ROOT / args.output if args.output else ROOT / "tmp/moves" / args.package / datetime.now(timezone.utc).strftime("%Y%m%d-%H%M%S-%f")).resolve()
     require(root.is_relative_to(ROOT / "tmp/moves"), "Run output must be below tmp/moves/")
-    batch = build_batch(recipe.relative_to(ROOT).as_posix(), root.relative_to(ROOT).as_posix(), ids, args.views, args.size, args.quality)
+    batch = build_batch(recipe.relative_to(ROOT).as_posix(), root.relative_to(ROOT).as_posix(), ids, args.views, args.size, args.quality, args.hitboxes)
     if args.dry_run:
         print(json.dumps(batch, indent=2))
         return 0
@@ -555,7 +672,10 @@ def cmd_run(args) -> int:
     captured = time.monotonic()
     timing = {"gatewaySeconds": captured - start, "gatewayExitCode": gateway_code}
     try:
-        summary = build_media(load_run(root))
+        loaded = load_run(root)
+        summary = build_media(loaded)
+        if args.hitboxes:
+            print_summary(build_media(loaded, hitboxes=True), root)
         print_summary(summary, root)
         return gateway_code or (0 if summary["complete"] else 1)
     finally:
@@ -577,14 +697,16 @@ def main(argv=None) -> int:
     run.add_argument("--size")
     run.add_argument("--quality", type=int, choices=range(50, 101), metavar="50..100")
     run.add_argument("--dry-run", action="store_true")
+    run.add_argument("--hitboxes", action="store_true", help="Record resolver checked geometry and build optional same-take overlay media")
     media = commands.add_parser("media", help="Rebuild all media from an existing run without using the Editor")
     media.add_argument("run", type=Path)
+    media.add_argument("--hitboxes", action="store_true", help="Build media-hitboxes from recorded checked geometry; preserve clean media")
     args = parser.parse_args(argv)
     try:
         if args.command == "run":
             return cmd_run(args)
         loaded = load_run(args.run)
-        summary = build_media(loaded)
+        summary = build_media(loaded, args.hitboxes)
         print_summary(summary, loaded.root)
         return 0 if summary["complete"] else 1
     except (OSError, ValueError, KeyError, TypeError, RuntimeError) as error:

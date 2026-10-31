@@ -737,8 +737,11 @@ public sealed class CharacterPackageAssemblerTests
             Array.Empty<PackageDependencySource>(), package.Definition.CapabilityRequirements, Array.Empty<CharacterDiagnostic>())));
 
     [Theory]
-    [InlineData("ground.A", "fuseTicks", 0)]
-    [InlineData("ground.A", "hopBackSpeed", 0)]
+    [InlineData("ground.A", "armTicks", 0)]
+    [InlineData("ground.A", "triggerRadius", 0)]
+    [InlineData("ground.A", "warningTicks", 0)]
+    [InlineData("ground.A", "lifetimeTicks", 0)]
+    [InlineData("ground.A", "maxMines", 4)]
     [InlineData("ground.A", "explosionDamage", -1)]
     [InlineData("ground.F", "speed", 61)]
     [InlineData("ground.F", "selfPushSpeed", 41)]

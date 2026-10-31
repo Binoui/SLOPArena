@@ -1,6 +1,5 @@
 using System.Collections.Generic;
 using System.Linq;
-using SlopArena.HitReliabilityReport;
 using Xunit;
 
 namespace SlopArena.Shared.Tests;
@@ -25,21 +24,11 @@ public sealed class HitReliabilityReportTests
     [Fact]
     public void Intervals_MergeContiguousStepsAndKeepGaps()
     {
-        var bands = Reliability.Intervals(new[] { 0.30f, 0.35f, 0.40f, 1.00f, 1.05f }, 0.05f);
+        var bands = HitReliability.Intervals(new[] { 0.30f, 0.35f, 0.40f, 1.00f, 1.05f }, 0.05f);
 
         Assert.Equal(2, bands.Count);
         Assert.Equal((0.30f, 0.40f), bands[0]);
         Assert.Equal((1.00f, 1.05f), bands[1]);
-    }
-
-    [Fact]
-    public void Swept_FindsATargetPassedBetweenTwoTestedTicks()
-    {
-        // The tip sweeps from 2 m left to 2 m right of a pillar 2 m ahead in one tick.
-        var ticks = new[] { Blade(-2f), Blade(2f) };
-
-        Assert.True(Reliability.Swept(ticks, Pillar));
-        Assert.All(ticks, tick => Assert.True(SpellResolver.SurfaceGap(tick, Pillar[0], out _, out _, out _) > 0f));
     }
 
     [Fact]
@@ -52,18 +41,12 @@ public sealed class HitReliabilityReportTests
         };
         var blade = new Hitbox { Shape = HitboxShape.Capsule, Radius = 0.1f, Y = 1f, Z = 0.5f, EndY = 1f, EndZ = 2f };
 
-        var arc = Reliability.ArcAgainst(new List<List<Hitbox>> { new() { blade } }, "T", target);
+        var arc = HitReliability.ArcAgainst(new List<List<Hitbox>> { new() { blade } }, "T", target);
 
         string standing = arc.Rows[arc.Heights.IndexOf(0f)];
         Assert.Equal('#', standing[arc.Distances.IndexOf(1f)]);
         Assert.Equal('.', standing[arc.Distances.IndexOf(-1f)]);
         Assert.DoesNotContain('#', arc.Rows[arc.Heights.IndexOf(3f)]);
-    }
-
-    [Fact]
-    public void Swept_IgnoresATargetTheSwingNeverCrosses()
-    {
-        Assert.False(Reliability.Swept(new[] { Blade(-2f), Blade(-1.5f) }, Pillar));
     }
 
     [Fact]
@@ -75,7 +58,7 @@ public sealed class HitReliabilityReportTests
         move.Sampling.Add(new SamplingRow { SweptPositions = 100, TestedPositions = 40, TargetFeetHeight = -1f });
         move.Sampling.Add(new SamplingRow { SweptPositions = 3, TestedPositions = 0, TargetFeetHeight = -1.5f });
 
-        Reliability.Flag(move);
+        HitReliability.Flag(move);
 
         Assert.Contains(move.Flags, x => x.Contains("1.80×"));
         Assert.Contains(move.Flags, x => x.StartsWith("cannot reach below its feet vs Manki"));
@@ -87,9 +70,9 @@ public sealed class HitReliabilityReportTests
     [Fact]
     public void ParseSlots_AcceptsCanonicalKeysAndRejectsUnknownOnes()
     {
-        Assert.Equal(new[] { AbilitySlots.Slot1, AbilitySlots.Slot4, AbilitySlots.F }, Reliability.ParseSlots("1, 4,f,F"));
-        Assert.Null(Reliability.ParseSlots("1,Q"));
-        Assert.Null(Reliability.ParseSlots(""));
+        Assert.Equal(new[] { AbilitySlots.Slot1, AbilitySlots.Slot4, AbilitySlots.F }, SlopArena.HitReliabilityReport.Program.ParseSlots("1, 4,f,F"));
+        Assert.Null(SlopArena.HitReliabilityReport.Program.ParseSlots("1,Q"));
+        Assert.Null(SlopArena.HitReliabilityReport.Program.ParseSlots(""));
     }
 
     [Fact]
@@ -101,7 +84,7 @@ public sealed class HitReliabilityReportTests
         centred.PosZ = 0f;
         centred.EndZ = 0f;
 
-        Assert.Equal(3, Reliability.BearingsTouched(new[] { Blade(0f) }, new[] { centred }, 1.5f));
+        Assert.Equal(3, HitReliability.BearingsTouched(new[] { Blade(0f) }, new[] { centred }, 1.5f));
     }
 
     [Fact]
@@ -112,7 +95,7 @@ public sealed class HitReliabilityReportTests
         move.Hits.Add(new HitCoverage { FirstTick = 16, Touched = { ("Manki", 1f, 0), ("Manki", 1.5f, 0) } });
         move.Hits.Add(new HitCoverage { FirstTick = 44, Touched = { ("Manki", 1f, 0), ("Manki", 1.5f, 0) } });
 
-        Reliability.Flag(move);
+        HitReliability.Flag(move);
 
         Assert.Equal("2 of 3 hits (t16, t44) never touch a standing Manki 1–1.5 m away", Assert.Single(move.Flags));
     }
@@ -124,7 +107,7 @@ public sealed class HitReliabilityReportTests
         move.Reach.Add(new ReachBand { Target = "Manki", BearingDegrees = 0f, Intervals = { (0.75f, 2.15f) } });
         move.Reach.Add(new ReachBand { Target = "Manki", BearingDegrees = 30f, Intervals = { (0.80f, 2.0f) } });
 
-        Reliability.Flag(move);
+        HitReliability.Flag(move);
 
         Assert.Equal("misses Manki closer than 0.75 m", Assert.Single(move.Flags));
     }

@@ -228,6 +228,8 @@ client/Unity/Assets/Plugins/**/NuGet/.nuget-installed.json
 # Approved Manki flight and Kamikaze from the GenRA toolkit (2026-10-29).
 !client/Unity/Assets/CharacterPackages/manki/Animations/manki-fly-loop-v1.anim
 !client/Unity/Assets/CharacterPackages/manki/Animations/manki-gf-kamikaze-56-v1.anim
+!client/Unity/Assets/CharacterPackages/manki/Animations/manki_gr_gunner_brace.anim
+!client/Unity/Assets/CharacterPackages/manki/Animations/manki_gf_kamikaze_windup.anim
 !client/Unity/Assets/CharacterPackages/bonk/Animations/bonk_crouch.anim
 # Approved project-authored Bonk horizontal aerial.
 !client/Unity/Assets/CharacterPackages/bonk/Animations/bonk_air2_horizontal_slash.anim
@@ -534,6 +536,16 @@ videos/*
 !client/Unity/Assets/Stages/fightguy_pier/Presentation/Course/*.png
 !client/Unity/Assets/Stages/fightguy_pier/Presentation/Course/*.mat
 !client/Unity/Assets/Stages/fightguy_pier/Presentation/Course/Source/*.png
+# Two-Faced Manor (Nyx's course): tools/blender/nyx_manor art plus its generated course feel.
+!client/Unity/Assets/Stages/nyx_manor/Presentation/Manor/*.fbx
+!client/Unity/Assets/Stages/nyx_manor/Presentation/Manor/*.png
+!client/Unity/Assets/Stages/nyx_manor/Presentation/Manor/*.mat
+!client/Unity/Assets/Stages/nyx_manor/Presentation/Graybox/*.fbx
+!client/Unity/Assets/Stages/nyx_manor/Presentation/Graybox/*.png
+!client/Unity/Assets/Stages/nyx_manor/Presentation/Graybox/*.mat
+!client/Unity/Assets/Stages/nyx_manor/Presentation/Course/*.fbx
+!client/Unity/Assets/Stages/nyx_manor/Presentation/Course/*.png
+!client/Unity/Assets/Stages/nyx_manor/Presentation/Course/*.mat
 # Slopball's court greybox, its Night Court room and its mascot ball
 # (SlopballPresentationBuilder, which reads the word masks in Ball/Source).
 !client/Unity/Assets/Stages/slopball/*.mat

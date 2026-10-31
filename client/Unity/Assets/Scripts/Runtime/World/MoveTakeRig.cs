@@ -27,6 +27,7 @@ namespace SlopArena.EditorTools
         public IReadOnlyList<(string Name, float Yaw, float Pitch)> Views;
         public FrameSize Size;
         public int Quality = 88;
+        public bool CaptureHitboxes;
         public string OutputDirectory = "";
     }
 
@@ -43,6 +44,8 @@ namespace SlopArena.EditorTools
         public string ObservedSlot;
         public SpellResolver.HitResult[] Hits;
         public TimelinePresentationEvent[] Cues;
+        public Hitbox[] CheckedHitboxes = Array.Empty<Hitbox>();
+        public readonly Dictionary<string, float[]> WorldToClip = new();
         public readonly Dictionary<string, RectInt> Boxes = new();
         public readonly Dictionary<string, uint> ViewTicks = new();
     }
@@ -145,7 +148,9 @@ namespace SlopArena.EditorTools
                         ObservedSlot = _match.CaptureSimulation.GetActiveMove(MatchConfig.LocalEntityId)?.Slot.Id,
                         Fighter = _match.GetCaptureState(MatchConfig.LocalEntityId),
                         Dummy = _match.GetCaptureState(_match.SelectedNpcId),
-                        Hits = _match.CaptureLastTickHits.ToArray(), Cues = _match.CaptureLastTickPresentationEvents.ToArray()
+                        Hits = _match.CaptureLastTickHits.ToArray(), Cues = _match.CaptureLastTickPresentationEvents.ToArray(),
+                        CheckedHitboxes = _plan.CaptureHitboxes
+                            ? _match.CaptureSimulation.Resolver.LastTickCheckedHitboxes.ToArray() : Array.Empty<Hitbox>()
                     });
                     _pending = _tick;
                 }
@@ -206,6 +211,11 @@ namespace SlopArena.EditorTools
                             throw new InvalidOperationException("A view did not render this frame at the captured Shared tick.");
                         view.WriteJpg(Path.Combine(_plan.OutputDirectory, view.Name, $"{record.Frame:0000}.jpg"), _plan.Quality);
                         record.Boxes[view.Name] = view.Project(bounds);
+                        if (_plan.CaptureHitboxes)
+                        {
+                            var matrix = view.Camera.projectionMatrix * view.Camera.worldToCameraMatrix;
+                            record.WorldToClip[view.Name] = Enumerable.Range(0, 16).Select(i => matrix[i / 4, i % 4]).ToArray();
+                        }
                         record.ViewTicks[view.Name] = rendered.Tick;
                         Result.FramesWritten++;
                     }
@@ -242,7 +252,18 @@ namespace SlopArena.EditorTools
             cues = record.Cues.Select(cue => new { id = cue.PresentationId, owner = cue.EntityId.ToString(),
                 pos = new[] { cue.WorldX, cue.WorldY, cue.WorldZ } }),
             boxes = record.Boxes.ToDictionary(p => p.Key, p => new[] { p.Value.xMin, p.Value.yMin, p.Value.xMax, p.Value.yMax }),
-            viewTicks = record.ViewTicks
+            viewTicks = record.ViewTicks,
+            checkedHitboxes = record.CheckedHitboxes.Select(box => new
+            {
+                owner = box.OwnerId.ToString(), emission = box.EmissionId.ToString(),
+                shape = box.Shape.ToString(), radius = box.Radius,
+                start = new[] { box.X, box.Y, box.Z }, end = new[] { box.EndX, box.EndY, box.EndZ },
+                ageTicks = box.AgeTicks, durationTicks = box.DurationTicks,
+                previousRadius = box.PreviousRadius, ringHalfWidth = box.RingHalfWidth, ringHalfHeight = box.RingHalfHeight,
+                sweep = (box.Sweep ?? Array.Empty<HitboxPose>()).Select(pose => new
+                { start = new[] { pose.X, pose.Y, pose.Z }, end = new[] { pose.EndX, pose.EndY, pose.EndZ } })
+            }),
+            worldToClip = record.WorldToClip
         };
 
         private static object StateReceipt(CharacterState state) => new

@@ -67,7 +67,8 @@ namespace SlopArena.EditorTools.MoveReview
             [CliArg("output", "Fresh take directory below tmp/.", Required = true)] string output,
             [CliArg("views", "Comma-separated subset of recipe views.")] string views = null,
             [CliArg("size", "Even requested WxH; fitted to the per-take pixel budget.")] string size = null,
-            [CliArg("quality", "JPG quality 50–100.")] int? quality = null)
+            [CliArg("quality", "JPG quality 50–100.")] int? quality = null,
+            [CliArg("hitboxes", "Record resolver checked hitboxes and capture camera matrices for optional media overlays.")] bool hitboxes = false)
         {
             var parsed = _prepared != null && _prepared.Path == recipe ? _prepared : MoveRecipeParser.Load(recipe);
             if (MoveRecipeParser.Hash(File.ReadAllBytes(MoveRecipeParser.Resolve(recipe))) != parsed.Sha256)
@@ -93,6 +94,7 @@ namespace SlopArena.EditorTools.MoveReview
                 var arranged = TrainingArrangement.Apply(match, mount, new Arrangement(spec.Facing.Degrees * Mathf.Deg2Rad,
                     spec.Facing.FromSpawn, spec.Form, spec.Dummy.Distance, spec.Dummy.Behavior, spec.Dummy.Damage));
                 var plan = TakeCompiler.Compile(parsed, spec, arranged, match, views, requestedSize, jpgQuality, directory);
+                plan.CaptureHitboxes = hitboxes;
                 var rig = MoveTakeRig.Begin(match, mount, mount.RenderCamera, plan);
                 TakeSession.Rig = rig;
                 double deadline = EditorApplication.timeSinceStartup + 170;
@@ -120,7 +122,7 @@ namespace SlopArena.EditorTools.MoveReview
                     quality = jpgQuality, ticks = spec.Ticks, settle = plan.SettleTicks,
                     views = plan.Views.Select(v => new { name = v.Name, yaw = v.Yaw, pitch = v.Pitch }),
                     start = start == null ? null : new { frame = start.Frame, grounded = start.GroundedBefore, observedSlot = start.ObservedSlot },
-                    hits, phases, framesWritten = result.FramesWritten, editorPausesResumed = result.EditorPausesResumed, problems };
+                    hits, phases, hitboxes, framesWritten = result.FramesWritten, editorPausesResumed = result.EditorPausesResumed, problems };
                 if (start == null || start.GroundedBefore == spec.Slot.IsAirborne)
                     throw new InvalidOperationException(string.Join(" ", problems));
                 Write(Path.Combine(directory, "take.json"), receipt);

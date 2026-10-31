@@ -11,8 +11,8 @@ Use this skill for movement, input, and universal combat changes. The authoritat
 ## Movement contract
 
 - Input is camera-relative and snaps to eight directions. The camera is a world sibling with absolute yaw.
-- Ground movement has one Run tier. Rush is its initial burst; grounded reversals remain immediate after Rush. Turnaround is removed.
-- Ground and double jumps use per-character movement data. ShortHop is release-timed during JumpSquat; double jumps are full jumps.
+- Ground movement is Run plus a held Walk at 40% of RunSpeed (ADR-0058). Rush is retired. Grounded reversals are immediate and keep current speed.
+- Ground and double jumps use per-character movement data. ShortHop is release-timed during JumpSquat; double jumps are full jumps. An ordinary jump takes off at no more than `min(RunSpeed, 1.2 × AirSpeedMax)`.
 - JumpArc is the complete jump animation. Fall starts when the JumpArc finishes while the entity remains airborne, not at the physics apex.
 - FastFall requires a fresh Down press while already descending and latches through release. Ascent/apex presses are discarded; locks and authored vertical motion cannot be overridden. Ordinary aerial attacks may coexist.
 - Grounded Down selects Crouch or momentum-spending Slide; actionable held-Down landings may slide. SlideJump retains ordinary squat and jump resources. See the canonical combat guide for thresholds, interruption/reset rules, normal carry and settled CrouchBrace rather than duplicating tuning here.
@@ -25,7 +25,7 @@ All durations are 60 Hz simulation ticks. Do not implement movement from render-
 
 ## Input boundary
 
-`InputController.Poll()` and `BuildInputState()` produce `SlopArena.Shared.InputState`. Down hold and the one-shot DownPressed edge are independent of movement axes. `ShieldHeld` and `ShieldPressed` supply defense intent; `GrabPressed` supplies grab intent. The state also carries movement, jump, canonical active slot, camera aim, target intent, JumpHeld, facing-camera edge, and target-lock toggle fields. `DashPressed` supplies homing dash intent; the legacy Burst bit remains reserved and inert. The client supplies intent; Shared simulation validates and applies gameplay.
+`InputController.Poll()` and `BuildInputState()` produce `SlopArena.Shared.InputState`. Down hold and the one-shot DownPressed edge are independent of movement axes. `ShieldHeld` and `ShieldPressed` supply defense intent; `GrabPressed` supplies grab intent. The state also carries movement, jump, canonical active slot, camera aim, target intent, JumpHeld, facing-camera edge, and target-lock toggle fields. `DashPressed` supplies homing dash intent. `Walk` is held walk intent from the Walk action or a stick tilt of 0.7 or less, carried in the former Burst bit. The client supplies intent; Shared simulation validates and applies gameplay.
 
 The canonical move grid is grounded and aerial variants of `1`, `3`, `4`, `A`, `E`, `R`, and `F` (three normals, ADR-0042). Physical controls are remappable adapters. They are not package identity.
 

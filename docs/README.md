@@ -156,6 +156,7 @@ The `research/` directory contains design analysis and external references, incl
 - [Melee frame analysis](research/melee-frame-analysis.md)
 - [Melee Knockback model](research/melee-knockback-model.md)
 - [Melee movement audit](research/melee-movement-audit.md)
+- [Run speed compared with other fighters](research/2026-10-31-run-speed-comparison.md), with Smash, Rivals, 3D action and 3D fighter slices
 - [Melee/netcode impact](research/melee-model-netcode-impact.md)
 - [DKO mechanics](research/dko-mechanics.md)
 - [DKO character kits](research/dko-character-kits.md)

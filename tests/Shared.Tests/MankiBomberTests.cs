@@ -55,7 +55,7 @@ public sealed class MankiBomberTests
     public void QAndRKeepFlyingDuringAndAfterTheirActivation(byte slot)
     {
         var sim = Match(air: true); TakeOff(sim);
-        Step(sim, new() { ActiveSlot = slot, MoveX = 1 }, 45);
+        Step(sim, new() { ActiveSlot = slot, MoveX = 1 }, 80);
         Assert.True(sim.GetState(1).Flight.Active);
         Assert.Equal(ActionState.Flying, sim.GetState(1).State);
         Assert.Equal(12f, sim.GetState(1).VX);
@@ -87,7 +87,7 @@ public sealed class MankiBomberTests
         Step(sim);
         Assert.False(sim.GetState(1).Flight.Active);
         Assert.Equal((ushort)1, sim.GetState(1).DamagePercent);
-        Assert.Equal((ushort)210, sim.GetState(1).GetCooldown(AbilitySlots.E));
+        Assert.Equal((ushort)600, sim.GetState(1).GetCooldown(AbilitySlots.E));
     }
 
     [Theory]
@@ -112,14 +112,14 @@ public sealed class MankiBomberTests
     }
 
     [Fact]
-    public void AirDropHasNoHorizontalVelocityAndGroundImpactExplodesOnce()
+    public void AirDropSettlesThenArmsAndExplodesOnce()
     {
         var sim = Match(air: true); TakeOff(sim);
         Step(sim, new() { ActiveSlot = AbilitySlots.A });
         var bomb = Assert.Single(sim.Resolver.GetActiveHitboxes(), h => h.ContactExplosion);
         Assert.Equal(0f, bomb.VX); Assert.Equal(0f, bomb.VZ); Assert.True(bomb.Gravity > 0f);
         Target(sim, bomb.X + 1.5f, .75f, bomb.Z);
-        Step(sim, ticks: 90);
+        Step(sim, ticks: 135);
         Assert.DoesNotContain(sim.Resolver.GetActiveHitboxes(), h => h.ContactExplosion);
         Assert.True(sim.GetState(100).DamagePercent > 0);
         Assert.Single(sim.GetPresentationEvents(), e => e.PresentationId == "presentation.manki.round-bomb.explosion");
@@ -139,34 +139,81 @@ public sealed class MankiBomberTests
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
-    public void HopDropsBombAtOriginAndMovesAwayFromTargetOrFacing(bool target)
+    public void GroundMineStaysAtFeetWithoutMovingManki(bool target)
     {
         var sim = Match(); var before = sim.GetState(1);
         if (target) Target(sim, before.PX + 5f, .75f, before.PZ);
         Step(sim, new() { ActiveSlot = AbilitySlots.A, TargetEntityId = target ? (byte)100 : (byte)0 });
         var bomb = Assert.Single(sim.Resolver.GetActiveHitboxes(), h => h.ContactExplosion);
         Assert.Equal(before.PX, bomb.X); Assert.Equal(before.PZ, bomb.Z);
-        Assert.Equal(0f, bomb.Gravity);
-        Assert.True(sim.GetState(1).PY > before.PY);
-        if (target) Assert.True(sim.GetState(1).PX < before.PX);
-        else Assert.True(sim.GetState(1).PZ < before.PZ);
+        Assert.Equal(before.PY - Def.CapsuleHeight * .5f + bomb.Radius, bomb.Y, 4);
+        Assert.Equal(MinePhase.Arming, bomb.MinePhase);
+        Assert.Equal(before.PX, sim.GetState(1).PX); Assert.Equal(before.PY, sim.GetState(1).PY);
+        Assert.Equal(before.PZ, sim.GetState(1).PZ);
+        Assert.Equal(0f, sim.GetState(1).VY);
+        Step(sim, new() { MoveX = 1 }, 8);
+        Assert.Equal(before.PX, sim.GetState(1).PX);
     }
 
-    [Theory]
-    [InlineData(false)]
-    [InlineData(true)]
-    public void GroundBombExplodesOnContactOrFuseAndNeverDamagesOwner(bool contact)
+    [Fact]
+    public void GroundPlacementRootsIncomingRunMomentum()
+    {
+        var sim = Match();
+        sim.SetState(1, sim.GetState(1) with { VX = 8f, VZ = 4f });
+        var before = sim.GetState(1);
+        Step(sim, new() { ActiveSlot = AbilitySlots.A, MoveX = 1 });
+        Assert.Equal(before.PX, sim.GetState(1).PX);
+        Assert.Equal(before.PZ, sim.GetState(1).PZ);
+        Assert.Equal(0f, sim.GetState(1).VX); Assert.Equal(0f, sim.GetState(1).VZ);
+    }
+
+    [Fact]
+    public void ArmDelayThenWarningThenBlastNeverTriggersOrPushesOwner()
     {
         var sim = Match(); Step(sim, new() { ActiveSlot = AbilitySlots.A });
         var bomb = Assert.Single(sim.Resolver.GetActiveHitboxes(), h => h.ContactExplosion);
-        if (contact) Target(sim, bomb.X + .5f, .75f, bomb.Z);
-        else Target(sim, bomb.X + 1.5f, .75f, bomb.Z);
-        var owner = sim.GetState(1);
-        sim.SetState(1, owner with { PX = bomb.X - 1.5f, PY = .75f, PZ = bomb.Z, VX = 0, VY = 0, VZ = 0, IsGrounded = true });
-        Step(sim, ticks: contact ? 5 : 62);
+        Step(sim, ticks: 40);
+        Assert.Equal(MinePhase.Armed, Assert.Single(sim.Resolver.GetActiveHitboxes()).MinePhase);
         Assert.Equal((ushort)0, sim.GetState(1).DamagePercent);
+        Target(sim, bomb.X + 1.5f, .75f, bomb.Z);
+        Step(sim);
+        Assert.Equal(MinePhase.Triggered, Assert.Single(sim.Resolver.GetActiveHitboxes()).MinePhase);
+        Step(sim, ticks: 11);
+        Assert.Equal((ushort)0, sim.GetState(100).DamagePercent);
+        Step(sim, ticks: 3);
         Assert.True(sim.GetState(100).DamagePercent > 0);
-        Assert.Single(sim.GetPresentationEvents(), e => e.PresentationId == "presentation.manki.round-bomb.explosion");
+        Assert.Equal((ushort)0, sim.GetState(1).DamagePercent);
+        Assert.Equal(0f, sim.GetState(1).VY); Assert.Equal(0f, sim.GetState(1).VX); Assert.Equal(0f, sim.GetState(1).VZ);
+    }
+
+    [Fact]
+    public void PointBlankOpponentCannotTriggerBeforeArming()
+    {
+        var sim = Match(); var owner = sim.GetState(1);
+        Target(sim, owner.PX + .5f, .75f, owner.PZ);
+        Step(sim, new() { ActiveSlot = AbilitySlots.A }, 29);
+        Assert.Equal(MinePhase.Arming, Assert.Single(sim.Resolver.GetActiveHitboxes()).MinePhase);
+        Assert.Equal((ushort)0, sim.GetState(100).DamagePercent);
+        Step(sim);
+        Assert.Equal(MinePhase.Triggered, Assert.Single(sim.Resolver.GetActiveHitboxes()).MinePhase);
+    }
+
+    [Fact]
+    public void FourthLiveMineDiscardsOldestWithoutBlastAndLifetimeFizzles()
+    {
+        var sim = Match(); sim.NoCooldownsEntityId = 1;
+        ulong oldest = 0;
+        for (int i = 0; i < 4; i++)
+        {
+            if (i == 3) Step(sim, ticks: 320);
+            Step(sim, new() { ActiveSlot = AbilitySlots.A }, 20);
+            if (i == 0) oldest = Assert.Single(sim.Resolver.GetActiveHitboxes()).EmissionId;
+        }
+        Assert.Equal(3, sim.Resolver.GetActiveHitboxes().Count);
+        Assert.DoesNotContain(sim.Resolver.GetActiveHitboxes(), h => h.EmissionId == oldest);
+        Step(sim, ticks: 601);
+        Assert.Empty(sim.Resolver.GetActiveHitboxes());
+        Assert.DoesNotContain(sim.GetPresentationEvents(), e => e.PresentationId == "presentation.manki.round-bomb.explosion");
     }
 
     [Theory]
@@ -183,7 +230,7 @@ public sealed class MankiBomberTests
         Assert.False(sim.GetState(1).Flight.Active);
         if (fromFlight) Assert.True(sim.GetState(1).VY < 0);
         bool blast = false;
-        for (int i = 0; i < 60; i++)
+        for (int i = 0; i < 80; i++)
         {
             Step(sim);
             if (sim.GetPresentationEvents().Any(e => e.PresentationId == "presentation.manki.kamikaze.explosion"))
@@ -223,6 +270,135 @@ public sealed class MankiBomberTests
         Assert.True(expected.ContentEquals(sim.CaptureSnapshot()));
     }
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void ChargedRocketTracksCapturedTargetWithoutSteeringFlying(bool flying)
+    {
+        var sim = Match(air: flying);
+        if (flying) TakeOff(sim);
+        var owner = sim.GetState(1);
+        Target(sim, owner.PX, owner.PY, owner.PZ + 12f);
+        sim.NoGravityEntityId = 100;
+        sim.RegisterEntity(200, TestHelpers.EngineDef, TestHelpers.NpcState(owner.PX + 12f, owner.PZ - 8f) with
+        { PY = owner.PY, IsGrounded = !flying });
+        Step(sim, new() { ActiveSlot = AbilitySlots.R, TargetEntityId = 100, MoveX = 1 });
+        for (int i = 1; i < 40; i++)
+        {
+            owner = sim.GetState(1);
+            sim.SetState(100, sim.GetState(100) with { PX = owner.PX - 8f, PY = owner.PY, PZ = owner.PZ + i * .1f });
+            Step(sim, new() { TargetEntityId = 200, MoveX = 1 });
+            owner = sim.GetState(1);
+            var target = sim.GetState(100);
+            Assert.Equal(MathF.Atan2(target.PX - owner.PX, target.PZ - owner.PZ), owner.FacingYaw, 4);
+            Assert.Equal(100UL, owner.TargetEntityId);
+            if (flying)
+            {
+                Assert.Equal(12f, owner.VX, 4);
+                Assert.Equal(0f, owner.VZ, 4);
+            }
+            else
+            {
+                Assert.Equal(0f, owner.VX);
+                Assert.Equal(0f, owner.VZ);
+            }
+        }
+        Assert.Contains(sim.Resolver.GetActiveHitboxes(), h => h.HomingTargetEntityId == 100);
+    }
+
+    [Fact]
+    public void KamikazeRootsForSixteenTicksThenLaunchesAtCapturedTarget()
+    {
+        var sim = Match();
+        var before = sim.GetState(1);
+        Target(sim, before.PX + 8f, before.PY, before.PZ);
+        sim.RegisterEntity(200, TestHelpers.EngineDef, TestHelpers.NpcState(before.PX, before.PZ - 8f) with
+        { PY = before.PY, IsGrounded = true });
+        sim.SetState(1, before with { VX = 8f, VZ = 6f });
+        Step(sim, new() { ActiveSlot = AbilitySlots.F, TargetEntityId = 100 });
+        for (int elapsed = 1; elapsed <= 16; elapsed++)
+        {
+            var owner = sim.GetState(1);
+            Assert.Equal(before.PX, owner.PX);
+            Assert.Equal(before.PZ, owner.PZ);
+            Assert.Equal(before.PY, owner.PY);
+            Assert.DoesNotContain(sim.Resolver.GetActiveHitboxes(), h => h.ContactExplosion);
+            Assert.Equal((ushort)0, sim.GetState(100).DamagePercent);
+            if (elapsed < 16)
+            {
+                Assert.Equal(0f, owner.VX);
+                Assert.Equal(0f, owner.VZ);
+                Step(sim, new() { MoveY = -1, TargetEntityId = 200 });
+            }
+        }
+        var launch = sim.GetState(1);
+        Assert.Equal(18f, MathF.Sqrt(launch.VX * launch.VX + launch.VY * launch.VY + launch.VZ * launch.VZ), 4);
+        Assert.True(launch.VX > 17f);
+        Assert.Equal(0f, launch.VZ, 4);
+        Step(sim);
+        Assert.True(sim.GetState(1).PX > before.PX);
+        Step(sim, ticks: 40);
+        Assert.True(sim.GetState(100).DamagePercent > 0);
+    }
+
+    [Fact]
+    public void KamikazeKeepsItsFullFiftyFourTickTravelAllowanceAfterStartup()
+    {
+        var sim = Match();
+        Step(sim, new() { ActiveSlot = AbilitySlots.F }, 16);
+        for (int i = 0; i < 53; i++)
+        {
+            Step(sim);
+            Assert.NotNull(sim.GetActiveAbility(1));
+            Assert.DoesNotContain(sim.GetPresentationEvents(), e => e.PresentationId == "presentation.manki.kamikaze.explosion");
+        }
+        Step(sim);
+        Assert.Null(sim.GetActiveAbility(1));
+        Assert.Single(sim.GetPresentationEvents(), e => e.PresentationId == "presentation.manki.kamikaze.explosion");
+    }
+
+    [Fact]
+    public void KamikazeStartupFallsNormallyAndRollbackReplaysLaunch()
+    {
+        var sim = Match(air: true);
+        var control = Match(air: true);
+        sim.SetState(1, sim.GetState(1) with { VY = -3f });
+        control.SetState(1, control.GetState(1) with { VY = -3f });
+        Step(sim, new() { ActiveSlot = AbilitySlots.F }, 8);
+        Step(control, ticks: 8);
+        Assert.Equal(control.GetState(1).PY, sim.GetState(1).PY, 4);
+        Assert.Equal(control.GetState(1).VY, sim.GetState(1).VY, 4);
+        Assert.DoesNotContain(sim.Resolver.GetActiveHitboxes(), h => h.ContactExplosion);
+        var packet = new WorldFramePacket(MatchState.Playing, sim.CaptureSnapshot(), Array.Empty<RelayedInput>(),
+            Array.Empty<TimelinePresentationEvent>(), Array.Empty<SpellResolver.HitResult>());
+        var snapshot = WorldFramePacket.Deserialize(packet.Serialize()).Snapshot;
+        Step(sim, ticks: 75);
+        var expected = sim.CaptureSnapshot();
+        sim.RestoreSnapshot(snapshot);
+        Step(sim, ticks: 75);
+        Assert.True(expected.ContentEquals(sim.CaptureSnapshot()));
+    }
+
+    [Fact]
+    public void HitDuringKamikazeStartupCancelsWithoutTravelOrExplosion()
+    {
+        var sim = Match();
+        Step(sim, new() { ActiveSlot = AbilitySlots.F }, 8);
+        var owner = sim.GetState(1);
+        sim.Resolver.Spawn(new Hitbox { OwnerId = 100, X = owner.PX, Y = owner.PY, Z = owner.PZ,
+            Radius = 2f, Damage = 1f, BaseKnockback = 2f, StunTicks = 8, DurationTicks = 1 });
+        Step(sim);
+        Assert.Equal((ushort)1, sim.GetState(1).DamagePercent);
+        for (int i = 0; i < 80; i++)
+        {
+            Step(sim);
+            Assert.DoesNotContain(sim.Resolver.GetActiveHitboxes(), h => h.ContactExplosion);
+            Assert.DoesNotContain(sim.GetPresentationEvents(), e => e.PresentationId == "presentation.manki.kamikaze.explosion");
+        }
+        Assert.Null(sim.GetActiveAbility(1));
+        Assert.NotEqual(AbilitySlots.F, sim.GetState(1).AttackSlot);
+    }
+
     [Fact]
     public void ThreeChargesAreIndependentAndFourthBombIsRejected()
     {
@@ -254,7 +430,7 @@ public sealed class MankiBomberTests
             Radius = 2, Damage = 1, StunTicks = 5, DurationTicks = 1 });
         Step(sim);
         Assert.False(sim.GetState(1).Flight.Active);
-        Assert.Equal((ushort)210, sim.GetState(1).GetCooldown(AbilitySlots.E));
+        Assert.Equal((ushort)600, sim.GetState(1).GetCooldown(AbilitySlots.E));
     }
 
     [Fact]
@@ -276,29 +452,52 @@ public sealed class MankiBomberTests
     {
         var sim = Match(air: true); TakeOff(sim);
         Step(sim, new() { ActiveSlot = AbilitySlots.E });
-        Assert.Equal((ushort)210, sim.GetState(1).GetCooldown(AbilitySlots.E));
+        Assert.Equal((ushort)600, sim.GetState(1).GetCooldown(AbilitySlots.E));
         var s = sim.GetState(1);
         sim.SetState(1, s with { PY = Def.CapsuleHeight * .5f, VY = 0, IsGrounded = true });
         Step(sim);
         Assert.Equal((ushort)180, sim.GetState(1).Flight.FuelTicksLeft);
         Step(sim, new() { ActiveSlot = AbilitySlots.E }); Assert.Null(sim.GetActiveAbility(1));
-        Step(sim, ticks: 210);
+        Step(sim, ticks: 600);
         Step(sim, new() { ActiveSlot = AbilitySlots.E }, 3);
         Assert.True(sim.GetState(1).Flight.Active);
     }
 
     [Fact]
-    public void FallingWithoutFlightUsesTheHopAndStationaryFuse()
+    public void FallingWithoutFlightDropsAMineWithoutChangingVelocity()
     {
-        var sim = Match(air: true); var s = sim.GetState(1);
-        sim.SetState(1, s with { VY = -8f });
-        Step(sim, new() { ActiveSlot = AbilitySlots.A });
+        var sim = Match(air: true); var control = Match(air: true);
+        sim.SetState(1, sim.GetState(1) with { VY = -8f });
+        control.SetState(1, control.GetState(1) with { VY = -8f });
+        Step(sim, new() { ActiveSlot = AbilitySlots.A }); Step(control);
         var bomb = Assert.Single(sim.Resolver.GetActiveHitboxes(), h => h.ContactExplosion);
-        Assert.Equal(0f, bomb.Gravity); Assert.True(bomb.ExplodeOnExpiry);
-        Assert.True(sim.GetState(1).VY > 0f);
+        Assert.Equal(9f, bomb.Gravity);
+        Assert.Equal(control.GetState(1).VY, sim.GetState(1).VY);
+        Assert.Equal(control.GetState(1).PY, sim.GetState(1).PY);
         var snapshot = sim.CaptureSnapshot();
-        Step(sim, ticks: 65); var expected = sim.CaptureSnapshot();
-        sim.RestoreSnapshot(snapshot); Step(sim, ticks: 65);
+        Step(sim, ticks: 100); var expected = sim.CaptureSnapshot();
+        sim.RestoreSnapshot(snapshot); Step(sim, ticks: 100);
+        Assert.True(expected.ContentEquals(sim.CaptureSnapshot()));
+        Assert.Equal(MinePhase.Armed, Assert.Single(sim.Resolver.GetActiveHitboxes()).MinePhase);
+    }
+
+    [Theory]
+    [InlineData(10, MinePhase.Arming)]
+    [InlineData(35, MinePhase.Armed)]
+    [InlineData(45, MinePhase.Triggered)]
+    public void MineRollbackRestoresArmingArmedAndTriggered(int snapshotTick, MinePhase phase)
+    {
+        var sim = Match(); Step(sim, new() { ActiveSlot = AbilitySlots.A });
+        var bomb = Assert.Single(sim.Resolver.GetActiveHitboxes());
+        for (int i = 1; i < snapshotTick; i++)
+        {
+            if (i == 40) Target(sim, bomb.X + 1.5f, .75f, bomb.Z);
+            Step(sim);
+        }
+        Assert.Equal(phase, Assert.Single(sim.Resolver.GetActiveHitboxes()).MinePhase);
+        var snapshot = sim.CaptureSnapshot();
+        Step(sim, ticks: 80); var expected = sim.CaptureSnapshot();
+        sim.RestoreSnapshot(snapshot); Step(sim, ticks: 80);
         Assert.True(expected.ContentEquals(sim.CaptureSnapshot()));
     }
 
@@ -322,7 +521,7 @@ public sealed class MankiBomberTests
         var sim = Match(air: true, persisted: true); TakeOff(sim);
         Step(sim, new() { ActiveSlot = AbilitySlots.A }, 32);
         Assert.True(sim.GetState(1).Flight.Active);
-        Step(sim, new() { ActiveSlot = AbilitySlots.R }, 40);
+        Step(sim, new() { ActiveSlot = AbilitySlots.R }, 80);
         Assert.True(sim.GetState(1).Flight.Active);
         var s = sim.GetState(1);
         Target(sim, s.PX, .75f, s.PZ + 5f, 80);
@@ -368,31 +567,14 @@ public sealed class MankiBomberTests
         bomb.Y = height + bomb.Radius; bomb.VY = 0;
         resolver.Spawn(bomb);
         int elapsed = 0;
-        while (resolver.GetActiveHitboxes().Count != 0 && elapsed < bomb.DurationTicks)
+        while (resolver.GetActiveHitboxes().Any(h => h.MinePhase == MinePhase.Falling) && elapsed < bomb.DurationTicks)
         {
             resolver.Tick(new()); resolver.CheckGroundCollision(TestHelpers.TestArena()); elapsed++;
         }
         Assert.Equal(expectedTicks, elapsed);
         Assert.True(elapsed < bomb.DurationTicks);
-        Assert.Equal(0f, Assert.Single(resolver.DrainPendingExplosions()).y);
-    }
-
-    [Theory]
-    [InlineData(3.7f, true)]
-    [InlineData(4.8f, false)]
-    public void LargerBombKeepsItsDamageAndHopAndHitsWithinFourMetres(float distance, bool hits)
-    {
-        var sim = Match(); var origin = sim.GetState(1);
-        Target(sim, origin.PX + distance, .75f, origin.PZ);
-        Step(sim, new() { ActiveSlot = AbilitySlots.A });
-        var bomb = Assert.Single(sim.Resolver.GetActiveHitboxes(), h => h.ContactExplosion);
-        Assert.Equal(.6f, bomb.Radius);
-        Assert.Equal(4f, bomb.Explosion!.Value.Radius);
-        Assert.Equal(10f, bomb.Explosion.Value.Damage);
-        Assert.Equal(7f, sim.GetState(1).VY);
-        Assert.Equal(-7f, sim.GetState(1).VZ);
-        Step(sim, ticks: 65);
-        Assert.Equal(hits, sim.GetState(100).DamagePercent > 0);
+        Assert.Equal(bomb.Radius, Assert.Single(resolver.GetActiveHitboxes()).Y, 3);
+        Assert.Empty(resolver.DrainPendingExplosions());
     }
 
     [Theory]
@@ -402,7 +584,7 @@ public sealed class MankiBomberTests
     {
         var sim = Match(); Step(sim, new() { ActiveSlot = AbilitySlots.A });
         var bomb = Assert.Single(sim.Resolver.GetActiveHitboxes(), h => h.ContactExplosion);
-        var resolver = new SpellResolver(); resolver.Spawn(bomb);
+        var resolver = new SpellResolver(); bomb.MinePhase = MinePhase.Falling; resolver.Spawn(bomb);
         resolver.Tick(new() { new SpellResolver.EntityData { Id = 100, PosX = bomb.X + distance,
             PosY = bomb.Y, PosZ = bomb.Z, Radius = .1f, Shape = HitboxShape.Sphere, Active = true } });
         Assert.Equal(touches, resolver.DrainPendingExplosions().Count == 1);

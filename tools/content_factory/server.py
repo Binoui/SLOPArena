@@ -54,6 +54,7 @@ CHECK_MOVES = {"to-try": {"good", "redo", "dropped"}, "redo": {"to-try", "good",
                "good": {"to-try"}, "dropped": {"to-try"}}
 CHECK_FIELDS = {"title", "steps", "area", "thread", "thread_title"}
 CHECK_MEDIA = {".mp4": "video/mp4", ".jpg": "image/jpeg", ".png": "image/png"}
+QA_RESULT = re.compile(r"QA: (PASS|PARTIAL|FAIL)\.")
 TAKE_FROM = {"proposed", "approved", "rendered"}
 RUN_KINDS = {"propose", "render", "redo", "scout"}
 RUN_STATES = {"queued", "sent", "running", "done", "failed"}
@@ -121,8 +122,9 @@ def full_check(con: sqlite3.Connection, row: sqlite3.Row) -> dict:
     folder = DATA / "media" / f"check-{row['id']}"
     media = [f"/media/check-{row['id']}/{quote(p.name)}" for p in sorted(folder.iterdir())
              if p.is_file() and p.suffix.lower() in CHECK_MEDIA] if folder.is_dir() else []
-    return dict(row) | {"notes": [dict(n) for n in con.execute(
-        "SELECT * FROM check_notes WHERE check_id = ? ORDER BY id", (row["id"],))], "media": media}
+    notes = [dict(n) for n in con.execute("SELECT * FROM check_notes WHERE check_id = ? ORDER BY id", (row["id"],))]
+    qa = next((QA_RESULT.match(n["body"])[1].lower() for n in reversed(notes) if n["author"] == "qa"), None)
+    return dict(row) | {"notes": notes, "media": media, "qa": qa}
 
 
 def check_fields(body: dict, creating: bool = False) -> dict:
@@ -166,8 +168,10 @@ def patch_check(check_id: int, body: dict) -> dict:
 
 
 def check_note(con: sqlite3.Connection, check_id: int, author: str, body: str, send: bool) -> None:
-    if author not in {"owner", "agent"} or not isinstance(body, str) or not body.strip():
-        raise Refused("a note needs an author (owner or agent) and a body")
+    if author not in {"owner", "agent", "qa"} or not isinstance(body, str) or not body.strip():
+        raise Refused("a note needs an author (owner, agent or qa) and a body")
+    if author == "qa" and not QA_RESULT.match(body.strip()):
+        raise Refused("a QA note starts with QA: PASS., QA: PARTIAL. or QA: FAIL.")
     if not isinstance(send, bool):
         raise Refused("send must be true or false")
     if send and author != "owner":
@@ -191,10 +195,15 @@ def add_check_note(check_id: int, body: dict) -> dict:
 
 def check_verdict(check_id: int, body: dict) -> dict:
     status, note, author = body.get("status"), body.get("note", ""), body.get("author", "owner")
+    send, commit = body.get("send", True), body.get("commit", False)
     if not isinstance(note, str):
         raise Refused("note must be text")
     if author not in {"owner", "agent"}:
         raise Refused("author must be owner or agent")
+    if not isinstance(send, bool) or not isinstance(commit, bool):
+        raise Refused("send and commit must be true or false")
+    if commit and (status != "good" or author != "owner" or not send):
+        raise Refused("only an owner Good sent to the thread can ask for a commit")
     with db() as con:
         con.execute("BEGIN IMMEDIATE")
         row = check_row(con, check_id)
@@ -204,10 +213,13 @@ def check_verdict(check_id: int, body: dict) -> dict:
             raise Refused("agents can ready a redo or drop a superseded check", 409)
         if status == "redo" and not note.strip():
             raise Refused("redo needs a note explaining what to change")
+        if commit and not row["thread"]:
+            raise Refused(f"check {check_id} has no thread to commit", 409)
         con.execute("UPDATE checks SET status = ?, updated = ? WHERE id = ?", (status, now(), check_id))
         # Keep the verdict in the note so a later move cannot change a queued outcome.
-        text = f"Verdict: {status.upper()}." + (f"\n\n{note.strip()}" if note.strip() else "")
-        check_note(con, check_id, author, text, author == "owner" and bool(row["thread"]))
+        text = (f"Verdict: {status.upper()}{' + COMMIT' if commit else ''}."
+                + (f"\n\n{note.strip()}" if note.strip() else ""))
+        check_note(con, check_id, author, text, send and author == "owner" and bool(row["thread"]))
         return full_check(con, check_row(con, check_id))
 
 

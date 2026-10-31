@@ -19,7 +19,8 @@ public static class ArcadeRecordCompatibility
     // 10: Wibou's Rising Slash no longer refunds its charge on a hit (2026-10-20).
     // 11: universal Progressive ground movement (2026-10-27).
     // 12: ground movement starts at 60% and ramps over 12 ticks (2026-10-28).
-    public const uint RulesRevision = 12;
+    // 13: Walk and air-speed-based standing jump takeoff cap (2026-10-31).
+    public const uint RulesRevision = 13;
     public const ushort SlopballCountdownTicks = 180;
     public const ushort CourseCountdownTicks = 180;
     // 2: melee hitboxes keep their active ticks through the owner's hitstop (2026-10-18).
@@ -27,7 +28,8 @@ public static class ArcadeRecordCompatibility
     // 4: Wibou's Rising Slash no longer refunds its charge on a hit (2026-10-20).
     // 5: universal Progressive ground movement (2026-10-27).
     // 6: ground movement starts at 60% and ramps over 12 ticks (2026-10-28).
-    public const uint CourseRulesRevision = 6;
+    // 7: Walk and air-speed-based standing jump takeoff cap (2026-10-31).
+    public const uint CourseRulesRevision = 7;
 
     public static string Slopball(in ArenaDefinition arena, MatchContentEntry fighter,
         uint rulesRevision = RulesRevision, CombatTuning? tuning = null)

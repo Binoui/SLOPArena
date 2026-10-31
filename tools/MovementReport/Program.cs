@@ -144,6 +144,7 @@ internal static partial class Program
         sb.AppendLine("> Reversal: cruise right, then full opposite input (immediate direction flip). Stop: release at cruise. ");
         sb.AppendLine($"> Stage-relative rows use the real baked <b>{stageName}</b> arena ({stageWidth:F1} m wide). ");
         sb.AppendLine("> Values are measured (effective behavior, including ramp, turns, and caps), not authored constants.");
+        sb.AppendLine("> Running-jump takeoff speed is the first completed airborne sample, after that tick's air steering.");
         sb.AppendLine();
 
         // Side-by-side comparison
@@ -171,7 +172,7 @@ internal static partial class Program
                 + (m.Run.Note.Length > 0 ? $" — {m.Run.Note}" : $"; time-to-max {m.Run.TimeToMaxTicks + 1} ticks, {m.Run.DistanceToMax:F2} m"));
             sb.AppendLine($"- **Shield**: stops in {m.Shield.StopTicks} tick(s), {m.Shield.StopDistance:F2} m brake distance; held for {m.Shield.HoldTicks} ticks");
             sb.AppendLine($"- **Jump**: apex {m.Jump.ApexHeight:F2} m at {m.Jump.TimeToApexTicks} ticks, airtime {m.Jump.AirtimeTicks / 60f:F2} s, "
-                + $"full-hop drift {m.Jump.HorizontalDistance:F2} m = {Pct(m.Jump.HorizontalDistance / stageWidth)}; running jump carries {m.RunningJump.HorizontalDistance:F2} m");
+                + $"full-hop drift {m.Jump.HorizontalDistance:F2} m = {Pct(m.Jump.HorizontalDistance / stageWidth)}; running jump takes off at {m.RunningJump.TakeoffHorizontalSpeed:F3} m/s and carries {m.RunningJump.HorizontalDistance:F2} m");
             sb.AppendLine($"- **Short hop**: apex {m.ShortHop.ApexHeight:F2} m, airtime {m.ShortHop.AirtimeTicks / 60f:F2} s "
                 + $"(authored force {m.Authored.ShortHopForce:F1} vs jump {m.Authored.JumpForce:F1} = ratio {m.Authored.ShortHopForce / m.Authored.JumpForce:F2}; Melee ~0.58)");
             sb.AppendLine($"- **Double jump**: second apex {m.DoubleJump.ApexHeight:F2} m, total airtime {m.DoubleJump.AirtimeTicks / 60f:F2} s");
@@ -321,6 +322,7 @@ internal static partial class Program
         sb.AppendLine($"<div class=\"meta\">Generated {generated} &middot; scripted inputs on the real ServerSimulation (60 Hz). ");
         sb.AppendLine("Run: hold right &middot; Shield: raise at cruise and hold &middot; Jump: full jump &middot; Short hop: press + release &middot; ");
         sb.AppendLine("Double jump: edge at first apex &middot; Fall: 50 m drop (natural / fast fall) &middot; Reversal: cruise → opposite input &middot; Stop: release.<br>");
+        sb.AppendLine("Running-jump takeoff speed is the first completed airborne sample, after that tick's air steering.<br>");
         sb.AppendLine($"Stage-relative rows: real baked <b>{stageName}</b> ({stageWidth:F1} m wide). Measured <em>effective</em> behavior — not authored constants; authored in <span class=\"note\">orange</span>.</div>");
 
         // Side-by-side comparison
@@ -366,7 +368,7 @@ internal static partial class Program
                 + $"full-hop drift {m.Jump.HorizontalDistance:F2} m = {Pct(m.Jump.HorizontalDistance / stageWidth)} of stage");
             Add(sb, "Short hop", $"apex {m.ShortHop.ApexHeight:F2} m &middot; airtime {m.ShortHop.AirtimeTicks / 60f:F2} s &middot; "
                 + $"drift {m.ShortHop.HorizontalDistance:F2} m <span class=\"note\">(force {m.Authored.ShortHopForce:F1} vs jump {m.Authored.JumpForce:F1})</span>");
-            Add(sb, "Running jump", $"full hop from cruise: {m.RunningJump.HorizontalDistance:F2} m, apex {m.RunningJump.ApexHeight:F2} m");
+            Add(sb, "Running jump", $"full hop from cruise: takeoff {m.RunningJump.TakeoffHorizontalSpeed:F3} m/s, distance {m.RunningJump.HorizontalDistance:F2} m, apex {m.RunningJump.ApexHeight:F2} m");
             Add(sb, "Double jump", $"second apex {m.DoubleJump.ApexHeight:F2} m &middot; total airtime {m.DoubleJump.AirtimeTicks / 60f:F2} s");
             Add(sb, "Air drift cap", $"{m.Jump.DriftSpeedMax:F1} m/s <span class=\"note\">(authored {m.Authored.AirSpeedMax:F1})</span> = {Pct(m.Jump.DriftSpeedMax / m.Run.MaxSpeed)} of run");
             Add(sb, "Fall (50 m drop)", $"max {m.Fall.MaxFallSpeed:F0} m/s <span class=\"note\">(authored {m.Authored.MaxFallSpeed:F0})</span> &middot; "
@@ -470,6 +472,7 @@ internal static partial class Program
         Row_("Jump airtime (s)", x => $"{x.M.Jump.AirtimeTicks / 60f:F2}");
         Row_("Full-hop drift (m)", x => F(x.M.Jump.HorizontalDistance));
         Row_("Full hop % of stage", x => $"{Pct(x.M.Jump.HorizontalDistance / stageWidth)}");
+        Row_("Running jump takeoff (m/s)", x => F(x.M.RunningJump.TakeoffHorizontalSpeed));
         Row_("Running jump distance (m)", x => F(x.M.RunningJump.HorizontalDistance));
         Row_("Short hop apex (m)", x => x.M.ShortHop.ApexHeight <= 0.01f
             ? "0.00 <span class=\"note\">(BROKEN — land-tolerance snap: 6 m/s impulse rises 0.09 m/tick &lt; 0.10 m PlatformLandTolerance, sim snaps it back; short hop never leaves the ground)</span>"

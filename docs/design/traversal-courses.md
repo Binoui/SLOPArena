@@ -34,6 +34,11 @@ Jump, jump, E (7.5 m; Jump → E reaches 5), rows are R's shape rather than gaps
 climb or crossing lands on a deck that continues ahead or against the mall's walls. Bosses
 take five hits: Skyfall lands two on a fixed target within about 2 m, a close kunai volley three.
 
+The fifth, Nyx's [Two-Faced Manor](stages/nyx_manor.design.md), climbs three wide pink
+front tiers by alternating safe and quick routes, crosses the split turret roof and drops
+down a target-free funnel to the crypt. Its playable gray-box admits every roster fighter.
+Front knockoffs land on a tier or lawn below so racers can choose another way back up.
+
 ## Resolve traversal intent before building
 
 For a new course or a substantial route revision, ask the few unresolved questions
@@ -147,10 +152,12 @@ recording/export remain separate capabilities.
 ## Review layout before extending the art
 
 Review the takeoff, intended landing, detour and next destination from the actual
-gameplay camera, including reverse/low views. The orbit camera never looks up and pulls in
-when tall geometry stands within about 10 m behind the fighter, so keep signs, rides and
-booths out of that space at takeoffs: the pier raised its arch sign to 13 m, moved the
-shooting gallery onto stilts beside the midway and the Big Wheel out to sea. Global inspection renders may frame
+gameplay camera, including reverse/low views. The orbit camera never looks up. Since
+[ADR-0043 decision 4](../adr/0043-steady-camera-default.md), stage geometry no longer pulls
+it in. StageSightHoles dithers geometry above the fighter's feet along the camera's sight
+cone. After a sight line stays blocked for 0.5 s, Steady and Arena drift at 12 degrees per
+second toward a clear angle within 90 degrees that keeps the target in view. Player camera
+input cancels the drift. The aim camera still pulls in. Global inspection renders may frame
 the distant backdrop so widely that the playable course is tiny; use local route
 views to assess gaps. Orbit renders prove structure, not gamefeel or performance.
 

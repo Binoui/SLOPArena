@@ -59,8 +59,20 @@ namespace SlopArena.Client.UI
         private static ArenaDefinition? LoadArena(string key)
         {
             var path = BakedContentPaths.ResolveArena(key);
-            if (path == null || Resources.Load<GameObject>("Stages/" + key) == null) return null;
+            if (path == null || !HasStageVisual(key)) return null;
             return ArenaBinaryFormat.LoadFromFile(path);
+        }
+
+        private static readonly Dictionary<string, bool> StageVisuals = new(StringComparer.Ordinal);
+
+        /// <summary>Whether Resources holds the stage's visual prefab. Loading one pulls in all its meshes and
+        /// textures, so a player build checks each stage once per session; the Editor rechecks as stages change.</summary>
+        internal static bool HasStageVisual(string name)
+        {
+            if (Application.isEditor) return Resources.Load<GameObject>("Stages/" + name) != null;
+            if (!StageVisuals.TryGetValue(name, out bool exists))
+                StageVisuals[name] = exists = Resources.Load<GameObject>("Stages/" + name) != null;
+            return exists;
         }
 
         /// <summary>Baked courses with a presentation, in the course menu's authored order.</summary>

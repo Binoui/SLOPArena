@@ -16,18 +16,18 @@ public class MankiKitTests
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
-    public void Bazooka_PressFiresAtTickSix_RegardlessOfHold(bool held)
+    public void Bazooka_PressChargesFortyTicks_RegardlessOfHold(bool held)
     {
         var sim = TestHelpers.MakeSim();
         TestHelpers.RegisterPlayer(sim, Def, TestHelpers.PlayerState() with { PY = Gpy });
-        for (int tick = 0; tick < 6; tick++)
+        for (int tick = 0; tick < 40; tick++)
         {
             sim.Tick(new() { [1] = new InputState { ActiveSlot = tick == 0 ? AbilitySlots.R : (byte)0, IsAiming = held } });
             var state = sim.GetState(1);
             Assert.Equal(ActionState.Attacking, state.State);
-            Assert.False(state.IsAiming);
+            Assert.Equal(tick < 39, state.IsAiming);
             Assert.Equal((byte)1, state.ComboStage);
-            if (tick < 5) Assert.Empty(sim.Resolver.GetActiveHitboxes());
+            if (tick < 39) Assert.Empty(sim.Resolver.GetActiveHitboxes());
         }
         var rocket = Assert.Single(sim.Resolver.GetActiveHitboxes());
         Assert.Equal(15f, rocket.Gravity);
@@ -43,7 +43,7 @@ public class MankiKitTests
         var sim = TestHelpers.MakeSim();
         TestHelpers.RegisterPlayer(sim, Def, TestHelpers.PlayerState() with
             { PY = Gpy + .4f, IsGrounded = false, VY = -5f });
-        for (int tick = 0; tick < 6; tick++)
+        for (int tick = 0; tick < 40; tick++)
             sim.Tick(new() { [1] = new InputState { ActiveSlot = tick == 0 ? AbilitySlots.R : (byte)0 } });
         Assert.True(sim.GetState(1).IsGrounded);
         Assert.Equal(ActionState.Attacking, sim.GetState(1).State);
@@ -62,7 +62,7 @@ public class MankiKitTests
         sim.RegisterEntity(100, CombatDef, TestHelpers.NpcState(20f, 22f) with
             { PY = TestHelpers.GroundPY(CombatDef) });
         bool selfContact = false;
-        for (int tick = 0; tick < 30; tick++)
+        for (int tick = 0; tick < 65; tick++)
         {
             sim.Tick(new() { [1] = new InputState { ActiveSlot = tick == 0 ? AbilitySlots.R : (byte)0, TargetEntityId = 100 }, [100] = default });
             selfContact |= sim.LastTickHits.Exists(h => h.OwnerEntityId == 1 && h.TargetEntityId == 1);
@@ -161,7 +161,7 @@ public class MankiKitTests
         sim.RegisterEntity(100, CombatDef, npc);
 
         bool contacted = false, hitstop = false, launched = false;
-        for (int tick = 0; tick < 60; tick++)
+        for (int tick = 0; tick < 400; tick++)
         {
             sim.Tick(new()
             {
@@ -194,12 +194,12 @@ public class MankiKitTests
             sim.Tick(new() { { 1, default } });
 
         var completed = sim.GetState(1);
-        Assert.Equal((ushort)210, completed.Cooldown3);
+        Assert.Equal((ushort)600, completed.Cooldown3);
         sim.Tick(new() { { 1, TestHelpers.Input(activeSlot: AbilitySlots.E) } });
         Assert.Equal(ActionState.Idle, sim.GetState(1).State);
         Assert.Equal((byte)0, sim.GetState(1).AttackSlot);
 
-        for (int i = 0; i < 210; i++)
+        for (int i = 0; i < 600; i++)
             sim.Tick(new() { { 1, default } });
         Assert.Equal((ushort)0, sim.GetState(1).Cooldown3);
 

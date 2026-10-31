@@ -28,7 +28,10 @@ namespace SlopArena.Shared
 
         /// <summary>Shared shape for the three jump probes: apex / airtime / horizontal distance.</summary>
         public sealed record JumpMetrics(float ApexHeight, int TimeToApexTicks, int AirtimeTicks,
-            float HorizontalDistance, float DriftSpeedMax, MovementSample[] Curve);
+            float HorizontalDistance, float DriftSpeedMax, MovementSample[] Curve)
+        {
+            public float TakeoffHorizontalSpeed => Array.Find(Curve, sample => !sample.IsGrounded)?.Speed ?? 0f;
+        }
 
         public sealed record FallMetrics(float MaxFallSpeed, int TimeToMaxFallTicks, int DescentTicks,
             MovementSample[] NaturalCurve, float FastFallSpeed, int FastFallReachTicks, int FastFallDescentTicks,

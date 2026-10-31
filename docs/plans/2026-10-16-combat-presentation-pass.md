@@ -20,7 +20,7 @@ replacing the FightGuy ideas in section 3 below. Manki followed the same day wit
 "Controlled Chaos" (see [Manki](../characters/manki.md#combat-presentation--2026-10-17)):
 concepts approved, built and captured; the in-game check is pending. The 2026-10-29
 flying-bomber follow-up adds the owner-picked Masked Classic bomb, Grin Mushroom
-Kamikaze blast and Fire Comet pack trail. Final visual acceptance remains with the owner.
+Kamikaze blast and Fire Comet pack trail. The approved 2026-10-31 follow-up replaces them with a true vulnerable startup, twin jets and closed Grin scatter. Mine lamps, an armed wink, Ember stitch and charged R brackets/iris cover the reworked kit. Existing R/F clips remain placeholders for the separate animation task. Final visual acceptance remains with the owner.
 It replaces the Manki
 ideas in section 3 below. Bonk followed with "BONK!" (see
 [Bonk](../characters/bonk.md#combat-presentation--2026-10-17)): a bucket-red identity, a comic

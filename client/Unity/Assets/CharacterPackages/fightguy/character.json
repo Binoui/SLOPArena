@@ -3,7 +3,7 @@
   "displayName": "FightGuy",
   "weight": 100,
   "movement": {
-    "runSpeed": 12,
+    "runSpeed": 10.2,
     "runAccelerationA": 20,
     "runAccelerationB": 12,
     "dashSpeed": 20,

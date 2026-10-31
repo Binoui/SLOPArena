@@ -185,7 +185,7 @@ completion to the timeline or capability. Air A, E, R, and F alias their ground 
 | fake | ground.R | 13 | 13 to 18 | 85 | 95 |
 | fake | ground.F | 13 | 13 to 16 | 25 | 41 |
 | fake | air.1 | 9 | 9 to 21 | 39 | 45 |
-| fake | air.3 | 15 | 15 to 28 | 48 | 55 |
+| fake | air.3 | 10 | 10 to 23 | 48 | 55 |
 | fake | air.4 | 15 | 15 to 30 | 53 | 60 |
 
 Nyxxie's Phone Slaps contact ticks are 11, 22, and 35. Both linking hits retain
@@ -194,74 +194,83 @@ stays locked between all three contacts and that the three documented combos con
 The full before/after table and verification receipts are local in
 `tmp/nyx-model/timing-slowdown/REPORT.md`.
 
-## Combat presentation, 2026-10-29
+<a id="combat-presentation-2026-10-29"></a>
 
-The approved concepts use ink, dark, accent and pale bands. Real effects use violet
-`#5B2A86` and lavender `#D9C8F0`; fake effects use hot pink `#FF4FA3` and white. The package
-paper shader has no emission, bloom, smoke or camera-shake behavior. Mesh cues follow the
-restored attack clock, so their active silhouettes stop during hitstop and on interruption.
+## Combat presentation, 2026-10-31
 
-`tools/nyx/build_paper_assets.py` makes the source meshes and palette offline.
-`sloparena.presentation.nyx.build` assembles separate prefabs with the roster's
-`PresentationBuilderKit`. It preserves the existing phone and pole bindings and never
-writes `NyxRig.prefab`.
+The approved palette remains violet `#5B2A86` and lavender `#D9C8F0` for Nyx,
+and hot pink `#FF4FA3` and white for Nyxxie. `NyxPresentationBuilder` uses the
+roster's `PresentationFx`, `ToonShapes.Bands`, and `kit.ParticleMaterial`.
+The phone, pole, rig, and Hex Crow body and wings retain their models.
 
-The concept-fidelity pass (2026-10-30) brings the shapes closer to the approved concept art
-while keeping gameplay data, animations and the attack clock unchanged:
+Every effect is a motif whose shape, direction and reach agree with where the move
+hits; none draws the hitbox (owner, 2026-10-31: "the goal of vfx is not to literally
+show the hitbox, it's to make the visible effect make sense compared to internal
+hitbox so players know how to play around them. + make them cool"). Shadow Flick,
+Ring Light Overhead and Going Live set the look and were approved first; the other
+25 effects follow them.
 
-- **Timing.** Each layer's ticks come from its cue in `character.json`. Before this, the
-  10-29 retime had left the layers on the old clock: Ring Light showed for 2 ticks, and
-  the Selfie Grab flash and Grasp's catch never showed.
-- **Shapes.** Claws, arcs, rings, rays and the lash are flat comic strokes with ink edges
-  and a pale core line, pointed at both tips. Flashes are uneven inked starbursts.
-- **Specials.** Ring Light is a hoop with twelve light spikes, hearts and sparkles. Selfie
-  Grab pops a starburst and hearts at the phone. Grasp opens a torn shadow pool, grips the
-  victim with a hand drawn behind them and stretches shadow tendrils back to Nyx's hand.
-  Going Live flashes a pink starburst behind her with focus lines and hearts. Logging Off
-  shatters into violet shards over a jagged floor crown. Bat Scatter leaves a stream of
-  bats along its flight, the crow trails violet shards, and the crow pop is a bigger burst.
-- **Readability.** Hands and claw marks still turn toward the camera around their up axis.
-  Bursts on the swaps sit behind Nyx's chest and Grasp's hand sits behind the victim. Rays,
-  focus lines and shards keep gaps between them. Contact bursts, the Selfie flash and Ring
-  Light still cross faces for a few frames on payoff hits; that balance awaits the owner's play.
+The builder compiles `character.json` and resolves each hitbox with
+`HitboxGeometry.ResolvePositions`; capsule end offsets are deltas from the start, as
+in Shared. It samples her clips as the cook bakes poses for the paths of her hands,
+feet, pole and phone. Both only size and place the motifs. Blades, claws, hands and
+rays are generated meshes of two crossed strips, so they keep their shape from every
+yaw; the build's `reach` output lists how far each mesh pokes out of its hitboxes and
+how far it reaches. `NyxAttackCue` steps beats and weapon trails on the attack clock,
+so Hitstop holds them. Every motif is full size on the first tick it shows, and each
+swing trail starts with the two ticks of swing before its hitbox opens, because a hit
+on the first active tick freezes that first tick for the whole Hitstop.
 
-Close and gameplay-distance captures, the concept comparison board and the decision log are
-local in `tmp/nyx-polish/`. The 10-29 direction pass evidence remains in
-`tmp/nyx-model/vfx-direction-fix/REPORT.md`.
+The build synchronizes attack cue starts and minimum lifetimes with the source hitbox
+phases; Selfie Grab has a `selfie-catch` cue from its capability's capture window.
+Rebuild after a gameplay retune. `sloparena.presentation.nyx.verify-timing` rejects
+beats and trails that outlive their cue, hitboxes that open with nothing showing, and
+any coverage field.
 
 All IDs below have the prefix `presentation.nyx.`.
 
-| Form | Move | Effect ID |
+| Form | Move | Effects and how they match the hit |
 | --- | --- | --- |
-| Real | Shadow Flick | `shadow-claws` |
-| Real | Grasping Hands | `rising-hands` |
-| Real | Shadow Lash | `floor-lash` |
-| Real | Shadow Ring | `shadow-ring` |
-| Real | Up Claw | `up-claw` |
-| Real | Shadow Fist | `spike-fist` |
-| Real | Hex Crow | `crow-launch`, `crow`, `crow-pop` |
-| Real | Bat Scatter | `bat-scatter` |
-| Real | Grasp | `grasp-warning`, `grasp-catch`, `grasp-drag` |
-| Real | Going Live | `going-live` |
-| Fake | Phone Slaps | `phone-slaps` |
-| Fake | Ring Light Uppercut | `pole-uppercut` |
-| Fake | Platform Stomp-Kick | `stomp-impact` |
-| Fake | Spinning Slap | `spin-arc` |
-| Fake | Ring Light Overhead | `pole-overhead` |
-| Fake | Double Dropkick | `dropkick-spike` |
-| Fake | Ring Light | `ring-light` |
-| Fake | Ring Light Rise | `rotor-arcs` |
-| Fake | Selfie Grab | `selfie-pop`, `selfie-release` |
-| Fake | Logging Off | `logging-off` |
-| Both | Confirmed contacts | `shadow-hit`, `pink-hit` |
+| Real | Shadow Flick | `shadow-claws`. Three curved violet claw blades rake from her shoulder into the far cap of the capsule (2.65 m), snap out on the first live tick, hold through hitstop and fade with the capsule; shards break off at the tips. The top claw sits inside the capsule by her shoulder. |
+| Real | Grasping Hands | `rising-hands`. One clawed shadow hand per hit sphere rises from its lower edge; the fingers spread to the top of the sphere and curl in toward her head. Every finger stays inside its sphere. |
+| Real | Shadow Lash | `floor-lash`. A snaking shadow whip along the floor from her feet to where the capsule sinks into the floor (about 5 m), riding at half the capsule's height, with a violet crack at its far end. |
+| Real | Shadow Ring | `shadow-ring`. Three violet crescents spin once round her on the sphere's equator, their tips at its edge (1.35 m); shards fly off the rim. |
+| Real | Up Claw | `up-claw`. Three claw blades rake up over the sphere from its front to its back, the way her hand sweeps; the middle one reaches its top. |
+| Real | Shadow Fist | `spike-fist`. Three violet talons drive down through the lower hit sphere to its floor, drawn toward the camera so her dress cannot hide them, with a burst star, a slam ring low in the sphere and shards driven down. Every talon stays inside the sphere. |
+| Real | Hex Crow | `crow-launch`, `crow`, `crow-pop`. A violet ring and feathers where the crow leaves her hand; in flight the crow sheds feathers and violet shards; the pop is a violet star and ring with a burst of feathers. |
+| Real | Bat Scatter | `bat-scatter`. A violet star and flapping bats burst out, a swarm circles her body through the thrust and sheds bats along her path, then converges into a second star where she re-forms. No damaging hitbox; the swarm is sized to her body. |
+| Real | Grasp | `grasp-warning`, `grasp-catch`, `grasp-drag`. A violet ring at the catch radius with six claw tips rising from its edge, then a giant five-fingered shadow hand erupting round the target to the catch's height, then a hand closed round the dragged target with a floor tendril back to her. |
+| Real | Going Live | `going-live`. A pink shock ring at the hit sphere's equator (3 m), full size from the first live tick, a quicker floor ring at its footprint, a comic flash behind her, focus lines out to the edge, and hearts that land on the ring. |
+| Fake | Phone Slaps | `phone-slaps`. Each slap has its own beat, picked by the emit's tick: a pink swoosh across its hit sphere the way it swings (forehand, backhand, down), a star where it lands and hearts; the launcher's is biggest. |
+| Fake | Ring Light Uppercut | `pole-uppercut`. A held pink arc rising through the forward-leaning capsule to its top, and the pole's measured trail while the pole is inside the capsule, with glints. |
+| Fake | Platform Stomp-Kick | `stomp-impact`. A pink blast fans from her boot sole down and forward to the far end of the low capsule (2.45 m), where a star and hearts land. |
+| Fake | Spinning Slap | `spin-arc`. A pink trail sweeps a full turn round her on the phone's measured path, from her hand out to the hit sphere's surface at the phone's height (1 m). |
+| Fake | Ring Light Overhead | `pole-overhead`. The roster's `SwordSweepTrail` in pink along the pole's measured path, one trail for the chop down to the front and one for the lift back overhead, both inside the capsule that now runs along that swing. Star glints mark the swing, the bottom of the chop and the crest, with a heart. The cue lasts 22 ticks so the trail fades out. |
+| Fake | Double Dropkick | `dropkick-spike`. Each boot's drive into the hit shows as a pink trail at impact, and two pink spikes point from her soles down the capsule to its far end. |
+| Fake | Ring Light | `ring-light`. A fan of pink light rays from her phone out to the far side of the four facing-filtered spheres (2.35 m), a small ring-light flash at the phone, and hearts and sparkles along the fan's edge. |
+| Fake | Ring Light Rise | `rotor-arcs`. The ring light spins over her head like a rotor, three pink blades inside a pink ring that spin up through the startup, with a downdraft and shed sparkles once she rises. No damaging hitbox. |
+| Fake | Selfie Grab | `selfie-catch`, `selfie-pop`, `selfie-release`. Pink viewfinder brackets snap round the capture sphere, the selfie flash is a white-hot star and opening shutter ring with hearts, and a big pink "like" heart pops over her head at the launch. |
+| Fake | Logging Off | `logging-off`. Going Live in violet: a violet shock ring at the 3 m sphere, a floor ring, a violet flash behind her, focus lines, shards and feathers at the edge. |
 
-The crow's projectile profile binds both A variants. Resolver attachment places it on the
-victim's head; its wings fold on a perch. Only the authored pop makes feathers and shadow.
-Grasp warning/catch cues use its existing capability events. The placed-tether presenter
-carries a bound shadow-hand prefab during the drag, stretches its tendrils back to Nyx's
-hand and suppresses the borrowed ring/rope.
+Confirmed contacts use `shadow-hit` (a violet star, streaks, three claw scratches and
+shards) or `pink-hit` (a pink star, streaks, a heart and sparkles), with Hierarchy
+scaling and `InFront`. The crow's projectile profile binds both A variants, folds its
+wings on a perch, and leaves the authored pop in control of the payoff burst.
+`PlacedTetherVisual` carries Grasp's hand on the authoritative victim and stretches its
+floor tendril back to her.
+
+Ring Light Overhead's hitbox moved onto the pole's chop on 2026-10-31 (owner-approved,
+"weapon normals: arc first"): the capsule opens at tick 10 instead of 15 and runs from
+(-0.15, 1.3, -0.1) to (-0.05, 0.6, 1.0) along the swing, radius 0.45. Damage,
+knockback, its 14 active ticks and the 55-tick move are unchanged. The ring stays
+inside it for every clean frame from tick 10 to 26; the old capsule missed the ring by
+0.3 to 0.6 m through the chop.
 
 ## Open items
+
+- Ring Light Uppercut's capsule leans forward to (0, 1.05, 1.6) while the pole swings up and back over her head; the pole leaves the capsule after tick 23, so its trail stops there and a held arc shows the rest of the reach. Moving the capsule onto the pole, as was done for the Overhead, is a gameplay change for the balancing pass.
+- Double Dropkick's capsule reaches 1.05 m below her soles. Near the ground, its spikes and most of the capsule are under the floor.
+- Seen from directly behind, the swing trails are edge-on and read as vertical streaks with their glints.
 
 - In-game visual and feel acceptance of the integrated animations and effects remains with the owner.
 - Stomp-Kick's approved right boot sits above its unchanged low capsule at contact. The inspected ankle is approximately 0.17 m outside it. Proposed correction, not applied: raise both capsule Y offsets by 0.30 m, from -0.45/-0.15 to -0.15/+0.15, then verify standing, crouched and airborne contacts. The original take and hitbox are unchanged.

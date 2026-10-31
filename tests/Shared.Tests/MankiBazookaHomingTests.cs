@@ -97,13 +97,13 @@ public sealed class MankiBazookaHomingTests
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
-    public void PressStartsFiringAndTimesPresentationWithoutAiming(bool held)
+    public void PressChargesThenFiresWithTimedPresentation(bool held)
     {
         var sim = TestHelpers.MakeSim();
         var def = Manki();
         sim.RegisterEntity(1, def, TestHelpers.PlayerState(20f, 20f) with
             { PY = TestHelpers.GroundPY(def), FacingYaw = MathF.PI / 2f });
-        for (int tick = 0; tick <= 35; tick++)
+        for (int tick = 0; tick <= 80; tick++)
         {
             sim.Tick(new() { [1] = new InputState
             {
@@ -112,7 +112,7 @@ public sealed class MankiBazookaHomingTests
             } });
             var owner = sim.GetState(1);
             Assert.NotEqual(ActionState.Aiming, owner.State);
-            if (sim.GetActiveAbility(1) != null) Assert.False(owner.IsAiming);
+            if (sim.GetActiveAbility(1) != null && tick < 39) Assert.True(owner.IsAiming);
             var events = sim.GetPresentationEvents(clear: true);
             if (tick == 0)
             {
@@ -121,8 +121,8 @@ public sealed class MankiBazookaHomingTests
                 Assert.Equal((byte)1, sim.GetActiveAbility(1)!.AnimIndex);
                 Assert.Contains(events, e => e.PresentationId == "presentation.manki.bazooka.ready");
             }
-            if (tick < 5) Assert.Empty(sim.Resolver.GetActiveHitboxes());
-            if (tick == 5)
+            if (tick < 39) Assert.Empty(sim.Resolver.GetActiveHitboxes());
+            if (tick == 39)
             {
                 var rocket = Assert.Single(sim.Resolver.GetActiveHitboxes());
                 Assert.Equal(0UL, rocket.HomingTargetEntityId);
@@ -139,21 +139,21 @@ public sealed class MankiBazookaHomingTests
     }
 
     [Fact]
-    public void LaunchReadsSoftTargetAndChestAtSpawnTickRatherThanPress()
+    public void LaunchKeepsPressTargetAndReadsItsCurrentChestPosition()
     {
         var sim = Match();
         sim.Tick(new() { [1] = TargetInput(fire: true), [100] = default });
         sim.RegisterEntity(101, TestHelpers.EngineDef, TestHelpers.NpcState(25f, 35f) with { PY = 8f, IsGrounded = false });
-        for (int tick = 1; tick <= 6; tick++)
+        for (int tick = 1; tick <= 39; tick++)
             sim.Tick(new() { [1] = TargetInput(101), [100] = default, [101] = new InputState { MoveX = 1f } });
         var rocket = Assert.Single(sim.Resolver.LastTickCheckedHitboxes, h => h.Explosion.HasValue);
         var owner = sim.GetState(1);
-        var target = sim.GetState(101);
+        var target = sim.GetState(100);
         var expected = Vector3.Normalize(new(target.PX - owner.PX,
             target.PY + TestHelpers.EngineDef.CapsuleHeight * .25f - owner.PY - 1f, target.PZ - owner.PZ));
         var launched = new Vector3(rocket.VX, rocket.VY + rocket.Gravity * Simulation.TickDt, rocket.VZ);
         Assert.False(owner.LockOn);
-        Assert.Equal(101UL, rocket.HomingTargetEntityId);
+        Assert.Equal(100UL, rocket.HomingTargetEntityId);
         Assert.InRange(Vector3.Dot(expected, Vector3.Normalize(launched)), .99999f, 1.000001f);
     }
 
@@ -161,26 +161,26 @@ public sealed class MankiBazookaHomingTests
     public void SnapshotRestoresHomingAndBallisticBreakIdenticallyAfterAbilityEnds()
     {
         var continuous = Match();
-        for (int tick = 0; tick <= 6; tick++)
+        for (int tick = 0; tick <= 39; tick++)
             continuous.Tick(new() { [1] = TargetInput(fire: tick == 0), [100] = default });
         var snapshot = continuous.CaptureSnapshot();
         var restored = Match();
         restored.RestoreSnapshot(snapshot);
         Assert.Equal(100UL, Assert.Single(restored.Resolver.GetActiveHitboxes()).HomingTargetEntityId);
-        for (int tick = 7; tick <= 50; tick++)
+        for (int tick = 40; tick <= 90; tick++)
         {
             foreach (var sim in new[] { continuous, restored })
             {
                 var target = sim.GetState(100);
-                target.PX = 22f + tick * .12f;
+                target.PX = 22f + (tick - 40) * .12f;
                 target.PY = 12f;
-                target.PZ = tick >= 44 ? 10f : 70f;
+                target.PZ = tick >= 84 ? 10f : 70f;
                 target.VY = 0f;
                 sim.SetState(100, target);
                 sim.Tick(new() { [1] = TargetInput(), [100] = default });
             }
             Assert.True(continuous.CaptureSnapshot().ContentEquals(restored.CaptureSnapshot()), $"diverged at {tick}");
-            if (tick == 40)
+            if (tick == 78)
             {
                 Assert.Null(restored.GetActiveAbility(1));
                 Assert.Equal(100UL, Assert.Single(restored.Resolver.GetActiveHitboxes()).HomingTargetEntityId);
@@ -195,7 +195,7 @@ public sealed class MankiBazookaHomingTests
     public void RemovedOrRespawnedTargetCannotBeReacquired(bool respawn)
     {
         var sim = Match();
-        for (int tick = 0; tick <= 6; tick++)
+        for (int tick = 0; tick <= 39; tick++)
             sim.Tick(new() { [1] = TargetInput(fire: tick == 0), [100] = default });
         if (respawn)
             sim.SetState(100, sim.GetState(100) with { PY = -100f, PZ = 250f, IsGrounded = false, VY = -10f });
@@ -214,10 +214,10 @@ public sealed class MankiBazookaHomingTests
     {
         var sim = Match();
         ProjectileExplosion explosion = default;
-        for (int tick = 0; tick <= 36; tick++)
+        for (int tick = 0; tick <= 78; tick++)
         {
             sim.Tick(new() { [1] = TargetInput(fire: tick == 0), [100] = default });
-            if (tick == 6) explosion = Assert.Single(sim.Resolver.GetActiveHitboxes()).Explosion!.Value;
+            if (tick == 39) explosion = Assert.Single(sim.Resolver.GetActiveHitboxes()).Explosion!.Value;
         }
         Assert.Null(sim.GetActiveAbility(1));
         var owner = sim.GetState(1);
@@ -236,7 +236,7 @@ public sealed class MankiBazookaHomingTests
     public void InterruptedAbilityLeavesTheRocketHomingAtItsLaunchTarget()
     {
         var sim = Match();
-        for (int tick = 0; tick <= 6; tick++)
+        for (int tick = 0; tick <= 39; tick++)
             sim.Tick(new() { [1] = TargetInput(fire: tick == 0), [100] = default });
         sim.SetState(1, sim.GetState(1) with { State = ActionState.Hitstun, HitstunTicks = 20 });
         sim.SetState(100, sim.GetState(100) with { PX = 24f });
@@ -271,10 +271,86 @@ public sealed class MankiBazookaHomingTests
         }
         byte target = course ? sim.CourseTargetInputAlias(0) : ServerSimulation.ArcadeBallTargetInputId;
         ulong expected = course ? sim.CourseTargetEntityId(0) : sim.ArcadeBall!.Value.EntityId;
-        for (int tick = 0; tick <= 6; tick++) sim.Tick(new() { [1] = TargetInput(target, tick == 0) });
+        for (int tick = 0; tick <= 39; tick++) sim.Tick(new() { [1] = TargetInput(target, tick == 0) });
         var rocket = Assert.Single(sim.Resolver.GetActiveHitboxes());
         Assert.Equal(expected, rocket.HomingTargetEntityId);
         Assert.True(rocket.VX > 0f && rocket.VY > 0f && rocket.VZ > 0f);
+    }
+
+    [Fact]
+    public void LegacyBazookaV2KeepsItsSixTickLaunch()
+    {
+        var sim = TestHelpers.MakeSim();
+        var def = TestHelpers.ResolveSourceDef("manki", json =>
+        {
+            foreach (var requirement in json["capabilityRequirements"]!.AsArray())
+                if ((string?)requirement!["capabilityId"] == "slop.internal.manki.bazooka.v3")
+                    requirement["capabilityId"] = "slop.internal.manki.bazooka.v2";
+            foreach (var slot in json["slots"]!.AsArray())
+            foreach (var stage in slot!["timeline"]!["stages"]!.AsArray())
+            foreach (var operation in stage!["operations"]!.AsArray())
+                if ((string?)operation!["capabilityId"] == "slop.internal.manki.bazooka.v3")
+                {
+                    operation["capabilityId"] = "slop.internal.manki.bazooka.v2";
+                    operation["parameters"]!.AsObject().Remove("chargeTicks");
+                }
+        });
+        sim.RegisterEntity(1, def, TestHelpers.PlayerState(20, 20) with { PY = TestHelpers.GroundPY(def) });
+        for (int i = 0; i < 6; i++)
+        {
+            sim.Tick(new() { [1] = TargetInput(0, i == 0) });
+            Assert.False(sim.GetState(1).IsAiming);
+            if (i < 5) Assert.Empty(sim.Resolver.GetActiveHitboxes());
+        }
+        Assert.Single(sim.Resolver.GetActiveHitboxes());
+    }
+
+    [Fact]
+    public void HitCancelsChargeBeforeAnyRocketLaunches()
+    {
+        var sim = Match();
+        sim.Tick(new() { [1] = TargetInput(fire: true) });
+        var owner = sim.GetState(1);
+        sim.Resolver.Spawn(new Hitbox { OwnerId = 100, X = owner.PX, Y = owner.PY, Z = owner.PZ,
+            Radius = 2, Damage = 1, StunTicks = 15, DurationTicks = 1 });
+        for (int i = 0; i < 80; i++) sim.Tick(new() { [1] = TargetInput() });
+        Assert.Null(sim.GetActiveAbility(1));
+        Assert.DoesNotContain(sim.Resolver.GetActiveHitboxes(), h => h.OwnerId == 1);
+        Assert.DoesNotContain(sim.GetPresentationEvents(), e => e.PresentationId == "presentation.manki.bazooka.muzzle");
+    }
+
+    [Fact]
+    public void MidChargeSnapshotRestoresCapturedLockAndLaunch()
+    {
+        var sim = Match();
+        for (int i = 0; i < 15; i++) sim.Tick(new() { [1] = TargetInput(fire: i == 0) });
+        Assert.Equal(100UL, sim.GetState(1).TargetEntityId);
+        Assert.InRange(sim.GetState(1).ChargeTicks, 14, 16);
+        var snapshot = sim.CaptureSnapshot();
+        for (int i = 0; i < 30; i++) sim.Tick(new() { [1] = TargetInput(0) });
+        var expected = sim.CaptureSnapshot();
+        sim.RestoreSnapshot(snapshot);
+        for (int i = 0; i < 30; i++) sim.Tick(new() { [1] = TargetInput(0) });
+        Assert.True(expected.ContentEquals(sim.CaptureSnapshot()));
+        Assert.Equal(100UL, Assert.Single(sim.Resolver.GetActiveHitboxes()).HomingTargetEntityId);
+    }
+
+    [Fact]
+    public void RecoveryClearsChargeProgressSoTheReticleCannotReappear()
+    {
+        var sim = Match();
+        for (int i = 0; i < 60; i++) sim.Tick(new() { [1] = TargetInput(fire: i == 0) });
+        Assert.Equal(0, sim.GetState(1).AttackElapsedTicks);
+        Assert.Equal(0, sim.GetState(1).ChargeTicks);
+    }
+
+    [Fact]
+    public void NoTargetAtPressNeverAcquiresALaterTarget()
+    {
+        var sim = Match();
+        sim.Tick(new() { [1] = TargetInput(0, true) });
+        for (int i = 1; i < 40; i++) sim.Tick(new() { [1] = TargetInput() });
+        Assert.Equal(0UL, Assert.Single(sim.Resolver.GetActiveHitboxes()).HomingTargetEntityId);
     }
 
     [Theory]

@@ -3,7 +3,7 @@
   "displayName": "Sir Bonk",
   "weight": 100,
   "movement": {
-    "runSpeed": 10,
+    "runSpeed": 8.5,
     "runAccelerationA": 20,
     "runAccelerationB": 12,
     "dashSpeed": 20,

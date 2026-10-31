@@ -34,6 +34,9 @@ public static class DefenseInputEdgesSelfTest
             HumanInputActions.RebindableActions.Contains("Grab"), "Grab is not independently rebindable on C and LB.");
         Require(!HumanInputActions.RebindableActions.Contains("Burst"),
             "The retired Burst action remains rebindable.");
+        var walkPaths = HumanInputActions.Get("Walk").bindings.Select(binding => binding.path).ToArray();
+        Require(HumanInputActions.RebindableActions.Contains("Walk") && walkPaths.Length == 1
+            && walkPaths[0] == "<Keyboard>/leftCtrl", "Walk is not rebindable on Left Ctrl without a pad binding.");
         var dashPaths = HumanInputActions.Get("Dash").bindings.Select(binding => binding.path).ToArray();
         Require(HumanInputActions.RebindableActions.Contains("Dash") && dashPaths.Contains("<Keyboard>/4")
             && dashPaths.Contains("<Gamepad>/rightShoulder"), "The homing dash is not rebindable on 4 and RB (ADR-0042).");

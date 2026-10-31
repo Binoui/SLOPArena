@@ -3,7 +3,7 @@
   "displayName": "Manki",
   "weight": 100,
   "movement": {
-    "runSpeed": 11.5,
+    "runSpeed": 9.8,
     "runAccelerationA": 20,
     "runAccelerationB": 12,
     "dashSpeed": 20,
@@ -349,11 +349,12 @@
     "presentation.manki.bazooka.singe",
     "presentation.manki.aerosol-inferno.charge",
     "presentation.manki.aerosol-inferno.hit",
-    "presentation.manki.aerosol-inferno.lighter"
+    "presentation.manki.aerosol-inferno.lighter",
+    "presentation.manki.kamikaze.startup"
   ],
   "capabilityRequirements": [
     {
-      "capabilityId": "slop.internal.manki.round-bomb.v3",
+      "capabilityId": "slop.internal.manki.proximity-mine.v1",
       "capabilityVersion": "1"
     },
     {
@@ -361,7 +362,7 @@
       "capabilityVersion": "1"
     },
     {
-      "capabilityId": "slop.internal.manki.bazooka.v2",
+      "capabilityId": "slop.internal.manki.bazooka.v3",
       "capabilityVersion": "1"
     },
     {
@@ -976,8 +977,8 @@
     },
     {
       "id": "ground.A",
-      "name": "Bombs Away",
-      "description": "Drop a bomb in flight. Otherwise hop backward and leave a short-fuse bomb.",
+      "name": "Proximity Mines",
+      "description": "Place a proximity mine at your feet, or drop one straight down while airborne. Arms after a delay and warns before exploding. Never hits Manki.",
       "iconId": "icon.a",
       "behavior": "projectile",
       "aimMode": "none",
@@ -1007,15 +1008,17 @@
                 "kind": "startCapability",
                 "tick": 0,
                 "unit": "ticks",
-                "capabilityId": "slop.internal.manki.round-bomb.v3",
+                "capabilityId": "slop.internal.manki.proximity-mine.v1",
                 "capabilityVersion": "1",
                 "parameters": {
-                  "fuseTicks": 60,
+                  "armTicks": 30,
+                  "triggerRadius": 2,
+                  "warningTicks": 12,
+                  "lifetimeTicks": 600,
+                  "maxMines": 3,
                   "maxFlightTicks": 180,
                   "gravity": 9,
                   "hitboxRadius": 0.6,
-                  "hopBackSpeed": 7,
-                  "hopUpSpeed": 7,
                   "explosionDamage": 10,
                   "explosionRadius": 4,
                   "explosionKbBase": 2.4,
@@ -1023,7 +1026,6 @@
                   "explosionStunTicks": 18,
                   "explosionDurationTicks": 8,
                   "explosionKbAngle": 30,
-                  "selfPushSpeed": 8,
                   "explosionPresentationId": "presentation.manki.round-bomb.explosion"
                 }
               }
@@ -1040,12 +1042,12 @@
     {
       "id": "ground.E",
       "name": "Jetpack Flight",
-      "description": "Enter Flying for 180 fuel ticks. Stick steers, jump bursts lift, E cuts flight. Refuel on landing.",
+      "description": "Enter Flying for 180 fuel ticks. Stick steers, jump bursts lift, E cuts flight. Refuel on landing. Recovery cooldown is 600 ticks after flight ends.",
       "iconId": "icon.e",
       "behavior": "meleeCombo",
       "aimMode": "none",
       "aimMovement": "fixed",
-      "cooldownTicks": 210,
+      "cooldownTicks": 600,
       "isRecoveryMove": true,
       "preserveMomentumOnStart": false,
       "allowSlideCarry": false,
@@ -1099,7 +1101,7 @@
     {
       "id": "ground.R",
       "name": "Bazooka",
-      "description": "Press to fire a homing rocket at your target. Dodge past it to break tracking.",
+      "description": "Charge a visible lock on your current target, then fire a homing rocket. A hit cancels the charge.",
       "iconId": "icon.r",
       "behavior": "projectile",
       "aimMode": "none",
@@ -1129,10 +1131,11 @@
                 "kind": "startCapability",
                 "tick": 0,
                 "unit": "ticks",
-                "capabilityId": "slop.internal.manki.bazooka.v2",
+                "capabilityId": "slop.internal.manki.bazooka.v3",
                 "capabilityVersion": "1",
                 "parameters": {
                   "fireTriggerTick": 6,
+                  "chargeTicks": 40,
                   "projectileSpeed": 30,
                   "homingTurnDegPerTick": 2.5,
                   "hitboxRadius": 0.6,
@@ -1160,29 +1163,29 @@
                 "placement": {
                   "attachmentMode": "bone",
                   "boneId": "bone.right-hand",
-                  "localPositionX": -0.176166,
-                  "localPositionY": 1.293537,
-                  "localPositionZ": -0.085102,
+                  "localPositionX": -0.126183,
+                  "localPositionY": 1.069413,
+                  "localPositionZ": -0.089164,
                   "localRotationX": -20,
                   "localRotationY": -90,
                   "localRotationZ": 0,
                   "localScaleX": 1,
                   "localScaleY": 1,
                   "localScaleZ": 1,
-                  "durationTicks": 12
+                  "durationTicks": 40
                 }
               },
               {
                 "kind": "emitPresentation",
-                "tick": 6,
+                "tick": 40,
                 "unit": "ticks",
                 "presentationId": "presentation.manki.bazooka.muzzle",
                 "placement": {
                   "attachmentMode": "bone",
                   "boneId": "bone.right-hand",
-                  "localPositionX": -0.176166,
-                  "localPositionY": 1.293537,
-                  "localPositionZ": -0.085102,
+                  "localPositionX": -0.126183,
+                  "localPositionY": 1.069413,
+                  "localPositionZ": -0.089164,
                   "localRotationX": -20,
                   "localRotationY": -90,
                   "localRotationZ": 0,
@@ -1194,7 +1197,7 @@
               },
               {
                 "kind": "emitPresentation",
-                "tick": 6,
+                "tick": 40,
                 "unit": "ticks",
                 "presentationId": "presentation.manki.bazooka.singe",
                 "placement": {
@@ -1221,7 +1224,7 @@
     {
       "id": "ground.F",
       "name": "Kamikaze",
-      "description": "Lock onto the current target and rocket into an explosive finisher. Facing run with no target.",
+      "description": "Brace for 16 vulnerable ticks, then rocket into the captured target. Facing run with no target.",
       "iconId": "icon.f",
       "behavior": "meleeCombo",
       "aimMode": "none",
@@ -1233,7 +1236,7 @@
       "timeline": {
         "stages": [
           {
-            "durationTicks": 55,
+            "durationTicks": 71,
             "iasaTicks": 0,
             "landingLagTicks": 0,
             "autoCancelBeforeTicks": 0,
@@ -1244,7 +1247,7 @@
             "rotateTowardTarget": false,
             "trackingStrength": 0,
             "animationIds": [
-              "anim.manki.gf-kamikaze"
+              "anim.manki.gf-kamikaze-windup"
             ],
             "operations": [
               {
@@ -1271,6 +1274,26 @@
               {
                 "kind": "emitPresentation",
                 "tick": 0,
+                "unit": "ticks",
+                "presentationId": "presentation.manki.kamikaze.startup",
+                "placement": {
+                  "attachmentMode": "bone",
+                  "boneId": "bone.spine2",
+                  "localPositionX": 0,
+                  "localPositionY": -0.13,
+                  "localPositionZ": -0.15,
+                  "localRotationX": 0,
+                  "localRotationY": 0,
+                  "localRotationZ": 0,
+                  "localScaleX": 1.5,
+                  "localScaleY": 1.5,
+                  "localScaleZ": 1.5,
+                  "durationTicks": 16
+                }
+              },
+              {
+                "kind": "emitPresentation",
+                "tick": 16,
                 "unit": "ticks",
                 "presentationId": "presentation.manki.kamikaze.trail",
                 "placement": {

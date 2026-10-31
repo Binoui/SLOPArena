@@ -3,7 +3,7 @@
   "displayName": "Wibou",
   "weight": 100,
   "movement": {
-    "runSpeed": 14,
+    "runSpeed": 10.6,
     "runAccelerationA": 20,
     "runAccelerationB": 12,
     "dashSpeed": 22,

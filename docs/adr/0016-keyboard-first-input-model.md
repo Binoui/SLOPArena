@@ -1,6 +1,6 @@
 # ADR-0016: Keyboard-First Input — 10 Hotkey Slots, Short Hop, Fast Fall
 
-**Status:** Accepted — 2026-08-10 (implemented as issue #116); the four-normal layout is superseded by [ADR-0042](0042-controller-layout-three-normals-homing-dash.md)
+**Status:** Accepted — 2026-08-10 (implemented as issue #116); the four-normal layout is superseded by [ADR-0042](0042-controller-layout-three-normals-homing-dash.md). [ADR-0058](0058-movement-calibration-walk-takeoff-run-speeds.md) adds a held Walk action (2026-10-31).
 **Deciders:** @Binoui
 
 ## Context

@@ -25,7 +25,7 @@ public sealed class CombatReviewRegressionTests
         var sim = new ServerSimulation(Arena());
         sim.RegisterEntity(1, def, Initial(def, 1));
         sim.Tick(new() { [1] = new InputState { ActiveSlot = AbilitySlots.R, IsAiming = true } });
-        while (sim.CurrentTick < 20) sim.Tick(new());
+        while (sim.CurrentTick < 60) sim.Tick(new());
         var before = sim.GetState(1);
         Assert.Equal(1, before.ComboStage);
         Assert.Equal(0, before.AttackElapsedTicks);

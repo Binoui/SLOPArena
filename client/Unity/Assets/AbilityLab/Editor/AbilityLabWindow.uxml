@@ -73,6 +73,13 @@
             </ui:VisualElement>
             <ui:Label name="scenario-outcomes" text="No scenario run." class="scenario-outcomes" />
           </ui:Foldout>
+          <ui:Foldout name="reach-controls" text="Reach vs FightGuy and Manki" value="true" class="scenario-controls">
+            <ui:VisualElement class="scenario-buttons">
+              <ui:Button name="reach-measure" text="Reach" />
+              <ui:Toggle name="reach-show" label="Draw in viewport" value="true" />
+            </ui:VisualElement>
+            <ui:Label name="reach-summary" text="Not measured." class="scenario-outcomes" />
+          </ui:Foldout>
           <ui:Foldout name="phase-controls" text="Preview phase" value="false" class="phase-controls">
             <ui:DropdownField name="authoring-phase" label="Preview" />
             <ui:Label name="authoring-phase-clip" text="Timeline preview" />

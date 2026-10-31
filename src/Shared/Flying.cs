@@ -81,7 +81,8 @@ public static class Flying
 
     internal static void ApplyMotion(ref CharacterState s, CookedMankiJetpackBoostCapabilityParameters p)
     {
-        s.FacingYaw = s.Flight.HeadingYaw;
+        if (!(s.State == ActionState.Attacking && s.AttackSlot == AbilitySlots.R && s.IsAiming))
+            s.FacingYaw = s.Flight.HeadingYaw;
         s.VX = MathF.Sin(s.Flight.HeadingYaw) * p.HorizontalSpeed;
         s.VZ = MathF.Cos(s.Flight.HeadingYaw) * p.HorizontalSpeed;
         s.VY = s.Flight.BurstTicksLeft > 0 ? s.Flight.LiftSpeed : -p.SinkSpeed;

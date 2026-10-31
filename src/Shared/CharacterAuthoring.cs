@@ -635,12 +635,10 @@ public sealed record TargetedLeapCapabilityParameters(
     string LaunchPresentationId = "",
     string LandingPresentationId = "") : TypedCapabilityParameters;
 public sealed record MankiRoundBombCapabilityParameters(
-    ushort FuseTicks,
+    ushort ArmTicks,
     ushort MaxFlightTicks,
     float Gravity,
     float HitboxRadius,
-    float HopBackSpeed,
-    float HopUpSpeed,
     float ExplosionDamage,
     float ExplosionRadius,
     float ExplosionKbBase,
@@ -648,8 +646,11 @@ public sealed record MankiRoundBombCapabilityParameters(
     ushort ExplosionStunTicks,
     ushort ExplosionDurationTicks,
     float ExplosionKbAngle,
-    float SelfPushSpeed,
-    string ExplosionPresentationId) : TypedCapabilityParameters;
+    string ExplosionPresentationId,
+    float TriggerRadius,
+    ushort WarningTicks,
+    ushort LifetimeTicks,
+    byte MaxMines) : TypedCapabilityParameters;
 public sealed record MankiJetpackBoostCapabilityParameters(
     ushort StartupTicks,
     float VerticalSpeed,
@@ -684,7 +685,8 @@ public sealed record MankiBazookaCapabilityParameters(
     ushort CastDuration,
     ushort RecoveryDuration,
     float HomingTurnDegPerTick,
-    string ExplosionPresentationId = "") : TypedCapabilityParameters;
+    string ExplosionPresentationId = "",
+    ushort ChargeTicks = 0) : TypedCapabilityParameters;
 
 
 public sealed record MankiKamikazeCapabilityParameters(

@@ -209,7 +209,7 @@ namespace SlopArena.Shared
             => TryGetProjectileTargetPosition(ownerId, targetId, out var position)
                 ? (true, position.X, position.Y, position.Z) : (false, 0f, 0f, 0f);
 
-        private ulong ResolveObjectTargetAlias(byte id, ulong selfId)
+        internal ulong ResolveObjectTargetAlias(byte id, ulong selfId)
             => _onlineCourse != null && id >= CharacterCourseSimulation.FirstInputAlias ? _onlineCourse.For(selfId)?.ResolveAlias(id) ?? 0
                 : _course != null && id >= CharacterCourseSimulation.FirstInputAlias ? _course.ResolveAlias(id)
                 : _arcadeBall != null && id == ArcadeBallTargetInputId

@@ -122,7 +122,7 @@ namespace SlopArena.Client.UI
                 if (arenaOpt is not ArenaDefinition arenaDef) continue;
                 if (LocalCourse ? arenaDef.Arcade?.Course == null : arenaDef.Purpose != ArenaPurpose.PvP) continue;
                 if (arenaDef.CollisionTriangles == null || arenaDef.CollisionTriangles.Length == 0) continue;
-                if (Resources.Load<GameObject>($"Stages/{arena.Name}") == null) continue;
+                if (!LocalChallengeSetup.HasStageVisual(arena.Name)) continue;
 
                 string capturedName = arena.Name;
                 var card = new Button(() => SelectStage(capturedName))
