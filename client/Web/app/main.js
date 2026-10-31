@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { createInput } from './input.js';
 import { createHud } from './hud.js';
-import { ROSTER_UI, portrait } from './roster-ui.js';
+import { createMenu } from './menu.js';
 import { SEATS } from './seat-colours.js';
 import { toThree, unitSphere, unitCylinder, placeSegment, placeBall } from './geometry.js';
 import { Puppet, flashVictims } from './fighters.js';
@@ -56,7 +56,6 @@ const BODY = {
   fightguy: 0xff8a3d, manki: 0x9a6334, wibou: 0x9d7bff, bonk: 0xb9c2d4,
   bashie: 0x3fcf9f, salamander: 0xff5f3a, nyx: 0x3a3450,
 };
-const LEVELS = ['Easy', 'Normal', 'Hard'];
 
 const $ = id => document.getElementById(id);
 const status = (t, quiet = false) => { $('status').textContent = t; $('status').classList.toggle('quiet', quiet && !STATS); };
@@ -203,20 +202,10 @@ function buildStage(color) {
 const input = createInput({
   protocol: PROTOCOL,
   cameraYaw: () => cam.yaw,
-  navigateKey(e) {
-    if (!match && !startScreen && e.code.startsWith('Arrow')) {
-      e.preventDefault(); moveFocus(e.code === 'ArrowRight' ? 1 : e.code === 'ArrowLeft' ? -1 : 0,
-        e.code === 'ArrowDown' ? 1 : e.code === 'ArrowUp' ? -1 : 0);
-      menuFocus?.focus({ preventScroll: true }); return true;
-    }
-  },
+  navigateKey: e => menu.navigateKey(e),
   pressKey(e) {
     if (e.code === 'Escape') { escapeMatch(); return true; }
-    if (match?.paused) {
-      if (e.code === 'ArrowUp' || e.code === 'ArrowDown') moveFocus(0, e.code === 'ArrowUp' ? -1 : 1);
-      if (e.code === 'Enter' || e.code === 'Space') { e.preventDefault(); menuFocus?.click(); }
-      return true;
-    }
+    if (menu.pressKey(e)) return true;
     if (STATS && e.code === 'KeyH') vfx.toggleHitboxes();
   },
 });
@@ -249,7 +238,7 @@ const MODES = {
       if (frame.ended) {
         markTutorialCompleted();
         pick.mode = 'brawl';
-        renderMenu();
+        menu.renderMenu();
         finishMatch('LICENSE GRANTED', 'Every test passed. Take on the CPUs, or bring your friends to Steam.', 4200);
       }
     },
@@ -459,9 +448,9 @@ function setPaused(paused) {
   match.paused = paused;
   match.mode.pause?.(paused);
   $('pause').classList.toggle('hidden', !paused);
-  if (paused) focusMenu($('pauseResume'));
+  if (paused) menu.focusMenu($('pauseResume'));
   else {
-    focusMenu(null);
+    menu.focusMenu(null);
     // Nothing pressed while paused reaches the fighter: the button that resumed is still down.
     input.clearEdges();
   }
@@ -471,7 +460,7 @@ for (const [id, run] of [['pauseResume', () => {}], ['pauseSkip', () => Demo.Com
 $('pauseLeave').onclick = () => leaveMatch();
 function leaveMatch() {
   if (!match) return;
-  if (match.paused) { $('pause').classList.add('hidden'); focusMenu(null); }
+  if (match.paused) { $('pause').classList.add('hidden'); menu.focusMenu(null); }
   match.views.forEach(v => v.dispose());
   match.mode.dispose?.();
   audio.onMatchEnd();
@@ -532,7 +521,7 @@ function loop(now) {
   if (match && !match.paused) {
     if (pad?.pressed(9)) escapeMatch();
     else input.gameplay();
-  } else pollMenuPad(pad);
+  } else menu.pollPad(pad);
   const dt = Math.min(now - last, 100);
   last = now;
   if (match && !match.ended && !match.paused) {
@@ -572,121 +561,14 @@ const MODE_STAGES = new Set(['slopball', 'license_test']);
 const MENU_STAGES = STAGES.filter(([id]) => !MODE_STAGES.has(id) && (hasStageArt(id) || QUERY.has('allstages')));
 // New players start on the tutorial until they finish it once in this browser, as on Unity's Home.
 const pick = { mode: tutorialCompleted() ? 'brawl' : 'tutorial', you: 'fightguy', cpus: ['manki'], stage: 'after_hours', level: 1 };
-function renderMenu() {
-  const btn = (label, on, fn) => {
-    const b = document.createElement('button');
-    b.className = 'pick' + (on ? ' on' : ''); b.textContent = label;
-    b.onclick = () => {
-      const focused = document.activeElement === b, row = b.parentElement, index = [...row.children].indexOf(b);
-      fn(); renderMenu();
-      if (focused) { focusMenu(row.children[index]); row.children[index].focus({ preventScroll: true }); }
-    };
-    return b;
-  };
-  const fighterTile = (f, on, fn) => {
-    const b = btn('', on, fn);
-    b.dataset.fighter = f.id;
-    b.classList.add('fighter-tile'); b.setAttribute('aria-label', f.name + (ROSTER_UI[f.id].wip ? ' (WIP)' : ''));
-    const img = document.createElement('img');
-    img.src = portrait(PATHS.assets, f.id); img.alt = '';
-    const name = document.createElement('span'); name.textContent = f.name;
-    b.append(img, name);
-    if (ROSTER_UI[f.id].wip) b.insertAdjacentHTML('beforeend', '<small class="wip">WIP</small>');
-    return b;
-  };
-  $('pickMode').replaceChildren(...Object.entries(MODES).map(([id, m]) => {
-    const b = btn(m.label, pick.mode === id, () => { pick.mode = id; });
-    b.dataset.mode = id;
-    if (id === 'tutorial' && !tutorialCompleted()) b.insertAdjacentHTML('beforeend', '<small class="badge">New here?</small>');
-    return b;
-  }));
-  $('pickYou').replaceChildren(...catalog.fighters.map(f => fighterTile(f, pick.you === f.id, () => { pick.you = f.id; })));
-  $('fighterHelp').textContent = ROSTER_UI[pick.you].description;
-  $('pickCpu').replaceChildren(...catalog.fighters.map(f => fighterTile(f, pick.cpus.includes(f.id), () => {
-    pick.cpus = pick.cpus.includes(f.id) ? pick.cpus.filter(x => x !== f.id) : [...pick.cpus, f.id].slice(-3);
-  })));
-  $('pickStage').replaceChildren(...MENU_STAGES.map(([id, name]) => {
-    const b = btn(name, pick.stage === id, () => { pick.stage = id; });
-    const img = document.createElement('img');
-    img.src = `${PATHS.assets}ui/stages/${id}.webp`; img.alt = '';
-    b.dataset.stage = id;
-    b.prepend(img); b.classList.add('stage-tile');
-    return b;
-  }));
-  $('pickLevel').replaceChildren(...LEVELS.map((name, i) => btn(name, pick.level === i, () => { pick.level = i; })));
-  for (const id of ['secCpu', 'secStage', 'secLevel']) $(id).classList.toggle('hidden', !MODES[pick.mode].rows.includes(id));
-}
-$('go').onclick = () => { if (MODES[pick.mode].ready()) startMatch().catch(e => { console.error(e); status(String(e)); }); };
-addEventListener('keydown', e => { if (e.code === 'Enter' && !match && !startScreen) $('go').click(); });
-
-// ── Gamepad outside play: the start screen, menu navigation (D-pad or stick, A selects, B steps back,
-// Start fights) and Start to leave a match. Browsers only count clicks and keys as the gesture that unlocks
-// sound, so the start screen asks for one and a pad still dismisses it (silently) if that's all there is.
-let startScreen = document.createElement('div');
-startScreen.id = 'start';
-startScreen.innerHTML = '<div class="press">Click or press any key</div><div class="sub">Gamepad ready: press A</div>';
-document.body.append(startScreen);
-function dismissStart(e) {
-  if (!startScreen) return;
-  e?.stopImmediatePropagation?.();
-  startScreen.remove();
-  startScreen = null;
-  focusMenu(document.querySelector('#pickMode .pick.on') ?? $('go'));
-}
-addEventListener('keydown', dismissStart, { capture: true });
-addEventListener('pointerdown', dismissStart, { capture: true });
-
-let menuFocus = null, repeatAt = 0;
-const focusables = () => [...document.querySelectorAll(match?.paused ? '#pause button' : '#menu button, #menu a, #menu summary')]
-  .filter(el => el.offsetParent);
-function focusMenu(el) {
-  menuFocus?.classList.remove('pad-focus');
-  menuFocus = el;
-  el?.classList.add('pad-focus');
-  el?.scrollIntoView({ block: 'nearest' });
-}
-function moveFocus(dx, dy) {
-  const all = focusables();
-  if (!menuFocus || !all.includes(menuFocus)) return focusMenu(all[0]);
-  const from = menuFocus.getBoundingClientRect();
-  const cx = from.x + from.width / 2, cy = from.y + from.height / 2;
-  let best = null, bestScore = Infinity;
-  for (const el of all) {
-    if (el === menuFocus) continue;
-    const r = el.getBoundingClientRect();
-    const ex = r.x + r.width / 2 - cx, ey = r.y + r.height / 2 - cy;
-    const along = ex * dx + ey * dy;
-    if (along <= 4) continue;
-    const score = along + 3 * Math.abs(ex * dy - ey * dx);
-    if (score < bestScore) { bestScore = score; best = el; }
-  }
-  if (best) focusMenu(best);
-}
-function pollMenuPad(pad) {
-  if (!pad) return;
-  const { held: b, pressed } = pad;
-  const any = pad.buttons.some((_, i) => pressed(i));
-  if (startScreen) {
-    if (any) dismissStart();
-  } else {
-    const [ax, ay] = pad.axes;
-    const dx = (b(15) ? 1 : 0) - (b(14) ? 1 : 0) || (Math.abs(ax) > 0.5 ? Math.sign(ax) : 0);
-    const dy = (b(13) ? 1 : 0) - (b(12) ? 1 : 0) || (Math.abs(ay) > 0.5 ? Math.sign(ay) : 0);
-    const now = performance.now();
-    if ((dx || dy) && now >= repeatAt) {
-      moveFocus(dx, dx ? 0 : dy);
-      repeatAt = now + (repeatAt === 0 ? 350 : 140);
-    } else if (!dx && !dy) repeatAt = 0;
-    if (pressed(0) && menuFocus) {
-      const keep = menuFocus.id || menuFocus.textContent;
-      menuFocus.click();
-      // renderMenu rebuilds the buttons; keep the focus on the same choice.
-      focusMenu(focusables().find(el => (el.id || el.textContent) === keep) ?? focusables()[0]);
-    }
-    if (pressed(9)) { if (match) escapeMatch(); else $('go').click(); }
-  }
-}
-renderMenu();
+const menu = createMenu({
+  catalog, modes: MODES, stages: MENU_STAGES, paths: PATHS, pick,
+  go: () => { if (MODES[pick.mode].ready()) startMatch().catch(e => { console.error(e); status(String(e)); }); },
+  isPaused: () => !!match?.paused,
+  inMatch: () => !!match,
+  escapeMatch,
+});
+menu.renderMenu();
 $('menu').classList.remove('hidden');
 audio.onMenu();
 status(`ready · boot ${bootMs.toFixed(0)} ms`, true);
