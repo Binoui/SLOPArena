@@ -3,7 +3,7 @@
 // checkouts can be compared with diff:
 //   node client/Web/scripts/ui-check.mjs > after.txt
 // Each recorded input is `flags|slot|flags2` with the stick-direction bits masked off, plus `m` when the
-// move vector is nonzero, so camera drift does not change the output.
+// move vector is nonzero, so camera drift does not change the output. Neutral `0|0|0` ticks are left out.
 import { spawn, spawnSync } from 'node:child_process';
 import { rmSync } from 'node:fs';
 const repo = new URL('../../../', import.meta.url).pathname;
@@ -23,15 +23,18 @@ const setup = mode => `
   globalThis.__tap = async (i, ms = 150) => { __pad.buttons[i].pressed = true; await __hold(ms); __pad.buttons[i].pressed = false; await __hold(ms); };
   globalThis.__flick = async (axis, v) => { __pad.axes[axis] = v; await __hold(300); __pad.axes[axis] = 0; await __hold(300); };
   globalThis.__seen = new Set();
+  globalThis.__ticks = 0;
   const step = Demo.Step;
   Demo.Step = b => {
+    __ticks++;
     if (b.length) {
       const v = new DataView(b.buffer);
       __seen.add((b[8] & ~0x0d) + '|' + b[9] + '|' + b[19] + (v.getFloat32(0, true) || v.getFloat32(4, true) ? 'm' : ''));
     }
     return step.call(Demo, b);
   };
-  globalThis.__report = () => { const s = [...__seen].sort().join(' '); __seen.clear(); return s; };
+  // A neutral tick may or may not land before the press, so it carries no signal.
+  globalThis.__report = () => { const s = [...__seen].filter(x => x !== '0|0|0').sort().join(' '); __seen.clear(); return s; };
   globalThis.__state = () => JSON.stringify({
     menu: !document.getElementById('menu').classList.contains('hidden'),
     pause: !document.getElementById('pause').classList.contains('hidden'),
@@ -44,7 +47,12 @@ const setup = mode => `
   ${mode ? `document.querySelector('#pickMode [data-mode=${mode}]').click();` : ''}
   __seen.clear();`;
 const inMatch = { until: `document.getElementById('menu').classList.contains('hidden') && __seen.size > 0`, timeout: 30000 };
-const key = code => [{ eval: '__seen.clear()' }, { down: [code], ms: 300, up: [code] }, { eval: `'${code}: ' + __report()` }];
+// A key stays down until the sim has ticked after it, so a stalled frame cannot push its edge past the report.
+const key = code => [
+  { eval: '__seen.clear(); globalThis.__from = __ticks', down: [code] },
+  { until: '__ticks - __from >= 4', up: [code] },
+  { eval: `'${code}: ' + __report()` },
+];
 const pad = (label, action) => [{ eval: '__seen.clear()' }, { eval: action }, { eval: `'${label}: ' + __report()` }];
 const hash = `(() => { let h = 0; for (const c of document.getElementById('menu').innerHTML) h = (h * 31 + c.charCodeAt(0)) | 0; return 'menu hash ' + h; })()`;
 
@@ -90,7 +98,7 @@ const scenarios = {
 
 let failed = false;
 for (const [name, script] of Object.entries(scenarios)) {
-  rmSync(`/tmp/webdemo-chrome-${cdpPort}`, { recursive: true, force: true });
+  rmSync(`/tmp/webdemo-chrome-${cdpPort}`, { recursive: true, force: true, maxRetries: 5 });
   const run = spawnSync('node', [drive, `${repo}tmp/ui-check/${name.replaceAll(' ', '-')}`,
     JSON.stringify({ ...script, port: cdpPort, url: `http://127.0.0.1:${httpPort}/client/Web/app/index.html` })], { encoding: 'utf8' });
   console.log(`## ${name}`);
@@ -100,5 +108,5 @@ for (const [name, script] of Object.entries(scenarios)) {
   }
   if (run.status !== 0) { failed = true; console.log(`exit ${run.status}`, run.stderr.split('\n').slice(-3).join(' ')); }
 }
-rmSync(`/tmp/webdemo-chrome-${cdpPort}`, { recursive: true, force: true });
+rmSync(`/tmp/webdemo-chrome-${cdpPort}`, { recursive: true, force: true, maxRetries: 5 });
 process.exit(failed ? 1 : 0);
