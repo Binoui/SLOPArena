@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { SLOT, KEY_SLOTS } from './bindings.js';
+import { createInput } from './input.js';
 import { createHud } from './hud.js';
 import { ROSTER_UI, portrait } from './roster-ui.js';
 import { SEATS } from './seat-colours.js';
@@ -200,117 +200,26 @@ function buildStage(color) {
   return g;
 }
 
-// ── Input: keyboard by physical key position (as in Unity), plus the first gamepad ──
-// Unity's face order: south, west, north, east.
-const PAD_FACE = [0, 2, 3, 1];
-const PAD_NORMAL = [0, SLOT.slot1, SLOT.slot3, SLOT.slot4];
-// ADR-0042 right-stick specials: a flick past 60% presses the special laid out like the face diamond
-// (up E, left R, right F, down Q); another one needs the stick back under 35%.
-const STICK_PRESS = 0.6, STICK_RELEASE = 0.35;
-let stickArmed = true;
-// Which device the player last used, for the tutorial's key prompts.
-let usingPad = false;
-const held = new Set();
-const edges = { jump: false, slot: 0, shield: false, grab: false, dash: false, down: false, retarget: false };
-let padPrev = [];
-addEventListener('keydown', e => {
-  if (e.code === 'Tab') e.preventDefault();
-  if (!match && !startScreen && e.code.startsWith('Arrow')) {
-    e.preventDefault(); moveFocus(e.code === 'ArrowRight' ? 1 : e.code === 'ArrowLeft' ? -1 : 0,
-      e.code === 'ArrowDown' ? 1 : e.code === 'ArrowUp' ? -1 : 0);
-    menuFocus?.focus({ preventScroll: true }); return;
-  }
-  if (e.repeat) return;
-  held.add(e.code);
-  usingPad = false;
-  if (e.code === 'Escape') { escapeMatch(); return; }
-  if (match?.paused) {
-    if (e.code === 'ArrowUp' || e.code === 'ArrowDown') moveFocus(0, e.code === 'ArrowUp' ? -1 : 1);
-    if (e.code === 'Enter' || e.code === 'Space') { e.preventDefault(); menuFocus?.click(); }
-    return;
-  }
-  if (STATS && e.code === 'KeyH') vfx.toggleHitboxes();
-  if (e.code === 'Space') edges.jump = true;
-  if (KEY_SLOTS[e.code]) edges.slot = KEY_SLOTS[e.code];
-  if (e.code === 'ShiftLeft') edges.shield = true;
-  if (e.code === 'KeyC') edges.grab = true;
-  if (e.code === 'Digit4') edges.dash = true;
-  if (e.code === 'KeyX') edges.down = true;
-  if (e.code === 'Tab') edges.retarget = true;
+const input = createInput({
+  protocol: PROTOCOL,
+  cameraYaw: () => cam.yaw,
+  navigateKey(e) {
+    if (!match && !startScreen && e.code.startsWith('Arrow')) {
+      e.preventDefault(); moveFocus(e.code === 'ArrowRight' ? 1 : e.code === 'ArrowLeft' ? -1 : 0,
+        e.code === 'ArrowDown' ? 1 : e.code === 'ArrowUp' ? -1 : 0);
+      menuFocus?.focus({ preventScroll: true }); return true;
+    }
+  },
+  pressKey(e) {
+    if (e.code === 'Escape') { escapeMatch(); return true; }
+    if (match?.paused) {
+      if (e.code === 'ArrowUp' || e.code === 'ArrowDown') moveFocus(0, e.code === 'ArrowUp' ? -1 : 1);
+      if (e.code === 'Enter' || e.code === 'Space') { e.preventDefault(); menuFocus?.click(); }
+      return true;
+    }
+    if (STATS && e.code === 'KeyH') vfx.toggleHitboxes();
+  },
 });
-addEventListener('keyup', e => held.delete(e.code));
-addEventListener('blur', () => held.clear());
-
-function readPad() {
-  const pad = [...(navigator.getGamepads?.() ?? [])].find(Boolean);
-  if (!pad) return null;
-  const b = i => !!pad.buttons[i]?.pressed;
-  const pressed = i => b(i) && !padPrev[i];
-  PAD_FACE.forEach((btn, face) => {
-    if (!pressed(btn)) return;
-    if (PAD_NORMAL[face]) edges.slot = PAD_NORMAL[face]; else edges.jump = true;
-  });
-  const [ax, ay, rx = 0, ry = 0] = pad.axes;
-  if (pad.buttons.some(x => x.pressed) || Math.hypot(ax, ay) > 0.5 || Math.hypot(rx, ry) > 0.5) usingPad = true;
-  const rmag = Math.hypot(rx, ry);
-  if (rmag < STICK_RELEASE) stickArmed = true;
-  else if (stickArmed && rmag >= STICK_PRESS) {
-    stickArmed = false;
-    edges.slot = Math.abs(rx) > Math.abs(ry) ? (rx > 0 ? SLOT.F : SLOT.R) : (ry < 0 ? SLOT.E : SLOT.A);
-  }
-  if (pressed(4)) edges.grab = true;
-  if (pressed(5)) edges.dash = true;
-  if (pressed(7)) edges.shield = true;
-  if (pressed(6)) edges.down = true;
-  if (pressed(15)) edges.retarget = true;
-  padPrev = pad.buttons.map(x => x.pressed);
-  const mag = Math.hypot(ax, ay);
-  return { x: mag > 0.25 ? ax : 0, y: mag > 0.25 ? -ay : 0, jump: b(0), shield: b(7), down: b(6) };
-}
-
-// Unity keeps the camera basis a held direction started with, so a camera turn does not bend a run underway;
-// a new direction (more than 40 degrees away) re-reads the camera.
-let heldBasis = null, heldAngle = 0;
-function cameraRelative(mx, my) {
-  if (mx === 0 && my === 0) { heldBasis = null; return [0, 0]; }
-  const angle = Math.atan2(mx, my) * 180 / Math.PI;
-  if (heldBasis === null || Math.abs(((angle - heldAngle + 540) % 360) - 180) > 40) { heldBasis = cam.yaw; heldAngle = angle; }
-  const y = heldBasis * Math.PI / 180;
-  return [my * Math.sin(y) + mx * Math.cos(y), my * Math.cos(y) - mx * Math.sin(y)];
-}
-const inputBuf = new Uint8Array(22);
-const inputView = new DataView(inputBuf.buffer);
-function buildInput(self) {
-  const pad = readPad();
-  let mx = (held.has('KeyD') ? 1 : 0) - (held.has('KeyA') ? 1 : 0);
-  let my = (held.has('KeyW') ? 1 : 0) - (held.has('KeyS') ? 1 : 0);
-  if (pad && (pad.x || pad.y)) { mx = pad.x; my = pad.y; }
-  const m = Math.hypot(mx, my);
-  if (m > 0) { mx /= m; my /= m; }
-  [mx, my] = cameraRelative(mx, my);
-  const wrapDeg = r => { let d = (r * 180 / Math.PI) % 360; if (d > 180) d -= 360; if (d < -180) d += 360; return d; };
-  const yaw = Math.round(wrapDeg(self?.yaw ?? 0) * 100);
-  const down = held.has('KeyX') || !!pad?.down;
-  const flags = (my > 0.3 ? 1 : 0) | (down ? 2 : 0) | (mx < -0.3 ? 4 : 0) | (mx > 0.3 ? 8 : 0)
-    | (edges.jump ? 0x10 : 0) | (edges.dash ? 0x20 : 0);
-  const flags2 = ((held.has('Space') || pad?.jump) ? 1 : 0) | (edges.down ? 8 : 0)
-    | ((held.has('ShiftLeft') || pad?.shield) ? 0x10 : 0) | (edges.shield ? 0x20 : 0)
-    | (edges.grab ? 0x40 : 0) | (edges.retarget ? 0x80 : 0);
-  inputView.setFloat32(0, mx, true);
-  inputView.setFloat32(4, my, true);
-  inputBuf[8] = flags;
-  inputBuf[9] = edges.slot;
-  inputView.setInt16(10, yaw, true);
-  inputView.setInt16(12, yaw, true);
-  inputView.setInt16(14, 0, true);
-  inputView.setUint16(16, 0, true);
-  inputBuf[18] = 0;
-  inputBuf[19] = flags2;
-  inputBuf[20] = 1; // TargetLockMode.Always, the shipped default
-  inputBuf[21] = PROTOCOL;
-  for (const k in edges) edges[k] = k === 'slot' ? 0 : false;
-  return inputBuf;
-}
 
 // ── Modes. Each owns its menu rows, stage, HUD, per-tick reactions and camera focus. ──
 const hex = c => `#${c.toString(16).padStart(6, '0')}`;
@@ -332,11 +241,11 @@ const MODES = {
     begin(frame, court) {
       this.hud = createHud({ frame, deck: this.deck, assets: PATHS.assets, info: fighterInfo, stocks: 0, dummy: true });
       this.panel = createTutorialPanel({ court, pkg: frame.fighters[0].pkg });
-      this.panel.present(frame.mode, usingPad);
+      this.panel.present(frame.mode, input.usingPad);
     },
     onFrame(frame) {
-      this.hud.present(frame, usingPad);
-      this.panel.present(frame.mode, usingPad);
+      this.hud.present(frame, input.usingPad);
+      this.panel.present(frame.mode, input.usingPad);
       if (frame.ended) {
         markTutorialCompleted();
         pick.mode = 'brawl';
@@ -360,7 +269,7 @@ const MODES = {
       banner('GO!', '', 900);
     },
     onFrame(frame) {
-      this.hud.present(frame, usingPad);
+      this.hud.present(frame, input.usingPad);
       if (frame.ended) {
         const left = frame.fighters.filter(alive);
         finishMatch('GAME!', left.length === 1 ? `${fighterInfo[left[0].pkg].name} wins` : 'draw');
@@ -420,7 +329,7 @@ const MODES = {
       this.lastBeat = -1;
     },
     onFrame(frame) {
-      this.hud.present(frame, usingPad);
+      this.hud.present(frame, input.usingPad);
       const s = frame.mode;
       if (s.phase === 'Countdown') {
         const beat = Math.ceil(s.countdown / 60);
@@ -554,8 +463,7 @@ function setPaused(paused) {
   else {
     focusMenu(null);
     // Nothing pressed while paused reaches the fighter: the button that resumed is still down.
-    for (const k in edges) edges[k] = k === 'slot' ? 0 : false;
-    padPrev = [...(navigator.getGamepads?.() ?? [])].find(Boolean)?.buttons.map(x => x.pressed) ?? [];
+    input.clearEdges();
   }
 }
 for (const [id, run] of [['pauseResume', () => {}], ['pauseSkip', () => Demo.Command('skip')], ['pauseRestart', () => Demo.Command('restart')]])
@@ -586,7 +494,7 @@ function step() {
   const self = match.frame.fighters[0];
   const t = performance.now();
   if (match.cameraTurn) { Demo.CameraTurned(match.cameraTurn); match.cameraTurn = 0; }
-  const frame = JSON.parse(Demo.Step(AUTOPLAY ? new Uint8Array(0) : buildInput(self)));
+  const frame = JSON.parse(Demo.Step(AUTOPLAY ? new Uint8Array(0) : input.buildInput(self)));
   match.stepMs += performance.now() - t;
   match.steps++;
   match.frame = frame;
@@ -620,7 +528,11 @@ let acc = 0, last = performance.now(), fpsFrames = 0, fpsT = last, fps = 0;
 function loop(now) {
   const frameStart = performance.now();
   requestAnimationFrame(loop);
-  pollMenuPad();
+  const pad = input.poll();
+  if (match && !match.paused) {
+    if (pad?.pressed(9)) escapeMatch();
+    else input.gameplay();
+  } else pollMenuPad(pad);
   const dt = Math.min(now - last, 100);
   last = now;
   if (match && !match.ended && !match.paused) {
@@ -724,7 +636,7 @@ function dismissStart(e) {
 addEventListener('keydown', dismissStart, { capture: true });
 addEventListener('pointerdown', dismissStart, { capture: true });
 
-let menuPadPrev = [], menuFocus = null, repeatAt = 0;
+let menuFocus = null, repeatAt = 0;
 const focusables = () => [...document.querySelectorAll(match?.paused ? '#pause button' : '#menu button, #menu a, #menu summary')]
   .filter(el => el.offsetParent);
 function focusMenu(el) {
@@ -750,15 +662,11 @@ function moveFocus(dx, dy) {
   }
   if (best) focusMenu(best);
 }
-function pollMenuPad() {
-  const pad = [...(navigator.getGamepads?.() ?? [])].find(Boolean);
+function pollMenuPad(pad) {
   if (!pad) return;
-  const b = i => !!pad.buttons[i]?.pressed;
-  const pressed = i => b(i) && !menuPadPrev[i];
+  const { held: b, pressed } = pad;
   const any = pad.buttons.some((_, i) => pressed(i));
-  if (match && !match.paused) {
-    if (pressed(9)) escapeMatch();
-  } else if (startScreen) {
+  if (startScreen) {
     if (any) dismissStart();
   } else {
     const [ax, ay] = pad.axes;
@@ -777,7 +685,6 @@ function pollMenuPad() {
     }
     if (pressed(9)) { if (match) escapeMatch(); else $('go').click(); }
   }
-  menuPadPrev = pad.buttons.map(x => x.pressed);
 }
 renderMenu();
 $('menu').classList.remove('hidden');
