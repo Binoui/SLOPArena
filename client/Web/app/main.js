@@ -3,7 +3,8 @@ import { createInput } from './input.js';
 import { createHud } from './hud.js';
 import { createMenu } from './menu.js';
 import { SEATS } from './seat-colours.js';
-import { toThree, unitSphere, unitCylinder, placeSegment, placeBall } from './geometry.js';
+import { toThree } from './geometry.js';
+import { createSlopballCourt } from './slopball-court.js';
 import { Puppet, flashVictims } from './fighters.js';
 import { ModelFighter, loadFighterModel } from './fighter-model.js';
 import { createVfx } from './vfx.js';
@@ -277,36 +278,7 @@ const MODES = {
     ready: () => true,
     begin(frame, court, { stageArt }) {
       this.court = court;
-      this.props = new THREE.Group();
-      // The exported Night Court carries its own net; the prototype one stands in on the grey box.
-      const ownNet = !!stageArt?.getObjectByName('Court Net');
-      const width = court.landing[0] * 2 + 3;
-      const net = new THREE.Mesh(new THREE.BoxGeometry(width, court.netTop - court.floorY, Math.max(court.netHalf * 2, 0.08)),
-        new THREE.MeshStandardMaterial({ color: 0xf4efe2, transparent: true, opacity: 0.55, roughness: 0.9 }));
-      net.position.set(0, (court.floorY + court.netTop) / 2, court.netZ);
-      const tape = new THREE.Mesh(new THREE.BoxGeometry(width, 0.08, 0.1), new THREE.MeshStandardMaterial({ color: 0xffcf3a }));
-      tape.position.set(0, court.netTop, court.netZ);
-      for (const x of [-width / 2, width / 2]) {
-        const post = new THREE.Mesh(unitCylinder, new THREE.MeshStandardMaterial({ color: 0x2b2438 }));
-        placeSegment(post, new THREE.Vector3(x, court.floorY, court.netZ), new THREE.Vector3(x, court.netTop + 0.1, court.netZ), 0.07);
-        this.props.add(post);
-      }
-      this.launcher = new THREE.Group();
-      const body = new THREE.Mesh(new THREE.CylinderGeometry(0.7, 0.9, 1, 20), new THREE.MeshStandardMaterial({ color: 0x3a3150, roughness: 0.6 }));
-      body.position.y = 0.5;
-      const barrel = new THREE.Mesh(new THREE.CylinderGeometry(0.32, 0.4, 1.3, 16), new THREE.MeshStandardMaterial({ color: 0xff6b3d, roughness: 0.4 }));
-      barrel.position.set(0, 1.2, -0.35);
-      barrel.rotation.x = -0.9;
-      this.launcher.add(body, barrel);
-      this.ball = new THREE.Mesh(unitSphere, new THREE.MeshStandardMaterial({ color: 0xffd23a, emissive: 0xff7a00, emissiveIntensity: 0.4, roughness: 0.35 }));
-      this.ball.castShadow = true;
-      this.marker = new THREE.Mesh(new THREE.RingGeometry(0.7, 0.85, 32), new THREE.MeshBasicMaterial({ color: 0xffd23a, transparent: true, opacity: 0.8, side: THREE.DoubleSide }));
-      this.marker.rotation.x = -Math.PI / 2;
-      this.drop = new THREE.Mesh(unitCylinder, new THREE.MeshBasicMaterial({ color: 0xffd23a, transparent: true, opacity: 0.25 }));
-      if (ownNet) this.props.children.slice().forEach(post => this.props.remove(post));
-      else this.props.add(net, tape);
-      this.props.add(this.launcher, this.ball, this.marker, this.drop);
-      world.add(this.props);
+      this.courtView = createSlopballCourt({ world, court, stageArt });
       $('hud').classList.add('top');
       $('hud').innerHTML = `
         <div class="card score" style="--seat:${hex(SEATS[0])}">
@@ -333,23 +305,13 @@ const MODES = {
       $('best').textContent = `best ${s.best}`;
       $('heat').textContent = '🔥'.repeat(s.heat) || 'cool';
     },
-    draw(frame) {
-      const s = frame.mode, b = s.ball, c = this.court;
-      this.launcher.position.set(s.launcher[0], c.floorY, s.launcher[2]);
-      for (const m of [this.ball, this.marker, this.drop]) m.visible = b.active;
-      if (!b.active) return;
-      placeBall(this.ball, new THREE.Vector3(...b.p), b.r);
-      this.ball.material.emissiveIntensity = 0.3 + s.heat * 0.3;
-      this.marker.position.set(b.p[0], c.floorY + 0.02, b.p[2]);
-      this.marker.scale.setScalar(Math.max(0.4, b.r * 1.6));
-      placeSegment(this.drop, new THREE.Vector3(b.p[0], c.floorY, b.p[2]), new THREE.Vector3(...b.p), 0.03);
-    },
+    draw(frame) { this.courtView.draw(frame.mode); },
     focus(frame) {
       const pts = [frame.fighters[0].p, [0, this.court.floorY, this.court.netZ]];
       if (frame.mode.ball.active) pts.push(frame.mode.ball.p);
       return pts;
     },
-    dispose() { world.remove(this.props); this.hud.dispose(); },
+    dispose() { this.courtView.dispose(); this.hud.dispose(); },
   },
 };
 
