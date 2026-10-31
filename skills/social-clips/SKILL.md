@@ -36,6 +36,15 @@ locations and deploy.
   made (`--made`: every idea it added or gave a take, shots included, and `report:<n>`), which the
   board's Runs tab links to. Results reach the owner on the board, so runs do not send attachments.
 
+Every video meant for posting ends up on the board, also one made outside this workflow (a
+trailer, a HyperFrames edit, a vertical cut asked for in a thread): file the final with
+`factory.py file <id> <final.mp4> --title ... --format ... --source <project dir>` so it lands in
+Ready to post and in `~/Videos/SLOPArena-social/ready/` on the desk (`factory.py sync` refreshes
+that folder). A `tmp/` path or a thread attachment alone is not a delivery.
+Deliver the caption kit with it (`factory.py set <idea> '{"captions": ...}'`, house style in
+[the factory doc](../../docs/systems/content-factory.md#where-it-is-up-and-the-caption-kit)): every
+explainer, moment or edit you give a take or file gets one.
+
 Tested landscape specs from the 2026-10-28 promo set live in `scenarios/social/specs/` (09 is the
 owner's favourite). Reuse them before staging new ones.
 

@@ -43,6 +43,16 @@ h4{font-size:14px;margin:12px 0 6px}
 .shots{display:flex;gap:8px;margin:6px 0 10px;flex-wrap:wrap}.shots div{width:84px;font-size:11px;cursor:pointer}
 .shots img{width:84px;aspect-ratio:9/16;object-fit:cover;border:2px solid #1b1a18;display:block}
 textarea{width:100%;border:3px solid #1b1a18;padding:6px;font:inherit;min-height:60px}
+.plats{display:flex;gap:4px;flex-wrap:wrap;padding:0 8px 8px}
+.plat{font:800 10px/1 system-ui,sans-serif;border:2px solid #1b1a18;padding:3px 5px 2px;text-transform:uppercase;color:#8a867d;border-style:dashed}
+.plat.on{background:#2f9e44;color:#fff;border-style:solid}
+.where{display:grid;grid-template-columns:auto auto minmax(0,1fr);gap:6px 8px;align-items:center;margin:4px 0 8px}
+.where input[type=text]{width:100%;border:2px solid #1b1a18;padding:4px 6px;font:13px system-ui,sans-serif}
+.where a{font-size:12px;font-weight:700;color:#1b1a18}
+.kit{border:3px solid #1b1a18;padding:8px 10px;margin-bottom:6px;background:#f0eee8}
+.kit b{font-family:"Archivo Black","Arial Black",sans-serif;text-transform:uppercase;font-size:12px;font-weight:400}
+.kit pre{white-space:pre-wrap;overflow-wrap:anywhere;font:13px/1.35 system-ui,sans-serif;margin:4px 0}
+.kit .btn{margin-right:6px}
 a.sheetlink{font-size:12px;font-weight:700;color:#1b1a18}
 table.list{width:100%;border-collapse:collapse;background:#fff;border:3px solid #1b1a18}
 table.list td,table.list th{border:1px solid #1b1a18;padding:6px;font-size:13px;text-align:left;vertical-align:top}
@@ -106,7 +116,11 @@ const checkActions = d => d.thread ? CHECK_ACTIONS[d.status]
   : CHECK_ACTIONS[d.status].filter(a => a[3] !== "commit").map(a => a[3] ? ["good","Good","go"] : a);
 const TAB_RUNS = {proposed: ["propose", "Propose clips", "The designer builds the batch around your open notes in the Scout inbox, then the latest scout reports and what changed in the game: 5 to 7 ideas here."],
   approved: ["render", "Render approved", "Films every idea in this tab; each take lands in To review."]};
-const ACTIVE = ["queued","sent","running"], PLATFORMS = ["tiktok","shorts","x"];
+const ACTIVE = ["queued","sent","running"], PLATFORMS = ["tiktok","shorts","instagram","x"];
+const PLATFORM_NAMES = {tiktok: "TikTok", shorts: "YouTube Shorts", instagram: "Instagram", x: "X"};
+// Where a ready or posted video is up: its posts field, platform -> link (or true when posted without one).
+const shelf = d => ["ready","posted"].includes(d.status) && !d.usedIn;
+const plats = d => shelf(d) ? `<div class="plats">${PLATFORMS.map(p => `<span class="plat ${(d.posts || {})[p] ? "on" : ""}">${(d.posts || {})[p] ? "✓ " : ""}${PLATFORM_NAMES[p]}</span>`).join("")}</div>` : "";
 const RUN_TEXT = {propose: "Sent to T3: the designer thread appears in about 2 minutes, ideas land in PROPOSED.", render: "Sent to T3: the thread appears in about 2 minutes, clips land in TO REVIEW.",
   scout: "Sent to T3: the scout thread appears in about 2 minutes, its report lands in this tab.", redo: "Sent to T3: the redo thread appears in about 2 minutes, the new take lands in TO REVIEW."};
 let B = {ideas: [], checks: [], runs: [], inbox: [], reports: []}, tab = localStorage.tab || "review", open = null, shown = {};
@@ -168,13 +182,59 @@ function card(d) {
   const img = t?.poster ? `<img src="${t.poster}" alt="" loading="lazy">` : `<div class="noimg">${d.status === "proposed" ? "Idea, not filmed yet" : "No clip yet"}</div>`;
   return `<div class="card ${open === d.id ? "sel" : ""}" onclick="show('${d.id}')">${r ? `<span class="busy">RUN #${r.id} ${r.state.toUpperCase()}</span>` : ""}${img}
     <div class="t">${esc(d.title || d.id)}</div>
-    <span class="chip ${esc(d.format)}">${esc(d.format)}${shots ? ` &middot; ${shots} shots` : ""}${d.takes.length > 1 ? ` &middot; ${d.takes.length} takes` : ""}</span></div>`;
+    <span class="chip ${esc(d.format)}">${esc(d.format)}${shots ? ` &middot; ${shots} shots` : ""}${d.takes.length > 1 ? ` &middot; ${d.takes.length} takes` : ""}</span>${plats(d)}${d.usedIn ? `<span class="chip">inside ${esc(byId(d.usedIn)?.title || d.usedIn)}</span>` : ""}</div>`;
+}
+function draftPosts() {
+  const posts = {};
+  PLATFORMS.forEach(p => { const link = document.getElementById("wl-" + p).value.trim();
+    if (document.getElementById("w-" + p).checked) posts[p] = link || true; });
+  return posts;
+}
+function where(d, draft) {
+  const posts = draft || d.posts || {};
+  return `<h4>Posted on</h4><div class="where">${PLATFORMS.map(p => { const v = posts[p];
+    return `<input type="checkbox" id="w-${p}" ${v ? "checked" : ""}><label for="w-${p}">${PLATFORM_NAMES[p]}</label>
+      <span><input type="text" id="wl-${p}" placeholder="Link (optional)" value="${esc(typeof v === "string" ? v : "")}"
+        oninput="if(this.value.trim())document.getElementById('w-${p}').checked=true"></span>`; }).join("")}</div>
+    <button class="btn small go" onclick="savePosts('${d.id}')">Save where it's posted</button>
+    ${PLATFORMS.filter(p => typeof posts[p] === "string").map(p => `<a href="${esc(posts[p])}" target="_blank" rel="noopener">${PLATFORM_NAMES[p]} ↗</a>`).join(" &middot; ")}`;
+}
+// Caption kit: captions field, platform -> {title?, text}, written by the agent that delivered the video.
+function kit(d) {
+  const c = d.captions || {};
+  const parts = PLATFORMS.filter(p => c[p]).map(p => `<div class="kit"><b>${PLATFORM_NAMES[p]}</b>
+    ${c[p].title ? `<pre>${esc(c[p].title)}</pre><button class="btn small" onclick="copyText(byId('${d.id}').captions.${p}.title)">Copy title</button>` : ""}
+    <pre>${esc(c[p].text || "")}</pre><button class="btn small" onclick="copyText(byId('${d.id}').captions.${p}.text)">Copy ${c[p].title ? "description" : "caption"}</button>
+    ${c[p].reply ? `<pre>Reply: ${esc(c[p].reply)}</pre><button class="btn small" onclick="copyText(byId('${d.id}').captions.${p}.reply)">Copy reply</button>` : ""}</div>`);
+  return `<h4>Captions</h4>${parts.join("") || `<p class="age">No captions yet. Ask for them in a note.</p>`}`;
+}
+async function copyText(text) {
+  try {
+    if (navigator.clipboard) await navigator.clipboard.writeText(text);
+    else {
+      const input = document.createElement("textarea"); input.value = text;
+      input.style.position = "fixed"; input.style.opacity = "0"; document.body.append(input); input.select();
+      if (!document.execCommand("copy")) throw new Error("Clipboard unavailable");
+      input.remove();
+    }
+    say("Copied");
+  } catch { say("Copy failed: select the text by hand"); }
+}
+async function savePosts(id) {
+  const d = byId(id), posts = draftPosts();
+  try {
+    await send("PATCH", `/api/ideas/${id}`, {posts});
+    if (d.status === "ready" && Object.keys(posts).length) await send("POST", `/api/ideas/${id}/verdict`, {status: "posted", note: ""});
+    say(`${d.title}: posted on ${Object.keys(posts).map(p => PLATFORM_NAMES[p]).join(", ") || "nothing"}`);
+    await load();
+  } catch (e) { say("Failed: " + e.message); }
 }
 function pick(k) { tab = localStorage.tab = k; hide(); draw(); }
 function hide() { open = null; history.replaceState(null, "", location.pathname); document.getElementById("sheet").classList.remove("on"); }
 function show(id, scroll = true) {
   const d = byId(id); if (!d) return;
   const note = open === id ? document.getElementById("note")?.value || "" : "";
+  const draft = open === id && document.getElementById("w-tiktok") ? draftPosts() : null;  // keep unsaved ticks across refreshes
   open = id; history.replaceState(null, "", "#" + id);
   const t = pickTake(d), r = busy(id);
   const shots = (d.beats || []).filter(b => b.type === "shot").map(b => byId(b.clip)).filter(Boolean);
@@ -192,6 +252,8 @@ function show(id, scroll = true) {
       ${pickTake(s)?.poster ? `<img src="${pickTake(s).poster}" alt="">` : ""}${esc(s.title)}${unused.includes(s) ? " (unused)" : ""}</div>`).join("")}</div>` : ""}
     ${d.for ? `<p><a href="#" onclick="show('${esc(d.for)}');return false">← part of ${esc(d.for)}</a></p>` : ""}
     ${d.comments.length ? `<div class="notes">${d.comments.map(c => `<div class="${c.author === "owner" ? "" : "agent"}"><small>${esc(c.author === "owner" ? "You" : "Agent")} ${esc(String(c.at).slice(0, 10))}</small> ${esc(c.body)}</div>`).join("")}</div>` : ""}
+    ${d.usedIn ? `<p><a href="#" onclick="show('${esc(d.usedIn)}');return false">Went out inside ${esc(byId(d.usedIn)?.title || d.usedIn)}</a></p>` : ""}
+    ${shelf(d) ? where(d, draft) + kit(d) : ""}
     <textarea id="note" placeholder="Note for the agent: what to change, a caption idea, why it's rejected...">${esc(note)}</textarea>
     <div class="acts">${(ACTIONS[d.status] || []).filter(([s]) => s !== "ready" || t).map(([s, l, c]) => `<button class="btn ${c}" onclick="act('${d.id}','${s}')">${l}</button>`).join("")}
       <button class="btn" onclick="act('${d.id}','')">Save note</button>
@@ -305,16 +367,28 @@ async function startRun(kind) {
 async function resend(id) {
   try { const r = await send("POST", `/api/runs/${id}/resend`, {}); say(`Run #${id}: ${r.state}`); await load(); } catch (e) { say("Failed: " + e.message); }
 }
+// TikTok and Shorts numbers come from `factory.py views` (desk timer) for posts with a link; the rest are typed here.
+const AUTO = ["tiktok", "shorts"];
+const auto = (d, p) => AUTO.includes(p) && typeof (d.posts || {})[p] === "string";
+const fmt = n => n == null || n === "" ? "" : Number(n).toLocaleString("en");
 function numbers() {
-  const posted = top_().filter(d => d.status === "posted");
+  const posted = top_().filter(d => d.status === "posted" && !d.usedIn).sort((a, b) => String(b.posted).localeCompare(String(a.posted)));
   if (!posted.length) return `<div class="empty">Nothing posted yet. Mark a clip in READY TO POST as posted, then fill in its views here.</div>`;
-  return `<table class="list"><tr><th>Clip</th><th>Posted</th>${PLATFORMS.map(p => `<th>${p} views</th>`).join("")}<th>Steam visits</th><th></th></tr>` +
-    posted.map(d => `<tr><td>${esc(d.title)}</td><td>${esc(d.posted || "")}</td>${PLATFORMS.concat(["steam"]).map(p =>
-      `<td><input id="s-${d.id}-${p}" value="${esc((d.stats || {})[p] ?? "")}"></td>`).join("")}
-      <td><button class="btn small" onclick="stats('${d.id}')">Save</button></td></tr>`).join("") + `</table>`;
+  const checked = posted.map(d => (d.stats || {}).checked).filter(Boolean).sort().pop();
+  const total = p => posted.some(d => (d.stats || {})[p] != null) ? posted.reduce((n, d) => n + (Number((d.stats || {})[p]) || 0), 0) : null;
+  return `<p class="age">TikTok and Shorts update by themselves every 6 hours${checked ? `, last check ${esc(checked.replace("T", " "))}` : ""}. Type the others.</p>
+    <div style="overflow-x:auto"><table class="list"><tr><th>Clip</th><th>Posted</th>${PLATFORMS.map(p => `<th>${PLATFORM_NAMES[p]}</th>`).join("")}<th>Steam visits</th><th></th></tr>` +
+    posted.map(d => { const st = d.stats || {};
+      return `<tr><td>${esc(d.title)}</td><td>${esc(d.posted || "")}</td>${PLATFORMS.concat(["steam"]).map(p => auto(d, p)
+        ? `<td><a href="${esc(d.posts[p])}" target="_blank" rel="noopener"><b>${fmt(st[p]) || "–"}</b></a>${st[p + "_likes"] != null ? `<br><small>♥ ${fmt(st[p + "_likes"])}${st[p + "_comments"] != null ? ` · 💬 ${fmt(st[p + "_comments"])}` : ""}</small>` : ""}</td>`
+        : `<td><input id="s-${d.id}-${p}" value="${esc(st[p] ?? "")}"></td>`).join("")}
+      <td><button class="btn small" onclick="stats('${d.id}')">Save</button></td></tr>`; }).join("") +
+    `<tr><td><b>Total</b></td><td></td>${PLATFORMS.concat(["steam"]).map(p => `<td><b>${fmt(total(p))}</b></td>`).join("")}<td></td></tr></table></div>`;
 }
 async function stats(id) {
-  const s = {}; PLATFORMS.concat(["steam"]).forEach(p => { const v = document.getElementById(`s-${id}-${p}`).value.trim(); if (v) s[p] = v; });
+  const s = {...(byId(id).stats || {})};  // keep the collector's numbers, likes and comments
+  PLATFORMS.concat(["steam"]).forEach(p => { const el = document.getElementById(`s-${id}-${p}`); if (!el) return;
+    const v = el.value.trim(); if (v) s[p] = v; else delete s[p]; });
   try { await send("POST", `/api/ideas/${id}/stats`, {stats: s}); say("Numbers saved"); await load(); } catch (e) { say("Failed: " + e.message); }
 }
 function scout() {
@@ -372,7 +446,7 @@ load().then(() => {
     area = localStorage.area = "checks"; checkTab = localStorage.checkTab = checkById(+check[1]).status; showCheck(+check[1]);
   } else openIdea(hash);
 }).catch(e => say("Could not load: " + e.message));
-setInterval(() => { const typing = ["note", "inboxText", "checkNote", "sendNote", "checkFilter"].includes(document.activeElement?.id); const playing = [...document.querySelectorAll("video")].some(v => !v.paused);
+setInterval(() => { const typing = ["note", "inboxText", "checkNote", "sendNote", "checkFilter"].includes(document.activeElement?.id) || /^wl?-/.test(document.activeElement?.id || ""); const playing = [...document.querySelectorAll("video")].some(v => !v.paused);
   if (!typing && !playing) load(); }, 15000);
 </script>
 </body>
