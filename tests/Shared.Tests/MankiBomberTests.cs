@@ -65,9 +65,9 @@ public sealed class MankiBomberTests
     }
 
     [Theory]
-    [InlineData(AbilitySlots.Slot1)]
-    [InlineData(AbilitySlots.Slot3)]
-    [InlineData(AbilitySlots.Slot4)]
+    [InlineData(AbilitySlots.Normal1)]
+    [InlineData(AbilitySlots.Normal2)]
+    [InlineData(AbilitySlots.Normal3)]
     public void NormalEndsFlightAndUsesItsAirVariant(byte slot)
     {
         var sim = Match(air: true); TakeOff(sim);

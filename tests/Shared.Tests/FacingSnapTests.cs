@@ -34,7 +34,7 @@ public class FacingSnapTests : KitScenarioTests
             Setup = () => TestHelpers.PlayerState(100f, 100f) with { PY = fgGpy, FacingYaw = 0f },
             Inputs = new InputSequence()
                 .Set(0, new InputState { FaceToCamera = true, AimYaw = 18000 })
-                .Set(1, new InputState { ActiveSlot = AbilitySlots.Slot1 }),
+                .Set(1, new InputState { ActiveSlot = AbilitySlots.Normal1 }),
             Assert = player => TestHelpers.AssertNear(MathF.PI, player.FacingYaw, 1e-3f),
             NpcSetup = () => TestHelpers.NpcState(100f, 98.7f) with { PY = fgGpy },
             NpcAssert = npc => Assert.True(npc.DamagePercent > 0),
@@ -103,7 +103,7 @@ public class FacingSnapTests : KitScenarioTests
         sim.RegisterEntity(1, Def, player);
         sim.RegisterEntity(100, Def, TestHelpers.NpcState(0f, 3f) with { PY = Gpy });
 
-        sim.Tick(new() { { 1, new InputState { ActiveSlot = AbilitySlots.Slot1 } } });
+        sim.Tick(new() { { 1, new InputState { ActiveSlot = AbilitySlots.Normal1 } } });
         sim.Tick(new() { { 1, new InputState { FaceToCamera = true, AimYaw = 18000 } } }); // LMB mid-attack
 
         var state = sim.GetState(1);

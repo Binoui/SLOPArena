@@ -61,8 +61,8 @@ public sealed class MankiKitScenarioTests : KitScenarioTests
         Assert.All(package.Definition.CapabilityRequirements, x => Assert.Equal("1", x.CapabilityVersion));
         var expectedSlots = new[]
         {
-            "ground.1", "ground.3", "ground.4", "ground.A", "ground.E", "ground.R", "ground.F",
-            "air.1", "air.3", "air.4", "air.A", "air.E", "air.R", "air.F",
+            "ground.1", "ground.2", "ground.3", "ground.A", "ground.E", "ground.R", "ground.F",
+            "air.1", "air.2", "air.3", "air.A", "air.E", "air.R", "air.F",
         };
         Assert.Equal(expectedSlots.OrderBy(x => x),
             package.Definition.Slots.Select(x => x.Id).OrderBy(x => x));
@@ -130,10 +130,10 @@ public sealed class MankiKitScenarioTests : KitScenarioTests
         Assert.Contains(stale.Diagnostics, x => x.Code == "package.identity.mismatch");
     }
     [Theory]
-    [InlineData(AbilitySlots.Slot1, false, 1f, 80)]
-    [InlineData(AbilitySlots.Slot4, false, 0.8f, 100)]
-    [InlineData(AbilitySlots.Slot1, true, 0f, 90)]
-    [InlineData(AbilitySlots.Slot4, true, 0f, 120)]
+    [InlineData(AbilitySlots.Normal1, false, 1f, 80)]
+    [InlineData(AbilitySlots.Normal3, false, 0.8f, 100)]
+    [InlineData(AbilitySlots.Normal1, true, 0f, 90)]
+    [InlineData(AbilitySlots.Normal3, true, 0f, 120)]
     public void NormalContact_TriggersVictimReaction_AndAttackerRecovers(
         byte slot, bool airborne, float distance, int totalTicks)
     {
@@ -236,8 +236,8 @@ public sealed class MankiKitScenarioTests : KitScenarioTests
         Assert.Equal((ushort)0, sim.GetState(1).DamagePercent);
         Assert.Empty(sim.Resolver.GetActiveHitboxes());
         Assert.Null(sim.GetActiveAbility(1));
-        sim.Tick(new() { [1] = new InputState { ActiveSlot = AbilitySlots.Slot1 } });
-        Assert.Equal(AbilitySlots.Slot1, sim.GetState(1).AttackSlot);
+        sim.Tick(new() { [1] = new InputState { ActiveSlot = AbilitySlots.Normal1 } });
+        Assert.Equal(AbilitySlots.Normal1, sim.GetState(1).AttackSlot);
     }
 
 

@@ -645,7 +645,7 @@ public sealed partial class HeuristicBotPolicy
             {
                 memory.ClearPlan();
                 float yaw = self.CapturedYaw * (MathF.PI / 18000f);
-                return new InputState { ActiveSlot = AbilitySlots.Slot1, MoveX = MathF.Sin(yaw), MoveY = MathF.Cos(yaw) };
+                return new InputState { ActiveSlot = AbilitySlots.Normal1, MoveX = MathF.Sin(yaw), MoveY = MathF.Cos(yaw) };
             }
         }
         memory.ClearPlan();
@@ -922,7 +922,7 @@ public sealed partial class HeuristicBotPolicy
         => MathF.Sqrt(x * x + z * z);
 
     private static bool IsNormalSlot(byte slot)
-        => slot is AbilitySlots.Slot1 or AbilitySlots.Slot3 or AbilitySlots.Slot4;
+        => slot is AbilitySlots.Normal1 or AbilitySlots.Normal2 or AbilitySlots.Normal3;
     private static bool PlanInvalidated(in CharacterState self, BotMemory memory)
         => self.Deaths != memory.PlanDeaths
             || self.HitstunTicks > 0

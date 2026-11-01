@@ -160,7 +160,7 @@ namespace SlopArena.EditorTools.MoveReview
             if (parsed.Views.Count != 10 || parsed.Moves[0].Ticks != 90 || parsed.Moves[0].Script is not StepScript)
                 throw new InvalidOperationException("Valid recipe did not normalize correctly.");
             var invalid = new[] { valid.Replace("\"input\":", "\"pad\":{\"frames\":1,\"events\":[]},\"input\":"),
-                valid.Replace("ground.1", "ground.2"), valid.Replace("\"ticks\":89", "\"ticks\":600"),
+                valid.Replace("ground.1", "ground.4"), valid.Replace("\"ticks\":89", "\"ticks\":600"),
                 valid.Replace("\"package\":\"nyx\"", "\"package\":\"nyx\",\"package\":\"nyx\""),
                 valid.Replace("\"id\":\"test\"", "\"id\":\"../bad\""), valid.Replace("\"slot\":\"1\"", "\"slot\":1"),
                 valid.Replace("\"stage\":\"slop_pit\"", "\"stage\":\"slop_pit\",\"unknown\":true"),
@@ -177,7 +177,7 @@ namespace SlopArena.EditorTools.MoveReview
             if (fit.Width != 640 || fit.Height != 360) throw new InvalidOperationException("Worst-case budget fit failed.");
             var take = new TakeResult();
             for (int i = 0; i < 20; i++) take.Records.Add(new TickRecord { Frame = i, GroundedBefore = true,
-                Fighter = new CharacterState { EntityId = 1, State = i < 2 ? ActionState.Idle : ActionState.Attacking, IsGrounded = true, AttackSlot = AbilitySlots.Slot1 },
+                Fighter = new CharacterState { EntityId = 1, State = i < 2 ? ActionState.Idle : ActionState.Attacking, IsGrounded = true, AttackSlot = AbilitySlots.Normal1 },
                 Hits = i == 7 ? new[] { new SpellResolver.HitResult { OwnerEntityId = 1 } } : Array.Empty<SpellResolver.HitResult>(), Cues = Array.Empty<TimelinePresentationEvent>() });
             var problems = new List<string>();
             var phases = PhaseResolver.Resolve(parsed.Phases, parsed.Moves[0], take, problems);

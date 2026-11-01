@@ -249,7 +249,7 @@ public sealed class FightGuyPierRouteTests
         }
 
         /// <summary>Ground attacks (straight punch by default) until the target breaks.</summary>
-        public void Punch(string id, byte slot = AbilitySlots.Slot1, float range = 1.0f, Vector2? from = null)
+        public void Punch(string id, byte slot = AbilitySlots.Normal1, float range = 1.0f, Vector2? from = null)
         {
             Approach(id, range, from);
             var target = Target(id).Position;
@@ -264,7 +264,7 @@ public sealed class FightGuyPierRouteTests
         }
 
         /// <summary>Jump toward (x, z), air attack at <paramref name="attackTick"/> and land near it.</summary>
-        public void JumpAttack(float x, float z, int attackTick, int secondJumpTick = -1, byte slot = AbilitySlots.Slot1)
+        public void JumpAttack(float x, float z, int attackTick, int secondJumpTick = -1, byte slot = AbilitySlots.Normal1)
         {
             Assert.True(S.IsGrounded, "Grounded takeoff required: " + Where());
             for (int i = 0; i < 220; i++)
@@ -279,7 +279,7 @@ public sealed class FightGuyPierRouteTests
         }
 
         /// <summary>Jump in place (or with a second jump) and air attack at <paramref name="attackTick"/> until it breaks.</summary>
-        public void JumpPunch(string id, int attackTick = 14, int secondJumpTick = -1, byte slot = AbilitySlots.Slot1,
+        public void JumpPunch(string id, int attackTick = 14, int secondJumpTick = -1, byte slot = AbilitySlots.Normal1,
             float range = 0.9f, Vector2? from = null)
         {
             Approach(id, range, from);
@@ -313,7 +313,7 @@ public sealed class FightGuyPierRouteTests
         {
             static string Slot(byte slot) => slot switch
             {
-                AbilitySlots.Slot1 => "1", AbilitySlots.Slot3 => "3", AbilitySlots.Slot4 => "4",
+                AbilitySlots.Normal1 => "1", AbilitySlots.Normal2 => "3", AbilitySlots.Normal3 => "4",
                 AbilitySlots.A => "A", AbilitySlots.E => "E", AbilitySlots.R => "R", AbilitySlots.F => "F",
                 _ => throw new InvalidOperationException("Unexpected slot " + slot),
             };
@@ -501,7 +501,7 @@ public sealed class FightGuyPierRouteTests
         r.Jump(4f, 32f);                                                // gondola 4
         r.Walk(3.6f, 31.3f);
         r.Jump(1.5f, 28.5f);                                            // the tower top
-        r.Punch("tower_3", AbilitySlots.Slot1, range: 1.2f, from: new(1, 0));
+        r.Punch("tower_3", AbilitySlots.Normal1, range: 1.2f, from: new(1, 0));
         r.Punch("punch", range: 1.3f, from: new(-1, 0));
     }
 

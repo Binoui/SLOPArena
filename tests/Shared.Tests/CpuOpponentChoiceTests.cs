@@ -109,7 +109,7 @@ public sealed class CpuOpponentChoiceTests
     {
         var room = Started(out _);
         room.Move(Far, 0f, 1f);
-        room.Cpu = room.Cpu with { State = ActionState.Attacking, AttackSlot = AbilitySlots.Slot1 };
+        room.Cpu = room.Cpu with { State = ActionState.Attacking, AttackSlot = AbilitySlots.Normal1 };
         for (int tick = 1; tick < 150; tick++)
             Assert.Equal(Near, room.Tick());
         room.Cpu = room.Cpu with { State = ActionState.Grabbing, AttackSlot = 0, InteractionId = 7 };
@@ -146,15 +146,15 @@ public sealed class CpuOpponentChoiceTests
     public void OnlyHitsOnTheCurrentOpponentBecomeFollowUps()
     {
         var room = Started(out _);
-        room.Memory.RecordOpponentContact(AbilitySlots.Slot1, CpuContactKind.Hit, room.Others[1] with { HitstunTicks = 30 }, 0);
+        room.Memory.RecordOpponentContact(AbilitySlots.Normal1, CpuContactKind.Hit, room.Others[1] with { HitstunTicks = 30 }, 0);
         for (int tick = 0; tick <= Delay; tick++)
             room.Tick();
         Assert.False(room.Memory.TryGetNewContact(out _));
-        room.Memory.RecordOpponentContact(AbilitySlots.Slot1, CpuContactKind.Hit, room.Others[0] with { HitstunTicks = 30 }, 0);
+        room.Memory.RecordOpponentContact(AbilitySlots.Normal1, CpuContactKind.Hit, room.Others[0] with { HitstunTicks = 30 }, 0);
         for (int tick = 0; tick <= Delay; tick++)
             room.Tick();
         Assert.True(room.Memory.TryGetNewContact(out var hit));
-        Assert.Equal(AbilitySlots.Slot1, hit.Slot);
+        Assert.Equal(AbilitySlots.Normal1, hit.Slot);
     }
 
     [Fact]

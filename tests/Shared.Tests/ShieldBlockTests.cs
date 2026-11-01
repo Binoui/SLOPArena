@@ -495,14 +495,14 @@ public sealed class ShieldBlockTests
         {
             Assert.Equal(ActionState.Shielding, state.State);
             Assert.Equal((byte)0, state.AttackSlot);
-            Assert.Equal(expectedCooldown, state.GetCooldown(AbilitySlots.Slot1));
+            Assert.Equal(expectedCooldown, state.GetCooldown(AbilitySlots.Normal1));
             Assert.Null(sim.GetActiveAbility(AttackerId));
         }
         else
         {
             Assert.Equal(ActionState.Attacking, state.State);
-            Assert.Equal(AbilitySlots.Slot1, state.AttackSlot);
-            Assert.Equal((ushort)0, state.GetCooldown(AbilitySlots.Slot1));
+            Assert.Equal(AbilitySlots.Normal1, state.AttackSlot);
+            Assert.Equal((ushort)0, state.GetCooldown(AbilitySlots.Normal1));
             Assert.Same(ability, sim.GetActiveAbility(AttackerId));
         }
     }
@@ -516,7 +516,7 @@ public sealed class ShieldBlockTests
             [AttackerId] = new InputState
             {
                 ShieldHeld = true,
-                ActiveSlot = AbilitySlots.Slot1,
+                ActiveSlot = AbilitySlots.Normal1,
             },
         });
 

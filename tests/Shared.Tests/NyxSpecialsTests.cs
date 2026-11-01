@@ -72,7 +72,7 @@ public sealed class NyxSpecialsTests
     public void PhoneSlapsKeepsTheVictimLockedBetweenAllThreeContacts(bool saved)
     {
         var sim = Make(1, 1.2f, saved);
-        Step(sim, AbilitySlots.Slot1);
+        Step(sim, AbilitySlots.Normal1);
         int horizon = sim.GetActiveMove(Nyx)!.Value.Stage.DurationTicks * 2;
         for (int tick = 0; tick < horizon && _hits.Count < 3; tick++)
         {
@@ -101,12 +101,12 @@ public sealed class NyxSpecialsTests
         Assert.Equal(ActionState.Reeled, sim.GetState(Dummy).State);
         Step(sim, AbilitySlots.F);
         Until(sim, () => Free(sim) && sim.GetState(Nyx).Form.Active == 1, 60);
-        Step(sim, AbilitySlots.Slot1);
+        Step(sim, AbilitySlots.Normal1);
         Until(sim, () => _hits.Any(h => h.AttackSlot == AbilitySlots.A), 90);
 
         Assert.Equal((AbilitySlots.R, (byte)0), Hit(0));
         Assert.Equal((AbilitySlots.F, (byte)0), Hit(1));
-        Assert.Equal((AbilitySlots.Slot1, (byte)1), Hit(2));
+        Assert.Equal((AbilitySlots.Normal1, (byte)1), Hit(2));
         var pop = _hits.Single(h => h.AttackSlot == AbilitySlots.A);
         Assert.Equal(0, pop.Form);
         Assert.False(Perched(sim));
@@ -118,13 +118,13 @@ public sealed class NyxSpecialsTests
     public void ComboTwoUppercutLoggingOffThenTheCrowDivesOnThem(bool saved)
     {
         var sim = Make(1, 1.2f, saved);
-        Step(sim, AbilitySlots.Slot3);
+        Step(sim, AbilitySlots.Normal2);
         Until(sim, () => Free(sim), 60);
         Step(sim, AbilitySlots.F);
         Until(sim, () => Free(sim) && sim.GetState(Nyx).Form.Active == 0, 60);
         Step(sim, AbilitySlots.A);
         Until(sim, () => Perched(sim), 200);
-        Assert.Equal((AbilitySlots.Slot3, (byte)1), Hit(0));
+        Assert.Equal((AbilitySlots.Normal2, (byte)1), Hit(0));
         Assert.Equal((AbilitySlots.F, (byte)1), Hit(1));
     }
 
@@ -140,9 +140,9 @@ public sealed class NyxSpecialsTests
         Step(sim, AbilitySlots.F);
         Until(sim, () => Free(sim) && sim.GetState(Nyx).Form.Active == 1, 60);
         Assert.True(Perched(sim), "Going Live is a real-form hit: the crow stays");
-        Step(sim, AbilitySlots.Slot1);
+        Step(sim, AbilitySlots.Normal1);
         Until(sim, () => _hits.Any(h => h.AttackSlot == AbilitySlots.A), 60);
-        var slap = _hits.First(h => h.AttackSlot == AbilitySlots.Slot1);
+        var slap = _hits.First(h => h.AttackSlot == AbilitySlots.Normal1);
         var pop = _hits.Single(h => h.AttackSlot == AbilitySlots.A);
         Assert.Equal(1, slap.Form);
         Assert.Equal(0, pop.Form);

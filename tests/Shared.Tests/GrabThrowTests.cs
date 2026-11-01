@@ -150,8 +150,8 @@ public sealed class GrabThrowTests
             Assert.Equal(release.Seconds, frozen.Seconds);
         }
         while (sim.GetState(1).StateTicks > 3) Tick(sim);
-        Tick(sim, new() { ActiveSlot = AbilitySlots.Slot1 });
-        Assert.Equal(AbilitySlots.Slot1, sim.GetState(1).BufferedSlot);
+        Tick(sim, new() { ActiveSlot = AbilitySlots.Normal1 });
+        Assert.Equal(AbilitySlots.Normal1, sim.GetState(1).BufferedSlot);
         for (int i = 0; i < 4; i++) Tick(sim);
         Assert.Equal(ActionState.Attacking, sim.GetState(1).State);
     }

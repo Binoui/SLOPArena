@@ -65,8 +65,8 @@ public static class CharacterPresentationProfileSelfTest
         ground.SetActive(false); air.SetActive(false);
         var profile = new CharacterPresentationProfile().WithProjectiles(new[]
         {
-            new ProjectilePresentation("ground.3", ground, 2f, ProjectileOrientation.PreservePrefab, "bone.right-hand"),
-            new ProjectilePresentation("air.3", air, 3f, ProjectileOrientation.FlightPositiveY, "bone.right-hand"),
+            new ProjectilePresentation("ground.2", ground, 2f, ProjectileOrientation.PreservePrefab, "bone.right-hand"),
+            new ProjectilePresentation("air.2", air, 3f, ProjectileOrientation.FlightPositiveY, "bone.right-hand"),
         });
         var catalog = ScriptableObject.CreateInstance<CharacterAnimationCatalog>();
         catalog.SetPresentationProfile(profile);
@@ -85,7 +85,7 @@ public static class CharacterPresentationProfileSelfTest
             slots[1] = move;
             simulation.RegisterEntity(42, new CharacterDefinition { Class = CharacterClass.None, CookedSlots = slots }, default);
             var hand = fixture.Child("Held hand").transform;
-            var aiming = new CharacterState { State = ActionState.Aiming, AttackSlot = AbilitySlots.Slot3, AttackSequence = 7, ChargeTicks = 20 };
+            var aiming = new CharacterState { State = ActionState.Aiming, AttackSlot = AbilitySlots.Normal2, AttackSequence = 7, ChargeTicks = 20 };
             manager.UpdateHeldVisual(42, aiming, hand, move);
             var held = ((IDictionary)typeof(ProjectileVFXManager).GetField("_heldVisuals", Private).GetValue(manager))[42UL];
             var visual = (GameObject)held.GetType().GetField("Visual").GetValue(held);
@@ -94,7 +94,7 @@ public static class CharacterPresentationProfileSelfTest
             simulation.Resolver.Spawn(new Hitbox
             {
                 OwnerId = 42, ActivationId = 1, VisualOperationIndex = 1, AttackSequence = 7,
-                AttackSlot = AbilitySlots.Slot3, X = 10, Y = 10, VX = 1, Radius = 3, DurationTicks = 20,
+                AttackSlot = AbilitySlots.Normal2, X = 10, Y = 10, VX = 1, Radius = 3, DurationTicks = 20,
             });
             manager.OnTick();
             Require(Visuals(manager).Single() == visual && visual.transform.localScale == Vector3.one * 6f, "Launch did not transfer the held visual with radius scale.");
@@ -102,7 +102,7 @@ public static class CharacterPresentationProfileSelfTest
             Require(((IDictionary)typeof(ProjectileVFXManager).GetField("_heldVisuals", Private).GetValue(manager))[42UL]
                 .GetType().GetField("Visual").GetValue(((IDictionary)typeof(ProjectileVFXManager).GetField("_heldVisuals", Private).GetValue(manager))[42UL]) == null,
                 "Repeated aim recreated a consumed held projectile.");
-            simulation.Resolver.Spawn(new Hitbox { OwnerId = 42, ActivationId = 2, AttackSlot = AbilitySlots.Slot3,
+            simulation.Resolver.Spawn(new Hitbox { OwnerId = 42, ActivationId = 2, AttackSlot = AbilitySlots.Normal2,
                 ActivationAirborne = true, X = 20, Y = 10, VZ = 1, Radius = 1, DurationTicks = 20 });
             manager.OnTick();
             var airborne = Visuals(manager).Single(v => v != visual);
@@ -113,7 +113,7 @@ public static class CharacterPresentationProfileSelfTest
             manager.SetPredictedSimulation(Simulation());
             Require(visual == null && airborne == null, "Simulation reattach retained old visuals.");
             var fresh = Simulation(); manager.SetPredictedSimulation(fresh);
-            fresh.Resolver.Spawn(new Hitbox { OwnerId = 42, AttackSlot = AbilitySlots.Slot3, VX = 1, Radius = 1, DurationTicks = 20 });
+            fresh.Resolver.Spawn(new Hitbox { OwnerId = 42, AttackSlot = AbilitySlots.Normal2, VX = 1, Radius = 1, DurationTicks = 20 });
             manager.OnTick(); var retained = Visuals(manager).Single(); fixture.Adopt(retained);
             Require(retained.name.StartsWith(ground.name), "Simulation retry lost its valid owner binding.");
             manager.RegisterOwner(42, catalog);
@@ -268,7 +268,7 @@ public static class CharacterPresentationProfileSelfTest
             manager.SetSimulation(simulation);
             var remove = typeof(ProjectileVFXManager).GetMethod("OnHitboxRemoved", Private);
             int prior = ObjectsNamed("KiShotImpact").Length;
-            var contact = new Hitbox { OwnerId = 42, AttackSlot = AbilitySlots.Slot1, VX = 1, Active = false };
+            var contact = new Hitbox { OwnerId = 42, AttackSlot = AbilitySlots.Normal1, VX = 1, Active = false };
             remove.Invoke(manager, new object[] { contact, 0f, 0f, 0f });
             Require(ObjectsNamed("KiShotImpact").Length == prior, "Configured contact duplicated its semantic effect.");
             contact.Active = true;

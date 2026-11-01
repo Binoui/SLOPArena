@@ -56,7 +56,7 @@ public sealed class SwingContactGeometryTests
         {
             var inputs = new Dictionary<ulong, InputState>
             {
-                [1] = tick == 0 ? new InputState { ActiveSlot = AbilitySlots.Slot1 } : default,
+                [1] = tick == 0 ? new InputState { ActiveSlot = AbilitySlots.Normal1 } : default,
                 [100] = targetShields
                     ? new InputState { ShieldHeld = true, ShieldPressed = tick == 0 }
                     : default,
@@ -136,7 +136,7 @@ public sealed class SwingContactGeometryTests
         sim.RegisterEntity(101, def, far);
 
         var recorder = new MatchRecorder();
-        var press = new Dictionary<ulong, InputState> { [1] = new InputState { ActiveSlot = AbilitySlots.Slot1 } };
+        var press = new Dictionary<ulong, InputState> { [1] = new InputState { ActiveSlot = AbilitySlots.Normal1 } };
         recorder.RecordPresses(sim, 0, press, def);
 
         var swing = Assert.Single(recorder.Record.Swings);

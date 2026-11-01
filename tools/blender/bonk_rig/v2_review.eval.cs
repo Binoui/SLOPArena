@@ -5,7 +5,7 @@
 // Run: bun scripts/unity-editor-gateway.ts --project-path client/Unity -- eval_file --file "$PWD/tools/blender/bonk_rig/v2_review.eval.cs"
 // Output: tmp/bonk-sir/tripo-v2/unity-review/<time>/<clip>_<t>_<view>.png and per-frame lowest/top/head heights.
 const string CandidatePath = "Assets/Art/Characters/bonk/Prefabs/SirBonkV2Rig.prefab";
-var shots = new[] { ("anim.idle", 0f), ("anim.idle", 0.5f), ("anim.run", 0.25f), ("anim.bonk.g1", 0.4f), ("anim.bonk.g3", 0.45f), ("anim.bonk.gr-gallop", 0.3f), ("anim.bonk.ge", 0.5f), ("anim.jump", 0.5f), ("anim.hit-hard", 0.3f) };
+var shots = new[] { ("anim.idle", 0f), ("anim.idle", 0.5f), ("anim.run", 0.25f), ("anim.bonk.g1", 0.4f), ("anim.bonk.g2", 0.45f), ("anim.bonk.gr-gallop", 0.3f), ("anim.bonk.ge", 0.5f), ("anim.jump", 0.5f), ("anim.hit-hard", 0.3f) };
 string repo = System.IO.Path.GetFullPath(System.IO.Path.Combine(Application.dataPath, "..", "..", ".."));
 string outDir = System.IO.Path.Combine(repo, "tmp", "bonk-sir", "tripo-v2", "unity-review", System.DateTime.Now.ToString("yyyyMMdd-HHmmss"));
 System.IO.Directory.CreateDirectory(outDir);

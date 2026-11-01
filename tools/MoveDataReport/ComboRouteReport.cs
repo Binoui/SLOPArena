@@ -386,16 +386,16 @@ internal static partial class ComboRouteReport
         state.HitstunTicks, state.LandingLagTicks, state.IsFastFalling, state.AnimLockTicks);
     internal static byte WireSlot(string canonical) => canonical switch
     {
-        "ground.1" or "air.1" => AbilitySlots.Slot1,
-        "ground.3" or "air.3" => AbilitySlots.Slot3,
-        "ground.4" or "air.4" => AbilitySlots.Slot4,
+        "ground.1" or "air.1" => AbilitySlots.Normal1,
+        "ground.2" or "air.2" => AbilitySlots.Normal2,
+        "ground.3" or "air.3" => AbilitySlots.Normal3,
         _ => throw new ArgumentException($"Unsupported normal slot '{canonical}'."),
     };
     private static string CanonicalSlot(byte wire, bool air)
     {
         string number = wire switch
         {
-            AbilitySlots.Slot1 => "1", AbilitySlots.Slot3 => "3", AbilitySlots.Slot4 => "4",
+            AbilitySlots.Normal1 => "1", AbilitySlots.Normal2 => "3", AbilitySlots.Normal3 => "4",
             AbilitySlots.A => "A", AbilitySlots.E => "E", AbilitySlots.R => "R", AbilitySlots.F => "F", _ => $"wire-{wire}",
         };
         return (air ? "air." : "ground.") + number;

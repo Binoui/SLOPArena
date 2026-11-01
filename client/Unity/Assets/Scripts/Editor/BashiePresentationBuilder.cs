@@ -448,7 +448,7 @@ namespace SlopArena.EditorTools
             tuck.Pose = ShellTuckPose.Bashie;
             tuck.Pose.FollowAnimatedHeading = true;
             tuck.Pose.WobbleDegrees = 0f;
-            tuck.HoldAnimationIds = new[] { "anim.bashie.g2", "anim.bashie.a2" };
+            tuck.HoldAnimationIds = new[] { "anim.bashie.g1", "anim.bashie.a1" };
             // Zero tangents reproduce the approved smooth tuck and pop-out, and pause with Hitstop.
             tuck.WeightByAttackTick = new AnimationCurve(new Keyframe(4f, 0f), new Keyframe(10f, 1f),
                 new Keyframe(30f, 1f), new Keyframe(40f, 0f));
@@ -462,7 +462,7 @@ namespace SlopArena.EditorTools
             var tuck = root.AddComponent<ShellTuck>();
             tuck.Pose = ShellTuckPose.Bashie;
             tuck.Pose.WobbleDegrees = 0f;
-            tuck.HoldAnimationIds = new[] { airborne ? "anim.bashie.a4" : "anim.bashie.g4" };
+            tuck.HoldAnimationIds = new[] { airborne ? "anim.bashie.a3" : "anim.bashie.g3" };
             if (airborne) tuck.ReachDirection = new Vector3(0f, 5f / 6f, 1f);
             tuck.WeightByAttackTick = new AnimationCurve(
                 new Keyframe(7f, 0f), new Keyframe(14f, 1f), new Keyframe(24f, 1f), new Keyframe(32f, 0f));
@@ -494,7 +494,7 @@ namespace SlopArena.EditorTools
             var tuck = root.AddComponent<ShellTuck>();
             tuck.Pose = ShellTuckPose.Bashie;
             tuck.Pose.WobbleDegrees = 0f;
-            tuck.HoldAnimationIds = new[] { "anim.bashie.g3", "anim.bashie.a3" };
+            tuck.HoldAnimationIds = new[] { "anim.bashie.g2", "anim.bashie.a2" };
             tuck.WeightByAttackTick = new AnimationCurve(new Keyframe(4f, 0f), new Keyframe(10f, 1f),
                 new Keyframe(29f, 1f), new Keyframe(36f, 0f));
             tuck.ForwardByAttackTick = new AnimationCurve(new Keyframe(20f, 0f), new Keyframe(24f, 0.30f),

@@ -180,10 +180,10 @@ public sealed class MankiQuarryRouteTests
                 if (away.Length() < .1f) away = new(0, -1);
                 away = Vector2.Normalize(away) * 1.1f;
                 Walk(target.Position.X + away.X, target.Position.Z + away.Y);
-                WaitReady(AbilitySlots.Slot1);
+                WaitReady(AbilitySlots.Normal1);
                 s = S; short yaw = Yaw(target.Position.X - s.PX, target.Position.Z - s.PZ);
                 for (int i = 0; i < 40 && !Broken(crate); i++)
-                    Tick(new() { ActiveSlot = i == 0 ? AbilitySlots.Slot1 : (byte)0, FacingYaw = yaw, AimYaw = yaw,
+                    Tick(new() { ActiveSlot = i == 0 ? AbilitySlots.Normal1 : (byte)0, FacingYaw = yaw, AimYaw = yaw,
                         TargetEntityId = Sim.CourseTargetInputAlias(Index(crate)) });
             }
             if (!Broken(crate)) throw new Exception($"could not punch {crate} from {Where()}");
@@ -203,7 +203,7 @@ public sealed class MankiQuarryRouteTests
         {
             static string Slot(byte slot) => slot switch
             {
-                AbilitySlots.Slot1 => "1", AbilitySlots.Slot3 => "3", AbilitySlots.Slot4 => "4",
+                AbilitySlots.Normal1 => "1", AbilitySlots.Normal2 => "3", AbilitySlots.Normal3 => "4",
                 AbilitySlots.A => "A", AbilitySlots.E => "E", AbilitySlots.R => "R", AbilitySlots.F => "F",
                 _ => throw new InvalidOperationException("Unexpected slot " + slot),
             };

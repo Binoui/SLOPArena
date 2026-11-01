@@ -86,7 +86,7 @@ public sealed class NyxManorTests(ITestOutputHelper output)
                 Assert.True(distance <= target.Radius+contract.RootElement.GetProperty("ordinaryReach").GetSingle()+.001f,
                     $"{name} is {distance:F2}m from {way.GetProperty("name").GetString()}");
                 bool broken = false;
-                foreach (byte slot in new[] { AbilitySlots.Slot1,AbilitySlots.Slot3,AbilitySlots.Slot4 })
+                foreach (byte slot in new[] { AbilitySlots.Normal1,AbilitySlots.Normal2,AbilitySlots.Normal3 })
                 {
                     var d = new CourseFinishability("nyx_manor",fighter);
                     d.Calibrate(closest.X,closest.Y-1,closest.Z);
@@ -196,7 +196,7 @@ public sealed class NyxManorTests(ITestOutputHelper output)
             d.Run(route);
             Assert.Empty(d.SpecialTargets);
             Assert.Equal(new[] { 0,1,2,3 },d.Events.Where(e => e.Kind == CharacterCourseEventKind.CheckpointSaved).Select(e => (int)e.Index));
-            Assert.All(d.Inputs, i => Assert.Contains(i.ActiveSlot,new byte[] { 0,AbilitySlots.Slot1,AbilitySlots.Slot3,AbilitySlots.Slot4 }));
+            Assert.All(d.Inputs, i => Assert.Contains(i.ActiveSlot,new byte[] { 0,AbilitySlots.Normal1,AbilitySlots.Normal2,AbilitySlots.Normal3 }));
             output.WriteLine($"CROSSING {fighter}/side={side}/quick={quick}/low={low} PASS inputs={d.Inputs.Count} courseTicks={d.Sim.CourseFor(1)!.Value.ElapsedTicks} targets=17 checkpoints=4 falls={d.State.Deaths}");
         }
     }
@@ -269,7 +269,7 @@ public sealed class NyxManorTests(ITestOutputHelper output)
                 ticks=1, moveX=i.MoveX, moveY=i.MoveY, jumpPressed=i.Jump, jumpHeld=i.JumpHeld,
                 shieldPressed=i.ShieldPressed, shieldHeld=i.ShieldHeld, downPressed=i.DownPressed, downHeld=i.Down,
                 facingYaw=i.FacingYaw, aimYaw=i.AimYaw, aimDistance=i.AimDistance, aimPitch=i.AimPitch, isAiming=i.IsAiming,
-                slot=i.ActiveSlot switch { 0 => null, AbilitySlots.Slot1 => "1", AbilitySlots.Slot3 => "3", AbilitySlots.Slot4 => "4", _ => throw new InvalidOperationException("Expected a normal attack.") }, targetEntityId=i.TargetEntityId.ToString()
+                slot=i.ActiveSlot switch { 0 => null, AbilitySlots.Normal1 => "1", AbilitySlots.Normal2 => "3", AbilitySlots.Normal3 => "4", _ => throw new InvalidOperationException("Expected a normal attack.") }, targetEntityId=i.TargetEntityId.ToString()
             }),options));
         int At(RouteStep step) => settle+d.Landings.First(l => l.Step == step).InputCount;
         var captures = new[] {

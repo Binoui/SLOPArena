@@ -364,7 +364,7 @@ public sealed class CharacterPackageSourceCodecTests
     public void MinimalTemplateHasExactlyUniversalSlotsAndNoCapabilities()
     {
         var source = CharacterPackageSourceCodec.CreateMinimal("test-character", "Test Character", "Binoui", "MIT", "SlopArena");
-        Assert.Equal(new[] { "ground.1", "ground.3", "ground.4", "ground.A", "ground.E", "ground.R", "ground.F", "air.1", "air.3", "air.4", "air.A", "air.E", "air.R", "air.F" }, source.Character.Slots.Select(x => x.Id));
+        Assert.Equal(new[] { "ground.1", "ground.2", "ground.3", "ground.A", "ground.E", "ground.R", "ground.F", "air.1", "air.2", "air.3", "air.A", "air.E", "air.R", "air.F" }, source.Character.Slots.Select(x => x.Id));
         Assert.Empty(source.Character.CapabilityRequirements);
         Assert.All(source.Character.Slots, x => Assert.Empty(x.Timeline.Stages));
         Assert.DoesNotContain("FightGuy", CharacterPackageSourceCodec.SerializeCharacter(source.Character));

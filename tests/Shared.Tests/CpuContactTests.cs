@@ -12,7 +12,7 @@ public sealed class CpuContactTests
         var target = TestHelpers.NpcState() with { HitstunTicks = 30 };
         var memory = new BotMemory();
         for (int tick = 0; tick <= 18; tick++) memory.ObserveOpponent(target);
-        memory.RecordOpponentContact(AbilitySlots.Slot1, kind, target, 0);
+        memory.RecordOpponentContact(AbilitySlots.Normal1, kind, target, 0);
         for (int tick = 0; tick < 18; tick++)
         {
             Assert.False(memory.TryGetNewContact(out _));
@@ -29,9 +29,9 @@ public sealed class CpuContactTests
     {
         var target = TestHelpers.NpcState(); var memory = new BotMemory();
         for (int tick = 0; tick <= 18; tick++) memory.ObserveOpponent(target);
-        for (int hit = 0; hit < 8; hit++) memory.RecordOpponentContact(AbilitySlots.Slot1, CpuContactKind.Hit, target, 0);
+        for (int hit = 0; hit < 8; hit++) memory.RecordOpponentContact(AbilitySlots.Normal1, CpuContactKind.Hit, target, 0);
         memory.ObserveOpponent(target);
-        memory.RecordOpponentContact(AbilitySlots.Slot1, CpuContactKind.Block, target, 0);
+        memory.RecordOpponentContact(AbilitySlots.Normal1, CpuContactKind.Block, target, 0);
         for (int tick = 0; tick < 17; tick++) memory.ObserveOpponent(target);
         Assert.True(memory.TryGetNewContact(out var first)); memory.MarkContactEvaluated(first);
         memory.ObserveOpponent(target);

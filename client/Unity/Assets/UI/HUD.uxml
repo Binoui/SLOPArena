@@ -88,6 +88,21 @@
                                 <ui:Label name="ab-1-key" class="slot-key-label" />
                             </ui:VisualElement>
                         </ui:VisualElement>
+                        <ui:VisualElement name="ab-2" class="slot normal-slot">
+                            <ui:VisualElement class="slot-plate" />
+                            <ui:VisualElement class="slot-face">
+                                <ui:Label name="ab-2-name" class="slot-name" />
+                                <ui:VisualElement class="slot-content">
+                                    <ui:Image name="ab-2-icon" class="slot-icon-inner" />
+                                </ui:VisualElement>
+                                <ui:VisualElement name="ab-2-cooldown" class="slot-cooldown" />
+                                <ui:Label name="ab-2-timer" class="slot-timer" />
+                            </ui:VisualElement>
+                            <ui:VisualElement class="slot-prompt">
+                                <ui:VisualElement class="slot-prompt-arrow" />
+                                <ui:Label name="ab-2-key" class="slot-key-label" />
+                            </ui:VisualElement>
+                        </ui:VisualElement>
                         <ui:VisualElement name="ab-3" class="slot normal-slot">
                             <ui:VisualElement class="slot-plate" />
                             <ui:VisualElement class="slot-face">
@@ -101,21 +116,6 @@
                             <ui:VisualElement class="slot-prompt">
                                 <ui:VisualElement class="slot-prompt-arrow" />
                                 <ui:Label name="ab-3-key" class="slot-key-label" />
-                            </ui:VisualElement>
-                        </ui:VisualElement>
-                        <ui:VisualElement name="ab-4" class="slot normal-slot">
-                            <ui:VisualElement class="slot-plate" />
-                            <ui:VisualElement class="slot-face">
-                                <ui:Label name="ab-4-name" class="slot-name" />
-                                <ui:VisualElement class="slot-content">
-                                    <ui:Image name="ab-4-icon" class="slot-icon-inner" />
-                                </ui:VisualElement>
-                                <ui:VisualElement name="ab-4-cooldown" class="slot-cooldown" />
-                                <ui:Label name="ab-4-timer" class="slot-timer" />
-                            </ui:VisualElement>
-                            <ui:VisualElement class="slot-prompt">
-                                <ui:VisualElement class="slot-prompt-arrow" />
-                                <ui:Label name="ab-4-key" class="slot-key-label" />
                             </ui:VisualElement>
                         </ui:VisualElement>
                     </ui:VisualElement>

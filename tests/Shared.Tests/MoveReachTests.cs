@@ -134,7 +134,7 @@ public class MoveReachTests
     public void ReachOrdering_SyntheticBoneCapsule_ExtendsBeyondEntityFallback()
     {
         var def = TestHelpers.EngineDef;
-        def = TestHelpers.WithMove(def, AbilitySlots.Slot1, false, "Reach", 60, animations: new[] { "attack" });
+        def = TestHelpers.WithMove(def, AbilitySlots.Normal1, false, "Reach", 60, animations: new[] { "attack" });
         var baked = BakedAnimationData.LoadFromBin(BuildTestBin(
             new[] { "hand", "tip" },
             new[] { ("attack", 1) },

@@ -313,7 +313,7 @@ public sealed class FlashCutTests
         var third = duel.State(FlashDuel.Third);
         third.PZ = 1.1f;
         duel.Sim.SetState(FlashDuel.Third, third);
-        duel.Step(others: (FlashDuel.Third, new InputState { ActiveSlot = AbilitySlots.Slot1 }));
+        duel.Step(others: (FlashDuel.Third, new InputState { ActiveSlot = AbilitySlots.Normal1 }));
         duel.RunTo(() => duel.Hits.Any(h => h.OwnerEntityId == FlashDuel.Third), maxTicks: 12);
         Assert.True(duel.Tick < FlashDuel.StanceEnd + FlashDuel.P.WhiffTicks, "the normal lands inside the whiff");
         Assert.Contains(duel.Hits, h => h.OwnerEntityId == FlashDuel.Third && h.TargetEntityId == FlashDuel.Wibou && !h.Blocked);
@@ -464,7 +464,7 @@ public sealed class FlashCutTests
             new CaptureAnchor(0f, 0.6f, 0.2f), new CaptureAnchor(0f, 0.6f, 0.65f)),
     };
 
-    private static CharacterDefinition Jabber => TestHelpers.WithMove(TestHelpers.EngineDef, AbilitySlots.Slot1, false, "Jab", 20,
+    private static CharacterDefinition Jabber => TestHelpers.WithMove(TestHelpers.EngineDef, AbilitySlots.Normal1, false, "Jab", 20,
         hits: new[]
         {
             new HitboxEvent
@@ -583,7 +583,7 @@ internal sealed class FlashDuel
         {
             X = at.PX, Y = at.PY, Z = at.PZ, EndX = at.PX, EndY = at.PY, EndZ = at.PZ, Radius = .6f,
             Shape = HitboxShape.Sphere, Damage = damage, BaseKnockback = knockback, KnockbackAngle = angle,
-            StunTicks = 20, DurationTicks = 1, OwnerId = owner, AttackSlot = AbilitySlots.Slot1,
+            StunTicks = 20, DurationTicks = 1, OwnerId = owner, AttackSlot = AbilitySlots.Normal1,
         });
     }
 

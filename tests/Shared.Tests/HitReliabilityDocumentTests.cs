@@ -10,7 +10,7 @@ internal static class HitReliabilityGoldenFixture
         new CharacterDefinition { Class = cls, CapsuleHeight = 1.8f, CapsuleRadius = 0.3f, HurtboxRadius = 0.3f });
     internal static MoveReliability Move() => new()
     {
-        Slot = "ground.3", Name = "Blade <swing> ×", DurationTicks = 24, BakedFrames = 36, PlaybackSpeed = 1.5f,
+        Slot = "ground.2", Name = "Blade <swing> ×", DurationTicks = 24, BakedFrames = 36, PlaybackSpeed = 1.5f,
         ActiveTicks = 3, ContactTicksAtProbe = 2,
         Reach = { new() { Target = "FightGuy", Intervals = { (0.3f, 0.55f), (0.9f, 2.1f) } } },
         Vertical = { new() { Target = "Manki", Lowest = -1.5f, Highest = 2f } },

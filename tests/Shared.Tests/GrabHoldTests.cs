@@ -123,9 +123,9 @@ public sealed class GrabHoldTests
     }
 
     [Theory]
-    [InlineData(AbilitySlots.Slot1)]
-    [InlineData(AbilitySlots.Slot3)]
-    [InlineData(AbilitySlots.Slot4)]
+    [InlineData(AbilitySlots.Normal1)]
+    [InlineData(AbilitySlots.Normal2)]
+    [InlineData(AbilitySlots.Normal3)]
     [InlineData(AbilitySlots.A)]
     [InlineData(AbilitySlots.E)]
     [InlineData(AbilitySlots.R)]

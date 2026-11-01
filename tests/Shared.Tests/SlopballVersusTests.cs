@@ -223,7 +223,7 @@ public class SlopballVersusTests
         var checks = new List<string>();
         for (int i = 0; i < 150 && sim.SlopballVersus!.Value.Phase == SlopballVersusPhase.HeldServe; i++)
         {
-            sim.Tick(new() { [1] = new InputState { ActiveSlot = AbilitySlots.Slot1, TargetEntityId = ServerSimulation.ArcadeBallTargetInputId } });
+            sim.Tick(new() { [1] = new InputState { ActiveSlot = AbilitySlots.Normal1, TargetEntityId = ServerSimulation.ArcadeBallTargetInputId } });
             checks.AddRange(sim.Resolver.LastTickCheckedHitboxes.Select(h => $"{h.X:0.00},{h.Y:0.00},{h.Z:0.00} r{h.Radius:0.00}"));
         }
         Assert.True(sim.SlopballVersus!.Value.Phase != SlopballVersusPhase.HeldServe,

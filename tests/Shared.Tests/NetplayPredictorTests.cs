@@ -180,7 +180,7 @@ public class NetplayPredictorTests
     public void AttackBufferedOutOfHitstunComesOutOnTheGameHostTick()
     {
         var lab = new NetplayLab("slop_pit", Duel, seed: 3, FacingPair(1.1f));
-        lab[2].Input = (p, tick) => Toward(p, 1, slot: tick == 30 ? AbilitySlots.Slot1 : (byte)0);
+        lab[2].Input = (p, tick) => Toward(p, 1, slot: tick == 30 ? AbilitySlots.Normal1 : (byte)0);
         bool pressed = false;
         lab[1].Input = (p, tick) =>
         {
@@ -188,7 +188,7 @@ public class NetplayPredictorTests
             var you = p.State(1);
             bool press = !pressed && you.State == ActionState.Hitstun && you.HitstunTicks is > 0 and <= 4;
             pressed |= press;
-            return Toward(p, 2, slot: press ? AbilitySlots.Slot1 : (byte)0);
+            return Toward(p, 2, slot: press ? AbilitySlots.Normal1 : (byte)0);
         };
         lab.Run(200);
         Report(lab);
@@ -209,7 +209,7 @@ public class NetplayPredictorTests
         lab[1].Input = (p, tick) => Toward(p, 2) with
         {
             GrabPressed = tick == 30,
-            ActiveSlot = tick == 60 ? AbilitySlots.Slot1 : (byte)0,
+            ActiveSlot = tick == 60 ? AbilitySlots.Normal1 : (byte)0,
         };
         lab.Run(260);
         Report(lab);
@@ -289,8 +289,8 @@ public class NetplayPredictorTests
     {
         var mirror = new[] { CharacterClass.FightGuy, CharacterClass.FightGuy };
         var lab = new NetplayLab("slop_pit", mirror, seed: 7, FacingPair(1.0f));
-        lab[1].Input = (p, tick) => Toward(p, 2, slot: tick == 30 ? AbilitySlots.Slot1 : (byte)0);
-        lab[2].Input = (p, tick) => Toward(p, 1, slot: tick == 30 ? AbilitySlots.Slot1 : (byte)0);
+        lab[1].Input = (p, tick) => Toward(p, 2, slot: tick == 30 ? AbilitySlots.Normal1 : (byte)0);
+        lab[2].Input = (p, tick) => Toward(p, 1, slot: tick == 30 ? AbilitySlots.Normal1 : (byte)0);
         lab.Run(150);
         lab.Quiesce(120);
         Report(lab);
@@ -309,7 +309,7 @@ public class NetplayPredictorTests
     {
         var lab = new NetplayLab("slop_pit", Duel, seed: 10, FacingPair(1.0f));
         // You kick; the opponent raises a shield so late that your client has already shown the hit.
-        lab[1].Input = (p, tick) => Toward(p, 2, slot: tick == 30 ? AbilitySlots.Slot1 : (byte)0);
+        lab[1].Input = (p, tick) => Toward(p, 2, slot: tick == 30 ? AbilitySlots.Normal1 : (byte)0);
         lab[2].Input = (p, tick) => Toward(p, 1) with { ShieldHeld = tick >= 33 && tick < 60 };
         lab.Run(150);
         Report(lab);
@@ -588,7 +588,7 @@ public class NetplayPredictorTests
         var me = player.State(player.Id);
         var them = player.State(target);
         float distance = MathF.Sqrt((them.PX - me.PX) * (them.PX - me.PX) + (them.PZ - me.PZ) * (them.PZ - me.PZ));
-        return Toward(player, target, move: distance > 1.2f ? 1f : 0f, slot: attack ? AbilitySlots.Slot1 : (byte)0);
+        return Toward(player, target, move: distance > 1.2f ? 1f : 0f, slot: attack ? AbilitySlots.Normal1 : (byte)0);
     }
 
     /// <summary>Fighter 2 starts <paramref name="gap"/> metres from fighter 1 along x, the two facing each other.</summary>

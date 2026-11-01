@@ -168,7 +168,7 @@ public sealed class NetplayFrameAcceptanceTests
         var finish = Frame(MatchState.Ended);
         for (int i = 0; i < 30; i++)
             Assert.True(session.Predictor.Advance(i == 0
-                ? new InputState { ActiveSlot = AbilitySlots.Slot1, FacingYaw = 9000, TargetEntityId = 2 }
+                ? new InputState { ActiveSlot = AbilitySlots.Normal1, FacingYaw = 9000, TargetEntityId = 2 }
                 : default));
         var effects = new List<TimelinePresentationEvent>(); var stopped = new List<TimelinePresentationEvent>();
         var hits = new List<SpellResolver.HitResult>(); var retracted = new List<SpellResolver.HitResult>();

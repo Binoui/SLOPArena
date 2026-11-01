@@ -148,7 +148,7 @@ at the finish. The 58 focused tests and full Shared suite pass (3,339 passed, tw
 including low-aerial hit, shield and miss coverage. Ability Lab confirms the integrated
 clip and recovery; its higher aerial start misses the standing dummy as expected.
 
-`air.3` uses the [Sunrise brief](../../tools/genra/briefs/bonk-sir-a3-sunrise.json).
+`air.3` uses the [Sunrise brief](../../tools/genra/briefs/bonk-sir-a2-sunrise.json).
 The owner accepted repaired r1 keys and the first motion take ("Pretty good").
 `bonk_sir_a3_sunrise.anim` is bound to `anim.bonk.a3`, cooked at 1× on the 54-tick
 clock above, with the roster pin refreshed. Damage 11, launch −45°, knockback, stun
@@ -162,7 +162,7 @@ clip and recovery, restoring its previous Bashie workspace afterward. The rising
 Downward Sweep; it reaches higher and only 0.1 m below the feet versus Manki. This is
 the approved change to an upward role; air.4 provides the deep downward chop.
 
-`air.4` uses [The BONK brief](../../tools/genra/briefs/bonk-sir-a4-the-bonk.json).
+`air.4` uses [The BONK brief](../../tools/genra/briefs/bonk-sir-a3-the-bonk.json).
 The owner accepted revised motion r1 on 2026-10-23 ("very good"). The accepted Humanoid
 clip `bonk_sir_a4_the_bonk.anim` is bound to `anim.bonk.a4`, cooked at 1× on the 66-tick
 clock above, with the roster pin refreshed. Its 14 damage, 25° launch, knockback, stun and

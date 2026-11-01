@@ -3,7 +3,7 @@
 The script that turned FightGuy's approved Flip Kick keys (air.3, in game his second aerial)
 into the shipped clip. The owner's verdict on 2026-11-01 was "really good". Its run was
 `artifacts/genra-runs/20261029-211132-fightguy-a3-flip-kick`, the brief is
-`tools/genra/briefs/fightguy-a3-flip-kick.json`, and the shipped clip is
+`tools/genra/briefs/fightguy-a2-flip-kick.json`, and the shipped clip is
 `client/Unity/Assets/CharacterPackages/fightguy/Animations/fightguy_air3_flip_kick.anim`.
 
 What the flow pass changed, measured by `./genra check`:

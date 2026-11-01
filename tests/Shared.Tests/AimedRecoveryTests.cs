@@ -154,9 +154,9 @@ public sealed class AimedRecoveryTests
         Tick(sim, held);
         Assert.Null(sim.GetActiveAbility(1));
         Assert.True(sim.GetState(1).VY < 15f, "the held press cannot restart the bounce or dive");
-        Tick(sim, new InputState { ActiveSlot = AbilitySlots.Slot1 });
+        Tick(sim, new InputState { ActiveSlot = AbilitySlots.Normal1 });
         Assert.NotNull(sim.GetActiveAbility(1));
-        Assert.Equal(AbilitySlots.Slot1, sim.GetState(1).AttackSlot);
+        Assert.Equal(AbilitySlots.Normal1, sim.GetState(1).AttackSlot);
     }
 
     [Fact]

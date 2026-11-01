@@ -102,7 +102,7 @@ public sealed class BashieNormalsTests
     [Fact]
     public void GroundFourHopsAndHitsOnceThenLandsOnTheSameSpot()
     {
-        var result = Run(0f, 1f, false, slot: AbilitySlots.Slot4);
+        var result = Run(0f, 1f, false, slot: AbilitySlots.Normal3);
         var hit = Assert.Single(result.Hits);
         Assert.Equal(14f, hit.Damage);
         Assert.InRange(result.FirstContactTick, 14, 23);
@@ -118,12 +118,12 @@ public sealed class BashieNormalsTests
     [Fact]
     public void GroundFourRespectsShieldAndWhiffRecovery()
     {
-        var blocked = Run(0f, 1f, true, slot: AbilitySlots.Slot4);
+        var blocked = Run(0f, 1f, true, slot: AbilitySlots.Normal3);
         Assert.NotEmpty(blocked.Hits);
         Assert.All(blocked.Hits, hit => Assert.True(hit.Blocked));
         Assert.Equal((ushort)0, blocked.Victim.DamagePercent);
         Assert.InRange(blocked.MaxHorizontalDelta, 0f, .001f);
-        var missed = Run(0f, 3f, false, slot: AbilitySlots.Slot4);
+        var missed = Run(0f, 3f, false, slot: AbilitySlots.Normal3);
         Assert.Empty(missed.Hits);
         Assert.Null(missed.Sim.GetActiveAbility(1));
         Assert.Empty(missed.Sim.Resolver.GetActiveHitboxes());
@@ -133,7 +133,7 @@ public sealed class BashieNormalsTests
     [Fact]
     public void GroundFourHitsAnOpponentAboveTheShell()
     {
-        var result = Run(0f, .6f, false, slot: AbilitySlots.Slot4, victimHeight: 1.2f);
+        var result = Run(0f, .6f, false, slot: AbilitySlots.Normal3, victimHeight: 1.2f);
         Assert.Equal(14f, Assert.Single(result.Hits).Damage);
         Assert.InRange(result.FirstContactTick, 14, 23);
         Assert.InRange(result.MaxHorizontalDelta, 0f, .001f);
@@ -142,7 +142,7 @@ public sealed class BashieNormalsTests
     [Fact]
     public void GroundFourInterruptionClearsTheRisingHitboxes()
     {
-        var result = Run(0f, 3f, false, slot: AbilitySlots.Slot4, interruptAt: 18);
+        var result = Run(0f, 3f, false, slot: AbilitySlots.Normal3, interruptAt: 18);
         Assert.True(result.Attacker.IsGrounded);
         Assert.Empty(result.Hits);
         Assert.Null(result.Sim.GetActiveAbility(1));
@@ -152,7 +152,7 @@ public sealed class BashieNormalsTests
     [Fact]
     public void GroundFourHopCannotBeSteeredOrJumpCancelled()
     {
-        var result = Run(0f, 3f, false, slot: AbilitySlots.Slot4, steerDuringAttack: true);
+        var result = Run(0f, 3f, false, slot: AbilitySlots.Normal3, steerDuringAttack: true);
         Assert.True(result.AirborneDuringAttack);
         Assert.InRange(result.MaxHorizontalDelta, 0f, .001f);
         Assert.InRange(result.MaxRise, .45f, .65f);
@@ -168,7 +168,7 @@ public sealed class BashieNormalsTests
     [InlineData(270f)]
     public void GroundFourDiagonalReachFollowsFacing(float degrees)
     {
-        var result = Run(degrees, 1.6f, false, slot: AbilitySlots.Slot4, attackerYawDegrees: degrees);
+        var result = Run(degrees, 1.6f, false, slot: AbilitySlots.Normal3, attackerYawDegrees: degrees);
         var hit = Assert.Single(result.Hits);
         Assert.Equal(14f, hit.Damage);
         Assert.InRange(hit.KnockbackAngle, (sbyte)40, (sbyte)50);
@@ -188,7 +188,7 @@ public sealed class BashieNormalsTests
     public void AirFourHitsOnceWithDiagonalReach(float degrees)
     {
         var result = Run(degrees, 1.6f, false, airborne: true, ticks: 90,
-            slot: AbilitySlots.Slot4, attackerYawDegrees: degrees);
+            slot: AbilitySlots.Normal3, attackerYawDegrees: degrees);
         var hit = Assert.Single(result.Hits);
         Assert.Equal(14f, hit.Damage);
         Assert.InRange(hit.KnockbackAngle, (sbyte)40, (sbyte)50);
@@ -203,7 +203,7 @@ public sealed class BashieNormalsTests
     [Fact]
     public void AirFourPreservesTakeoffMomentum()
     {
-        var attack = Run(0f, 20f, false, airborne: true, ticks: 1, moving: true, slot: AbilitySlots.Slot4);
+        var attack = Run(0f, 20f, false, airborne: true, ticks: 1, moving: true, slot: AbilitySlots.Normal3);
         var baseline = Run(0f, 20f, false, airborne: true, ticks: 1, moving: true, press: false);
         Assert.Equal(3f, attack.Attacker.VX);
         Assert.Equal(2f, attack.Attacker.VZ);
@@ -214,7 +214,7 @@ public sealed class BashieNormalsTests
     [Fact]
     public void AirFourDoesNotBoostOrResetTheFall()
     {
-        var attack = Run(0f, 20f, false, airborne: true, ticks: 45, falling: true, slot: AbilitySlots.Slot4);
+        var attack = Run(0f, 20f, false, airborne: true, ticks: 45, falling: true, slot: AbilitySlots.Normal3);
         var baseline = Run(0f, 20f, false, airborne: true, ticks: 45, falling: true, press: false);
         Assert.Equal(baseline.Attacker.PY, attack.Attacker.PY);
         Assert.Equal(baseline.Attacker.VY, attack.Attacker.VY);
@@ -229,7 +229,7 @@ public sealed class BashieNormalsTests
     public void AirFourLandingCleansUpAndUsesAutoCancel(float height, bool expectsLag)
     {
         var result = Run(0f, 20f, false, airborne: true, ticks: 100, height: height,
-            falling: true, slot: AbilitySlots.Slot4);
+            falling: true, slot: AbilitySlots.Normal3);
         Assert.Equal(expectsLag, result.MaxLandingLag > 0);
         Assert.True(result.Attacker.IsGrounded);
         Assert.Equal((ushort)0, result.Attacker.LandingLagTicks);
@@ -241,11 +241,11 @@ public sealed class BashieNormalsTests
     public void AirFourRespectsGroundedShieldAndWhiffRecovery()
     {
         var blocked = Run(0f, 1.6f, true, airborne: true, height: .25f,
-            slot: AbilitySlots.Slot4, victimGrounded: true);
+            slot: AbilitySlots.Normal3, victimGrounded: true);
         Assert.NotEmpty(blocked.Hits);
         Assert.All(blocked.Hits, hit => Assert.True(hit.Blocked));
         Assert.Equal((ushort)0, blocked.Victim.DamagePercent);
-        var missed = Run(0f, 3f, false, airborne: true, slot: AbilitySlots.Slot4);
+        var missed = Run(0f, 3f, false, airborne: true, slot: AbilitySlots.Normal3);
         Assert.Empty(missed.Hits);
         Assert.Null(missed.Sim.GetActiveAbility(1));
         Assert.Empty(missed.Sim.Resolver.GetActiveHitboxes());
@@ -255,7 +255,7 @@ public sealed class BashieNormalsTests
     public void AirFourInterruptionClearsTheStrike()
     {
         var result = Run(0f, 3f, false, airborne: true, ticks: 120,
-            slot: AbilitySlots.Slot4, interruptAt: 18);
+            slot: AbilitySlots.Normal3, interruptAt: 18);
         Assert.Empty(result.Hits);
         Assert.Null(result.Sim.GetActiveAbility(1));
         Assert.Empty(result.Sim.Resolver.GetActiveHitboxes());
@@ -269,7 +269,7 @@ public sealed class BashieNormalsTests
     public void AirThreeHitsOnceWithUpwardLaunch(float degrees)
     {
         var result = Run(degrees, 1f, false, airborne: true, ticks: 90,
-            slot: AbilitySlots.Slot3, attackerYawDegrees: degrees);
+            slot: AbilitySlots.Normal2, attackerYawDegrees: degrees);
         var hit = Assert.Single(result.Hits);
         Assert.False(hit.Blocked);
         Assert.Equal(7f, hit.Damage);
@@ -286,19 +286,19 @@ public sealed class BashieNormalsTests
     [Fact]
     public void AirThreePreservesTakeoffMomentum()
     {
-        var attack = Run(0f, 20f, false, airborne: true, ticks: 1, moving: true, slot: AbilitySlots.Slot3);
+        var attack = Run(0f, 20f, false, airborne: true, ticks: 1, moving: true, slot: AbilitySlots.Normal2);
         var baseline = Run(0f, 20f, false, airborne: true, ticks: 1, moving: true, press: false);
         Assert.Equal(3f, attack.Attacker.VX);
         Assert.Equal(2f, attack.Attacker.VZ);
         Assert.Equal(baseline.Attacker.VY, attack.Attacker.VY);
         Assert.NotNull(attack.Sim.GetActiveAbility(1));
-        Assert.Equal("air.3", attack.Sim.GetActiveAbility(1)!.Move!.Id);
+        Assert.Equal("air.2", attack.Sim.GetActiveAbility(1)!.Move!.Id);
     }
 
     [Fact]
     public void AirThreeDoesNotBoostOrResetTheFall()
     {
-        var attack = Run(0f, 20f, false, airborne: true, ticks: 45, falling: true, slot: AbilitySlots.Slot3);
+        var attack = Run(0f, 20f, false, airborne: true, ticks: 45, falling: true, slot: AbilitySlots.Normal2);
         var baseline = Run(0f, 20f, false, airborne: true, ticks: 45, falling: true, press: false);
         Assert.Equal(baseline.Attacker.PY, attack.Attacker.PY);
         Assert.Equal(baseline.Attacker.VY, attack.Attacker.VY);
@@ -313,7 +313,7 @@ public sealed class BashieNormalsTests
     public void AirThreeLandingCleansUpAndUsesAutoCancel(float height, int earliestLanding, int latestLanding, int expectedLag)
     {
         var result = Run(0f, 20f, false, airborne: true, ticks: 100, height: height,
-            falling: true, slot: AbilitySlots.Slot3);
+            falling: true, slot: AbilitySlots.Normal2);
         Assert.InRange(result.FirstLandingTick, earliestLanding, latestLanding);
         Assert.Equal(expectedLag, result.MaxLandingLag);
         Assert.True(result.Attacker.IsGrounded);
@@ -326,13 +326,13 @@ public sealed class BashieNormalsTests
     public void AirThreeRespectsGroundedShieldAndWhiffRecovery()
     {
         var blocked = Run(0f, 1f, true, airborne: true, height: .25f,
-            slot: AbilitySlots.Slot3, victimGrounded: true);
+            slot: AbilitySlots.Normal2, victimGrounded: true);
         Assert.NotEmpty(blocked.Hits);
         Assert.All(blocked.Hits, hit => Assert.True(hit.Blocked));
         Assert.Equal((ushort)0, blocked.Victim.DamagePercent);
         Assert.Null(blocked.Sim.GetActiveAbility(1));
         Assert.Empty(blocked.Sim.Resolver.GetActiveHitboxes());
-        var missed = Run(0f, 3f, false, airborne: true, slot: AbilitySlots.Slot3);
+        var missed = Run(0f, 3f, false, airborne: true, slot: AbilitySlots.Normal2);
         Assert.Empty(missed.Hits);
         Assert.Equal((ushort)0, missed.Victim.DamagePercent);
         Assert.Null(missed.Sim.GetActiveAbility(1));
@@ -342,14 +342,14 @@ public sealed class BashieNormalsTests
     [Fact]
     public void AirThreeInterruptionClearsTheStrike()
     {
-        var active = Run(0f, 3f, false, airborne: true, ticks: 26, slot: AbilitySlots.Slot3);
+        var active = Run(0f, 3f, false, airborne: true, ticks: 26, slot: AbilitySlots.Normal2);
         Assert.NotEmpty(active.Sim.Resolver.GetActiveHitboxes());
         var interrupted = Run(0f, 3f, false, airborne: true, ticks: 27,
-            slot: AbilitySlots.Slot3, interruptAt: 26);
+            slot: AbilitySlots.Normal2, interruptAt: 26);
         Assert.Null(interrupted.Sim.GetActiveAbility(1));
         Assert.Empty(interrupted.Sim.Resolver.GetActiveHitboxes());
         var result = Run(0f, 3f, false, airborne: true, ticks: 120,
-            slot: AbilitySlots.Slot3, interruptAt: 26);
+            slot: AbilitySlots.Normal2, interruptAt: 26);
         Assert.Empty(result.Hits);
         Assert.Null(result.Sim.GetActiveAbility(1));
         Assert.Empty(result.Sim.Resolver.GetActiveHitboxes());
@@ -358,7 +358,7 @@ public sealed class BashieNormalsTests
     private static (ServerSimulation Sim, CharacterState Attacker, CharacterState Victim,
         SpellResolver.HitResult[] Hits, int FirstContactTick, int FirstLandingTick, int MaxLandingLag, float MaxHorizontalDelta, float MaxRise, float ReturnHeightDelta, bool AirborneDuringAttack) Run(float degrees, float distance, bool shield,
         bool airborne = false, int ticks = 100, bool moving = false, bool press = true, float height = 12f, bool falling = false,
-        byte slot = AbilitySlots.Slot1, float victimHeight = 0f, int interruptAt = -1, bool steerDuringAttack = false, float attackerYawDegrees = 0f, bool victimGrounded = false)
+        byte slot = AbilitySlots.Normal1, float victimHeight = 0f, int interruptAt = -1, bool steerDuringAttack = false, float attackerYawDegrees = 0f, bool victimGrounded = false)
     {
         var package = Path.Combine(Root(), "client/Unity/Assets/CharacterPackages/bashie");
         var compiled = CharacterPackageCompiler.Compile(File.ReadAllText(Path.Combine(package, "package.json")),

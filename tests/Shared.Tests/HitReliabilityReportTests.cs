@@ -52,7 +52,7 @@ public sealed class HitReliabilityReportTests
     [Fact]
     public void Flag_ReportsFastClipsPointBlankGapsLowReachAndSamplingLoss()
     {
-        var move = new MoveReliability { Slot = "air.3", Air = true, PlaybackSpeed = 1.8f, ActiveTicks = 8 };
+        var move = new MoveReliability { Slot = "air.2", Air = true, PlaybackSpeed = 1.8f, ActiveTicks = 8 };
         move.Vertical.Add(new VerticalBand { Target = "Manki", Lowest = 0.2f, Highest = 2f });
         move.Vertical.Add(new VerticalBand { Target = "FightGuy", Lowest = -0.3f, Highest = 2f });
         move.Sampling.Add(new SamplingRow { SweptPositions = 100, TestedPositions = 40, TargetFeetHeight = -1f });
@@ -70,7 +70,7 @@ public sealed class HitReliabilityReportTests
     [Fact]
     public void ParseSlots_AcceptsCanonicalKeysAndRejectsUnknownOnes()
     {
-        Assert.Equal(new[] { AbilitySlots.Slot1, AbilitySlots.Slot4, AbilitySlots.F }, SlopArena.HitReliabilityReport.Program.ParseSlots("1, 4,f,F"));
+        Assert.Equal(new[] { AbilitySlots.Normal1, AbilitySlots.Normal3, AbilitySlots.F }, SlopArena.HitReliabilityReport.Program.ParseSlots("1, 4,f,F"));
         Assert.Null(SlopArena.HitReliabilityReport.Program.ParseSlots("1,Q"));
         Assert.Null(SlopArena.HitReliabilityReport.Program.ParseSlots(""));
     }
@@ -103,7 +103,7 @@ public sealed class HitReliabilityReportTests
     [Fact]
     public void Flag_ReportsPointBlankWhiffOnlyAtTheDirectBearing()
     {
-        var move = new MoveReliability { Slot = "ground.3", ActiveTicks = 10, ContactTicksAtProbe = 3 };
+        var move = new MoveReliability { Slot = "ground.2", ActiveTicks = 10, ContactTicksAtProbe = 3 };
         move.Reach.Add(new ReachBand { Target = "Manki", BearingDegrees = 0f, Intervals = { (0.75f, 2.15f) } });
         move.Reach.Add(new ReachBand { Target = "Manki", BearingDegrees = 30f, Intervals = { (0.80f, 2.0f) } });
 

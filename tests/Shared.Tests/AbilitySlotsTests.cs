@@ -14,9 +14,9 @@ public class AbilitySlotsTests
     {
         byte[] slots =
         {
-            AbilitySlots.Lmb, AbilitySlots.Rmb, AbilitySlots.Slot1, AbilitySlots.E,
-            AbilitySlots.R, AbilitySlots.F, AbilitySlots.Slot2, AbilitySlots.Slot3,
-            AbilitySlots.Slot4, AbilitySlots.Slot5, AbilitySlots.A,
+            AbilitySlots.Lmb, AbilitySlots.Rmb, AbilitySlots.Normal1, AbilitySlots.E,
+            AbilitySlots.R, AbilitySlots.F, AbilitySlots.RetiredNormal, AbilitySlots.Normal2,
+            AbilitySlots.Normal3, AbilitySlots.RetiredFifthNormal, AbilitySlots.A,
         };
         Assert.Equal(11, slots.Length);
         Assert.Equal(11, AbilitySlots.Count);
@@ -24,7 +24,7 @@ public class AbilitySlotsTests
         // The six historical slots keep their wire values (kit data + tests depend on them).
         Assert.Equal(1, AbilitySlots.Lmb);
         Assert.Equal(2, AbilitySlots.Rmb);
-        Assert.Equal(3, AbilitySlots.Slot1); // key "1" — the former Q slot
+        Assert.Equal(3, AbilitySlots.Normal1); // key "1" — the former Q slot
         Assert.Equal(4, AbilitySlots.E);
         Assert.Equal(5, AbilitySlots.R);
         Assert.Equal(6, AbilitySlots.F);

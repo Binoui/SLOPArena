@@ -22,7 +22,7 @@ public sealed class TelemetryProvenanceTests
         var recorder = new SlopArena.Shared.AI.MatchRecorder();
         var inputs = new Dictionary<ulong, InputState>
         {
-            [1] = new InputState { ActiveSlot = AbilitySlots.Slot1 },
+            [1] = new InputState { ActiveSlot = AbilitySlots.Normal1 },
             [100] = default,
         };
         var tickInputs = new Dictionary<ulong, InputState>
@@ -53,7 +53,7 @@ public sealed class TelemetryProvenanceTests
         {
             OwnerEntityId = 1,
             TargetEntityId = 100,
-            AttackSlot = AbilitySlots.Slot1,
+            AttackSlot = AbilitySlots.Normal1,
             ActivationId = firstActivation,
             Airborne = true,
             Damage = 2f,
@@ -79,7 +79,7 @@ public sealed class TelemetryProvenanceTests
         var recorder = new SlopArena.Shared.AI.MatchRecorder();
         var input = new Dictionary<ulong, InputState>
         {
-            [1] = new InputState { ActiveSlot = AbilitySlots.Slot1 },
+            [1] = new InputState { ActiveSlot = AbilitySlots.Normal1 },
         };
 
         recorder.RecordPresses(sim, 0, input, Def);
@@ -137,7 +137,7 @@ public sealed class TelemetryProvenanceTests
             DurationTicks = 10,
             Gravity = 1f,
             OwnerId = 1,
-            AttackSlot = AbilitySlots.Slot1,
+            AttackSlot = AbilitySlots.Normal1,
             ActivationId = 42,
             ActivationAirborne = true,
             Explosion = new ProjectileExplosion
@@ -160,7 +160,7 @@ public sealed class TelemetryProvenanceTests
             Radius = 1f,
             DurationTicks = 2,
             OwnerId = 1,
-            AttackSlot = AbilitySlots.Slot1,
+            AttackSlot = AbilitySlots.Normal1,
             ActivationId = pending.activationId,
             ActivationAirborne = pending.airborne,
         });
@@ -172,7 +172,7 @@ public sealed class TelemetryProvenanceTests
         var hit = Assert.Single(hits);
         Assert.Equal((ulong)42, hit.ActivationId);
         Assert.True(hit.Airborne);
-        Assert.Equal(AbilitySlots.Slot1, hit.AttackSlot);
+        Assert.Equal(AbilitySlots.Normal1, hit.AttackSlot);
     }
 
     [Fact]
@@ -237,7 +237,7 @@ public sealed class TelemetryProvenanceTests
             DurationTicks = 2,
             Damage = 1f,
             OwnerId = 1,
-            AttackSlot = AbilitySlots.Slot1,
+            AttackSlot = AbilitySlots.Normal1,
             ActivationId = 10,
         });
         sim.Tick(new Dictionary<ulong, InputState> { [1] = default, [100] = default });
@@ -275,7 +275,7 @@ public sealed class TelemetryProvenanceTests
             DurationTicks = 2,
             Damage = 1f,
             OwnerId = 1,
-            AttackSlot = AbilitySlots.Slot1,
+            AttackSlot = AbilitySlots.Normal1,
             ActivationId = 12,
         });
         sim.Tick(new Dictionary<ulong, InputState> { [1] = default, [100] = default });

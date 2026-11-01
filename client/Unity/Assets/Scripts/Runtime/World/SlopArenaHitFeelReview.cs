@@ -24,7 +24,7 @@ namespace SlopArena.EditorTools
 
         public ArenaDefinition Arena;
         public string AttackerPackage = "fightguy", VictimPackage = "manki";
-        public byte SlotWire = AbilitySlots.Slot4;
+        public byte SlotWire = AbilitySlots.Normal3;
         public float Distance = 1.2f;
         public ushort VictimDamage;
         // Spawns sit above the floor: let both fighters land and settle before the press.

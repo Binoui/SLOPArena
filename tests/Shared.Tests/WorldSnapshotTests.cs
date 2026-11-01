@@ -292,7 +292,7 @@ public class WorldSnapshotTests
     {
         private static readonly byte[] Slots =
         {
-            AbilitySlots.Slot1, AbilitySlots.Slot2, AbilitySlots.Slot3, AbilitySlots.Slot4,
+            AbilitySlots.Normal1, AbilitySlots.RetiredNormal, AbilitySlots.Normal2, AbilitySlots.Normal3,
             AbilitySlots.A, AbilitySlots.E, AbilitySlots.R, AbilitySlots.F,
         };
         private readonly Random _rng;
@@ -405,7 +405,7 @@ public class WorldSnapshotTests
         private enum Drill { Free, Hits, Specials, Shield, Grab, AirDodge, Aim, WalkOff }
         private static readonly Drill[] Round =
             { Drill.Free, Drill.Hits, Drill.Specials, Drill.Shield, Drill.Grab, Drill.AirDodge, Drill.Aim, Drill.Free, Drill.Specials, Drill.Grab };
-        private static readonly byte[] Normals = { AbilitySlots.Slot1, AbilitySlots.Slot2, AbilitySlots.Slot3, AbilitySlots.Slot4 };
+        private static readonly byte[] Normals = { AbilitySlots.Normal1, AbilitySlots.RetiredNormal, AbilitySlots.Normal2, AbilitySlots.Normal3 };
         private static readonly byte[] Aimed = { AbilitySlots.A, AbilitySlots.E, AbilitySlots.R, AbilitySlots.F };
         private const int FreeTicks = 120, CapTicks = 420, WalkOffAfter = 1200;
         private readonly FightDriver _free;

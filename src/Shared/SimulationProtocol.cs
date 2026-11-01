@@ -80,7 +80,7 @@ namespace SlopArena.Shared
         // - Standing jump takeoff caps horizontal speed at min(RunSpeed, 1.2 * AirSpeedMax) (ADR-0058).
         // - Walk is held intent in input flags byte 8, bit 0x40, targeting 40% of RunSpeed (ADR-0058);
         //   the World Snapshot input record carries Walk in bit 0x40 of the DashPressed byte, with no layout change.
-        // - Nyxxie's Ring Light Overhead (fake air.3) hits with its pole chop: the capsule opens at tick 10 instead of
+        // - Nyxxie's Ring Light Overhead (fake air.2) hits with its pole chop: the capsule opens at tick 10 instead of
         //   15 and runs along the pole's swing, from (-0.15, 1.3, -0.1) to (-0.05, 0.6, 1.0), radius 0.45. Damage,
         //   knockback, its 14 active ticks and the 55-tick move are unchanged. Package data only.
         //

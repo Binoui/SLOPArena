@@ -98,7 +98,7 @@ public sealed class ComboRouteReportTests
             (1, HitTimeline(new[] { 0 }, duration: 4, stunTicks: 0)));
         var context = ContextFor(kit);
         var replay = CreateReplay(context, 28, 101.6f,
-            (0, "ground.1"), (1, "ground.3"));
+            (0, "ground.1"), (1, "ground.2"));
 
         var outcome = ComboRouteReport.Execute(context, replay).Outcome;
 
@@ -129,7 +129,7 @@ public sealed class ComboRouteReportTests
         var context = ContextFor(kit);
         const int followupTick = 20;
         var replay = CreateReplay(context, 26, 101.6f,
-            (0, "ground.1"), (followupTick, "ground.3"));
+            (0, "ground.1"), (followupTick, "ground.2"));
 
         var outcome = ComboRouteReport.Execute(context, replay).Outcome;
 
@@ -374,7 +374,7 @@ public sealed class ComboRouteReportTests
         int landing = falling.LandingTicks.First(tick => tick > descending);
         Assert.True(landing < ordinary.LandingTicks.First(tick => tick > descending));
         int follow = landing + 1;
-        fastFall.AttackerInputs[follow].ActiveSlot = AbilitySlots.Slot1;
+        fastFall.AttackerInputs[follow].ActiveSlot = AbilitySlots.Normal1;
         fastFall.Actions.Add(new ComboRouteReport.PlannedAction { Tick = follow, Slot = "ground.1" });
         var outcome = ComboRouteReport.Execute(context, fastFall).Outcome;
         Assert.True(outcome.RouteSucceeded);
@@ -391,7 +391,7 @@ public sealed class ComboRouteReportTests
             (0, HitTimeline(new[] { 0 }, 20, damage: 4f)),
             (1, HitTimeline(new[] { 0 }, 20, damage: 9f))));
         var first = CreateReplay(context, 24, 101.6f, (0, "ground.1"));
-        var second = CreateReplay(context, 24, 101.6f, (0, "ground.3"));
+        var second = CreateReplay(context, 24, 101.6f, (0, "ground.2"));
         first.Id = "first";
         second.Id = "second";
         var firstOutcome = ComboRouteReport.Execute(context, first).Outcome;

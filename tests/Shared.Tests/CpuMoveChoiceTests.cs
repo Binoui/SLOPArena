@@ -54,9 +54,9 @@ public sealed class CpuMoveChoiceTests
     [Fact]
     public void AMultiHitGroupScoresLikeOneHit()
     {
-        var single = Kit((AbilitySlots.Slot1, new[] { Strike(8f) }), (AbilitySlots.Slot3, new[] { Strike(14f, group: 1) }));
-        var sliced = Kit((AbilitySlots.Slot1, new[] { Strike(8f) }),
-            (AbilitySlots.Slot3, Enumerable.Range(0, 10).Select(i => Strike(14f, group: 1, tick: (ushort)(3 + i))).ToArray()));
+        var single = Kit((AbilitySlots.Normal1, new[] { Strike(8f) }), (AbilitySlots.Normal2, new[] { Strike(14f, group: 1) }));
+        var sliced = Kit((AbilitySlots.Normal1, new[] { Strike(8f) }),
+            (AbilitySlots.Normal2, Enumerable.Range(0, 10).Select(i => Strike(14f, group: 1, tick: (ushort)(3 + i))).ToArray()));
         var policy = new HeuristicBotPolicy();
         var self = TestHelpers.PlayerState() with { PY = TestHelpers.GroundPY(single) };
         var target = TestHelpers.NpcState(0f, 0.8f) with { PY = TestHelpers.GroundPY(single) };
@@ -97,11 +97,11 @@ public sealed class CpuMoveChoiceTests
     [Fact]
     public void ThreeEqualNormalsAreEachPressedAThirdOfTheTime()
     {
-        var def = Kit((AbilitySlots.Slot1, new[] { Strike(8f) }), (AbilitySlots.Slot3, new[] { Strike(8f) }),
-            (AbilitySlots.Slot4, new[] { Strike(8f) }));
+        var def = Kit((AbilitySlots.Normal1, new[] { Strike(8f) }), (AbilitySlots.Normal2, new[] { Strike(8f) }),
+            (AbilitySlots.Normal3, new[] { Strike(8f) }));
         var presses = Presses(def, 0.8f, 1200);
         int total = presses.Values.Sum();
-        foreach (byte slot in new[] { AbilitySlots.Slot1, AbilitySlots.Slot3, AbilitySlots.Slot4 })
+        foreach (byte slot in new[] { AbilitySlots.Normal1, AbilitySlots.Normal2, AbilitySlots.Normal3 })
         {
             float share = presses.GetValueOrDefault(slot) / (float)total;
             Assert.True(MathF.Abs(share - 1f / 3f) <= 0.05f, $"slot {slot} share {share:P1} of {total}");
@@ -113,7 +113,7 @@ public sealed class CpuMoveChoiceTests
     [InlineData(CpuDifficulty.Hard)]
     public void ComparablePokesKeepBothTheNormalAndTheSpecialEligible(CpuDifficulty difficulty)
     {
-        var def = Kit((AbilitySlots.Slot1, new[] { Strike(8f) }), (AbilitySlots.A, new[] { Strike(8f) }));
+        var def = Kit((AbilitySlots.Normal1, new[] { Strike(8f) }), (AbilitySlots.A, new[] { Strike(8f) }));
         var presses = Presses(def, 0.8f, 4000, difficulty);
         int total = presses.Values.Sum();
         float share = presses.GetValueOrDefault(AbilitySlots.A) / (float)total;
@@ -131,10 +131,10 @@ public sealed class CpuMoveChoiceTests
     [Fact]
     public void AReachingSpecialFiresOnTheWayInWhileTheCpuKeepsApproaching()
     {
-        var def = Kit((AbilitySlots.Slot1, new[] { Strike(8f) }), (AbilitySlots.R, new[] { Strike(10f, reach: 6f) }));
+        var def = Kit((AbilitySlots.Normal1, new[] { Strike(8f) }), (AbilitySlots.R, new[] { Strike(10f, reach: 6f) }));
         var presses = Presses(def, 4f, 400);
         int total = presses.Values.Sum();
-        Assert.Equal(0, presses.GetValueOrDefault(AbilitySlots.Slot1));
+        Assert.Equal(0, presses.GetValueOrDefault(AbilitySlots.Normal1));
         Assert.True(presses.GetValueOrDefault(AbilitySlots.R) > 0);
         bool exercised = false;
         for (int seed = 0; seed < 32 && !exercised; seed++)
@@ -159,7 +159,7 @@ public sealed class CpuMoveChoiceTests
                         Assert.Equal(1, outsideByPlan[serial]);
                     }
                 }
-                if (input.ActiveSlot == AbilitySlots.Slot1) normal = true;
+                if (input.ActiveSlot == AbilitySlots.Normal1) normal = true;
                 sim.Tick(new Dictionary<ulong, InputState> { [1] = input, [100] = default });
                 if (normal) break;
             }

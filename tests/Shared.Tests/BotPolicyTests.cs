@@ -133,7 +133,7 @@ public class BotPolicyTests
     {
         foreach (var slot in new[]
         {
-            AbilitySlots.Slot1, AbilitySlots.Slot3, AbilitySlots.Slot4,
+            AbilitySlots.Normal1, AbilitySlots.Normal2, AbilitySlots.Normal3,
             AbilitySlots.E, AbilitySlots.R, AbilitySlots.F,
         })
             state.SetCooldown(slot, 999);
@@ -145,8 +145,8 @@ public class BotPolicyTests
         var slots = System.Linq.Enumerable.ToArray(def.CookedSlots!);
         foreach (var (ordinal, id, air, ticks) in new[]
         {
-            (0, "ground.1", false, cooldown), (1, "ground.3", false, (ushort)0),
-            (7, "air.1", true, cooldown), (8, "air.3", true, (ushort)0),
+            (0, "ground.1", false, cooldown), (1, "ground.2", false, (ushort)0),
+            (7, "air.1", true, cooldown), (8, "air.2", true, (ushort)0),
         })
             slots[ordinal] = new CookedSlotDefinition(
                 ordinal, id, air, "IASA fixture", "", "",
@@ -174,7 +174,7 @@ public class BotPolicyTests
         var self = TestHelpers.PlayerState() with
         {
             PY = TestHelpers.GroundPY(def), IsGrounded = !airborne,
-            State = ActionState.Attacking, AttackSlot = AbilitySlots.Slot1,
+            State = ActionState.Attacking, AttackSlot = AbilitySlots.Normal1,
             AttackElapsedTicks = 4, AnimLockTicks = 16,
         };
         var target = self with
@@ -188,8 +188,8 @@ public class BotPolicyTests
             var memory = new BotMemory { Difficulty = CpuDifficulty.Hard };
             Prime(memory, target);
             var input = policy.Decide(self, target, def, new Random(seed), memory, RecoveryArena(), activeMove: def.GetCookedSlotAbility(self.AttackSlot, !self.IsGrounded));
-            Assert.NotEqual(AbilitySlots.Slot1, input.ActiveSlot);
-            if (input.ActiveSlot == AbilitySlots.Slot3) alternatives++;
+            Assert.NotEqual(AbilitySlots.Normal1, input.ActiveSlot);
+            if (input.ActiveSlot == AbilitySlots.Normal2) alternatives++;
         }
         Assert.True(alternatives > 0, "Another ready move must remain selectable at IASA.");
     }
@@ -197,33 +197,33 @@ public class BotPolicyTests
     [Fact]
     public void QueuedPressUsesGroundActivationIasaAfterLeavingGround()
     {
-        var def = TestHelpers.WithMove(TestHelpers.EngineDef, AbilitySlots.Slot1, false, "Ground", 30, 20);
-        def = TestHelpers.WithMove(def, AbilitySlots.Slot1, true, "Air", 30, 2);
+        var def = TestHelpers.WithMove(TestHelpers.EngineDef, AbilitySlots.Normal1, false, "Ground", 30, 20);
+        def = TestHelpers.WithMove(def, AbilitySlots.Normal1, true, "Air", 30, 2);
         var self = TestHelpers.PlayerState() with
         {
             PY = TestHelpers.GroundPY(def) + 2, IsGrounded = false,
-            State = ActionState.Attacking, AttackSlot = AbilitySlots.Slot1,
+            State = ActionState.Attacking, AttackSlot = AbilitySlots.Normal1,
             AttackElapsedTicks = 4, AnimLockTicks = 26,
         };
         var target = self with { EntityId = 2, PZ = 1, State = ActionState.Idle, AttackSlot = 0 };
         var memory = new BotMemory { Difficulty = CpuDifficulty.Hard };
         Prime(memory, target);
-        memory.StartPlan(AbilitySlots.Slot3, false, 0, 0, 0, 0, self.Deaths, false, pressIssued: false);
+        memory.StartPlan(AbilitySlots.Normal2, false, 0, 0, 0, 0, self.Deaths, false, pressIssued: false);
         var policy = new HeuristicBotPolicy();
-        var activation = def.GetCookedSlotAbility(AbilitySlots.Slot1, false);
+        var activation = def.GetCookedSlotAbility(AbilitySlots.Normal1, false);
         var blocked = policy.Decide(self, target, def, new Random(0), memory, RecoveryArena(), activeMove: activation);
         Assert.Equal(AbilitySlots.None, blocked.ActiveSlot);
         Assert.False(memory.PlanPressIssued);
         self.AttackElapsedTicks = 20;
         var accepted = policy.Decide(self, target, def, new Random(0), memory, RecoveryArena(), activeMove: activation);
-        Assert.Equal(AbilitySlots.Slot3, accepted.ActiveSlot);
+        Assert.Equal(AbilitySlots.Normal2, accepted.ActiveSlot);
     }
 
     [Theory]
-    [InlineData(false, 120, AbilitySlots.Slot1, false)]
-    [InlineData(true, 120, AbilitySlots.Slot1, false)]
-    [InlineData(false, 0, AbilitySlots.Slot1, true)]
-    [InlineData(false, 120, AbilitySlots.Slot3, true)]
+    [InlineData(false, 120, AbilitySlots.Normal1, false)]
+    [InlineData(true, 120, AbilitySlots.Normal1, false)]
+    [InlineData(false, 0, AbilitySlots.Normal1, true)]
+    [InlineData(false, 120, AbilitySlots.Normal2, true)]
     public void Iasa_QueuedPress_RespectsPendingCooldown(
         bool airborne, ushort cooldown, byte slot, bool accepted)
     {
@@ -231,7 +231,7 @@ public class BotPolicyTests
         var self = TestHelpers.PlayerState() with
         {
             PY = TestHelpers.GroundPY(def), IsGrounded = !airborne,
-            State = ActionState.Attacking, AttackSlot = AbilitySlots.Slot1,
+            State = ActionState.Attacking, AttackSlot = AbilitySlots.Normal1,
             AttackElapsedTicks = 4, AnimLockTicks = 16,
         };
         var target = self with { EntityId = 2, PZ = 1, State = ActionState.Idle, AttackSlot = 0 };
@@ -299,7 +299,7 @@ public class BotPolicyTests
             var memory = new BotMemory { Difficulty = CpuDifficulty.Normal };
             Prime(memory, target);
             byte slot = AwaitAction(self, target, Def, new Random(seed), memory).ActiveSlot;
-            if (slot is >= AbilitySlots.Slot1 and <= AbilitySlots.Slot4)
+            if (slot is >= AbilitySlots.Normal1 and <= AbilitySlots.Normal3)
                 normals++;
             else if (slot is AbilitySlots.A or AbilitySlots.E or AbilitySlots.R or AbilitySlots.F)
                 specials++;
@@ -493,8 +493,8 @@ public class BotPolicyTests
             var hardMemory = new BotMemory { Difficulty = CpuDifficulty.Hard };
             Prime(easyMemory, target);
             Prime(hardMemory, target);
-            easyMemory.RecordOpponentContact(AbilitySlots.Slot1, CpuContactKind.Hit, target with { HitstunTicks = 18 }, 0);
-            hardMemory.RecordOpponentContact(AbilitySlots.Slot1, CpuContactKind.Hit, target with { HitstunTicks = 18 }, 0);
+            easyMemory.RecordOpponentContact(AbilitySlots.Normal1, CpuContactKind.Hit, target with { HitstunTicks = 18 }, 0);
+            hardMemory.RecordOpponentContact(AbilitySlots.Normal1, CpuContactKind.Hit, target with { HitstunTicks = 18 }, 0);
             for (int i = 0; i < BotDifficultyProfile.ForDifficulty(easyMemory.Difficulty).ReactionDelayTicks; i++)
                 easyMemory.ObserveOpponent(target);
             for (int i = 0; i < BotDifficultyProfile.ForDifficulty(hardMemory.Difficulty).ReactionDelayTicks; i++)
@@ -514,14 +514,14 @@ public class BotPolicyTests
     {
         var self = Self();
         self.State = ActionState.Attacking;
-        self.AttackSlot = AbilitySlots.Slot1;
+        self.AttackSlot = AbilitySlots.Normal1;
         self.AnimLockTicks = 6;
         var target = Opponent(z: 0.5f);
         target.State = ActionState.Hitstun;
         target.HitstunTicks = 60;
         var memory = new BotMemory { Difficulty = CpuDifficulty.Hard };
         Prime(memory, target);
-        memory.RecordOpponentContact(AbilitySlots.Slot1, CpuContactKind.Hit, target, 4);
+        memory.RecordOpponentContact(AbilitySlots.Normal1, CpuContactKind.Hit, target, 4);
 
         int delay = BotDifficultyProfile.ForDifficulty(memory.Difficulty).ReactionDelayTicks;
         var rng = new Random(42);
@@ -561,7 +561,7 @@ public class BotPolicyTests
         var self = Self();
         foreach (var slot in new[]
         {
-            AbilitySlots.Slot1, AbilitySlots.Slot4,
+            AbilitySlots.Normal1, AbilitySlots.Normal3,
             AbilitySlots.A, AbilitySlots.E, AbilitySlots.R, AbilitySlots.F,
         })
             self.SetCooldown(slot, 999);
@@ -573,7 +573,7 @@ public class BotPolicyTests
             var memory = new BotMemory { Difficulty = CpuDifficulty.Hard };
             Prime(memory, target);
             selected = Policy.Decide(self, target, Def, new Random(seed), memory).ActiveSlot
-                == AbilitySlots.Slot3;
+                == AbilitySlots.Normal2;
         }
 
         Assert.True(selected, "canonical grounded slot 3 was never considered");
@@ -588,7 +588,7 @@ public class BotPolicyTests
         self.IsGrounded = false;
         foreach (var slot in new[]
         {
-            AbilitySlots.Slot1, AbilitySlots.Slot4,
+            AbilitySlots.Normal1, AbilitySlots.Normal3,
             AbilitySlots.A, AbilitySlots.E, AbilitySlots.R, AbilitySlots.F,
         })
             self.SetCooldown(slot, 999);
@@ -611,7 +611,7 @@ public class BotPolicyTests
         self.PY = TestHelpers.GroundPY(def);
         foreach (var slot in new[]
         {
-            AbilitySlots.Slot1, AbilitySlots.Slot3, AbilitySlots.Slot4,
+            AbilitySlots.Normal1, AbilitySlots.Normal2, AbilitySlots.Normal3,
             AbilitySlots.E, AbilitySlots.R, AbilitySlots.F,
         })
             self.SetCooldown(slot, 999);
@@ -709,7 +709,7 @@ public class BotPolicyTests
             self.PY = TestHelpers.GroundPY(def);
             foreach (var slot in new[]
             {
-                AbilitySlots.Slot1, AbilitySlots.Slot3, AbilitySlots.Slot4,
+                AbilitySlots.Normal1, AbilitySlots.Normal2, AbilitySlots.Normal3,
                 AbilitySlots.E, AbilitySlots.R, AbilitySlots.F,
             })
                 self.SetCooldown(slot, 999);
@@ -754,9 +754,9 @@ public class BotPolicyTests
             self.PY = TestHelpers.GroundPY(def);
             foreach (var slot in new[]
             {
-                AbilitySlots.Lmb, AbilitySlots.Rmb, AbilitySlots.Slot1, AbilitySlots.E,
-                AbilitySlots.F, AbilitySlots.Slot2, AbilitySlots.Slot3, AbilitySlots.Slot4,
-                AbilitySlots.Slot5, AbilitySlots.A,
+                AbilitySlots.Lmb, AbilitySlots.Rmb, AbilitySlots.Normal1, AbilitySlots.E,
+                AbilitySlots.F, AbilitySlots.RetiredNormal, AbilitySlots.Normal2, AbilitySlots.Normal3,
+                AbilitySlots.RetiredFifthNormal, AbilitySlots.A,
             })
                 self.SetCooldown(slot, 999);
 
@@ -965,7 +965,7 @@ public class BotPolicyTests
         self.FacingYaw = yaw;
         foreach (var slot in new[]
         {
-            AbilitySlots.Slot1, AbilitySlots.Slot3, AbilitySlots.Slot4,
+            AbilitySlots.Normal1, AbilitySlots.Normal2, AbilitySlots.Normal3,
             AbilitySlots.A, AbilitySlots.E, AbilitySlots.F,
         })
             self.SetCooldown(slot, 999);
@@ -1157,7 +1157,7 @@ public sealed class MankiBazookaBotPolicyTests
     {
         var def = TestHelpers.ResolveSourceDef("manki");
         var self = TestHelpers.PlayerState(20f, 20f) with { PY = TestHelpers.GroundPY(def) };
-        foreach (var slot in new[] { AbilitySlots.Slot1, AbilitySlots.Slot3, AbilitySlots.Slot4, AbilitySlots.E, AbilitySlots.F })
+        foreach (var slot in new[] { AbilitySlots.Normal1, AbilitySlots.Normal2, AbilitySlots.Normal3, AbilitySlots.E, AbilitySlots.F })
             self.SetCooldown(slot, 999);
         self.SetCooldown(AbilitySlots.A, 999);
         self.SetCooldown(AbilitySlots.R, 0);

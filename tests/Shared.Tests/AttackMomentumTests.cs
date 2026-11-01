@@ -23,7 +23,7 @@ public class AttackMomentumTests
         for (int tick = 1; tick <= 22; tick++)
         {
             var state = Tick(sim, TestHelpers.Input(
-                activeSlot: tick == 1 ? AbilitySlots.Slot1 : AbilitySlots.None,
+                activeSlot: tick == 1 ? AbilitySlots.Normal1 : AbilitySlots.None,
                 moveX: tick % 2 == 0 ? -1f : 1f, moveY: 1f,
                 down: origin == ActionState.Sliding));
             float speed = MathF.Max(0f, entryRatio - Brake(origin) * tick) * def.Movement.RunSpeed;
@@ -61,7 +61,7 @@ public class AttackMomentumTests
         for (int tick = 1; tick <= 22; tick++)
         {
             var after = Tick(sim, TestHelpers.Input(
-                activeSlot: tick == 1 ? AbilitySlots.Slot1 : AbilitySlots.None,
+                activeSlot: tick == 1 ? AbilitySlots.Normal1 : AbilitySlots.None,
                 moveX: -1f, moveY: -1f, down: origin == ActionState.Sliding));
             float speed = MathF.Max(0f, entryRatio - Brake(origin) * tick) * runSpeed;
             distance += speed * Simulation.TickDt;
@@ -95,7 +95,7 @@ public class AttackMomentumTests
         float expectedSpeed = entrySpeed
             - Brake(slide ? ActionState.Sliding : ActionState.Run) * def.Movement.RunSpeed;
 
-        var after = Tick(sim, TestHelpers.Input(activeSlot: AbilitySlots.Slot1, moveY: 1f, down: slide));
+        var after = Tick(sim, TestHelpers.Input(activeSlot: AbilitySlots.Normal1, moveY: 1f, down: slide));
 
         Assert.Equal(ActionState.Attacking, after.State);
         Assert.True(after.SlideAttackCarryActive);
@@ -113,7 +113,7 @@ public class AttackMomentumTests
         var sim = NewSimulation(def, origin, 10f, 5f);
         var before = sim.GetState(1);
 
-        var after = Tick(sim, TestHelpers.Input(activeSlot: AbilitySlots.Slot1,
+        var after = Tick(sim, TestHelpers.Input(activeSlot: AbilitySlots.Normal1,
             down: origin == ActionState.Sliding));
 
         Assert.Equal(ActionState.Attacking, after.State);
@@ -133,7 +133,7 @@ public class AttackMomentumTests
         var sim = NewSimulation(def, ActionState.Idle, 10f, 5f, grounded: false);
         var before = sim.GetState(1);
 
-        var after = Tick(sim, TestHelpers.Input(activeSlot: AbilitySlots.Slot1));
+        var after = Tick(sim, TestHelpers.Input(activeSlot: AbilitySlots.Normal1));
 
         Assert.Equal(ActionState.Attacking, after.State);
         Assert.False(after.SlideAttackCarryActive);
@@ -160,7 +160,7 @@ public class AttackMomentumTests
         for (int tick = 0; tick < 2; tick++)
         {
             var after = Tick(sim, TestHelpers.Input(
-                activeSlot: tick == 0 ? AbilitySlots.Slot1 : AbilitySlots.None,
+                activeSlot: tick == 0 ? AbilitySlots.Normal1 : AbilitySlots.None,
                 down: origin == ActionState.Sliding));
             float xRatio = brakes ? .8f * (.9f - .1f * tick) : 1.2f;
             float zRatio = brakes ? .6f * (.9f - .1f * tick) : .9f;
@@ -181,7 +181,7 @@ public class AttackMomentumTests
     {
         var def = MakeDefinition();
         var sim = NewSimulation(def, origin, def.Movement.RunSpeed);
-        var before = Tick(sim, TestHelpers.Input(activeSlot: AbilitySlots.Slot1));
+        var before = Tick(sim, TestHelpers.Input(activeSlot: AbilitySlots.Normal1));
         sim.SetState(1, before with { HitstopTicks = 3 });
 
         for (int frozenTick = 0; frozenTick < 3; frozenTick++)
@@ -216,15 +216,15 @@ public class AttackMomentumTests
     {
         var def = MakeDefinition(iasaTicks: 2);
         var sim = NewSimulation(def, ActionState.Run, def.Movement.RunSpeed);
-        TestHelpers.TickN(sim, TestHelpers.Input(activeSlot: AbilitySlots.Slot1), elapsed);
+        TestHelpers.TickN(sim, TestHelpers.Input(activeSlot: AbilitySlots.Normal1), elapsed);
         var before = sim.GetState(1);
         Assert.Equal(elapsed, before.AttackElapsedTicks);
         var originalAbility = sim.GetActiveAbility(1);
 
-        var after = Tick(sim, TestHelpers.Input(activeSlot: AbilitySlots.Slot3, moveX: 1f));
+        var after = Tick(sim, TestHelpers.Input(activeSlot: AbilitySlots.Normal2, moveX: 1f));
 
         Assert.Equal(ActionState.Attacking, after.State);
-        Assert.Equal(accepted ? AbilitySlots.Slot3 : AbilitySlots.Slot1, after.AttackSlot);
+        Assert.Equal(accepted ? AbilitySlots.Normal2 : AbilitySlots.Normal1, after.AttackSlot);
         Assert.Equal(!accepted, after.SlideAttackCarryActive);
         if (accepted)
         {
@@ -257,7 +257,7 @@ public class AttackMomentumTests
         var def = MakeDefinition(operations: new[] { operation });
         var sim = NewSimulation(def, origin, def.Movement.RunSpeed);
         var before = sim.GetState(1);
-        var after = Tick(sim, TestHelpers.Input(activeSlot: AbilitySlots.Slot1));
+        var after = Tick(sim, TestHelpers.Input(activeSlot: AbilitySlots.Normal1));
         if (operationTick > 0)
         {
             Assert.Equal(lunge, after.SlideAttackCarryActive);
@@ -293,7 +293,7 @@ public class AttackMomentumTests
     {
         var def = MakeDefinition();
         var continuous = NewSimulation(def, origin, def.Movement.RunSpeed);
-        var before = TestHelpers.TickN(continuous, TestHelpers.Input(activeSlot: AbilitySlots.Slot1), 2);
+        var before = TestHelpers.TickN(continuous, TestHelpers.Input(activeSlot: AbilitySlots.Normal1), 2);
         continuous.SetState(1, before with { HitstopTicks = hitstop });
         var restored = NewSimulation(def, ActionState.Idle, 0f);
         restored.RestoreSnapshot(new WorldSnapshot(continuous.CaptureSnapshot().Data));
@@ -325,7 +325,7 @@ public class AttackMomentumTests
     {
         var def = MakeDefinition();
         var sim = NewSimulation(def, origin, def.Movement.RunSpeed);
-        Assert.True(Tick(sim, TestHelpers.Input(activeSlot: AbilitySlots.Slot1)).SlideAttackCarryActive);
+        Assert.True(Tick(sim, TestHelpers.Input(activeSlot: AbilitySlots.Normal1)).SlideAttackCarryActive);
 
         var after = TestHelpers.TickDefault(sim, 30);
 
@@ -341,7 +341,7 @@ public class AttackMomentumTests
     {
         var def = MakeDefinition(iasaTicks: 1);
         var sim = NewSimulation(def, origin, def.Movement.RunSpeed);
-        Assert.True(Tick(sim, TestHelpers.Input(activeSlot: AbilitySlots.Slot1)).SlideAttackCarryActive);
+        Assert.True(Tick(sim, TestHelpers.Input(activeSlot: AbilitySlots.Normal1)).SlideAttackCarryActive);
         var before = sim.GetState(1);
 
         var after = Tick(sim, new InputState { ShieldHeld = true, ShieldPressed = true });
@@ -388,7 +388,7 @@ public class AttackMomentumTests
         for (int tick = 1; tick <= 8; tick++)
         {
             var state = Tick(sim, new InputState { MoveX = 1f, Walk = true,
-                ActiveSlot = tick == 1 ? AbilitySlots.Slot1 : AbilitySlots.None });
+                ActiveSlot = tick == 1 ? AbilitySlots.Normal1 : AbilitySlots.None });
             Assert.Equal(ActionState.Attacking, state.State);
             Assert.True(state.SlideAttackCarryActive);
             Assert.Equal(MathF.Max(0f, .4f - tick / 20f) * def.Movement.RunSpeed, state.VX, 4);

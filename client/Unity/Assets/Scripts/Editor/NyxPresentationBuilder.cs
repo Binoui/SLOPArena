@@ -55,7 +55,7 @@ namespace SlopArena.EditorTools
         // Cues that run from tick 0 through a move's startup, not over one of its active phases (ADR-0051 section 11).
         private static readonly HashSet<string> StartupCues = new(StringComparer.Ordinal) { Prefix + "cast-aura", Prefix + "ring-light-charge" };
         // Nyx's shadow spells show the cast effect; Bat Scatter and Going Live do not.
-        private static readonly string[] CastSlots = { "ground.1", "ground.3", "ground.4", "air.1", "air.3", "air.4", "ground.A", "ground.R" };
+        private static readonly string[] CastSlots = { "ground.1", "ground.2", "ground.3", "air.1", "air.2", "air.3", "ground.A", "ground.R" };
         private static string _phoneHand = "bone.right-hand";
 
         private sealed class Materials

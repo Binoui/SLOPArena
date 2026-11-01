@@ -125,7 +125,7 @@ public class LandingLagTests
     }
 
     private static InputState Slot1At(int tick) => tick == 0
-        ? new InputState { ActiveSlot = AbilitySlots.Slot1 }
+        ? new InputState { ActiveSlot = AbilitySlots.Normal1 }
         : default;
 
     // ── Goldens: clean-land vs lag-land on the same aerial ──
@@ -144,7 +144,7 @@ public class LandingLagTests
         for (int tick = 0; tick < 60; tick++)
         {
             sim.Tick(new Dictionary<ulong, InputState>
-                { { 1, tick == 0 ? new InputState { ActiveSlot = AbilitySlots.Slot1 } : default } });
+                { { 1, tick == 0 ? new InputState { ActiveSlot = AbilitySlots.Normal1 } : default } });
             states.Add(sim.GetState(1));
         }
 
@@ -218,7 +218,7 @@ public class LandingLagTests
     {
         var states = Run(LagDef, 4.7f, tick => tick switch
         {
-            0 => new InputState { ActiveSlot = AbilitySlots.Slot1 },
+            0 => new InputState { ActiveSlot = AbilitySlots.Normal1 },
             41 => new InputState { Jump = true },
             42 => new InputState { ShieldPressed = true },
             46 => new InputState { Jump = true },
@@ -242,7 +242,7 @@ public class LandingLagTests
     {
         var states = Run(ZeroDef, 4.7f, tick => tick switch
         {
-            0 => new InputState { ActiveSlot = AbilitySlots.Slot1 },
+            0 => new InputState { ActiveSlot = AbilitySlots.Normal1 },
             41 => new InputState { Jump = true },
             _ => default,
         });
@@ -261,7 +261,7 @@ public class LandingLagTests
     public void LandingInAutoCancelEarlyWindow_NoLag_ActsImmediately()
     {
         var states = Run(LagDef, 4.7f, tick => tick == 23
-            ? new InputState { ActiveSlot = AbilitySlots.Slot1 }
+            ? new InputState { ActiveSlot = AbilitySlots.Normal1 }
             : default);
 
         Assert.True(states[27].IsGrounded);
@@ -281,7 +281,7 @@ public class LandingLagTests
     {
         var states = Run(CleanLateDef, 4.7f, tick => tick switch
         {
-            0 => new InputState { ActiveSlot = AbilitySlots.Slot1 },
+            0 => new InputState { ActiveSlot = AbilitySlots.Normal1 },
             30 => new InputState { Jump = true },
             _ => default,
         });
@@ -302,8 +302,8 @@ public class LandingLagTests
     {
         var states = Run(LagDef, 4.7f, tick => tick switch
         {
-            0 => new InputState { ActiveSlot = AbilitySlots.Slot1 },
-            41 => new InputState { ActiveSlot = AbilitySlots.Slot3 },
+            0 => new InputState { ActiveSlot = AbilitySlots.Normal1 },
+            41 => new InputState { ActiveSlot = AbilitySlots.Normal2 },
             _ => default,
         });
 
@@ -323,7 +323,7 @@ public class LandingLagTests
     {
         var states = Run(LagDef, 4.7f, tick => tick switch
         {
-            0 => new InputState { ActiveSlot = AbilitySlots.Slot1 },
+            0 => new InputState { ActiveSlot = AbilitySlots.Normal1 },
             >= 40 => new InputState { MoveX = 1f },
             _ => default,
         });
@@ -350,7 +350,7 @@ public class LandingLagTests
             sim.Tick(new Dictionary<ulong, InputState>
             {
                 [1] = tick == 0
-                    ? new InputState { ActiveSlot = AbilitySlots.Slot1, MoveX = 1f }
+                    ? new InputState { ActiveSlot = AbilitySlots.Normal1, MoveX = 1f }
                     : new InputState { MoveX = 1f },
             });
             states.Add(sim.GetState(1));
@@ -399,7 +399,7 @@ public class LandingLagTests
             sim.Tick(new Dictionary<ulong, InputState> { [1] = new()
             {
                 Down = true,
-                ActiveSlot = tick == 0 ? AbilitySlots.Slot1 : (byte)0,
+                ActiveSlot = tick == 0 ? AbilitySlots.Normal1 : (byte)0,
             } });
             landed = sim.GetState(1);
             if (sim.LastTickTouchdowns.Contains(1UL)) break;
