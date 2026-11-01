@@ -529,6 +529,57 @@
           "at": "end"
         }
       ]
+    },
+    {
+      "id": "air.3",
+      "slot": "air.3",
+      "label": "Double Fist Slam",
+      "dummy": {
+        "distance": 1
+      },
+      "input": [
+        {
+          "ticks": 8
+        },
+        {
+          "ticks": 1,
+          "jumpPressed": true,
+          "jumpHeld": true
+        },
+        {
+          "ticks": 4,
+          "jumpHeld": true
+        },
+        {
+          "ticks": 1,
+          "slot": "3"
+        },
+        {
+          "ticks": 106
+        }
+      ],
+      "phases": [
+        {
+          "name": "gather",
+          "at": "start+8"
+        },
+        {
+          "name": "hammer hit",
+          "at": "hit"
+        },
+        {
+          "name": "underfoot",
+          "at": "hit+11"
+        },
+        {
+          "name": "ground return",
+          "at": "start+38"
+        },
+        {
+          "name": "landed",
+          "at": "end"
+        }
+      ]
     }
   ],
   "size": "1280x720"
