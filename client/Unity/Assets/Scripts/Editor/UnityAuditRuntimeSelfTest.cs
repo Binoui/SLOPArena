@@ -91,7 +91,7 @@ namespace SlopArena.EditorTools
                     null, catalog, null, out var error), error);
                 var state = new CharacterState
                 {
-                    State = ActionState.Attacking, AttackSlot = AbilitySlots.Slot1,
+                    State = ActionState.Attacking, AttackSlot = AbilitySlots.Normal1,
                     AttackSequence = 1, IsGrounded = !airborne,
                 };
                 void Present(ushort elapsed, int expected, string why)
@@ -118,7 +118,7 @@ namespace SlopArena.EditorTools
                 Present(12, 8, "Rewinding to a previous combo stage replayed its triggers.");
                 state.ComboStage = 1;
                 Present(6, 8, "Re-entering a previously presented stage replayed its triggers.");
-                state.AttackSlot = AbilitySlots.Slot3;
+                state.AttackSlot = AbilitySlots.Normal2;
                 state.ComboStage = 0;
                 Present(0, 9, "Changing slots retained the previous attack's sounds.");
                 state.State = ActionState.Idle;
@@ -182,11 +182,11 @@ namespace SlopArena.EditorTools
                 && SettingsOverlay.Active?.IsOpen != true && MatchPauseMenu.Active?.IsPaused != true,
                 "Close input captures, chat, settings and pause before running the countdown check.");
             string previousOverrides = HumanInputActions.SaveOverrides();
-            bool previousEnabled = HumanInputActions.Get("Slot1").actionMap.enabled;
+            bool previousEnabled = HumanInputActions.Get("Normal1").actionMap.enabled;
             bool previousGamepad = HumanInputActions.LastUsedGamepad;
             var previousKeyboard = Keyboard.current;
             var previousMouse = Mouse.current;
-            var actionMap = HumanInputActions.Get("Slot1").actionMap;
+            var actionMap = HumanInputActions.Get("Normal1").actionMap;
             var previousDevices = actionMap.devices;
             var previousSettings = InputSystem.settings;
             var testSettings = Object.Instantiate(previousSettings);
@@ -242,7 +242,7 @@ namespace SlopArena.EditorTools
                 var live = Build();
                 Require(live.Jump && live.DownPressed && live.GrabPressed && live.RetargetPressed
                     && live.FaceToCamera && live.ToggleLock
-                    && live.ActiveSlot == AbilitySlots.Slot1,
+                    && live.ActiveSlot == AbilitySlots.Normal1,
                     "Fresh next-live-tick presses were discarded after countdown completion.");
                 Send();
                 Build();
@@ -291,7 +291,7 @@ namespace SlopArena.EditorTools
                 singleton.SetValue(null, previousService);
                 HumanInputActions.ApplyOverrides(previousOverrides);
                 actionMap.devices = previousDevices;
-                if (!previousEnabled) HumanInputActions.Get("Slot1").actionMap.Disable();
+                if (!previousEnabled) HumanInputActions.Get("Normal1").actionMap.Disable();
                 InputSystem.RemoveDevice(keyboard);
                 InputSystem.RemoveDevice(mouse);
                 InputSystem.settings = previousSettings;
@@ -376,7 +376,7 @@ namespace SlopArena.EditorTools
             }, null, catalog, null, out var error), error);
             var state = new CharacterState
             {
-                State = ActionState.Aiming, AttackSlot = AbilitySlots.Slot1, AttackSequence = 1,
+                State = ActionState.Aiming, AttackSlot = AbilitySlots.Normal1, AttackSequence = 1,
                 IsGrounded = true, AttackElapsedTicks = 4,
             };
             PresentSound(renderer, state);

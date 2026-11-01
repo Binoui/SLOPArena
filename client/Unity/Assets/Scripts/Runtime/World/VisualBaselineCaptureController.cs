@@ -64,14 +64,14 @@ namespace SlopArena.Client.World
             yield return WaitForLanding("vb-04-landing");
 
             float heavyDistance = 0f;
-            yield return CaptureHit(AbilitySlots.Slot1, 0, "vb-05-light-hit", _ => { });
-            yield return CaptureHit(AbilitySlots.Slot4, 0, "vb-06-heavy-hit", d => heavyDistance = d);
-            yield return CaptureHit(AbilitySlots.Slot3, 60, "vb-07-launch", _ => { });
+            yield return CaptureHit(AbilitySlots.Normal1, 0, "vb-05-light-hit", _ => { });
+            yield return CaptureHit(AbilitySlots.Normal3, 0, "vb-06-heavy-hit", d => heavyDistance = d);
+            yield return CaptureHit(AbilitySlots.Normal2, 60, "vb-07-launch", _ => { });
 
             SetupCombat(999, heavyDistance);
             yield return new WaitForFixedUpdate();
             byte deaths = _match.GetCaptureState(NpcId).Deaths;
-            _match.SetCaptureInput(new InputState { ActiveSlot = AbilitySlots.Slot4 });
+            _match.SetCaptureInput(new InputState { ActiveSlot = AbilitySlots.Normal3 });
             yield return new WaitForFixedUpdate();
             _match.SetCaptureInput(default);
             yield return WaitUntilOrFail(

@@ -21,7 +21,7 @@ public sealed class AimMovementTests
         s.PY = TestHelpers.GroundPY(def) + (airborne ? 5f : 0f);
         s.IsGrounded = !airborne;
         s.State = ActionState.Aiming;
-        s.AttackSlot = AbilitySlots.Slot1;
+        s.AttackSlot = AbilitySlots.Normal1;
 
         Simulation.SimulateTick(ref s, def, new InputState { IsAiming = true, MoveX = 1f },
             TestHelpers.TestArena(), out _, out _, DownActionTuning.Default, verticalMotionOwned: false, move: def.GetCookedSlotAbility(s.AttackSlot, !s.IsGrounded));
@@ -38,7 +38,7 @@ public sealed class AimMovementTests
         var s = TestHelpers.PlayerState(20f, 20f);
         s.PY = TestHelpers.GroundPY(def);
         s.State = ActionState.Aiming;
-        s.AttackSlot = AbilitySlots.Slot1;
+        s.AttackSlot = AbilitySlots.Normal1;
         s.VX = 6f;
         s.VZ = -4f;
         var input = new InputState { IsAiming = true, MoveX = 1f, MoveY = 1f, Jump = true };
@@ -65,7 +65,7 @@ public sealed class AimMovementTests
         s.PY = TestHelpers.GroundPY(def) + 5f;
         s.IsGrounded = false;
         s.State = ActionState.Aiming;
-        s.AttackSlot = AbilitySlots.Slot1;
+        s.AttackSlot = AbilitySlots.Normal1;
         s.VX = vx;
         s.VZ = vz;
         s.VY = 3f;

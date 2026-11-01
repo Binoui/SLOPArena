@@ -268,7 +268,7 @@ public sealed class BashieWaveTests
     {
         foreach (var input in new[]
         {
-            new InputState { ActiveSlot = AbilitySlots.Slot1 }, new InputState { Jump = true },
+            new InputState { ActiveSlot = AbilitySlots.Normal1 }, new InputState { Jump = true },
             new InputState { ShieldHeld = true }, new InputState { ActiveSlot = AbilitySlots.R },
         })
         {
@@ -316,7 +316,7 @@ public sealed class BashieWaveTests
         {
             X = victim.PX, Y = victim.PY, Z = victim.PZ, EndX = victim.PX, EndY = victim.PY, EndZ = victim.PZ,
             Radius = 1f, Shape = HitboxShape.Sphere, Damage = 5f, BaseKnockback = knockback, KnockbackAngle = angle,
-            StunTicks = 20, DurationTicks = 1, OwnerId = Third, AttackSlot = AbilitySlots.Slot1,
+            StunTicks = 20, DurationTicks = 1, OwnerId = Third, AttackSlot = AbilitySlots.Normal1,
             HitEntities = new HashSet<ulong> { target == Bashie ? Dummy : Bashie },
         });
     }

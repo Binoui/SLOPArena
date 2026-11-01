@@ -61,7 +61,7 @@ public static class AbilityLabReachSelfTest
             var unchanged = workspace.Reach;
             var bad = SlopArenaAbilityLabCommands.Reach("grab");
             Require(!bad.Success && bad.Diagnostics.Any(d => d.Code == "reach.action.invalid") && ReferenceEquals(unchanged, workspace.Reach), "Invalid action replaced the observation.");
-            Require(!workspace.ReachMatchesSelection("ground.3"), "Another move inherited the result.");
+            Require(!workspace.ReachMatchesSelection("ground.2"), "Another move inherited the result.");
             if (workspace.Draft.AlternateForm != null)
             {
                 Require(window.SelectFormForCommand(1) && !workspace.ReachMatchesSelection("ground.1"), "Another form inherited the result.");

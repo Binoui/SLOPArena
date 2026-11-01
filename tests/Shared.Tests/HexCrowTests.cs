@@ -31,7 +31,7 @@ internal static class CrowFixture
         var slots = CanonicalSlotProjection.All.Select(a => Slot(a, form, AuthoringAbilityBehavior.MeleeCombo, 30)).ToArray();
         var jab = new CookedHitbox(AuthoringHitboxShape.Sphere, 1.2f, 0f, 0f, 1.0f, 0f, 0f, 0f, null, null,
             JabDamage, 30f, 5f, 10f, 10, 4, true, 0);
-        Set(slots, AbilitySlots.Slot1, form, AuthoringAbilityBehavior.MeleeCombo, 20,
+        Set(slots, AbilitySlots.Normal1, form, AuthoringAbilityBehavior.MeleeCombo, 20,
             new CookedSpawnHitboxOperation(3, AuthoringUnit.Meters, jab));
         foreach (bool air in new[] { false, true })
             Set(slots, AbilitySlots.F, form, AuthoringAbilityBehavior.MeleeCombo, 10, air,
@@ -276,7 +276,7 @@ public sealed class HexCrowTests
         CrowFixture.Swap(sim);
         CrowFixture.Teleport(sim, Dummy, CrowFixture.X, CrowFixture.Z + 1.5f);
         var hits = new List<SpellResolver.HitResult>();
-        CrowFixture.Step(sim, CrowFixture.Press(AbilitySlots.Slot1), hits: hits);
+        CrowFixture.Step(sim, CrowFixture.Press(AbilitySlots.Normal1), hits: hits);
         for (int tick = 0; tick < 10 && hits.Count == 0; tick++) CrowFixture.Step(sim, hits: hits);
         var jab = Assert.Single(hits);
         Assert.Equal(1, jab.Form);
@@ -307,7 +307,7 @@ public sealed class HexCrowTests
         CrowFixture.Teleport(sim, Dummy, CrowFixture.X, CrowFixture.Z + 1.5f);
         for (int tick = 0; tick < 25; tick++) CrowFixture.Step(sim);
         var hits = new List<SpellResolver.HitResult>();
-        CrowFixture.Step(sim, CrowFixture.Press(AbilitySlots.Slot1), hits: hits);
+        CrowFixture.Step(sim, CrowFixture.Press(AbilitySlots.Normal1), hits: hits);
         for (int tick = 0; tick < 40; tick++) CrowFixture.Step(sim, hits: hits);
         var jab = Assert.Single(hits);
         Assert.Equal(0, jab.Form);
@@ -326,7 +326,7 @@ public sealed class HexCrowTests
             CrowFixture.Swap(continuous);
             CrowFixture.Teleport(continuous, Dummy, CrowFixture.X, CrowFixture.Z + 1.5f);
             var hits = new List<SpellResolver.HitResult>();
-            CrowFixture.Step(continuous, CrowFixture.Press(AbilitySlots.Slot1), hits: hits);
+            CrowFixture.Step(continuous, CrowFixture.Press(AbilitySlots.Normal1), hits: hits);
             for (int tick = 0; tick < 10 && hits.Count == 0; tick++) CrowFixture.Step(continuous, hits: hits);
             Assert.Single(hits);
             Assert.Empty(CrowFixture.Crows(continuous));

@@ -55,7 +55,7 @@ public sealed class StageCollisionTests
         sim.RegisterEntity(1, def, initial);
         sim.Tick(new Dictionary<ulong, InputState>
         {
-            [1] = new() { Down = true, ActiveSlot = AbilitySlots.Slot1 },
+            [1] = new() { Down = true, ActiveSlot = AbilitySlots.Normal1 },
         });
         var contact = sim.GetState(1);
         Assert.True(contact.SlideAttackCarryActive);

@@ -18,7 +18,7 @@ public sealed class MoveDataReportContractTests
         var def = TestHelpers.EngineDef;
         def = def with { DisplayName = "Trajectory fixture" };
         def = def with { Weight = 137f };
-        def = TestHelpers.WithMove(def, AbilitySlots.Slot3, false, "Fixture launcher", 30, 20,
+        def = TestHelpers.WithMove(def, AbilitySlots.Normal2, false, "Fixture launcher", 30, 20,
             new[] { new HitboxEvent
                         {
                             TriggerTick = 4,

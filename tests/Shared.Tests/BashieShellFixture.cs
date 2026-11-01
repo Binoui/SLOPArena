@@ -96,7 +96,7 @@ internal static class BashieShellFixture
             JsonNode.Parse(Invariant($$"""
             {"kind":"gravityWindow","tick":0,"unit":"normalized","gravityScale":0.15,"durationTicks":{{WhistleTicks}}}
             """))!));
-        foreach (var stage in SlotNamed(character, "ground.4")["timeline"]!["stages"]!.AsArray())
+        foreach (var stage in SlotNamed(character, "ground.3")["timeline"]!["stages"]!.AsArray())
             foreach (var operation in stage!["operations"]!.AsArray())
                 if ((string?)operation!["kind"] == "setVelocity") operation["velocityMode"] = "vertical";
     }

@@ -172,7 +172,7 @@ public class WibouAbilityTests
         var npc = TestHelpers.NpcState(0f, 1.2f); npc.PY = GroundPY; npc.FacingYaw = MathF.PI;
         sim.RegisterEntity(100, Def, npc, TestHelpers.LoadBakedData(Def));
         sim.Tick(new() { { 1, TestHelpers.Input(activeSlot: AbilitySlots.F) }, { 100, default } });
-        sim.Tick(new() { { 1, default }, { 100, TestHelpers.Input(activeSlot: AbilitySlots.Slot1) } });
+        sim.Tick(new() { { 1, default }, { 100, TestHelpers.Input(activeSlot: AbilitySlots.Normal1) } });
         bool held = false, launched = false;
         for (int i = 0; i < 120; i++)
         {

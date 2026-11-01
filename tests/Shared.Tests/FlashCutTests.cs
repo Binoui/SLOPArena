@@ -309,7 +309,7 @@ public sealed class FlashCutTests
     {
         var duel = new FlashDuel().With(FlashDuel.Third, 0f, 1.1f, yawDegrees: 180f, def: Jabber);
         duel.PressUncaught();
-        duel.Step(others: (FlashDuel.Third, new InputState { ActiveSlot = AbilitySlots.Slot1 }));
+        duel.Step(others: (FlashDuel.Third, new InputState { ActiveSlot = AbilitySlots.Normal1 }));
         duel.RunTo(() => duel.Single(FlashDuel.Lock).Any(), maxTicks: 12);
         Assert.True(duel.Tick < FlashDuel.StanceEnd, "the catch locks at once, not at the end of the stance");
         Assert.DoesNotContain(duel.Hits, h => h.TargetEntityId == FlashDuel.Wibou);
@@ -344,7 +344,7 @@ public sealed class FlashCutTests
         var third = duel.State(FlashDuel.Third);
         third.PZ = 1.1f;
         duel.Sim.SetState(FlashDuel.Third, third);
-        duel.Step(others: (FlashDuel.Third, new InputState { ActiveSlot = AbilitySlots.Slot1 }));
+        duel.Step(others: (FlashDuel.Third, new InputState { ActiveSlot = AbilitySlots.Normal1 }));
         duel.RunTo(() => duel.Hits.Any(h => h.OwnerEntityId == FlashDuel.Third), maxTicks: 12);
         Assert.True(duel.Tick < FlashDuel.StanceEnd + FlashDuel.P.WhiffTicks, "the normal lands inside the whiff");
         Assert.Contains(duel.Hits, h => h.OwnerEntityId == FlashDuel.Third && h.TargetEntityId == FlashDuel.Wibou && !h.Blocked);
@@ -463,7 +463,7 @@ public sealed class FlashCutTests
             policy.ObserveOpponent(memory, duel.State(FlashDuel.Third), Jabber, null, duel.Sim.GetActiveMove(FlashDuel.Third)?.Slot);
             memory.ChooseOpponent(wibou);
             var input = policy.Decide(wibou, FlashDuel.Def, rng, memory, arena, activeMove: duel.Sim.GetActiveMove(FlashDuel.Wibou)?.Slot);
-            var jab = tick % 30 == 0 ? new InputState { ActiveSlot = AbilitySlots.Slot1 } : default;
+            var jab = tick % 30 == 0 ? new InputState { ActiveSlot = AbilitySlots.Normal1 } : default;
             duel.Step(input with { MoveX = 0f, MoveY = 0f }, (FlashDuel.Third, jab));
         }
         Assert.Contains(duel.Single(FlashDuel.Lock), _ => true);
@@ -515,7 +515,7 @@ public sealed class FlashCutTests
             new CaptureAnchor(0f, 0.6f, 0.2f), new CaptureAnchor(0f, 0.6f, 0.65f)),
     };
 
-    private static CharacterDefinition Jabber => TestHelpers.WithMove(TestHelpers.EngineDef, AbilitySlots.Slot1, false, "Jab", 20,
+    private static CharacterDefinition Jabber => TestHelpers.WithMove(TestHelpers.EngineDef, AbilitySlots.Normal1, false, "Jab", 20,
         hits: new[]
         {
             new HitboxEvent
@@ -650,7 +650,7 @@ internal sealed class FlashDuel
         {
             X = at.PX, Y = at.PY, Z = at.PZ, EndX = at.PX, EndY = at.PY, EndZ = at.PZ, Radius = .6f,
             Shape = HitboxShape.Sphere, Damage = damage, BaseKnockback = knockback, KnockbackAngle = angle,
-            StunTicks = 20, DurationTicks = 1, OwnerId = owner, AttackSlot = AbilitySlots.Slot1,
+            StunTicks = 20, DurationTicks = 1, OwnerId = owner, AttackSlot = AbilitySlots.Normal1,
         });
     }
 

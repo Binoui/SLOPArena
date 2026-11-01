@@ -116,7 +116,7 @@ public sealed class BashieShellTests
         {
             X = me.PX, Y = me.PY, Z = me.PZ, EndX = me.PX, EndY = me.PY, EndZ = me.PZ,
             Radius = 1f, Shape = HitboxShape.Sphere, Damage = 5f, BaseKnockback = 5f, KnockbackAngle = 30,
-            StunTicks = 20, DurationTicks = 2, OwnerId = Third, AttackSlot = AbilitySlots.Slot1,
+            StunTicks = 20, DurationTicks = 2, OwnerId = Third, AttackSlot = AbilitySlots.Normal1,
         });
         var events = new List<TimelinePresentationEvent>();
         for (int i = 0; i < 80; i++)
@@ -438,7 +438,7 @@ public sealed class BashieShellTests
             Assert.Equal(ShellPolicy.Tuck, live.CookedSlots!.Single(slot => slot.Id == id).ShellPolicy);
         foreach (var id in new[] { "ground.F", "air.F" })
             Assert.Equal(ShellPolicy.Ride, live.CookedSlots!.Single(slot => slot.Id == id).ShellPolicy);
-        foreach (var id in new[] { "ground.1", "ground.3", "ground.4", "air.1", "ground.A" })
+        foreach (var id in new[] { "ground.1", "ground.2", "ground.3", "air.1", "ground.A" })
             Assert.Equal(ShellPolicy.PopOut, live.CookedSlots!.Single(slot => slot.Id == id).ShellPolicy);
         Assert.Contains(live.CookedSlots!.Single(slot => slot.Id == "ground.R").Timeline.Stages[0].Operations,
             op => op is CookedStartCapabilityOperation { CapabilityId: CharacterPackageCompiler.CannonballCapabilityId });

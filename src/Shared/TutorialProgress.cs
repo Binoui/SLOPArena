@@ -14,7 +14,7 @@ namespace SlopArena.Shared
         Run, LookAround,
         StandOnBlock, DoubleJump, ReachTallBlock,
         FastFall,
-        HitNormal1, HitNormal3, HitNormal4,
+        HitNormal1, HitNormal2, HitNormal3,
         LandAerials,
         BeelineHit, BeelineAerial,
         UseSpecialA, UseSpecialE, UseSpecialR, UseSpecialF,
@@ -65,8 +65,8 @@ namespace SlopArena.Shared
             Lesson(TutorialLessonId.FastFall, TutorialDummySetup.Keep, TutorialDummyBehavior.Idle,
                 (TutorialObjectiveId.FastFall, 2f)),
             Lesson(TutorialLessonId.Attacks, TutorialDummySetup.Reset, TutorialDummyBehavior.Idle,
-                (TutorialObjectiveId.HitNormal1, 1f), (TutorialObjectiveId.HitNormal3, 1f),
-                (TutorialObjectiveId.HitNormal4, 1f)),
+                (TutorialObjectiveId.HitNormal1, 1f), (TutorialObjectiveId.HitNormal2, 1f),
+                (TutorialObjectiveId.HitNormal3, 1f)),
             Lesson(TutorialLessonId.Aerials, TutorialDummySetup.Reset, TutorialDummyBehavior.Idle,
                 (TutorialObjectiveId.LandAerials, 2f)),
             Lesson(TutorialLessonId.Beeline, TutorialDummySetup.Reset, TutorialDummyBehavior.Idle,
@@ -289,9 +289,9 @@ namespace SlopArena.Shared
                         && after.JumpsLeft < before.JumpsLeft ? amount + 1f : amount;
                 case TutorialObjectiveId.FastFall:
                     return after.IsFastFalling && !before.IsFastFalling ? amount + 1f : amount;
-                case TutorialObjectiveId.HitNormal1: return amount + GroundHits(in f, AbilitySlots.Slot1);
-                case TutorialObjectiveId.HitNormal3: return amount + GroundHits(in f, AbilitySlots.Slot3);
-                case TutorialObjectiveId.HitNormal4: return amount + GroundHits(in f, AbilitySlots.Slot4);
+                case TutorialObjectiveId.HitNormal1: return amount + GroundHits(in f, AbilitySlots.Normal1);
+                case TutorialObjectiveId.HitNormal2: return amount + GroundHits(in f, AbilitySlots.Normal2);
+                case TutorialObjectiveId.HitNormal3: return amount + GroundHits(in f, AbilitySlots.Normal3);
                 case TutorialObjectiveId.LandAerials: return BitCount(_aerialSlots);
                 case TutorialObjectiveId.BeelineHit: return _beelineGroundHit ? 1f : amount;
                 case TutorialObjectiveId.BeelineAerial: return _beelineAirHit ? 1f : amount;
@@ -345,7 +345,7 @@ namespace SlopArena.Shared
             => f.Player.State == ActionState.HomingDashFloat && f.PlayerBefore.State != ActionState.HomingDashFloat;
 
         private static bool IsNormal(byte slot)
-            => slot is AbilitySlots.Slot1 or AbilitySlots.Slot3 or AbilitySlots.Slot4;
+            => slot is AbilitySlots.Normal1 or AbilitySlots.Normal2 or AbilitySlots.Normal3;
 
         /// <summary>
         /// Still stunned, or still airborne from the last hit: the idle dummy only leaves the

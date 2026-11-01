@@ -9,8 +9,8 @@ namespace SlopArena.MoveDataReport;
 internal static partial class ComboRouteReport
 {
     private sealed record SearchNode(Replay Replay, Outcome Outcome, string Di, string Grammar, int Drift);
-    private static readonly string[] GroundNormals = { "ground.1", "ground.3", "ground.4" };
-    private static readonly string[] AirNormals = { "air.1", "air.3", "air.4" };
+    private static readonly string[] GroundNormals = { "ground.1", "ground.2", "ground.3" };
+    private static readonly string[] AirNormals = { "air.1", "air.2", "air.3" };
     private static readonly (float X, float Z)[] DriftInputs = { (0f, 0f), (0f, 1f), (-.5f, .8660254f), (.5f, .8660254f) };
     private static readonly int[] GroundOffsets = { 0, 1, 3, 6, 12, 24 };
     private static readonly int[] AirOffsets = { 0, 2, 5, 9, 14, 20 };

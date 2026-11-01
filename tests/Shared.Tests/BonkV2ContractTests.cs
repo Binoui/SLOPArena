@@ -99,11 +99,11 @@ public sealed class BonkV2ContractTests
     [Fact]
     public void FlingClipAliasesKeepTheRearAsTheFirstSortedClip()
     {
-        var source = Source(); Parameters(source, "ground.R")["carry"]!["flingAnimationId"] = "anim.bonk.g4";
+        var source = Source(); Parameters(source, "ground.R")["carry"]!["flingAnimationId"] = "anim.bonk.g3";
         var stage = source["slots"]!.AsArray().Single(s => (string?)s!["id"] == "ground.R")!["timeline"]!["stages"]![0]!;
         var clips = stage["animationIds"]!.AsArray();
         for (int i = 0; i < clips.Count; i++)
-            if ((string?)clips[i] == "anim.bonk.gr-fling") clips[i] = "anim.bonk.g4";
+            if ((string?)clips[i] == "anim.bonk.gr-fling") clips[i] = "anim.bonk.g3";
         var result = CharacterPackageCompiler.Compile(Manifest, source.ToJsonString(), CharacterCookProfile.TrustedBuiltIn);
         Assert.Null(result.CookedPackage);
         Assert.Contains(result.Diagnostics, d => d.Code == "value.out-of-range" && d.Path.EndsWith("carry.flingAnimationId"));

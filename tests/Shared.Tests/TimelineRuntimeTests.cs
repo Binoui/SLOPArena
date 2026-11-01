@@ -74,7 +74,7 @@ public sealed class TimelineRuntimeTests
         sim.RegisterEntity(1, definition, state);
         for (int tick = 0; tick < 11; tick++)
         {
-            sim.Tick(new() { [1] = new InputState { ActiveSlot = tick == 0 ? AbilitySlots.Slot1 : (byte)0 } });
+            sim.Tick(new() { [1] = new InputState { ActiveSlot = tick == 0 ? AbilitySlots.Normal1 : (byte)0 } });
             var active = sim.GetActiveMove(1)!.Value;
             if (active.StageIndex != 1) continue;
             state = sim.GetState(1);
@@ -668,7 +668,7 @@ public sealed class TimelineRuntimeTests
     public void FightGuyCookedResolutionCoversSevenWireNormalAndSpecialSlots()
     {
         var def = TestHelpers.FightGuyDef;
-        var expectedGround = new[] { "ground.1", "ground.E", "ground.R", "ground.F", "ground.3", "ground.4", "ground.A" };
+        var expectedGround = new[] { "ground.1", "ground.E", "ground.R", "ground.F", "ground.2", "ground.3", "ground.A" };
         var wireSlots = new byte[] { 3, 4, 5, 6, 8, 9, 11 };
         for (var i = 0; i < wireSlots.Length; i++)
         {
@@ -676,7 +676,7 @@ public sealed class TimelineRuntimeTests
             Assert.Equal("air." + expectedGround[i].Substring(expectedGround[i].IndexOf('.') + 1), def.GetCookedSlotAbility(wireSlots[i], true)!.Id);
         }
         Assert.Null(def.GetCookedSlotAbility(1, false));
-        Assert.Null(def.GetCookedSlotAbility(AbilitySlots.Slot2, false));
+        Assert.Null(def.GetCookedSlotAbility(AbilitySlots.RetiredNormal, false));
         Assert.Null(def.GetCookedSlotAbility(10, false));
     }
 
@@ -697,7 +697,7 @@ public sealed class TimelineRuntimeTests
         var (sim, def) = Create(slot, initial);
         sim.RegisterEntity(100, def, initial with { EntityId = 100, PX = -1.5f, PZ = 2.5f, LockOn = false });
         sim.RegisterEntity(101, def, initial with { EntityId = 101, PX = 1.5f, PZ = 2.5f, LockOn = false });
-        sim.Tick(new() { [1] = new InputState { ActiveSlot = AbilitySlots.Slot1, TargetEntityId = 101 } });
+        sim.Tick(new() { [1] = new InputState { ActiveSlot = AbilitySlots.Normal1, TargetEntityId = 101 } });
         var state = sim.GetState(1);
         Assert.Equal(locked ? 100UL : 101UL, state.AttackCorrectionTargetId);
         TestHelpers.AssertNear((locked ? -1f : 1f) * MathF.PI / 30f, state.FacingYaw, 1e-5f);

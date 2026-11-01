@@ -202,7 +202,7 @@ public class FullWorldNetplayTests
         foreach (var peer in peers)
             peer.Input = _ => peer.Session.Predictor.Simulation.SlopballVersus is
                 { Phase: SlopballVersusPhase.HeldServe } state && state.ServerEntityId == peer.Id
-                ? new InputState { ActiveSlot = AbilitySlots.Slot1, FacingYaw = (short)(camps[peer.Id] == SlopballCamp.Teal ? 0 : 18000),
+                ? new InputState { ActiveSlot = AbilitySlots.Normal1, FacingYaw = (short)(camps[peer.Id] == SlopballCamp.Teal ? 0 : 18000),
                     AimYaw = (short)(camps[peer.Id] == SlopballCamp.Teal ? 0 : 18000) } : default;
         try
         {

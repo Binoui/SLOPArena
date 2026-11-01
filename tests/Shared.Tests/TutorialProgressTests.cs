@@ -131,13 +131,13 @@ public sealed class TutorialProgressTests
         var idle = Fighter(Player);
         Observe(progress, idle, idle, new[]
         {
-            Hit(AbilitySlots.Slot1, airborne: true), Hit(AbilitySlots.Slot3, blocked: true),
-            Hit(AbilitySlots.Slot4, target: 99), Hit(AbilitySlots.A),
+            Hit(AbilitySlots.Normal1, airborne: true), Hit(AbilitySlots.Normal2, blocked: true),
+            Hit(AbilitySlots.Normal3, target: 99), Hit(AbilitySlots.A),
         });
         Assert.All(Enumerable.Range(0, 3), i => Assert.Equal(0f, progress.Amount(i)));
         Assert.Equal(0b111, Observe(progress, idle, idle, new[]
         {
-            Hit(AbilitySlots.Slot1), Hit(AbilitySlots.Slot3), Hit(AbilitySlots.Slot4),
+            Hit(AbilitySlots.Normal1), Hit(AbilitySlots.Normal2), Hit(AbilitySlots.Normal3),
         }));
         Assert.True(progress.LessonComplete);
     }
@@ -147,11 +147,11 @@ public sealed class TutorialProgressTests
     {
         var progress = At(TutorialLessonId.Aerials);
         var air = Fighter(Player, feet: 1f, grounded: false);
-        Observe(progress, air, air, new[] { Hit(AbilitySlots.Slot3, airborne: true) });
-        Observe(progress, air, air, new[] { Hit(AbilitySlots.Slot3, airborne: true, activation: 2) });
+        Observe(progress, air, air, new[] { Hit(AbilitySlots.Normal2, airborne: true) });
+        Observe(progress, air, air, new[] { Hit(AbilitySlots.Normal2, airborne: true, activation: 2) });
         Observe(progress, air, air, new[] { Hit(AbilitySlots.E, airborne: true, activation: 3) });
         Assert.Equal(1f, progress.Amount(0));
-        Observe(progress, air, air, new[] { Hit(AbilitySlots.Slot4, airborne: true, activation: 4) });
+        Observe(progress, air, air, new[] { Hit(AbilitySlots.Normal3, airborne: true, activation: 4) });
         Assert.True(progress.LessonComplete);
     }
 
@@ -162,7 +162,7 @@ public sealed class TutorialProgressTests
         var idle = Fighter(Player);
         Observe(progress, idle, idle with { AttackSlot = AbilitySlots.E });
         Assert.Equal(0f, progress.Amount(1));
-        foreach (byte slot in new[] { AbilitySlots.A, AbilitySlots.E, AbilitySlots.R, AbilitySlots.F, AbilitySlots.Slot1 })
+        foreach (byte slot in new[] { AbilitySlots.A, AbilitySlots.E, AbilitySlots.R, AbilitySlots.F, AbilitySlots.Normal1 })
             Observe(progress, idle, idle with { State = ActionState.Attacking, AttackSlot = slot, AttackSequence = 1 });
         Assert.True(progress.LessonComplete);
     }
@@ -194,15 +194,15 @@ public sealed class TutorialProgressTests
         var shielding = Fighter(Player) with { State = ActionState.Shielding };
         Observe(progress, shielding, shielding, new[]
         {
-            Hit(AbilitySlots.Slot1, owner: Dummy, target: Player, blocked: true),
-            Hit(AbilitySlots.Slot1, owner: Dummy, target: Player, blocked: false),
-            Hit(AbilitySlots.Slot1, owner: Player, target: Dummy, blocked: true),
+            Hit(AbilitySlots.Normal1, owner: Dummy, target: Player, blocked: true),
+            Hit(AbilitySlots.Normal1, owner: Dummy, target: Player, blocked: false),
+            Hit(AbilitySlots.Normal1, owner: Player, target: Dummy, blocked: true),
         });
         Assert.Equal(1f, progress.Amount(0));
         Observe(progress, shielding, shielding, new[]
         {
-            Hit(AbilitySlots.Slot1, owner: Dummy, target: Player, blocked: true, activation: 2),
-            Hit(AbilitySlots.Slot1, owner: Dummy, target: Player, blocked: true, activation: 3),
+            Hit(AbilitySlots.Normal1, owner: Dummy, target: Player, blocked: true, activation: 2),
+            Hit(AbilitySlots.Normal1, owner: Dummy, target: Player, blocked: true, activation: 3),
         });
         Assert.True(progress.IsComplete(0));
         Assert.Equal(TutorialDummyBehavior.Idle, progress.DummyBehavior);
@@ -242,16 +242,16 @@ public sealed class TutorialProgressTests
         var idle = Fighter(Player);
         var dummy = Fighter(Dummy);
         var stunned = dummy with { State = ActionState.Hitstun, HitstunTicks = 12 };
-        Observe(progress, idle, idle, new[] { Hit(AbilitySlots.Slot1, activation: 1) }, dummy, stunned);
-        Observe(progress, idle, idle, new[] { Hit(AbilitySlots.Slot1, activation: 1) }, stunned, stunned);
+        Observe(progress, idle, idle, new[] { Hit(AbilitySlots.Normal1, activation: 1) }, dummy, stunned);
+        Observe(progress, idle, idle, new[] { Hit(AbilitySlots.Normal1, activation: 1) }, stunned, stunned);
         Assert.Equal(1f, progress.Amount(0));
 
         Observe(progress, idle, idle, dummyBefore: stunned, dummy: dummy);
-        Observe(progress, idle, idle, new[] { Hit(AbilitySlots.Slot4, activation: 2) }, dummy, stunned);
+        Observe(progress, idle, idle, new[] { Hit(AbilitySlots.Normal3, activation: 2) }, dummy, stunned);
         Assert.Equal(1, progress.ComboHits);
         Assert.False(progress.LessonComplete);
 
-        Observe(progress, idle, idle, new[] { Hit(AbilitySlots.Slot3, activation: 3) }, stunned, stunned);
+        Observe(progress, idle, idle, new[] { Hit(AbilitySlots.Normal2, activation: 3) }, stunned, stunned);
         Assert.Equal(2, progress.ComboHits);
         Assert.True(progress.LessonComplete);
     }
@@ -263,10 +263,10 @@ public sealed class TutorialProgressTests
         var idle = Fighter(Player);
         var dummy = Fighter(Dummy);
         var launched = Fighter(Dummy, feet: 2f, grounded: false);
-        Observe(progress, idle, idle, new[] { Hit(AbilitySlots.Slot3, activation: 1) }, dummy, launched with { HitstunTicks = 8 });
+        Observe(progress, idle, idle, new[] { Hit(AbilitySlots.Normal2, activation: 1) }, dummy, launched with { HitstunTicks = 8 });
         Observe(progress, idle, idle, dummyBefore: launched with { HitstunTicks = 1 }, dummy: launched);
         Assert.Equal(1, progress.ComboHits);
-        Observe(progress, idle, idle, new[] { Hit(AbilitySlots.Slot3, airborne: true, activation: 2) }, launched, launched);
+        Observe(progress, idle, idle, new[] { Hit(AbilitySlots.Normal2, airborne: true, activation: 2) }, launched, launched);
         Assert.True(progress.LessonComplete);
     }
 
@@ -275,21 +275,21 @@ public sealed class TutorialProgressTests
     {
         var progress = At(TutorialLessonId.Beeline);
         var idle = Fighter(Player);
-        var attack = idle with { AttackSequence = 1, AttackSlot = AbilitySlots.Slot1 };
-        Observe(progress, idle, attack, new[] { Hit(AbilitySlots.Slot1) });
+        var attack = idle with { AttackSequence = 1, AttackSlot = AbilitySlots.Normal1 };
+        Observe(progress, idle, attack, new[] { Hit(AbilitySlots.Normal1) });
         Assert.False(progress.IsComplete(0));
         var arrival = idle with { State = ActionState.HomingDashArrive };
         Observe(progress, arrival, attack, new[]
         {
-            Hit(AbilitySlots.Slot1, blocked: true), Hit(AbilitySlots.Slot1, target: 99),
-            Hit(AbilitySlots.Slot1, owner: 99),
+            Hit(AbilitySlots.Normal1, blocked: true), Hit(AbilitySlots.Normal1, target: 99),
+            Hit(AbilitySlots.Normal1, owner: 99),
         });
         Assert.False(progress.IsComplete(0));
-        Observe(progress, attack, attack, new[] { Hit(AbilitySlots.Slot1) });
+        Observe(progress, attack, attack, new[] { Hit(AbilitySlots.Normal1) });
         Assert.True(progress.IsComplete(0));
         Assert.False(progress.IsComplete(1));
         var next = attack with { AttackSequence = 2 };
-        Observe(progress, attack, next, new[] { Hit(AbilitySlots.Slot1, airborne: true) });
+        Observe(progress, attack, next, new[] { Hit(AbilitySlots.Normal1, airborne: true) });
         Assert.False(progress.IsComplete(1));
         var special = next with { AttackSequence = 3, AttackSlot = AbilitySlots.R };
         Observe(progress, arrival, special);
@@ -358,16 +358,16 @@ public sealed class TutorialProgressTests
         var launched = Fighter(Dummy, feet: 2f, grounded: false);
 
         Observe(progress, idle, dashing, dummyBefore: grounded, dummy: grounded);
-        Observe(progress, arrival, idle with { AttackSequence = 1 }, new[] { Hit(AbilitySlots.Slot1) }, grounded, launched);
+        Observe(progress, arrival, idle with { AttackSequence = 1 }, new[] { Hit(AbilitySlots.Normal1) }, grounded, launched);
         Assert.False(progress.IsComplete(2), "a Beeline at a grounded dummy is not a chase");
 
         Observe(progress, idle, dashing, dummyBefore: launched, dummy: launched);
-        Observe(progress, idle, idle with { AttackSequence = 2 }, new[] { Hit(AbilitySlots.Slot1, activation: 2) }, launched, launched);
+        Observe(progress, idle, idle with { AttackSequence = 2 }, new[] { Hit(AbilitySlots.Normal1, activation: 2) }, launched, launched);
         Assert.False(progress.IsComplete(2), "the hit must come from the arrival window");
         Observe(progress, arrival, idle with { AttackSequence = 3 },
-            new[] { Hit(AbilitySlots.Slot1, activation: 3, blocked: true) }, launched, launched);
+            new[] { Hit(AbilitySlots.Normal1, activation: 3, blocked: true) }, launched, launched);
         Assert.False(progress.IsComplete(2), "a blocked hit does not count");
-        Observe(progress, arrival, idle with { AttackSequence = 4 }, new[] { Hit(AbilitySlots.Slot1, activation: 4) }, launched, grounded);
+        Observe(progress, arrival, idle with { AttackSequence = 4 }, new[] { Hit(AbilitySlots.Normal1, activation: 4) }, launched, grounded);
         Assert.True(progress.IsComplete(2));
     }
 
@@ -380,7 +380,7 @@ public sealed class TutorialProgressTests
         Observe(progress, idle, idle with { State = ActionState.HomingDashFloat }, dummyBefore: launched, dummy: launched);
         progress.RestartLesson();
         Observe(progress, idle with { State = ActionState.HomingDashArrive }, idle with { AttackSequence = 1 },
-            new[] { Hit(AbilitySlots.Slot1) }, launched, launched);
+            new[] { Hit(AbilitySlots.Normal1) }, launched, launched);
         Assert.False(progress.IsComplete(2));
     }
 
@@ -512,7 +512,7 @@ public sealed class TutorialProgressTests
         {
             bool passed = false;
             string evidence = "";
-            foreach (byte slot in new[] { AbilitySlots.Slot1, AbilitySlots.Slot3, AbilitySlots.Slot4, AbilitySlots.R })
+            foreach (byte slot in new[] { AbilitySlots.Normal1, AbilitySlots.Normal2, AbilitySlots.Normal3, AbilitySlots.R })
             {
                 var lab = new Lab(fighter, DummyFor(fighter), TutorialLessonId.Beeline, playerZ: -3f, dummyZ: 3f);
                 lab.Step();
@@ -578,14 +578,14 @@ public sealed class TutorialProgressTests
     {
         var lab = new Lab(fighter, DummyFor(fighter), TutorialLessonId.BeelineTricks, playerZ: 0f, dummyZ: 1.2f);
         lab.Sim.SetState(Dummy, lab.Sim.GetState(Dummy) with { DamagePercent = 30 });
-        lab.Step(new InputState { ActiveSlot = AbilitySlots.Slot3 }, default(InputState));
+        lab.Step(new InputState { ActiveSlot = AbilitySlots.Normal2 }, default(InputState));
         bool dashed = false, pressed = false;
         for (int t = 0; t < 240 && !lab.Progress.IsComplete(2); t++)
         {
             var p = lab.Sim.GetState(Player);
             bool dash = !dashed && lab.Contacts.Count > 0 && !lab.Sim.GetState(Dummy).IsGrounded;
             bool press = dashed && !pressed && p.State == ActionState.HomingDash;
-            lab.Step(new InputState { DashPressed = dash, ActiveSlot = press ? AbilitySlots.Slot1 : AbilitySlots.None },
+            lab.Step(new InputState { DashPressed = dash, ActiveSlot = press ? AbilitySlots.Normal1 : AbilitySlots.None },
                 default(InputState));
             dashed |= lab.Sim.GetState(Player).State == ActionState.HomingDashFloat;
             pressed |= press;
@@ -653,7 +653,7 @@ public sealed class TutorialProgressTests
         lab.Step(new InputState { GrabPressed = true });
         lab.Wait(DefenseConfig.GrabStartupTicks + 1);
         Assert.True(lab.Progress.IsComplete(0), "grab: " + lab.Sim.GetState(Player).State);
-        lab.Step(new InputState { ActiveSlot = AbilitySlots.Slot1 });
+        lab.Step(new InputState { ActiveSlot = AbilitySlots.Normal1 });
         lab.Wait(DefenseConfig.ThrowReleaseTicks + 1);
         Assert.True(lab.Progress.LessonComplete, "throw: " + lab.Sim.GetState(Dummy).State);
     }

@@ -172,7 +172,7 @@ public sealed class ContactCoverageTests
         var attacker = EmptyAirSlotEntry();
         var victim = EngineEntry();
         Assert.True(CanonicalSlotProjection.TryGet("ground.1", out var ground));
-        Assert.True(CanonicalSlotProjection.TryGet("air.3", out var air));
+        Assert.True(CanonicalSlotProjection.TryGet("air.2", out var air));
         var report = ContactCoverageReport.BuildNormals(attacker, victim, new ContactCoverageReport.NormalCoverageOptions
         {
             Slots = new[] { ground, air },
@@ -183,8 +183,8 @@ public sealed class ContactCoverageTests
         });
         Assert.Equal(3, report.Positions.Count);
         Assert.Equal(30, report.Samples.Count);
-        Assert.Equal(27, report.Samples.Count(x => x.SlotId == "air.3" && x.Outcome == "unavailable" && x.Reason == "empty-normal"));
-        Assert.All(report.Samples.Where(x => x.SlotId == "air.3"), x =>
+        Assert.Equal(27, report.Samples.Count(x => x.SlotId == "air.2" && x.Outcome == "unavailable" && x.Reason == "empty-normal"));
+        Assert.All(report.Samples.Where(x => x.SlotId == "air.2"), x =>
         {
             Assert.False(x.AttackInputSent);
             Assert.Null(x.ActivationId);
@@ -246,8 +246,8 @@ public sealed class ContactCoverageTests
         var attacker = EmptyAirSlotEntry();
         var victim = EngineEntry();
         Assert.True(CanonicalSlotProjection.TryGet("ground.1", out var ground1));
-        Assert.True(CanonicalSlotProjection.TryGet("ground.3", out var ground3));
-        Assert.True(CanonicalSlotProjection.TryGet("air.3", out var air3));
+        Assert.True(CanonicalSlotProjection.TryGet("ground.2", out var ground3));
+        Assert.True(CanonicalSlotProjection.TryGet("air.2", out var air3));
         var report = ContactCoverageReport.BuildNormals(attacker, victim, new ContactCoverageReport.NormalCoverageOptions
         {
             Slots = new[] { ground1, ground3, air3 },
@@ -257,11 +257,11 @@ public sealed class ContactCoverageTests
             MaxTicks = 60,
         });
         Assert.Equal("miss", report.Samples.Single(x => x.SlotId == "ground.1" && x.PositionIndex == 3).Outcome);
-        Assert.Equal("truncated", report.Samples.Single(x => x.SlotId == "ground.3" && x.PositionIndex == 3).Outcome);
-        Assert.All(report.Samples.Where(x => x.SlotId == "air.3"), x => Assert.Equal("unavailable", x.Outcome));
+        Assert.Equal("truncated", report.Samples.Single(x => x.SlotId == "ground.2" && x.PositionIndex == 3).Outcome);
+        Assert.All(report.Samples.Where(x => x.SlotId == "air.2"), x => Assert.Equal("unavailable", x.Outcome));
         Assert.Equal(4, report.Summaries.Single(x => x.SlotId == "ground.1").CompletedAttempts);
-        Assert.Equal(4, report.Summaries.Single(x => x.SlotId == "ground.3").Truncated + report.Summaries.Single(x => x.SlotId == "ground.3").CompletedAttempts);
-        Assert.All(report.Summaries.Where(x => x.SlotId == "air.3"), x => Assert.Null(x.ConnectionFraction));
+        Assert.Equal(4, report.Summaries.Single(x => x.SlotId == "ground.2").Truncated + report.Summaries.Single(x => x.SlotId == "ground.2").CompletedAttempts);
+        Assert.All(report.Summaries.Where(x => x.SlotId == "air.2"), x => Assert.Null(x.ConnectionFraction));
     }
 
     [Theory]
@@ -298,7 +298,7 @@ public sealed class ContactCoverageTests
         definition = definition with { Class = source.Definition.Class };
         var slots = definition.CookedSlots!.ToArray();
         slots[0] = NormalSlot(0, "ground.1", 30);
-        slots[1] = NormalSlot(1, "ground.3", 120);
+        slots[1] = NormalSlot(1, "ground.2", 120);
         slots[7] = NormalSlot(7, "air.1", 30);
         definition = definition with { CookedSlots = slots };
         return new MatchContentEntry(source.Handle, source.LegacySelector, source.Identity,

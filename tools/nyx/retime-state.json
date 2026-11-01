@@ -1,29 +1,29 @@
 {
   "appliedFactors": {
     "real/ground.1": 1.35,
+    "real/ground.2": 1.25,
     "real/ground.3": 1.25,
-    "real/ground.4": 1.25,
     "real/ground.A": 1.25,
     "real/ground.E": 1.25,
     "real/ground.R": 1.25,
     "real/ground.F": 1.25,
     "real/air.1": 1.25,
+    "real/air.2": 1.25,
     "real/air.3": 1.25,
-    "real/air.4": 1.25,
     "real/air.A": 1.25,
     "real/air.E": 1.25,
     "real/air.R": 1.25,
     "real/air.F": 1.25,
     "fake/ground.1": 1.35,
+    "fake/ground.2": 1.25,
     "fake/ground.3": 1.25,
-    "fake/ground.4": 1.25,
     "fake/ground.A": 1.25,
     "fake/ground.E": 1.25,
     "fake/ground.R": 1.25,
     "fake/ground.F": 1.25,
     "fake/air.1": 1.25,
+    "fake/air.2": 1.25,
     "fake/air.3": 1.25,
-    "fake/air.4": 1.25,
     "fake/air.A": 1.25,
     "fake/air.E": 1.25,
     "fake/air.R": 1.25,
@@ -2188,7 +2188,7 @@
     },
     {
       "form": "real",
-      "slot": "ground.3",
+      "slot": "ground.2",
       "factor": 1.25,
       "before": {
         "first": 14,
@@ -2215,7 +2215,7 @@
     },
     {
       "form": "real",
-      "slot": "ground.4",
+      "slot": "ground.3",
       "factor": 1.25,
       "before": {
         "first": 24,
@@ -2367,7 +2367,7 @@
     },
     {
       "form": "real",
-      "slot": "air.3",
+      "slot": "air.2",
       "factor": 1.25,
       "before": {
         "first": 10,
@@ -2394,7 +2394,7 @@
     },
     {
       "form": "real",
-      "slot": "air.4",
+      "slot": "air.3",
       "factor": 1.25,
       "before": {
         "first": 20,
@@ -2562,7 +2562,7 @@
     },
     {
       "form": "fake",
-      "slot": "ground.3",
+      "slot": "ground.2",
       "factor": 1.25,
       "before": {
         "first": 16,
@@ -2589,7 +2589,7 @@
     },
     {
       "form": "fake",
-      "slot": "ground.4",
+      "slot": "ground.3",
       "factor": 1.25,
       "before": {
         "first": 16,
@@ -2741,7 +2741,7 @@
     },
     {
       "form": "fake",
-      "slot": "air.3",
+      "slot": "air.2",
       "factor": 1.25,
       "before": {
         "first": 12,
@@ -2768,7 +2768,7 @@
     },
     {
       "form": "fake",
-      "slot": "air.4",
+      "slot": "air.3",
       "factor": 1.25,
       "before": {
         "first": 12,

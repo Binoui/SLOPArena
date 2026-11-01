@@ -99,7 +99,7 @@ public sealed class CourseFinishability
         var prefix = Enumerable.Range(0, 45).Select(i => new InputState
         {
             Jump = i == 0 || i == 24, JumpHeld = true, MoveY = .4f,
-            ActiveSlot = i == 30 ? AbilitySlots.Slot1 : (byte)0
+            ActiveSlot = i == 30 ? AbilitySlots.Normal1 : (byte)0
         }).ToArray();
         foreach (var input in prefix) Sim.Tick(new() { [1] = input });
         var after = Sim.CaptureSnapshot();
@@ -368,7 +368,7 @@ public sealed class CourseFinishability
         foreach (bool special in new[] { false, true })
         {
             var slots = special ? new[] { AbilitySlots.A, AbilitySlots.R, AbilitySlots.E, AbilitySlots.F }
-                : new[] { AbilitySlots.Slot1, AbilitySlots.Slot3, AbilitySlots.Slot4 };
+                : new[] { AbilitySlots.Normal1, AbilitySlots.Normal2, AbilitySlots.Normal3 };
             while (!Sim.IsCourseTargetBroken(index))
             {
                 var saved = Save(); bool hit = false;

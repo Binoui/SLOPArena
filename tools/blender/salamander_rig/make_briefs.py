@@ -110,12 +110,12 @@ BRIEFS.append(ground('g1-pistol-whip',
            {'name': 'contact: right hand in front of the chest at tick 9 (m)', 'kind': 'ahead', 'a': 'RightHand', 'b': 'Spine2', 'tick': 9, 'min': 0.28},
            {'name': 'contact: right hand crossed toward his left at tick 11 (m)', 'kind': 'char', 'a': 'RightHand', 'axis': 'right', 'tick': 11, 'max': 0.05}]))
 
-# --- ground.3: Stick 'Em Up! (up / launcher) -------------------------------------------------------------
+# --- ground.2: Stick 'Em Up! (up / launcher) -------------------------------------------------------------
 BRIEFS.append(ground('g3-stick-em-up',
-  notes="Salamander ground.3 (anim.salamander.g3), kit proposal 2026-10-27: Stick 'Em Up!, his up normal (launcher). "
+  notes="Salamander ground.2 (anim.salamander.g2), kit proposal 2026-10-27: Stick 'Em Up!, his up normal (launcher). "
         'Timing kept from the borrowed Sweeping Kick: 44 ticks, hit 9-20, act from 29.',
   description='\n\n'.join([
-    "The salamander's ground.3, Stick 'Em Up!: his launcher. He crouches and then thrusts BOTH finger guns straight up over "
+    "The salamander's ground.2, Stick 'Em Up!: his launcher. He crouches and then thrusts BOTH finger guns straight up over "
     "his head, as if shouting 'Stick 'em up!' at the sky: the hands-up gag turned into an uppercut.", WHO, GAME, FLOOR, STANCE,
     "The move (44 ticks, played once):\n- Tick 0: the showdown stance.\n- Tick 5, the dip: knees bend deep (hips drop 6-9 cm), "
     "both hands pull down to his hips in finger guns, chest leaning forward a little.\n- Tick 9, contact: he springs up onto "
@@ -142,12 +142,12 @@ BRIEFS.append(ground('g3-stick-em-up',
            {'name': 'V: right hand outside the brim at tick 20 (m)', 'kind': 'char', 'a': 'RightHand', 'axis': 'right', 'tick': 20, 'min': 0.32},
            {'name': 'V: left hand outside the brim at tick 20 (m)', 'kind': 'char', 'a': 'LeftHand', 'axis': 'right', 'tick': 20, 'max': -0.32}]))
 
-# --- ground.4: Lasso Crack (big) --------------------------------------------------------------------------
+# --- ground.3: Lasso Crack (big) --------------------------------------------------------------------------
 BRIEFS.append(ground('g4-lasso-crack',
-  notes='Salamander ground.4 (anim.salamander.g4), kit proposal 2026-10-27: Lasso Crack, his big normal. New timing: 52 '
+  notes='Salamander ground.3 (anim.salamander.g3), kit proposal 2026-10-27: Lasso Crack, his big normal. New timing: 52 '
         'ticks, hit 26-31 (a long reach in front of his right hand), act from 44.',
   description='\n\n'.join([
-    "The salamander's ground.4, Lasso Crack: his big, slow, long-reaching normal. He twirls an invisible lasso over his head "
+    "The salamander's ground.3, Lasso Crack: his big, slow, long-reaching normal. He twirls an invisible lasso over his head "
     "and cracks it forward like a whip. There is no rope: the hand circles and the whip-crack reads from the arm.", WHO, GAME,
     FLOOR, STANCE,
     "The move (52 ticks, played once):\n- Tick 0: the showdown stance.\n- Ticks 4-20, the twirl: his right hand rises above "
@@ -196,12 +196,12 @@ BRIEFS.append(air('a1-double-tap',
            {'name': 'first jab: left hand back at the chest at tick 7 (m)', 'kind': 'ahead', 'a': 'LeftHand', 'b': 'Spine2', 'tick': 7, 'max': 0.15},
            {'name': 'second jab: right hand back at the chest at tick 18 (m)', 'kind': 'ahead', 'a': 'RightHand', 'b': 'Spine2', 'tick': 18, 'max': 0.15}]))
 
-# --- air.3: Tail Whip (up air) --------------------------------------------------------------------------
+# --- air.2: Tail Whip (up air) --------------------------------------------------------------------------
 BRIEFS.append(air('a3-tail-whip',
-  notes='Salamander air.3 (anim.salamander.a3), kit proposal 2026-10-27: Tail Whip, his up aerial. New timing: 44 ticks, hit '
+  notes='Salamander air.2 (anim.salamander.a2), kit proposal 2026-10-27: Tail Whip, his up aerial. New timing: 44 ticks, hit '
         '12-20 above him, act from 36, landing lag 10.',
   description='\n\n'.join([
-    "The salamander's air.3, Tail Whip: his up aerial and his one salamander move. He arches backward in the air and whips "
+    "The salamander's air.2, Tail Whip: his up aerial and his one salamander move. He arches backward in the air and whips "
     "his thick tail up from behind him, over the top of his head, like a scorpion sting.", WHO, GAME,
     "In the air. The entry pose is the fall he plays in the air (a borrowed pose). There is no floor contact.",
     "The move (44 ticks, played once):\n- Tick 0: the fall pose.\n- Tick 6, the coil: he curls forward, knees up, chin "
@@ -221,12 +221,12 @@ BRIEFS.append(air('a3-tail-whip',
            {'name': 'hold: tail tip above the head at tick 18 (m)', 'kind': 'below', 'a': 'Head', 'b': 'Tail5', 'tick': 18, 'min': 0.0},
            {'name': 'coil: tail tip below the hips at tick 6 (m)', 'kind': 'below', 'a': 'Hips', 'b': 'Tail5', 'tick': 6, 'max': -0.1}]))
 
-# --- air.4: Spur Stomp (big air) ------------------------------------------------------------------------
+# --- air.3: Spur Stomp (big air) ------------------------------------------------------------------------
 BRIEFS.append(air('a4-spur-stomp',
-  notes='Salamander air.4 (anim.salamander.a4), kit proposal 2026-10-27: Spur Stomp, his big aerial. New timing: 50 ticks, '
+  notes='Salamander air.3 (anim.salamander.a3), kit proposal 2026-10-27: Spur Stomp, his big aerial. New timing: 50 ticks, '
         'hit 12-26 under his boots, act from 44, landing lag 12.',
   description='\n\n'.join([
-    "The salamander's air.4, Spur Stomp: his big aerial. He pulls both knees up to his chest, then stamps both spurred boots "
+    "The salamander's air.3, Spur Stomp: his big aerial. He pulls both knees up to his chest, then stamps both spurred boots "
     "straight down with all his weight, like stomping on a rattlesnake.", WHO, GAME,
     "In the air. The entry pose is the fall he plays in the air (a borrowed pose). There is no floor contact.",
     "The move (50 ticks, played once):\n- Tick 0: the fall pose.\n- Tick 8, the coil: knees pulled high to his chest, "

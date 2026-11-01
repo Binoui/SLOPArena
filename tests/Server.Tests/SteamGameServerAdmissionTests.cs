@@ -362,7 +362,7 @@ public class SteamGameServerAdmissionTests
             for (uint i = 0; i < 80; i++)
             {
                 Assert.True(match.TryQueueSteamInput(11, nextTick++,
-                    OneInput(i == 0 ? new InputState { ActiveSlot = AbilitySlots.Slot1 } : default)));
+                    OneInput(i == 0 ? new InputState { ActiveSlot = AbilitySlots.Normal1 } : default)));
                 Thread.Sleep(16);
             }
             await swordActive.Task.WaitAsync(TimeSpan.FromSeconds(3));

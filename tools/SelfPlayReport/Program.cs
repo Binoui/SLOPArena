@@ -54,7 +54,7 @@ internal static class Program
         int TotalSwings, int TotalHits, int TotalWhiffs, float TotalDamage,
         int TotalActionAttempts, int TotalAcceptedActions, int TotalConfirmedHits);
 
-    internal static readonly byte[] SlotBytes = { AbilitySlots.Slot1, AbilitySlots.Slot3, AbilitySlots.Slot4 };
+    internal static readonly byte[] SlotBytes = { AbilitySlots.Normal1, AbilitySlots.Normal2, AbilitySlots.Normal3 };
 
     internal static int Main(string[] args)
     {

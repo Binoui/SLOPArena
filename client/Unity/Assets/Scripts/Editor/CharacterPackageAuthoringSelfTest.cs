@@ -165,12 +165,12 @@ public static class CharacterPackageAuthoringSelfTest
             .SelectMany(slot => slot.Timeline.Stages).SelectMany(stage => stage.AnimationIds), StringComparer.Ordinal);
         var moveBindings = catalog.Bindings.Where(binding => binding != null && moveIds.Contains(binding.SemanticId)).ToList();
         Require(moveBindings.Count == moveIds.Count && moveIds.SetEquals(moveBindings.Select(binding => binding.SemanticId)) &&
-            moveIds.Contains("anim.bonk.a1") && moveIds.Contains("anim.bonk.a3"),
+            moveIds.Contains("anim.bonk.a1") && moveIds.Contains("anim.bonk.a2"),
             "Bonk authored move animation IDs did not resolve to unique catalog bindings.");
         var beforeMoveClips = moveBindings.ToDictionary(binding => binding.SemanticId, binding => binding.Clip, StringComparer.Ordinal);
         try
         {
-            Require(service.Bind("bonk", "anim.bonk.a1", AssetDatabase.GetAssetPath(beforeMoveClips["anim.bonk.a3"])).Success &&
+            Require(service.Bind("bonk", "anim.bonk.a1", AssetDatabase.GetAssetPath(beforeMoveClips["anim.bonk.a2"])).Success &&
                 moveBindings.Where(binding => binding.SemanticId != "anim.bonk.a1").All(binding => binding.Clip == beforeMoveClips[binding.SemanticId]),
                 "Bonk move binding replacement changed unrelated moves.");
         }

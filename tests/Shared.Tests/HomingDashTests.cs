@@ -44,7 +44,7 @@ public sealed class HomingDashTests
         var sim = Duel(6f);
         Tick(sim, Dash);
         Assert.True(RunUntil(sim, ActionState.HomingDashArrive, 80));
-        Tick(sim, new InputState { ActiveSlot = AbilitySlots.Slot1 });
+        Tick(sim, new InputState { ActiveSlot = AbilitySlots.Normal1 });
         Assert.Equal(ActionState.Attacking, sim.GetState(1).State);
     }
 
@@ -52,11 +52,11 @@ public sealed class HomingDashTests
     public void AnAttackFromTheArrivalWindowOutlastsTheWindow()
     {
         ushort duration = (ushort)(HomingDashConfig.ArriveWindowTicks + 20);
-        var def = TestHelpers.WithMove(Def, AbilitySlots.Slot4, false, "Slow big normal", duration);
+        var def = TestHelpers.WithMove(Def, AbilitySlots.Normal3, false, "Slow big normal", duration);
         var sim = Duel(6f, def);
         Tick(sim, Dash);
         Assert.True(RunUntil(sim, ActionState.HomingDashArrive, 80));
-        Tick(sim, new InputState { ActiveSlot = AbilitySlots.Slot4 });
+        Tick(sim, new InputState { ActiveSlot = AbilitySlots.Normal3 });
         for (int i = 0; i < HomingDashConfig.ArriveWindowTicks + 5; i++)
         {
             Assert.Equal(ActionState.Attacking, sim.GetState(1).State);
@@ -70,12 +70,12 @@ public sealed class HomingDashTests
         var sim = Duel(8f);
         Tick(sim, Dash);
         Assert.True(RunUntil(sim, ActionState.HomingDash, 20));
-        Tick(sim, new InputState { ActiveSlot = AbilitySlots.Slot1 });
+        Tick(sim, new InputState { ActiveSlot = AbilitySlots.Normal1 });
         Assert.Equal(ActionState.HomingDash, sim.GetState(1).State);
         Assert.True(RunUntil(sim, ActionState.HomingDashArrive, 60), "the press does not cut the dash short");
         Tick(sim);
         Assert.Equal(ActionState.Attacking, sim.GetState(1).State);
-        Assert.Equal(AbilitySlots.Slot1, sim.GetState(1).AttackSlot);
+        Assert.Equal(AbilitySlots.Normal1, sim.GetState(1).AttackSlot);
     }
 
     [Fact]
@@ -84,7 +84,7 @@ public sealed class HomingDashTests
         var sim = Duel(19.5f);
         Tick(sim, Dash);
         Assert.True(RunUntil(sim, ActionState.HomingDash, 20));
-        Tick(sim, new InputState { ActiveSlot = AbilitySlots.Slot1 });
+        Tick(sim, new InputState { ActiveSlot = AbilitySlots.Normal1 });
         Assert.True(RunUntil(sim, ActionState.HomingDashMiss, 80));
         for (int i = 0; i < HomingDashConfig.MissRecoveryTicks + 20; i++)
         {
@@ -99,7 +99,7 @@ public sealed class HomingDashTests
         var sim = Duel(10f);
         Tick(sim, Dash);
         Assert.True(RunUntil(sim, ActionState.HomingDash, 20));
-        Tick(sim, new InputState { ActiveSlot = AbilitySlots.Slot1 });
+        Tick(sim, new InputState { ActiveSlot = AbilitySlots.Normal1 });
         var dasher = sim.GetState(1);
         sim.Resolver.Spawn(new Hitbox
         {
@@ -125,7 +125,7 @@ public sealed class HomingDashTests
         Assert.Equal(0f, miss.VX);
         Assert.Equal(0f, miss.VZ);
 
-        Tick(sim, new InputState { ActiveSlot = AbilitySlots.Slot1, Jump = true });
+        Tick(sim, new InputState { ActiveSlot = AbilitySlots.Normal1, Jump = true });
         Assert.Equal(ActionState.HomingDashMiss, sim.GetState(1).State);
         Assert.True(sim.GetState(1).IsGrounded);
     }
@@ -294,9 +294,9 @@ public sealed class HomingDashTests
     [Fact]
     public void AnAttackBlocksTheDashUntilItsIasaWindow()
     {
-        var def = TestHelpers.WithMove(Def, AbilitySlots.Slot1, false, "Long jab", 40, iasa: 20);
+        var def = TestHelpers.WithMove(Def, AbilitySlots.Normal1, false, "Long jab", 40, iasa: 20);
         var sim = Duel(8f, def);
-        Tick(sim, new InputState { ActiveSlot = AbilitySlots.Slot1 });
+        Tick(sim, new InputState { ActiveSlot = AbilitySlots.Normal1 });
         Assert.Equal(ActionState.Attacking, sim.GetState(1).State);
         for (int i = 0; i < 5; i++)
             Tick(sim);

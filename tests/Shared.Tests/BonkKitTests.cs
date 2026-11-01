@@ -31,9 +31,9 @@ public sealed class BonkKitTests
 
         var expectedIds = new[]
         {
-            "ground.1", "ground.3", "ground.4",
+            "ground.1", "ground.2", "ground.3",
             "ground.A", "ground.E", "ground.R", "ground.F",
-            "air.1", "air.3", "air.4",
+            "air.1", "air.2", "air.3",
             "air.A", "air.E", "air.R", "air.F"
         };
         Assert.Equal(expectedIds.OrderBy(x => x), package.Definition.Slots.Select(x => x.Id).OrderBy(x => x));
@@ -120,15 +120,15 @@ public sealed class BonkKitTests
     }
 
     [Theory]
-    [InlineData(AbilitySlots.Slot1, 2.2f, false, true)]
-    [InlineData(AbilitySlots.Slot1, 2.2f, true, true)]
-    [InlineData(AbilitySlots.Slot1, 8f, false, false)]
-    [InlineData(AbilitySlots.Slot3, 2.2f, false, true)]
-    [InlineData(AbilitySlots.Slot3, 2.2f, true, true)]
-    [InlineData(AbilitySlots.Slot3, 8f, false, false)]
-    [InlineData(AbilitySlots.Slot4, 2.2f, false, true)]
-    [InlineData(AbilitySlots.Slot4, 2.2f, true, true)]
-    [InlineData(AbilitySlots.Slot4, 8f, false, false)]
+    [InlineData(AbilitySlots.Normal1, 2.2f, false, true)]
+    [InlineData(AbilitySlots.Normal1, 2.2f, true, true)]
+    [InlineData(AbilitySlots.Normal1, 8f, false, false)]
+    [InlineData(AbilitySlots.Normal2, 2.2f, false, true)]
+    [InlineData(AbilitySlots.Normal2, 2.2f, true, true)]
+    [InlineData(AbilitySlots.Normal2, 8f, false, false)]
+    [InlineData(AbilitySlots.Normal3, 2.2f, false, true)]
+    [InlineData(AbilitySlots.Normal3, 2.2f, true, true)]
+    [InlineData(AbilitySlots.Normal3, 8f, false, false)]
     public void BonkAerialNormals_CookedSwordPathHitsBlocksAndMisses(byte slot, float distance, bool shielding, bool expectContact)
     {
         var content = BuiltInContentResolver.Resolve(CharacterClass.Bonk);

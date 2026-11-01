@@ -104,7 +104,7 @@ public sealed class FacingHitboxTests
         Assert.True(assembly.IsValid, string.Join("; ", assembly.Diagnostics));
         var admitted = CookedCharacterPackageLoader.LoadAssembly(assembly);
         Assert.True(admitted.IsValid, string.Join("; ", admitted.Diagnostics));
-        var evt = admitted.ToCharacterDefinition().GetCookedSlotAbility(AbilitySlots.Slot1, false)!.Timeline.Stages[0].ReadHitboxes().Single();
+        var evt = admitted.ToCharacterDefinition().GetCookedSlotAbility(AbilitySlots.Normal1, false)!.Timeline.Stages[0].ReadHitboxes().Single();
         Assert.True(evt.RequiresFacingOwner);
         var older = new CookedCharacterPackage(compiled.CookedPackage.Metadata with { RuntimeApiMin = "1.18.0" },
             compiled.CookedPackage.Definition, compiled.CookedPackage.Budget, compiled.CookedPackage.Diagnostics,
@@ -147,13 +147,13 @@ public sealed class NyxCpuTests
     {
         var def = TestHelpers.ResolveSourceDef("nyx");
         var self = TestHelpers.PlayerState(0, 0);
-        self.State = ActionState.Attacking; self.AttackSlot = AbilitySlots.Slot1; self.AnimLockTicks = 30;
+        self.State = ActionState.Attacking; self.AttackSlot = AbilitySlots.Normal1; self.AnimLockTicks = 30;
         var target = TestHelpers.NpcState(0, 1);
         var memory = Memory(difficulty, target);
-        memory.RecordOpponentContact(AbilitySlots.Slot1, CpuContactKind.Hit, target with { HitstunTicks = 30 }, 0);
+        memory.RecordOpponentContact(AbilitySlots.Normal1, CpuContactKind.Hit, target with { HitstunTicks = 30 }, 0);
         for (int i = 0; i < 30; i++) memory.ObserveOpponent(target);
         var input = new HeuristicBotPolicy().Decide(self, def, new Random(7), memory, default(ArenaDefinition),
-            activeMove: def.GetCookedSlotAbility(AbilitySlots.Slot1, false), canSwapCancel: true);
+            activeMove: def.GetCookedSlotAbility(AbilitySlots.Normal1, false), canSwapCancel: true);
         Assert.Equal(cancel, input.ActiveSlot == AbilitySlots.F);
     }
 
@@ -168,7 +168,7 @@ public sealed class NyxCpuTests
     {
         var def = TestHelpers.ResolveSourceDef("nyx");
         var self = TestHelpers.PlayerState(0, 0);
-        self.State = ActionState.Attacking; self.AttackSlot = AbilitySlots.Slot1; self.AnimLockTicks = 30;
+        self.State = ActionState.Attacking; self.AttackSlot = AbilitySlots.Normal1; self.AnimLockTicks = 30;
         if (gate == "cooldown") self.SetCooldown(AbilitySlots.F, 60);
         if (gate == "hitstop") self.HitstopTicks = 5;
         if (gate == "hitstun") self.HitstunTicks = 5;
@@ -176,10 +176,10 @@ public sealed class NyxCpuTests
         if (gate == "landing") self.LandingLagTicks = 5;
         var target = TestHelpers.NpcState(0, 1);
         var memory = Memory(CpuDifficulty.Hard, target);
-        memory.RecordOpponentContact(AbilitySlots.Slot1, CpuContactKind.Hit, target with { HitstunTicks = 30 }, 0);
+        memory.RecordOpponentContact(AbilitySlots.Normal1, CpuContactKind.Hit, target with { HitstunTicks = 30 }, 0);
         for (int i = 0; i < 30; i++) memory.ObserveOpponent(target);
         var input = new HeuristicBotPolicy().Decide(self, def, new Random(7), memory, default(ArenaDefinition),
-            activeMove: def.GetCookedSlotAbility(AbilitySlots.Slot1, false), canSwapCancel: gate != "whiff");
+            activeMove: def.GetCookedSlotAbility(AbilitySlots.Normal1, false), canSwapCancel: gate != "whiff");
         Assert.NotEqual(AbilitySlots.F, input.ActiveSlot);
     }
 
@@ -208,7 +208,7 @@ public sealed class NyxCpuTests
         var nyx = TestHelpers.ResolveSourceDef("nyx");
         var self = TestHelpers.PlayerState(0, 0); self.State = ActionState.Shielding;
         var target = TestHelpers.NpcState(0, 3.5f);
-        target.State = ActionState.Attacking; target.AttackSlot = AbilitySlots.Slot4; target.Form.Active = form;
+        target.State = ActionState.Attacking; target.AttackSlot = AbilitySlots.Normal3; target.Form.Active = form;
         var policy = new HeuristicBotPolicy();
         var memory = new BotMemory { Difficulty = CpuDifficulty.Hard };
         for (int i = 0; i < 30; i++) policy.ObserveOpponent(memory, target, nyx);

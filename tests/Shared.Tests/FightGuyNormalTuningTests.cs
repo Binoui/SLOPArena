@@ -48,7 +48,7 @@ public class FightGuyNormalTuningTests : KitScenarioTests
             Assert = player => Assert.Equal((byte)0, player.AttackSlot),
             NpcSetup = () => TestHelpers.NpcState(0f, 1f) with { PY = GroundPy },
             NpcDef = Def,
-            NpcAssert = npc => Assert.Equal(NormalDamage(AbilitySlots.Slot1, false), (float)npc.DamagePercent),
+            NpcAssert = npc => Assert.Equal(NormalDamage(AbilitySlots.Normal1, false), (float)npc.DamagePercent),
             TotalTicks = 80,
         });
     }
@@ -65,14 +65,14 @@ public class FightGuyNormalTuningTests : KitScenarioTests
             Assert = player => Assert.Equal((byte)0, player.AttackSlot),
             NpcSetup = () => TestHelpers.NpcState(0f, 0.8f) with { PY = GroundPy },
             NpcDef = Def,
-            NpcAssert = npc => Assert.Equal(NormalDamage(AbilitySlots.Slot4, false), (float)npc.DamagePercent),
+            NpcAssert = npc => Assert.Equal(NormalDamage(AbilitySlots.Normal3, false), (float)npc.DamagePercent),
             TotalTicks = 100,
         });
     }
 
     [Theory]
-    [InlineData(AbilitySlots.Slot1)] // a1 Floating Kick
-    [InlineData(AbilitySlots.Slot3)] // a2 Flip Kick: strong early, weak late (sex kick)
+    [InlineData(AbilitySlots.Normal1)] // a1 Floating Kick
+    [InlineData(AbilitySlots.Normal2)] // a2 Flip Kick: strong early, weak late (sex kick)
     public void AirSexKick_SustainedOverlap_HitsOnceAcrossSweetAndSourWindows(byte slot)
     {
         var windows = Def.GetCookedSlotAbility(slot, airborne: true)!.Timeline.Stages
@@ -145,7 +145,7 @@ public class FightGuyNormalTuningTests : KitScenarioTests
             NpcSetup = () => AirborneNpc(0.8f),
             NpcDef = Def,
             // Sweet and sour windows share a hit group: exactly one of them lands.
-            NpcAssert = npc => Assert.Contains((float)npc.DamagePercent, WindowDamages(AbilitySlots.Slot3, true)),
+            NpcAssert = npc => Assert.Contains((float)npc.DamagePercent, WindowDamages(AbilitySlots.Normal2, true)),
             TotalTicks = 90,
         });
     }
@@ -162,7 +162,7 @@ public class FightGuyNormalTuningTests : KitScenarioTests
             Assert = player => Assert.Equal((byte)0, player.AttackSlot),
             NpcSetup = () => AirborneNpc(0.8f),
             NpcDef = Def,
-            NpcAssert = npc => Assert.Equal(NormalDamage(AbilitySlots.Slot4, true), (float)npc.DamagePercent),
+            NpcAssert = npc => Assert.Equal(NormalDamage(AbilitySlots.Normal3, true), (float)npc.DamagePercent),
             TotalTicks = 100,
         });
     }

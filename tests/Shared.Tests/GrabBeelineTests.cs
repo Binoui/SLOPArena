@@ -12,8 +12,8 @@ public sealed class GrabBeelineTests
     {
         var sim = Duel();
         Tick(sim, new() { DashPressed = true });
-        Tick(sim, new() { ActiveSlot = attackLast ? (byte)0 : AbilitySlots.Slot1, GrabPressed = attackLast });
-        Tick(sim, new() { ActiveSlot = attackLast ? AbilitySlots.Slot1 : (byte)0, GrabPressed = !attackLast });
+        Tick(sim, new() { ActiveSlot = attackLast ? (byte)0 : AbilitySlots.Normal1, GrabPressed = attackLast });
+        Tick(sim, new() { ActiveSlot = attackLast ? AbilitySlots.Normal1 : (byte)0, GrabPressed = !attackLast });
         Arrive(sim);
         Tick(sim);
         Assert.Equal(attackLast ? ActionState.Attacking : ActionState.GrabAttempt, sim.GetState(1).State);
@@ -25,13 +25,13 @@ public sealed class GrabBeelineTests
     {
         var sim = Duel();
         Tick(sim, new() { DashPressed = true });
-        Tick(sim, new() { GrabPressed = true, ActiveSlot = AbilitySlots.Slot1 });
-        Assert.Equal(AbilitySlots.Slot1, sim.GetState(1).BufferedSlot);
+        Tick(sim, new() { GrabPressed = true, ActiveSlot = AbilitySlots.Normal1 });
+        Assert.Equal(AbilitySlots.Normal1, sim.GetState(1).BufferedSlot);
         Arrive(sim);
         var state = sim.GetState(1);
-        state.SetCooldown(AbilitySlots.Slot3, 100);
+        state.SetCooldown(AbilitySlots.Normal2, 100);
         sim.SetState(1, state);
-        Tick(sim, new() { ActiveSlot = AbilitySlots.Slot3 });
+        Tick(sim, new() { ActiveSlot = AbilitySlots.Normal2 });
         Assert.Equal(0, sim.GetState(1).BufferedSlot);
         Tick(sim);
         Assert.NotEqual(ActionState.Attacking, sim.GetState(1).State);

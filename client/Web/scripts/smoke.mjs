@@ -41,7 +41,7 @@ function chase(self, ball) {
 }
 let swing = 0;
 
-assert.deepEqual(start.deck.map(row => row.key), ['dash', 'slot1', 'slot3', 'slot4', 'A', 'E', 'R', 'F']);
+assert.deepEqual(start.deck.map(row => row.key), ['dash', 'slot1', 'slot2', 'slot3', 'A', 'E', 'R', 'F']);
 if (mode === 'brawl') {
   const special = start.deck.find(row => row.key === 'A' && !row.locked && row.max > 0);
   assert(special, 'P1 has a special with a cooldown');

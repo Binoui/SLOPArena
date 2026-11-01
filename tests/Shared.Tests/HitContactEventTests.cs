@@ -19,8 +19,8 @@ public sealed class HitContactEventTests
         slots[0] = WithPresentation(slots[0], GroundPresentationId);
         slots[7] = WithPresentation(slots[7], AirPresentationId);
         def = def with { CookedSlots = slots };
-        def = TestHelpers.WithMove(def, AbilitySlots.Slot1, false, "Ground contact", 20, hitPresentationId: GroundPresentationId);
-        def = TestHelpers.WithMove(def, AbilitySlots.Slot1, true, "Air contact", 20, hitPresentationId: AirPresentationId);
+        def = TestHelpers.WithMove(def, AbilitySlots.Normal1, false, "Ground contact", 20, hitPresentationId: GroundPresentationId);
+        def = TestHelpers.WithMove(def, AbilitySlots.Normal1, true, "Air contact", 20, hitPresentationId: AirPresentationId);
         return def;
     }
 
@@ -58,7 +58,7 @@ public sealed class HitContactEventTests
         OwnerId = AttackerId,
         ActivationId = 9,
         AttackSequence = 17,
-        AttackSlot = AbilitySlots.Slot1,
+        AttackSlot = AbilitySlots.Normal1,
         ActivationAirborne = airborne,
         Airborne = airborne,
         HitsMultipleOpponents = multiple,

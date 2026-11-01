@@ -275,7 +275,7 @@ public sealed class CharacterPackageCompilerTests
         var result = CompileCharacter();
         Assert.NotNull(result.CookedPackage);
         Assert.DoesNotContain(result.Diagnostics, x => x.Severity == CharacterDiagnosticSeverity.Error);
-        foreach (var id in new[] { "ground.1", "ground.3", "ground.4" })
+        foreach (var id in new[] { "ground.1", "ground.2", "ground.3" })
             Assert.True(result.CookedPackage!.Definition.Slots.Single(x => x.Id == id).AllowSlideCarry);
         Assert.False(result.CookedPackage!.Definition.Slots.Single(x => x.Id == "ground.A").AllowSlideCarry);
         Assert.False(result.CookedPackage.Definition.Slots.Single(x => x.Id == "air.1").AllowSlideCarry);
@@ -287,11 +287,11 @@ public sealed class CharacterPackageCompilerTests
         var aliased = CompileCharacter(character =>
         {
             var slots = (JsonArray)character["slots"]!;
-            slots.Remove(slots.Single(slot => slot!["id"]!.GetValue<string>() == "ground.3"));
-            ((JsonArray)character["aliases"]!).Add(new JsonObject { ["from"] = "ground.3", ["to"] = "ground.1" });
+            slots.Remove(slots.Single(slot => slot!["id"]!.GetValue<string>() == "ground.2"));
+            ((JsonArray)character["aliases"]!).Add(new JsonObject { ["from"] = "ground.2", ["to"] = "ground.1" });
         });
         Assert.NotNull(aliased.CookedPackage);
-        Assert.True(aliased.CookedPackage!.Definition.Slots.Single(x => x.Id == "ground.3").AllowSlideCarry);
+        Assert.True(aliased.CookedPackage!.Definition.Slots.Single(x => x.Id == "ground.2").AllowSlideCarry);
 
         var conflict = CompileCharacter(character =>
         {
@@ -316,20 +316,20 @@ public sealed class CharacterPackageCompilerTests
         var json = JsonNode.Parse(Fixture("character.json"))!.AsObject();
         json["presentationIds"]!.AsArray().Add("presentation.test.hit");
         var ground = json["slots"]!.AsArray().Single(x => x!["id"]!.GetValue<string>() == "ground.1")!.AsObject();
-        var target = json["slots"]!.AsArray().Single(x => x!["id"]!.GetValue<string>() == "ground.3")!;
+        var target = json["slots"]!.AsArray().Single(x => x!["id"]!.GetValue<string>() == "ground.2")!;
         target["hitPresentationId"] = "presentation.test.hit";
         var air = json["slots"]!.AsArray().Single(x => x!["id"]!.GetValue<string>() == "air.1")!;
         air["hitPresentationId"] = "presentation.test.hit";
         var slotIndex = json["slots"]!.AsArray().IndexOf(ground);
         ((JsonArray)json["slots"]!).RemoveAt(slotIndex);
-        ((JsonArray)json["aliases"]!).Add(new JsonObject { ["from"] = "ground.1", ["to"] = "ground.3" });
+        ((JsonArray)json["aliases"]!).Add(new JsonObject { ["from"] = "ground.1", ["to"] = "ground.2" });
 
         var loaded = CharacterPackageSourceCodec.Load(Fixture("package.json"), json.ToJsonString());
         Assert.True(loaded.IsValid, string.Join("\n", loaded.Diagnostics));
         var rewritten = CharacterPackageSourceCodec.SerializeCharacter(loaded.Source!.Character);
         var reloaded = CharacterPackageSourceCodec.Load(Fixture("package.json"), rewritten);
         Assert.True(reloaded.IsValid, string.Join("\n", reloaded.Diagnostics));
-        Assert.Equal("presentation.test.hit", reloaded.Source!.Character.Slots.Single(x => x.Id == "ground.3").HitPresentationId);
+        Assert.Equal("presentation.test.hit", reloaded.Source!.Character.Slots.Single(x => x.Id == "ground.2").HitPresentationId);
 
         var compiled = CharacterPackageCompiler.Compile(loaded.Source, CharacterCookProfile.TrustedBuiltIn);
         Assert.NotNull(compiled.CookedPackage);
@@ -338,9 +338,9 @@ public sealed class CharacterPackageCompilerTests
         Assert.Equal("presentation.test.hit", compiled.CookedPackage.Definition.Slots.Single(x => x.Id == "air.1").HitPresentationId);
 
         var definition = CookedCharacterRuntimeAdapter.ToCharacterDefinition(compiled.CookedPackage);
-        Assert.Equal("presentation.test.hit", definition.GetCookedSlotAbility(AbilitySlots.Slot1, false)!.HitPresentationId);
-        Assert.Equal("presentation.test.hit", definition.GetCookedSlotAbility(AbilitySlots.Slot1, true)!.HitPresentationId);
-        Assert.Equal("presentation.test.hit", definition.GetCookedSlotAbility(AbilitySlots.Slot3, false)!.HitPresentationId);
+        Assert.Equal("presentation.test.hit", definition.GetCookedSlotAbility(AbilitySlots.Normal1, false)!.HitPresentationId);
+        Assert.Equal("presentation.test.hit", definition.GetCookedSlotAbility(AbilitySlots.Normal1, true)!.HitPresentationId);
+        Assert.Equal("presentation.test.hit", definition.GetCookedSlotAbility(AbilitySlots.Normal2, false)!.HitPresentationId);
         Assert.Equal(compiled.CookedPackage.CanonicalBytes, CharacterPackageCompiler.Compile(
             reloaded.Source!, CharacterCookProfile.TrustedBuiltIn).CookedPackage!.CanonicalBytes);
     }
@@ -472,7 +472,7 @@ public sealed class CharacterPackageCompilerTests
         });
         Assert.NotNull(compiled.CookedPackage);
         var def = CookedCharacterRuntimeAdapter.ToCharacterDefinition(compiled.CookedPackage!);
-        var slot = def.GetCookedSlotAbility(AbilitySlots.Slot1, false)!;
+        var slot = def.GetCookedSlotAbility(AbilitySlots.Normal1, false)!;
         var authored = slot.Timeline.Stages[0].Operations.OfType<CookedSpawnHitboxOperation>().Single();
         var projected = Assert.Single(def.GetCookedSlotAbility(3, false)!.Timeline.Stages[0].ReadHitboxes());
         Assert.Equal("mixamorig:Spine2", projected.BoneName);
@@ -498,7 +498,7 @@ public sealed class CharacterPackageCompilerTests
         var hitbox = Assert.Single(sim.Resolver.GetActiveHitboxes());
         TestHelpers.AssertNear(4f * def.HurtboxBoneScale + authored.Hitbox.OffsetZ, hitbox.Z);
         TestHelpers.AssertNear(6f * def.HurtboxBoneScale + authored.Hitbox.EndOffsetZ, hitbox.EndZ);
-        Assert.True(SlopArena.Shared.AI.HeuristicBotPolicy.ForwardReach(def, AbilitySlots.Slot1, false, baked) >= hitbox.EndZ);
+        Assert.True(SlopArena.Shared.AI.HeuristicBotPolicy.ForwardReach(def, AbilitySlots.Normal1, false, baked) >= hitbox.EndZ);
     }
     [Fact]
     public void Wibou_Package_CooksCanonicalSlotsAttachmentsAndSpread()

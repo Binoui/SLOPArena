@@ -448,12 +448,12 @@ class OwnerRouteTests(unittest.TestCase):
         self.assertEqual([w.rule for w in lint_brief(data)], ['author-slow'])
         data.pop('purpose')
         data['name'] = 'fighter-gf-special'
-        data['notes'] = 'Blends to air.3 afterwards.'
+        data['notes'] = 'Blends to air.2 afterwards.'
         self.assertEqual(brief_purpose(data), ('special', True))
 
     def test_flip_kick_brief_passes_lint_without_loading_rig(self):
         from genra.brief import lint_brief
-        path = REPO / 'tools/genra/briefs/fightguy-a3-flip-kick.json'
+        path = REPO / 'tools/genra/briefs/fightguy-a2-flip-kick.json'
         self.assertEqual(lint_brief(json.loads(path.read_text())), [])
 
     def test_lint_prints_before_any_provider_call(self):

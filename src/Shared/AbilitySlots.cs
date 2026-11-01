@@ -18,14 +18,14 @@ namespace SlopArena.Shared
         public const byte None = 0;
         public const byte Lmb = 1;      // reserved retired mouse slot
         public const byte Rmb = 2;      // reserved retired mouse slot
-        public const byte Slot1 = 3;    // key "1" (formerly Q)
+        public const byte Normal1 = 3;    // key "1" (formerly Q)
         public const byte E = 4;
         public const byte R = 5;
         public const byte F = 6;
-        public const byte Slot2 = 7;    // reserved retired normal (ADR-0042: three normals)
-        public const byte Slot3 = 8;    // key "3"
-        public const byte Slot4 = 9;    // key "4"
-        public const byte Slot5 = 10;   // reserved retired fifth normal
+        public const byte RetiredNormal = 7;    // reserved retired normal (ADR-0042: three normals)
+        public const byte Normal2 = 8;    // key "3"
+        public const byte Normal3 = 9;    // key "4"
+        public const byte RetiredFifthNormal = 10;   // reserved retired fifth normal
         public const byte A = 11;       // key "A"
 
         /// <summary>Number of move slots (0-10 slot indices, ActiveSlot values 1-11).</summary>

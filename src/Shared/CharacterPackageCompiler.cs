@@ -1134,7 +1134,7 @@ public static class CharacterPackageCompiler
             ? $"character.slots[{sourceIndex}].allowSlideCarry"
             : $"character.slots.{canonicalId}.allowSlideCarry";
         const string code = "slot.slide-carry.motion-conflict";
-        if (canonicalId != "ground.1" && canonicalId != "ground.3" && canonicalId != "ground.4")
+        if (canonicalId != "ground.1" && canonicalId != "ground.2" && canonicalId != "ground.3")
             d.Error(code, path, "Slide carry is only valid on grounded canonical normals.");
         if (slot.AimMode != AuthoringAimMode.None)
             d.Error(code, path, "Slide carry cannot be enabled on an aimed slot.");

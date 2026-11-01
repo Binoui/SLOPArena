@@ -83,14 +83,14 @@ public static class AnimationBehaviorSelfTest
             var graph = root.GetComponentInChildren<AnimancerComponent>();
             Require(graph != null, "The package preview did not create an Animancer graph.");
             graph.Animator.cullingMode = AnimatorCullingMode.AlwaysAnimate;
-            var spec = definition.GetCookedSlotAbility(AbilitySlots.Slot1, false);
+            var spec = definition.GetCookedSlotAbility(AbilitySlots.Normal1, false);
             var expectedClip = Array.Find(preview.AnimationCatalog.Animations,
                 entry => entry.SemanticId == spec.Clip(0).AnimationId).Clip;
             Require(expectedClip != null, "The package's ground.1 animation clip is unavailable.");
             var state = new CharacterState
             {
                 State = ActionState.Attacking,
-                AttackSlot = AbilitySlots.Slot1,
+                AttackSlot = AbilitySlots.Normal1,
                 AttackSequence = 7,
                 StateTicks = spec.Timeline.Stages[0].DurationTicks,
                 IsGrounded = true,

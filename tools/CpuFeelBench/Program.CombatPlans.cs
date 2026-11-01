@@ -12,7 +12,7 @@ internal static partial class Program
     {
         var source = BuiltInContentResolver.Resolve(CharacterClass.FightGuy);
         var slots = source.Definition.CookedSlots!.ToArray();
-        CanonicalSlotProjection.TryGet(AbilitySlots.Slot1, false, out var address);
+        CanonicalSlotProjection.TryGet(AbilitySlots.Normal1, false, out var address);
         var hit = new CookedHitbox(AuthoringHitboxShape.Sphere, 0.35f, 0f, 0f, 0.8f,
             0f, 0f, 0f, null, null, 5f, 45f, 2f, 0f, 18, 2, true, 0, default);
         slots[address.Ordinal] = new CookedSlotDefinition(address.Ordinal, address.Id, false,
@@ -29,7 +29,7 @@ internal static partial class Program
         var slots = source.Definition.CookedSlots!.ToArray();
         foreach (bool air in new[] { false, true })
         {
-            CanonicalSlotProjection.TryGet(AbilitySlots.Slot1, air, out var address);
+            CanonicalSlotProjection.TryGet(AbilitySlots.Normal1, air, out var address);
             var hit = new CookedHitbox(AuthoringHitboxShape.Sphere, .6f, 0, .5f, 1.2f,
                 0, 0, 0, null, null, 3f, 45f, 0f, 0f, 0, 2, true, 0, default, hitstun);
             slots[address.Ordinal] = new CookedSlotDefinition(address.Ordinal, address.Id, air,
@@ -108,7 +108,7 @@ internal static partial class Program
                     selfStart = Spawn(CpuId, fighter.Definition, arena, x, -2.88f, 0f);
                 }
                 if (scenario == "pressure")
-                    foreach (byte slot in new[] { AbilitySlots.Slot3, AbilitySlots.Slot4, AbilitySlots.A, AbilitySlots.E, AbilitySlots.R, AbilitySlots.F })
+                    foreach (byte slot in new[] { AbilitySlots.Normal2, AbilitySlots.Normal3, AbilitySlots.A, AbilitySlots.E, AbilitySlots.R, AbilitySlots.F })
                         selfStart.SetCooldown(slot, ushort.MaxValue);
                 if (script == "air-threat") { selfStart.PY += 2f; selfStart.IsGrounded = false; }
                 var duel = new Duel(arena, fighter, opponent, tier, seed, selfStart,
@@ -126,7 +126,7 @@ internal static partial class Program
                     bool attackScript = script.Contains("whiff") || script.Contains("threat") || script is "hit-block-jab" or "counter";
                     var targetInput = new InputState
                     {
-                        ActiveSlot = attackScript && phase == 23 ? AbilitySlots.Slot1 : (byte)0,
+                        ActiveSlot = attackScript && phase == 23 ? AbilitySlots.Normal1 : (byte)0,
                         FaceToCamera = true, AimYaw = 18000,
                         MoveX = script == "lateral" ? (tick / 47 % 2 == 0 ? 1f : -1f) : 0f,
                         MoveY = script == "closing" ? -1f : script == "feint" && phase < 7 ? 0.2f : script == "offstage" && tick > 90 ? 1f : 0f,

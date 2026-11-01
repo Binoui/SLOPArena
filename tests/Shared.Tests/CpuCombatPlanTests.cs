@@ -11,7 +11,7 @@ public sealed class CpuCombatPlanTests
     {
         var def = TestHelpers.EngineDef;
         foreach (bool air in new[] { false, true })
-            def = TestHelpers.WithMove(def, AbilitySlots.Slot1, air, "Poke", 18, 12,
+            def = TestHelpers.WithMove(def, AbilitySlots.Normal1, air, "Poke", 18, 12,
                 hits: new[] { new HitboxEvent { TriggerTick = 2, DurationTicks = 2, Radius = .6f,
                     OffZ = 1.2f, Damage = 3f, FixedHitstunTicks = 60 } });
         return def;
@@ -76,7 +76,7 @@ public sealed class CpuCombatPlanTests
         Assert.True(fight.Self.PZ > -23f);
         bool accepted = false;
         for (int tick = 0; tick < 180; tick++)
-            if (fight.Step().ActiveSlot == AbilitySlots.Slot1)
+            if (fight.Step().ActiveSlot == AbilitySlots.Normal1)
             { accepted = fight.Self.State == ActionState.Attacking; break; }
         Assert.True(accepted);
     }
@@ -100,15 +100,15 @@ public sealed class CpuCombatPlanTests
     [Fact]
     public void ARecoveryEpisodeIsRecognizedOnlyOnceIncludingAMiss()
     {
-        var def = TestHelpers.WithMove(Kit(), AbilitySlots.Slot3, false, "Whiff", 100, 90,
+        var def = TestHelpers.WithMove(Kit(), AbilitySlots.Normal2, false, "Whiff", 100, 90,
             hits: new[] { new HitboxEvent { TriggerTick = 1, DurationTicks = 1, Radius = .2f, Damage = 1 } });
         var memory = new BotMemory { Difficulty = CpuDifficulty.Easy }; var policy = new HeuristicBotPolicy();
-        var target = TestHelpers.NpcState(0, 1) with { State = ActionState.Attacking, AttackSlot = AbilitySlots.Slot3,
+        var target = TestHelpers.NpcState(0, 1) with { State = ActionState.Attacking, AttackSlot = AbilitySlots.Normal2,
             AttackElapsedTicks = 5, AnimLockTicks = 95 };
         var rng = new MissRandom();
         for (int i = 0; i < 100; i++)
         {
-            policy.ObserveOpponent(memory, target, def, activeMove: def.GetCookedSlotAbility(AbilitySlots.Slot3, false));
+            policy.ObserveOpponent(memory, target, def, activeMove: def.GetCookedSlotAbility(AbilitySlots.Normal2, false));
             policy.Decide(TestHelpers.PlayerState(), def, rng, memory);
         }
         Assert.Equal(1, memory.CombatTrace.RecoveryEvaluations);

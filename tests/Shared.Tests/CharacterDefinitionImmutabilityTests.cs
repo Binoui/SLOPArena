@@ -66,7 +66,7 @@ public sealed class CharacterDefinitionImmutabilityTests
         void Replay(ServerSimulation sim)
         {
             for (int tick = 0; tick < 5; tick++)
-                sim.Tick(new() { [1] = new InputState { ActiveSlot = tick == 0 ? AbilitySlots.Slot1 : (byte)0 } });
+                sim.Tick(new() { [1] = new InputState { ActiveSlot = tick == 0 ? AbilitySlots.Normal1 : (byte)0 } });
         }
         Replay(first);
         Assert.Equal(7, first.GetState(2).DamagePercent);

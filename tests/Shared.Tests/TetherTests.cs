@@ -96,8 +96,8 @@ public sealed class TetherTests
         Assert.InRange(victim.PY - her.PY, -.01f, .01f);
         Assert.InRange(AngleBetween(victim.FacingYaw, MathF.PI), 0f, .01f);
 
-        duel.Step(new InputState { ActiveSlot = AbilitySlots.Slot1 });
-        Assert.Equal(AbilitySlots.Slot1, duel.State(Bashie).AttackSlot);
+        duel.Step(new InputState { ActiveSlot = AbilitySlots.Normal1 });
+        Assert.Equal(AbilitySlots.Normal1, duel.State(Bashie).AttackSlot);
     }
 
     [Theory]
@@ -144,10 +144,10 @@ public sealed class TetherTests
     {
         var duel = Arrived(out _, victimShields: true);
         var shield = new InputState { ShieldHeld = true };
-        duel.Step(new InputState { ActiveSlot = AbilitySlots.Slot1 }, (Dummy, shield));
-        duel.RunUntil(() => duel.Hits.Any(h => h.OwnerEntityId == Bashie && h.AttackSlot == AbilitySlots.Slot1), 60,
+        duel.Step(new InputState { ActiveSlot = AbilitySlots.Normal1 }, (Dummy, shield));
+        duel.RunUntil(() => duel.Hits.Any(h => h.OwnerEntityId == Bashie && h.AttackSlot == AbilitySlots.Normal1), 60,
             (Dummy, shield));
-        var jab = duel.Hits.First(h => h.OwnerEntityId == Bashie && h.AttackSlot == AbilitySlots.Slot1);
+        var jab = duel.Hits.First(h => h.OwnerEntityId == Bashie && h.AttackSlot == AbilitySlots.Normal1);
         Assert.False(jab.Blocked);
         Assert.Equal(Dummy, jab.TargetEntityId);
         duel.RunUntil(() => duel.State(Dummy).State == ActionState.Hitstun, 30, (Dummy, shield));
@@ -168,8 +168,8 @@ public sealed class TetherTests
     }
 
     [Theory]
-    [InlineData(AbilitySlots.Slot3)]
-    [InlineData(AbilitySlots.Slot4)]
+    [InlineData(AbilitySlots.Normal2)]
+    [InlineData(AbilitySlots.Normal3)]
     public void HerSlowerNormalsStartedOnHerFirstFreeTickAreShielded(byte slot)
     {
         var duel = Arrived(out _, victimShields: true);
@@ -195,7 +195,7 @@ public sealed class TetherTests
         Assert.False(duel.RingOut, "the empty ring has no body on the way back");
 
         uint free = retract.MatchTick + home + P.MissRecoveryTicks + 1;
-        var press = holdShield ? new InputState { ShieldHeld = true } : new InputState { ActiveSlot = AbilitySlots.Slot1 };
+        var press = holdShield ? new InputState { ShieldHeld = true } : new InputState { ActiveSlot = AbilitySlots.Normal1 };
         while (duel.Sim.CurrentTick < free - 2)
         {
             duel.Step(press);
@@ -206,7 +206,7 @@ public sealed class TetherTests
         Assert.Equal(ActionState.Idle, duel.State(Bashie).State);
         duel.Step(press);
         if (holdShield) Assert.Equal(ActionState.Shielding, duel.State(Bashie).State);
-        else Assert.Equal(AbilitySlots.Slot1, duel.State(Bashie).AttackSlot);
+        else Assert.Equal(AbilitySlots.Normal1, duel.State(Bashie).AttackSlot);
     }
 
     [Fact]

@@ -22,7 +22,7 @@ internal static class DashReport
     private static readonly float[] ApexDistances = { 4f, 7f, 10f };
     private static readonly string[] Roster = { "fightguy", "wibou", "manki", "bonk", "bashie", "salamander" };
     private static readonly (string Label, byte Wire)[] Normals =
-        { ("1", AbilitySlots.Slot1), ("2", AbilitySlots.Slot3), ("3", AbilitySlots.Slot4) };
+        { ("1", AbilitySlots.Normal1), ("2", AbilitySlots.Normal2), ("3", AbilitySlots.Normal3) };
 
     internal static int Run(string[] args)
     {

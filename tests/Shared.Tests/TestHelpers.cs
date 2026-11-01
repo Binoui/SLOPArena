@@ -485,7 +485,7 @@ public static class TestHelpers
     {
         var def = CloneDef(source);
         var slots = source.CookedSlots!.ToArray();
-        CanonicalSlotProjection.TryGet("air.3", out var address);
+        CanonicalSlotProjection.TryGet("air.2", out var address);
         slots[address.Ordinal] = new CookedSlotDefinition(
             address.Ordinal, address.Id, true, "Empty aerial", "", "",
             AuthoringAbilityBehavior.MeleeCombo, AuthoringAimMode.None,

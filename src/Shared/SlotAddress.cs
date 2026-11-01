@@ -12,7 +12,7 @@ public static class CanonicalSlotProjection
     // Three normals (ADR-0042): jab/all-rounder, up and big keep the ids 1, 3 and 4.
     private static readonly byte[] WireSlots =
     {
-        AbilitySlots.Slot1, AbilitySlots.Slot3, AbilitySlots.Slot4,
+        AbilitySlots.Normal1, AbilitySlots.Normal2, AbilitySlots.Normal3,
         AbilitySlots.A, AbilitySlots.E, AbilitySlots.R, AbilitySlots.F,
     };
 

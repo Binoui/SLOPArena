@@ -123,8 +123,8 @@ public sealed class BashieGroundThreeTests
         Assert.Equal(ActionState.Idle, duel.Sim.GetState(1).State);
         Assert.InRange(duel.MaxRootDelta, 0f, .001f);
         Assert.False(duel.WasAirborne);
-        duel.Step(AbilitySlots.Slot1);
-        Assert.Equal(AbilitySlots.Slot1, duel.Sim.GetState(1).AttackSlot);
+        duel.Step(AbilitySlots.Normal1);
+        Assert.Equal(AbilitySlots.Normal1, duel.Sim.GetState(1).AttackSlot);
         Assert.NotNull(duel.Sim.GetActiveAbility(1));
     }
 
@@ -176,7 +176,7 @@ public sealed class BashieGroundThreeTests
             short wireYaw = (short)MathF.Round(_yaw * 180f / MathF.PI * 100f);
             Sim.Tick(new Dictionary<ulong, InputState>
             {
-                [1] = new() { ActiveSlot = _frames == 0 ? AbilitySlots.Slot3 : slot, FacingYaw = wireYaw, AimYaw = wireYaw },
+                [1] = new() { ActiveSlot = _frames == 0 ? AbilitySlots.Normal2 : slot, FacingYaw = wireYaw, AimYaw = wireYaw },
                 [100] = _shield ? new InputState { ShieldHeld = true } : default,
             });
             _frames++;

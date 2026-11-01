@@ -29,7 +29,7 @@ public sealed class FormsCancelTests
         for (int i = 0; i < 4; i++)
             sim.Tick(new Dictionary<ulong, InputState>
             {
-                [Fighter] = i == 0 ? FormsFixture.Press(AbilitySlots.Slot1) : default,
+                [Fighter] = i == 0 ? FormsFixture.Press(AbilitySlots.Normal1) : default,
                 [Target] = new() { ShieldHeld = shield },
             });
         return sim;
@@ -47,10 +47,10 @@ public sealed class FormsCancelTests
         Assert.True(sim.GetState(Target).DamagePercent > 0);
         Thaw(sim);
         FormsFixture.Step(sim, FormsFixture.Press(AbilitySlots.E));
-        Assert.Equal(AbilitySlots.Slot1, sim.GetState(Fighter).AttackSlot);
+        Assert.Equal(AbilitySlots.Normal1, sim.GetState(Fighter).AttackSlot);
         FormsFixture.Step(sim, FormsFixture.Press(AbilitySlots.F));
         Assert.Equal(AbilitySlots.F, sim.GetState(Fighter).AttackSlot);
-        Assert.True(sim.GetState(Fighter).GetCooldown(AbilitySlots.Slot1) > 0);
+        Assert.True(sim.GetState(Fighter).GetCooldown(AbilitySlots.Normal1) > 0);
         FormsFixture.StepThroughSwap(sim);
         Assert.Equal(1, sim.GetState(Fighter).Form.Active);
     }
@@ -64,7 +64,7 @@ public sealed class FormsCancelTests
         Thaw(sim);
         if (shield) Assert.Equal(0, sim.GetState(Target).DamagePercent);
         FormsFixture.Step(sim, FormsFixture.Press(AbilitySlots.F));
-        Assert.Equal(AbilitySlots.Slot1, sim.GetState(Fighter).AttackSlot);
+        Assert.Equal(AbilitySlots.Normal1, sim.GetState(Fighter).AttackSlot);
         Assert.Equal(0, sim.GetState(Fighter).Form.Active);
     }
 
@@ -74,7 +74,7 @@ public sealed class FormsCancelTests
         var sim = Start();
         Assert.True(sim.GetState(Fighter).HitstopTicks > 0);
         FormsFixture.Step(sim, FormsFixture.Press(AbilitySlots.F));
-        Assert.Equal(AbilitySlots.Slot1, sim.GetState(Fighter).AttackSlot);
+        Assert.Equal(AbilitySlots.Normal1, sim.GetState(Fighter).AttackSlot);
         Assert.Equal(AbilitySlots.F, sim.GetState(Fighter).BufferedSlot);
         Thaw(sim);
         FormsFixture.Step(sim);
@@ -105,7 +105,7 @@ public sealed class FormsCancelTests
         var sim = Start(forms: false);
         Thaw(sim);
         FormsFixture.Step(sim, FormsFixture.Press(AbilitySlots.F));
-        Assert.Equal(AbilitySlots.Slot1, sim.GetState(Fighter).AttackSlot);
+        Assert.Equal(AbilitySlots.Normal1, sim.GetState(Fighter).AttackSlot);
     }
 
     [Fact]
@@ -115,10 +115,10 @@ public sealed class FormsCancelTests
         var target = sim.GetState(Target);
         target.PZ += 10;
         sim.SetState(Target, target);
-        FormsFixture.Step(sim, FormsFixture.Press(AbilitySlots.Slot1));
+        FormsFixture.Step(sim, FormsFixture.Press(AbilitySlots.Normal1));
         sim.Resolver.Spawn(new Hitbox
         {
-            OwnerId = Fighter, ActivationId = ulong.MaxValue, AttackSlot = AbilitySlots.Slot1,
+            OwnerId = Fighter, ActivationId = ulong.MaxValue, AttackSlot = AbilitySlots.Normal1,
             X = target.PX, Y = target.PY, Z = target.PZ, Shape = HitboxShape.Sphere, Radius = 1,
             Damage = 4, BaseKnockback = 3, StunTicks = 12, DurationTicks = 1,
         });
@@ -126,7 +126,7 @@ public sealed class FormsCancelTests
         Assert.Contains(sim.LastTickHits, h => h.OwnerEntityId == Fighter);
         Thaw(sim);
         FormsFixture.Step(sim, FormsFixture.Press(AbilitySlots.F));
-        Assert.Equal(AbilitySlots.Slot1, sim.GetState(Fighter).AttackSlot);
+        Assert.Equal(AbilitySlots.Normal1, sim.GetState(Fighter).AttackSlot);
     }
 
     [Fact]

@@ -13,7 +13,7 @@ for form in ('real','fake'):
         p=E/'training-delivery'/f'{form}-{key}'
         if not (p/'states.jsonl').exists():p=P/f'{form}-{key}'
         if key=='idle':p=P/f'{form}-idle-full'
-        if key=='g4' and form=='real' and not str(p).startswith(str(E/'training-delivery')):p=P/'real-g4-final'
+        if key=='g4' and form=='real' and not str(p).startswith(str(E/'training-delivery')):p=P/'real-g3-final'
         rows=[json.loads(l) for l in (p/'states.jsonl').read_text().splitlines()];hits=[r for r in rows if r.get('hits')];attacks=[r for r in rows if r['slot']]
         start=attacks[0]['tick'] if attacks else 0
         if key=='idle':tick=360

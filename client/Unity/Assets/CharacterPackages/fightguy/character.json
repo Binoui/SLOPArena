@@ -1,5 +1,5 @@
 {
-  "authoringSchemaVersion": 3,
+  "authoringSchemaVersion": 4,
   "displayName": "FightGuy",
   "weight": 100,
   "movement": {
@@ -328,7 +328,7 @@
       "id": "ground.1",
       "name": "Straight Punch",
       "description": "Straight Punch",
-      "iconId": "icon.2",
+      "iconId": "icon.1",
       "behavior": "meleeCombo",
       "aimMode": "none",
       "aimMovement": "fixed",
@@ -421,7 +421,7 @@
       "id": "air.1",
       "name": "Floating Kick",
       "description": "Floating Kick",
-      "iconId": "icon.2",
+      "iconId": "icon.1",
       "behavior": "meleeCombo",
       "aimMode": "none",
       "aimMovement": "fixed",
@@ -557,10 +557,10 @@
       }
     },
     {
-      "id": "ground.3",
+      "id": "ground.2",
       "name": "High Kick",
       "description": "High Kick",
-      "iconId": "icon.3",
+      "iconId": "icon.2",
       "behavior": "meleeCombo",
       "aimMode": "none",
       "aimMovement": "fixed",
@@ -650,10 +650,10 @@
       }
     },
     {
-      "id": "air.3",
+      "id": "air.2",
       "name": "Flip Kick",
       "description": "Flip Kick",
-      "iconId": "icon.3",
+      "iconId": "icon.2",
       "behavior": "meleeCombo",
       "aimMode": "none",
       "aimMovement": "fixed",
@@ -769,10 +769,10 @@
       }
     },
     {
-      "id": "ground.4",
+      "id": "ground.3",
       "name": "Double Kick",
       "description": "Double Kick",
-      "iconId": "icon.4",
+      "iconId": "icon.3",
       "behavior": "meleeCombo",
       "aimMode": "none",
       "aimMovement": "fixed",
@@ -882,10 +882,10 @@
       }
     },
     {
-      "id": "air.4",
+      "id": "air.3",
       "name": "Air Smash",
       "description": "Air Smash",
-      "iconId": "icon.4",
+      "iconId": "icon.3",
       "behavior": "meleeCombo",
       "aimMode": "none",
       "aimMovement": "fixed",

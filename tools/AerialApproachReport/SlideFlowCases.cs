@@ -230,7 +230,7 @@ internal static partial class Program
             RecoveryEndTick = landing, RecoveryEndX = landingState?.PX, RecoveryEndZ = landingState?.PZ,
             RecoveryEndVX = landingState?.VX, RecoveryEndVZ = landingState?.VZ,
             JumpsLeft = final.JumpsLeft, AirDodgesLeft = final.AirDodgesLeft,
-            Cooldown = final.GetCooldown(AbilitySlots.Slot1), AnimLockTicks = final.AnimLockTicks,
+            Cooldown = final.GetCooldown(AbilitySlots.Normal1), AnimLockTicks = final.AnimLockTicks,
             LandingLagTicks = final.LandingLagTicks, AttackElapsedTicks = final.AttackElapsedTicks,
             Carry = final.SlideAttackCarryActive, Settled = final.CrouchSettled,
             Notes = slideJump ? "jump requested on first slide tick; no extra takeoff impulse" : "ordinary grounded jump control",
@@ -356,7 +356,7 @@ internal static partial class Program
             Scenario = "release-to-steer", Route = "slide→release→steer", Status = releaseTick != null ? "complete" : "blocked", Tick = lastTick,
             SlideStartTick = slideTick, RecoveryEndTick = releaseTick, AcceptedFollowupTick = releaseTick,
             RecoveryEndX = releaseState?.PX, RecoveryEndZ = releaseState?.PZ, RecoveryEndVX = releaseState?.VX, RecoveryEndVZ = releaseState?.VZ,
-            JumpsLeft = final.JumpsLeft, AirDodgesLeft = final.AirDodgesLeft, Cooldown = final.GetCooldown(AbilitySlots.Slot1),
+            JumpsLeft = final.JumpsLeft, AirDodgesLeft = final.AirDodgesLeft, Cooldown = final.GetCooldown(AbilitySlots.Normal1),
             AnimLockTicks = final.AnimLockTicks, LandingLagTicks = final.LandingLagTicks,
             AttackElapsedTicks = final.AttackElapsedTicks, Carry = final.SlideAttackCarryActive, Settled = final.CrouchSettled,
             Notes = "released Down runs ordinary steering on the release tick",
@@ -411,7 +411,7 @@ internal static partial class Program
             Status = landing != null ? "complete" : "timeout", Tick = lastTick,
             RecoveryEndTick = landing, RecoveryEndX = landingState?.PX, RecoveryEndZ = landingState?.PZ,
             RecoveryEndVX = landingState?.VX, RecoveryEndVZ = landingState?.VZ,
-            JumpsLeft = final.JumpsLeft, AirDodgesLeft = final.AirDodgesLeft, Cooldown = final.GetCooldown(AbilitySlots.Slot1),
+            JumpsLeft = final.JumpsLeft, AirDodgesLeft = final.AirDodgesLeft, Cooldown = final.GetCooldown(AbilitySlots.Normal1),
             AnimLockTicks = final.AnimLockTicks, LandingLagTicks = final.LandingLagTicks,
             AttackElapsedTicks = final.AttackElapsedTicks, Carry = final.SlideAttackCarryActive, Settled = final.CrouchSettled,
             Notes = $"support={support.ToString("0.###", CultureInfo.InvariantCulture)}; declared initial XZ speed=.6 RunSpeed; no added touchdown displacement",
@@ -426,7 +426,7 @@ internal static partial class Program
         var sim = new ServerSimulation(SlideArena(support), downActionTuning: tuning);
         var initial = InitialState(def, 0f, 0f, true, 0f);
         initial.PY += support;
-        initial.SetCooldown(AbilitySlots.Slot1, 90);
+        initial.SetCooldown(AbilitySlots.Normal1, 90);
         sim.RegisterEntity(id, def, initial, entry.BakedAnimation);
         int cycle = 0, phase = 0, phaseTicks = 0;
         int? slideTick = null, jumpTick = null, takeoffTick = null;
@@ -464,7 +464,7 @@ internal static partial class Program
                 input.Jump ? "cycle-jump" : input.DownPressed ? "down-edge" : "");
             if (after.JumpsLeft > def.Movement.MaxJumps || after.AirDodgesLeft > 1
                 || (!before.IsGrounded && !sim.LastTickTouchdowns.Contains(id) && after.JumpsLeft > before.JumpsLeft)
-                || after.GetCooldown(AbilitySlots.Slot1) > before.GetCooldown(AbilitySlots.Slot1))
+                || after.GetCooldown(AbilitySlots.Normal1) > before.GetCooldown(AbilitySlots.Normal1))
                 throw new InvalidDataException($"Repeated movement revived a resource: {entry.Identity.PackageId}/{cycle}/{tick}");
             if (phase == 0)
             {
@@ -511,7 +511,7 @@ internal static partial class Program
                     RecoveryEndTick = tick, RecoveryEndX = after.PX, RecoveryEndZ = after.PZ,
                     RecoveryEndVX = after.VX, RecoveryEndVZ = after.VZ,
                     JumpsLeft = after.JumpsLeft, AirDodgesLeft = after.AirDodgesLeft,
-                    Cooldown = after.GetCooldown(AbilitySlots.Slot1),
+                    Cooldown = after.GetCooldown(AbilitySlots.Normal1),
                     Notes = "one simulation, alternating run direction; actual cooldowns checked every tick; no resets between cycles",
                 });
                 phase = phaseTicks = 0;

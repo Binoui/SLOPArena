@@ -18,18 +18,18 @@ MonoBehaviour:
   _weaponConfig: {fileID: 11400000, guid: dcfa54cbcfd82de45aafe07cfcd4865b, type: 2}
   _sampleRate: 60
   _bindings:
-  - _semanticId: anim.bashie.a2
+  - _semanticId: anim.bashie.a1
     _clip: {fileID: 7400000, guid: bcab864f54828546abdb455791f2cc90, type: 2}
+    _extrapolation: 0
+    _poseTrackId: anim.bashie.a1
+  - _semanticId: anim.bashie.a2
+    _clip: {fileID: 7400000, guid: af4a38833bdd5902ca11d50359d23cb6, type: 2}
     _extrapolation: 0
     _poseTrackId: anim.bashie.a2
   - _semanticId: anim.bashie.a3
-    _clip: {fileID: 7400000, guid: af4a38833bdd5902ca11d50359d23cb6, type: 2}
-    _extrapolation: 0
-    _poseTrackId: anim.bashie.a3
-  - _semanticId: anim.bashie.a4
     _clip: {fileID: 7400000, guid: 350fcd55cc96fa8f49af7446e44586e4, type: 2}
     _extrapolation: 0
-    _poseTrackId: anim.bashie.a4
+    _poseTrackId: anim.bashie.a3
   - _semanticId: anim.bashie.crouch
     _clip: {fileID: 7400000, guid: 7257ffad1c2f8cc35a5da14ba5ee8c56, type: 2}
     _extrapolation: 0
@@ -42,18 +42,18 @@ MonoBehaviour:
     _clip: {fileID: 7400000, guid: 48caf5864497749928be3a8b932b86eb, type: 2}
     _extrapolation: 0
     _poseTrackId: anim.bashie.fall
-  - _semanticId: anim.bashie.g2
+  - _semanticId: anim.bashie.g1
     _clip: {fileID: 7400000, guid: bcab864f54828546abdb455791f2cc90, type: 2}
+    _extrapolation: 0
+    _poseTrackId: anim.bashie.g1
+  - _semanticId: anim.bashie.g2
+    _clip: {fileID: 7400000, guid: af4a38833bdd5902ca11d50359d23cb6, type: 2}
     _extrapolation: 0
     _poseTrackId: anim.bashie.g2
   - _semanticId: anim.bashie.g3
-    _clip: {fileID: 7400000, guid: af4a38833bdd5902ca11d50359d23cb6, type: 2}
-    _extrapolation: 0
-    _poseTrackId: anim.bashie.g3
-  - _semanticId: anim.bashie.g4
     _clip: {fileID: 7400000, guid: 350fcd55cc96fa8f49af7446e44586e4, type: 2}
     _extrapolation: 0
-    _poseTrackId: anim.bashie.g4
+    _poseTrackId: anim.bashie.g3
   - _semanticId: anim.bashie.gr
     _clip: {fileID: 7400000, guid: bd5d1a687f9b7531890a35e230f592bd, type: 2}
     _extrapolation: 0

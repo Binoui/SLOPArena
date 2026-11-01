@@ -1,0 +1,185 @@
+{
+  "name": "salamander-g3-tail-spin",
+  "rigpack": "artifacts/genra-rigpacks/salamander-unity-moves",
+  "character": "The salamander gunslinger (55 joints: a Humanoid body with Mixamo names; each hand has a thumb and THREE fingers (Thumb, Index, Middle, Ring chains), no little finger; five tail joints Tail1-Tail5 under Hips; three rigid joints under Head: Hat (his sombrero, its own mesh), Mustache (the fake mustache on his snout) and Straw (a wheat straw in the left corner of his mouth)). He is lanky: in the rig his hip joints stand 0.42 m above the floor when straight, thigh 0.176 m, shin 0.137 m, upper arm 0.158 m, forearm 0.093 m, long hands (about 0.15 m wrist to fingertip); 0.95 m to the top of his head, 1.13 m with the hat (the game draws him 1.8 times bigger). A thick tail hangs behind him from the seat of his jeans. His poncho is cloth simulated in the game and is not in this rig: pose the body only.",
+  "references": {
+    "showdown": "references/showdown.usda",
+    "idle": "references/idle.usda",
+    "fall": "references/fall.usda",
+    "run": "references/run.usda"
+  },
+  "entry": {
+    "reference": "showdown",
+    "tick": 0
+  },
+  "views": [
+    "profile",
+    "three-quarter-right",
+    "gameplay"
+  ],
+  "images": [
+    "../../salamander-idle-run-20261027/salamander-model.png"
+  ],
+  "image_notes": "1: the salamander model with his arms down (front, three-quarter, side). His poncho is not in the rig.",
+  "notes": "Salamander ground.3 (anim.salamander.g3): Tail Spin, his big normal. Replaces Lasso Crack (owner 2026-10-28: simpler body hits, no mime props). PROPOSED clock, for the owner to confirm with the keys: 48 ticks, hit 14-24 (the tail sweeping round him), act 36.",
+  "description": "The salamander's ground.3, Tail Spin: his big, slow, wide normal. He winds up, then spins one full turn on his left boot with his thick tail stretched out flat, sweeping it all the way round him like a club. Halfway round he faces the camera, his back to the opponent and his tail swinging through in front.\n\nWho he is. A tiger salamander (image 1): olive-black skin with yellow blotches, a smirk, a fake handlebar mustache, a straw in his mouth, a wide brown sombrero, a rust-orange poncho, faded patched jeans with his tail out through the seat patch, brown boots with star spurs. He is the Wannabe Legend: a make-believe gunslinger who plays every Western cliche with total conviction. His finger guns belong to his specials only. His normals are plain, scrappy saloon-brawl hits with his own body: no finger guns, no props, open or loosely closed hands. They should be simple to read: one clear idea per move, big silhouettes, quick anticipation, a held pose on the hit, then a cocky settle.\n\nHow the game plays it. The match camera sits straight behind him, so the action must read from behind: arms out to the side or up, not hidden in front of the chest. The fighter does not travel in the clip unless said; the game moves him. The game crossfades in and out over about 0.1 s.\n\nThe floor. It is at up = -0.396 m in this character frame (origin: the hips of his idle at tick 0). With a flat boot the toe joint (ToeBase) sits about 0.008 m above the floor and the ankle (Foot) about 0.078 m above it. Standing straight his hip joint is 0.42 m above the floor. Never push a boot through the floor.\n\nHis idle, where ground moves start and end (reference `showdown`, the entry pose): the showdown stance, boots planted wide, knees bent, hands hovering out at his hips over invisible holsters, facing front.\n\nThe move (48 ticks, played once):\n- Tick 0: the showdown stance.\n- Tick 8, the wind: he coils the other way: chest and hips twisted 30-40 degrees to his right, knees bent a little deeper, weight on the left boot, both arms pulled in toward his right side; the tail swings round to his left and starts to lift. A sly look over his left shoulder.\n- Ticks 12-26, the spin: he turns one full turn to his LEFT (counter-clockwise seen from above), pivoting on the ball of his left boot, the right boot stepping round with him (lifting at most 5 cm). The whole body turns: hips first, chest a tick behind, head last. Arms fly out wide to his sides for balance, nearly straight, hands open. The tail stretches out nearly straight behind his hips at knee-to-hip height and trails the hips by 2-3 ticks like a whip, so at tick 14 it sweeps past his right side, at tick 18 it is straight out in FRONT of him (he is facing the camera, a grin), at tick 22 past his left side, and by tick 26 he faces front again with the tail swinging back behind him.\n- Ticks 26-36: the stop: he plants both boots facing front, a little overbalanced, a dizzy wobble of the head and a small arm windmill, the tail swinging on past and wrapping round toward his right leg before it drops; recovered enough to act at 36.\n- Tick 48: the showdown stance again, matching tick 0.\nThe body does not travel: the boots turn in place. Hips stay level (no lean into the floor).\n- Life. Overlap everything: the hips lead, the chest follows 1-2 ticks later, the arms and head trail 2-3 ticks, the tail and the hat (joint Hat, a few degrees at most) trail the most. No two parts stop on the same tick, and every hold is a moving hold (key its end 2-5 degrees on from its start). Use the follow-through helpers from the guide's Life and Flow sections. Treat every flow or life warning as a failure.",
+  "clock": {
+    "duration_ticks": 48,
+    "contact_tick": 14,
+    "active": [
+      14,
+      24
+    ],
+    "iasa_tick": 36
+  },
+  "timing": {
+    "fixed": [
+      "48 ticks played once; the hitbox follows the tail round him from tick 14 to 24",
+      "the player can act from tick 36",
+      "tick 0 and tick 48 are his showdown idle exactly",
+      "one full turn, ending facing front by tick 26"
+    ],
+    "adjustable": [
+      "the wind-up and the dizzy stop (keep the spin itself fast)"
+    ]
+  },
+  "exit": {
+    "reference": "showdown",
+    "tick": 0,
+    "from_tick": 48
+  },
+  "fast_windows": [
+    [
+      11,
+      28
+    ]
+  ],
+  "strike": [
+    "Tail5"
+  ],
+  "keys": [
+    0,
+    8,
+    12,
+    14,
+    18,
+    22,
+    26,
+    36,
+    48
+  ],
+  "review_ticks": [
+    0,
+    4,
+    8,
+    12,
+    14,
+    16,
+    18,
+    20,
+    22,
+    24,
+    26,
+    30,
+    36,
+    42,
+    48
+  ],
+  "targets": [
+    {
+      "name": "left toe on the floor at the wind (m)",
+      "kind": "char",
+      "a": "LeftToeBase",
+      "axis": "up",
+      "tick": 8,
+      "min": -0.4,
+      "max": -0.35100000000000003
+    },
+    {
+      "name": "left toe on the floor mid-spin (m)",
+      "kind": "char",
+      "a": "LeftToeBase",
+      "axis": "up",
+      "tick": 18,
+      "min": -0.4,
+      "max": -0.35100000000000003
+    },
+    {
+      "name": "wind: tail out to his left at tick 8 (m)",
+      "kind": "char",
+      "a": "Tail5",
+      "axis": "right",
+      "tick": 8,
+      "max": -0.1
+    },
+    {
+      "name": "spin: tail out to his right side at tick 14 (m)",
+      "kind": "char",
+      "a": "Tail5",
+      "axis": "right",
+      "tick": 14,
+      "min": 0.22
+    },
+    {
+      "name": "spin: tail out in front at tick 18 (m)",
+      "kind": "ahead",
+      "a": "Tail5",
+      "b": "Hips",
+      "tick": 18,
+      "min": 0.3
+    },
+    {
+      "name": "spin: tail lifted off the floor at tick 18 (m)",
+      "kind": "char",
+      "a": "Tail5",
+      "axis": "up",
+      "tick": 18,
+      "min": -0.28,
+      "max": 0.05
+    },
+    {
+      "name": "spin: facing the camera at tick 18 (right shoulder on his left) (m)",
+      "kind": "char",
+      "a": "RightShoulder",
+      "axis": "right",
+      "tick": 18,
+      "max": -0.02
+    },
+    {
+      "name": "spin: tail out to his left side at tick 22 (m)",
+      "kind": "char",
+      "a": "Tail5",
+      "axis": "right",
+      "tick": 22,
+      "max": -0.22
+    },
+    {
+      "name": "spin: arms out wide at tick 18 (m)",
+      "kind": "distance",
+      "a": "RightHand",
+      "b": "LeftHand",
+      "tick": 18,
+      "min": 0.55
+    },
+    {
+      "name": "stop: facing front at tick 26 (m)",
+      "kind": "char",
+      "a": "RightShoulder",
+      "axis": "right",
+      "tick": 26,
+      "min": 0.02
+    },
+    {
+      "name": "stop: both toes down at tick 28 (m)",
+      "kind": "char",
+      "a": "RightToeBase",
+      "axis": "up",
+      "tick": 28,
+      "min": -0.4,
+      "max": -0.35100000000000003
+    }
+  ],
+  "snap_exempt": [
+    "Hat"
+  ]
+}

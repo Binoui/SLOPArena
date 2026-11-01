@@ -309,14 +309,14 @@ namespace SlopArena.Shared
         {
             AbilitySlots.Lmb => Cooldown0,
             AbilitySlots.Rmb => Cooldown1,
-            AbilitySlots.Slot1 => Cooldown2,
+            AbilitySlots.Normal1 => Cooldown2,
             AbilitySlots.E => Cooldown3,
             AbilitySlots.R => Cooldown4,
             AbilitySlots.F => Cooldown5,
-            AbilitySlots.Slot2 => Cooldown6,
-            AbilitySlots.Slot3 => Cooldown7,
-            AbilitySlots.Slot4 => Cooldown8,
-            AbilitySlots.Slot5 => Cooldown9,
+            AbilitySlots.RetiredNormal => Cooldown6,
+            AbilitySlots.Normal2 => Cooldown7,
+            AbilitySlots.Normal3 => Cooldown8,
+            AbilitySlots.RetiredFifthNormal => Cooldown9,
             AbilitySlots.A => Cooldown10,
             _ => 0,
         };
@@ -328,14 +328,14 @@ namespace SlopArena.Shared
             {
                 case AbilitySlots.Lmb: Cooldown0 = ticks; break;
                 case AbilitySlots.Rmb: Cooldown1 = ticks; break;
-                case AbilitySlots.Slot1: Cooldown2 = ticks; break;
+                case AbilitySlots.Normal1: Cooldown2 = ticks; break;
                 case AbilitySlots.E: Cooldown3 = ticks; break;
                 case AbilitySlots.R: Cooldown4 = ticks; break;
                 case AbilitySlots.F: Cooldown5 = ticks; break;
-                case AbilitySlots.Slot2: Cooldown6 = ticks; break;
-                case AbilitySlots.Slot3: Cooldown7 = ticks; break;
-                case AbilitySlots.Slot4: Cooldown8 = ticks; break;
-                case AbilitySlots.Slot5: Cooldown9 = ticks; break;
+                case AbilitySlots.RetiredNormal: Cooldown6 = ticks; break;
+                case AbilitySlots.Normal2: Cooldown7 = ticks; break;
+                case AbilitySlots.Normal3: Cooldown8 = ticks; break;
+                case AbilitySlots.RetiredFifthNormal: Cooldown9 = ticks; break;
                 case AbilitySlots.A: Cooldown10 = ticks; break;
             }
         }

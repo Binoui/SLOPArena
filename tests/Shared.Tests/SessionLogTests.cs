@@ -60,7 +60,7 @@ public sealed class SessionLogTests
             writer.WriteFrame(Frame(1));
             writer.WriteSwing(new SwingRecord
             {
-                Attacker = 1, ActiveSlot = AbilitySlots.Slot3, Accepted = true, StartTick = 0,
+                Attacker = 1, ActiveSlot = AbilitySlots.Normal2, Accepted = true, StartTick = 0,
                 ReferenceTarget = 100, HasClosestApproach = true, ClosestGap = 0.4f, MissForward = 0.4f,
                 FirstHitboxTick = 5, LastHitboxTick = 9,
             });

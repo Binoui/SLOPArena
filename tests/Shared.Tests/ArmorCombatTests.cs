@@ -97,7 +97,7 @@ public sealed class ArmorCombatTests
         state.PY = TestHelpers.GroundPY(def);
         sim.RegisterEntity(DefenderId, def, state);
         var ability = new CookedTimelineAbility(slot);
-        sim.ActivateAbility(DefenderId, ability, (byte)(AbilitySlots.Slot1 - 1), def);
+        sim.ActivateAbility(DefenderId, ability, (byte)(AbilitySlots.Normal1 - 1), def);
         Assert.False(ability.HasArmor);
 
         var inputs = new Dictionary<ulong, InputState> { [DefenderId] = default };
@@ -280,7 +280,7 @@ public sealed class ArmorCombatTests
                     }),
             }));
         sim.ActivateAbility(DefenderId, new CookedTimelineAbility(slot),
-            (byte)(AbilitySlots.Slot1 - 1), def);
+            (byte)(AbilitySlots.Normal1 - 1), def);
         for (int step = 1; step < contactStep; step++)
             sim.Tick(new Dictionary<ulong, InputState>());
         SpawnHit(sim, sim.GetState(DefenderId));
@@ -336,7 +336,7 @@ public sealed class ArmorCombatTests
             activated = true;
             sim.ActivateAbility(DefenderId,
                 new CookedTimelineAbility(slot),
-                (byte)(AbilitySlots.Slot1 - 1), def);
+                (byte)(AbilitySlots.Normal1 - 1), def);
         };
         SpawnHit(sim, defender);
         sim.Tick(new Dictionary<ulong, InputState>());

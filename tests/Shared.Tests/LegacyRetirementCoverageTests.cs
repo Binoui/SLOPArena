@@ -154,7 +154,7 @@ public class LegacyRetirementCoverageTests
             "down" => new InputState { Down = true, DownPressed = true },
             "grab" => new InputState { GrabPressed = true },
             "shield" => new InputState { ShieldPressed = true },
-            _ => new InputState { ActiveSlot = AbilitySlots.Slot1 },
+            _ => new InputState { ActiveSlot = AbilitySlots.Normal1 },
         };
         server.SetTick(100);
         Assert.True(predictor.SetTimeline(100));
@@ -219,7 +219,7 @@ public class LegacyRetirementCoverageTests
         for (int tick = 0; tick <= DefenseConfig.GrabStartupTicks; tick++)
         {
             server.Tick(new() { [1] = new InputState { GrabPressed = tick == 0 }, [2] = default });
-            Assert.True(predictor.Advance(new InputState { ActiveSlot = tick == 0 ? AbilitySlots.Slot1 : (byte)0 }));
+            Assert.True(predictor.Advance(new InputState { ActiveSlot = tick == 0 ? AbilitySlots.Normal1 : (byte)0 }));
         }
         Assert.Equal(ActionState.Attacking, predictor.GetState(2).State);
         Assert.Equal(ActionState.Grabbed, server.GetState(2).State);
@@ -236,7 +236,7 @@ public class LegacyRetirementCoverageTests
             AssertWorld(server, predictor);
             Assert.Equal(ActionState.Grabbed, predictor.GetState(2).State);
         }
-        server.Tick(new() { [1] = new InputState { ActiveSlot = AbilitySlots.Slot1 }, [2] = default });
+        server.Tick(new() { [1] = new InputState { ActiveSlot = AbilitySlots.Normal1 }, [2] = default });
         Assert.True(predictor.Advance(default));
         predictor.IngestFrame(Frame(server));
         Assert.Equal(ActionState.Throwing, predictor.GetState(1).State);
@@ -280,7 +280,7 @@ public class LegacyRetirementCoverageTests
             Radius = .5f, Damage = 5, BaseKnockback = 2, DurationTicks = 1, StunTicks = 20,
         });
         server.Tick(new() { [1] = new InputState { ShieldHeld = true }, [2] = default });
-        Assert.True(predictor.Advance(new InputState { ActiveSlot = AbilitySlots.Slot1 }));
+        Assert.True(predictor.Advance(new InputState { ActiveSlot = AbilitySlots.Normal1 }));
         Assert.Equal(ActionState.Attacking, predictor.GetState(1).State);
         var frame = Frame(server);
         predictor.IngestFrame(frame);

@@ -1151,7 +1151,7 @@ public sealed class CharacterPackageAssemblerTests
         var state = TestHelpers.PlayerState(x: 100f, z: 20f);
         state.PY = TestHelpers.GroundPY(def);
         sim.RegisterEntity(1, def, state, loaded.BakedAnimation);
-        sim.Tick(new Dictionary<ulong, InputState> { [1] = new InputState { ActiveSlot = AbilitySlots.Slot1 } });
+        sim.Tick(new Dictionary<ulong, InputState> { [1] = new InputState { ActiveSlot = AbilitySlots.Normal1 } });
         bool thrown = false;
         for (var i = 0; i < 30 && !thrown; i++)
         {
@@ -1207,7 +1207,7 @@ public sealed class CharacterPackageAssemblerTests
         Assert.True(assembled.IsValid, string.Join("; ", assembled.Diagnostics.Select(x => x.Message)));
         var loaded = CookedCharacterPackageLoader.LoadAssembly(assembled);
         Assert.True(loaded.IsValid, string.Join("; ", loaded.Diagnostics.Select(x => x.Message)));
-        Assert.Equal(hitId, loaded.ToCharacterDefinition().GetCookedSlotAbility(AbilitySlots.Slot1, false)!.HitPresentationId);
+        Assert.Equal(hitId, loaded.ToCharacterDefinition().GetCookedSlotAbility(AbilitySlots.Normal1, false)!.HitPresentationId);
 
         var bindings = JsonNode.Parse(input.BindingBytes)!.AsObject();
         bindings["presentations"] = new JsonArray();

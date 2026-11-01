@@ -32,7 +32,7 @@ public sealed class SessionLogReportTests
         int hitboxTicks = 4, ulong target = Cpu, bool measured = true, float missForward = 0.4f)
         => new()
         {
-            Attacker = Player, ActiveSlot = AbilitySlots.Slot1, StartTick = tick, Accepted = accepted,
+            Attacker = Player, ActiveSlot = AbilitySlots.Normal1, StartTick = tick, Accepted = accepted,
             Connected = connected, Blocked = blocked, HitboxTicks = hitboxTicks, ReferenceTarget = target,
             HasClosestApproach = measured, ClosestGap = connected ? -0.1f : 0.4f,
             MissForward = connected ? 0f : missForward, MissWorldZ = connected ? 0f : missForward,

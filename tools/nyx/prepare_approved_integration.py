@@ -39,7 +39,7 @@ def prepare():
         rows.append(dict(move=move,form=spec['form'],slot=spec['slot'],animationId=spec['semanticId'],poseTrackId=spec['semanticId'],
             source=str(dest.relative_to(U)),asset=str(output.relative_to(U)),authoredTicks=authored,durationTicks=total,
             speed=1 if remap or spec['kind']=='run' else authored/total,remap=[{'tick':a,'sourceTick':b} for a,b in remap],
-            candidateSha256=hashlib.sha256(source.read_bytes()).hexdigest(),approval='Owner approved 2026-10-29 including real-a3, real-a4, real-e and fake-run check exceptions.'))
+            candidateSha256=hashlib.sha256(source.read_bytes()).hexdigest(),approval='Owner approved 2026-10-29 including real-a2, real-a3, real-e and fake-run check exceptions.'))
     plan={'clips':rows};(PKG/'Animations/NyxApprovedClips.json').write_text(json.dumps(plan,indent=2)+'\n');E.mkdir(parents=True,exist_ok=True);(E/'binding-plan.json').write_text(json.dumps(plan,indent=2)+'\n')
     print(f'{len(rows)} promoted source clips; {sum(bool(r["remap"]) for r in rows)} native remaps pending')
 if __name__=='__main__':prepare()

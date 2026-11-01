@@ -4,7 +4,7 @@ export function createInput({ protocol, cameraYaw, navigateKey, pressKey }) {
   // ── Input: keyboard by physical key position (as in Unity), plus the first gamepad ──
   // Unity's face order: south, west, north, east.
   const PAD_FACE = [0, 2, 3, 1];
-  const PAD_NORMAL = [0, SLOT.slot1, SLOT.slot3, SLOT.slot4];
+  const PAD_NORMAL = [0, SLOT.slot1, SLOT.slot2, SLOT.slot3];
   // ADR-0042 right-stick specials: a flick past 60% presses the special laid out like the face diamond
   // (up E, left R, right F, down Q); another one needs the stick back under 35%.
   const STICK_PRESS = 0.6, STICK_RELEASE = 0.35;

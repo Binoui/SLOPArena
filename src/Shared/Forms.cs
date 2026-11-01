@@ -17,7 +17,7 @@ public struct FormState
 public static class Forms
 {
     private static readonly byte[] BankedSlots =
-        { AbilitySlots.Slot1, AbilitySlots.Slot3, AbilitySlots.Slot4, AbilitySlots.A, AbilitySlots.E, AbilitySlots.R };
+        { AbilitySlots.Normal1, AbilitySlots.Normal2, AbilitySlots.Normal3, AbilitySlots.A, AbilitySlots.E, AbilitySlots.R };
 
     /// <summary>Slots whose cooldown belongs to one form.</summary>
     public static bool IsBanked(byte slot) => Array.IndexOf(BankedSlots, slot) >= 0;
@@ -25,9 +25,9 @@ public static class Forms
     /// <summary>The inactive form's clock for a banked slot.</summary>
     public static ushort GetBanked(in FormState form, byte slot) => slot switch
     {
-        AbilitySlots.Slot1 => form.Bank1,
-        AbilitySlots.Slot3 => form.Bank3,
-        AbilitySlots.Slot4 => form.Bank4,
+        AbilitySlots.Normal1 => form.Bank1,
+        AbilitySlots.Normal2 => form.Bank3,
+        AbilitySlots.Normal3 => form.Bank4,
         AbilitySlots.A => form.BankA,
         AbilitySlots.E => form.BankE,
         AbilitySlots.R => form.BankR,
@@ -38,9 +38,9 @@ public static class Forms
     {
         switch (slot)
         {
-            case AbilitySlots.Slot1: form.Bank1 = ticks; break;
-            case AbilitySlots.Slot3: form.Bank3 = ticks; break;
-            case AbilitySlots.Slot4: form.Bank4 = ticks; break;
+            case AbilitySlots.Normal1: form.Bank1 = ticks; break;
+            case AbilitySlots.Normal2: form.Bank3 = ticks; break;
+            case AbilitySlots.Normal3: form.Bank4 = ticks; break;
             case AbilitySlots.A: form.BankA = ticks; break;
             case AbilitySlots.E: form.BankE = ticks; break;
             case AbilitySlots.R: form.BankR = ticks; break;

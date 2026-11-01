@@ -80,7 +80,7 @@ public class BurstTests
         var state = TestHelpers.PlayerState();
         state.PY = TestHelpers.GroundPY(TestHelpers.EngineDef);
         state.State = ActionState.Attacking;
-        state.AttackSlot = AbilitySlots.Slot1;
+        state.AttackSlot = AbilitySlots.Normal1;
         state.AnimLockTicks = 10;
         TestHelpers.RegisterPlayer(sim, TestHelpers.EngineDef, state);
 
@@ -88,7 +88,7 @@ public class BurstTests
 
         var after = sim.GetState(1);
         Assert.Equal(ActionState.Attacking, after.State);
-        Assert.Equal(AbilitySlots.Slot1, after.AttackSlot);
+        Assert.Equal(AbilitySlots.Normal1, after.AttackSlot);
         Assert.True(after.AnimLockTicks > 0);
         Assert.DoesNotContain(sim.Resolver.GetActiveHitboxes(), hitbox => hitbox.OwnerId == 1);
     }

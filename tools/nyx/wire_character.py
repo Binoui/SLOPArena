@@ -4,8 +4,8 @@ from pathlib import Path
 import copy,json,re
 ROOT=Path(__file__).resolve().parents[2];P=ROOT/'client/Unity/Assets/CharacterPackages/nyx/character.json';E=ROOT/'tmp/nyx-model/integration'
 PREFIX='presentation.nyx.'
-EFFECTS={'real-g1':'shadow-claws','real-g3':'rising-hands','real-g4':'floor-lash','real-a1':'shadow-ring','real-a3':'up-claw','real-a4':'spike-fist',
- 'fake-g1':'phone-slaps','fake-g3':'pole-uppercut','fake-g4':'stomp-impact','fake-a1':'spin-arc','fake-a3':'pole-overhead','fake-a4':'dropkick-spike',
+EFFECTS={'real-g1':'shadow-claws','real-g2':'rising-hands','real-g3':'floor-lash','real-a1':'shadow-ring','real-a2':'up-claw','real-a3':'spike-fist',
+ 'fake-g1':'phone-slaps','fake-g2':'pole-uppercut','fake-g3':'stomp-impact','fake-a1':'spin-arc','fake-a2':'pole-overhead','fake-a3':'dropkick-spike',
  'real-q':'crow-launch','real-e':'bat-scatter','real-r':'grasp-warning','swap-golive':'going-live','fake-q':'ring-light','fake-e':'rotor-arcs','fake-r':'selfie-pop','swap-logoff':'logging-off'}
 def gameplay(value):
     if isinstance(value,list):return [gameplay(x) for x in value if not isinstance(x,dict) or x.get('kind')!='emitPresentation']
@@ -29,7 +29,7 @@ def wire():
             op=dict(kind='emitPresentation',tick=tick,unit='ticks',presentationId=ident,placement=dict(attachmentMode='bone',boneId='bone.hips',durationTicks=duration))
             if not any(o.get('kind')=='emitPresentation' and o.get('presentationId')==ident and o['tick']==tick for o in stage['operations']):stage['operations'].append(op)
             effects.append(dict(move=move,presentationId=ident,tick=tick,durationTicks=duration,trigger='timeline'))
-        if move in ('real-g1','real-g3','real-g4','real-a1','real-a3','real-a4','fake-g1','fake-g3','fake-g4','fake-a1','fake-a3','fake-a4','fake-q'):
+        if move in ('real-g1','real-g2','real-g3','real-a1','real-a2','real-a3','fake-g1','fake-g2','fake-g3','fake-a1','fake-a2','fake-a3','fake-q'):
             windows=sorted(set((o['tick'],o['hitbox']['durationTicks']) for o in stage['operations'] if o['kind']=='spawnHitbox'))
             for t,n in windows:cue(t,n)
             s['hitPresentationId']=PREFIX+('shadow-hit' if row['form']=='real' else 'pink-hit')

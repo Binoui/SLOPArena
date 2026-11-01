@@ -107,9 +107,9 @@ public sealed class CpuFootworkTests
     public void ApproachDoesNotStutterAtTheEdgeOfReach(CpuDifficulty difficulty)
     {
         var def = TestHelpers.FightGuyDef;
-        float reach = MathF.Max(HeuristicBotPolicy.ForwardReach(def, AbilitySlots.Slot1, false),
-            MathF.Max(HeuristicBotPolicy.ForwardReach(def, AbilitySlots.Slot3, false),
-                HeuristicBotPolicy.ForwardReach(def, AbilitySlots.Slot4, false))) + 0.2f;
+        float reach = MathF.Max(HeuristicBotPolicy.ForwardReach(def, AbilitySlots.Normal1, false),
+            MathF.Max(HeuristicBotPolicy.ForwardReach(def, AbilitySlots.Normal2, false),
+                HeuristicBotPolicy.ForwardReach(def, AbilitySlots.Normal3, false))) + 0.2f;
         for (int seed = 0; seed < 16; seed++)
         {
             // Specials cool down so a special fired on the way in does not count as a resumed approach.

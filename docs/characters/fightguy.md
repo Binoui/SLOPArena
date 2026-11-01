@@ -19,7 +19,7 @@ for 7 ticks, 5 of them touching a target 1 m ahead. It touched 51 positions on t
 
 Flip Kick replaces it: a full backflip in the air, the straight right leg sweeping from in
 front of him, over his head, to behind him. It was authored with GenRA at 96 ticks
-(`tools/genra/briefs/fightguy-a3-flip-kick.json`). The owner approved the keys, and the
+(`tools/genra/briefs/fightguy-a2-flip-kick.json`). The owner approved the keys, and the
 flow pass was the take picked. It is bound as `anim.flip-kick`
 (`Animations/fightguy_air3_flip_kick.anim`) and plays at 2× in a 48-tick stage:
 

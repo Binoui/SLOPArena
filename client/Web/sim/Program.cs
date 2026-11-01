@@ -24,8 +24,8 @@ public static partial class Demo
     static byte _deckForm;
     static readonly (string Key, byte Slot)[] DeckSlots =
     {
-        ("dash", 0), ("slot1", AbilitySlots.Slot1), ("slot3", AbilitySlots.Slot3),
-        ("slot4", AbilitySlots.Slot4), ("A", AbilitySlots.A), ("E", AbilitySlots.E),
+        ("dash", 0), ("slot1", AbilitySlots.Normal1), ("slot2", AbilitySlots.Normal2),
+        ("slot3", AbilitySlots.Normal3), ("A", AbilitySlots.A), ("E", AbilitySlots.E),
         ("R", AbilitySlots.R), ("F", AbilitySlots.F),
     };
 

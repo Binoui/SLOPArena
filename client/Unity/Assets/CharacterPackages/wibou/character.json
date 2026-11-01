@@ -1,5 +1,5 @@
 {
-  "authoringSchemaVersion": 3,
+  "authoringSchemaVersion": 4,
   "displayName": "Wibou",
   "weight": 100,
   "movement": {
@@ -410,10 +410,10 @@
       "hitPresentationId": "presentation.wibou.blade.hit"
     },
     {
-      "id": "ground.3",
+      "id": "ground.2",
       "name": "Up Slash",
       "description": "Up Slash",
-      "iconId": "icon.3",
+      "iconId": "icon.2",
       "behavior": "meleeCombo",
       "aimMode": "none",
       "aimMovement": "fixed",
@@ -432,7 +432,7 @@
             "attackRange": 2.5,
             "warpRange": 0,
             "animationIds": [
-              "anim.wibou.g3"
+              "anim.wibou.g2"
             ],
             "operations": [
               {
@@ -500,10 +500,10 @@
       "hitPresentationId": "presentation.wibou.blade.hit"
     },
     {
-      "id": "ground.4",
+      "id": "ground.3",
       "name": "Heavy Down Slash",
       "description": "Heavy Down Slash",
-      "iconId": "icon.4",
+      "iconId": "icon.3",
       "behavior": "meleeCombo",
       "aimMode": "none",
       "aimMovement": "fixed",
@@ -522,7 +522,7 @@
             "attackRange": 2.75,
             "warpRange": 0,
             "animationIds": [
-              "anim.wibou.g4"
+              "anim.wibou.g3"
             ],
             "operations": [
               {
@@ -680,10 +680,10 @@
       "hitPresentationId": "presentation.wibou.blade.hit"
     },
     {
-      "id": "air.3",
+      "id": "air.2",
       "name": "Air Up Slash",
       "description": "Air Up Slash",
-      "iconId": "icon.3",
+      "iconId": "icon.2",
       "behavior": "meleeCombo",
       "aimMode": "none",
       "aimMovement": "fixed",
@@ -702,7 +702,7 @@
             "attackRange": 2.25,
             "warpRange": 0,
             "animationIds": [
-              "anim.wibou.a3"
+              "anim.wibou.a2"
             ],
             "operations": [
               {
@@ -770,10 +770,10 @@
       "hitPresentationId": "presentation.wibou.blade.hit"
     },
     {
-      "id": "air.4",
+      "id": "air.3",
       "name": "Air Heavy Down Slash",
       "description": "Air Heavy Down Slash",
-      "iconId": "icon.4",
+      "iconId": "icon.3",
       "behavior": "meleeCombo",
       "aimMode": "none",
       "aimMovement": "fixed",
@@ -792,7 +792,7 @@
             "attackRange": 2.5,
             "warpRange": 0,
             "animationIds": [
-              "anim.wibou.a4"
+              "anim.wibou.a3"
             ],
             "operations": [
               {

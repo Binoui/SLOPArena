@@ -103,7 +103,7 @@ at the finish. The 58 focused tests and full Shared suite pass (3,339 passed, tw
 including low-aerial hit, shield and miss coverage. Ability Lab confirms the integrated
 clip and recovery; its higher aerial start misses the standing dummy as expected.
 
-`air.3` uses the [Sunrise brief](../../tools/genra/briefs/bonk-sir-a3-sunrise.json).
+`air.3` uses the [Sunrise brief](../../tools/genra/briefs/bonk-sir-a2-sunrise.json).
 The owner accepted repaired r1 keys and the first motion take ("Pretty good").
 `bonk_sir_a3_sunrise.anim` is bound to `anim.bonk.a3`, cooked at 1× on the 54-tick
 clock above, with the roster pin refreshed. Damage 11, launch −45°, knockback, stun
@@ -117,7 +117,7 @@ clip and recovery, restoring its previous Bashie workspace afterward. The rising
 Downward Sweep; it reaches higher and only 0.1 m below the feet versus Manki. This is
 the approved change to an upward role; air.4 provides the deep downward chop.
 
-`air.4` uses [The BONK brief](../../tools/genra/briefs/bonk-sir-a4-the-bonk.json).
+`air.4` uses [The BONK brief](../../tools/genra/briefs/bonk-sir-a3-the-bonk.json).
 The owner accepted revised motion r1 on 2026-10-23 ("very good"). The accepted Humanoid
 clip `bonk_sir_a4_the_bonk.anim` is bound to `anim.bonk.a4`, cooked at 1× on the 66-tick
 clock above, with the roster pin refreshed. Its 14 damage, 25° launch, knockback, stun and
@@ -171,7 +171,7 @@ unclear"). From the gameplay camera, Sunrise swung up and over in the plane the 
 happened behind his own back, and its wind-up travelled further than its hit. Rising Cut is a one-handed cut from his
 left hip up across his front to high on his right, the mirror of Squire's Cut, so it crosses the screen.
 
-- Ground: brief `tools/genra/briefs/bonk-sir-g3-rising-cut.json` (v2 pack `bonk-unity-sirv2rise`, authored 120 ticks).
+- Ground: brief `tools/genra/briefs/bonk-sir-g2-rising-cut.json` (v2 pack `bonk-unity-sirv2rise`, authored 120 ticks).
   Keys v2 run `20261101-180227` (owner OK), motion take 2 `20261101-181636` ($0.77). Written at game length with
   `--retime 0:0,120:60` and promoted over `bonk_sir_g3_sunrise.anim` (same GUID, so the binding is unchanged).
   ground.3: 60 ticks, hitbox 15-19 (radius 0.5, no offset; QA #56 found 13-14 hit from the plank still cocked out to
@@ -179,7 +179,7 @@ left hip up across his front to high on his right, the mirror of Squire's Cut, s
   Hit report: reach 0.30-2.40 m vs FightGuy (Sunrise 3.15 m), nothing behind him (Sunrise covered 2.5 m behind),
   swing flags clear. At game speed the unity_clip checks flag a fast right-hand roll at game ticks 4-6 (the draw);
   the authored take passes.
-- Air: brief `tools/genra/briefs/bonk-sir-a3-rising-cut.json`, keys `20261101-181151` (owner OK), motion take 1
+- Air: brief `tools/genra/briefs/bonk-sir-a2-rising-cut.json`, keys `20261101-181151` (owner OK), motion take 1
   `20261101-200615` ($0.28, passes). The owner asked for it a bit slower than the planned 40 ticks: written with
   `--retime 0:0,80:48`, promoted over `bonk_sir_a3_sunrise.anim`. air.3: 48 ticks, hitbox 13-23 (opened one tick
   early so the fastest step is swept), auto-cancel from 24 (QA #56: at 34 a short hop never landed clean), landing lag 18. Reach below his feet -2.6 m vs FightGuy

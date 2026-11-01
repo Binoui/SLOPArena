@@ -313,7 +313,7 @@ public sealed class SteeredChargeTests
         var sim = new ServerSimulation(TestHelpers.TestArena());
         sim.RegisterEntity(1, def, TestHelpers.PlayerState(100, 100) with { PY = TestHelpers.GroundPY(def) });
         sim.RegisterEntity(2, def with { CookedSlots = slots }, TestHelpers.PlayerState(100, 104) with { PY = TestHelpers.GroundPY(def) });
-        sim.Tick(new Dictionary<ulong, InputState> { [1] = new() { ActiveSlot = AbilitySlots.R }, [2] = new() { ActiveSlot = AbilitySlots.Slot1 } });
+        sim.Tick(new Dictionary<ulong, InputState> { [1] = new() { ActiveSlot = AbilitySlots.R }, [2] = new() { ActiveSlot = AbilitySlots.Normal1 } });
         Assert.True(sim.GetActiveAbility(2)?.HasArmor == true, $"initial target {sim.GetState(2).State}, slot {sim.GetState(2).AttackSlot}");
         for (int i = 0; i < 80; i++)
         {

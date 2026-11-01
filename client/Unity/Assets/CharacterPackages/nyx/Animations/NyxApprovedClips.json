@@ -13,7 +13,7 @@
       "speed": 1.0,
       "remap": [],
       "candidateSha256": "11dd778267358ddb1172bef798cb29a8573ee36dd3bd52a9c6fad2f7c9af9639",
-      "approval": "Owner approved 2026-10-29 including real-a3, real-a4, real-e and fake-run check exceptions."
+      "approval": "Owner approved 2026-10-29 including real-a2, real-a3, real-e and fake-run check exceptions."
     },
     {
       "move": "real-run",
@@ -28,7 +28,7 @@
       "speed": 1,
       "remap": [],
       "candidateSha256": "46a03ff047ef5311c3b468839312a1e0d690f7b8c483a945e38d3e5bb968218c",
-      "approval": "Owner approved 2026-10-29 including real-a3, real-a4, real-e and fake-run check exceptions."
+      "approval": "Owner approved 2026-10-29 including real-a2, real-a3, real-e and fake-run check exceptions."
     },
     {
       "move": "real-g1",
@@ -43,7 +43,22 @@
       "speed": 1.4634146341463414,
       "remap": [],
       "candidateSha256": "9baaa8fbea1e57fae35a4204bdb9db1d3893590739c5552361f5d11784d97ced",
-      "approval": "Owner approved 2026-10-29 including real-a3, real-a4, real-e and fake-run check exceptions."
+      "approval": "Owner approved 2026-10-29 including real-a2, real-a3, real-e and fake-run check exceptions."
+    },
+    {
+      "move": "real-g2",
+      "form": "real",
+      "slot": "ground.2",
+      "animationId": "anim.nyx.g2",
+      "poseTrackId": "anim.nyx.g2",
+      "source": "Assets/CharacterPackages/nyx/Animations/nyx-real-g2.anim",
+      "asset": "Assets/CharacterPackages/nyx/Animations/nyx-real-g2.anim",
+      "authoredTicks": 88,
+      "durationTicks": 55,
+      "speed": 1.6,
+      "remap": [],
+      "candidateSha256": "65eba5b511ffd5ca0a43f20094af41ba492dba211e78deb6d4d89631762247ef",
+      "approval": "Owner approved 2026-10-29 including real-a2, real-a3, real-e and fake-run check exceptions."
     },
     {
       "move": "real-g3",
@@ -53,27 +68,12 @@
       "poseTrackId": "anim.nyx.g3",
       "source": "Assets/CharacterPackages/nyx/Animations/nyx-real-g3.anim",
       "asset": "Assets/CharacterPackages/nyx/Animations/nyx-real-g3.anim",
-      "authoredTicks": 88,
-      "durationTicks": 55,
-      "speed": 1.6,
-      "remap": [],
-      "candidateSha256": "65eba5b511ffd5ca0a43f20094af41ba492dba211e78deb6d4d89631762247ef",
-      "approval": "Owner approved 2026-10-29 including real-a3, real-a4, real-e and fake-run check exceptions."
-    },
-    {
-      "move": "real-g4",
-      "form": "real",
-      "slot": "ground.4",
-      "animationId": "anim.nyx.g4",
-      "poseTrackId": "anim.nyx.g4",
-      "source": "Assets/CharacterPackages/nyx/Animations/nyx-real-g4.anim",
-      "asset": "Assets/CharacterPackages/nyx/Animations/nyx-real-g4.anim",
       "authoredTicks": 128,
       "durationTicks": 80,
       "speed": 1.6,
       "remap": [],
       "candidateSha256": "ccde8a0b296c091532904b29e466981811075d7e3700c22f088363e1db3431f5",
-      "approval": "Owner approved 2026-10-29 including real-a3, real-a4, real-e and fake-run check exceptions."
+      "approval": "Owner approved 2026-10-29 including real-a2, real-a3, real-e and fake-run check exceptions."
     },
     {
       "move": "real-a1",
@@ -88,7 +88,22 @@
       "speed": 1.6,
       "remap": [],
       "candidateSha256": "3bae132256dc9637c260b137327054dd648f8a0f76c43c589c56bc8c3739a773",
-      "approval": "Owner approved 2026-10-29 including real-a3, real-a4, real-e and fake-run check exceptions."
+      "approval": "Owner approved 2026-10-29 including real-a2, real-a3, real-e and fake-run check exceptions."
+    },
+    {
+      "move": "real-a2",
+      "form": "real",
+      "slot": "air.2",
+      "animationId": "anim.nyx.a2",
+      "poseTrackId": "anim.nyx.a2",
+      "source": "Assets/CharacterPackages/nyx/Animations/nyx-real-a2.anim",
+      "asset": "Assets/CharacterPackages/nyx/Animations/nyx-real-a2.anim",
+      "authoredTicks": 84,
+      "durationTicks": 53,
+      "speed": 1.5849056603773586,
+      "remap": [],
+      "candidateSha256": "1fc1545c33c85c3d1c847f4591e821ccf92ae7d9b2f2afa13bee5afd0c06f558",
+      "approval": "Owner approved 2026-10-29 including real-a2, real-a3, real-e and fake-run check exceptions."
     },
     {
       "move": "real-a3",
@@ -98,27 +113,12 @@
       "poseTrackId": "anim.nyx.a3",
       "source": "Assets/CharacterPackages/nyx/Animations/nyx-real-a3.anim",
       "asset": "Assets/CharacterPackages/nyx/Animations/nyx-real-a3.anim",
-      "authoredTicks": 84,
-      "durationTicks": 53,
-      "speed": 1.5849056603773586,
-      "remap": [],
-      "candidateSha256": "1fc1545c33c85c3d1c847f4591e821ccf92ae7d9b2f2afa13bee5afd0c06f558",
-      "approval": "Owner approved 2026-10-29 including real-a3, real-a4, real-e and fake-run check exceptions."
-    },
-    {
-      "move": "real-a4",
-      "form": "real",
-      "slot": "air.4",
-      "animationId": "anim.nyx.a4",
-      "poseTrackId": "anim.nyx.a4",
-      "source": "Assets/CharacterPackages/nyx/Animations/nyx-real-a4.anim",
-      "asset": "Assets/CharacterPackages/nyx/Animations/nyx-real-a4.anim",
       "authoredTicks": 112,
       "durationTicks": 70,
       "speed": 1.6,
       "remap": [],
       "candidateSha256": "450c270fd54dea74789d24c5eed15cceb3b3c380300f5ef5b92389c9ff5e501a",
-      "approval": "Owner approved 2026-10-29 including real-a3, real-a4, real-e and fake-run check exceptions."
+      "approval": "Owner approved 2026-10-29 including real-a2, real-a3, real-e and fake-run check exceptions."
     },
     {
       "move": "real-q",
@@ -133,7 +133,7 @@
       "speed": 1.6,
       "remap": [],
       "candidateSha256": "486e8376ca14c8bd9cd619bed89af3ae98ee0682674e7b0ba8869fc9719772c4",
-      "approval": "Owner approved 2026-10-29 including real-a3, real-a4, real-e and fake-run check exceptions."
+      "approval": "Owner approved 2026-10-29 including real-a2, real-a3, real-e and fake-run check exceptions."
     },
     {
       "move": "real-e",
@@ -165,7 +165,7 @@
         }
       ],
       "candidateSha256": "9d42f439d30e32a810dd7cc7d820d82ca792f9e58f9bb93690732a4d911e0e11",
-      "approval": "Owner approved 2026-10-29 including real-a3, real-a4, real-e and fake-run check exceptions."
+      "approval": "Owner approved 2026-10-29 including real-a2, real-a3, real-e and fake-run check exceptions."
     },
     {
       "move": "real-r",
@@ -180,7 +180,7 @@
       "speed": 0.8,
       "remap": [],
       "candidateSha256": "a88b6f3a6e9c8e26f527e4e53ce9716e8c0613f92fe869a768b2091d7e2a4cb7",
-      "approval": "Owner approved 2026-10-29 including real-a3, real-a4, real-e and fake-run check exceptions."
+      "approval": "Owner approved 2026-10-29 including real-a2, real-a3, real-e and fake-run check exceptions."
     },
     {
       "move": "swap-golive",
@@ -208,7 +208,7 @@
         }
       ],
       "candidateSha256": "c4967a583218e8618957b01a9328ab90916298ae7c833aa339077dee19947e39",
-      "approval": "Owner approved 2026-10-29 including real-a3, real-a4, real-e and fake-run check exceptions."
+      "approval": "Owner approved 2026-10-29 including real-a2, real-a3, real-e and fake-run check exceptions."
     },
     {
       "move": "fake-idle",
@@ -253,7 +253,22 @@
       "speed": 1.4915254237288136,
       "remap": [],
       "candidateSha256": "64bc57cb17414d9ca24e6253819d1ed24ba3edeb5afad3ba51e08d5d7eabb589",
-      "approval": "Owner approved 2026-10-29 including real-a3, real-a4, real-e and fake-run check exceptions."
+      "approval": "Owner approved 2026-10-29 including real-a2, real-a3, real-e and fake-run check exceptions."
+    },
+    {
+      "move": "fake-g2",
+      "form": "fake",
+      "slot": "ground.2",
+      "animationId": "anim.nyx.fake.g2",
+      "poseTrackId": "anim.nyx.fake.g2",
+      "source": "Assets/CharacterPackages/nyx/Animations/nyx-fake-g2.anim",
+      "asset": "Assets/CharacterPackages/nyx/Animations/nyx-fake-g2.anim",
+      "authoredTicks": 96,
+      "durationTicks": 60,
+      "speed": 1.6,
+      "remap": [],
+      "candidateSha256": "e8d8a1750c8be6baef8d0d90565769f53edc4eecc9cae5a2b3e1d1d0a53f5073",
+      "approval": "Owner approved 2026-10-29 including real-a2, real-a3, real-e and fake-run check exceptions."
     },
     {
       "move": "fake-g3",
@@ -263,27 +278,12 @@
       "poseTrackId": "anim.nyx.fake.g3",
       "source": "Assets/CharacterPackages/nyx/Animations/nyx-fake-g3.anim",
       "asset": "Assets/CharacterPackages/nyx/Animations/nyx-fake-g3.anim",
-      "authoredTicks": 96,
-      "durationTicks": 60,
-      "speed": 1.6,
-      "remap": [],
-      "candidateSha256": "e8d8a1750c8be6baef8d0d90565769f53edc4eecc9cae5a2b3e1d1d0a53f5073",
-      "approval": "Owner approved 2026-10-29 including real-a3, real-a4, real-e and fake-run check exceptions."
-    },
-    {
-      "move": "fake-g4",
-      "form": "fake",
-      "slot": "ground.4",
-      "animationId": "anim.nyx.fake.g4",
-      "poseTrackId": "anim.nyx.fake.g4",
-      "source": "Assets/CharacterPackages/nyx/Animations/nyx-fake-g4.anim",
-      "asset": "Assets/CharacterPackages/nyx/Animations/nyx-fake-g4.anim",
       "authoredTicks": 104,
       "durationTicks": 65,
       "speed": 1.6,
       "remap": [],
       "candidateSha256": "38f53a91ae88222713f75bdae4af01fae7902912efec9f42d948a40441b3c958",
-      "approval": "Owner approved 2026-10-29 including real-a3, real-a4, real-e and fake-run check exceptions."
+      "approval": "Owner approved 2026-10-29 including real-a2, real-a3, real-e and fake-run check exceptions."
     },
     {
       "move": "fake-a1",
@@ -298,7 +298,22 @@
       "speed": 1.6,
       "remap": [],
       "candidateSha256": "aa0ea8c5335ca2911ba086eb2d7b2ecccdba306cf085df0bc055234b65b1df2d",
-      "approval": "Owner approved 2026-10-29 including real-a3, real-a4, real-e and fake-run check exceptions."
+      "approval": "Owner approved 2026-10-29 including real-a2, real-a3, real-e and fake-run check exceptions."
+    },
+    {
+      "move": "fake-a2",
+      "form": "fake",
+      "slot": "air.2",
+      "animationId": "anim.nyx.fake.a2",
+      "poseTrackId": "anim.nyx.fake.a2",
+      "source": "Assets/CharacterPackages/nyx/Animations/nyx-fake-a2.anim",
+      "asset": "Assets/CharacterPackages/nyx/Animations/nyx-fake-a2.anim",
+      "authoredTicks": 88,
+      "durationTicks": 55,
+      "speed": 1.6,
+      "remap": [],
+      "candidateSha256": "85e3c653485b8681892e44956a9095f18237afe2469635b12ebd0fc00dd838d4",
+      "approval": "Owner approved 2026-10-29 including real-a2, real-a3, real-e and fake-run check exceptions."
     },
     {
       "move": "fake-a3",
@@ -308,27 +323,12 @@
       "poseTrackId": "anim.nyx.fake.a3",
       "source": "Assets/CharacterPackages/nyx/Animations/nyx-fake-a3.anim",
       "asset": "Assets/CharacterPackages/nyx/Animations/nyx-fake-a3.anim",
-      "authoredTicks": 88,
-      "durationTicks": 55,
-      "speed": 1.6,
-      "remap": [],
-      "candidateSha256": "85e3c653485b8681892e44956a9095f18237afe2469635b12ebd0fc00dd838d4",
-      "approval": "Owner approved 2026-10-29 including real-a3, real-a4, real-e and fake-run check exceptions."
-    },
-    {
-      "move": "fake-a4",
-      "form": "fake",
-      "slot": "air.4",
-      "animationId": "anim.nyx.fake.a4",
-      "poseTrackId": "anim.nyx.fake.a4",
-      "source": "Assets/CharacterPackages/nyx/Animations/nyx-fake-a4.anim",
-      "asset": "Assets/CharacterPackages/nyx/Animations/nyx-fake-a4.anim",
       "authoredTicks": 96,
       "durationTicks": 60,
       "speed": 1.6,
       "remap": [],
       "candidateSha256": "012e0b4735fa06e1360b08501f17357d77bc5982cf717a42c47cd1169bac6863",
-      "approval": "Owner approved 2026-10-29 including real-a3, real-a4, real-e and fake-run check exceptions."
+      "approval": "Owner approved 2026-10-29 including real-a2, real-a3, real-e and fake-run check exceptions."
     },
     {
       "move": "fake-q",
@@ -343,7 +343,7 @@
       "speed": 1.6,
       "remap": [],
       "candidateSha256": "b1e5203e665012cd98850e666b31c326de4499e00b18015713e42c978127c0fc",
-      "approval": "Owner approved 2026-10-29 including real-a3, real-a4, real-e and fake-run check exceptions."
+      "approval": "Owner approved 2026-10-29 including real-a2, real-a3, real-e and fake-run check exceptions."
     },
     {
       "move": "fake-e",
@@ -358,7 +358,7 @@
       "speed": 0.7936507936507936,
       "remap": [],
       "candidateSha256": "65f56bc0cb568ae38e136b2635088b14ad2f4f1f7089d572e6534db67331f40a",
-      "approval": "Owner approved 2026-10-29 including real-a3, real-a4, real-e and fake-run check exceptions."
+      "approval": "Owner approved 2026-10-29 including real-a2, real-a3, real-e and fake-run check exceptions."
     },
     {
       "move": "fake-r",
@@ -373,7 +373,7 @@
       "speed": 0.8,
       "remap": [],
       "candidateSha256": "d11bf60dccc9ae36175bd35158cf0df4d86a7f4a8bba04a3d7bf7a7d854cb899",
-      "approval": "Owner approved 2026-10-29 including real-a3, real-a4, real-e and fake-run check exceptions."
+      "approval": "Owner approved 2026-10-29 including real-a2, real-a3, real-e and fake-run check exceptions."
     },
     {
       "move": "swap-logoff",
@@ -401,7 +401,7 @@
         }
       ],
       "candidateSha256": "2501b806b0398b2cf72ba55ddbc300238d2844b185a4557336e6dcc88b9df922",
-      "approval": "Owner approved 2026-10-29 including real-a3, real-a4, real-e and fake-run check exceptions."
+      "approval": "Owner approved 2026-10-29 including real-a2, real-a3, real-e and fake-run check exceptions."
     }
   ]
 }

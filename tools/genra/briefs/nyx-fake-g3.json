@@ -1,9 +1,9 @@
 {
   "name": "nyx-fake-g3",
-  "rigpack": "artifacts/genra-rigpacks/nyx-unity-fakepolemoves",
-  "character": "Nyx (Mixamo joints in a Humanoid body: Hips, Spine, Spine1, Spine2, Neck, Head, LeftShoulder/LeftArm/LeftForeArm/LeftHand with five full fingers, the same on the right, LeftUpLeg/LeftLeg/LeftFoot/LeftToeBase and the right leg; no tail). An adult woman, about 1.70 m tall in the rig (the game draws her 1.04 times bigger). Measured on the rig: thigh 0.395 m, shin 0.298 m, upper arm 0.223 m, forearm 0.212 m, hand 0.118 m from wrist to middle fingertip, shoulders 0.346 m apart. She wears tall platform boots: with a flat boot the ankle joint (Foot) sits about 0.187 m above the floor and the toe joint about 0.01 m above it; standing straight her hip joint is about 0.88 m above the floor. Her waist-length straight black hair is rigid on her head and hangs down her back: hands swung behind her head or back pass through it, so keep them in front of, beside or above it. Fake form: a backpack sits on her upper back, rigid on joint Nyx_Backpack under Spine2, with a pole rising above her LEFT shoulder that holds a big ring light, its top about 0.51 m above that shoulder. Arms must not pass through the backpack, the pole or the ring. For this move the rig also carries the pole she pulls off the backpack, rigid in her LEFT hand (joint Nyx_PoleHeld under LeftHand): bladeHilt is the lower end of the pole just past her hand, bladeEnd is its far end at the ring light, about 0.6 m beyond the hand. The backpack's own copy of the pole still shows in the toolkit renders; ignore it. The game hides one of the two.",
-  "notes": "Nyx fake form ground.3 (anim.nyx.fake.g3), from her pose sheet fake-g3 (2026-10-29). Proposed game timing: {\"total\": 48, \"contact\": 16, \"active\": [16, 24], \"iasa\": 40, \"model\": \"Wibou Up Slash 63/14/26, FightGuy High Kick 33/8; a weapon launcher along the pole\"}; authored at 2x. Candidate only: nothing binds before the owner approves.",
-  "description": "Nyxxie's ground.3, Ring Light Uppercut: her launcher. She pulls the ring-light pole off her backpack with her left hand and swings it up in a big arc from low in front of her to straight overhead.\n\nWho she is. Nyxxie, Nyx's fake form (image 1): the same woman as a parody goth e-girl influencer, with a cat-ear headband, huge lashes, fishnets, a pink-and-black pleated skirt, pink-buckled platform boots, a backpack with a ring light on a pole above her left shoulder, and her phone. She never stops moving: loose and bouncy, a show-off who performs for her phone and films herself, and she fights like a brawler. Weight shifts, hip pops, bouncing knees, a toss of the head; overlap and follow-through everywhere.\n\nThe phone. She always holds one smartphone in her RIGHT hand, but the rig has no phone mesh yet: keep the right hand closed around an invisible phone the whole clip (fingers curled loosely as around a slim 7 x 15 cm slab, thumb on its face), whatever the arm does. It never changes hands. Her LEFT hand is the free one.\n\nHow the game plays it. The match camera sits straight behind her and a little above, so the action must read from behind: gestures out to the side, up or well ahead of her, not hidden in front of her chest. The fighter does not travel in the clip; the game moves her. The game crossfades in and out over about 0.1 s.\n\nThis clip is authored slow, at twice the move's game length; the game speeds it up to the move's own ticks. Give every beat its full development: the anticipation, the gesture or hit carried through the hips and shoulders, the follow-through, the settle and the overlap. Never rush a beat.\n\nA forward hit lands on her centre line, well ahead of her chest, not beside her shoulder. After the hit the ending lag is plain: she regains her balance and the arms take the shortest calm path back to the stance. No flourish, no gesture after the hit.\n\nFlow. Generated moves read stiff by default, and for this job the flow check's warnings count as failures. Stagger arrivals (the hips first, then the chest, the arms one or two ticks later, the head last), keep every hold drifting one way by a few degrees, and let the free hand, the fingers and the head trail the main action by one to three ticks (Clip.overlap). Recover in waves.\n\nThe floor. It is at up = -0.889 m in this character frame (origin: the hips of her idle at tick 0). With a flat boot the toe joint (ToeBase) sits about 0.015 m above the floor and the ankle (Foot) about 0.191 m above it. Never push a boot through the floor.\n\nHer idle, where ground moves start and end (reference `fakestance`, the entry and exit pose): her weight on one hip, the phone at chest height in her right hand, bored.\n\nThe clip (96 ticks, played once):\n- Tick 0: The stance.\n- Tick 8: Her left hand reaches up over her left shoulder toward the pole on her backpack; the chest turns a little left.\n- Tick 16: Grab: the left hand closes on the pole just above her left shoulder (from here the pole is in her left hand).\n- Tick 26: Low: she has swung the pole down and forward in front of her, the left hand low in front of her hips, the ring light low ahead of her, about 0.4 m above the floor and 0.5 m ahead, on her centre line; knees bent deep (hips down 8-10 cm), the chest leaning forward, the phone hand pulled in at her chest.\n- Tick 32: The swing (contact): she drives up from her knees and the pole sweeps up in front of her, the ring light leading, passing ahead of her chest on her centre line.\n- Tick 40: Still swinging: the ring passes above her face, ahead of her.\n- Tick 48: Overhead: the pole straight up over her head, her left arm extended up, the ring light at the top of the arc above her; she rises tall on her boots, a cocky grin up at it. The phone hand is up near her face, filming.\n- Tick 56: Held overhead a moment, drifting.\n- Tick 72: Return: she slides the pole back onto her backpack over her left shoulder, the left hand behind her left shoulder.\n- Tick 80: The hand comes off the pole; she can act again.\n- Tick 96: The stance, matching tick 0.\n\nThe arc is the hitbox: from tick 26 to 48 the ring light (bladeEnd) must sweep one clean, wide arc in the vertical plane through her centre line, from low in front up to straight overhead, never parked, never beside her. Her body throws it: the knees drive up, the chest straightens and the arm follows. The sheet shows both hands on the pole; she swings it with her left hand alone, and her right hand keeps the phone (it may steady the pole with its knuckles at the low pose).",
+  "rigpack": "artifacts/genra-rigpacks/nyx-unity-fakemoves",
+  "character": "Nyx (Mixamo joints in a Humanoid body: Hips, Spine, Spine1, Spine2, Neck, Head, LeftShoulder/LeftArm/LeftForeArm/LeftHand with five full fingers, the same on the right, LeftUpLeg/LeftLeg/LeftFoot/LeftToeBase and the right leg; no tail). An adult woman, about 1.70 m tall in the rig (the game draws her 1.04 times bigger). Measured on the rig: thigh 0.395 m, shin 0.298 m, upper arm 0.223 m, forearm 0.212 m, hand 0.118 m from wrist to middle fingertip, shoulders 0.346 m apart. She wears tall platform boots: with a flat boot the ankle joint (Foot) sits about 0.187 m above the floor and the toe joint about 0.01 m above it; standing straight her hip joint is about 0.88 m above the floor. Her waist-length straight black hair is rigid on her head and hangs down her back: hands swung behind her head or back pass through it, so keep them in front of, beside or above it. Fake form: a backpack sits on her upper back, rigid on joint Nyx_Backpack under Spine2, with a pole rising above her LEFT shoulder that holds a big ring light, its top about 0.51 m above that shoulder. Arms must not pass through the backpack, the pole or the ring.",
+  "notes": "Nyx fake form ground.3 (anim.nyx.fake.g3), from her pose sheet fake-g4 (2026-10-29). Proposed game timing: {\"total\": 52, \"contact\": 16, \"active\": [16, 22], \"iasa\": 46, \"model\": \"FightGuy Double Kick 69/12/64, Manki Head Slam 40/10/35\"}; authored at 2x. Candidate only: nothing binds before the owner approves.",
+  "description": "Nyxxie's ground.3, Platform Stomp-Kick: her big one. A front push-kick with the huge platform boot.\n\nWho she is. Nyxxie, Nyx's fake form (image 1): the same woman as a parody goth e-girl influencer, with a cat-ear headband, huge lashes, fishnets, a pink-and-black pleated skirt, pink-buckled platform boots, a backpack with a ring light on a pole above her left shoulder, and her phone. She never stops moving: loose and bouncy, a show-off who performs for her phone and films herself, and she fights like a brawler. Weight shifts, hip pops, bouncing knees, a toss of the head; overlap and follow-through everywhere.\n\nThe phone. She always holds one smartphone in her RIGHT hand, but the rig has no phone mesh yet: keep the right hand closed around an invisible phone the whole clip (fingers curled loosely as around a slim 7 x 15 cm slab, thumb on its face), whatever the arm does. It never changes hands. Her LEFT hand is the free one.\n\nHow the game plays it. The match camera sits straight behind her and a little above, so the action must read from behind: gestures out to the side, up or well ahead of her, not hidden in front of her chest. The fighter does not travel in the clip; the game moves her. The game crossfades in and out over about 0.1 s.\n\nThis clip is authored slow, at twice the move's game length; the game speeds it up to the move's own ticks. Give every beat its full development: the anticipation, the gesture or hit carried through the hips and shoulders, the follow-through, the settle and the overlap. Never rush a beat.\n\nA forward hit lands on her centre line, well ahead of her chest, not beside her shoulder. After the hit the ending lag is plain: she regains her balance and the arms take the shortest calm path back to the stance. No flourish, no gesture after the hit.\n\nFlow. Generated moves read stiff by default, and for this job the flow check's warnings count as failures. Stagger arrivals (the hips first, then the chest, the arms one or two ticks later, the head last), keep every hold drifting one way by a few degrees, and let the free hand, the fingers and the head trail the main action by one to three ticks (Clip.overlap). Recover in waves.\n\nThe floor. It is at up = -0.889 m in this character frame (origin: the hips of her idle at tick 0). With a flat boot the toe joint (ToeBase) sits about 0.015 m above the floor and the ankle (Foot) about 0.191 m above it. Never push a boot through the floor.\n\nHer idle, where ground moves start and end (reference `fakestance`, the entry and exit pose): her weight on one hip, the phone at chest height in her right hand, bored.\n\nThe clip (104 ticks, played once):\n- Tick 0: The stance.\n- Tick 10: Weight shifts onto her left leg; the right knee starts to rise; the phone hand comes up to film.\n- Tick 24: Chamber: the right knee raised high to her chest, the huge platform boot cocked under her, the thigh above level; she leans back a little; arms out for balance, the phone hand up by her face filming the kick.\n- Tick 28: A moving hold: the knee rises 2-3 cm more, she sinks a little on the left knee.\n- Tick 32: Kick (contact): the right leg drives straight forward, sole first, at chest height, about 0.6 m ahead of her hips on her centre line, the leg almost straight; she leans back 15-20 degrees to counter it; arms flung out to the sides.\n- Tick 44: Held out through the hit, the boot drifting up 2-3 cm.\n- Tick 52: The leg folds back, knee high again.\n- Tick 60: Stamp: the boot stamps down to the floor ahead of her with a dip in both knees.\n- Tick 92: Recovered by the shortest path back to the stance; she can act again.\n- Tick 104: The stance, matching tick 0.",
   "references": {
     "realstance": "references/realstance.usda",
     "fakestance": "references/fakestance.usda",
@@ -16,20 +16,20 @@
     "tick": 0
   },
   "clock": {
-    "duration_ticks": 96,
+    "duration_ticks": 104,
     "contact_tick": 32,
     "active": [
       32,
-      48
+      44
     ],
-    "iasa_tick": 80
+    "iasa_tick": 92
   },
   "timing": {
     "fixed": [
-      "96 ticks played once",
-      "contact at tick 32, active ticks 32-48; the player can act from tick 80",
-      "authored at 2x the proposed game length (48 ticks); the game plays it faster, so every beat keeps its proportion",
-      "tick 0 is her fakestance pose and tick 96 her fakestance pose exactly"
+      "104 ticks played once",
+      "contact at tick 32, active ticks 32-44; the player can act from tick 92",
+      "authored at 2x the proposed game length (52 ticks); the game plays it faster, so every beat keeps its proportion",
+      "tick 0 is her fakestance pose and tick 104 her fakestance pose exactly"
     ],
     "adjustable": [
       "small pose details (angles, reach) that keep the sheet pose and the timing"
@@ -42,162 +42,115 @@
   ],
   "images": [
     "../../../tmp/nyx-model/renders/fake/q3.png",
-    "../../../tmp/nyx-model/anim-sheets/sheets/fake-g3.png"
+    "../../../tmp/nyx-model/anim-sheets/sheets/fake-g4.png"
   ],
-  "image_notes": "1: Nyx's fake form model (three-quarter render). 2: the pose sheet for this move (generated art on her model; she faces LEFT in it, so 'toward the left' on the sheet is straight ahead of her in this frame). Its poses read left to right: pose 1 'grab': her left hand reaching over her left shoulder to grab the ring-light pole from the backpack; pose 2 'low': the pole held in both hands down by her hips, ring light low in front of her; pose 3 'swing': the pole swung up in a big arc from low in front to high over her head, the ring light leading; pose 4 'overhead': the pole straight up over her head, arms extended, a cocky grin; pose 5 'return': sliding the pole back onto the backpack. Sheet note: Her launcher. The ring light comes off the backpack for the swing. Follow this brief's text and ticks where the sheet differs.",
+  "image_notes": "1: Nyx's fake form model (three-quarter render). 2: the pose sheet for this move (generated art on her model; she faces LEFT in it, so 'toward the left' on the sheet is straight ahead of her in this frame). Its poses read left to right: pose 1 'ready': brawler stance; pose 2 'chamber': her right knee raised high to her chest, the huge platform boot cocked; pose 3 'kick': a front push-kick toward the left at chest height, the platform sole first, leaning back; pose 4 'stamp': the boot stamping back down to the floor. Sheet note: Her big one: the platform boot does the work. Follow this brief's text and ticks where the sheet differs.",
   "keys": [
     0,
-    8,
-    16,
-    26,
+    10,
+    24,
+    28,
     32,
-    40,
-    48,
-    56,
-    72,
-    80,
-    96
+    44,
+    52,
+    60,
+    92,
+    104
   ],
   "review_ticks": [
     0,
-    4,
-    8,
-    12,
-    16,
-    21,
+    5,
+    10,
+    17,
+    24,
     26,
-    29,
+    28,
+    30,
     32,
-    36,
-    40,
+    38,
     44,
     48,
     52,
     56,
-    64,
-    72,
+    60,
     76,
-    80,
-    88,
-    96
+    92,
+    98,
+    104
   ],
   "exit": {
     "reference": "fakestance",
     "tick": 0,
-    "from_tick": 96
+    "from_tick": 104
   },
   "fast_windows": [
     [
       26,
-      44
+      34
     ]
   ],
   "strike": [
-    "bladeEnd"
+    "RightFoot"
   ],
-  "meshes_shown": {
-    "Nyx_PoleHeld": [
-      [
-        16,
-        72
-      ]
-    ]
-  },
   "targets": [
     {
-      "name": "LeftToeBase on the floor at tick 26 (m)",
+      "name": "LeftToeBase on the floor (standing leg) at tick 32 (m)",
       "kind": "char",
       "a": "LeftToeBase",
       "axis": "up",
-      "tick": 26,
+      "tick": 32,
       "min": -0.894,
       "max": -0.844
     },
     {
-      "name": "RightToeBase on the floor at tick 26 (m)",
+      "name": "RightToeBase on the floor (stamp) at tick 62 (m)",
       "kind": "char",
       "a": "RightToeBase",
       "axis": "up",
-      "tick": 26,
+      "tick": 62,
       "min": -0.894,
       "max": -0.844
     },
     {
-      "name": "grab: left hand up at her left shoulder (m)",
+      "name": "chamber: right knee high (m)",
       "kind": "below",
-      "a": "LeftArm",
-      "b": "LeftHand",
-      "tick": 16,
-      "min": 0.02
-    },
-    {
-      "name": "low: hips dip (m)",
-      "kind": "char",
       "a": "Hips",
-      "axis": "up",
-      "tick": 26,
-      "max": -0.06
+      "b": "RightLeg",
+      "tick": 24,
+      "min": -0.04
     },
     {
-      "name": "low: ring light ahead of her (m)",
+      "name": "kick: boot far ahead (m)",
       "kind": "ahead",
-      "a": "bladeEnd",
+      "a": "RightFoot",
       "b": "Hips",
-      "tick": 26,
-      "min": 0.3
-    },
-    {
-      "name": "low: ring light low (m)",
-      "kind": "char",
-      "a": "bladeEnd",
-      "axis": "up",
-      "tick": 26,
-      "max": -0.289
-    },
-    {
-      "name": "swing: ring light ahead of her chest (m)",
-      "kind": "ahead",
-      "a": "bladeEnd",
-      "b": "Spine2",
       "tick": 32,
-      "min": 0.35
+      "min": 0.5
     },
     {
-      "name": "swing: ring light on her centre line (m)",
-      "kind": "char",
-      "a": "bladeEnd",
-      "axis": "right",
-      "tick": 34,
-      "min": -0.15,
-      "max": 0.15
-    },
-    {
-      "name": "overhead: ring light high above her head (m)",
+      "name": "kick: boot at chest height (m)",
       "kind": "below",
-      "a": "Head",
-      "b": "bladeEnd",
-      "tick": 48,
-      "min": 0.45
+      "a": "Hips",
+      "b": "RightFoot",
+      "tick": 32,
+      "min": 0.12
     },
     {
-      "name": "overhead: ring light over her centre line (m)",
+      "name": "kick: boot on her centre line (m)",
       "kind": "char",
-      "a": "bladeEnd",
+      "a": "RightFoot",
       "axis": "right",
-      "tick": 48,
-      "min": -0.2,
-      "max": 0.15
+      "tick": 32,
+      "min": -0.12,
+      "max": 0.12
     },
     {
-      "name": "the arc: ring light sweeps up (m)",
-      "kind": "range",
-      "a": "bladeEnd",
-      "axis": "up",
-      "window": [
-        26,
-        48
-      ],
-      "min": 1.0
+      "name": "kick: leaning back (m)",
+      "kind": "ahead",
+      "a": "Head",
+      "b": "Hips",
+      "tick": 32,
+      "max": -0.02
     }
   ]
 }

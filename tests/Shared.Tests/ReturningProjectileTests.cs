@@ -99,7 +99,7 @@ public sealed class ReturningProjectileTests
         Throw(sim);
         while (sim.GetActiveAbility(1) != null)
             Tick(sim, default);
-        Tick(sim, new InputState { ActiveSlot = AbilitySlots.Slot1 });   // a long normal: busy when it comes back
+        Tick(sim, new InputState { ActiveSlot = AbilitySlots.Normal1 });   // a long normal: busy when it comes back
         Assert.NotNull(sim.GetActiveAbility(1));
 
         bool selfHit = false;
@@ -203,7 +203,7 @@ public sealed class ReturningProjectileTests
         Throw(sim);
         while (sim.GetActiveAbility(1) != null)
             Tick(sim, default);
-        Tick(sim, new InputState { ActiveSlot = AbilitySlots.Slot3 });   // a long armoured normal
+        Tick(sim, new InputState { ActiveSlot = AbilitySlots.Normal2 });   // a long armoured normal
         Assert.NotNull(sim.GetActiveAbility(1));
 
         bool selfHit = false, armoured = false;
@@ -330,7 +330,7 @@ public sealed class ReturningProjectileTests
         bool returnHit = false, caught = false;
         for (int t = 0; t < 160; t++)
         {
-            Tick(sim, t == 18 ? new InputState { ActiveSlot = AbilitySlots.Slot1 } : default, shield);
+            Tick(sim, t == 18 ? new InputState { ActiveSlot = AbilitySlots.Normal1 } : default, shield);
             foreach (var h in sim.LastTickHits.Where(h => h.TargetEntityId == 2 && h.ReturnPhase == 2 && !h.Blocked))
             {
                 returnHit = true;
@@ -339,7 +339,7 @@ public sealed class ReturningProjectileTests
                 Assert.Equal((ulong)2, sim.GetState(1).Challenge.TargetId);
             }
             bool catchNow = sim.GetPresentationEvents(clear: true).Any(e => e.Source == PresentationEventSource.ProjectileCatch);
-            if (catchNow && !shield) Assert.Equal(AbilitySlots.Slot1, sim.GetState(1).AttackSlot);
+            if (catchNow && !shield) Assert.Equal(AbilitySlots.Normal1, sim.GetState(1).AttackSlot);
             caught |= catchNow;
         }
         Assert.Equal(!shield, returnHit);
@@ -421,8 +421,8 @@ public sealed class ReturningProjectileTests
             {
                 new CookedStage(120, 0, 0, 0, 0, Array.Empty<string>(), Array.Empty<CookedTimelineOperation>()),
             }));
-        // ground.3: the same, armoured.
-        slots[1] = new CookedSlotDefinition(1, "ground.3", false, "Long armoured normal", "", "",
+        // ground.2: the same, armoured.
+        slots[1] = new CookedSlotDefinition(1, "ground.2", false, "Long armoured normal", "", "",
             AuthoringAbilityBehavior.MeleeCombo, AuthoringAimMode.None, 0, false, false,
             new CookedTimeline(new[]
             {

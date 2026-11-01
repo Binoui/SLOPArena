@@ -27,7 +27,7 @@ internal static partial class Program
     private sealed class SlideFlowParameters
     {
         public string[] Characters { get; init; } = Array.Empty<string>();
-        public string[] AerialNormals { get; init; } = new[] { "air.1", "air.3", "air.4" };
+        public string[] AerialNormals { get; init; } = new[] { "air.1", "air.2", "air.3" };
         public string[] Controls { get; init; } = new[] { "no-air" };
         public string[] HopModes { get; init; } = new[] { "full-hop", "short-hop" };
         public string[] FastFallModes { get; init; } = new[] { "first-descending", "descending-plus-six", "none" };
