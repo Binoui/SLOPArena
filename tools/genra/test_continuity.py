@@ -7,8 +7,12 @@ import unittest
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
-import numpy as np
-from scipy.spatial.transform import Rotation
+try:
+    import numpy as np
+    from pxr import Usd  # noqa: F401
+    from scipy.spatial.transform import Rotation
+except ImportError as error:  # plain CI interpreter
+    raise unittest.SkipTest(f'GenRA environment unavailable: {error}')
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from genra.brief import Brief
