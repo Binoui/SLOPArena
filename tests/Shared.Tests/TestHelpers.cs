@@ -481,7 +481,7 @@ public static class TestHelpers
         };
     }
 
-    public static CharacterDefinition WithEmptyAirSlot3(CharacterDefinition source)
+    public static CharacterDefinition WithEmptyAirNormal2(CharacterDefinition source)
     {
         var def = CloneDef(source);
         var slots = source.CookedSlots!.ToArray();

@@ -29,7 +29,7 @@ internal static partial class Program
 
     private const ulong CpuId = 100;
     private const ulong TargetId = 1;
-    private static readonly string[] SlotNames = { "", "", "", "1", "E", "R", "F", "", "3", "4", "", "A" };
+    private static readonly string[] SlotNames = { "", "", "", "1", "E", "R", "F", "", "2", "3", "", "A" };
     private static readonly StringBuilder Report = new();
     private static string _root = "";
     private static bool _traceDeaths;
@@ -542,7 +542,7 @@ internal static partial class Program
                     string key = (swing.Air ? "a" : "g") + slot;
                     counts[key] = counts.GetValueOrDefault(key) + 1;
                     total++;
-                    if (slot is "1" or "3" or "4") normals++;
+                    if (slot is "1" or "2" or "3") normals++;
                 }
             }
             string shares = string.Join(", ", counts.OrderByDescending(c => c.Value).Select(c => $"{c.Key} {100 * c.Value / Math.Max(1, total)}%"));

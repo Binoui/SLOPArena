@@ -62,14 +62,14 @@ File.WriteAllText(Path.Combine(outputDirectory, "trajectories.json"), JsonSerial
 // Jump-relative input ticks; -1 is the no-attack control. No victim in these runs.
 foreach (bool shortHop in new[] { false, true })
     foreach (int press in new[] { -1, 7, 15, 25 })
-        foreach (int n in (press < 0 ? new[] { 0 } : new[] { 1, 3, 4 }))
+        foreach (int n in (press < 0 ? new[] { 0 } : new[] { 1, 2, 3 }))
         {
             var def = bonk.Definition; var sim = new ServerSimulation(arena);
             sim.RegisterEntity(1, def, new CharacterState { PX = 100, PZ = 100, PY = def.CapsuleHeight / 2, IsGrounded = true, State = ActionState.Idle, JumpsLeft = def.Movement.MaxJumps, AirDodgesLeft = 1 }, bonk.BakedAnimation);
             var inputs = new Dictionary<ulong, InputState>(); bool tookOff = false; int landing = -1, firstBox = -1, lag = -1, activation = -1; float apex = 0;
             for (int t = 0; t < 160; t++)
             {
-                inputs[1] = new InputState { Jump = t == 0, JumpHeld = !shortHop && t < 40, ActiveSlot = t == press ? (byte)(n switch { 1 => 3, 3 => 8, _ => 9 }) : (byte)0 };
+                inputs[1] = new InputState { Jump = t == 0, JumpHeld = !shortHop && t < 40, ActiveSlot = t == press ? (byte)(n switch { 1 => 3, 2 => 8, _ => 9 }) : (byte)0 };
                 sim.Tick(inputs); var s = sim.GetState(1); apex = Math.Max(apex, s.PY - def.CapsuleHeight / 2);
                 if (!s.IsGrounded) tookOff = true;
                 if (activation < 0 && s.State == ActionState.Attacking) activation = t;

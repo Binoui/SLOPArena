@@ -46,7 +46,7 @@ public sealed record CharacterAssetCatalogBindingSnapshot(string SemanticId, str
 public static class CharacterPackageSourceCodec
 {
     private const ushort ManifestSchemaVersion = 1;
-    private const ushort AuthoringSchemaVersion = 3;
+    private const ushort AuthoringSchemaVersion = 4;
     private static readonly JsonWriterOptions WriterOptions = new()
     {
         Encoder = JavaScriptEncoder.Default,
@@ -1025,7 +1025,7 @@ public static class CharacterPackageSourceCodec
         if (p.ContainsKey("id")) d.Error("source.identity-forbidden", "character.id", "Character identity belongs in package.json.");
         if (p.ContainsKey("class")) d.Error("source.class-forbidden", "character.class", "Character class is not part of the source contract.");
         var version = UShort(p, "authoringSchemaVersion", "character.authoringSchemaVersion", d);
-        if (version != AuthoringSchemaVersion) d.Error("schema.unsupported", "character.authoringSchemaVersion", "Only authoring schema version 3 is supported.");
+        if (version != AuthoringSchemaVersion) d.Error("schema.unsupported", "character.authoringSchemaVersion", "Only authoring schema version 4 is supported. Schema 3 numbered the normals 1, 3 and 4; `python3 tools/slot_renumber.py --packages-only` migrates it.");
         var displayName = String(p, "displayName", "character.displayName", d);
         var weight = Float(p, "weight", "character.weight", d);
         var movement = ParseMovement(p, d);

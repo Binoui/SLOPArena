@@ -6,7 +6,7 @@
 - [ ] `character.json` owns gameplay source, presentation IDs, and the canonical fourteen-slot grid.
 - [ ] `CharacterAssetCatalog.asset` owns the Unity rig, semantic clip bindings, and pose-track IDs.
 - [ ] `package.json` uses `manifestSchemaVersion: 1` and owns the stable `packageId`.
-- [ ] `character.json` uses `authoringSchemaVersion: 3` without duplicated identity or
+- [ ] `character.json` uses `authoringSchemaVersion: 4` without duplicated identity or
       legacy `id`, `class`, or `schemaVersion` fields. Check the
       [source codec](../../src/Shared/CharacterPackageSourceCodec.cs).
 - [ ] The [asset catalog](../../client/Unity/Assets/Scripts/Runtime/Animation/CharacterAssetCatalog.cs)

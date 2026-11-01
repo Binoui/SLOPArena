@@ -44,7 +44,7 @@ Each move has these fields.
 | Field | Meaning |
 | --- | --- |
 | `id` | Unique stable lowercase id, starting with a letter or digit and containing letters, digits, dots or hyphens. Maximum 32 characters. |
-| `slot` | Canonical `ground.1`, `ground.3`, `ground.4`, `ground.A`, `ground.E`, `ground.R`, `ground.F`, or the corresponding `air.*` slot. |
+| `slot` | Canonical `ground.1`, `ground.2`, `ground.3`, `ground.A`, `ground.E`, `ground.R`, `ground.F`, or the corresponding `air.*` slot. |
 | `form` | Starting form 0 or 1. Default 0. The cooked package must supply the requested form and slot. |
 | `label`, `facing`, `phases` | Optional label and overrides. Labels default to the cooked move name. |
 | `dummy` | Overrides distance, behavior, damage and optional `input`. Package selection belongs at recipe level. |

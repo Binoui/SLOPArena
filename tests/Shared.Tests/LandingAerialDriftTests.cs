@@ -173,7 +173,7 @@ public class LandingAerialDriftTests
         Assert.Equal(0f, vz[^1]); // After input release, ordinary ground braking stops drift.
     }
 
-    /// <summary>All three Wibou air normals (keys 1, 3, 4): none may drift after landing.</summary>
+    /// <summary>All three Wibou air normals (keys 1, 2, 3): none may drift after landing.</summary>
     [Fact]
     public void Wibou_AllAirNormals_Land_NoDrift()
     {

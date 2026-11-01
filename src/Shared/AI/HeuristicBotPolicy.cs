@@ -18,7 +18,7 @@ public enum CpuBehavior
 public sealed partial class HeuristicBotPolicy
 {
     /// <summary>
-    /// Canonical functional combat slots, each once: 1, 3, 4, A, E, R, F. The grounded and aerial profiles
+    /// Canonical functional combat slots, each once: 1, 2, 3, A, E, R, F. The grounded and aerial profiles
     /// are indexed alike. LMB/RMB are physical controls with no canonical package slot identity.
     /// </summary>
     private static readonly byte[] Slots = CanonicalSlotProjection.All.Where(slot => !slot.IsAirborne)

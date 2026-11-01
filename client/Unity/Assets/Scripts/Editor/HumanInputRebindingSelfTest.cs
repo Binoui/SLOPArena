@@ -313,10 +313,13 @@ namespace SlopArena.EditorTools
             HumanInputActions.ApplyOverrides("{\"bindings\":[" +
                 "{\"action\":\"Gameplay/Jump\",\"id\":\"old-keyboard-id\",\"path\":\"<Keyboard>/j\"}," +
                 "{\"action\":\"Gameplay/FaceToCamera\",\"id\":\"old-mouse-id\",\"path\":\"<Mouse>/middleButton\"}," +
-                "{\"action\":\"Gameplay/Slot1\",\"id\":\"old-gamepad-id\",\"path\":\"<Gamepad>/dpad/up\"}]}");
+                "{\"action\":\"Gameplay/Slot1\",\"id\":\"old-gamepad-id\",\"path\":\"<Gamepad>/dpad/up\"}," +
+                "{\"action\":\"Gameplay/Slot3\",\"id\":\"old-up-normal-id\",\"path\":\"<Keyboard>/u\"}]}");
             Require(Path("Jump", Desktop) == "<Keyboard>/j" && Path("FaceToCamera", Desktop) == "<Mouse>/middleButton" &&
                 Path("Normal1", HumanInputActions.GamepadGroup) == "<Gamepad>/dpad/up",
                 "Existing keyboard, mouse utility or controller preferences stopped loading.");
+            Require(Path("Normal2", Desktop) == "<Keyboard>/u",
+                "A rebind saved under the old Slot3 action no longer reaches the up normal.");
             HumanInputActions.ResetOverrides();
         }
 

@@ -7,6 +7,7 @@ import tempfile
 import unittest
 from pathlib import Path
 from unittest.mock import patch
+from importlib.util import find_spec
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import ledger
@@ -171,6 +172,7 @@ class ReceiptTests(unittest.TestCase):
         (run / 'summary.json').unlink()
         self.assertIn('UNKNOWN', ledger.table([ledger.row(run)]))
 
+    @unittest.skipUnless(find_spec('numpy') and find_spec('scipy'), 'GenRA environment unavailable')
     def test_promote_writes_receipt_from_actual_target_without_unity(self):
         sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
         from genra import unity_clip

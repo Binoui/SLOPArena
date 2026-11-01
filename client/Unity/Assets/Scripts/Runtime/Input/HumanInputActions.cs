@@ -265,6 +265,8 @@ namespace SlopArena.Client.Input
             if (string.IsNullOrEmpty(entry.action)) return false;
             int slash = entry.action.LastIndexOf('/');
             string name = slash >= 0 ? entry.action.Substring(slash + 1) : entry.action;
+            // Saved before the normals were numbered as players press them (2026-11-01).
+            name = name switch { "Slot1" => "Normal1", "Slot3" => "Normal2", "Slot4" => "Normal3", _ => name };
             return Actions.TryGetValue(name, out action);
         }
 

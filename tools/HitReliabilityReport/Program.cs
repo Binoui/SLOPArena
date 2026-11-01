@@ -22,12 +22,12 @@ internal static class Program
 {
     private const string Usage = """
         Usage: dotnet run --project tools/HitReliabilityReport -- [--char all|fightguy|manki|wibou|bonk|bashie|salamander|nyx]
-               [--slots 1,3,4] [--form 0|1] [--content-root content-cooked] [--out artifacts/hit-reliability]
+               [--slots 1,2,3] [--form 0|1] [--content-root content-cooked] [--out artifacts/hit-reliability]
 
         Writes <char>.md and <char>.json per character. Targets are idle, standing FightGuy
         (medium) and Manki (small); measurements read the admitted content-cooked roster.
         Ground moves also get an arc map (target feet height x distance, behind to ahead).
-        --slots picks canonical slots (1-4, A, E, R, F), ground and air; the default is the normals.
+        --slots picks canonical slots (1-3, A, E, R, F), ground and air; the default is the normals.
         """;
 
     private static readonly Dictionary<string, CharacterClass> Characters = new(StringComparer.Ordinal)

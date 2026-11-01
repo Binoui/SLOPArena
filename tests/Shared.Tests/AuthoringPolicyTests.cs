@@ -48,12 +48,12 @@ public class AuthoringPolicyTests
     [Fact]
     public void FightGuy_AirNormals_AuthorLandingLag()
     {
-        // FightGuy is the only kit with a full normal tier (keys 1, 3, 4) — every air variant
+        // FightGuy is the only kit with a full normal tier (keys 1, 2, 3) — every air variant
         // must carry the same landing-lag + auto-cancel declarations as the ground normal.
         var def = TestHelpers.FightGuyDef;
-        AssertAirNormal(def.GetCookedSlotAbility(AbilitySlots.Normal1, airborne: true)!.Timeline.Stages[0], "Slot1 (Floating Kick)");
-        AssertAirNormal(def.GetCookedSlotAbility(AbilitySlots.Normal2, airborne: true)!.Timeline.Stages[0], "Slot3 (Flip Kick)");
-        AssertAirNormal(def.GetCookedSlotAbility(AbilitySlots.Normal3, airborne: true)!.Timeline.Stages[0], "Slot4 (Air Smash)");
+        AssertAirNormal(def.GetCookedSlotAbility(AbilitySlots.Normal1, airborne: true)!.Timeline.Stages[0], "Normal1 (Floating Kick)");
+        AssertAirNormal(def.GetCookedSlotAbility(AbilitySlots.Normal2, airborne: true)!.Timeline.Stages[0], "Normal2 (Flip Kick)");
+        AssertAirNormal(def.GetCookedSlotAbility(AbilitySlots.Normal3, airborne: true)!.Timeline.Stages[0], "Normal3 (Air Smash)");
     }
 
     private static void AssertAirNormal(CookedStage stage, string label)

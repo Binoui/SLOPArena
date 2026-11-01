@@ -412,7 +412,7 @@ public sealed class CharacterPackageSourceCodecTests
         string package = Fixture("package.json").Replace("\"dependencies\": []", "\"dependencies\": [], \"id\": \"legacy\"");
         var result = CharacterPackageSourceCodec.Load(package, Fixture("character.json"));
         Assert.Contains(result.Diagnostics, x => x.Code == "source.identity-forbidden");
-        string unsupported = Fixture("character.json").Replace("\"authoringSchemaVersion\": 3", "\"authoringSchemaVersion\": 2");
+        string unsupported = Fixture("character.json").Replace("\"authoringSchemaVersion\": 4", "\"authoringSchemaVersion\": 3");
         result = CharacterPackageSourceCodec.Load(Fixture("package.json"), unsupported);
         Assert.Contains(result.Diagnostics, x => x.Code == "schema.unsupported");
         var missingTuning = JsonNode.Parse(Fixture("character.json"))!.AsObject();

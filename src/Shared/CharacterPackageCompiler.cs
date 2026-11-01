@@ -60,8 +60,8 @@ public static class CharacterPackageCompiler
     public const string FormsCapabilityVersion = "1";
     internal const float MaxSteeredChargeTurnDegreesPerSecond = 1440f;
     private const ushort ManifestSchemaVersion = 1;
-    private const ushort AuthoringSchemaVersion = 3;
-    private const ushort CookedSchemaVersion = 4;
+    private const ushort AuthoringSchemaVersion = 4;
+    private const ushort CookedSchemaVersion = 5;
     private const string RuntimeApiMin = "1.2.0";
     private const string RuntimeApiMax = "1.x";
     private const ushort MaxFixedHitstunTicks = 240;
@@ -222,7 +222,8 @@ public static class CharacterPackageCompiler
         var c = source.Character;
         if (m == null || c == null) { d.Error("schema.missing", "source", "Manifest and character are required."); return; }
         if (m.ManifestSchemaVersion != ManifestSchemaVersion) d.Error("schema.unsupported", "manifest.manifestSchemaVersion", "Only manifest schema version 1 is supported.");
-        if (c.AuthoringSchemaVersion != AuthoringSchemaVersion) d.Error("schema.unsupported", "character.authoringSchemaVersion", "Only authoring schema version 3 is supported.");
+        if (c.AuthoringSchemaVersion == 3) d.Error("schema.unsupported", "character.authoringSchemaVersion", "Authoring schema 3 numbers the normals 1, 3 and 4. Run `python3 tools/slot_renumber.py --packages-only` to move them to 1, 2 and 3.");
+        else if (c.AuthoringSchemaVersion != AuthoringSchemaVersion) d.Error("schema.unsupported", "character.authoringSchemaVersion", "Only authoring schema version 4 is supported.");
         ValidateId(m.PackageId, "manifest.packageId", d);
         if (string.IsNullOrWhiteSpace(m.Version) || !IsSemVer(m.Version)) d.Error("value.out-of-range", "manifest.version", "Version must be SemVer 2.0 text.");
         foreach (var field in new[] { (m.Creator, "manifest.creator"), (m.License, "manifest.license"), (m.Attribution, "manifest.attribution") }) if (string.IsNullOrWhiteSpace(field.Item1)) d.Error("value.out-of-range", field.Item2, "Value must be non-empty.");

@@ -150,7 +150,7 @@ namespace SlopArena.EditorTools
                 || !CanonicalSlotProjection.TryGet(true, slot, out var air)
                 || ground.Ordinal >= CanonicalSlotProjection.VariantSlotCount
                 || air.Ordinal != ground.Ordinal + CanonicalSlotProjection.VariantSlotCount)
-                throw new ArgumentException($"Unknown canonical slot label '{slot}'. Use 1, 3, 4, A, E, R, or F.");
+                throw new ArgumentException($"Unknown canonical slot label '{slot}'. Use 1, 2, 3, A, E, R, or F.");
 
             return CanonicalSlotProjection.ToWire(ground);
         }

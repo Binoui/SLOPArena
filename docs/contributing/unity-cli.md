@@ -709,7 +709,7 @@ repins its existing roster entry to the newly verified version and hashes. It do
 admit a new package or change the selector.
 
 Pipeline wraps the typed command result under `data.result`. Inspect returns the
-canonical 16-slot summary, source/cooked hashes, status, stale reasons, and existing
+canonical 14-slot summary, source/cooked hashes, status, stale reasons, and existing
 compiler/cooker diagnostics. Cook returns source, cooked-content, and package hashes
 when successful. Semantic cook failures return `data.result.success: false` with
 structured diagnostics; the outer Pipeline transport command remains successful.

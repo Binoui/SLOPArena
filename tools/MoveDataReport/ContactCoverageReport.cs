@@ -743,7 +743,7 @@ internal static partial class ContactCoverageReport
         }
         if (character is not ("all" or "fightguy" or "manki" or "wibou" or "bonk")) throw new CoverageArgumentException($"unknown character: {character} (expected all, fightguy, manki, wibou, bonk)");
         if (victim is not ("fightguy" or "manki" or "wibou" or "bonk")) throw new CoverageArgumentException($"unknown victim: {victim}");
-        if (slots.Count == 0) slots.AddRange(CanonicalSlotProjection.All.Where(x => x.InputLabel is "1" or "3" or "4"));
+        if (slots.Count == 0) slots.AddRange(CanonicalSlotProjection.All.Where(x => x.InputLabel is "1" or "2" or "3"));
         if (experiment == "normals")
         {
             if (character == "all") throw new CoverageArgumentException("normal experiment requires exactly one attacker (all is not valid)");
@@ -762,7 +762,7 @@ internal static partial class ContactCoverageReport
         foreach (var raw in value.Split(',', StringSplitOptions.RemoveEmptyEntries))
         {
             string id = raw.Trim();
-            if (!CanonicalSlotProjection.TryGet(id, out var slot) || slot.InputLabel is not ("1" or "3" or "4"))
+            if (!CanonicalSlotProjection.TryGet(id, out var slot) || slot.InputLabel is not ("1" or "2" or "3"))
                 throw new CoverageArgumentException($"unknown normal slot '{id}'");
             if (!result.Contains(slot)) result.Add(slot);
         }

@@ -13,11 +13,11 @@ namespace SlopArena.Shared.Tests;
 /// </summary>
 public class IasaTests
 {
-    // Slot1: 21-tick lock, unlocks at tick 16 (5 early). Lunge 3.
+    // Normal1: 21-tick lock, unlocks at tick 16 (5 early). Lunge 3.
     private const ushort Slot1Duration = 21;
     private const ushort Slot1Iasa = 16;
     private const float Slot1Lunge = 3f;
-    // Slot3: longer move with a stronger lunge — the interrupt target.
+    // Normal2: longer move with a stronger lunge — the interrupt target.
     private const ushort Slot3Duration = 30;
     private const float Slot3Lunge = 5f;
 
@@ -189,8 +189,8 @@ public class IasaTests
     private static float Gpy => TestHelpers.GroundPY(Def);
 
     /// <summary>
-    /// Press Slot3 exactly at the IASA tick: Slot1's recovery is interrupted and the
-    /// Slot3 move starts immediately (its lunge velocity + AttackSlot are captured mid-move).
+    /// Press Normal2 exactly at the IASA tick: Normal1's recovery is interrupted and the
+    /// Normal2 move starts immediately (its lunge velocity + AttackSlot are captured mid-move).
     /// </summary>
     [Fact]
     public void Iasa_ActAtUnlock_InterruptsIntoSlot3()
@@ -233,7 +233,7 @@ public class IasaTests
     }
 
     /// <summary>
-    /// Press Slot3 two ticks BEFORE the IASA tick: the old lock applies, Slot1 keeps
+    /// Press Normal2 two ticks BEFORE the IASA tick: the old lock applies, Normal1 keeps
     /// running (press is outside the 6-tick buffer window, so it is dropped entirely)
     /// and no second attack follows.
     /// </summary>
@@ -256,7 +256,7 @@ public class IasaTests
     }
 
     /// <summary>
-    /// No input at all: the IASA unlock never cuts the animation — Slot1 still runs
+    /// No input at all: the IASA unlock never cuts the animation — Normal1 still runs
     /// its full 21-tick duration (snapshot one tick before the end) and returns to Idle.
     /// </summary>
     [Fact]
@@ -273,9 +273,9 @@ public class IasaTests
     }
 
     /// <summary>
-    /// Slot1 connects a hit at t10 (damage 2 → 8-tick attacker freeze per ADR-0012),
+    /// Normal1 connects a hit at t10 (damage 2 → 8-tick attacker freeze per ADR-0012),
     /// with a very early IASA unlock (t4) so the unlock is live during the freeze.
-    /// The hitstop hard-block: a Slot3 press at t14 (IASA-unlocked, attacker mid-freeze)
+    /// The hitstop hard-block: a Normal2 press at t14 (IASA-unlocked, attacker mid-freeze)
     /// must NOT interrupt. After the freeze expires (t18), the same press does interrupt.
     /// </summary>
     [Fact]
@@ -319,7 +319,7 @@ public class IasaTests
         sim.RegisterEntity(100, target,
             TestHelpers.NpcState() with { PX = 0, PZ = 1.2f, PY = TestHelpers.GroundPY(target) });
 
-        // Slot1 at t0; Slot3 press at t14: past the IASA unlock (elapsed 10 >= 4) but
+        // Normal1 at t0; Normal2 press at t14: past the IASA unlock (elapsed 10 >= 4) but
         // the attacker is still frozen by its own connecting hit (freeze t10..t17).
         var inputs = new Dictionary<ulong, InputState>();
         for (int t = 0; t <= 14; t++)
@@ -335,7 +335,7 @@ public class IasaTests
         Assert.True(frozen.HitstopTicks > 0, "test window: attacker must still be mid-freeze");
         Assert.Equal(AbilitySlots.Normal1, frozen.AttackSlot);   // hitstop hard-blocks the press
 
-        // Continue; fresh Slot3 press at t19 (freeze expired at t17) — the unlock is still
+        // Continue; fresh Normal2 press at t19 (freeze expired at t17) — the unlock is still
         // live (the freeze paused the elapsed clock, it did not cancel the attack).
         for (int t = 15; t <= 19; t++)
         {
@@ -351,8 +351,8 @@ public class IasaTests
 
     /// <summary>
     /// Engine-capability control: with IasaTicks = 0 the press at the would-be unlock
-    /// tick does NOT interrupt — Slot1 keeps running on its original clock and the
-    /// Slot3 press goes to the standard input buffer (fires at lock expiry).
+    /// tick does NOT interrupt — Normal1 keeps running on its original clock and the
+    /// Normal2 press goes to the standard input buffer (fires at lock expiry).
     /// </summary>
     [Fact]
     public void IasaTicksZero_KeepsFullLock_PressAtUnlockTickIsNotAnInterrupt()
@@ -371,7 +371,7 @@ public class IasaTests
         }
 
         var after = sim.GetState(1);
-        // No interrupt: Slot1 is still running on its original clock...
+        // No interrupt: Normal1 is still running on its original clock...
         Assert.Equal(AbilitySlots.Normal1, after.AttackSlot);
         Assert.Equal((ushort)17, after.AttackElapsedTicks); // an interrupt would reset to 1
         // ...and the press was buffered for the normal lock expiry, not consumed early.
@@ -379,8 +379,8 @@ public class IasaTests
     }
 
     /// <summary>
-    /// Counterpart of IasaTicksZero: with IasaTicks = 16 the same Slot3 press at tick 16
-    /// is consumed by the interrupt and the Slot3 move starts immediately.
+    /// Counterpart of IasaTicksZero: with IasaTicks = 16 the same Normal2 press at tick 16
+    /// is consumed by the interrupt and the Normal2 move starts immediately.
     /// </summary>
     [Fact]
     public void IasaTicksSet_PressAtUnlockTick_ConsumedByInterrupt()

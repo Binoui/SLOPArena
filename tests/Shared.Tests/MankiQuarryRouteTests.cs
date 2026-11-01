@@ -203,7 +203,7 @@ public sealed class MankiQuarryRouteTests
         {
             static string Slot(byte slot) => slot switch
             {
-                AbilitySlots.Normal1 => "1", AbilitySlots.Normal2 => "3", AbilitySlots.Normal3 => "4",
+                AbilitySlots.Normal1 => "1", AbilitySlots.Normal2 => "2", AbilitySlots.Normal3 => "3",
                 AbilitySlots.A => "A", AbilitySlots.E => "E", AbilitySlots.R => "R", AbilitySlots.F => "F",
                 _ => throw new InvalidOperationException("Unexpected slot " + slot),
             };

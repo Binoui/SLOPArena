@@ -15,7 +15,7 @@ Keep the three authoring modules separate:
 
 - `package.json` uses `manifestSchemaVersion: 1` and owns `packageId`, version,
   creator, license, attribution, and dependencies.
-- `character.json` uses `authoringSchemaVersion: 3` and owns gameplay source,
+- `character.json` uses `authoringSchemaVersion: 4` and owns gameplay source,
   presentation IDs, and the canonical sixteen-slot
   grid, capture geometry/anchors, and standardized defense animation roles.
 - `CharacterAssetCatalog.asset` uses catalog schema 2 and owns Unity rig, clip and
@@ -32,7 +32,7 @@ The starter values are editable defaults, not approved gameplay balance. Replace
 the character's approved kit data before roster admission. Import package-local source assets
 with their `.meta` files. Record licensing and stop if a source asset is not redistributable.
 
-`character.json` uses `authoringSchemaVersion: 3`. Author a positive finite
+`character.json` uses `authoringSchemaVersion: 4`. Author a positive finite
 `movement.airDodgeSpeed` independently of the historical `dashSpeed`; the air
 dodge's burst starts at 2.3 times this speed and eases out over twelve simulation
 ticks. The current admitted fighters use 11 m/s except Wibou at 12.1 m/s. Older source
@@ -134,7 +134,7 @@ runtime API minimum, or simulation protocol.
 
 Persist these fourteen slot IDs, in ground-then-air order:
 
-`ground.1`, `ground.3`, `ground.4`, `ground.A`, `ground.E`, `ground.R`, `ground.F`,
+`ground.1`, `ground.2`, `ground.3`, `ground.A`, `ground.E`, `ground.R`, `ground.F`,
 then the same seven IDs under `air.`. Normal `2` was retired by ADR-0042; the compiler
 rejects it. Physical controls are input adapters,
 not alternate move identity. Author fixed timelines in 60 Hz ticks with engine-owned
