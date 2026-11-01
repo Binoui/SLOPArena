@@ -1,7 +1,9 @@
 # Replay v1 design
 
-**Status:** Accepted — 2026-10-13 (documentation only). Implementation and
-whole-Match playback verification are pending.
+**Status:** Recording, playback and viewing superseded by
+[ADR-0060](../adr/0060-gamehost-replays-world-frames-and-view-track.md) and the
+[Replay plan](2026-11-01-replay-design.md), 2026-11-01. The retention, sharing and delivery
+sections remain the starting point for the deferred player-facing steps.
 
 ## Agreed scope
 

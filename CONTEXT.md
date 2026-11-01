@@ -427,8 +427,16 @@ _Avoid_: physical-server lobby flow, automatic rematch
 ## Replays & Spectating
 
 **Replay**:
-A saved recording of a Match's authoritative gameplay that a player can watch again for personal review or share with a bug report.
-_Avoid_: video capture, rollback re-simulation
+A GameHost recording of a Match's authoritative gameplay, made of an Exact Track and a View Track, that the owner, and later its players, can watch again to review play or investigate bugs.
+_Avoid_: video capture, rollback re-simulation, input recording
+
+**Exact Track**:
+The World Frames of a Replay, one per gameplay tick. It restores the Match exactly, but only on a build with the same protocol, snapshot format and content.
+_Avoid_: input tape, demo
+
+**View Track**:
+The stable, versioned per-tick record in a Replay of what was on screen: fighter state, active moves by string ID, hitboxes, projectiles, mode objects, events and hits. The GameHost writes it at record time; later builds play it with their current art. Its fields are only ever added.
+_Avoid_: snapshot, presentation log
 
 **Replay Library**:
 A player's recent Matches, with access to available Replays and explanations for unavailable recordings. It remains accessible during later game launches.
