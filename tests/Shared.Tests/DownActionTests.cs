@@ -157,7 +157,7 @@ public void AcceptedJump_WinsOverLowPosture()
     public void GroundNormal_IsAcceptedFromSettledCrouchImmediately()
     {
         var sim = Ground(); Tick(sim, Hold); Assert.True(Tick(sim, Hold).CrouchSettled);
-        var state = Tick(sim, new InputState { Down = true, ActiveSlot = AbilitySlots.Slot1 });
+        var state = Tick(sim, new InputState { Down = true, ActiveSlot = AbilitySlots.Normal1 });
         Assert.Equal(ActionState.Attacking, state.State);
         Assert.False(state.CrouchSettled);
         Assert.Contains(1UL, sim.LastTickAcceptedActions);

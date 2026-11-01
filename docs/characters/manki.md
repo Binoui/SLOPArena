@@ -559,7 +559,7 @@ clips' backups in the local `artifacts/manki-f-shake-20261021/`.
 
 ## Files
 - `client/Unity/Assets/CharacterPackages/manki/package.json` — package identity and license
-- `client/Unity/Assets/CharacterPackages/manki/character.json` — canonical authoring source and 16-slot projection
+- `client/Unity/Assets/CharacterPackages/manki/character.json` — canonical authoring source and 14-slot projection
 - `client/Unity/Assets/CharacterPackages/manki/CharacterAssetCatalog.asset` — Unity presentation bindings
 - `client/Unity/Assets/Scripts/Editor/MankiPresentationBuilder.cs` — generates and binds everything under `Presentation/` except the rigs
 - `content-cooked/manki/manifest.json` — cooked package manifest and hashes

@@ -67,7 +67,7 @@ public sealed class GrabThrowMeasurementTests
                 if (ready >= 0 && stunEnd >= 0 && landing >= 0) break;
             }
             int ownerJump = Accepted(sim, start, 1, new() { Jump = true, JumpHeld = true }, victimInput);
-            int ownerSlot = Accepted(sim, start, 1, new() { ActiveSlot = AbilitySlots.Slot1 }, victimInput);
+            int ownerSlot = Accepted(sim, start, 1, new() { ActiveSlot = AbilitySlots.Normal1 }, victimInput);
             int victimJump = Accepted(sim, start, 2, new() { Jump = true, JumpHeld = true, MoveX = di }, default);
             _output.WriteLine("kind | % | DI X | press | release | owner ready | jump | slot | victim ready | air action | advantage | slot margin | height ready/end | above owner ready/end | apex@tick | distance ready/end/land | landing | death");
             _output.WriteLine($"{(fling ? "fling" : "toss")} | {percent} | {di} | 0 | {release} | {ready} | {ownerJump} | {ownerSlot} | {stunEnd} | {victimJump} | {stunEnd - ready} | {stunEnd - ownerSlot} | {heightReady:F3}/{heightEnd:F3} | {aboveReady:F3}/{aboveEnd:F3} | {apex:F3}@{apexTick} | {distanceReady:F3}/{distanceEnd:F3}/{distanceLanding:F3} | {landing} | {death}");
@@ -98,7 +98,7 @@ public sealed class GrabThrowMeasurementTests
             Tick(sim, new() { ActiveSlot = AbilitySlots.F });
             var start = sim.CaptureSnapshot();
             bool connected = false;
-            foreach (byte slot in new[] { AbilitySlots.Slot1, AbilitySlots.Slot3, AbilitySlots.Slot4 })
+            foreach (byte slot in new[] { AbilitySlots.Normal1, AbilitySlots.Normal2, AbilitySlots.Normal3 })
             {
                 if (def.GetCookedSlotAbility(slot, true) == null) continue;
                 sim.RestoreSnapshot(start);

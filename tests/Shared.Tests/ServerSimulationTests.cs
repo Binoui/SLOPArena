@@ -403,8 +403,8 @@ public class ServerSimulationTests
         var slots = def.CookedSlots!.ToArray();
         foreach (var (ordinal, id, air, ticks) in new[]
         {
-            (0, "ground.1", false, cooldown), (1, "ground.3", false, (ushort)0),
-            (7, "air.1", true, cooldown), (8, "air.3", true, (ushort)0),
+            (0, "ground.1", false, cooldown), (1, "ground.2", false, (ushort)0),
+            (7, "air.1", true, cooldown), (8, "air.2", true, (ushort)0),
         })
             slots[ordinal] = new CookedSlotDefinition(
                 ordinal, id, air, "Cooldown fixture", "", "",
@@ -428,7 +428,7 @@ public class ServerSimulationTests
         state.PY = airborne ? 100 : TestHelpers.GroundPY(def);
         state.IsGrounded = !airborne;
         sim.RegisterEntity(1, def, state);
-        sim.Tick(new() { [1] = TestHelpers.Input(activeSlot: AbilitySlots.Slot1) });
+        sim.Tick(new() { [1] = TestHelpers.Input(activeSlot: AbilitySlots.Normal1) });
         for (int tick = 1; tick < 4; tick++)
             sim.Tick(new() { [1] = default });
         return sim;
@@ -444,16 +444,16 @@ public class ServerSimulationTests
         var sim = IasaCooldownSim(airborne, noCooldownsEntity: noCooldownsEntity);
         var activation = sim.GetLastActivationId(1);
         var before = sim.GetState(1);
-        Assert.Equal((ushort)0, before.GetCooldown(AbilitySlots.Slot1));
+        Assert.Equal((ushort)0, before.GetCooldown(AbilitySlots.Normal1));
 
-        sim.Tick(new() { [1] = TestHelpers.Input(activeSlot: AbilitySlots.Slot1) });
+        sim.Tick(new() { [1] = TestHelpers.Input(activeSlot: AbilitySlots.Normal1) });
 
         var after = sim.GetState(1);
         Assert.Equal(activation, sim.GetLastActivationId(1));
         Assert.Equal(ActionState.Attacking, after.State);
-        Assert.Equal(AbilitySlots.Slot1, after.AttackSlot);
+        Assert.Equal(AbilitySlots.Normal1, after.AttackSlot);
         Assert.Equal(before.AttackElapsedTicks + 1, after.AttackElapsedTicks);
-        Assert.Equal((ushort)0, after.GetCooldown(AbilitySlots.Slot1));
+        Assert.Equal((ushort)0, after.GetCooldown(AbilitySlots.Normal1));
     }
 
     [Theory]
@@ -464,11 +464,11 @@ public class ServerSimulationTests
         var sim = IasaCooldownSim(airborne);
         var activation = sim.GetLastActivationId(1);
 
-        sim.Tick(new() { [1] = TestHelpers.Input(activeSlot: AbilitySlots.Slot3) });
+        sim.Tick(new() { [1] = TestHelpers.Input(activeSlot: AbilitySlots.Normal2) });
 
         Assert.NotEqual(activation, sim.GetLastActivationId(1));
-        Assert.Equal(AbilitySlots.Slot3, sim.GetState(1).AttackSlot);
-        Assert.Equal((ushort)119, sim.GetState(1).GetCooldown(AbilitySlots.Slot1));
+        Assert.Equal(AbilitySlots.Normal2, sim.GetState(1).AttackSlot);
+        Assert.Equal((ushort)119, sim.GetState(1).GetCooldown(AbilitySlots.Normal1));
     }
 
     [Theory]
@@ -482,11 +482,11 @@ public class ServerSimulationTests
         var sim = IasaCooldownSim(airborne, cooldown, noCooldownsEntity);
         var activation = sim.GetLastActivationId(1);
 
-        sim.Tick(new() { [1] = TestHelpers.Input(activeSlot: AbilitySlots.Slot1) });
+        sim.Tick(new() { [1] = TestHelpers.Input(activeSlot: AbilitySlots.Normal1) });
 
         Assert.NotEqual(activation, sim.GetLastActivationId(1));
-        Assert.Equal(AbilitySlots.Slot1, sim.GetState(1).AttackSlot);
-        Assert.Equal((ushort)0, sim.GetState(1).GetCooldown(AbilitySlots.Slot1));
+        Assert.Equal(AbilitySlots.Normal1, sim.GetState(1).AttackSlot);
+        Assert.Equal((ushort)0, sim.GetState(1).GetCooldown(AbilitySlots.Normal1));
     }
 
     [Theory]
@@ -499,7 +499,7 @@ public class ServerSimulationTests
         for (int ticks = 0; ticks < 20 && sim.GetState(1).AttackSlot != 0; ticks++)
             sim.Tick(new() { [1] = default });
         Assert.Equal((byte)0, sim.GetState(1).AttackSlot);
-        Assert.Equal((ushort)120, sim.GetState(1).GetCooldown(AbilitySlots.Slot1));
+        Assert.Equal((ushort)120, sim.GetState(1).GetCooldown(AbilitySlots.Normal1));
 
         var state = sim.GetState(1);
         // Change ground/air variant while retaining the input-slot timer.
@@ -509,14 +509,14 @@ public class ServerSimulationTests
         sim.SetState(1, state);
         for (int remaining = 120; remaining > 0; remaining--)
         {
-            Assert.Equal((ushort)remaining, sim.GetState(1).GetCooldown(AbilitySlots.Slot1));
-            sim.Tick(new() { [1] = TestHelpers.Input(activeSlot: AbilitySlots.Slot1) });
+            Assert.Equal((ushort)remaining, sim.GetState(1).GetCooldown(AbilitySlots.Normal1));
+            sim.Tick(new() { [1] = TestHelpers.Input(activeSlot: AbilitySlots.Normal1) });
             Assert.Equal(activation, sim.GetLastActivationId(1));
         }
-        Assert.Equal((ushort)0, sim.GetState(1).GetCooldown(AbilitySlots.Slot1));
-        sim.Tick(new() { [1] = TestHelpers.Input(activeSlot: AbilitySlots.Slot1) });
+        Assert.Equal((ushort)0, sim.GetState(1).GetCooldown(AbilitySlots.Normal1));
+        sim.Tick(new() { [1] = TestHelpers.Input(activeSlot: AbilitySlots.Normal1) });
         Assert.NotEqual(activation, sim.GetLastActivationId(1));
-        Assert.Equal(AbilitySlots.Slot1, sim.GetState(1).AttackSlot);
+        Assert.Equal(AbilitySlots.Normal1, sim.GetState(1).AttackSlot);
     }
 
     [Fact]
@@ -529,11 +529,11 @@ public class ServerSimulationTests
         sim.RegisterEntity(1, def, state);
         // Flag defaults to null — PvP path unchanged.
 
-        sim.Tick(new() { { 1, TestHelpers.Input(activeSlot: AbilitySlots.Slot1) } });
+        sim.Tick(new() { { 1, TestHelpers.Input(activeSlot: AbilitySlots.Normal1) } });
         for (int i = 0; i < 20; i++)
             sim.Tick(new() { { 1, default } });
 
-        ushort cd = sim.GetState(1).GetCooldown(AbilitySlots.Slot1);
+        ushort cd = sim.GetState(1).GetCooldown(AbilitySlots.Normal1);
         Assert.True(cd > 0, $"expected cooldown after the fixture move completed, got {cd}");
     }
 
@@ -547,15 +547,15 @@ public class ServerSimulationTests
         sim.RegisterEntity(1, def, state);
         sim.NoCooldownsEntityId = 1;
 
-        sim.Tick(new() { { 1, TestHelpers.Input(activeSlot: AbilitySlots.Slot1) } });
+        sim.Tick(new() { { 1, TestHelpers.Input(activeSlot: AbilitySlots.Normal1) } });
         for (int i = 0; i < 20; i++)
             sim.Tick(new() { { 1, default } });
 
-        Assert.Equal((ushort)0, sim.GetState(1).GetCooldown(AbilitySlots.Slot1));
+        Assert.Equal((ushort)0, sim.GetState(1).GetCooldown(AbilitySlots.Normal1));
         Assert.Equal(ActionState.Idle, sim.GetState(1).State);
 
         // Recast: a second press in the next tick must start the ability.
-        sim.Tick(new() { { 1, TestHelpers.Input(activeSlot: AbilitySlots.Slot1) } });
+        sim.Tick(new() { { 1, TestHelpers.Input(activeSlot: AbilitySlots.Normal1) } });
         var after = sim.GetState(1);
         Assert.NotEqual(ActionState.Idle, after.State);
         Assert.NotEqual((byte)0, after.AttackSlot);
@@ -602,7 +602,7 @@ public class ServerSimulationTests
         ability.Cooldown = slot.CooldownTicks;
         sim.ActivateAbility(1, ability, 2, def);
         Assert.Equal(ActionState.Idle, sim.GetState(1).State); // exercised the fallback path
-        Assert.True(sim.GetState(1).GetCooldown(AbilitySlots.Slot1) > 0);
+        Assert.True(sim.GetState(1).GetCooldown(AbilitySlots.Normal1) > 0);
 
         // Flag set → fallback write skipped.
         var sim2 = TestHelpers.MakeSim();
@@ -611,7 +611,7 @@ public class ServerSimulationTests
         var ability2 = new SlopArena.Shared.Abilities.CookedTimelineAbility(slot);
         ability2.Cooldown = slot.CooldownTicks;
         sim2.ActivateAbility(1, ability2, 2, def);
-        Assert.Equal((ushort)0, sim2.GetState(1).GetCooldown(AbilitySlots.Slot1));
+        Assert.Equal((ushort)0, sim2.GetState(1).GetCooldown(AbilitySlots.Normal1));
     }
     private static CharacterState GroundedState(ulong id, CharacterDefinition def, float z = 0f)
     {
@@ -827,7 +827,7 @@ public class ServerSimulationTests
             {
                 ShieldPressed = true, ShieldHeld = tick % 2 == 0,
                 Jump = tick % 2 == 0,
-                ActiveSlot = tick % 2 == 0 ? (byte)0 : AbilitySlots.Slot1,
+                ActiveSlot = tick % 2 == 0 ? (byte)0 : AbilitySlots.Normal1,
                 DownPressed = true, MoveY = -1f, FaceToCamera = true, AimYaw = 18000,
             };
             sim.Tick(inputs);
@@ -1102,7 +1102,7 @@ public class ServerSimulationTests
         sim.Tick(inputs);
         Assert.Equal((ushort)(DefenseConfig.GrabStartupTicks + DefenseConfig.GrabActiveTicks
             + DefenseConfig.GrabWhiffRecoveryTicks), sim.GetState(1).StateTicks);
-        inputs[1] = new InputState { Jump = true, ActiveSlot = AbilitySlots.Slot1 };
+        inputs[1] = new InputState { Jump = true, ActiveSlot = AbilitySlots.Normal1 };
         for (int i = 0; i < 10; i++)
         {
             sim.Tick(inputs);

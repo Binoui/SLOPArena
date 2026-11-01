@@ -295,9 +295,9 @@ move('real-g1', form='real', slot='ground.1', semantic='anim.nyx.g1', kind='norm
                         side('flick: right hand on her centre line (m)', 'RightHand', 16, -0.06, 0.1),
                         travel('upright: the chest barely moves (m)', 'Spine2', 'front', [0, 60], None, 0.04)])
 
-move('real-g3', form='real', slot='ground.3', semantic='anim.nyx.g3', kind='normal', frame='stance', scale=2,
+move('real-g3', form='real', slot='ground.2', semantic='anim.nyx.g2', kind='normal', frame='stance', scale=2,
      game={'total': 44, 'contact': 14, 'active': [14, 24], 'iasa': 36, 'model': 'Manki Sweeping Kick 44/9-20/29, Bashie Shell Flip 42'},
-     what=("Nyx's real-form ground.3, Grasping Hands: her anti-air. Two tall shadow hands burst up from the floor beside her "
+     what=("Nyx's real-form ground.2, Grasping Hands: her anti-air. Two tall shadow hands burst up from the floor beside her "
            "and close above her head like a trap; her own hands summon them."),
      beats=[(0, "The stance."),
             (10, "The lift begins: both forearms rise slowly from the elbows."),
@@ -323,10 +323,10 @@ move('real-g3', form='real', slot='ground.3', semantic='anim.nyx.g3', kind='norm
                         height('close: right hand above her head (m)', 'RightHand', 'Head', 46, 0.12),
                         dist('close: hands together (m)', 'LeftHand', 'RightHand', 47, None, 0.2)])
 
-move('real-g4', form='real', slot='ground.4', semantic='anim.nyx.g4', kind='normal', frame='stance', scale=2,
+move('real-g4', form='real', slot='ground.3', semantic='anim.nyx.g3', kind='normal', frame='stance', scale=2,
      game={'total': 64, 'contact': 24, 'active': [24, 31], 'iasa': 56,
            'model': 'FightGuy Double Kick 69/12/64, Wibou Heavy Down Slash 74/41/63; slow startup for the long reach'},
-     what=("Nyx's real-form ground.4, Shadow Lash: her slow, long-reaching big move. Her right arm sweeps forward and down and "
+     what=("Nyx's real-form ground.3, Shadow Lash: her slow, long-reaching big move. Her right arm sweeps forward and down and "
            "a long shadow tendril lashes along the floor in front of her."),
      beats=[(0, "The stance."),
             (14, "The wind-up begins: her shoulders turn a little to her LEFT."),
@@ -369,10 +369,10 @@ move('real-a1', form='real', slot='air.1', semantic='anim.nyx.a1', kind='normal'
                         dist('legs together (m)', 'LeftFoot', 'RightFoot', 16, None, 0.2),
                         dist('legs together at the end (m)', 'LeftFoot', 'RightFoot', 80, None, 0.2)])
 
-move('real-a3', form='real', slot='air.3', semantic='anim.nyx.a3', kind='normal', frame='air', scale=2,
+move('real-a3', form='real', slot='air.2', semantic='anim.nyx.a2', kind='normal', frame='air', scale=2,
      game={'total': 42, 'contact': 10, 'active': [10, 17], 'iasa': 36, 'landingLag': 9,
            'model': 'Bashie Air Shell Flip 42, FightGuy air High Kick 51/16 ll9'},
-     what="Nyx's real-form air.3, Up Claw: her up aerial. She raises her right hand and a big shadow claw rakes upward above her.",
+     what="Nyx's real-form air.2, Up Claw: her up aerial. She raises her right hand and a big shadow claw rakes upward above her.",
      beats=[(0, "Her airborne pose."),
             (8, "The right arm starts up in front of her, the elbow leading; the fingers begin to curl."),
             (20, "Reach (contact): her right arm straight up over her head, the hand a little in front of her head on her "
@@ -389,10 +389,10 @@ move('real-a3', form='real', slot='air.3', semantic='anim.nyx.a3', kind='normal'
                         ahead('follow-through: hand back over her head (m)', 'RightHand', 'Head', 34, None, 0.02),
                         dist('legs together (m)', 'LeftFoot', 'RightFoot', 20, None, 0.2)])
 
-move('real-a4', form='real', slot='air.4', semantic='anim.nyx.a4', kind='normal', frame='air', scale=2,
+move('real-a4', form='real', slot='air.3', semantic='anim.nyx.a3', kind='normal', frame='air', scale=2,
      game={'total': 56, 'contact': 20, 'active': [20, 27], 'iasa': 50, 'landingLag': 12,
            'model': 'FightGuy Air Smash 62/23/57 ll12, Bonk air BONK 66/28 ll24'},
-     what="Nyx's real-form air.4, Shadow Fist: her spike. She drives her clasped hands down and a shadow fist slams down below her.",
+     what="Nyx's real-form air.3, Shadow Fist: her spike. She drives her clasped hands down and a shadow fist slams down below her.",
      beats=[(0, "Her airborne pose."),
             (12, "Both arms start rising in front of her."),
             (30, "Raised: both hands together above her head, fingers interlaced, elbows a little bent, the body stretched "
@@ -605,11 +605,11 @@ move('fake-g1', form='fake', slot='ground.1', semantic='anim.nyx.fake.g1', kind=
                         side('smack: on her centre line (m)', 'RightHand', 52, -0.08, 0.12),
                         height('smack: phone hand low, below her chest (m)', 'RightHand', 'Spine2', 52, -0.45, -0.05)])
 
-move('fake-g3', form='fakepole', slot='ground.3', semantic='anim.nyx.fake.g3', kind='normal', frame='stance', scale=2,
+move('fake-g3', form='fakepole', slot='ground.2', semantic='anim.nyx.fake.g2', kind='normal', frame='stance', scale=2,
      game={'total': 48, 'contact': 16, 'active': [16, 24], 'iasa': 40,
            'model': 'Wibou Up Slash 63/14/26, FightGuy High Kick 33/8; a weapon launcher along the pole'},
      meshes_shown=lambda total, _: {'Nyx_PoleHeld': [[16, 72]], 'Nyx_BackpackPole': [[0, 15], [73, total]]},
-     what=("Nyxxie's ground.3, Ring Light Uppercut: her launcher. She pulls the ring-light pole off her backpack with her "
+     what=("Nyxxie's ground.2, Ring Light Uppercut: her launcher. She pulls the ring-light pole off her backpack with her "
            "left hand and swings it up in a big arc from low in front of her to straight overhead."),
      beats=[(0, "The stance."),
             (8, "Her left hand reaches up over her left shoulder toward the pole on her backpack; the chest turns a little "
@@ -647,10 +647,10 @@ move('fake-g3', form='fakepole', slot='ground.3', semantic='anim.nyx.fake.g3', k
                         side('overhead: ring light over her centre line (m)', 'bladeEnd', 48, -0.2, 0.15),
                         travel('the arc: ring light sweeps up (m)', 'bladeEnd', 'up', [26, 48], 1.0)])
 
-move('fake-g4', form='fake', slot='ground.4', semantic='anim.nyx.fake.g4', kind='normal', frame='stance', scale=2,
+move('fake-g4', form='fake', slot='ground.3', semantic='anim.nyx.fake.g3', kind='normal', frame='stance', scale=2,
      game={'total': 52, 'contact': 16, 'active': [16, 22], 'iasa': 46,
            'model': 'FightGuy Double Kick 69/12/64, Manki Head Slam 40/10/35'},
-     what="Nyxxie's ground.4, Platform Stomp-Kick: her big one. A front push-kick with the huge platform boot.",
+     what="Nyxxie's ground.3, Platform Stomp-Kick: her big one. A front push-kick with the huge platform boot.",
      beats=[(0, "The stance."),
             (10, "Weight shifts onto her left leg; the right knee starts to rise; the phone hand comes up to film."),
             (24, "Chamber: the right knee raised high to her chest, the huge platform boot cocked under her, the thigh above "
@@ -696,11 +696,11 @@ move('fake-a1', form='fake', slot='air.1', semantic='anim.nyx.fake.a1', kind='no
                         travel('the phone hand circles (m)', 'RightHand', 'right', [8, 32], 0.6),
                         height('knees tucked (m)', 'LeftLeg', 'Hips', 14, -0.2)])
 
-move('fake-a3', form='fakepole', slot='air.3', semantic='anim.nyx.fake.a3', kind='normal', frame='air', scale=2,
+move('fake-a3', form='fakepole', slot='air.2', semantic='anim.nyx.fake.a2', kind='normal', frame='air', scale=2,
      game={'total': 44, 'contact': 12, 'active': [12, 22], 'iasa': 38, 'landingLag': 10,
            'model': 'salamander Tail Whip 44/12 ll10, Bonk air Sunrise 54/20'},
      meshes_shown=lambda total, _: {'Nyx_PoleHeld': [[14, 66]], 'Nyx_BackpackPole': [[0, 13], [67, total]]},
-     what=("Nyxxie's air.3, Ring Light Overhead: her up aerial. She grabs the ring-light pole off her backpack and swings it in "
+     what=("Nyxxie's air.2, Ring Light Overhead: her up aerial. She grabs the ring-light pole off her backpack and swings it in "
            "an arc over her head from front to back."),
      beats=[(0, "Her airborne pose."),
             (8, "The left hand reaches up over her left shoulder to the pole on her backpack."),
@@ -726,10 +726,10 @@ move('fake-a3', form='fakepole', slot='air.3', semantic='anim.nyx.fake.a3', kind
                         ahead('arc end: ring light behind her head (m)', 'bladeEnd', 'Head', 44, None, -0.15),
                         travel('the arc sweeps front to back (m)', 'bladeEnd', 'front', [22, 44], 0.8)])
 
-move('fake-a4', form='fake', slot='air.4', semantic='anim.nyx.fake.a4', kind='normal', frame='air', scale=2,
+move('fake-a4', form='fake', slot='air.3', semantic='anim.nyx.fake.a3', kind='normal', frame='air', scale=2,
      game={'total': 48, 'contact': 12, 'active': [12, 24], 'iasa': 42, 'landingLag': 12,
            'model': 'salamander Spur Stomp 50/12-25 ll12, Manki Air Smash 62 ll12'},
-     what="Nyxxie's air.4, Double Dropkick: her spike. Both platform boots drive straight down.",
+     what="Nyxxie's air.3, Double Dropkick: her spike. Both platform boots drive straight down.",
      beats=[(0, "Her airborne pose."),
             (14, "Tuck: knees pulled up to her chest, boots together under her seat, arms rising out to the sides, the phone "
                  "hand up."),

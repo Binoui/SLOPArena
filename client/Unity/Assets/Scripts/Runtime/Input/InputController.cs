@@ -142,8 +142,8 @@ namespace SlopArena.Client.Input
 
         private static string SlotAction(byte slotIdx) => slotIdx switch
         {
-            2 => "Slot1", 3 => "SlotE", 4 => "SlotR", 5 => "SlotF",
-            7 => "Slot3", 8 => "Slot4", 10 => "SlotA",
+            2 => "Normal1", 3 => "SlotE", 4 => "SlotR", 5 => "SlotF",
+            7 => "Normal2", 8 => "Normal3", 10 => "SlotA",
             _ => null,
         };
 
@@ -259,9 +259,9 @@ namespace SlopArena.Client.Input
 
         private static readonly (string action, byte slot)[] SlotActions =
         {
-            ("Slot1", AbilitySlots.Slot1), ("SlotE", AbilitySlots.E), ("SlotR", AbilitySlots.R),
-            ("SlotF", AbilitySlots.F), ("Slot3", AbilitySlots.Slot3),
-            ("Slot4", AbilitySlots.Slot4), ("SlotA", AbilitySlots.A),
+            ("Normal1", AbilitySlots.Normal1), ("SlotE", AbilitySlots.E), ("SlotR", AbilitySlots.R),
+            ("SlotF", AbilitySlots.F), ("Normal2", AbilitySlots.Normal2),
+            ("Normal3", AbilitySlots.Normal3), ("SlotA", AbilitySlots.A),
         };
 
         /// <summary>Returns true when the controller jump button was pressed as LB + A this frame.</summary>
@@ -299,7 +299,7 @@ namespace SlopArena.Client.Input
             }
             foreach (var (actionName, slot) in SlotActions)
             {
-                if (actionName == "Slot1" || actionName == "Slot3" || actionName == "Slot4") continue;
+                if (actionName == "Normal1" || actionName == "Normal2" || actionName == "Normal3") continue;
                 if (Act(actionName).WasPressedThisFrame() && _pendingSlotPress == 0)
                     _pendingSlotPress = slot;
             }
@@ -370,8 +370,8 @@ namespace SlopArena.Client.Input
 
 
         // Face buttons A, X, Y, B by default. A is the jump button, so it has no normal.
-        private static readonly string[] FaceActions = { "Jump", "Slot1", "Slot3", "Slot4" };
-        private static readonly byte[] NormalSlots = { AbilitySlots.None, AbilitySlots.Slot1, AbilitySlots.Slot3, AbilitySlots.Slot4 };
+        private static readonly string[] FaceActions = { "Jump", "Normal1", "Normal2", "Normal3" };
+        private static readonly byte[] NormalSlots = { AbilitySlots.None, AbilitySlots.Normal1, AbilitySlots.Normal2, AbilitySlots.Normal3 };
         private static readonly byte[] SpecialSlots = { AbilitySlots.A, AbilitySlots.R, AbilitySlots.E, AbilitySlots.F };
 
         /// <summary>

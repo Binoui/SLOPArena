@@ -355,7 +355,7 @@ public class TargetLockTests : KitScenarioTests
         sim.RegisterEntity(100, Def, TestHelpers.NpcState(0f, 3f) with { PY = Gpy });
 
         sim.Tick(new() { { 1, new InputState { ToggleLock = true } } });          // lock on
-        sim.Tick(new() { { 1, new InputState { ActiveSlot = AbilitySlots.Slot1 } } }); // attack (AnimLockTicks > 0)
+        sim.Tick(new() { { 1, new InputState { ActiveSlot = AbilitySlots.Normal1 } } }); // attack (AnimLockTicks > 0)
         sim.Tick(new() { { 1, new InputState { FaceToCamera = true, AimYaw = 18000 } } }); // LMB mid-attack
 
         var state = sim.GetState(1);

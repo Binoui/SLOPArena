@@ -24,10 +24,11 @@ The three normals have fixed roles ([ADR-0042](../adr/0042-controller-layout-thr
 | Button | Canonical slot | Role |
 |---|---|---|
 | 1 (controller X) | `1` | jab / all-rounder |
-| 2 (controller Y) | `3` | upward |
-| 3 (controller B) | `4` | the big one |
+| 2 (controller Y) | `2` | upward |
+| 3 (controller B) | `3` | the big one |
 
-The slot ids `3` and `4` predate the merge of the old normals 1 and 2; slot `2` no longer exists.
+Slot ids match the buttons. Before 2026-11-01 the up and big normals were `3` and `4`, so
+older notes, GenRA runs and commits use those numbers.
 
 Each input has:
 

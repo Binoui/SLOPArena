@@ -1,5 +1,5 @@
 {
-  "authoringSchemaVersion": 3,
+  "authoringSchemaVersion": 4,
   "displayName": "Salamander",
   "weight": 100,
   "movement": {
@@ -539,10 +539,10 @@
       }
     },
     {
-      "id": "ground.3",
+      "id": "ground.2",
       "name": "Jumping Uppercut",
       "description": "Sink deep, then spring off the floor driving the fist up over the sombrero: a launcher.",
-      "iconId": "icon.3",
+      "iconId": "icon.2",
       "behavior": "meleeCombo",
       "aimMode": "none",
       "aimMovement": "fixed",
@@ -564,7 +564,7 @@
             "rotateTowardTarget": false,
             "trackingStrength": 0,
             "animationIds": [
-              "anim.salamander.g3"
+              "anim.salamander.g2"
             ],
             "operations": [
               {
@@ -637,10 +637,10 @@
       }
     },
     {
-      "id": "air.3",
+      "id": "air.2",
       "name": "Tail Whip",
       "description": "Arch back and whip the tail up over the head, like a scorpion sting.",
-      "iconId": "icon.3",
+      "iconId": "icon.2",
       "behavior": "meleeCombo",
       "aimMode": "none",
       "aimMovement": "fixed",
@@ -662,7 +662,7 @@
             "rotateTowardTarget": false,
             "trackingStrength": 0,
             "animationIds": [
-              "anim.salamander.a3"
+              "anim.salamander.a2"
             ],
             "operations": [
               {
@@ -709,10 +709,10 @@
       }
     },
     {
-      "id": "ground.4",
+      "id": "ground.3",
       "name": "Tail Spin",
       "description": "Spin one full turn with the tail stretched out, sweeping all round him: slow and wide.",
-      "iconId": "icon.4",
+      "iconId": "icon.3",
       "behavior": "meleeCombo",
       "aimMode": "none",
       "aimMovement": "fixed",
@@ -734,7 +734,7 @@
             "rotateTowardTarget": false,
             "trackingStrength": 0,
             "animationIds": [
-              "anim.salamander.g4"
+              "anim.salamander.g3"
             ],
             "operations": [
               {
@@ -781,10 +781,10 @@
       }
     },
     {
-      "id": "air.4",
+      "id": "air.3",
       "name": "Spur Stomp",
       "description": "Knees up, then stamp both spurred boots straight down.",
-      "iconId": "icon.4",
+      "iconId": "icon.3",
       "behavior": "meleeCombo",
       "aimMode": "none",
       "aimMovement": "fixed",
@@ -806,7 +806,7 @@
             "rotateTowardTarget": false,
             "trackingStrength": 0,
             "animationIds": [
-              "anim.salamander.a4"
+              "anim.salamander.a3"
             ],
             "operations": [
               {

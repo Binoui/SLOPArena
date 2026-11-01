@@ -22,14 +22,14 @@ MonoBehaviour:
     _clip: {fileID: 7400000, guid: e0eff7833b6d5bf68b991b9eabd06314, type: 2}
     _extrapolation: 0
     _poseTrackId: anim.nyx.a1
-  - _semanticId: anim.nyx.a3
+  - _semanticId: anim.nyx.a2
     _clip: {fileID: 7400000, guid: 285e8c201a9155d88f17892773836172, type: 2}
     _extrapolation: 0
-    _poseTrackId: anim.nyx.a3
-  - _semanticId: anim.nyx.a4
+    _poseTrackId: anim.nyx.a2
+  - _semanticId: anim.nyx.a3
     _clip: {fileID: 7400000, guid: 6e1094e8f8195788a698f0c6cae53b3a, type: 2}
     _extrapolation: 0
-    _poseTrackId: anim.nyx.a4
+    _poseTrackId: anim.nyx.a3
   - _semanticId: anim.nyx.crouch
     _clip: {fileID: 7400000, guid: 5fc84b08ad506d917b6e6a0e840b8145, type: 2}
     _extrapolation: 0
@@ -42,26 +42,26 @@ MonoBehaviour:
     _clip: {fileID: 7400000, guid: 19f0cbe3fe6a56e0bc436b07d64661c2, type: 2}
     _extrapolation: 0
     _poseTrackId: anim.nyx.fake.a1
-  - _semanticId: anim.nyx.fake.a3
+  - _semanticId: anim.nyx.fake.a2
     _clip: {fileID: 7400000, guid: 4d335bcbbad453b68f3085b811b16ffe, type: 2}
     _extrapolation: 0
-    _poseTrackId: anim.nyx.fake.a3
-  - _semanticId: anim.nyx.fake.a4
+    _poseTrackId: anim.nyx.fake.a2
+  - _semanticId: anim.nyx.fake.a3
     _clip: {fileID: 7400000, guid: 647a8915dd925c97a93bb1160978b115, type: 2}
     _extrapolation: 0
-    _poseTrackId: anim.nyx.fake.a4
+    _poseTrackId: anim.nyx.fake.a3
   - _semanticId: anim.nyx.fake.g1
     _clip: {fileID: 7400000, guid: 890793cf86865367a637841e561dec74, type: 2}
     _extrapolation: 0
     _poseTrackId: anim.nyx.fake.g1
-  - _semanticId: anim.nyx.fake.g3
+  - _semanticId: anim.nyx.fake.g2
     _clip: {fileID: 7400000, guid: 9f81a53094c1540996c1fb073bf08b71, type: 2}
     _extrapolation: 0
-    _poseTrackId: anim.nyx.fake.g3
-  - _semanticId: anim.nyx.fake.g4
+    _poseTrackId: anim.nyx.fake.g2
+  - _semanticId: anim.nyx.fake.g3
     _clip: {fileID: 7400000, guid: 01e45ac572085bca84120d65039b36ed, type: 2}
     _extrapolation: 0
-    _poseTrackId: anim.nyx.fake.g4
+    _poseTrackId: anim.nyx.fake.g3
   - _semanticId: anim.nyx.fake.ga
     _clip: {fileID: 7400000, guid: 7107268ae90853559bc004acf24f3abc, type: 2}
     _extrapolation: 0
@@ -94,14 +94,14 @@ MonoBehaviour:
     _clip: {fileID: 7400000, guid: 4c0ad3415c2b5c7d9ce114e97f7be6fd, type: 2}
     _extrapolation: 0
     _poseTrackId: anim.nyx.g1
-  - _semanticId: anim.nyx.g3
+  - _semanticId: anim.nyx.g2
     _clip: {fileID: 7400000, guid: a9b84b9c9aa65ba994fc84d6a3c39c3c, type: 2}
     _extrapolation: 0
-    _poseTrackId: anim.nyx.g3
-  - _semanticId: anim.nyx.g4
+    _poseTrackId: anim.nyx.g2
+  - _semanticId: anim.nyx.g3
     _clip: {fileID: 7400000, guid: 70db66201e3f5c59ac26d7e6991751b0, type: 2}
     _extrapolation: 0
-    _poseTrackId: anim.nyx.g4
+    _poseTrackId: anim.nyx.g3
   - _semanticId: anim.nyx.ga
     _clip: {fileID: 7400000, guid: ec0fd4b34b7d5408b4365cdb99d57370, type: 2}
     _extrapolation: 0

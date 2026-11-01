@@ -22,14 +22,14 @@ MonoBehaviour:
     _clip: {fileID: 7400000, guid: 3386a7e522fdee9838d525e30ba333b7, type: 2}
     _extrapolation: 0
     _poseTrackId: anim.salamander.a1
-  - _semanticId: anim.salamander.a3
+  - _semanticId: anim.salamander.a2
     _clip: {fileID: 7400000, guid: 412627475ca23514bbaaecd14aee36d0, type: 2}
     _extrapolation: 0
-    _poseTrackId: anim.salamander.a3
-  - _semanticId: anim.salamander.a4
+    _poseTrackId: anim.salamander.a2
+  - _semanticId: anim.salamander.a3
     _clip: {fileID: 7400000, guid: 6b61abe3c5c9f023592fad5add6dd4dc, type: 2}
     _extrapolation: 0
-    _poseTrackId: anim.salamander.a4
+    _poseTrackId: anim.salamander.a3
   - _semanticId: anim.salamander.crouch
     _clip: {fileID: 7400000, guid: 26c76379659870ddda214db6682a61e4, type: 2}
     _extrapolation: 0
@@ -46,14 +46,14 @@ MonoBehaviour:
     _clip: {fileID: 7400000, guid: c10090d5440ab20ae8723b1004edceb5, type: 2}
     _extrapolation: 0
     _poseTrackId: anim.salamander.g1
-  - _semanticId: anim.salamander.g3
+  - _semanticId: anim.salamander.g2
     _clip: {fileID: 7400000, guid: 6997c8ffc2836a96bb69a775605b87d6, type: 2}
     _extrapolation: 0
-    _poseTrackId: anim.salamander.g3
-  - _semanticId: anim.salamander.g4
+    _poseTrackId: anim.salamander.g2
+  - _semanticId: anim.salamander.g3
     _clip: {fileID: 7400000, guid: 7e4bbe4ea5084d7b394e00f2815b0230, type: 2}
     _extrapolation: 0
-    _poseTrackId: anim.salamander.g4
+    _poseTrackId: anim.salamander.g3
   - _semanticId: anim.salamander.ga
     _clip: {fileID: 7400000, guid: a9da2dd6ad2ed399db2ac9d2a931cb13, type: 2}
     _extrapolation: 0

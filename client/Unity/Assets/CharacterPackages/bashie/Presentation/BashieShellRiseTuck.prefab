@@ -73,7 +73,7 @@ MonoBehaviour:
     WobbleHz: 1.6
     FollowAnimatedHeading: 0
   HoldAnimationIds:
-  - anim.bashie.g4
+  - anim.bashie.g3
   HoldWhileTucked: 0
   InSeconds: 0.1
   OutSeconds: 0.12

@@ -1,5 +1,5 @@
 {
-  "authoringSchemaVersion": 3,
+  "authoringSchemaVersion": 4,
   "displayName": "Nyx",
   "weight": 100,
   "movement": {
@@ -309,7 +309,7 @@
       "id": "ground.1",
       "name": "Shadow Flick",
       "description": "Shadow Flick.",
-      "iconId": "icon.2",
+      "iconId": "icon.1",
       "behavior": "meleeCombo",
       "aimMode": "none",
       "aimMovement": "fixed",
@@ -404,7 +404,7 @@
       "id": "air.1",
       "name": "Shadow Ring",
       "description": "Shadow Ring.",
-      "iconId": "icon.2",
+      "iconId": "icon.1",
       "behavior": "meleeCombo",
       "aimMode": "none",
       "aimMovement": "fixed",
@@ -484,10 +484,10 @@
       "hitPresentationId": "presentation.nyx.shadow-hit"
     },
     {
-      "id": "ground.3",
+      "id": "ground.2",
       "name": "Grasping Hands",
       "description": "Grasping Hands.",
-      "iconId": "icon.3",
+      "iconId": "icon.2",
       "behavior": "meleeCombo",
       "aimMode": "none",
       "aimMovement": "fixed",
@@ -509,7 +509,7 @@
             "rotateTowardTarget": false,
             "trackingStrength": 0,
             "animationIds": [
-              "anim.nyx.g3"
+              "anim.nyx.g2"
             ],
             "operations": [
               {
@@ -605,10 +605,10 @@
       "hitPresentationId": "presentation.nyx.shadow-hit"
     },
     {
-      "id": "air.3",
+      "id": "air.2",
       "name": "Up Claw",
       "description": "Up Claw.",
-      "iconId": "icon.3",
+      "iconId": "icon.2",
       "behavior": "meleeCombo",
       "aimMode": "none",
       "aimMovement": "fixed",
@@ -630,7 +630,7 @@
             "rotateTowardTarget": false,
             "trackingStrength": 0,
             "animationIds": [
-              "anim.nyx.a3"
+              "anim.nyx.a2"
             ],
             "operations": [
               {
@@ -688,10 +688,10 @@
       "hitPresentationId": "presentation.nyx.shadow-hit"
     },
     {
-      "id": "ground.4",
+      "id": "ground.3",
       "name": "Shadow Lash",
       "description": "Shadow Lash.",
-      "iconId": "icon.4",
+      "iconId": "icon.3",
       "behavior": "meleeCombo",
       "aimMode": "none",
       "aimMovement": "fixed",
@@ -713,7 +713,7 @@
             "rotateTowardTarget": false,
             "trackingStrength": 0,
             "animationIds": [
-              "anim.nyx.g4"
+              "anim.nyx.g3"
             ],
             "operations": [
               {
@@ -783,10 +783,10 @@
       "hitPresentationId": "presentation.nyx.shadow-hit"
     },
     {
-      "id": "air.4",
+      "id": "air.3",
       "name": "Shadow Fist",
       "description": "Shadow Fist.",
-      "iconId": "icon.4",
+      "iconId": "icon.3",
       "behavior": "meleeCombo",
       "aimMode": "none",
       "aimMovement": "fixed",
@@ -808,7 +808,7 @@
             "rotateTowardTarget": false,
             "trackingStrength": 0,
             "animationIds": [
-              "anim.nyx.a4"
+              "anim.nyx.a3"
             ],
             "operations": [
               {
@@ -1304,7 +1304,7 @@
         "id": "ground.1",
         "name": "Phone Slaps",
         "description": "Phone Slaps.",
-        "iconId": "icon.2",
+        "iconId": "icon.1",
         "behavior": "meleeCombo",
         "aimMode": "none",
         "aimMovement": "fixed",
@@ -1464,7 +1464,7 @@
         "id": "air.1",
         "name": "Spinning Slap",
         "description": "Spinning Slap.",
-        "iconId": "icon.2",
+        "iconId": "icon.1",
         "behavior": "meleeCombo",
         "aimMode": "none",
         "aimMovement": "fixed",
@@ -1533,10 +1533,10 @@
         "hitPresentationId": "presentation.nyx.pink-hit"
       },
       {
-        "id": "ground.3",
+        "id": "ground.2",
         "name": "Ring Light Uppercut",
         "description": "Ring Light Uppercut.",
-        "iconId": "icon.3",
+        "iconId": "icon.2",
         "behavior": "meleeCombo",
         "aimMode": "none",
         "aimMovement": "fixed",
@@ -1558,7 +1558,7 @@
               "rotateTowardTarget": false,
               "trackingStrength": 0,
               "animationIds": [
-                "anim.nyx.fake.g3"
+                "anim.nyx.fake.g2"
               ],
               "operations": [
                 {
@@ -1628,10 +1628,10 @@
         "hitPresentationId": "presentation.nyx.pink-hit"
       },
       {
-        "id": "air.3",
+        "id": "air.2",
         "name": "Ring Light Overhead",
         "description": "Ring Light Overhead.",
-        "iconId": "icon.3",
+        "iconId": "icon.2",
         "behavior": "meleeCombo",
         "aimMode": "none",
         "aimMovement": "fixed",
@@ -1653,7 +1653,7 @@
               "rotateTowardTarget": false,
               "trackingStrength": 0,
               "animationIds": [
-                "anim.nyx.fake.a3"
+                "anim.nyx.fake.a2"
               ],
               "operations": [
                 {
@@ -1711,10 +1711,10 @@
         "hitPresentationId": "presentation.nyx.pink-hit"
       },
       {
-        "id": "ground.4",
+        "id": "ground.3",
         "name": "Platform Stomp-Kick",
         "description": "Platform Stomp-Kick.",
-        "iconId": "icon.4",
+        "iconId": "icon.3",
         "behavior": "meleeCombo",
         "aimMode": "none",
         "aimMovement": "fixed",
@@ -1736,7 +1736,7 @@
               "rotateTowardTarget": false,
               "trackingStrength": 0,
               "animationIds": [
-                "anim.nyx.fake.g4"
+                "anim.nyx.fake.g3"
               ],
               "operations": [
                 {
@@ -1795,10 +1795,10 @@
         "hitPresentationId": "presentation.nyx.pink-hit"
       },
       {
-        "id": "air.4",
+        "id": "air.3",
         "name": "Double Dropkick",
         "description": "Double Dropkick.",
-        "iconId": "icon.4",
+        "iconId": "icon.3",
         "behavior": "meleeCombo",
         "aimMode": "none",
         "aimMovement": "fixed",
@@ -1820,7 +1820,7 @@
               "rotateTowardTarget": false,
               "trackingStrength": 0,
               "animationIds": [
-                "anim.nyx.fake.a4"
+                "anim.nyx.fake.a3"
               ],
               "operations": [
                 {

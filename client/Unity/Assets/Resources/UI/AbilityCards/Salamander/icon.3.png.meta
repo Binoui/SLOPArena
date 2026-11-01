@@ -1,5 +1,5 @@
 fileFormatVersion: 2
-guid: 37ec0ff030af48958d6dae9afb05481d
+guid: 9a122f868de343ea8563a0466efe1ddc
 TextureImporter:
   internalIDToNameTable: []
   externalObjects: {}
@@ -97,7 +97,7 @@ TextureImporter:
     serializedVersion: 2
     sprites:
     - serializedVersion: 2
-      name: icon.3
+      name: icon.4
       rect:
         serializedVersion: 2
         x: 0
@@ -132,7 +132,7 @@ TextureImporter:
     spriteCustomMetadata:
       entries: []
     nameFileIdTable:
-      icon.3: 5521283456649138754
+      icon.4: 5521283456649138754
   mipmapLimitGroupName: 
   pSDRemoveMatte: 0
   userData: 

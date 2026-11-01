@@ -17,7 +17,7 @@ public class ShieldTimingTests
         {
             PY = TestHelpers.GroundPY(def),
             State = ActionState.Attacking,
-            AttackSlot = AbilitySlots.Slot1,
+            AttackSlot = AbilitySlots.Normal1,
             StateTicks = attackerRecovery,
             AnimLockTicks = attackerRecovery,
             LandingLagTicks = landingLag,
@@ -32,7 +32,7 @@ public class ShieldTimingTests
         sim.RegisterEntity(100, def, defender);
         sim.Resolver.Spawn(new Hitbox
         {
-            OwnerId = 1, ActivationId = 1, AttackSlot = AbilitySlots.Slot1,
+            OwnerId = 1, ActivationId = 1, AttackSlot = AbilitySlots.Normal1,
             ActivationAirborne = landingLag > 0, FreezesOwner = true,
             X = defender.PX, Y = defender.PY, Z = defender.PZ,
             Radius = 0.45f, DurationTicks = 1, Damage = incomingDamage,

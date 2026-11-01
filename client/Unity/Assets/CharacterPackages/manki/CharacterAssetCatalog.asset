@@ -54,14 +54,14 @@ MonoBehaviour:
     _clip: {fileID: 7400000, guid: d7b300b9b49bc8b179d0fc448380c614, type: 2}
     _extrapolation: 0
     _poseTrackId: anim.manki.g1
-  - _semanticId: anim.manki.g3
+  - _semanticId: anim.manki.g2
     _clip: {fileID: 7400000, guid: 33d9d3332ba94be1b906a7839511c117, type: 2}
     _extrapolation: 0
-    _poseTrackId: anim.manki.g3
-  - _semanticId: anim.manki.g4
+    _poseTrackId: anim.manki.g2
+  - _semanticId: anim.manki.g3
     _clip: {fileID: 7400000, guid: 6adc82765d05147e387ca3fe63bf333c, type: 2}
     _extrapolation: 0
-    _poseTrackId: anim.manki.g4
+    _poseTrackId: anim.manki.g3
   - _semanticId: anim.manki.ga
     _clip: {fileID: -3743569049614240450, guid: be0574ee8a19446eaa39d14d45dc2c1c, type: 3}
     _extrapolation: 0
@@ -82,14 +82,14 @@ MonoBehaviour:
     _clip: {fileID: 7400000, guid: 1e38db663d20d801db86b5b8eb43b9ca, type: 2}
     _extrapolation: 0
     _poseTrackId: anim.manki.a1
-  - _semanticId: anim.manki.a3
+  - _semanticId: anim.manki.a2
     _clip: {fileID: 7400000, guid: a587509a2037139298921e8ad4ae2dc4, type: 2}
     _extrapolation: 0
-    _poseTrackId: anim.manki.a3
-  - _semanticId: anim.manki.a4
+    _poseTrackId: anim.manki.a2
+  - _semanticId: anim.manki.a3
     _clip: {fileID: -203655887218126122, guid: 409aa855fd0381170b05371efe0b7439, type: 3}
     _extrapolation: 0
-    _poseTrackId: anim.manki.a4
+    _poseTrackId: anim.manki.a3
   - _semanticId: anim.manki.tumble
     _clip: {fileID: 7400000, guid: 04f799445821d49a2b6f2e982baa8824, type: 2}
     _extrapolation: 0

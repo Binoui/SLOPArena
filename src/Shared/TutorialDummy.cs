@@ -35,7 +35,7 @@ namespace SlopArena.Shared
                 input.MoveY = dz / distance;
             }
             else if (tick % SwingIntervalTicks == 0 && dummy.State == ActionState.Idle && dummy.AnimLockTicks == 0)
-                input.ActiveSlot = AbilitySlots.Slot1;
+                input.ActiveSlot = AbilitySlots.Normal1;
             return input;
         }
     }

@@ -13,7 +13,7 @@ result = {'presentationIdsToAdd': ids, 'moves': [], 'notes': [
     'Nyx_Phone is inactive in the saved real-form prefab and visible in fake-form defaults. Going Live exposes it on real form before swap. Logging Off hides it at tick 0.',
     'Durations reflect the current source. Rerun this script if the engine owner retimes those stages or swap ticks.'
 ]}
-for form, slot, semantic, swap in [('fake', 'ground.3', ids[0], False), ('fake', 'air.3', ids[0], False), ('real', 'ground.F', ids[1], True), ('fake', 'ground.F', ids[2], True)]:
+for form, slot, semantic, swap in [('fake', 'ground.2', ids[0], False), ('fake', 'air.2', ids[0], False), ('real', 'ground.F', ids[1], True), ('fake', 'ground.F', ids[2], True)]:
     definition = character if form == 'real' else character['alternateForm']
     stage = next(s for s in definition['slots'] if s['id'] == slot)['timeline']['stages'][0]
     duration = next(o['tick'] for o in stage['operations'] if o['kind'] == 'swapForm') if swap else stage['durationTicks']

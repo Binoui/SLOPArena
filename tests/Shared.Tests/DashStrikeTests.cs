@@ -131,8 +131,8 @@ public sealed class DashStrikeTests
         for (int i = 0; i < 100 && sim.GetActiveAbility(1) != null; i++) Step(sim);
         Assert.True(MathF.Abs(sim.GetState(1).FacingYaw) > 3f);
         Assert.True(sim.GetState(2).HitstunTicks > 0);
-        Step(sim, new() { ActiveSlot = AbilitySlots.Slot1 });
-        Assert.Equal(AbilitySlots.Slot1, sim.GetState(1).AttackSlot);
+        Step(sim, new() { ActiveSlot = AbilitySlots.Normal1 });
+        Assert.Equal(AbilitySlots.Normal1, sim.GetState(1).AttackSlot);
         bool connects = false;
         for (int i = 0; i < 35; i++) { Step(sim, target: new() { ShieldHeld = true }); connects |= sim.LastTickHits.Any(x => x.OwnerEntityId == 1 && !x.Blocked); }
         Assert.True(connects);

@@ -137,7 +137,7 @@ public class NetplaySessionTests
         }
         Assert.Equal(NetplayPredictor.MaxPredictionTicks, f.Session.Predictor.PredictionTicks);
         f.Now += Tick;
-        Assert.False(f.Session.Update(new InputState { ActiveSlot = AbilitySlots.Slot1 }, f.Now));
+        Assert.False(f.Session.Update(new InputState { ActiveSlot = AbilitySlots.Normal1 }, f.Now));
 
         // A newer frame frees the window; the press goes out with the next predicted tick.
         f.Server.SetTick(f.Session.LocalTick - 2);
@@ -145,6 +145,6 @@ public class NetplaySessionTests
         f.Now += Tick;
         Assert.True(f.Session.Update(default, f.Now));
         var sent = f.Session.RecentInputs.ToArray();
-        Assert.Contains(sent, input => input.ActiveSlot == AbilitySlots.Slot1);
+        Assert.Contains(sent, input => input.ActiveSlot == AbilitySlots.Normal1);
     }
 }

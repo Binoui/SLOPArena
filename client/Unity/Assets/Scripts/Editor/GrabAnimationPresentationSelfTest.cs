@@ -44,7 +44,7 @@ public static class GrabAnimationPresentationSelfTest
             };
             Require(renderer.Configure(definition, null, catalog, source.Rig, out var error), error);
             var graph = root.GetComponentInChildren<AnimancerComponent>();
-            var state = new CharacterState { State = ActionState.Attacking, AttackSlot = AbilitySlots.Slot1, IsGrounded = true };
+            var state = new CharacterState { State = ActionState.Attacking, AttackSlot = AbilitySlots.Normal1, IsGrounded = true };
             renderer.ApplyServerState(state, renderer.CharacterDef?.GetCookedSlotAbility(state.AttackSlot, false));
             int attemptTicks = DefenseConfig.GrabStartupTicks + DefenseConfig.GrabActiveTicks
                 + DefenseConfig.GrabWhiffRecoveryTicks;

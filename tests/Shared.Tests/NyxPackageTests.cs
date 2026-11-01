@@ -53,7 +53,7 @@ public class NyxPackageTests
         {
             sim.Tick(new Dictionary<ulong, InputState>
             {
-                [1] = new() { ActiveSlot = tick == 0 ? AbilitySlots.Slot1 : AbilitySlots.None },
+                [1] = new() { ActiveSlot = tick == 0 ? AbilitySlots.Normal1 : AbilitySlots.None },
                 [100] = new() { FacingYaw = -18000, ShieldHeld = shielding, ShieldPressed = shielding && tick == 0 },
             });
             hits.AddRange(sim.LastTickHits.Where(h => h.OwnerEntityId == 1 && h.TargetEntityId == 100));

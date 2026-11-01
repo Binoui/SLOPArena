@@ -13,10 +13,10 @@ export function markTutorialCompleted() {
 // Juggle openers a Shared probe confirmed against the dummy at 30% (docs/design/tutorial.md, TutorialView.ComboOpeners):
 // starter, follow-up and whether to jump in between.
 const COMBO_OPENERS = {
-  fightguy: ['slot3', 'slot3', true],
+  fightguy: ['slot2', 'slot2', true],
   manki: ['slot1', 'R', false],
-  wibou: ['slot3', 'slot3', false],
-  bonk: ['slot3', 'slot1', true],
+  wibou: ['slot2', 'slot2', false],
+  bonk: ['slot2', 'slot1', true],
   bashie: ['slot1', 'R', false],
 };
 
@@ -43,8 +43,8 @@ const SEQUENCES = new Set(['BeelineAerial', 'BeelineOutOfShield']);
 const PROMPTS = {
   Run: ['move'], LookAround: ['move'],
   StandOnBlock: ['jump'], DoubleJump: ['jump'], ReachTallBlock: ['jump'], RecoverToStage: ['jump'],
-  FastFall: ['down'], HitNormal1: ['slot1'], HitNormal3: ['slot3'], HitNormal4: ['slot4'],
-  LandAerials: ['slot1', 'slot3', 'slot4'], Throw: ['slot1', 'slot3', 'slot4'],
+  FastFall: ['down'], HitNormal1: ['slot1'], HitNormal2: ['slot2'], HitNormal3: ['slot3'],
+  LandAerials: ['slot1', 'slot2', 'slot3'], Throw: ['slot1', 'slot2', 'slot3'],
   BeelineHit: ['dash'], BeelineRecovery: ['dash'], BeelineChase: ['dash'],
   BeelineAerial: ['jump', 'dash'], BeelineOutOfShield: ['shield', 'dash'],
   UseSpecialA: ['A'], UseSpecialE: ['E'], UseSpecialR: ['R'], UseSpecialF: ['F'],
@@ -65,8 +65,8 @@ export function createTutorialPanel({ court, pkg }) {
     ReachTallBlock: `Stand on the ${court.tallBlock} m block`,
     FastFall: 'While falling, press Down to fast fall',
     HitNormal1: 'Quick hit: ' + move('slot1'),
-    HitNormal3: 'Hit upward: ' + move('slot3'),
-    HitNormal4: 'Big hit: ' + move('slot4'),
+    HitNormal2: 'Hit upward: ' + move('slot2'),
+    HitNormal3: 'Big hit: ' + move('slot3'),
     LandAerials: 'Hit the dummy with two different aerials',
     BeelineHit: 'Beeline to the dummy, then hit on the ground',
     BeelineAerial: 'Jump, Beeline, then hit with an aerial',

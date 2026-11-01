@@ -47,7 +47,7 @@
     },
     {
       "id": "real-g3",
-      "slot": "ground.3",
+      "slot": "ground.2",
       "form": 0,
       "dummy": {
         "distance": 1.0
@@ -64,7 +64,7 @@
     },
     {
       "id": "real-g4",
-      "slot": "ground.4",
+      "slot": "ground.3",
       "form": 0,
       "dummy": {
         "distance": 2.5
@@ -107,7 +107,7 @@
     },
     {
       "id": "real-a3",
-      "slot": "air.3",
+      "slot": "air.2",
       "form": 0,
       "dummy": {
         "distance": 1.0,
@@ -159,7 +159,7 @@
     },
     {
       "id": "real-a4",
-      "slot": "air.4",
+      "slot": "air.3",
       "form": 0,
       "dummy": {
         "distance": 1.0
@@ -521,7 +521,7 @@
     },
     {
       "id": "fake-g3",
-      "slot": "ground.3",
+      "slot": "ground.2",
       "form": 1,
       "dummy": {
         "distance": 1.0
@@ -538,7 +538,7 @@
     },
     {
       "id": "fake-g4",
-      "slot": "ground.4",
+      "slot": "ground.3",
       "form": 1,
       "dummy": {
         "distance": 1.2
@@ -581,7 +581,7 @@
     },
     {
       "id": "fake-a3",
-      "slot": "air.3",
+      "slot": "air.2",
       "form": 1,
       "dummy": {
         "distance": 1.0,
@@ -633,7 +633,7 @@
     },
     {
       "id": "fake-a4",
-      "slot": "air.4",
+      "slot": "air.3",
       "form": 1,
       "dummy": {
         "distance": 1.0

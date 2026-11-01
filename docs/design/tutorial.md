@@ -72,7 +72,7 @@ The end card reads *LICENSE GRANTED* and offers Training or the menu.
   block heights, knockout spot) and `TutorialProgress`, a pure observer of one tick:
   both fighters before/after, the tick's `HitResult`s and the camera's turn. It never
   feeds gameplay. `src/Shared/TutorialDummy.cs` builds the sparring dummy's ordinary
-  input: walk toward a player on the same floor, then Slot1 every 80 ticks.
+  input: walk toward a player on the same floor, then Normal1 every 80 ticks.
 - `TutorialMatch` (Unity) runs the local simulation like Training, applies each lesson's
   dummy setup, and feeds `TutorialProgress`. `TutorialView` draws the checklist with the
   player's current keyboard or controller bindings and the end card. The scene

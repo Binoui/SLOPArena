@@ -1,0 +1,107 @@
+{
+  "name": "salamander-a2-tail-whip",
+  "rigpack": "artifacts/genra-rigpacks/salamander-unity-moves",
+  "character": "The salamander gunslinger (55 joints: a Humanoid body with Mixamo names; each hand has a thumb and THREE fingers (Thumb, Index, Middle, Ring chains), no little finger; five tail joints Tail1-Tail5 under Hips; three rigid joints under Head: Hat (his sombrero, its own mesh), Mustache (the fake mustache on his snout) and Straw (a wheat straw in the left corner of his mouth)). He is lanky: in the rig his hip joints stand 0.42 m above the floor when straight, thigh 0.176 m, shin 0.137 m, upper arm 0.158 m, forearm 0.093 m, long hands (about 0.15 m wrist to fingertip); 0.95 m to the top of his head, 1.13 m with the hat (the game draws him 1.8 times bigger). A thick tail hangs behind him from the seat of his jeans. His poncho is cloth simulated in the game and is not in this rig: pose the body only.",
+  "references": {
+    "showdown": "references/showdown.usda",
+    "idle": "references/idle.usda",
+    "fall": "references/fall.usda",
+    "run": "references/run.usda"
+  },
+  "entry": {
+    "reference": "fall",
+    "tick": 0
+  },
+  "views": [
+    "profile",
+    "three-quarter-right",
+    "gameplay"
+  ],
+  "images": [
+    "../../salamander-idle-run-20261027/salamander-model.png"
+  ],
+  "image_notes": "1: the salamander model with his arms down (front, three-quarter, side). His poncho is not in the rig.",
+  "notes": "Salamander air.2 (anim.salamander.a2), kit proposal 2026-10-27: Tail Whip, his up aerial. New timing: 44 ticks, hit 12-20 above him, act from 36, landing lag 10.",
+  "description": "The salamander's air.2, Tail Whip: his up aerial and his one salamander move. He arches backward in the air and whips his thick tail up from behind him, over the top of his head, like a scorpion sting.\n\nWho he is. A tiger salamander (image 1): olive-black skin with yellow blotches, a smirk, a fake handlebar mustache, a straw in his mouth, a wide brown sombrero, a rust-orange poncho, faded patched jeans with his tail out through the seat patch, brown boots with star spurs. He is the Wannabe Legend: a make-believe gunslinger who never owned a gun and plays every Western cliche with total conviction. Everything is mime: invisible holsters, an invisible gun (finger guns: index and middle fingers straight out together as the barrel, thumb up as the hammer, ring finger curled), invisible lasso, and he says BANG himself. No props. His moves are cartoony, snappy and readable from behind: big clear silhouettes, quick anticipation, a held pose on the hit, then a cocky settle.\n\nHow the game plays it. The match camera sits straight behind him, so the action must read from behind: arms out to the side or up, not hidden in front of the chest. The fighter does not travel in the clip unless said; the game moves him. The game crossfades in and out over about 0.1 s.\n\nIn the air. The entry pose is the fall he plays in the air (a borrowed pose). There is no floor contact.\n\nThe move (44 ticks, played once):\n- Tick 0: the fall pose.\n- Tick 6, the coil: he curls forward, knees up, chin down, the tail swinging down and forward under him (Tail1-Tail5 bending forward).\n- Tick 12, the whip: he arches back hard, chest and head tipped back, arms flung out to the sides, and the tail swings up behind and over his head, the tail tip (Tail5) above his hat and a little in front of it.\n- Ticks 12-20: the tail holds over his head and curls its tip (a moving hold).\n- Tick 26: the tail swings back down behind him, he straightens.\n- Tick 36: recovered.\n- Tick 44: back to the fall pose, matching tick 0.\nThe tail bends along its whole length, each joint turning 25-50 degrees, the tip trailing the root by 1-3 ticks: it is a whip, not a stick.",
+  "clock": {
+    "duration_ticks": 44,
+    "contact_tick": 12,
+    "active": [
+      12,
+      20
+    ],
+    "iasa_tick": 36
+  },
+  "timing": {
+    "fixed": [
+      "44 ticks played once; hit above him from tick 12 to 20",
+      "the player can act from tick 36",
+      "tick 0 and tick 44 are the fall pose exactly"
+    ],
+    "adjustable": [
+      "the arch may be smaller if the tail reaches over the head anyway"
+    ]
+  },
+  "exit": {
+    "reference": "fall",
+    "tick": 0,
+    "from_tick": 44
+  },
+  "fast_windows": [
+    [
+      6,
+      14
+    ]
+  ],
+  "strike": [
+    "Tail5"
+  ],
+  "keys": [
+    0,
+    6,
+    12,
+    20,
+    26,
+    36,
+    44
+  ],
+  "review_ticks": [
+    0,
+    4,
+    6,
+    9,
+    12,
+    16,
+    20,
+    26,
+    31,
+    36,
+    44
+  ],
+  "targets": [
+    {
+      "name": "whip: tail tip above the head at tick 12 (m)",
+      "kind": "below",
+      "a": "Head",
+      "b": "Tail5",
+      "tick": 12,
+      "min": 0.0
+    },
+    {
+      "name": "hold: tail tip above the head at tick 18 (m)",
+      "kind": "below",
+      "a": "Head",
+      "b": "Tail5",
+      "tick": 18,
+      "min": 0.0
+    },
+    {
+      "name": "coil: tail tip below the hips at tick 6 (m)",
+      "kind": "below",
+      "a": "Hips",
+      "b": "Tail5",
+      "tick": 6,
+      "max": -0.1
+    }
+  ]
+}

@@ -58,7 +58,7 @@ namespace SlopArena.Client.Input
         public static IReadOnlyList<string> RebindableActions { get; } = new[]
         {
             "MoveUp", "MoveDown", "MoveLeft", "MoveRight", "MoveStick", "Walk", "Jump", "Down",
-            "Shield", "Grab", "Dash", "Slot1", "Slot3", "Slot4", "SlotA", "SlotE", "SlotR", "SlotF",
+            "Shield", "Grab", "Dash", "Normal1", "Normal2", "Normal3", "SlotA", "SlotE", "SlotR", "SlotF",
             "SpecialModifier", "FaceToCamera", "ToggleLock", "CameraToggle", "Retarget", "Pause", "Retry"
         };
 
@@ -265,6 +265,8 @@ namespace SlopArena.Client.Input
             if (string.IsNullOrEmpty(entry.action)) return false;
             int slash = entry.action.LastIndexOf('/');
             string name = slash >= 0 ? entry.action.Substring(slash + 1) : entry.action;
+            // Saved before the normals were numbered as players press them (2026-11-01).
+            name = name switch { "Slot1" => "Normal1", "Slot3" => "Normal2", "Slot4" => "Normal3", _ => name };
             return Actions.TryGetValue(name, out action);
         }
 
@@ -330,9 +332,9 @@ namespace SlopArena.Client.Input
             AddButton("Grab", "<Keyboard>/c", "<Gamepad>/leftShoulder");
             AddButton("Dash", "<Keyboard>/4", "<Gamepad>/rightShoulder");
             AddButton("Down", "<Keyboard>/x", "<Gamepad>/leftTrigger");
-            AddButton("Slot1", "<Keyboard>/1", "<Gamepad>/buttonWest");
-            AddButton("Slot3", "<Keyboard>/2", "<Gamepad>/buttonNorth");
-            AddButton("Slot4", "<Keyboard>/3", "<Gamepad>/buttonEast");
+            AddButton("Normal1", "<Keyboard>/1", "<Gamepad>/buttonWest");
+            AddButton("Normal2", "<Keyboard>/2", "<Gamepad>/buttonNorth");
+            AddButton("Normal3", "<Keyboard>/3", "<Gamepad>/buttonEast");
             // Keyboard paths are key positions: the key right of Tab reads A on AZERTY and Q on
             // QWERTY. Binding the key that types "A" put special A on move-left for QWERTY players.
             AddButton("SlotA", "<Keyboard>/q");

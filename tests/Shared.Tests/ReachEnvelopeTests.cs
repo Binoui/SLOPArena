@@ -33,7 +33,7 @@ public class ReachEnvelopeTests
             },
         };
 
-        TestHelpers.AssertNear(expected, HeuristicBotPolicy.ForwardReach(def, AbilitySlots.Slot1, airborne: false), 0.001f);
+        TestHelpers.AssertNear(expected, HeuristicBotPolicy.ForwardReach(def, AbilitySlots.Normal1, airborne: false), 0.001f);
     }
 
     [Fact]
@@ -41,7 +41,7 @@ public class ReachEnvelopeTests
     {
         var def = new CharacterDefinition();
 
-        Assert.Equal(0f, HeuristicBotPolicy.ForwardReach(def, AbilitySlots.Slot1, airborne: false));
+        Assert.Equal(0f, HeuristicBotPolicy.ForwardReach(def, AbilitySlots.Normal1, airborne: false));
     }
 
     [Fact]

@@ -24,7 +24,7 @@ internal static class DashPairsReport
         ("Sir Bonk", CharacterClass.Bonk), ("Bashie", CharacterClass.Bashie), ("Salamander", CharacterClass.Salamander),
     };
     private static readonly (string Label, byte Wire)[] Normals =
-        { ("1", AbilitySlots.Slot1), ("2", AbilitySlots.Slot3), ("3", AbilitySlots.Slot4) };
+        { ("1", AbilitySlots.Normal1), ("2", AbilitySlots.Normal2), ("3", AbilitySlots.Normal3) };
 
     private enum Start { Ground, Rising, Apex }
 

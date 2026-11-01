@@ -799,9 +799,9 @@ namespace SlopArena.Shared
 		}
 
         private static bool IsGroundedNormal(byte slot)
-            => slot == AbilitySlots.Slot1
-                || slot == AbilitySlots.Slot3
-                || slot == AbilitySlots.Slot4;
+            => slot == AbilitySlots.Normal1
+                || slot == AbilitySlots.Normal2
+                || slot == AbilitySlots.Normal3;
 
         /// <summary>
         /// Cancel a ready grounded normal on directional movement, at the same pre-tick

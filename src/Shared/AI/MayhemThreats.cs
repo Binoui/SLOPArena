@@ -48,7 +48,7 @@ public readonly struct MayhemThreats
                     input = new() { MoveX = distance > .01f ? dx / distance : 0f,
                         MoveY = distance > .01f ? dz / distance : 0f,
                         FacingYaw = angle, AimYaw = angle,
-                        ActiveSlot = distance <= def.CapsuleRadius + MankiMayhemTuning.CageBotAttackReach ? AbilitySlots.Slot1 : (byte)0 };
+                        ActiveSlot = distance <= def.CapsuleRadius + MankiMayhemTuning.CageBotAttackReach ? AbilitySlots.Normal1 : (byte)0 };
                 return true;
             }
         }

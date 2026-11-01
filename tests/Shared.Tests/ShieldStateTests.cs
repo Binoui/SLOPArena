@@ -180,7 +180,7 @@ public class ShieldStateTests
         Assert.Equal((ushort)7, release.ShieldDropTicks);
         for (int tick = 1; tick <= 6; tick++)
         {
-            var locked = Tick(sim, new InputState { ShieldHeld = true, GrabPressed = true, Jump = true, ActiveSlot = AbilitySlots.Slot1, MoveX = 1 });
+            var locked = Tick(sim, new InputState { ShieldHeld = true, GrabPressed = true, Jump = true, ActiveSlot = AbilitySlots.Normal1, MoveX = 1 });
             Assert.Equal(ActionState.ShieldDrop, locked.State);
             Assert.Equal((ushort)(7 - tick), locked.ShieldDropTicks);
             Assert.Equal((byte)0, locked.AttackSlot);

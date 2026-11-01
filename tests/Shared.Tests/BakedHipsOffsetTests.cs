@@ -145,7 +145,7 @@ public class BakedHipsOffsetTests
         var baked = Bake(withHipsOffset: true);
         var evt = new HitboxEvent { BoneName = "_weapon_hilt", EndBoneName = "_weapon_tip", Shape = HitboxShape.Capsule };
 
-        // Slot1 (wire slot 2): elapsed 1 of its 2-tick stage over 2 frames selects
+        // Normal1 (wire slot 2): elapsed 1 of its 2-tick stage over 2 frames selects
         // frame 1, where the tip is 1.6 m forward.
         var s = State(elapsed: 1);
         HitboxGeometry.ResolvePositions(s, evt, baked, def, def?.GetCookedSlotAbility((byte)((2) + 1), false), 0, out float hx, out float hy, out float hz, out float tx, out float ty, out float tz);

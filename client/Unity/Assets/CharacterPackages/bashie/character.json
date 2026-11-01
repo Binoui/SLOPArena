@@ -1,5 +1,5 @@
 {
-  "authoringSchemaVersion": 3,
+  "authoringSchemaVersion": 4,
   "displayName": "Bashie",
   "weight": 100,
   "movement": {
@@ -386,7 +386,7 @@
       "id": "ground.1",
       "name": "Whirlpool Spin",
       "description": "Tuck into your shell and spin once, splashing fighters around you before popping back out.",
-      "iconId": "icon.2",
+      "iconId": "icon.1",
       "behavior": "meleeCombo",
       "aimMode": "none",
       "aimMovement": "fixed",
@@ -408,7 +408,7 @@
             "rotateTowardTarget": false,
             "trackingStrength": 0,
             "animationIds": [
-              "anim.bashie.g2"
+              "anim.bashie.g1"
             ],
             "operations": [
               {
@@ -492,7 +492,7 @@
       "id": "air.1",
       "name": "Air Whirlpool Spin",
       "description": "Spin in your shell while carrying your airborne momentum, then pop out and fall.",
-      "iconId": "icon.2",
+      "iconId": "icon.1",
       "behavior": "meleeCombo",
       "aimMode": "none",
       "aimMovement": "fixed",
@@ -514,7 +514,7 @@
             "rotateTowardTarget": false,
             "trackingStrength": 0,
             "animationIds": [
-              "anim.bashie.a2"
+              "anim.bashie.a1"
             ],
             "operations": [
               {
@@ -595,10 +595,10 @@
       }
     },
     {
-      "id": "ground.3",
+      "id": "ground.2",
       "name": "Shell Flip",
       "description": "Tuck into your shell and somersault backward to launch an opponent upward, then settle on the same spot.",
-      "iconId": "icon.3",
+      "iconId": "icon.2",
       "behavior": "meleeCombo",
       "aimMode": "none",
       "aimMovement": "fixed",
@@ -620,7 +620,7 @@
             "rotateTowardTarget": false,
             "trackingStrength": 0,
             "animationIds": [
-              "anim.bashie.g3"
+              "anim.bashie.g2"
             ],
             "operations": [
               {
@@ -684,10 +684,10 @@
       }
     },
     {
-      "id": "air.3",
+      "id": "air.2",
       "name": "Air Shell Flip",
       "description": "Tuck into your shell and somersault backward in the air to launch an opponent upward, carrying your airborne momentum.",
-      "iconId": "icon.3",
+      "iconId": "icon.2",
       "behavior": "meleeCombo",
       "aimMode": "none",
       "aimMovement": "fixed",
@@ -709,7 +709,7 @@
             "rotateTowardTarget": false,
             "trackingStrength": 0,
             "animationIds": [
-              "anim.bashie.a3"
+              "anim.bashie.a2"
             ],
             "operations": [
               {
@@ -773,10 +773,10 @@
       }
     },
     {
-      "id": "ground.4",
+      "id": "ground.3",
       "name": "Rising Shell",
       "description": "Tuck into your shell, strike diagonally forward and up, then pull back and land on the same spot.",
-      "iconId": "icon.4",
+      "iconId": "icon.3",
       "behavior": "meleeCombo",
       "aimMode": "none",
       "aimMovement": "fixed",
@@ -798,7 +798,7 @@
             "rotateTowardTarget": false,
             "trackingStrength": 0,
             "animationIds": [
-              "anim.bashie.g4"
+              "anim.bashie.g3"
             ],
             "operations": [
               {
@@ -1309,10 +1309,10 @@
       "hitPresentationId": "presentation.bashie.shell.hit"
     },
     {
-      "id": "air.4",
+      "id": "air.3",
       "name": "Air Diagonal Shell",
       "description": "Strike forward and up from your shell while carrying airborne momentum, then unfold back into falling.",
-      "iconId": "icon.4",
+      "iconId": "icon.3",
       "behavior": "meleeCombo",
       "aimMode": "none",
       "aimMovement": "fixed",
@@ -1334,7 +1334,7 @@
             "rotateTowardTarget": false,
             "trackingStrength": 0,
             "animationIds": [
-              "anim.bashie.a4"
+              "anim.bashie.a3"
             ],
             "operations": [
               {

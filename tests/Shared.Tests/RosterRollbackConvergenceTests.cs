@@ -17,10 +17,10 @@ public class RosterRollbackConvergenceTests
     public void DelayedNormal_RecoversAndAcceptsMovementAndAnotherAttack(CharacterClass fighter, int lossDenominator)
     {
         var lab = Match(fighter, lossDenominator);
-        lab[1].Input = (_, tick) => new InputState { ActiveSlot = tick == 30 ? AbilitySlots.Slot1 : (byte)0 };
+        lab[1].Input = (_, tick) => new InputState { ActiveSlot = tick == 30 ? AbilitySlots.Normal1 : (byte)0 };
         lab.Run(30);
         Assert.Equal(ActionState.Attacking, lab[1].State(1).State);
-        Assert.Equal(AbilitySlots.Slot1, lab[1].State(1).AttackSlot);
+        Assert.Equal(AbilitySlots.Normal1, lab[1].State(1).AttackSlot);
         AssertRecoveryAndNextInputs(lab);
     }
 
@@ -98,10 +98,10 @@ public class RosterRollbackConvergenceTests
         AssertRecovered(lab);
 
         uint pressTick = lab[1].Predictor.LocalTick + 1;
-        lab[1].Input = (_, tick) => TestHelpers.Input(activeSlot: tick == pressTick ? AbilitySlots.Slot1 : (byte)0);
+        lab[1].Input = (_, tick) => TestHelpers.Input(activeSlot: tick == pressTick ? AbilitySlots.Normal1 : (byte)0);
         lab.Step();
         Assert.Equal(ActionState.Attacking, lab[1].State(1).State);
-        Assert.Equal(AbilitySlots.Slot1, lab[1].State(1).AttackSlot);
+        Assert.Equal(AbilitySlots.Normal1, lab[1].State(1).AttackSlot);
         lab.Run(5);
         Assert.Equal(ActionState.Attacking, lab.Server.GetState(1).State);
         lab.Quiesce(400);

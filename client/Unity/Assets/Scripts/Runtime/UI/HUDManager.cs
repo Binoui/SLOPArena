@@ -162,9 +162,9 @@ namespace SlopArena.Client.UI
         private static readonly AbilitySlotDef[] AbilitySlotDefs =
         {
             new("ab-dash", DashSlotIndex, "Dash"),
-            new("ab-1", 2, "Slot1"),
-            new("ab-3", 7, "Slot3"),
-            new("ab-4", 8, "Slot4"),
+            new("ab-1", 2, "Normal1"),
+            new("ab-2", 7, "Normal2"),
+            new("ab-3", 8, "Normal3"),
             new("ab-a", 10, "SlotA"),
             new("ab-e", 3, "SlotE"),
             new("ab-r", 4, "SlotR"),
@@ -347,9 +347,9 @@ namespace SlopArena.Client.UI
                     ? AbilitySlotDefs[i].Action switch
                     {
                         "SlotA" => "Jump",
-                        "SlotE" => "Slot3",
-                        "SlotR" => "Slot1",
-                        "SlotF" => "Slot4",
+                        "SlotE" => "Normal2",
+                        "SlotR" => "Normal1",
+                        "SlotF" => "Normal3",
                         _ => AbilitySlotDefs[i].Action,
                     }
                     : AbilitySlotDefs[i].Action;

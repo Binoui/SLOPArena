@@ -143,7 +143,7 @@ public class ArcadeSnapshotTests
 
     private static readonly byte[] Slots =
     {
-        AbilitySlots.Slot1, AbilitySlots.Slot3, AbilitySlots.Slot4,
+        AbilitySlots.Normal1, AbilitySlots.Normal2, AbilitySlots.Normal3,
         AbilitySlots.A, AbilitySlots.E, AbilitySlots.R, AbilitySlots.F,
     };
 

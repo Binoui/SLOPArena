@@ -20,8 +20,8 @@ namespace SlopArena.EditorTools
             CheckHumanYawEncoding();
             var slotMappings = new[]
             {
-                ("1", AbilitySlots.Slot1),
-                ("3", AbilitySlots.Slot3), ("4", AbilitySlots.Slot4),
+                ("1", AbilitySlots.Normal1),
+                ("2", AbilitySlots.Normal2), ("3", AbilitySlots.Normal3),
                 ("A", AbilitySlots.A), ("E", AbilitySlots.E),
                 ("R", AbilitySlots.R), ("F", AbilitySlots.F)
             };
@@ -49,7 +49,7 @@ namespace SlopArena.EditorTools
                 "\"grabPressed\":true,\"faceToCamera\":true,\"toggleLock\":true,\"retargetPressed\":true}]");
             var firstTick = SlopArenaTrainingCommands.BuildInput(steps[0], true);
             var secondTick = SlopArenaTrainingCommands.BuildInput(steps[0], false);
-            Require(firstTick.ActiveSlot == AbilitySlots.Slot1 && firstTick.Jump && firstTick.JumpHeld
+            Require(firstTick.ActiveSlot == AbilitySlots.Normal1 && firstTick.Jump && firstTick.JumpHeld
                 && firstTick.DownPressed && firstTick.Down && firstTick.ShieldPressed && firstTick.ShieldHeld
                 && firstTick.GrabPressed && firstTick.FaceToCamera && firstTick.ToggleLock && firstTick.RetargetPressed,
                 "The first tick did not carry the requested edge and held inputs.");

@@ -112,7 +112,7 @@ public class MankiMayhemTests
         Assert.True(sim.IsEntityInactive(1)); Assert.Equal(1, state.Deaths); Assert.Equal(0, state.DamagePercent);
         Assert.False(new MankiMayhemMatchRule().IsEliminated(state));
         Assert.False(sim.TryGetCombatTargetPosition(1, out _));
-        for (int i = 0; i < 10; i++) sim.Tick(new() { [1] = new() { MoveX = 1, Jump = true, ActiveSlot = AbilitySlots.Slot1 } });
+        for (int i = 0; i < 10; i++) sim.Tick(new() { [1] = new() { MoveX = 1, Jump = true, ActiveSlot = AbilitySlots.Normal1 } });
         Assert.Equal((state.PX, state.PY, state.PZ, state.State),
             (sim.GetState(1).PX, sim.GetState(1).PY, sim.GetState(1).PZ, sim.GetState(1).State));
         Assert.DoesNotContain(1UL, sim.LastTickAcceptedActions);
@@ -241,7 +241,7 @@ public class MankiMayhemTests
         for (int t = 0; t < 90; t++)
         {
             sim.Tick(new() { [1] = new() { GrabPressed = t == 0, AimYaw = 0, FacingYaw = 0,
-                ActiveSlot = sim.GetState(1).State == ActionState.Grabbing ? AbilitySlots.Slot1 : (byte)0 } });
+                ActiveSlot = sim.GetState(1).State == ActionState.Grabbing ? AbilitySlots.Normal1 : (byte)0 } });
             captured |= sim.GetState(2).State == ActionState.Grabbed;
             thrown |= sim.GetState(2).InteractionPhase == (byte)DefenseInteractionPhase.UpTossReleased;
             if (thrown) break;

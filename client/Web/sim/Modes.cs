@@ -221,7 +221,7 @@ public sealed class TutorialMode : MatchMode
     const int LessonGapTicks = 90;
     static TutorialStageLayout Layout => TutorialCurriculum.LicenseTest;
     static readonly byte[] Slots =
-        { AbilitySlots.Slot1, AbilitySlots.Slot3, AbilitySlots.Slot4, AbilitySlots.A, AbilitySlots.E, AbilitySlots.R, AbilitySlots.F };
+        { AbilitySlots.Normal1, AbilitySlots.Normal2, AbilitySlots.Normal3, AbilitySlots.A, AbilitySlots.E, AbilitySlots.R, AbilitySlots.F };
     TutorialProgress _progress = null!;
     MatchContentEntry _player = null!, _dummy = null!;
     CharacterState _playerBefore, _dummyBefore;

@@ -94,18 +94,18 @@ internal static class Program
     internal sealed record ReachData(float CharHeight, float CapsuleRadius, float CellSize, float GapStep, float ZMin, float ZMax,
         ReachHitData[] Hits, ReachGapData[] Gaps, string[] UncoveredBands); // ZMin/ZMax = common overlay range
 
-    // Slot numbers are the canonical normal labels 1, 3 and 4 (ADR-0042: three normals).
-    internal static readonly SlotRef G1 = new(false, 1), G3 = new(false, 3), G4 = new(false, 4);
-    internal static readonly SlotRef A1 = new(true, 1), A3 = new(true, 3), A4 = new(true, 4);
+    // Slot numbers are the canonical normal labels 1, 2 and 3 (ADR-0042: three normals).
+    internal static readonly SlotRef G1 = new(false, 1), G2 = new(false, 2), G3 = new(false, 3);
+    internal static readonly SlotRef A1 = new(true, 1), A2 = new(true, 2), A3 = new(true, 3);
 
     /// <summary>Default combo routes — the designed FightGuy juggle/kill links.</summary>
     internal static readonly Route[] DefaultRoutes =
     {
-        new("g3 High Kick -> a1 Floating Kick",          G3, 0, A1, 0),
-        new("g3 High Kick -> a3 High Kick",              G3, 0, A3, 0),
-        new("g3 High Kick -> g1 Straight Punch",         G3, 0, G1, 0),
+        new("g2 High Kick -> a1 Floating Kick",          G2, 0, A1, 0),
+        new("g2 High Kick -> a2 Flip Kick",              G2, 0, A2, 0),
+        new("g2 High Kick -> g1 Straight Punch",         G2, 0, G1, 0),
         new("a1 Floating Kick sweet -> weak",            A1, 0, A1, 1),
-        new("g4 Double Kick -> a1 Floating Kick",        G4, 0, A1, 0),
+        new("g3 Double Kick -> a1 Floating Kick",        G3, 0, A1, 0),
         new("a1 Floating Kick -> land -> g1 Straight Punch", A1, 1, G1, 0),
     };
 
@@ -349,8 +349,8 @@ internal static class Program
     internal static List<HitSpec> CollectHits(CharacterDefinition def)
     {
         var hits = new List<HitSpec>();
-        foreach (var (slot, air) in new[] { (G1, false), (G3, false), (G4, false),
-                                            (A1, true), (A3, true), (A4, true) })
+        foreach (var (slot, air) in new[] { (G1, false), (G2, false), (G3, false),
+                                            (A1, true), (A2, true), (A3, true) })
         {
             var ability = def.GetCookedSlotAbility(SlotByte(slot.Slot), air);
             if (ability == null || ability.Timeline.Stages.Count == 0) continue;
@@ -513,8 +513,8 @@ internal static class Program
     /// <summary>Gaps narrower than this are below-cell noise and dropped, metres.</summary>
     internal const float ReachMinGapWidth = 0.05f;
 
-    /// <summary>Tool SlotRef (g1/g3/g4, a1/a3/a4) → wire slot index (Slot1=2, Slot3=7,
-    /// Slot4=8; same indices airborne), matching CollectHits.</summary>
+    /// <summary>Tool SlotRef (g1/g2/g3, a1/a2/a3) → wire slot index (Normal1=2, Normal2=7,
+    /// Normal3=8; same indices airborne), matching CollectHits.</summary>
     internal static byte SlotIndex(SlotRef s) => (byte)(SlotByte(s.Slot) - 1);
 
     /// <summary>Reach height bands: thirds of CapsuleHeight from the feet — low [0, H/3),
@@ -959,12 +959,11 @@ internal static class Program
         return i >= 0 && i + 1 < args.Length && int.TryParse(args[i + 1], out int slot) ? slot : null;
     }
 
-    /// <summary>Kit slot 1-4 → ActiveSlot byte (factory indices: key1=3, key2=7, key3=8, key4=9).</summary>
-    /// <summary>Wire slot for a canonical normal label (1, 3 or 4).</summary>
+    /// <summary>Wire slot for a canonical normal label (1, 2 or 3).</summary>
     internal static byte SlotByte(int label)
         => CanonicalSlotProjection.TryGet(false, label.ToString(CultureInfo.InvariantCulture), out var address)
             ? CanonicalSlotProjection.ToWire(address)
-            : throw new ArgumentOutOfRangeException(nameof(label), label, "Normals are 1, 3 and 4.");
+            : throw new ArgumentOutOfRangeException(nameof(label), label, "Normals are 1, 2 and 3.");
 
     /// <summary>
     /// Full-pipeline launch: the g1 starter connects through the REAL hitbox path

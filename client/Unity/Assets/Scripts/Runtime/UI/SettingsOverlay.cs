@@ -255,7 +255,7 @@ namespace SlopArena.Client.UI
                 bool stickSpecials = settings.RightStickSpecials;
                 foreach (var action in new[]
                          {
-                             "MoveStick", "Slot1", "Slot3", "Slot4", stickSpecials ? "Grab" : "SpecialModifier",
+                             "MoveStick", "Normal1", "Normal2", "Normal3", stickSpecials ? "Grab" : "SpecialModifier",
                              "Jump", "Dash", "Down", "Shield", "FaceToCamera", "ToggleLock", "Retarget", "Pause", "Retry"
                          })
                     AddBindingRow(root, action, ActionLabel(action, controller: true));
@@ -360,10 +360,9 @@ namespace SlopArena.Client.UI
             "ToggleLock" => controller ? "Target Lock (tap)" : "Target Lock",
             "CameraToggle" => controller ? "Camera Toggle (hold)" : "Camera Toggle", "Retarget" => "Retarget Target", "Pause" => "Pause",
             "Retry" => controller ? "Arcade Retry (hold)" : "Arcade Retry",
-            // Three normals (ADR-0042) keep the slot ids 1, 3 and 4 behind the player-facing 1-3.
-            "Slot1" => controller ? "Normal 1" : "Action 1",
-            "Slot3" => controller ? "Normal 2" : "Action 2",
-            "Slot4" => controller ? "Normal 3" : "Action 3",
+            "Normal1" => controller ? "Normal 1" : "Action 1",
+            "Normal2" => controller ? "Normal 2" : "Action 2",
+            "Normal3" => controller ? "Normal 3" : "Action 3",
             "Dash" => "Beeline",
             "SpecialModifier" => "Special Modifier",
             "Shield" => "Shield", "Grab" => "Grab", "Walk" => "Walk", "Jump" => "Jump",

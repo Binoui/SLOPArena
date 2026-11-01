@@ -51,7 +51,7 @@ internal static class FormsFixture
                 new CookedSpawnHitboxOperation(SwapTick, AuthoringUnit.Meters, hitbox));
         Set(slots, AbilitySlots.E, false, form, 10, ECooldown, null);
         if (form == 0)
-            Set(slots, AbilitySlots.Slot3, false, form, 10, JabCooldown, null, new CookedSwapFormOperation(2, AuthoringUnit.Ticks));
+            Set(slots, AbilitySlots.Normal2, false, form, 10, JabCooldown, null, new CookedSwapFormOperation(2, AuthoringUnit.Ticks));
         return slots;
     }
 
@@ -254,13 +254,13 @@ public class FormsTests
     public void AMovesCooldownGoesToTheFormItStartedIn()
     {
         var sim = FormsFixture.Sim(FormsFixture.Def(), dummy: false);
-        FormsFixture.Step(sim, FormsFixture.Press(AbilitySlots.Slot3));
+        FormsFixture.Step(sim, FormsFixture.Press(AbilitySlots.Normal2));
         for (int i = 0; i < 12; i++) FormsFixture.Step(sim);
 
         var s = sim.GetState(Nyx);
         Assert.Equal(1, s.Form.Active);
         Assert.Null(sim.GetActiveMove(Nyx));
-        Assert.Equal(0, s.GetCooldown(AbilitySlots.Slot3));
+        Assert.Equal(0, s.GetCooldown(AbilitySlots.Normal2));
         Assert.InRange(s.Form.Bank3, (ushort)(FormsFixture.JabCooldown - 3), FormsFixture.JabCooldown);
     }
 
@@ -332,7 +332,7 @@ public class FormsTests
         var restored = Make();
         var rng = new Random(51);
         var inputs = new Dictionary<ulong, InputState>();
-        byte[] slots = { AbilitySlots.F, AbilitySlots.E, AbilitySlots.Slot3, AbilitySlots.Slot1 };
+        byte[] slots = { AbilitySlots.F, AbilitySlots.E, AbilitySlots.Normal2, AbilitySlots.Normal1 };
         int swaps = 0, restores = 0;
         for (int tick = 1; tick <= 1500; tick++)
         {

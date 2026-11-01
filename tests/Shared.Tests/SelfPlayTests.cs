@@ -379,7 +379,7 @@ public class SelfPlayTests
         {
             OwnerEntityId = owner,
             TargetEntityId = target,
-            AttackSlot = AbilitySlots.Slot1,
+            AttackSlot = AbilitySlots.Normal1,
             Damage = 1f,
             StunTicks = 8,
         };

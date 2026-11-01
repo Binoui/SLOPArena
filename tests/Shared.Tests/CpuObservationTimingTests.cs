@@ -6,17 +6,17 @@ namespace SlopArena.Shared.Tests;
 public sealed class CpuObservationTimingTests
 {
     private static CharacterDefinition Kit(ushort iasa = 70)
-        => TestHelpers.WithMove(TestHelpers.EngineDef, AbilitySlots.Slot1, false, "Long whiff", 90, iasa,
+        => TestHelpers.WithMove(TestHelpers.EngineDef, AbilitySlots.Normal1, false, "Long whiff", 90, iasa,
             hits: new[] { new HitboxEvent { TriggerTick = 5, DurationTicks = 2, Radius = 0.4f, OffZ = 1f, Damage = 5f } });
     private static CharacterState Attacking(ushort elapsed = 12)
-        => TestHelpers.NpcState(0f, 2f) with { State = ActionState.Attacking, AttackSlot = AbilitySlots.Slot1,
+        => TestHelpers.NpcState(0f, 2f) with { State = ActionState.Attacking, AttackSlot = AbilitySlots.Normal1,
             AttackElapsedTicks = elapsed, AnimLockTicks = (ushort)(90 - elapsed) };
 
     [Fact]
     public void RecoveryMetadataAndEpisodeAreDelayedTogether()
     {
         var def = Kit(); var policy = new HeuristicBotPolicy(); var memory = new BotMemory();
-        var active = def.GetCookedSlotAbility(AbilitySlots.Slot1, false);
+        var active = def.GetCookedSlotAbility(AbilitySlots.Normal1, false);
         for (int tick = 0; tick < 18; tick++)
         {
             policy.ObserveOpponent(memory, Attacking(), def, activeMove: active);
@@ -36,7 +36,7 @@ public sealed class CpuObservationTimingTests
     {
         var def = Kit(20); var policy = new HeuristicBotPolicy(); var memory = new BotMemory();
         var target = Attacking() with { HitstopTicks = 15 };
-        for (int i = 0; i <= 18; i++) policy.ObserveOpponent(memory, target, def, activeMove: def.GetCookedSlotAbility(AbilitySlots.Slot1, false));
+        for (int i = 0; i <= 18; i++) policy.ObserveOpponent(memory, target, def, activeMove: def.GetCookedSlotAbility(AbilitySlots.Normal1, false));
         Assert.True(memory.TryGetDelayedOpponent(out var seen));
         Assert.Equal(8, seen.Timing.LockTicks);
         Assert.True(RecoveryOpportunity.TryFromDelayed(seen, memory.Clock, out var opening));
@@ -49,13 +49,13 @@ public sealed class CpuObservationTimingTests
     public void RepeatedAttackSnapshotsKeepOneEpisodeAndRestartGetsAnother()
     {
         var def = Kit(); var policy = new HeuristicBotPolicy(); var memory = new BotMemory();
-        for (int i = 0; i <= 18; i++) policy.ObserveOpponent(memory, Attacking(), def, activeMove: def.GetCookedSlotAbility(AbilitySlots.Slot1, false));
+        for (int i = 0; i <= 18; i++) policy.ObserveOpponent(memory, Attacking(), def, activeMove: def.GetCookedSlotAbility(AbilitySlots.Normal1, false));
         memory.TryGetDelayedOpponent(out var first);
         Assert.NotEqual(0u, first.Timing.AttackEpisode);
-        for (int i = 0; i < 20; i++) policy.ObserveOpponent(memory, Attacking(13), def, activeMove: def.GetCookedSlotAbility(AbilitySlots.Slot1, false));
+        for (int i = 0; i < 20; i++) policy.ObserveOpponent(memory, Attacking(13), def, activeMove: def.GetCookedSlotAbility(AbilitySlots.Normal1, false));
         memory.TryGetDelayedOpponent(out var repeated);
         Assert.Equal(first.Timing.AttackEpisode, repeated.Timing.AttackEpisode);
-        for (int i = 0; i < 20; i++) policy.ObserveOpponent(memory, Attacking(1), def, activeMove: def.GetCookedSlotAbility(AbilitySlots.Slot1, false));
+        for (int i = 0; i < 20; i++) policy.ObserveOpponent(memory, Attacking(1), def, activeMove: def.GetCookedSlotAbility(AbilitySlots.Normal1, false));
         memory.TryGetDelayedOpponent(out var restarted);
         Assert.NotEqual(first.Timing.AttackEpisode, restarted.Timing.AttackEpisode);
     }

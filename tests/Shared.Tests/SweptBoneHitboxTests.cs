@@ -56,13 +56,13 @@ public class SweptBoneHitboxTests
                 Name = "swing",
                 Frames = Enumerable.Range(0, 20).Select(f => Pose(SwingAngle(f))).ToArray(),
             },
-            // ground.4 "slow": 10 frames stretched over 20 ticks; the head walks 10 cm right per frame.
+            // ground.3 "slow": 10 frames stretched over 20 ticks; the head walks 10 cm right per frame.
             new BakedAnimationData.BakedAnim
             {
                 Name = "slow",
                 Frames = Enumerable.Range(0, 10).Select(f => Pose(0f, headX: 0.1f * f)).ToArray(),
             },
-            // ground.3 "flick": 40 frames over 20 ticks (2×); odd frames flick the blade to 40°.
+            // ground.2 "flick": 40 frames over 20 ticks (2×); odd frames flick the blade to 40°.
             new BakedAnimationData.BakedAnim
             {
                 Name = "flick",
@@ -86,8 +86,8 @@ public class SweptBoneHitboxTests
         var def = TestHelpers.EngineDef;
         var slots = def.CookedSlots!.ToArray();
         slots[0] = Slot(0, "ground.1", "swing", Blade(SwingTrigger, SwingDuration));
-        slots[1] = Slot(1, "ground.3", "flick");
-        slots[2] = Slot(2, "ground.4", "slow");
+        slots[1] = Slot(1, "ground.2", "flick");
+        slots[2] = Slot(2, "ground.3", "slow");
         def = def with { CookedSlots = slots };
         def = def with { HurtboxBoneDefs = new[]
         {
@@ -122,7 +122,7 @@ public class SweptBoneHitboxTests
         var tested = new List<(Hitbox, SpellResolver.EntityData)>();
         for (int tick = 0; tick < 20; tick++)
         {
-            sim.Tick(new() { { 1, tick == 0 ? TestHelpers.Input(activeSlot: AbilitySlots.Slot1) : default }, { 100, default } });
+            sim.Tick(new() { { 1, tick == 0 ? TestHelpers.Input(activeSlot: AbilitySlots.Normal1) : default }, { 100, default } });
             hits.AddRange(sim.LastTickHits.Where(h => h.OwnerEntityId == 1 && h.TargetEntityId == 100));
             var body = sim.LastTickAttackEntities.First(e => e.Id == 100 && !e.ShieldSurface);
             foreach (var hb in sim.Resolver.LastTickCheckedHitboxes.Where(h => h.OwnerId == 1))
@@ -191,13 +191,13 @@ public class SweptBoneHitboxTests
     {
         var def = Def();
         var baked = Bake();
-        // ground.3 plays 40 frames over 20 ticks: elapsed 3 is frame 6, a 0° frame.
+        // ground.2 plays 40 frames over 20 ticks: elapsed 3 is frame 6, a 0° frame.
         var state = new CharacterState { PY = TestHelpers.GroundPY(def), AttackElapsedTicks = 3 };
         HitboxGeometry.ResolvePositions(state, BladeEvent, baked, def, def?.GetCookedSlotAbility((byte)((7) + 1), false), 0, out _, out _, out _, out float tx, out _, out float tz);
         TestHelpers.AssertNear(0f, tx, 0.0001f);
         TestHelpers.AssertNear(Hilt[2] + BladeLength, tz, 0.0001f);
 
-        // ground.4 plays 10 frames over 20 ticks: elapsed 3 is frame 1.5, between two baked frames.
+        // ground.3 plays 10 frames over 20 ticks: elapsed 3 is frame 1.5, between two baked frames.
         Assert.Equal(1.5f, HitboxGeometry.AttackFrame(3, 10, 20));
         Assert.True(HitboxGeometry.BakedPointToWorld(state, def, baked, 1, 1.5f, 1, 1f, out float headX, out _, out _));
         TestHelpers.AssertNear(0.15f, headX, 0.0001f);
@@ -240,7 +240,7 @@ public class SweptBoneHitboxTests
     [Fact]
     public void AttackHurtboxes_FollowTheClipClockOnSlowClips()
     {
-        // ground.4 stretches 10 frames over 20 ticks. Past elapsed 10 a per-entity frame
+        // ground.3 stretches 10 frames over 20 ticks. Past elapsed 10 a per-entity frame
         // counter would wrap to the opening pose; the body must keep following the clip.
         var def = Def();
         var sim = TestHelpers.MakeSim();
@@ -248,7 +248,7 @@ public class SweptBoneHitboxTests
         attacker.PY = TestHelpers.GroundPY(def);
         sim.RegisterEntity(1, def, attacker, Bake());
 
-        sim.Tick(new() { { 1, TestHelpers.Input(activeSlot: AbilitySlots.Slot4) } });
+        sim.Tick(new() { { 1, TestHelpers.Input(activeSlot: AbilitySlots.Normal3) } });
         for (int tick = 1; tick < 18; tick++)
         {
             var state = sim.GetState(1);

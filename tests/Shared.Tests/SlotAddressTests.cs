@@ -29,7 +29,7 @@ public sealed class SlotAddressTests
     [Fact]
     public void AllHasExactCanonicalOrderAndMetadata()
     {
-        var expectedLabels = new[] { "1", "3", "4", "A", "E", "R", "F" };
+        var expectedLabels = new[] { "1", "2", "3", "A", "E", "R", "F" };
 
         Assert.Equal(14, CanonicalSlotProjection.All.Count);
         for (var ordinal = 0; ordinal < CanonicalSlotProjection.All.Count; ordinal++)

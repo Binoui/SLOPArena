@@ -80,7 +80,7 @@ namespace SlopArena.Shared
         // - Standing jump takeoff caps horizontal speed at min(RunSpeed, 1.2 * AirSpeedMax) (ADR-0058).
         // - Walk is held intent in input flags byte 8, bit 0x40, targeting 40% of RunSpeed (ADR-0058);
         //   the World Snapshot input record carries Walk in bit 0x40 of the DashPressed byte, with no layout change.
-        // - Nyxxie's Ring Light Overhead (fake air.3) hits with its pole chop: the capsule opens at tick 10 instead of
+        // - Nyxxie's Ring Light Overhead (fake air.2) hits with its pole chop: the capsule opens at tick 10 instead of
         //   15 and runs along the pole's swing, from (-0.15, 1.3, -0.1) to (-0.05, 0.6, 1.0), radius 0.45. Damage,
         //   knockback, its 14 active ticks and the 55-tick move are unchanged. Package data only.
         //
@@ -94,6 +94,8 @@ namespace SlopArena.Shared
         //   peck and scatter presentation, and a carrier's shield or air dodge swats it. The tether's atTarget gains an
         //   unmarked hand for a target without the thrower's perch. Runtime API 1.21.0, World Snapshot v24. Hex Crow dives,
         //   Grasp drags only a crowed target, Ring Light has a 24-tick wind-up, no lunge, a 4.9 m flash and a 60-tick dazzle.
+        // - The normals are numbered 1, 2 and 3 (ADR-0042, 2026-11-01): canonical slot ids, clip ids, authoring
+        //   schema 4 and cooked schema 5. Wire slot values and the snapshot layout are unchanged.
         public const byte Version = 33;
     }
 }

@@ -41,7 +41,7 @@ public static class SwordTrailPresentationSelfTest
             {
                 new WeaponEntry
                 {
-                    AttackSlot = AbilitySlots.Slot1,
+                    AttackSlot = AbilitySlots.Normal1,
                     BoneName = bone.name,
                     Prefab = prefab,
                     TrailStylePrefab = style,
@@ -73,7 +73,7 @@ public static class SwordTrailPresentationSelfTest
             var state = new CharacterState
             {
                 State = ActionState.Attacking,
-                AttackSlot = AbilitySlots.Slot1,
+                AttackSlot = AbilitySlots.Normal1,
                 IsGrounded = true,
             };
             Vector3 tip = default;
@@ -121,7 +121,7 @@ public static class SwordTrailPresentationSelfTest
             Require(mesh.vertexCount == 0, "Interrupted sword geometry failed to expire naturally.");
 
             state.State = ActionState.Attacking;
-            state.AttackSlot = AbilitySlots.Slot1;
+            state.AttackSlot = AbilitySlots.Normal1;
             state.AttackSequence++;
             Present(2, offset: 2f);
             Present(3, offset: 2f);

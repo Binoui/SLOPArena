@@ -27,7 +27,7 @@ internal static partial class Program
     private sealed class SlideFlowParameters
     {
         public string[] Characters { get; init; } = Array.Empty<string>();
-        public string[] AerialNormals { get; init; } = new[] { "air.1", "air.3", "air.4" };
+        public string[] AerialNormals { get; init; } = new[] { "air.1", "air.2", "air.3" };
         public string[] Controls { get; init; } = new[] { "no-air" };
         public string[] HopModes { get; init; } = new[] { "full-hop", "short-hop" };
         public string[] FastFallModes { get; init; } = new[] { "first-descending", "descending-plus-six", "none" };
@@ -325,7 +325,7 @@ internal static partial class Program
     }
     private static bool TryGetRecoveryAirSlot(MatchContentEntry entry, out SlotAddress slot, out byte wire)
     {
-        foreach (string label in new[] { "1", "3", "4", "A", "E", "R", "F" })
+        foreach (string label in new[] { "1", "2", "3", "A", "E", "R", "F" })
         {
             if (!CanonicalSlotProjection.TryGet(true, label, out var candidate)) continue;
             byte candidateWire = AirWireSlot(label);

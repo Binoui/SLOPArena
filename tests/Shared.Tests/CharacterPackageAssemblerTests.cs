@@ -968,10 +968,10 @@ public sealed class CharacterPackageAssemblerTests
     public void CookedLoader_RejectsPreviousSchemaVersion()
     {
         var current = Compile();
-        var oldMetadata = current.Metadata with { CookedSchemaVersion = 3 };
+        var oldMetadata = current.Metadata with { CookedSchemaVersion = 4 };
         byte[] oldRuntime = Encoding.UTF8.GetBytes(
             Encoding.UTF8.GetString(current.CanonicalBytes)
-                .Replace("\"cookedSchemaVersion\":4", "\"cookedSchemaVersion\":3", StringComparison.Ordinal));
+                .Replace("\"cookedSchemaVersion\":5", "\"cookedSchemaVersion\":4", StringComparison.Ordinal));
         var oldPackage = new CookedCharacterPackage(
             oldMetadata, current.Definition, current.Budget, current.Diagnostics, oldRuntime);
         var assembled = CharacterPackageAssembler.Assemble(BuildInput(
@@ -1122,7 +1122,7 @@ public sealed class CharacterPackageAssemblerTests
         var state = TestHelpers.PlayerState(x: 100f, z: 20f);
         state.PY = TestHelpers.GroundPY(def);
         sim.RegisterEntity(1, def, state, loaded.BakedAnimation);
-        sim.Tick(new Dictionary<ulong, InputState> { [1] = new InputState { ActiveSlot = AbilitySlots.Slot1 } });
+        sim.Tick(new Dictionary<ulong, InputState> { [1] = new InputState { ActiveSlot = AbilitySlots.Normal1 } });
         bool thrown = false;
         for (var i = 0; i < 30 && !thrown; i++)
         {
@@ -1178,7 +1178,7 @@ public sealed class CharacterPackageAssemblerTests
         Assert.True(assembled.IsValid, string.Join("; ", assembled.Diagnostics.Select(x => x.Message)));
         var loaded = CookedCharacterPackageLoader.LoadAssembly(assembled);
         Assert.True(loaded.IsValid, string.Join("; ", loaded.Diagnostics.Select(x => x.Message)));
-        Assert.Equal(hitId, loaded.ToCharacterDefinition().GetCookedSlotAbility(AbilitySlots.Slot1, false)!.HitPresentationId);
+        Assert.Equal(hitId, loaded.ToCharacterDefinition().GetCookedSlotAbility(AbilitySlots.Normal1, false)!.HitPresentationId);
 
         var bindings = JsonNode.Parse(input.BindingBytes)!.AsObject();
         bindings["presentations"] = new JsonArray();

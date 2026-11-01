@@ -23,7 +23,7 @@ namespace SlopArena.EditorTools
                 "Run the rebinding regression with Play Mode stopped and input captures/menus closed.");
             Require(!HumanInputActions.IsCapturing, "Another binding capture is active.");
             string previousOverrides = HumanInputActions.SaveOverrides();
-            bool previouslyEnabled = HumanInputActions.Get("Slot1").actionMap.enabled;
+            bool previouslyEnabled = HumanInputActions.Get("Normal1").actionMap.enabled;
             bool previouslyGamepad = HumanInputActions.LastUsedGamepad;
             bool previousStickSpecials = HumanInputActions.RightStickSpecials;
             var previousMouse = Mouse.current;
@@ -66,7 +66,7 @@ namespace SlopArena.EditorTools
                 HumanInputActions.CancelCapture();
                 HumanInputActions.ApplyOverrides(previousOverrides);
                 HumanInputActions.SetRightStickSpecials(previousStickSpecials);
-                if (!previouslyEnabled) HumanInputActions.Get("Slot1").actionMap.Disable();
+                if (!previouslyEnabled) HumanInputActions.Get("Normal1").actionMap.Disable();
                 UnityEngine.Object.DestroyImmediate(host);
                 EditorSceneManager.ClosePreviewScene(scene);
                 InputSystem.RemoveDevice(mouse);
@@ -89,9 +89,9 @@ namespace SlopArena.EditorTools
             HumanInputActions.ClearBinding("ToggleLock", Desktop);
             var cases = new[]
             {
-                ("Slot1", MouseButton.Left, "leftButton", AbilitySlots.Slot1),
-                ("Slot3", MouseButton.Middle, "middleButton", AbilitySlots.Slot3),
-                ("Slot4", MouseButton.Forward, "forwardButton", AbilitySlots.Slot4),
+                ("Normal1", MouseButton.Left, "leftButton", AbilitySlots.Normal1),
+                ("Normal2", MouseButton.Middle, "middleButton", AbilitySlots.Normal2),
+                ("Normal3", MouseButton.Forward, "forwardButton", AbilitySlots.Normal3),
                 ("SlotA", MouseButton.Back, "backButton", AbilitySlots.A),
             };
             foreach (var (action, button, control, slot) in cases)
@@ -119,7 +119,7 @@ namespace SlopArena.EditorTools
             HumanInputActions.ResetOverrides();
             var cases = new[]
             {
-                ("Slot1", Vector2.up, "up", AbilitySlots.Slot1),
+                ("Normal1", Vector2.up, "up", AbilitySlots.Normal1),
                 ("SlotE", Vector2.down, "down", AbilitySlots.E),
                 ("SlotR", Vector2.left, "left", AbilitySlots.R),
                 ("SlotF", Vector2.right, "right", AbilitySlots.F),
@@ -199,9 +199,9 @@ namespace SlopArena.EditorTools
                 "LB + A did not cast special A without a jump.");
             var dash = Press(new GamepadState().WithButton(GamepadButton.RightShoulder));
             Require(dash.DashPressed && !dash.Jump && dash.ActiveSlot == 0, "RB did not press the homing dash.");
-            Require(Press(new GamepadState().WithButton(GamepadButton.West)).ActiveSlot == AbilitySlots.Slot1, "X is not normal 1.");
-            Require(Press(new GamepadState().WithButton(GamepadButton.North)).ActiveSlot == AbilitySlots.Slot3, "Y is not normal 2 (slot 3).");
-            Require(Press(new GamepadState().WithButton(GamepadButton.East)).ActiveSlot == AbilitySlots.Slot4, "B is not normal 3 (slot 4).");
+            Require(Press(new GamepadState().WithButton(GamepadButton.West)).ActiveSlot == AbilitySlots.Normal1, "X is not normal 1.");
+            Require(Press(new GamepadState().WithButton(GamepadButton.North)).ActiveSlot == AbilitySlots.Normal2, "Y is not normal 2 (slot 3).");
+            Require(Press(new GamepadState().WithButton(GamepadButton.East)).ActiveSlot == AbilitySlots.Normal3, "B is not normal 3 (slot 4).");
             Require(Press(new GamepadState().WithButton(GamepadButton.LeftShoulder).WithButton(GamepadButton.West)).ActiveSlot == AbilitySlots.R,
                 "LB + X is not special R.");
             Require(!Press(new GamepadState().WithButton(GamepadButton.LeftShoulder)).GrabPressed,
@@ -247,7 +247,7 @@ namespace SlopArena.EditorTools
             Require(grab.GrabPressed && grab.ActiveSlot == 0, "LB did not grab.");
             var jump = Press(new GamepadState().WithButton(GamepadButton.LeftShoulder).WithButton(GamepadButton.South));
             Require(jump.Jump && jump.ActiveSlot == 0, "LB + A cast a special instead of jumping.");
-            Require(Press(new GamepadState().WithButton(GamepadButton.West)).ActiveSlot == AbilitySlots.Slot1, "X is not normal 1.");
+            Require(Press(new GamepadState().WithButton(GamepadButton.West)).ActiveSlot == AbilitySlots.Normal1, "X is not normal 1.");
             InputSystem.QueueStateEvent(pad, new GamepadState());
             InputSystem.Update();
             input.ClearPendingFrameState();
@@ -257,29 +257,29 @@ namespace SlopArena.EditorTools
         {
             HumanInputActions.ResetOverrides();
             string error = null;
-            HumanInputActions.Rebind("Slot1", Desktop, (_, failure) => error = failure);
+            HumanInputActions.Rebind("Normal1", Desktop, (_, failure) => error = failure);
             SendMouse(mouse, new MouseState().WithButton(MouseButton.Left));
             Require(!HumanInputActions.IsCapturing && error?.Contains("FaceToCamera") == true,
                 "An occupied mouse control was silently assigned twice.");
-            Require(Path("Slot1", Desktop) == "<Keyboard>/1", "A conflicting capture lost the prior binding.");
+            Require(Path("Normal1", Desktop) == "<Keyboard>/1", "A conflicting capture lost the prior binding.");
             SendMouse(mouse, default);
 
             bool cancelled = false;
-            HumanInputActions.Rebind("Slot1", Desktop, (path, failure) => cancelled = path == null && failure == null);
+            HumanInputActions.Rebind("Normal1", Desktop, (path, failure) => cancelled = path == null && failure == null);
             SendMouse(mouse, new MouseState { delta = new Vector2(100f, 40f), position = new Vector2(300f, 400f) });
             Require(HumanInputActions.IsCapturing, "Pointer motion was captured as an action button.");
             InputSystem.QueueStateEvent(keyboard, new KeyboardState(Key.Escape));
             InputSystem.Update();
-            Require(cancelled && !HumanInputActions.IsCapturing && Path("Slot1", Desktop) == "<Keyboard>/1",
+            Require(cancelled && !HumanInputActions.IsCapturing && Path("Normal1", Desktop) == "<Keyboard>/1",
                 "Escape did not cancel capture while preserving the prior binding.");
             InputSystem.QueueStateEvent(keyboard, new KeyboardState());
             InputSystem.Update();
 
-            HumanInputActions.Rebind("Slot1", Desktop, (path, failure) =>
+            HumanInputActions.Rebind("Normal1", Desktop, (path, failure) =>
                 Require(failure == null && path == "<Keyboard>/j", "Keyboard capture failed in the desktop category."));
             InputSystem.QueueStateEvent(keyboard, new KeyboardState(Key.J));
             InputSystem.Update();
-            Require(!HumanInputActions.IsCapturing && Path("Slot1", Desktop) == "<Keyboard>/j",
+            Require(!HumanInputActions.IsCapturing && Path("Normal1", Desktop) == "<Keyboard>/j",
                 "Keyboard capture failed in the desktop category.");
             InputSystem.QueueStateEvent(keyboard, new KeyboardState());
             InputSystem.Update();
@@ -287,7 +287,7 @@ namespace SlopArena.EditorTools
 
         private static void OverridesSurviveNewBindingIds()
         {
-            HumanInputActions.Get("Slot1").ApplyBindingOverride(HumanInputActions.BindingIndex("Slot1", Desktop), "<Mouse>/leftButton");
+            HumanInputActions.Get("Normal1").ApplyBindingOverride(HumanInputActions.BindingIndex("Normal1", Desktop), "<Mouse>/leftButton");
             HumanInputActions.Get("SlotE").ApplyBindingOverride(HumanInputActions.BindingIndex("SlotE", Desktop), "<Mouse>/scroll/down");
             HumanInputActions.ClearBinding("FaceToCamera", Desktop);
             HumanInputActions.Get("Walk").ApplyBindingOverride(HumanInputActions.BindingIndex("Walk", Desktop), "<Keyboard>/v");
@@ -299,7 +299,7 @@ namespace SlopArena.EditorTools
                     saved = saved.Replace(binding.id.ToString(), Guid.NewGuid().ToString());
             HumanInputActions.ResetOverrides();
             HumanInputActions.ApplyOverrides(saved);
-            Require(Path("Slot1", Desktop) == "<Mouse>/leftButton" && Path("SlotE", Desktop) == "<Mouse>/scroll/down",
+            Require(Path("Normal1", Desktop) == "<Mouse>/leftButton" && Path("SlotE", Desktop) == "<Mouse>/scroll/down",
                 "Mouse or wheel bindings were lost across binding ID changes.");
             Require(Path("Walk", Desktop) == "<Keyboard>/v", "Walk binding was lost across binding ID changes.");
             Require(Path("FaceToCamera", Desktop) == "" && Path("Jump", HumanInputActions.GamepadGroup) == "",
@@ -313,10 +313,13 @@ namespace SlopArena.EditorTools
             HumanInputActions.ApplyOverrides("{\"bindings\":[" +
                 "{\"action\":\"Gameplay/Jump\",\"id\":\"old-keyboard-id\",\"path\":\"<Keyboard>/j\"}," +
                 "{\"action\":\"Gameplay/FaceToCamera\",\"id\":\"old-mouse-id\",\"path\":\"<Mouse>/middleButton\"}," +
-                "{\"action\":\"Gameplay/Slot1\",\"id\":\"old-gamepad-id\",\"path\":\"<Gamepad>/dpad/up\"}]}");
+                "{\"action\":\"Gameplay/Slot1\",\"id\":\"old-gamepad-id\",\"path\":\"<Gamepad>/dpad/up\"}," +
+                "{\"action\":\"Gameplay/Slot3\",\"id\":\"old-up-normal-id\",\"path\":\"<Keyboard>/u\"}]}");
             Require(Path("Jump", Desktop) == "<Keyboard>/j" && Path("FaceToCamera", Desktop) == "<Mouse>/middleButton" &&
-                Path("Slot1", HumanInputActions.GamepadGroup) == "<Gamepad>/dpad/up",
+                Path("Normal1", HumanInputActions.GamepadGroup) == "<Gamepad>/dpad/up",
                 "Existing keyboard, mouse utility or controller preferences stopped loading.");
+            Require(Path("Normal2", Desktop) == "<Keyboard>/u",
+                "A rebind saved under the old Slot3 action no longer reaches the up normal.");
             HumanInputActions.ResetOverrides();
         }
 

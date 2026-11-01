@@ -103,7 +103,7 @@ public class LandingAerialDriftTests
             inputs[1] = new InputState
             {
                 Jump = tick == 0,
-                ActiveSlot = tick == attackTick ? AbilitySlots.Slot1 : (byte)0,
+                ActiveSlot = tick == attackTick ? AbilitySlots.Normal1 : (byte)0,
                 DownPressed = downEdge,
             };
             sim.Tick(inputs);
@@ -160,7 +160,7 @@ public class LandingAerialDriftTests
                     }),
             }));
         def = def with { CookedSlots = slots };
-        var (_, vz, states, grounded) = LandMidAerial(def, AbilitySlots.Slot1, aerialStartTick: 40, releaseTick: 60, totalTicks: 100);
+        var (_, vz, states, grounded) = LandMidAerial(def, AbilitySlots.Normal1, aerialStartTick: 40, releaseTick: 60, totalTicks: 100);
 
         int takeoff = FirstTakeoff(grounded);
         int landing = FirstLanding(grounded, takeoff);
@@ -173,12 +173,12 @@ public class LandingAerialDriftTests
         Assert.Equal(0f, vz[^1]); // After input release, ordinary ground braking stops drift.
     }
 
-    /// <summary>All three Wibou air normals (keys 1, 3, 4): none may drift after landing.</summary>
+    /// <summary>All three Wibou air normals (keys 1, 2, 3): none may drift after landing.</summary>
     [Fact]
     public void Wibou_AllAirNormals_Land_NoDrift()
     {
         var def = TestHelpers.WibouDef;
-        foreach (byte slot in new[] { AbilitySlots.Slot1, AbilitySlots.Slot3, AbilitySlots.Slot4 })
+        foreach (byte slot in new[] { AbilitySlots.Normal1, AbilitySlots.Normal2, AbilitySlots.Normal3 })
         {
             var sim = TestHelpers.MakeSim();
             var p = TestHelpers.PlayerState() with { PY = TestHelpers.GroundPY(def), PZ = 0f };
@@ -235,13 +235,13 @@ public class LandingAerialDriftTests
         {
             if (t < 20) inputs[1] = Fwd();                             // run toward enemy
             else if (t < 30) inputs[1] = new InputState { MoveY = 1f, Jump = t == 20, JumpHeld = true };
-            else if (t == 30) inputs[1] = Fwd(slot: AbilitySlots.Slot1); // one airborne whiff
+            else if (t == 30) inputs[1] = Fwd(slot: AbilitySlots.Normal1); // one airborne whiff
             else if (t < 60) inputs[1] = Fwd();                        // fly past, cross up
             else inputs[1] = default;                                 // release — must stop
             sim.Tick(inputs);
             var s = sim.GetState(1);
             pz.Add(s.PZ); vz.Add(s.VZ); grounded.Add(s.IsGrounded);
-            attackedAirborne |= !s.IsGrounded && s.AttackSlot == AbilitySlots.Slot1;
+            attackedAirborne |= !s.IsGrounded && s.AttackSlot == AbilitySlots.Normal1;
         }
 
         int takeoff = -1;

@@ -7,7 +7,7 @@ namespace SlopArena.Shared.Tests;
 public sealed class CpuTargetPredictionTests
 {
     private static CharacterDefinition Kit(ushort startup = 12, float reach = 4f)
-        => TestHelpers.WithMove(TestHelpers.EngineDef, AbilitySlots.Slot1, false, "Prediction strike", 45,
+        => TestHelpers.WithMove(TestHelpers.EngineDef, AbilitySlots.Normal1, false, "Prediction strike", 45,
             hits: new[] { new HitboxEvent { TriggerTick = startup, DurationTicks = 1,
                 Shape = HitboxShape.Sphere, Radius = 0.4f, OffZ = reach - 0.4f, Damage = 8f } });
 
@@ -44,7 +44,7 @@ public sealed class CpuTargetPredictionTests
             var input = Decide(policy, def, target, difficulty, seed, newestX: 8f);
             var unseen = Decide(policy, def, target, difficulty, seed, newestX: -8f);
             Assert.Equal(input, unseen);
-            if (input.ActiveSlot != AbilitySlots.Slot1) continue;
+            if (input.ActiveSlot != AbilitySlots.Normal1) continue;
             attacks++;
             Assert.True(input.AimYaw > 1000, $"stale yaw was aimed at again: {input.AimYaw}");
             Assert.True(input.AimDistance > 100, "distance must include the lead along X");
@@ -75,25 +75,25 @@ public sealed class CpuTargetPredictionTests
         var policy = new HeuristicBotPolicy();
         int attacks = 0;
         for (int seed = 0; seed < 200; seed++)
-            if (Decide(policy, def, target, CpuDifficulty.Normal, seed).ActiveSlot == AbilitySlots.Slot1) attacks++;
+            if (Decide(policy, def, target, CpuDifficulty.Normal, seed).ActiveSlot == AbilitySlots.Normal1) attacks++;
         Assert.True(attacks > 50, $"only {attacks} strikes anticipated the incoming target");
         int arrivingAtSelf = 0;
         for (int seed = 0; seed < 200; seed++)
-            if (Decide(policy, def, target with { PZ = 2.4f, VZ = -4.8f }, CpuDifficulty.Normal, seed).ActiveSlot == AbilitySlots.Slot1) arrivingAtSelf++;
+            if (Decide(policy, def, target with { PZ = 2.4f, VZ = -4.8f }, CpuDifficulty.Normal, seed).ActiveSlot == AbilitySlots.Normal1) arrivingAtSelf++;
         Assert.True(arrivingAtSelf > 50, $"only {arrivingAtSelf} attacks met the target arriving at the CPU");
-        var mixed = TestHelpers.WithMove(Kit(0, 2f), AbilitySlots.Slot3, false, "Incoming slow strike", 45,
+        var mixed = TestHelpers.WithMove(Kit(0, 2f), AbilitySlots.Normal2, false, "Incoming slow strike", 45,
             hits: new[] { new HitboxEvent { TriggerTick = 20, DurationTicks = 1,
                 Shape = HitboxShape.Sphere, Radius = 0.4f, OffZ = 1.6f, Damage = 8f } });
         int slow = 0;
         for (int seed = 0; seed < 200; seed++)
-            if (Decide(policy, mixed, target with { PZ = 4.5f }, CpuDifficulty.Normal, seed).ActiveSlot == AbilitySlots.Slot3) slow++;
+            if (Decide(policy, mixed, target with { PZ = 4.5f }, CpuDifficulty.Normal, seed).ActiveSlot == AbilitySlots.Normal2) slow++;
         Assert.True(slow > 20, $"only {slow} slow strikes could enter range after the fast strike");
     }
 
     [Fact]
     public void MoveChoiceUsesEachMovesOwnStartup()
     {
-        var def = TestHelpers.WithMove(Kit(0, 1.6f), AbilitySlots.Slot3, false, "Slow prediction strike", 60,
+        var def = TestHelpers.WithMove(Kit(0, 1.6f), AbilitySlots.Normal2, false, "Slow prediction strike", 60,
             hits: new[] { new HitboxEvent { TriggerTick = 30, DurationTicks = 1,
                 Shape = HitboxShape.Sphere, Radius = 0.4f, OffZ = 1.2f, Damage = 8f } });
         var target = TestHelpers.NpcState(0f, 0.2f) with { PY = TestHelpers.GroundPY(def), VZ = 4f };
@@ -102,8 +102,8 @@ public sealed class CpuTargetPredictionTests
         for (int seed = 0; seed < 400; seed++)
         {
             byte slot = Decide(policy, def, target, CpuDifficulty.Normal, seed).ActiveSlot;
-            Assert.NotEqual(AbilitySlots.Slot3, slot);
-            if (slot == AbilitySlots.Slot1) fast++;
+            Assert.NotEqual(AbilitySlots.Normal2, slot);
+            if (slot == AbilitySlots.Normal1) fast++;
         }
         Assert.True(fast > 100, $"only {fast} fast strikes");
         var observation = CpuObservation.Capture(0, target with { PX = 0f, PZ = 1f, VX = 1f, VZ = 0f }, 0f).WithAge(3);

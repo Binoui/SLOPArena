@@ -18,7 +18,7 @@ public sealed class MoveDataReportContractTests
         var def = TestHelpers.EngineDef;
         def = def with { DisplayName = "Trajectory fixture" };
         def = def with { Weight = 137f };
-        def = TestHelpers.WithMove(def, AbilitySlots.Slot3, false, "Fixture launcher", 30, 20,
+        def = TestHelpers.WithMove(def, AbilitySlots.Normal2, false, "Fixture launcher", 30, 20,
             new[] { new HitboxEvent
                         {
                             TriggerTick = 4,
@@ -50,7 +50,7 @@ public sealed class MoveDataReportContractTests
     public void RepresentativeTrajectory_ExposesLaunchExpiryApexLandingAndSamples()
     {
         var report = Build();
-        var trajectory = report.Moves.Single(m => m.Label == "g3 Fixture launcher").Trajectories.Single(t => t.Pct == 0);
+        var trajectory = report.Moves.Single(m => m.Label == "g2 Fixture launcher").Trajectories.Single(t => t.Pct == 0);
 
         Assert.Equal("Trajectory fixture", report.Metadata.Character);
         Assert.Equal(Pcts, report.Metadata.RequestedPercents);
@@ -96,7 +96,7 @@ public sealed class MoveDataReportContractTests
         static Program.ReportData BuildProfile(string profile)
         {
             var def = ReportingDef();
-            var hit = Program.CollectHits(def).Single(h => !h.Slot.Air && h.Slot.Slot == 3 && h.HitIndex == 0);
+            var hit = Program.CollectHits(def).Single(h => !h.Slot.Air && h.Slot.Slot == 2 && h.HitIndex == 0);
             return Program.BuildReport(def, new() { hit }, new[] { 0, 60 }, null, false, true,
                 combatTuning: TuningProfiles.Get(profile));
         }

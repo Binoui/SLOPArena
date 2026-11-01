@@ -9,14 +9,14 @@ public readonly record struct SlotAddress(string Id, bool IsAirborne, string Inp
 
 public static class CanonicalSlotProjection
 {
-    // Three normals (ADR-0042): jab/all-rounder, up and big keep the ids 1, 3 and 4.
+    // Three normals (ADR-0042): jab/all-rounder, up and big are 1, 2 and 3, as players press them.
     private static readonly byte[] WireSlots =
     {
-        AbilitySlots.Slot1, AbilitySlots.Slot3, AbilitySlots.Slot4,
+        AbilitySlots.Normal1, AbilitySlots.Normal2, AbilitySlots.Normal3,
         AbilitySlots.A, AbilitySlots.E, AbilitySlots.R, AbilitySlots.F,
     };
 
-    private static readonly string[] InputLabels = { "1", "3", "4", "A", "E", "R", "F" };
+    private static readonly string[] InputLabels = { "1", "2", "3", "A", "E", "R", "F" };
 
     /// <summary>Slots per variant; air ordinals follow the ground ones.</summary>
     public const int VariantSlotCount = 7;

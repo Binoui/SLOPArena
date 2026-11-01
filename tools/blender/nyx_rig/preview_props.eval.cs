@@ -10,7 +10,7 @@ var evidence = new List<object>();
 var checks = new List<string>();
 var eventHandoff = Newtonsoft.Json.Linq.JObject.Parse(System.IO.File.ReadAllText(System.IO.Path.Combine(System.IO.Path.GetDirectoryName(output), "events.json")));
 ushort Duration(string form, string slot) => (ushort)eventHandoff["moves"].Single(m => (string)m["form"] == form && (string)m["slot"] == slot)["operationsToAdd"][0]["placement"]["durationTicks"];
-ushort ground3Duration = Duration("fake", "ground.3"), air3Duration = Duration("fake", "air.3");
+ushort ground3Duration = Duration("fake", "ground.2"), air3Duration = Duration("fake", "air.2");
 ushort liveDuration = Duration("real", "ground.F"), logoffDuration = Duration("fake", "ground.F");
 try
 {

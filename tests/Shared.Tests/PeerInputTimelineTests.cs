@@ -34,7 +34,7 @@ public class PeerInputTimelineTests
     {
         var timeline = new PeerInputTimeline();
         var pressed = Move(1f, shield: true);
-        pressed.ActiveSlot = AbilitySlots.Slot1;
+        pressed.ActiveSlot = AbilitySlots.Normal1;
         pressed.Jump = true;
         timeline.Accept(10, 11, new[] { pressed }, Horizon);
         Assert.Equal(ConsumedInputSource.Received, timeline.Consume(11).Source);
@@ -101,7 +101,7 @@ public class PeerInputTimelineTests
 
         var press = Move(1f);
         press.Jump = true;
-        press.ActiveSlot = AbilitySlots.Slot3;
+        press.ActiveSlot = AbilitySlots.Normal2;
         var report = timeline.Accept(12, 12, new[] { press }, Horizon);
         var next = timeline.Consume(13);
 
@@ -109,7 +109,7 @@ public class PeerInputTimelineTests
         Assert.Equal(ConsumedInputSource.Held, next.Source);
         Assert.Equal(1, next.RescuedPresses);
         Assert.True(next.Input.Jump);
-        Assert.Equal(AbilitySlots.Slot3, next.Input.ActiveSlot);
+        Assert.Equal(AbilitySlots.Normal2, next.Input.ActiveSlot);
         Assert.False(timeline.Consume(14).Input.Jump);
     }
 
@@ -166,12 +166,12 @@ public class PeerInputTimelineTests
         timeline.Consume(12);
 
         var late = Move(1f);
-        late.ActiveSlot = AbilitySlots.Slot3;
+        late.ActiveSlot = AbilitySlots.Normal2;
         var current = Move(1f);
-        current.ActiveSlot = AbilitySlots.Slot4;
+        current.ActiveSlot = AbilitySlots.Normal3;
         timeline.Accept(12, 13, new[] { late, current }, Horizon);
 
-        Assert.Equal(AbilitySlots.Slot4, timeline.Consume(13).Input.ActiveSlot);
+        Assert.Equal(AbilitySlots.Normal3, timeline.Consume(13).Input.ActiveSlot);
     }
 
     [Fact]

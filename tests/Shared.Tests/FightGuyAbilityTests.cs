@@ -277,7 +277,7 @@ public class FightGuyAbilityTests
         sim.RegisterEntity(100, targetDef, npc);
 
         // Tick through hitbox trigger (tick 5)
-        sim.Tick(new() { { 1, TestHelpers.Input(activeSlot: AbilitySlots.Slot1) }, { 100, default } });
+        sim.Tick(new() { { 1, TestHelpers.Input(activeSlot: AbilitySlots.Normal1) }, { 100, default } });
         for (int i = 0; i < 10; i++)
             sim.Tick(new() { { 1, default }, { 100, default } });
 
@@ -315,7 +315,7 @@ public class FightGuyAbilityTests
         npc.DamagePercent = 0;
         sim.RegisterEntity(100, targetDef, npc);
 
-        sim.Tick(new() { { 1, TestHelpers.Input(activeSlot: AbilitySlots.Slot1) }, { 100, default } });
+        sim.Tick(new() { { 1, TestHelpers.Input(activeSlot: AbilitySlots.Normal1) }, { 100, default } });
         for (int i = 0; i < 10; i++)
             sim.Tick(new() { { 1, default }, { 100, default } });
 

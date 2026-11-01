@@ -250,7 +250,7 @@ public sealed class NyxKitRound2Tests(ITestOutputHelper output)
         var dummy = duel.Victim;
         dummy.PZ = duel.Her.PZ + 1.2f;
         duel.Sim.SetState(Dummy, dummy);
-        duel.Press(AbilitySlots.Slot1);
+        duel.Press(AbilitySlots.Normal1);
         duel.Until(() => duel.Hits.Any(h => h.AttackSlot == AbilitySlots.A), 80);
         var slap = duel.Hits.First(h => h.Form == 1);
         var popped = duel.Hits.Single(h => h.AttackSlot == AbilitySlots.A);
@@ -434,13 +434,13 @@ public sealed class NyxKitRound2Tests(ITestOutputHelper output)
         duel.Step(new InputState { DashPressed = true });
         for (int tick = 0; tick < 60 && duel.Her.State != ActionState.HomingDashArrive; tick++) { duel.Step(); Check(); }
         Assert.Equal(ActionState.HomingDashArrive, duel.Her.State);
-        duel.Press(AbilitySlots.Slot1);
+        duel.Press(AbilitySlots.Normal1);
         int left = duel.Victim.HitstunTicks;
         for (int tick = 0; tick < 30 && duel.Hits.Count == 1; tick++) { Check(); left = duel.Victim.HitstunTicks; duel.Step(); }
         var slap = duel.Hits[1];
         output.WriteLine($"slap {slap.MatchTick - dazzledAt} ticks after the flash, {left} dazzle ticks left");
         Assert.True(left >= Slack, $"only {left} dazzle ticks were left for the slap");
-        Assert.Equal(AbilitySlots.Slot1, slap.AttackSlot);
+        Assert.Equal(AbilitySlots.Normal1, slap.AttackSlot);
         Assert.Equal(1, slap.Form);
     }
 

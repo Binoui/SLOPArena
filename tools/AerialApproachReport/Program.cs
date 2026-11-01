@@ -60,7 +60,7 @@ internal static partial class Program
     }
     private sealed class BonkAuthoringEvidence
     {
-        public string CanonicalSlot { get; init; } = "ground.3";
+        public string CanonicalSlot { get; init; } = "ground.2";
         public byte ActualWireSlot { get; init; }
         public string ActualCookedSlot { get; init; } = "";
         public int OperationCount { get; init; }
@@ -71,7 +71,7 @@ internal static partial class Program
     {
         public string Tool { get; init; } = "AerialApproachReport";
         public string[] Characters { get; init; } = Array.Empty<string>();
-        public string[] AerialNormals { get; init; } = new[] { "air.1", "air.3", "air.4" };
+        public string[] AerialNormals { get; init; } = new[] { "air.1", "air.2", "air.3" };
         public string[] TargetModes { get; init; } = new[] { "stationary", "fixed-path" };
         public string[] Approaches { get; init; } = new[] { "straight", "oblique" };
         public string[] HorizontalSpeeds { get; init; } = new[] { "low", "running" };
@@ -227,7 +227,7 @@ internal static partial class Program
     private sealed class BonkGridCell
     {
         public string Character { get; init; } = "bonk";
-        public string Slot { get; init; } = "ground.3";
+        public string Slot { get; init; } = "ground.2";
         public byte ActualWireSlot { get; init; }
         public string ActualCookedSlot { get; init; } = "";
         public string CharacterPackageHash { get; init; } = "";
@@ -354,7 +354,7 @@ internal static partial class Program
             "Target world start is offset by the measured attacker run-up so target-minus-attacker placement equals each grid distance at takeoff; fixed-path movement begins after that sample to avoid run-up placement confounding.",
             "Resolver HitResult exposes activation/slot and contact point, but not an authored hitbox-event id. Part identity uses actual active/removed Hitbox.SourceEvent geometry when available; otherwise the report says resolver-slot-only.",
             "No causal miss label is emitted when recorded geometry does not establish one.",
-            "Bonk ground.3 contact sequence is actual LastTickHits; first/later is per distinct observed contact identity, not a balance classification.",
+            "Bonk ground.2 contact sequence is actual LastTickHits; first/later is per distinct observed contact identity, not a balance classification.",
         });
         foreach (var entry in entries) report.AdmittedRoster.Add(ProvenanceOf(entry));
 
@@ -408,7 +408,7 @@ internal static partial class Program
 
         report.SuccessfulPressWindows.AddRange(BuildWindows(report.Casts));
         var bonk = entries.Single(x => x.Identity.PackageId.Contains("bonk", StringComparison.OrdinalIgnoreCase) || x.LegacySelector == CharacterClass.Bonk);
-        if (!CanonicalSlotProjection.TryGet(false, "3", out var g3)) throw new InvalidDataException("canonical ground.3 projection is unavailable");
+        if (!CanonicalSlotProjection.TryGet(false, "3", out var g3)) throw new InvalidDataException("canonical ground.2 projection is unavailable");
         var g3Cooked = RequireCookedSlot(bonk, g3);
         var authoredHitboxes = g3Cooked.Timeline.Stages.SelectMany(stage => stage.Operations)
             .OfType<CookedSpawnHitboxOperation>().ToArray();

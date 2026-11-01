@@ -31,7 +31,7 @@ public sealed class CombatReviewRegressionTests
         Assert.Equal(0, before.AttackElapsedTicks);
         Assert.Equal(15, before.AnimLockTicks);
 
-        sim.Tick(new() { [1] = new InputState { ActiveSlot = AbilitySlots.Slot1 } });
+        sim.Tick(new() { [1] = new InputState { ActiveSlot = AbilitySlots.Normal1 } });
 
         Assert.Equal(AbilitySlots.R, sim.GetState(1).AttackSlot);
     }
@@ -74,8 +74,8 @@ public sealed class CombatReviewRegressionTests
         Assert.Null(sim.GetActiveAbility(1));
         Assert.Equal(0, recovered.AnimLockTicks);
         Assert.Equal(AbilitySlots.None, recovered.AttackSlot);
-        sim.Tick(new() { [1] = new InputState { ActiveSlot = AbilitySlots.Slot1 } });
-        Assert.Equal(AbilitySlots.Slot1, sim.GetState(1).AttackSlot);
+        sim.Tick(new() { [1] = new InputState { ActiveSlot = AbilitySlots.Normal1 } });
+        Assert.Equal(AbilitySlots.Normal1, sim.GetState(1).AttackSlot);
         Assert.NotNull(sim.GetActiveAbility(1));
     }
 
@@ -90,14 +90,14 @@ public sealed class CombatReviewRegressionTests
         initial.State = ActionState.Sliding;
         initial.VZ = def.Movement.RunSpeed;
         sim.RegisterEntity(1, def, initial, entry.BakedAnimation);
-        sim.Tick(new() { [1] = new InputState { ActiveSlot = AbilitySlots.Slot4 } });
+        sim.Tick(new() { [1] = new InputState { ActiveSlot = AbilitySlots.Normal3 } });
         for (int i = 0; i < 35; i++) sim.Tick(new());
         var before = sim.GetState(1);
         Assert.False(before.IsGrounded);
-        Assert.Equal(AbilitySlots.Slot4, before.AttackSlot);
+        Assert.Equal(AbilitySlots.Normal3, before.AttackSlot);
         Assert.InRange(before.AttackElapsedTicks, 31, 62);
-        sim.Tick(new() { [1] = new InputState { ActiveSlot = AbilitySlots.Slot1 } });
-        Assert.Equal(AbilitySlots.Slot4, sim.GetState(1).AttackSlot);
+        sim.Tick(new() { [1] = new InputState { ActiveSlot = AbilitySlots.Normal1 } });
+        Assert.Equal(AbilitySlots.Normal3, sim.GetState(1).AttackSlot);
     }
 
     [Theory]
@@ -240,12 +240,12 @@ public sealed class CombatReviewRegressionTests
     {
         var entry = BuiltInContentResolver.Resolve(CharacterClass.Wibou);
         var sim = Create(entry);
-        sim.Tick(new() { [1] = new InputState { ActiveSlot = AbilitySlots.Slot4 } });
+        sim.Tick(new() { [1] = new InputState { ActiveSlot = AbilitySlots.Normal3 } });
         for (int tick = 0; tick < 20; tick++) sim.Tick(new());
         sim.SetState(1, sim.GetState(1) with { IsGrounded = false, ComboStage = 9 });
         var move = sim.GetActiveMove(1)!.Value;
         Assert.False(move.AirborneAtStart);
-        Assert.Equal("ground.4", move.Slot.Id);
+        Assert.Equal("ground.3", move.Slot.Id);
         Assert.Equal(0, move.StageIndex);
         Assert.Equal(21, move.StageTick);
         var restored = Create(entry);
@@ -271,7 +271,7 @@ public sealed class CombatReviewRegressionTests
         var sim = new ServerSimulation(Arena());
         var state = Initial(def, 1) with { PY = 4, IsGrounded = false };
         sim.RegisterEntity(1, def, state);
-        sim.Tick(new() { [1] = new InputState { ActiveSlot = AbilitySlots.Slot1, IsAiming = true } });
+        sim.Tick(new() { [1] = new InputState { ActiveSlot = AbilitySlots.Normal1, IsAiming = true } });
         sim.SetState(1, sim.GetState(1) with { PY = def.CapsuleHeight * .5f, VY = 0, IsGrounded = true });
         for (int tick = 0; tick < 10; tick++)
             sim.Tick(new() { [1] = new InputState { IsAiming = true, MoveY = 1 } });

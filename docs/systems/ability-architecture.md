@@ -293,7 +293,7 @@ locomotion, hit and defense roles in `presentation` (an empty role plays form 0'
 `slots` with `aliases`. Body fields stay form 0's. The cook writes form 1's slots under `alternateForm` with
 `form: 1`, and nothing for packages without the block, so they keep their bytes. The runtime builds one
 `CharacterDefinition` per form, linked through `ForForm`. The typed `swapForm` operation (no fields, unit `ticks`)
-toggles her form at its tick, at most once per move. The swap exchanges the live cooldowns of slots 1, 3, 4, A, E and R
+toggles her form at its tick, at most once per move. The swap exchanges the live cooldowns of slots 1, 2, 3, A, E and R
 with the other form's bank in `CharacterState.Form`; F keeps one clock. A running move keeps the definition it started
 with, and its hitboxes and hit records carry its form. Compiler and cooked loader enforce the same rules
 (`FormsBoundsError`). Ability Lab shows and edits form 0 only.
