@@ -41,9 +41,9 @@ Each row is captured once in each stage (`Slop Court` and `After Hours`). Use th
 | VB-03 | Jump | PNG near apex + video | From neutral, perform one full jump and return to ground without pressing LMB, RMB, or special attack buttons. | Preserve ground reference and airborne silhouette. |
 | VB-04 | Landing | PNG on landing frame + video | Jump from the default starting platform, then land back on that same platform without using fast-fall; finish grounded before the next row. | Show feet, landing surface, and both fighters. |
 | VB-05 | Light hit | PNG at contact + video | At low damage, land FightGuy light ground normal g1 once. | Contact remains visible without hiding the victim or HUD. |
-| VB-06 | Heavy hit | PNG at contact + video | At low damage, land FightGuy heavy ground normal g4 once. | Brief event remains readable while both fighters stay identifiable. |
-| VB-07 | Launch | PNG immediately after launch + video | At approximately 60% victim damage, land a launcher (g3) and let the victim fly. | Keep launch direction, victim, stage edge, and landing route visible. |
-| VB-08 | KO | PNG at KO + video | Raise victim damage, land a horizontal finisher (g4), and record the stock-loss/KO moment. | Do not crop the KO direction or stock UI. |
+| VB-06 | Heavy hit | PNG at contact + video | At low damage, land FightGuy heavy ground normal g3 once. | Brief event remains readable while both fighters stay identifiable. |
+| VB-07 | Launch | PNG immediately after launch + video | At approximately 60% victim damage, land a launcher (g2) and let the victim fly. | Keep launch direction, victim, stage edge, and landing route visible. |
+| VB-08 | KO | PNG at KO + video | Raise victim damage, land a horizontal finisher (g3), and record the stock-loss/KO moment. | Do not crop the KO direction or stock UI. |
 | VB-09 | Respawn | PNG after materialization + video | Complete the KO flow, then capture the victim's respawn before movement input. | Keep respawning fighter, invulnerability read, and remaining fighter visible. |
 | VB-10 | Results | PNG + 6 s video | Finish the match after the KO and wait for the results surface. | Normal results framing; record any transition timing. |
 

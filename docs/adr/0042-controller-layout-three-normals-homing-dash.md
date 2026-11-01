@@ -2,7 +2,8 @@
 
 **Status:** Accepted — 2026-10-26 (implemented; supersedes ADR-0016's four-normal slot layout).
 Amended 2026-10-28: specials moved to the right stick and LB grabs by default; see
-[Right-stick specials](#right-stick-specials-2026-10-28).
+[Right-stick specials](#right-stick-specials-2026-10-28). Amended 2026-11-01: the normals are
+numbered 1, 2 and 3; see [Normals renumbered](#normals-renumbered-2026-11-01).
 
 ## Context
 
@@ -189,3 +190,22 @@ circles the dummy and the Steady camera turns to keep it in view.
   out of 432: ground vs standing 377 → 406, ground vs jumper 0 → 255, rising air dash
   172 → 348, apex 348 → 356, apex vs jumper 267 → 244. Sir Bonk's meteor cleave (air 3) prefers
   a higher arrival (46 of 48 at 50 %) and stays weak here.
+
+## Normals renumbered (2026-11-01)
+
+Keeping the ids `1`, `3` and `4` after the merge confused every conversation about the
+normals: the owner says "normal 2" for the up normal, which code called `ground.3`, `g3` and
+`AbilitySlots.Slot3`. The ids now match the buttons.
+
+- Canonical slots are `ground.1|2|3` and `air.1|2|3`; `ground.4` and `air.4` are rejected.
+  Wire values do not change (`AbilitySlots.Normal1` = 3, `Normal2` = 8, `Normal3` = 9; 7 and 10
+  stay reserved as `RetiredNormal` and `RetiredFifthNormal`), so the protocol and snapshots
+  are unaffected.
+- Clip ids follow the slot that plays them (`anim.<package>.g2` is the up normal), as do HUD
+  icons (`icon.2`), GenRA brief names, input actions (`Normal1`–`Normal3`, with saved rebinds
+  of the old `Slot1`/`Slot3`/`Slot4` still loading) and tutorial objectives
+  (`HitNormal1`–`HitNormal3`). Clip files keep their names; they bind by GUID.
+- Authoring schema 4 and cooked schema 5 carry the new ids. The compiler rejects schema 3 and
+  names the migration: `python3 tools/slot_renumber.py --packages-only` migrates a
+  character.json and its cook. The whole renumbering is that tool's output.
+- The sections above keep the numbers of their date.

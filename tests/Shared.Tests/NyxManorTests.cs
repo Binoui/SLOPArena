@@ -269,7 +269,7 @@ public sealed class NyxManorTests(ITestOutputHelper output)
                 ticks=1, moveX=i.MoveX, moveY=i.MoveY, jumpPressed=i.Jump, jumpHeld=i.JumpHeld,
                 shieldPressed=i.ShieldPressed, shieldHeld=i.ShieldHeld, downPressed=i.DownPressed, downHeld=i.Down,
                 facingYaw=i.FacingYaw, aimYaw=i.AimYaw, aimDistance=i.AimDistance, aimPitch=i.AimPitch, isAiming=i.IsAiming,
-                slot=i.ActiveSlot switch { 0 => null, AbilitySlots.Normal1 => "1", AbilitySlots.Normal2 => "3", AbilitySlots.Normal3 => "4", _ => throw new InvalidOperationException("Expected a normal attack.") }, targetEntityId=i.TargetEntityId.ToString()
+                slot=i.ActiveSlot switch { 0 => null, AbilitySlots.Normal1 => "1", AbilitySlots.Normal2 => "2", AbilitySlots.Normal3 => "3", _ => throw new InvalidOperationException("Expected a normal attack.") }, targetEntityId=i.TargetEntityId.ToString()
             }),options));
         int At(RouteStep step) => settle+d.Landings.First(l => l.Step == step).InputCount;
         var captures = new[] {

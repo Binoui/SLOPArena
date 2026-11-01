@@ -14,8 +14,8 @@ The Shared `ServerSimulation` is authoritative. The GameServer and client predic
 A cooked Character Package contains normalized slot definitions, fixed timelines, typed operations, versioned capability references, and deterministic budgets. The canonical grid is:
 
 ```text
-ground.1 ground.2 ground.3 ground.4 ground.A ground.E ground.R ground.F
-air.1    air.2    air.3    air.4    air.A    air.E    air.R    air.F
+ground.1 ground.2 ground.3 ground.A ground.E ground.R ground.F
+air.1    air.2    air.3    air.A    air.E    air.R    air.F
 ```
 
 `LMB`, `RMB`, `Q`, and other physical labels are input adapters. They are not universal persisted move identities. Ground/air authoring aliases expand during cooking; runtime consumers receive explicit slots.

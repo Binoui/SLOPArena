@@ -178,7 +178,7 @@ air.1–4 against stationary and fixed-path targets. It compares zero drift with
 approaches, straight/oblique directions, four target distances, and small/large admitted
 targets. Positions are matched at takeoff. JSON contains actual relative states, active
 frames, contact identities, accepted/rejected casts and contiguous successful press
-windows; CSV files provide cast, window and Bonk ground.3 coverage tables.
+windows; CSV files provide cast, window and Bonk ground.2 coverage tables.
 The grid includes deliberately bad timings: its aggregate hit rate is not a player
 accuracy estimate. Zero-drift versus running changes the approach trajectory, not an
 attack-only momentum setting. Bonk contact identities describe actual cooked operations,
@@ -228,7 +228,7 @@ roster; changed content or simulation code can produce different results.
   This does not show universal failure when both bots jump; attack selection and
   engagement situations remain confounds. Recovery-tagged and ambiguous moves are
   excluded, but authored tags do not establish actual intent.
-- **Bonk coverage:** ground.3 resolved to wire slot 8 and contained one authored hitbox
+- **Bonk coverage:** ground.2 resolved to wire slot 8 and contained one authored hitbox
   spawn at tick 17. The stationary grid connected in 23/60 cells. There was no separately
   authored later contact to compare with the first visual animation part. The player's
   reported small-target frontal miss remains a visual/coverage investigation, not a
@@ -335,7 +335,7 @@ is labelled in the JSON/HTML so the assumption is explicit.
 **Finding (2026-08-17):** no normal KO ≤ 250% on the proxy — the game's knockback magnitudes (apex ≤ ~9 m,
 side travel ≤ ~19 m at 250%) are small vs the blast-zone distances. That is a design signal (these are combo
 moves, not finishers, and/or blast zones are deep). Use **blast clearance** to read how close each move gets:
-e.g. Kistu g3 Up Slash apex = 43% of the way to top blast.
+e.g. Kistu g2 Up Slash apex = 43% of the way to top blast.
 
 ## True-combo reachability (`--truecombos`)
 
@@ -374,7 +374,7 @@ holds bend most; along-axis holds only give the expiry ASDI push) and the stick 
 ## Authored hitbox reach (`--reach`)
 
 Deterministic, per-move answer to "what does this move cover, and where are the gaps in the kit?" — the
-authored complement to the empirical heat spots. For every collected normal (slots g1–g4, a1–a4, first
+authored complement to the empirical heat spots. For every collected normal (slots g1–g3, a1–a3, first
 stage, every `HitboxEvent`), the tool resolves the **real sim hitbox volumes** over the active frames and
 renders a side-view overlay per move, a range ladder, coverage gaps (whiff zones between moves), and
 uncovered height bands.

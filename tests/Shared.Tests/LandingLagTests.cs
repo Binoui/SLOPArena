@@ -294,7 +294,7 @@ public class LandingLagTests
 
     /// <summary>
     /// Ability inputs are hard-blocked inside the lock and never buffered through it: a
-    /// Slot3 press at t41 (lag live, anim lock gone) is dropped — no second attack follows,
+    /// Normal2 press at t41 (lag live, anim lock gone) is dropped — no second attack follows,
     /// and no buffered re-trigger fires when the lag expires.
     /// </summary>
     [Fact]

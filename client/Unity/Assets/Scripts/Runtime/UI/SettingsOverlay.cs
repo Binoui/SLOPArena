@@ -360,7 +360,6 @@ namespace SlopArena.Client.UI
             "ToggleLock" => controller ? "Target Lock (tap)" : "Target Lock",
             "CameraToggle" => controller ? "Camera Toggle (hold)" : "Camera Toggle", "Retarget" => "Retarget Target", "Pause" => "Pause",
             "Retry" => controller ? "Arcade Retry (hold)" : "Arcade Retry",
-            // Three normals (ADR-0042) keep the slot ids 1, 3 and 4 behind the player-facing 1-3.
             "Normal1" => controller ? "Normal 1" : "Action 1",
             "Normal2" => controller ? "Normal 2" : "Action 2",
             "Normal3" => controller ? "Normal 3" : "Action 3",

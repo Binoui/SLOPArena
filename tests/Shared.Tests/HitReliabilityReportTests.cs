@@ -70,8 +70,8 @@ public sealed class HitReliabilityReportTests
     [Fact]
     public void ParseSlots_AcceptsCanonicalKeysAndRejectsUnknownOnes()
     {
-        Assert.Equal(new[] { AbilitySlots.Normal1, AbilitySlots.Normal3, AbilitySlots.F }, SlopArena.HitReliabilityReport.Program.ParseSlots("1, 4,f,F"));
-        Assert.Null(SlopArena.HitReliabilityReport.Program.ParseSlots("1,Q"));
+        Assert.Equal(new[] { AbilitySlots.Normal1, AbilitySlots.Normal3, AbilitySlots.F }, SlopArena.HitReliabilityReport.Program.ParseSlots("1, 3,f,F"));
+        Assert.Null(SlopArena.HitReliabilityReport.Program.ParseSlots("1,4"));
         Assert.Null(SlopArena.HitReliabilityReport.Program.ParseSlots(""));
     }
 

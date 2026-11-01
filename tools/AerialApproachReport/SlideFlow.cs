@@ -325,7 +325,7 @@ internal static partial class Program
     }
     private static bool TryGetRecoveryAirSlot(MatchContentEntry entry, out SlotAddress slot, out byte wire)
     {
-        foreach (string label in new[] { "1", "3", "4", "A", "E", "R", "F" })
+        foreach (string label in new[] { "1", "2", "3", "A", "E", "R", "F" })
         {
             if (!CanonicalSlotProjection.TryGet(true, label, out var candidate)) continue;
             byte candidateWire = AirWireSlot(label);

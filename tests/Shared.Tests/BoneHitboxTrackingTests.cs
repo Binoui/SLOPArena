@@ -22,7 +22,7 @@ public class BoneHitboxTrackingTests
         player.FacingYaw = 0f;
         sim.RegisterEntity(1, TestHelpers.FightGuyDef, player, baked);
 
-        // Slot1 "Low Kick": RightFoot hitbox, TriggerTick 4, DurationTicks 5.
+        // Normal1 "Low Kick": RightFoot hitbox, TriggerTick 4, DurationTicks 5.
         sim.Tick(new() { { 1, TestHelpers.Input(activeSlot: AbilitySlots.Normal1) } });
 
         // Advance until the hitbox spawns (bounded), then capture position.

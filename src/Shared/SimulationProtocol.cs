@@ -94,6 +94,8 @@ namespace SlopArena.Shared
         //   peck and scatter presentation, and a carrier's shield or air dodge swats it. The tether's atTarget gains an
         //   unmarked hand for a target without the thrower's perch. Runtime API 1.21.0, World Snapshot v24. Hex Crow dives,
         //   Grasp drags only a crowed target, Ring Light has a 24-tick wind-up, no lunge, a 4.9 m flash and a 60-tick dazzle.
+        // - The normals are numbered 1, 2 and 3 (ADR-0042, 2026-11-01): canonical slot ids, clip ids, authoring
+        //   schema 4 and cooked schema 5. Wire slot values and the snapshot layout are unchanged.
         public const byte Version = 33;
     }
 }

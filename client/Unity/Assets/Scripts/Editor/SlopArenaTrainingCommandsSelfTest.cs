@@ -21,7 +21,7 @@ namespace SlopArena.EditorTools
             var slotMappings = new[]
             {
                 ("1", AbilitySlots.Normal1),
-                ("3", AbilitySlots.Normal2), ("4", AbilitySlots.Normal3),
+                ("2", AbilitySlots.Normal2), ("3", AbilitySlots.Normal3),
                 ("A", AbilitySlots.A), ("E", AbilitySlots.E),
                 ("R", AbilitySlots.R), ("F", AbilitySlots.F)
             };

@@ -48,11 +48,11 @@ Raw JSON is cook input. Runtime consumers load the immutable cooked package thro
 
 ## Canonical move grid
 
-Every package resolves the fourteen canonical slots in this order (three normals since ADR-0042; `2` is retired):
+Every package resolves the fourteen canonical slots in this order (three normals since ADR-0042, numbered as players press them):
 
 ```text
-ground.1  ground.3  ground.4  ground.A  ground.E  ground.R  ground.F
-air.1     air.3     air.4     air.A     air.E     air.R     air.F
+ground.1  ground.2  ground.3  ground.A  ground.E  ground.R  ground.F
+air.1     air.2     air.3     air.A     air.E     air.R     air.F
 ```
 
 Use package slot IDs as persisted identity. Ability Lab labels are projections of that identity. `LMB`, `RMB`, `Q`, and other physical controls are input adapters, not alternate package slots. Ground/air aliases may appear once in authoring and are expanded by the compiler; runtime data is explicit.
@@ -142,7 +142,7 @@ bun scripts/unity-editor-gateway.ts --project-path client/Unity -- sloparena.cha
 bun scripts/unity-editor-gateway.ts --project-path client/Unity -- sloparena.character.cook --target <package>
 ```
 
-`inspect` reports the canonical 16-slot projection, source/cooked hashes, status,
+`inspect` reports the canonical 14-slot projection, source/cooked hashes, status,
 stale reasons, and diagnostics. `cook` validates the Shared source, resolves
 Unity bindings, bakes poses, writes generated bindings, assembles the immutable
 package, and reports source, cooked-content, and package hashes. It publishes four

@@ -26,7 +26,7 @@ internal static partial class ContactCoverageReport
     internal sealed class NormalCoverageOptions
     {
         public IReadOnlyList<SlotAddress> Slots { get; init; } = CanonicalSlotProjection.All
-            .Where(x => x.InputLabel is "1" or "3" or "4")
+            .Where(x => x.InputLabel is "1" or "2" or "3")
             .OrderBy(x => x.Ordinal).ToArray();
         public IReadOnlyList<float> X { get; init; } = new[] { -1f, 0f, 1f };
         public IReadOnlyList<float> Y { get; init; } = new[] { 0f, 1f, 2f };
@@ -705,7 +705,7 @@ internal static partial class ContactCoverageReport
         foreach (var provided in options.Slots)
         {
             if (!CanonicalSlotProjection.TryGet(provided.Id, out var canonical) || canonical != provided
-                || provided.InputLabel is not ("1" or "3" or "4"))
+                || provided.InputLabel is not ("1" or "2" or "3"))
                 throw new ArgumentException($"slot '{provided.Id}' is not an exact canonical normal address", nameof(options));
         }
         long matrix;

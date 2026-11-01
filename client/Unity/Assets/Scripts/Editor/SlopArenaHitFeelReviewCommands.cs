@@ -70,7 +70,7 @@ namespace SlopArena.EditorTools
             [CliArg("output", "Fresh repository-relative directory below tmp/, .impeccable/, .ability-lab-cache/ or client/Unity/Temp/.", Required = true)] string output,
             [CliArg("attacker", "Roster package ID of the attacker.")] string attacker = "fightguy",
             [CliArg("victim", "Roster package ID of the idle victim.")] string victim = "manki",
-            [CliArg("slot", "Canonical label: 1, 3, 4, A, E, R or F.")] string slot = "4",
+            [CliArg("slot", "Canonical label: 1, 2, 3, A, E, R or F.")] string slot = "3",
             [CliArg("distance", "Metres between the fighters, 0.4–8; Wibou R's endpoint tip is around 5 m.")] float distance = 1.2f,
             [CliArg("damage", "Victim starting percent, 0–300.")] int damage = 0,
             [CliArg("ticks", "Ticks captured after the press, 10–240.")] int ticks = 90,

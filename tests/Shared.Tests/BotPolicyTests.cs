@@ -576,13 +576,13 @@ public class BotPolicyTests
                 == AbilitySlots.Normal2;
         }
 
-        Assert.True(selected, "canonical grounded slot 3 was never considered");
+        Assert.True(selected, "canonical grounded slot 2 was never considered");
     }
 
     [Fact]
     public void EmptyAerialSlot_IsUnavailable()
     {
-        var def = TestHelpers.WithEmptyAirSlot3(Def);
+        var def = TestHelpers.WithEmptyAirNormal2(Def);
         var self = TestHelpers.PlayerState();
         self.PY = TestHelpers.GroundPY(def);
         self.IsGrounded = false;
