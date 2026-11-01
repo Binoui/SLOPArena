@@ -43,6 +43,8 @@ A brief is JSON. Paths are relative to the rig pack. Keys:
 from __future__ import annotations
 
 import json
+import re
+from dataclasses import dataclass
 from functools import cached_property
 from pathlib import Path
 
@@ -50,6 +52,107 @@ from .clip import CharFrame, Clip, Pose
 from .rig import Rig
 
 REPO = Path(__file__).resolve().parents[2]
+
+
+PURPOSES = ('attack', 'special', 'idle', 'locomotion', 'loop', 'other')
+NORMAL_SLOT = r'(?:^|[^a-z0-9])(?:[ga][1-4]|(?:ground|air)[. _-]?[1-4])(?:[^a-z0-9]|$)'
+
+
+@dataclass(frozen=True)
+class BriefWarning:
+    rule: str
+    message: str
+
+
+def brief_purpose(data: dict) -> tuple[str, bool]:
+    """Return the purpose and whether it was inferred from existing direction."""
+    if 'purpose' in data:
+        value = data['purpose']
+        if value not in PURPOSES:
+            raise ValueError(f'purpose must be one of {PURPOSES}, not {value!r}')
+        return value, False
+    name = data.get('name', '').lower()
+    notes = data.get('notes', '').lower()
+    if 'idle' in name:
+        return 'idle', True
+    if re.search(NORMAL_SLOT, name):
+        return 'attack', True
+    if re.search(r'walk|run|jump|fall|dash|locomotion', name):
+        return 'locomotion', True
+    if re.search(r'(?:^|[-_])(?:[ga]?[aqerf]|sr|special)(?:[-_]|$)', name):
+        return 'special', True
+    if re.search(r'\b(?:idle animation|idle loop|calm idle)\b', notes):
+        return 'idle', True
+    if re.search(r'anim\.[a-z0-9_-]+\.[ga]?[aqerf]\b|\([aqerf]\)|\bspecial (?:attack|move)\b', notes):
+        return 'special', True
+    if re.search(NORMAL_SLOT, notes):
+        return 'attack', True
+    if 'contact_tick' in data.get('clock', {}):
+        return 'attack', True
+    return ('loop' if 'loop' in data else 'other'), True
+
+
+def lint_brief(data: dict) -> list[BriefWarning]:
+    """Advisory direction checks, independent of rig files and model calls."""
+    purpose, _ = brief_purpose(data)
+    text = ' '.join(str(data.get(k, '')) for k in ('name', 'notes', 'description', 'timing')).lower()
+    warnings = []
+    def warn(rule, message):
+        warnings.append(BriefWarning(rule, message))
+    if purpose in ('attack', 'special'):
+        clock = data.get('clock', {})
+        game = clock.get('game_duration_ticks')
+        if game is not None:
+            ratio = clock['duration_ticks'] / game if game > 0 else 0
+            slow = 1.7 <= ratio <= 2.3
+        else:
+            lengths = re.findall(r'(?:game (?:length|stage)(?: of)?|proposed game (?:length|stage))[^0-9]{0,12}(\d+)\s*(?:ticks?|[- ]tick)', text)
+            slow = (any(1.7 <= clock['duration_ticks'] / int(n) <= 2.3 for n in lengths if int(n) > 0)
+                    or bool(re.search(r'\b2\s*[x×]|twice|double speed|double the game', text)))
+        if not slow:
+            warn('author-slow', 'State an authored clock about 2x the game length (or explain the intentional exception).')
+        strike = set(data.get('strike', []))
+        targets = data.get('targets', [])
+        positional = {'arc', 'char', 'ahead', 'below', 'distance', 'position'}
+        if not any(t.get('kind') in positional and
+                   (bool(strike & ({t.get('a'), t.get('b')} | set(t.get('joints', [])))) if strike
+                    else t.get('kind') == 'arc' or any(
+                        re.search(r'hand|foot|toe|weapon|blade|prop', str(t.get(k, '')), re.I) for k in ('a', 'b')))
+                   for t in targets):
+            warn('strike-target', 'Add position or arc targets for the striking part; identify it with strike.')
+    if purpose == 'idle':
+        calm = bool(re.search(r'calm|slow|quiet|subtle', text))
+        budget = bool(data.get('snap_degrees_per_tick') or re.search(
+            r'\d+\s*(?:deg|cm|mm|m/s|metres|meters)|(?:one|single|no|at most one)\s+(?:slow\s+)?gesture', text))
+        if not (calm and budget):
+            warn('idle-budget', 'State a calm, slow loop speed budget with at most one slow gesture.')
+    normal = purpose == 'attack' and bool(re.search(NORMAL_SLOT, data.get('name', '').lower() + ' ' + data.get('notes', '').lower()))
+    # Restrict personality lint to recovery direction, not the strike or the character biography.
+    sentences = re.split(r'[\n.!?;]+', str(data.get('description', '')).lower())
+    recovery = [s for s in sentences if re.search(r'\b(?:recover\w*|settle\w*|ending|return\w*|back to)\b', s)]
+    # Remove only negated acting requests. A "cocky settle with no flourish" still conflicts.
+    positive_recovery = [re.sub(
+        r'\b(?:no|without|never|avoid)\s+(?:(?:new|extra|a|any)\s+)*(?:gestures?|flourish(?:es)?|poses?|taunts?|spins?)\b',
+        '', sentence) for sentence in recovery]
+    acting = r'\b(?:flourish|cocky|taunt|spin)\b|\bpose\b'
+    positive_recovery = [re.sub(r'\b(?:idle|fall|entry|ready|reference|stance|airborne) pose\b', '', sentence)
+                         for sentence in positive_recovery]
+    if normal:
+        if not any(re.search(r'plain|short|quick|calm|direct|shortest', s) for s in recovery):
+            warn('normal-recovery', 'Ask for a plain, short recovery; personality can live in the move itself.')
+        if any(re.search(acting, s) for s in positive_recovery):
+            warn('recovery-flourish', 'Recovery asks for a flourish, pose, cocky settle, taunt, or spin.')
+    if re.search(r'no (?:gestures?|flourish(?:es)?)', text) and any(
+            re.search(r'cocky|taunt|flourish', s) for s in positive_recovery):
+        warn('contradiction', 'Recovery personality conflicts with the no-flourish direction.')
+    return warnings
+
+
+def print_preflight(data: dict):
+    purpose, inferred = brief_purpose(data)
+    print(f'Brief purpose: {purpose}' + (' (inferred from name/notes; set purpose to override)' if inferred else ''))
+    for finding in lint_brief(data):
+        print(f'WARNING [{finding.rule}]: {finding.message}')
 
 
 def resolved_brief_path(brief_path, result) -> Path:

@@ -88,6 +88,12 @@ namespace SlopArena.Shared
         // changed since the previous release tag while this value (and the Master's Protocol) did not.
         // Note simulation changes below; the release bump folds them into one numbered line.
         // Unreleased:
+        // - Nyx real jump uses 9.4 force and 0.8 air-jump multiplier; Nyxxie Ring Light Rise adds three light rotor
+        //   hits and an upward finisher. Aimed recovery admits timeline hitboxes; snapshot layout unchanged.
+        // - Nyx round 2 (ADR-0051 sections 9 to 11): a perch's optional dive lifecycle (Rising, Marking, Diving, Perched),
+        //   peck and scatter presentation, and a carrier's shield or air dodge swats it. The tether's atTarget gains an
+        //   unmarked hand for a target without the thrower's perch. Runtime API 1.21.0, World Snapshot v24. Hex Crow dives,
+        //   Grasp drags only a crowed target, Ring Light has a 24-tick wind-up, no lunge, a 4.9 m flash and a 60-tick dazzle.
         public const byte Version = 33;
     }
 }

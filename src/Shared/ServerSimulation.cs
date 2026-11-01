@@ -2352,7 +2352,9 @@ namespace SlopArena.Shared
 			_spellResolver.UpdateBoneHitboxes(_states);
 			_spellResolver.UpdateReturningProjectiles(_returnTarget ??= ReturnTarget, _arena);
 			_spellResolver.UpdateHomingProjectiles(_homingTarget ??= HomingTarget);
+            _spellResolver.UpdatePerchFlights(_perchTargetFeet ??= PerchTargetFeet);
             _spellResolver.UpdateStickyProjectiles(StickyCarrier);
+            SwatPerches();
             _spellResolver.BreakFragileProjectiles(_opposesProjectileOwner ??= OpposesProjectileOwner);
 
 			// ── Step 3: Resolve hitboxes ──
@@ -2360,6 +2362,8 @@ namespace SlopArena.Shared
 			LastTickAttackEntities = attackEntities;
 			var hits = _spellResolver.Tick(attackEntities, orderMovingTargetContacts: _slopball != null,
 				frozenOwners: _hitstopFrozenThisTick, canHitTarget: _attackTargetFilter, fighters: _states);
+			PeckCarriers();
+			EmitPerchScatters();
 			AddDuePops(hits);
 			hits.AddRange(_commandReleases);
 			_commandReleases.Clear();
@@ -2452,8 +2456,8 @@ namespace SlopArena.Shared
 					}
 					continue;
 				}
-				// A tether's ring catches instead of hitting (ADR-0048).
-				if (attackerExists && ContactAbility(hit)?.Tether is { } tether)
+				// A tether's ring catches instead of hitting (ADR-0048); its unmarked hand hits (ADR-0051 section 10).
+				if (attackerExists && ContactAbility(hit)?.Tether is { Launches: false } tether)
 				{
 					CatchOnTether(in hit, tether, ref attackerState, ref targetState, inputs, hitContactOperationIndex++);
 					_states[hit.OwnerEntityId] = attackerState;

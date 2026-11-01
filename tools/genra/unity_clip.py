@@ -31,6 +31,7 @@ import json
 import shutil
 import subprocess
 import sys
+import tempfile
 import time
 from pathlib import Path
 
@@ -264,7 +265,12 @@ def write(result: Path, brief_path: Path, asset: str | None, name: str | None, t
     if np.linalg.norm(offset) > 0.01:
         print(f'warning: the clip plays {np.linalg.norm(offset) * 100:.1f} cm from where the toolkit put it: tick 0 '
               'misses the entry pose, or the rig pack is older than the prefab', file=sys.stderr)
+    from genra.receipts import asset_path, portable, sha256, source_run_for
     report = {
+        'sourceRun': portable(source_run_for(result)) if source_run_for(result) else None,
+        'sourceResult': portable(result), 'brief': portable(brief_path),
+        'transforms': {'ticks': ticks, 'retime': retime, **flags, 'grounding': data.get('grounding')},
+        'assetSha256': sha256(UNITY / asset_path(data)) if asset_path(data) else None,
         'package': mapping['package'], 'name': name, 'ticks': data['ticks'], 'humanMotion': data['humanMotion'],
         'curves': data['curves'], 'entryClip': data['reference']['clip'], 'entryTick': reference['tick'], **flags,
         'originOffsetMetres': offset.round(5).tolist(), 'muscleFit': fit(data),
@@ -388,17 +394,29 @@ def render(brief_path: Path, clips: list[dict], result: Path | None = None, view
     return report
 
 
-def promote(source: str, target: str) -> dict:
+def promote(source: str, target: str, source_run: Path | None = None, write_report: Path | None = None) -> dict:
     """Copy an accepted clip's content over a package clip (same GUID and name); before.anim keeps the old file. A missing
     target is created as a copy: bind it with sloparena.character.bind."""
     for path in (source, target):
         if not path.startswith('Assets/') or not path.endswith('.anim') or '..' in path:
             raise SystemExit(f'promote takes Assets/... .anim paths, not {path}')
-    run_dir = OUT / f'{time.strftime("%Y%m%d-%H%M%S")}-promote-{Path(target).stem}'
-    run_dir.mkdir(parents=True)
+    from genra.receipts import build_receipt, export_for, save_receipt
+    export = export_for(source, UNITY / source, write_report, OUT)
+    if source_run and export.get('sourceRun'):
+        from genra.receipts import resolve
+        if resolve(source_run) != resolve(export['sourceRun']):
+            raise ValueError('--run-dir disagrees with the export source run')
+    source_run = source_run or (Path(export['sourceRun']) if export.get('sourceRun') else None)
+    # Validate provenance before changing the game asset. Hash the actual target after Unity preserves its name.
+    receipt = build_receipt(target, source, UNITY / source, source_run, export)
+    OUT.mkdir(parents=True, exist_ok=True)
+    run_dir = Path(tempfile.mkdtemp(prefix=f'{time.strftime("%Y%m%d-%H%M%S")}-promote-{Path(target).stem}-', dir=OUT))
     if (UNITY / target).exists():
         shutil.copy2(UNITY / target, run_dir / 'before.anim')
     data = run_unity({'source': source, 'target': target}, run_dir, 'promote_clip')
+    from genra.receipts import sha256
+    receipt['clip_sha256'] = sha256(UNITY / target)
+    data['receipt'] = str(save_receipt(receipt).relative_to(REPO))
     (run_dir / 'report.json').write_text(json.dumps(data, indent=2))
     return data | {'evidence': str(run_dir.relative_to(REPO))}
 
@@ -510,6 +528,8 @@ def main(argv=None):
     line.add_argument('--no-springs', action='store_true', help='keep tails and capes (BoneChainSpring) at rest')
     up = sub.add_parser('promote', help="copy an accepted clip's content over a package clip (same GUID and name)")
     up.add_argument('source', help='the accepted Assets/... .anim')
+    up.add_argument('--run-dir', type=Path, help='source authoring run, required for historical exports without provenance')
+    up.add_argument('--write-report', type=Path, help='export report recording the source and final transforms')
     up.add_argument('--over', required=True, help='the package clip it replaces, Assets/CharacterPackages/<pkg>/...anim '
                                                   '(created if missing; then bind it)')
     args = parser.parse_args(argv)
@@ -528,7 +548,7 @@ def main(argv=None):
                         focus=args.focus.split(',') if args.focus else None,
                         focus_ticks=tuple(int(t) for t in args.focus_ticks.split('-')) if args.focus_ticks else None)
     elif args.command == 'promote':
-        report = promote(args.source, args.over)
+        report = promote(args.source, args.over, args.run_dir, args.write_report)
     elif args.command == 'timeline':
         report = timeline(Path(args.spec), Path(args.brief), Path(args.result) if args.result else None,
                           tuple(args.views.split(',')), args.size, name=args.name, margin=args.margin,

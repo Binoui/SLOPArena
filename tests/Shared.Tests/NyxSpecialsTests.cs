@@ -90,30 +90,32 @@ public sealed class NyxSpecialsTests
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
-    public void ComboOneGraspGoingLivePhoneSlapsSelfieGrab(bool saved)
+    public void ComboOneCrowGraspGoingLivePhoneSlapsPopTheCrow(bool saved)
     {
         var sim = Make(0, 6f, saved);
+        Step(sim, AbilitySlots.A);
+        Until(sim, () => Perched(sim), 160);
+        Until(sim, () => sim.GetActiveAbility(Nyx) == null, 60);
         Step(sim, AbilitySlots.R);
         Until(sim, () => sim.GetActiveAbility(Nyx) == null, 120);
         Assert.Equal(ActionState.Reeled, sim.GetState(Dummy).State);
         Step(sim, AbilitySlots.F);
         Until(sim, () => Free(sim) && sim.GetState(Nyx).Form.Active == 1, 60);
         Step(sim, AbilitySlots.Slot1);
-        Until(sim, () => Free(sim), 60);
-        Step(sim, AbilitySlots.R);
-        Until(sim, () => sim.GetActiveAbility(Nyx) == null, 100);
+        Until(sim, () => _hits.Any(h => h.AttackSlot == AbilitySlots.A), 90);
 
         Assert.Equal((AbilitySlots.R, (byte)0), Hit(0));
         Assert.Equal((AbilitySlots.F, (byte)0), Hit(1));
-        Assert.Equal(3, _hits.Count(h => h.AttackSlot == AbilitySlots.Slot1 && h.Form == 1));
-        Assert.Equal((AbilitySlots.R, (byte)1), Hit(_hits.Count - 1));
-        Assert.True(_hits[^1].Damage > 0f, "Selfie Grab's release lands");
+        Assert.Equal((AbilitySlots.Slot1, (byte)1), Hit(2));
+        var pop = _hits.Single(h => h.AttackSlot == AbilitySlots.A);
+        Assert.Equal(0, pop.Form);
+        Assert.False(Perched(sim));
     }
 
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
-    public void ComboTwoUppercutLoggingOffThenTheCrowChasesThem(bool saved)
+    public void ComboTwoUppercutLoggingOffThenTheCrowDivesOnThem(bool saved)
     {
         var sim = Make(1, 1.2f, saved);
         Step(sim, AbilitySlots.Slot3);
@@ -149,7 +151,7 @@ public sealed class NyxSpecialsTests
     }
 
     [Fact]
-    public void HerSpecialsCookAtRuntimeApi118WithTheirNewBlocks()
+    public void HerSpecialsCookWithTheirNewBlocks()
     {
         var def = TestHelpers.ResolveSourceDef("nyx");
         var real = def.ForForm(0);
@@ -159,11 +161,11 @@ public sealed class NyxSpecialsTests
             var grasp = real.GetCookedSlotAbility(AbilitySlots.R, air)!.Timeline.Stages[0].Operations
                 .OfType<CookedStartCapabilityOperation>().Single();
             Assert.IsType<CookedTetherCapabilityParameters>(grasp.Parameters);
-            Assert.NotNull(((CookedTetherCapabilityParameters)grasp.Parameters).AtTarget);
+            Assert.NotNull(((CookedTetherCapabilityParameters)grasp.Parameters).AtTarget?.Unmarked);
             var crow = real.GetCookedSlotAbility(AbilitySlots.A, air)!.Timeline.Stages[0].Operations
                 .OfType<CookedSpawnProjectileOperation>().Single().Projectile;
-            Assert.NotNull(crow.Homing);
-            Assert.NotNull(crow.Perch);
+            Assert.Null(crow.Homing);
+            Assert.NotNull(crow.Perch?.Dive);
             Assert.Equal(CharacterPackageCompiler.CommandGrabCapabilityId, fake.GetCookedSlotAbility(AbilitySlots.R, air)!
                 .Timeline.Stages[0].Operations.OfType<CookedStartCapabilityOperation>().Single().CapabilityId);
         }

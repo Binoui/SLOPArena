@@ -213,6 +213,16 @@ MonoBehaviour:
     _prefab: {fileID: 3397696530358282907, guid: 8949d5c6489e993c0ac8f00bb2ba0bb8, type: 3}
   - _semanticId: presentation.nyx.grasp-warning
     _prefab: {fileID: 5339044014489459797, guid: 3ad5268e03c1adb20948e326e2dcdab4, type: 3}
+  - _semanticId: presentation.nyx.grasp-pop
+    _prefab: {fileID: 7858991034971087970, guid: 3e9aa0eaa9ed72f0bb578ca7f75d0ec1, type: 3}
+  - _semanticId: presentation.nyx.crow-peck
+    _prefab: {fileID: 3893568167457776717, guid: e10ef3cfc2033bb069de9f3ca0fa81ca, type: 3}
+  - _semanticId: presentation.nyx.crow-scatter
+    _prefab: {fileID: 8933744169432792317, guid: 07152742f5694701e8750233d03898d1, type: 3}
+  - _semanticId: presentation.nyx.cast-aura
+    _prefab: {fileID: 1333547081379030153, guid: fdc8648655baaaa1e8348776576528e6, type: 3}
+  - _semanticId: presentation.nyx.ring-light-charge
+    _prefab: {fileID: 7991811420557415700, guid: 8f1ac49594206ede3a4e151fbe42fa83, type: 3}
   _presentationProfile:
     _respawnTint: {r: 1, g: 1, b: 1, a: 0.95}
     _swing:

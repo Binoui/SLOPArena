@@ -70,10 +70,12 @@ public class FightGuyNormalTuningTests : KitScenarioTests
         });
     }
 
-    [Fact]
-    public void A1_SustainedOverlap_HitsOnceAcrossSweetAndSourWindows()
+    [Theory]
+    [InlineData(AbilitySlots.Slot1)] // a1 Floating Kick
+    [InlineData(AbilitySlots.Slot3)] // a2 Flip Kick: strong early, weak late (sex kick)
+    public void AirSexKick_SustainedOverlap_HitsOnceAcrossSweetAndSourWindows(byte slot)
     {
-        var windows = Def.GetCookedSlotAbility(AbilitySlots.Slot1, airborne: true)!.Timeline.Stages
+        var windows = Def.GetCookedSlotAbility(slot, airborne: true)!.Timeline.Stages
             .SelectMany(stage => stage.Operations).OfType<CookedSpawnHitboxOperation>()
             .OrderBy(operation => operation.Tick).ToArray();
         var sweet = windows.First();
@@ -98,7 +100,7 @@ public class FightGuyNormalTuningTests : KitScenarioTests
                 sim.SetState(101, target with { EntityId = 101, DamagePercent = sim.GetState(101).DamagePercent });
             sim.Tick(new Dictionary<ulong, InputState>
             {
-                [1] = tick == 0 ? new InputState { ActiveSlot = AbilitySlots.Slot1 } : default,
+                [1] = tick == 0 ? new InputState { ActiveSlot = slot } : default,
             });
             contacts.AddRange(sim.LastTickHits.Where(h => h.OwnerEntityId == 1));
             foreach (var hitbox in sim.Resolver.LastTickCheckedHitboxes.Where(h => h.OwnerId == 1))
@@ -142,7 +144,8 @@ public class FightGuyNormalTuningTests : KitScenarioTests
             Assert = player => Assert.Equal((byte)0, player.AttackSlot),
             NpcSetup = () => AirborneNpc(0.8f),
             NpcDef = Def,
-            NpcAssert = npc => Assert.Equal(NormalDamage(AbilitySlots.Slot3, true), (float)npc.DamagePercent),
+            // Sweet and sour windows share a hit group: exactly one of them lands.
+            NpcAssert = npc => Assert.Contains((float)npc.DamagePercent, WindowDamages(AbilitySlots.Slot3, true)),
             TotalTicks = 90,
         });
     }
@@ -163,6 +166,11 @@ public class FightGuyNormalTuningTests : KitScenarioTests
             TotalTicks = 100,
         });
     }
+    private static float[] WindowDamages(byte slot, bool airborne)
+        => Def.GetCookedSlotAbility(slot, airborne)!.Timeline.Stages
+            .SelectMany(stage => stage.Operations).OfType<CookedSpawnHitboxOperation>()
+            .Select(operation => operation.Hitbox.Damage).ToArray();
+
     private static float NormalDamage(byte slot, bool airborne)
     {
         var damage = Def.GetCookedSlotAbility(slot, airborne)!.Timeline.Stages

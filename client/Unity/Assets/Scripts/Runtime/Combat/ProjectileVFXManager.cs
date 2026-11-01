@@ -313,28 +313,43 @@ namespace SlopArena.Client.Combat
 
 
         /// <summary>
-        /// A perching projectile (ADR-0051, Nyx's Hex Crow): in flight it faces its travel; perched, it sits on its
-        /// carrier's head bone, so every player sees whom it marks. Shared keeps it at the carrier's centre.
+        /// A perching projectile (ADR-0051, Nyx's Hex Crow): in flight it faces its travel, and while it marks it
+        /// looks down its drop line at the spot; perched, it sits on its carrier's head bone, so every player sees
+        /// whom it marks. Shared keeps it at the carrier's centre. The crow visual poses each phase.
         /// </summary>
         private void PlacePerch(Transform visual, in Hitbox hb)
         {
-            visual.GetComponent<NyxCrowVisual>()?.SetPerched(hb.AttachedEntityId != 0);
+            var perch = hb.Perch!.Value;
+            var crow = visual.GetComponent<NyxCrowVisual>();
+            var spot = new Vector3(perch.SpotX, perch.SpotY, perch.SpotZ);
+            crow?.SetLifecycle(perch.Phase, perch.PhaseTicks, spot, perch.MarkTicks, perch.PeckIntervalTicks);
+            var position = visual.position;
+            var rotation = visual.rotation;
             if (hb.AttachedEntityId == 0)
             {
                 var velocity = new Vector3(hb.VX, hb.VY, hb.VZ);
-                if (velocity.sqrMagnitude > 0.0001f) visual.rotation = Quaternion.LookRotation(velocity);
-                return;
+                var down = spot - position;
+                var flat = Vector3.ProjectOnPlane(down, Vector3.up);
+                if (perch.Phase == PerchPhase.Marking && down.sqrMagnitude > 0.0001f)
+                    rotation = Quaternion.LookRotation(Vector3.Slerp(flat.sqrMagnitude > 0.0001f ? flat.normalized
+                        : Vector3.ProjectOnPlane(visual.forward, Vector3.up).normalized, down.normalized, .45f));
+                else if (velocity.sqrMagnitude > 0.0001f) rotation = Quaternion.LookRotation(velocity);
             }
-            if (!_heads.TryGetValue(hb.AttachedEntityId, out var head) || head == null)
+            else
             {
-                head = _owners.TryGetValue(hb.AttachedEntityId, out var carrier) && carrier.Renderer != null
-                    ? carrier.Renderer.ResolvePresentationBone("bone.head") : null;
-                _heads[hb.AttachedEntityId] = head;
+                if (!_heads.TryGetValue(hb.AttachedEntityId, out var head) || head == null)
+                {
+                    head = _owners.TryGetValue(hb.AttachedEntityId, out var carrier) && carrier.Renderer != null
+                        ? carrier.Renderer.ResolvePresentationBone("bone.head") : null;
+                    _heads[hb.AttachedEntityId] = head;
+                }
+                if (head == null) return;
+                position = head.position + Vector3.up * 0.22f;
+                var forward = Vector3.ProjectOnPlane(head.forward, Vector3.up);
+                if (forward.sqrMagnitude > 0.0001f) rotation = Quaternion.LookRotation(forward);
             }
-            if (head == null) return;
-            visual.position = head.position + Vector3.up * 0.22f;
-            var forward = Vector3.ProjectOnPlane(head.forward, Vector3.up);
-            if (forward.sqrMagnitude > 0.0001f) visual.rotation = Quaternion.LookRotation(forward);
+            if (crow != null) crow.SetPose(position, rotation);
+            else visual.SetPositionAndRotation(position, rotation);
         }
 
         /// <summary>A placeholder crow until the effects pass: a dark body, two wings and a beak.</summary>

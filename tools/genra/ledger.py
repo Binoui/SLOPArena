@@ -9,17 +9,27 @@ run's cache lifetime. On a Claude subscription these figures measure plan usage,
 from __future__ import annotations
 
 import json
+import math
 import sys
 from pathlib import Path
 
 RATES = {'input': 4.0, 'output': 20.0, 'cache_read': 0.20, 'cache_write_1h': 8.0, 'cache_write_5m': 5.0}
 
 
-def row(run: Path) -> dict | None:
-    summary, config = run / 'summary.json', run / 'run-config.json'
+def recorded_cost(run: Path) -> float | None:
+    """CLI-recorded list cost, including genuine zero; missing evidence is unknown."""
+    summary = run / 'summary.json'
     if not summary.exists():
         return None
-    s = json.loads(summary.read_text())
+    value = json.loads(summary.read_text()).get('total_cost_usd')
+    if isinstance(value, bool) or not isinstance(value, (float, int)):
+        return None
+    return value if math.isfinite(value) and value >= 0 else None
+
+
+def row(run: Path) -> dict | None:
+    summary, config = run / 'summary.json', run / 'run-config.json'
+    s = json.loads(summary.read_text()) if summary.exists() else {}
     if s.get('status') == 'running':
         return None
     c = json.loads(config.read_text()) if config.exists() else {}
@@ -31,7 +41,7 @@ def row(run: Path) -> dict | None:
     return {'run': run.name, 'wall': s.get('wallSeconds'), 'turns': s.get('num_turns'), 'tools': s.get('toolCalls'),
             'output': u.get('output_tokens'), 'thinking': (u.get('output_tokens_details') or {}).get('thinking_tokens'),
             'read': u.get('cache_read_input_tokens'), 'write': u.get('cache_creation_input_tokens'),
-            'cost': s.get('total_cost_usd'), 'split': split, 'passed': s.get('passed'),
+            'cost': recorded_cost(run), 'split': split, 'passed': s.get('passed'),
             'failures': s.get('failures'), 'warnings': s.get('warnings'), 'cache5m': bool(c.get('cache5m'))}
 
 
@@ -45,7 +55,7 @@ def table(rows) -> str:
         read = f"{r['read'] / 1e6:.2f}M" if r['read'] is not None else 'unknown'
         write = f"{r['write'] / 1e3:.0f}K" if r['write'] is not None else 'unknown'
         cost = (f"{r['cost']:.2f} ({sp['output']:.2f} / {sp['cacheRead']:.2f} / {sp['cacheWrite']:.2f})"
-                if r['cost'] is not None else 'unknown')
+                if r['cost'] is not None else 'UNKNOWN')
         lines.append(f"| {r['run']}{' (5m cache)' if r['cache5m'] else ''} | {fmt(r['wall'], '.0f')} s | {r['turns']} | {r['tools']} | "
                      f"{fmt(r['output'], ',')} ({fmt(r['thinking'], ',')}) | {read} | {write} | {cost} | "
                      f"{checks}, {r['warnings'] or 0} warnings |")

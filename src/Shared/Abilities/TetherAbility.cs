@@ -12,11 +12,13 @@ namespace SlopArena.Shared.Abilities;
 /// activation; the caught fighter is held by the pair fields and moved by <see cref="ServerSimulation.ReelTether"/>.
 /// With an atTarget block (ADR-0051, Nyx's Grasp) nothing is thrown: the spot is fixed at the press, a warning marks
 /// it at the throw tick, then a stationary catch volume of this activation rises there. Its catch reels as above; a
-/// miss or a snapped line is a fixed recovery with no retract.
+/// miss or a snapped line is a fixed recovery with no retract. With the block's unmarked branch, that catch is only for
+/// a current target carrying her perch within range; any other press raises the unmarked hand ahead of her, an
+/// ordinary hit, then her recovery (section 10).
 /// </summary>
 public sealed class TetherAbility : ServerAbility, ILandingContinuationCapability
 {
-    private enum Phase : byte { Windup, Out, Reel, Retract, Done }
+    private enum Phase : byte { Windup, Out, Reel, Retract, Hand, Done }
 
     private readonly CookedTetherCapabilityParameters _parameters;
     private Phase _phase;
@@ -26,6 +28,8 @@ public sealed class TetherAbility : ServerAbility, ILandingContinuationCapabilit
     // Where the ring is: its next position in flight, the caught fighter while reeling. A miss reels back from here.
     // A placed catch keeps its spot (the target's feet at the press) here until it catches.
     private float _ringX, _ringY, _ringZ;
+    // The press found no marked target in range: this activation raises the unmarked hand instead of the catch.
+    private bool _unmarked;
 
     public TetherAbility(CookedTetherCapabilityParameters parameters)
         => _parameters = parameters ?? throw new ArgumentNullException(nameof(parameters));
@@ -37,6 +41,8 @@ public sealed class TetherAbility : ServerAbility, ILandingContinuationCapabilit
     internal bool Catches => _phase == Phase.Out;
     /// <summary>A caught fighter is on the line.</summary>
     internal bool Reeling => _phase == Phase.Reel;
+    /// <summary>The unmarked hand is out: its contacts are ordinary hits, not catches.</summary>
+    internal bool Launches => _phase == Phase.Hand;
 
     public override void OnStart(ref CharacterState s, CharacterDefinition def)
     {
@@ -46,14 +52,35 @@ public sealed class TetherAbility : ServerAbility, ILandingContinuationCapabilit
         if (s.IsGrounded) Plant(ref s);
         _phase = Phase.Windup;
         _phaseTicks = 0;
+        _unmarked = false;
         if (_parameters.AtTarget is { } at)
         {
+            if (at.Unmarked is { } hand && !MarkedTargetInRange(ref s, at))
+            {
+                _unmarked = true;
+                s.AnimLockTicks = (ushort)(hand.RiseTick + hand.ActiveTicks + hand.RecoveryTicks + 3);
+                return;
+            }
             PlaceSpot(ref s, def, at);
             s.AnimLockTicks = (ushort)(_parameters.ThrowTick + at.WarningTicks + at.CatchTicks + 3);
             return;
         }
         // An upper bound until the ring resolves; each later phase sets its own.
         s.AnimLockTicks = (ushort)(_parameters.ThrowTick + _parameters.Projectile!.MaxFlightTicks + 3);
+    }
+
+    /// <summary>
+    /// Whether her current target carries her perch within the catch's range. Either way she turns to face her
+    /// current target, so the unmarked hand rises toward them.
+    /// </summary>
+    private bool MarkedTargetInRange(ref CharacterState s, CookedTetherAtTarget at)
+    {
+        if (OwnerSimulation == null || !OwnerSimulation.TryGetCurrentTarget(in s, out ulong target, out var position))
+            return false;
+        float dx = position.X - s.PX, dz = position.Z - s.PZ;
+        float distance = MathF.Sqrt(dx * dx + dz * dz);
+        if (distance > 0.001f) s.FacingYaw = MathF.Atan2(dx, dz);
+        return distance <= at.MaxRange && OwnerSimulation.CarriesPerch(s.EntityId, target);
     }
 
     /// <summary>
@@ -87,6 +114,17 @@ public sealed class TetherAbility : ServerAbility, ILandingContinuationCapabilit
         if (_phaseTicks < ushort.MaxValue) _phaseTicks++;
         switch (_phase)
         {
+            case Phase.Windup when _unmarked && _parameters.AtTarget?.Unmarked is { } hand:
+                if (_phaseTicks >= hand.RiseTick) RaiseHand(ref s, def, hand);
+                break;
+            case Phase.Hand when _parameters.AtTarget?.Unmarked is { } hand:
+                if (_phaseTicks < hand.ActiveTicks) break;
+                Resolver.RemoveOwnedHitboxes(s.EntityId, ActivationId);
+                _retractTicks = hand.RecoveryTicks;
+                _phase = Phase.Retract;
+                _phaseTicks = 0;
+                s.AnimLockTicks = (ushort)(_retractTicks + 1);
+                break;
             case Phase.Windup when _parameters.AtTarget is { } at:
                 if (_phaseTicks == _parameters.ThrowTick)
                     Emit(ref s, at.WarningPresentationId, PresentationEventSource.CapabilityLaunch, _ringX, _ringY, _ringZ,
@@ -159,6 +197,42 @@ public sealed class TetherAbility : ServerAbility, ILandingContinuationCapabilit
         _phase = Phase.Out;
         _phaseTicks = 0;
         s.AnimLockTicks = (ushort)(at.CatchTicks + 3);
+    }
+
+    /// <summary>
+    /// The unmarked hand rises <see cref="CookedTetherUnmarked.Distance"/> ahead of her feet: an upright capsule, still
+    /// for its active window, whose contacts are this activation's ordinary hits.
+    /// </summary>
+    private void RaiseHand(ref CharacterState s, CharacterDefinition def, CookedTetherUnmarked hand)
+    {
+        float x = s.PX + MathF.Sin(s.FacingYaw) * hand.Distance, z = s.PZ + MathF.Cos(s.FacingYaw) * hand.Distance;
+        float feet = s.PY - def.CapsuleHeight * 0.5f;
+        SpawnResolverHitbox(new Hitbox
+        {
+            X = x, Y = feet + hand.Radius, Z = z,
+            EndX = x, EndY = feet + hand.Height - hand.Radius, EndZ = z,
+            Shape = HitboxShape.Capsule,
+            Radius = hand.Radius,
+            Damage = hand.Damage,
+            BaseKnockback = hand.BaseKnockback,
+            KnockbackGrowth = hand.KnockbackGrowth,
+            KnockbackAngle = (sbyte)hand.Angle,
+            StunTicks = hand.StunTicks,
+            DurationTicks = hand.ActiveTicks,
+            OwnerId = s.EntityId,
+            AttackSlot = (byte)(Slot + 1),
+            Slot = Slot,
+            Airborne = AirborneAtStart,
+            VisualOperationIndex = PresentationOperationIndex,
+            CancelWithAbility = true,
+            FreezesOwner = true,
+            HitsMultipleOpponents = true,
+            HitEntities = new HashSet<ulong>(),
+        });
+        Emit(ref s, hand.PresentationId, PresentationEventSource.CapabilityLaunch, x, feet, z, hand.ActiveTicks);
+        _phase = Phase.Hand;
+        _phaseTicks = 0;
+        s.AnimLockTicks = (ushort)(hand.ActiveTicks + hand.RecoveryTicks + 3);
     }
 
     /// <summary>The ring leaves her hand toward her target's torso at this tick, which also turns her to face it.</summary>
@@ -301,6 +375,7 @@ public sealed class TetherAbility : ServerAbility, ILandingContinuationCapabilit
         w.WriteFloat(_ringX);
         w.WriteFloat(_ringY);
         w.WriteFloat(_ringZ);
+        w.WriteBool(_unmarked);
     }
 
     internal override void ReadSnapshot(SnapshotReader r)
@@ -313,5 +388,8 @@ public sealed class TetherAbility : ServerAbility, ILandingContinuationCapabilit
         _ringX = r.ReadFloat();
         _ringY = r.ReadFloat();
         _ringZ = r.ReadFloat();
+        _unmarked = r.ReadBool();
+        if (_unmarked && _parameters.AtTarget?.Unmarked == null || _phase == Phase.Hand && !_unmarked)
+            throw SnapshotReader.Malformed("tether branch");
     }
 }

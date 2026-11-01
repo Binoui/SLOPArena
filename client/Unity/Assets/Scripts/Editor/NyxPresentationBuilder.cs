@@ -50,12 +50,19 @@ namespace SlopArena.EditorTools
         private static readonly Dictionary<string, List<CueWindow>> Cues = new(StringComparer.Ordinal);
         private static readonly SortedDictionary<string, object> ReachReport = new(StringComparer.Ordinal);
         private static int _thrustTicks, _rotorStartupTicks;
-        private static float _graspRadius, _graspHeight, _crowRadius;
+        private static float _graspRadius, _graspHeight, _crowRadius, _handRadius, _handHeight;
+        private static readonly Color Ink = new Color32(46, 20, 72, 255);
+        // Cues that run from tick 0 through a move's startup, not over one of its active phases (ADR-0051 section 11).
+        private static readonly HashSet<string> StartupCues = new(StringComparer.Ordinal) { Prefix + "cast-aura", Prefix + "ring-light-charge" };
+        // Nyx's shadow spells show the cast effect; Bat Scatter and Going Live do not.
+        private static readonly string[] CastSlots = { "ground.1", "ground.3", "ground.4", "air.1", "air.3", "air.4", "ground.A", "ground.R" };
+        private static string _phoneHand = "bone.right-hand";
 
         private sealed class Materials
         {
             public Material ShadowBurst, PinkBurst, ShadowBand, PinkBand, Heart, Sparkle, Shard, Feather, Bat;
             public Material ClawBlade, PinkBlade, ShadowWhip, ClawMarks, LightRay, Viewfinder, PoleSmear, ShockRing, ShadowShockRing, Glint, TrailDots;
+            public Material InkPool, DropLine;
         }
         private sealed class CueWindow
         {
@@ -94,6 +101,7 @@ namespace SlopArena.EditorTools
         {
             SynchronizeAttackCues();
             LoadCueData();
+            if (MeasureStartupHands()) LoadCueData();
             ReachReport.Clear();
             using var kit = new PresentationBuilderKit("nyx", "Nyx");
             _kit = kit;
@@ -141,6 +149,11 @@ namespace SlopArena.EditorTools
             Bind("grasp-drag", drag);
             Bind("grasp-catch", GraspCatch(drag));
             Bind("grasp-warning", GraspWarning());
+            Bind("grasp-pop", GraspPop());
+            Bind("crow-peck", CrowPeck());
+            Bind("crow-scatter", CrowScatter());
+            Bind("cast-aura", CastAura());
+            Bind("ring-light-charge", RingLightCharge());
             return kit.Finish(built, new { reach = ReachReport, toolkit = "PresentationFx + ToonShapes.Bands" });
         }
 
@@ -154,12 +167,24 @@ namespace SlopArena.EditorTools
                 {
                     var operations = stage["operations"].AsArray();
                     var emits = operations.Where(op => (string)op["kind"] == "emitPresentation"
-                        && !((string)op["presentationId"]).StartsWith(Prefix + "props.", StringComparison.Ordinal)).OrderBy(op => (int)op["tick"]).ToArray();
+                        && !((string)op["presentationId"]).StartsWith(Prefix + "props.", StringComparison.Ordinal)
+                        && !StartupCues.Contains((string)op["presentationId"])).OrderBy(op => (int)op["tick"]).ToArray();
+                    foreach (var startup in operations.Where(op => (string)op["kind"] == "emitPresentation"
+                                 && StartupCues.Contains((string)op["presentationId"])).ToArray())
+                    {
+                        int window = (string)startup["presentationId"] == Prefix + "cast-aura" ? LastActiveTick(operations) : FirstActiveTick(operations);
+                        if ((int)startup["tick"] != 0) { startup["tick"] = 0; changed = true; }
+                        if ((int)startup["placement"]["durationTicks"] != window) { startup["placement"]["durationTicks"] = window; changed = true; }
+                    }
                     var groups = operations.Where(op => (string)op["kind"] == "spawnHitbox")
                         .GroupBy(op => (int)op["tick"]).OrderBy(group => group.Key).ToArray();
-                    if (groups.Length > 0 && groups.Length != emits.Length)
+                    // One cue over every active phase (Ring Light Rise's rotor and its four pulses) stays as authored.
+                    bool spansMove = emits.Length == 1 && groups.Length > 1 && (int)emits[0]["tick"] <= groups[0].Key
+                        && (int)emits[0]["tick"] + (int)emits[0]["placement"]["durationTicks"]
+                            >= groups.Max(group => group.Key + group.Max(op => (int)op["hitbox"]["durationTicks"]));
+                    if (!spansMove && groups.Length > 0 && groups.Length != emits.Length)
                         throw new InvalidOperationException("Attack cue count differs from its active phases: " + slot["id"]);
-                    for (int phase = 0; phase < groups.Length; phase++)
+                    for (int phase = 0; !spansMove && phase < groups.Length; phase++)
                     {
                         var group = groups[phase];
                         var emit = emits[phase];
@@ -194,11 +219,73 @@ namespace SlopArena.EditorTools
             if (changed) File.WriteAllText(path, character.ToJsonString(new JsonSerializerOptions(JsonSerializerOptions.Default) { WriteIndented = true }) + "\n");
         }
 
+        /// <summary>The tick after a move's last active one: hitboxes, the crow's launch, the placed catch's window.</summary>
+        private static int LastActiveTick(JsonArray operations) => operations.Max(op => (string)op["kind"] switch
+        {
+            "spawnHitbox" => (int)op["tick"] + (int)op["hitbox"]["durationTicks"],
+            "spawnProjectile" => (int)op["tick"] + 1,
+            "startCapability" when op["parameters"]["atTarget"] is { } at => (int)op["tick"] + (int)op["parameters"]["throwTick"]
+                + (int)at["warningTicks"] + (int)at["catchTicks"],
+            _ => 0,
+        });
+
+        private static int FirstActiveTick(JsonArray operations) => operations.Where(op => (string)op["kind"] == "spawnHitbox")
+            .Select(op => (int)op["tick"]).DefaultIfEmpty(0).Min();
+
+        /// <summary>
+        /// Puts the cast effect on the hand nearer each spell's first contact, and the ring-light charge on the hand
+        /// that holds her phone, measured from her clips. True when character.json changed.
+        /// </summary>
+        private static bool MeasureStartupHands()
+        {
+            string path = Root + "/character.json";
+            var character = JsonNode.Parse(File.ReadAllText(path));
+            bool changed = false;
+            string Nearer(Pose pose, Vector3 point) => (pose.At["RightHand"] - point).sqrMagnitude <= (pose.At["LeftHand"] - point).sqrMagnitude
+                ? "bone.right-hand" : "bone.left-hand";
+            void SetBone(JsonNode slot, string id, string bone)
+            {
+                foreach (var op in slot["timeline"]["stages"].AsArray().SelectMany(stage => stage["operations"].AsArray()))
+                    if ((string)op["presentationId"] == Prefix + id && (string)op["placement"]["boneId"] != bone)
+                    { op["placement"]["boneId"] = bone; changed = true; }
+            }
+            foreach (var slot in character["slots"].AsArray().Where(slot => CastSlots.Contains((string)slot["id"])))
+            {
+                var move = _definition.ForForm(0).CookedSlots.First(m => m.Id == (string)slot["id"]);
+                var (tick, point) = FirstContact(move, _definition.ForForm(0));
+                SetBone(slot, "cast-aura", Nearer(SampleRig(move, tick, tick + 1).Poses[0], point));
+            }
+            var ring = character["alternateForm"]["slots"].AsArray().First(slot => (string)slot["id"] == "ground.A");
+            var ringMove = _definition.ForForm(1).CookedSlots.First(m => m.Id == "ground.A");
+            var start = SampleRig(ringMove, 0, 1).Poses[0];
+            _phoneHand = Nearer(start, start.At["phone"]);
+            SetBone(ring, "ring-light-charge", _phoneHand);
+            if (changed) File.WriteAllText(path, character.ToJsonString(new JsonSerializerOptions(JsonSerializerOptions.Default) { WriteIndented = true }) + "\n");
+            return changed;
+        }
+
+        /// <summary>A move's first contact tick and where it happens, in the cue frame: its first hitbox, else its spell's reach.</summary>
+        private static (int Tick, Vector3 Point) FirstContact(CookedSlotDefinition move, CharacterDefinition definition)
+        {
+            foreach (var op in move.Timeline.Stages[0].Operations.OrderBy(op => op.Tick))
+                switch (op)
+                {
+                    case CookedSpawnHitboxOperation hit:
+                        return (op.Tick, Resolve(new HitWindow { Tick = op.Tick, End = op.Tick + hit.Hitbox.DurationTicks,
+                            Geometry = CookedCharacterRuntimeAdapter.ToHitboxEvent(hit.Hitbox), Definition = definition, Move = move }).Start);
+                    case CookedSpawnProjectileOperation projectile:
+                        return (op.Tick, new Vector3(projectile.Projectile.LaunchOffsetX, projectile.Projectile.LaunchOffsetY, projectile.Projectile.LaunchOffsetZ));
+                    case CookedStartCapabilityOperation { Parameters: CookedTetherCapabilityParameters { AtTarget: { } at } tether }:
+                        return (op.Tick + tether.ThrowTick + at.WarningTicks, new Vector3(0f, .4f, 2f));
+                }
+            return (0, Vector3.forward);
+        }
+
         private static void LoadCueData()
         {
             Cues.Clear();
             _thrustTicks = _rotorStartupTicks = 0;
-            _graspRadius = _graspHeight = _crowRadius = 0f;
+            _graspRadius = _graspHeight = _crowRadius = _handRadius = _handHeight = 0f;
             var compiled = CharacterPackageCompiler.Compile(File.ReadAllText(Root + "/package.json"), File.ReadAllText(Root + "/character.json"));
             if (compiled.HasErrors || compiled.CookedPackage == null)
                 throw new InvalidOperationException(string.Join("; ", compiled.Diagnostics.Select(d => d.Message)));
@@ -259,6 +346,12 @@ namespace SlopArena.EditorTools
                                         Add(at.CatchPresentationId, warn + at.WarningTicks, at.CatchTicks, move);
                                         _graspRadius = at.Radius;
                                         _graspHeight = at.Height;
+                                        if (at.Unmarked is { } hand)
+                                        {
+                                            Add(hand.PresentationId, tick + hand.RiseTick, hand.ActiveTicks, move);
+                                            _handRadius = hand.Radius;
+                                            _handHeight = hand.Height;
+                                        }
                                         break;
                                 }
                             if (op is CookedEmitPresentationOperation emit)
@@ -271,7 +364,8 @@ namespace SlopArena.EditorTools
                     }
                     foreach (var hit in hits)
                     {
-                        var eligible = windows.Where(w => !w.Id.StartsWith("props.", StringComparison.Ordinal)).ToArray();
+                        var eligible = windows.Where(w => !w.Id.StartsWith("props.", StringComparison.Ordinal)
+                            && !StartupCues.Contains(Prefix + w.Id)).ToArray();
                         if (eligible.Length == 0) throw new InvalidOperationException("No attack cue for " + move.Id);
                         var cue = eligible.OrderBy(w => Mathf.Abs(w.Cue.Tick - hit.Tick)).First().Cue;
                         if (hit.Tick < cue.Tick || hit.End > cue.Tick + cue.Duration)
@@ -831,6 +925,90 @@ namespace SlopArena.EditorTools
             wings.LeftWing = Model("Left wing", "NyxCrowWingLeft"); wings.RightWing = Model("Right wing", "NyxCrowWingRight");
             Stream(root, "Feather wake", _materials.Feather, .19f, .28f, 9f);
             Stream(root, "Hex shards", _materials.Shard, _crowRadius * .45f, .3f, 7f);
+
+            // The caw: a violet star and lines bursting from its beak when it marks the spot.
+            var caw = Pop(root, "Caw", _materials.ShadowBurst, .75f, .22f, ParticleSystemScalingMode.Local);
+            caw.transform.localPosition = new Vector3(0f, .1f, .3f);
+            var lines = Particles(caw.gameObject, "Caw lines", _materials.ShadowBand, .3f, ParticleSystemSimulationSpace.Local);
+            Burst(lines, 6);
+            var main = lines.main;
+            main.startLifetime = .26f;
+            main.startSize = new ParticleSystem.MinMaxCurve(.12f, .16f);
+            main.startSpeed = 4.5f;
+            var shape = lines.shape;
+            shape.enabled = true;
+            shape.shapeType = ParticleSystemShapeType.Cone;
+            shape.angle = 35f;
+            shape.radius = .05f;
+            Stretch(lines, 0f, 6f);
+            Fade(lines, .4f);
+            InFront(lines);
+            foreach (var system in caw.GetComponentsInChildren<ParticleSystem>(true))
+            {
+                var settings = system.main;
+                settings.playOnAwake = false;
+            }
+            wings.Caw = caw;
+
+            // Where it will dive: a dotted drop line from the crow to the spot and a ring on it, the size of a contact.
+            var line = new GameObject("Drop line", typeof(LineRenderer));
+            line.transform.SetParent(root.transform, false);
+            var drop = line.GetComponent<LineRenderer>();
+            drop.useWorldSpace = true;
+            drop.positionCount = 2;
+            drop.widthMultiplier = .13f;
+            drop.textureMode = LineTextureMode.Stretch;
+            drop.alignment = LineAlignment.View;
+            drop.sharedMaterial = _materials.DropLine;
+            drop.shadowCastingMode = ShadowCastingMode.Off;
+            drop.receiveShadows = false;
+            drop.enabled = false;
+            wings.DropLine = drop;
+            float contact = _crowRadius + _definition.CapsuleRadius;
+            var spot = StaticMesh(root, "Spot mark", FlatQuad("NyxCrowSpotMesh", contact / RingOuter), _materials.ShadowShockRing, Vector3.zero);
+            spot.SetActive(false);
+            wings.SpotMark = spot.transform;
+            return Save(root);
+        }
+
+        /// <summary>A horizontal quad of half size <paramref name="half"/> on the floor plane, UVs 0 to 1.</summary>
+        private static Mesh FlatQuad(string name, float half)
+        {
+            var quad = new Mesh { name = name };
+            quad.SetVertices(new List<Vector3> { new(-half, 0f, -half), new(half, 0f, -half), new(-half, 0f, half), new(half, 0f, half) });
+            quad.SetColors(Enumerable.Repeat((Color32)Color.white, 4).ToList());
+            quad.SetUVs(0, new List<Vector2> { new(0f, 0f), new(1f, 0f), new(0f, 1f), new(1f, 1f) });
+            quad.SetTriangles(new[] { 0, 2, 1, 1, 2, 3 }, 0);
+            quad.RecalculateNormals();
+            quad.RecalculateBounds();
+            return _kit.SaveMesh(quad);
+        }
+
+        /// <summary>A peck on the carrier's head: a small violet star, claw scratches and a couple of feathers.</summary>
+        private static GameObject CrowPeck()
+        {
+            var root = _kit.NewRoot("NyxCrowPeck", attackBound: false);
+            const ParticleSystemScalingMode scale = ParticleSystemScalingMode.Hierarchy;
+            Pop(root, "Peck star", _materials.ShadowBurst, .6f, .13f, scale);
+            Pop(root, "Peck scratches", _materials.ClawMarks, .5f, .18f, scale);
+            Motifs(root, "Peck feathers", _materials.Feather, 3, .2f, .28f, 1.8f, scale);
+            return Save(root);
+        }
+
+        /// <summary>The crow leaving without a pop (swatted, missed, broken or expired): a burst of feathers round a violet ring.</summary>
+        private static GameObject CrowScatter()
+        {
+            var root = _kit.NewRoot("NyxCrowScatter", attackBound: false);
+            Pop(root, "Scatter star", _materials.ShadowBurst, .7f, .12f, ParticleSystemScalingMode.Local);
+            var ring = Particles(root, "Scatter ring", _materials.ShadowShockRing, .3f);
+            Burst(ring, 1);
+            var main = ring.main;
+            main.startLifetime = .24f;
+            main.startSize = 1.1f;
+            SizeOverLife(ring, Curve((0f, .4f), (.25f, 1f), (1f, 1.15f)));
+            Fade(ring, .4f);
+            Motifs(root, "Scattered feathers", _materials.Feather, 14, .3f, .45f, 3.4f);
+            Motifs(root, "Scattered shards", _materials.Shard, 5, .16f, .3f, 2.4f);
             return Save(root);
         }
 
@@ -927,18 +1105,57 @@ namespace SlopArena.EditorTools
                     .24f, Vector3.Cross(Vector3.up, at));
             });
             StaticMesh(root, "Gripping hand", BladeMesh("NyxGraspGripMesh", fingers, colored: true), _materials.ClawBlade, Vector3.zero);
-            var pool = new Mesh { name = "NyxGraspPoolMesh" };
-            pool.SetVertices(new List<Vector3> { new(-.8f, 0f, -.8f), new(.8f, 0f, -.8f), new(-.8f, 0f, .8f), new(.8f, 0f, .8f) });
-            pool.SetColors(Enumerable.Repeat((Color32)Color.white, 4).ToList());
-            pool.SetUVs(0, new List<Vector2> { new(0f, 0f), new(1f, 0f), new(0f, 1f), new(1f, 1f) });
-            pool.SetTriangles(new[] { 0, 2, 1, 1, 2, 3 }, 0);
-            pool.RecalculateNormals();
-            pool.RecalculateBounds();
-            StaticMesh(root, "Grip ring", _kit.SaveMesh(pool), _materials.ShadowShockRing, Vector3.up * .03f);
+            StaticMesh(root, "Grip ring", FlatQuad("NyxGraspPoolMesh", .8f), _materials.ShadowShockRing, Vector3.up * .03f);
             var tendril = BladeMesh("NyxGraspDragMesh", new[] { new Blade(t => new Vector3(.12f * Mathf.Sin(t * Mathf.PI * 3f) * (1f - t), .06f, t), .3f) }, colored: true);
             var drag = StaticMesh(root, "Drag", tendril, _materials.ClawBlade, Vector3.zero);
             Stream(root, "Dragged shards", _materials.Shard, .2f, .3f, 14f);
             root.AddComponent<PlacedTetherVisual>().Drag = drag.transform;
+            return Save(root);
+        }
+
+        /// <summary>
+        /// Grasp without a crow: a shadow hand bursts up from the floor right in front of her, its five fingers flaring
+        /// out over the hand's height as it flings the target up, with a ring at its base and streaks rising from it.
+        /// </summary>
+        private static GameObject GraspPop()
+        {
+            var root = _kit.NewRoot("NyxGraspPop", attackBound: false);
+            float life = (Duration("grasp-pop") + 4) / 60f, R = _handRadius, H = _handHeight;
+            var fingers = Enumerable.Range(0, 5).Select(i =>
+            {
+                var at = Around(i * 72f + 18f);
+                return new Blade(Bezier(at * R * .7f, at * R * .85f + Vector3.up * H * .55f, at * R * 1.05f + Vector3.up * H),
+                    .32f, Vector3.Cross(Vector3.up, at));
+            });
+            var mesh = BladeMesh("NyxGraspPopHandMesh", fingers);
+            Report("grasp-pop", mesh, Vector3.zero, new[] { (Vector3.up * R, Vector3.up * (H - R), R) });
+            MeshShape(root, "Flinging hand", _materials.ClawBlade, mesh, life, Vector3.zero, Flat(),
+                Curve((0f, .85f), (.08f, 1.06f), (.16f, 1f), (1f, 1f)), Flat(), .7f);
+            var ring = Particles(root, "Hand ring", _materials.ShadowShockRing, life, ParticleSystemSimulationSpace.Local);
+            ring.transform.localPosition = Vector3.up * .05f;
+            Burst(ring, 1);
+            var main = ring.main;
+            main.startLifetime = life;
+            main.startSize = 2f * R / RingOuter;
+            ring.GetComponent<ParticleSystemRenderer>().renderMode = ParticleSystemRenderMode.HorizontalBillboard;
+            Fade(ring, .7f);
+            var streaks = Particles(root, "Rising streaks", _materials.ShadowBand, life, ParticleSystemSimulationSpace.Local);
+            Burst(streaks, 10);
+            main = streaks.main;
+            main.startLifetime = life * .7f;
+            main.startSize = new ParticleSystem.MinMaxCurve(.12f, .18f);
+            main.startSpeed = H / (life * .7f);
+            var shape = streaks.shape;
+            shape.enabled = true;
+            shape.shapeType = ParticleSystemShapeType.Cone;
+            shape.angle = 0f;
+            shape.radius = R * .8f;
+            shape.radiusThickness = 0f;
+            shape.rotation = new Vector3(-90f, 0f, 0f);
+            Stretch(streaks, 0f, 6f);
+            Fade(streaks, .5f);
+            var shards = Motifs(root, "Flung shards", _materials.Shard, 8, .22f, life, 4f);
+            shards.transform.localPosition = Vector3.up * H * .6f;
             return Save(root);
         }
 
@@ -953,6 +1170,102 @@ namespace SlopArena.EditorTools
             renderer.shadowCastingMode = ShadowCastingMode.Off;
             renderer.receiveShadows = false;
             return part;
+        }
+
+        /// <summary>
+        /// Nyx's cast effect (owner's pick "C + A"): on the casting hand, three ink flame tongues inside a broken sigil;
+        /// at her feet, an ink pool with five short tendrils; in the air, a flat three-armed ink swirl under her boots.
+        /// The concept's compact pool hugs her hem; sized up from it to read at match distance, and the flame tops her
+        /// hand by a forearm. Three thin tendrils stay apart so the pool never reads as a wall round her legs.
+        /// </summary>
+        private static GameObject CastAura()
+        {
+            var root = _kit.NewRoot("NyxCastAura", attackBound: true);
+            var aura = root.AddComponent<NyxCastAura>();
+            var flame = Child(root, "Hand flame");
+            var tongues = new[] { (0f, .46f), (120f, .34f), (240f, .3f) }.Select(t =>
+            {
+                var at = Around(t.Item1);
+                return new Blade(Bezier(at * .05f, at * .12f + Vector3.up * t.Item2 * .5f, at * .02f + Vector3.up * t.Item2), .17f, Vector3.Cross(Vector3.up, at));
+            });
+            StaticMesh(flame, "Ink flame", BladeMesh("NyxCastFlameMesh", tongues, colored: true), _materials.ClawBlade, Vector3.zero);
+            var sigil = Child(root, "Hand sigil");
+            var arcs = Enumerable.Range(0, 3).Select(i => new Blade(t => Around(i * 120f + t * 85f) * .27f, .09f, Vector3.up));
+            StaticMesh(sigil, "Broken sigil", BladeMesh("NyxCastSigilMesh", arcs, colored: true), _materials.ClawBlade, Vector3.zero);
+
+            var pool = Child(root, "Ink pool");
+            StaticMesh(pool, "Pool", FlatQuad("NyxCastPoolMesh", .62f), _materials.InkPool, Vector3.zero);
+            var tendrils = Child(root, "Ink tendrils");
+            var strands = new[] { (60f, .5f), (190f, .4f), (300f, .45f) }.Select(t =>
+            {
+                var at = Around(t.Item1);
+                return new Blade(Bezier(at * .46f, at * .5f + Vector3.up * t.Item2 * .6f, at * .36f + Vector3.up * t.Item2), .09f, Vector3.Cross(Vector3.up, at));
+            });
+            StaticMesh(tendrils, "Tendrils", BladeMesh("NyxCastTendrilMesh", strands, colored: true), _materials.ClawBlade, Vector3.zero);
+
+            var swirl = Child(root, "Ink swirl");
+            var spiral = Enumerable.Range(0, 3).Select(i => new Blade(t => Around(i * 120f + t * 150f) * Mathf.Lerp(.15f, .62f, t), .16f, Vector3.up));
+            StaticMesh(swirl, "Swirl", BladeMesh("NyxCastSwirlMesh", spiral, colored: true), _materials.ClawBlade, Vector3.zero);
+
+            aura.Flame = flame.transform;
+            aura.Sigil = sigil.transform;
+            aura.Pool = pool.transform;
+            aura.Tendrils = tendrils.transform;
+            aura.Swirl = swirl.transform;
+            return Save(root);
+        }
+
+        /// <summary>
+        /// Ring Light's wind-up at her phone: the ring light opens behind it and spins up to full size by the flash,
+        /// sparkles stream into the lens faster and faster, and in the last third three glints shoot out along her
+        /// facing to the flash's far edge, so the threat and its reach read before it fires.
+        /// </summary>
+        private static GameObject RingLightCharge()
+        {
+            var (root, cue, content, duration) = AttackRoot("NyxRingLightCharge", "ring-light-charge", "Charge");
+            cue.OriginBoneId = _phoneHand;
+            float life = duration / 60f;
+            var halo = Particles(content, "Ring light", _materials.ShockRing, life, ParticleSystemSimulationSpace.Local);
+            Burst(halo, 1);
+            var main = halo.main;
+            main.startLifetime = life + 1f / 60f;
+            main.startSize = 1.15f;
+            SizeOverLife(halo, Curve((0f, .45f), (.2f, .62f), (.85f, 1f), (1f, 1.08f)));
+            Spin(halo, 240f);
+            InFront(halo);
+            var motes = Particles(content, "Charging sparkles", _materials.Sparkle, life, ParticleSystemSimulationSpace.Local);
+            main = motes.main;
+            main.startLifetime = .22f;
+            main.startSize = new ParticleSystem.MinMaxCurve(.14f, .22f);
+            main.startSpeed = -4.5f;
+            var emission = motes.emission;
+            emission.rateOverTime = new ParticleSystem.MinMaxCurve(40f, Curve((0f, .4f), (1f, 1f)));
+            Sphere(motes, 1f);
+            SizeOverLife(motes, Curve((0f, 1f), (1f, .3f)));
+            InFront(motes);
+            var glint = Particles(content, "Lens glint", _materials.Glint, life, ParticleSystemSimulationSpace.Local);
+            glint.emission.SetBursts(new[] { .0f, .35f, .6f, .78f, .9f }.Select(t => new ParticleSystem.Burst(t * life, 1)).ToArray());
+            main = glint.main;
+            main.startLifetime = .12f;
+            main.startSize = .55f;
+            SizeOverLife(glint, Curve((0f, .5f), (.3f, 1.1f), (1f, .6f)));
+            InFront(glint);
+            float reach = Windows("ring-light").SelectMany(w => w.Hitboxes).Select(Resolve).Max(h => h.Start.z + h.Radius);
+            var aim = Particles(content, "Aim glints", _materials.Sparkle, life, ParticleSystemSimulationSpace.Local);
+            aim.emission.SetBursts(new[] { new ParticleSystem.Burst(life * .6f, 3) });
+            main = aim.main;
+            main.startLifetime = life * .4f;
+            main.startSize = .3f;
+            // From her phone, roughly half a metre ahead of her feet, to the flash's far edge.
+            main.startSpeed = Mathf.Max(1f, reach - .5f) / (life * .4f);
+            var shape = aim.shape;
+            shape.enabled = true;
+            shape.shapeType = ParticleSystemShapeType.Cone;
+            shape.angle = 14f;
+            shape.radius = .05f;
+            Spin(aim, 180f);
+            InFront(aim);
+            return Save(root);
         }
 
         // ── Fake form ────────────────────────────────────────────────────────────
@@ -1260,8 +1573,26 @@ namespace SlopArena.EditorTools
             var mesh = BladeMesh("NyxRingLightRaysMesh", rays, source);
             Report("ring-light", mesh, source, spheres.Select(s => (s.Start, s.End, s.Radius)));
             InFront(MeshShape(content, "Light rays", _materials.LightRay, mesh, life, source, Snap(life, .2f), Snap(life, .2f), Snap(life, .2f), .55f));
-            Pop(content, "Ring light flash", _materials.ShockRing, .5f, life, ParticleSystemScalingMode.Local).transform.localPosition = source;
-            Pop(content, "Lens glint", _materials.Glint, .45f, life, ParticleSystemScalingMode.Local).transform.localPosition = source;
+            Pop(content, "Ring light flash", _materials.ShockRing, 1.3f, life, ParticleSystemScalingMode.Local).transform.localPosition = source;
+            Pop(content, "Flash star", _materials.PinkBurst, 1f, life * .7f, ParticleSystemScalingMode.Local).transform.localPosition = source;
+            Pop(content, "Lens glint", _materials.Glint, .7f, life, ParticleSystemScalingMode.Local).transform.localPosition = source;
+            // Focus lines race out through the fan and stop at its far edge, so the flash shows how far it reaches.
+            float far = ends.Count == 0 ? 2f : ends.Average(e => (e - source).magnitude);
+            var lines = Particles(content, "Flash lines", _materials.PinkBand, life, ParticleSystemSimulationSpace.Local);
+            lines.transform.localPosition = source;
+            Burst(lines, 14);
+            var lineMain = lines.main;
+            lineMain.startLifetime = life;
+            lineMain.startSize = new ParticleSystem.MinMaxCurve(.12f, .17f);
+            lineMain.startSpeed = far / life;
+            var lineShape = lines.shape;
+            lineShape.enabled = true;
+            lineShape.shapeType = ParticleSystemShapeType.Cone;
+            lineShape.angle = spread * Mathf.Rad2Deg;
+            lineShape.radius = .05f;
+            Stretch(lines, 0f, 7f);
+            Fade(lines, .5f);
+            InFront(lines);
             for (int i = 0; i < ends.Count; i += 2)
                 Pop(content, "Edge " + (i % 4 == 0 ? "heart " : "sparkle ") + i, i % 4 == 0 ? _materials.Heart : _materials.Sparkle,
                     i % 4 == 0 ? .3f : .24f, life, ParticleSystemScalingMode.Local).transform.localPosition = Vector3.Lerp(source, ends[i], .92f);
@@ -1271,16 +1602,18 @@ namespace SlopArena.EditorTools
         /// <summary>
         /// Ring Light Rise: the ring light spins over her head like a rotor, three pink blades inside
         /// a pink disc ring that spin up through the startup, with a downdraft once she rises and
-        /// sparkles shed along her path. It has no hitbox; the rotor is sized to read at match distance.
+        /// sparkles shed along her path. The rotor shares the rising hitbox's centre and reach.
         /// </summary>
         private static GameObject RingLightRise()
         {
-            var window = Windows("rotor-arcs")[0];
             var (root, cue, content, duration) = AttackRoot("NyxRotorArcs", "rotor-arcs", "Rotor");
             float life = duration / 60f, startup = Mathf.Clamp01(_rotorStartupTicks / (float)duration);
-            float head = SampleRig(window.Move, 0, duration).Poses.Max(p => p.At["HeadTop_End"].y);
-            var hub = Vector3.up * (head + .3f);
-            const float R = 1f;
+            cue.OriginBoneId = "bone.hips";
+            var hit = FirstHit("rotor-arcs");
+            var hub = new Vector3(hit.Geometry.OffX, hit.Geometry.OffY, hit.Geometry.OffZ);
+            float R = hit.Geometry.Radius;
+            root.AddComponent<PropVisibilityPresentation>().Configure(1, Array.Empty<string>(),
+                new[] { "Nyx_BackpackPole", "Nyx_PoleHeld" });
             var blades = Enumerable.Range(0, 3).Select(i => new Blade(t => Around(i * 120f + t * 80f) * Mathf.Lerp(R * .25f, R * .92f, t), .3f));
             var mesh = BladeMesh("NyxRotorBladesMesh", blades);
             var rotor = MeshShape(content, "Rotor blades", _materials.PinkBlade, mesh, life, hub, Snap(life, .4f), Flat(), Snap(life, .4f), .92f);
@@ -1855,6 +2188,16 @@ namespace SlopArena.EditorTools
                     color.a *= Step(0f, .05f, u);
                     return color;
                 }), Color.white),
+                // An ink pool with a wobbly edge: ink rim, violet band, deep ink core with a lavender sheen.
+                InkPool = Bake("NyxInkPool", (u, v) =>
+                {
+                    var p = new Vector2(u * 2f - 1f, v * 2f - 1f);
+                    float edge = .8f + .06f * Mathf.Sin(Mathf.Atan2(p.y, p.x) * 7f) + .05f * (ValueNoise(u, v, 6f, 11) - .5f);
+                    Color color = Bands((p.magnitude - edge) * 128f, 3f, 12f, ShadowRim, Violet, Ink);
+                    float sheen = 1f - Step(.02f, .06f, Mathf.Abs((p - new Vector2(-.18f, .2f)).magnitude - .32f));
+                    return Color.Lerp(color, new Color(Lavender.r, Lavender.g, Lavender.b, color.a), sheen * .7f * Step(.1f, .3f, edge - p.magnitude));
+                }, 512),
+                DropLine = DropLineMaterial(),
                 // Three parallel claw scratches, tapered at both ends, for her contacts.
                 ClawMarks = Bake("NyxClawMarks", (u, v) =>
                 {
@@ -1865,6 +2208,24 @@ namespace SlopArena.EditorTools
                     return Banded(d, false);
                 }),
             };
+        }
+
+        /// <summary>The roster's dotted drop line (ink rim, light core) in lavender, for the crow's committed dive.</summary>
+        private static Material DropLineMaterial()
+        {
+            string path = _kit.Root + "/NyxCrowDropLine.mat";
+            var shader = Resources.Load<Shader>("Shaders/FighterDropLine") ?? throw new InvalidOperationException("Missing FighterDropLine shader.");
+            var material = AssetDatabase.LoadAssetAtPath<Material>(path);
+            bool created = material == null;
+            if (created) material = new Material(shader);
+            material.shader = shader;
+            material.SetColor("_Color", Lavender);
+            material.SetFloat("_Airborne", 1f);
+            material.SetFloat("_Spacing", 2.2f);
+            material.SetFloat("_Core", .32f);
+            if (created) AssetDatabase.CreateAsset(material, path);
+            else EditorUtility.SetDirty(material);
+            return material;
         }
 
         [CliCommand("sloparena.presentation.nyx.verify-timing", "Verify Nyx's attack cues against current source: nothing outlives its cue, every hitbox opens with something showing, and no coverage field remains.",
@@ -1905,6 +2266,20 @@ namespace SlopArena.EditorTools
                         if (!beats.Any(b => b.StartAfter <= start && b.EndAfter > start) && !cue.Trails.Any(t => t.StartAfter <= start))
                             problems.Add($"{id}: nothing shows when its hitbox opens at tick {hit.Tick}");
                     }
+                }
+            }
+            using (var document = JsonDocument.Parse(File.ReadAllText(Root + "/character.json")))
+            {
+                var real = document.RootElement.GetProperty("slots").EnumerateArray().ToArray();
+                foreach (string slot in CastSlots)
+                {
+                    var operations = JsonNode.Parse(real.First(s => s.GetProperty("id").GetString() == slot).GetProperty("timeline")
+                        .GetProperty("stages")[0].GetProperty("operations").GetRawText()).AsArray();
+                    var aura = operations.FirstOrDefault(op => (string)op["presentationId"] == Prefix + "cast-aura");
+                    if (aura == null) problems.Add($"cast-aura: missing on {slot}");
+                    else if ((int)aura["tick"] != 0 || (int)aura["placement"]["durationTicks"] != LastActiveTick(operations))
+                        problems.Add($"cast-aura: {slot} does not cover startup through its last active tick");
+                    checkedCues++;
                 }
             }
             if (problems.Count != 0) throw new InvalidOperationException(string.Join("; ", problems));

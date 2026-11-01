@@ -78,7 +78,7 @@ public sealed class NyxPhase23Tests
     [InlineData(true, false)]
     [InlineData(false, true)]
     [InlineData(true, true)]
-    public void RingLightTurnsLungesAndDazzlesWithoutLaunching(bool behind, bool saved)
+    public void RingLightTurnsInPlaceAndDazzlesWithoutLaunching(bool behind, bool saved)
     {
         var sim = Make(1, target: true, saved: saved);
         var target = sim.GetState(FormsFixture.Dummy);
@@ -88,7 +88,9 @@ public sealed class NyxPhase23Tests
         FormsFixture.Step(sim, FormsFixture.Press(AbilitySlots.A));
         var hits = new List<SpellResolver.HitResult>();
         float maxTravel = 0;
-        for (int i = 0; i < 45; i++)
+        ushort dazzle = sim.GetDefinition(FormsFixture.Nyx)!.ForForm(1).GetCookedSlotAbility(AbilitySlots.A, false)!
+            .Timeline.Stages[0].Operations.OfType<CookedSpawnHitboxOperation>().Max(op => op.Hitbox.FixedHitstunTicks);
+        for (int i = 0; i < 60; i++)
         {
             FormsFixture.Step(sim);
             maxTravel = MathF.Max(maxTravel, MathF.Abs(sim.GetState(FormsFixture.Nyx).PZ - FormsFixture.Z));
@@ -97,8 +99,8 @@ public sealed class NyxPhase23Tests
             if (victim.HitstunTicks > 0)
             {
                 Assert.Equal((0f, 0f, 0f), (victim.KVX, victim.KVY, victim.KVZ));
-                Assert.InRange(victim.HitstunTicks, 1, 36);
-                Assert.True(maxTravel > .1f);
+                Assert.InRange(victim.HitstunTicks, 1, dazzle);
+                Assert.True(maxTravel < .01f, $"Ring Light moved her {maxTravel} m: it has no lunge");
                 Assert.Single(hits);
                 return;
             }

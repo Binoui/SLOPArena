@@ -41,8 +41,13 @@ away.
    ([visual references](../../docs/characters/genra-animation-workflow.md#choose-visual-references)).
 5. **Keys.** Write one brief per clip the game plays. The owner approves the key poses
    (`tools/genra/run.py --stage keys`) before any motion.
-6. **Motion.** Run one authoring round per clip. Show each take on its own, and let the owner
-   pick before any revision.
+6. **Motion.** Build flow into the first take with `run.py BRIEF --keys <approved keys run>`.
+   Show the take to the owner before any revision. Use `run.py BRIEF --revise RUN --owner-file direction.md`
+   only for requested changes. Inline `--owner "text"` still works. Use the
+   [owner template](../../tools/genra/briefs/OWNER-DIRECTION.md) for keep bounds, body parts,
+   tick ranges, amounts, lags, and prohibitions. Flow stays advisory, and stiffness may be wanted.
+   Normals get a plain, short recovery; the move itself can carry personality. Specials can carry more.
+   The director is opt-in through `review.py` or `loop.py --director`.
 7. **In game.** Promote, bind and wire the clips, cook, and capture the bound move with
    `python3 tools/move_review.py run <package> --moves <id>`. Add or update its
    [move recipe](../../scenarios/moves/README.md), then inspect the synchronized

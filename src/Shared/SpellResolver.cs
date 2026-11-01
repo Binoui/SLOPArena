@@ -788,6 +788,12 @@ namespace SlopArena.Shared
                 if (hb.AttachedEntityId != 0)
                 {
                     if (hb.FuseTicksLeft > 0) hb.FuseTicksLeft--;
+                    if (hb.Perch is { } riding)
+                    {
+                        if (riding.PhaseTicks < ushort.MaxValue) riding.PhaseTicks++;
+                        hb.Perch = riding;
+                        if (hb.FuseTicksLeft == 0) Scatter(in hb, hb.X, hb.Y, hb.Z);
+                    }
                     if (hb.FuseTicksLeft == 0) ExplodeSticky(i, hb);
                     else _hitboxes[i] = hb;
                     _lastTickChecked.Add(hb);
@@ -832,9 +838,11 @@ namespace SlopArena.Shared
                 }
 
                 _contacts.Clear();
+                // A perch touches bodies only in its dive (ADR-0051 section 9).
+                bool touches = hb.Perch is not { } flight || flight.Phase == PerchPhase.Diving;
                 foreach (var entity in candidates)
                 {
-                    if (!entity.Active) continue;
+                    if (!touches || !entity.Active) continue;
                     if (entity.RuntimeSolid && (hb.Damage <= 0 || hb.OwnerId == ServerSimulation.MayhemHostEntityId)) continue;
                     if (hb.Unblockable ? entity.ShieldSurface : entity.ProtectedByShield) continue;
                     if (!hb.CanHitOwner && entity.Id == hb.OwnerId) continue;
@@ -919,7 +927,13 @@ namespace SlopArena.Shared
 
                     if (hb.StickyFuseTicks > 0 && !entity.ShieldSurface)
                     {
-                        if (hb.Perch.HasValue) _perchedThisTick.Add(hb.EmissionId);
+                        if (hb.Perch is { } landing)
+                        {
+                            _perchedThisTick.Add(hb.EmissionId);
+                            landing.Phase = PerchPhase.Perched;
+                            landing.PhaseTicks = 0;
+                            hb.Perch = landing;
+                        }
                         hb.AttachedEntityId = entity.Id; hb.FuseTicksLeft = hb.StickyFuseTicks;
                         hb.X = entity.PosX; hb.Y = (entity.PosY + entity.EndY) * .5f; hb.Z = entity.PosZ;
                         hb.VX = hb.VY = hb.VZ = hb.Gravity = 0f;
@@ -986,6 +1000,7 @@ namespace SlopArena.Shared
                     hb.AgeTicks++;
                 if (hb.AttachedEntityId == 0 && (hb.AgeTicks >= hb.DurationTicks || !hb.Active))
                 {
+                    if (hb.Perch.HasValue) Scatter(in hb, removalOrigin.X, removalOrigin.Y, removalOrigin.Z);
                     if (hb.Explosion.HasValue && (!hb.ContactExplosion || !hb.Active))
                         _pendingExplosions.Add((removalOrigin.X, removalOrigin.Y, removalOrigin.Z, hb.Explosion.Value, hb.OwnerId, hb.AttackSlot,
                             hb.ActivationId, hb.ActivationAirborne, hb.AttackSequence));

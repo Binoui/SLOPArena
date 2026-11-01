@@ -522,7 +522,7 @@ function loop(now) {
 const MODE_STAGES = new Set(['slopball', 'license_test']);
 const MENU_STAGES = STAGES.filter(([id]) => !MODE_STAGES.has(id) && (hasStageArt(id) || QUERY.has('allstages')));
 // New players start on the tutorial until they finish it once in this browser, as on Unity's Home.
-const pick = { mode: tutorialCompleted() ? 'brawl' : 'tutorial', you: 'fightguy', cpus: ['manki'], stage: 'after_hours', level: 1 };
+const pick = { mode: tutorialCompleted() ? 'brawl' : 'tutorial', you: 'fightguy', cpus: ['fightguy'], stage: 'after_hours', level: 0 };
 const menu = createMenu({
   catalog, modes: MODES, stages: MENU_STAGES, paths: PATHS, pick,
   go: () => { if (MODES[pick.mode].ready()) startMatch().catch(e => { console.error(e); status(String(e)); }); },

@@ -246,6 +246,16 @@ duration is the empty ring's time home. Its slot is one tick-zero lifecycle in o
 IASA disabled and only presentation alongside; it cannot tuck. Compiler and cooked loader enforce the same rules
 (`TetherSlotError`, `TetherBoundsError`). Ability Lab does not edit it yet.
 
+The tether's optional `atTarget` block (runtime API `1.18.0`, [ADR-0051](../adr/0051-nyx-two-forms.md), Nyx's Grasp)
+throws nothing. The spot is the current target's feet at the press, at most `maxRange` away (`noTargetDistance`
+ahead without a target). A warning marks it at `throwTick`. `warningTicks` later, an upright catch capsule of `radius`
+and `height` rises there for `catchTicks` and deals `damage`. A catch reels as above; a miss is `missRecoveryTicks`
+with no retract. Its optional `unmarked` block (runtime API `1.21.0`) keeps that catch for a current target carrying
+the thrower's perch within `maxRange`. Any other press raises an ordinary hit instead: an upright capsule of `radius`
+and `height`, `distance` ahead of her feet, at `riseTick` for `activeTicks`, with its own `damage`, `angle`,
+`baseKnockback`, `knockbackGrowth` and `stunTicks`. She then recovers for `recoveryTicks`, and `presentationId` marks the
+hand.
+
 `slop.ability.command-grab.v1` requires runtime API `1.18.0`, and `1.20.0` for its optional `level`,
 `anchorDistance`, `releaseLockTicks`, `whiffRecoveryTicks`, a missing `launch` or a capture with damage
 ([ADR-0057](../adr/0057-one-command-grab.md); Nyx's Selfie Grab, FightGuy's Title Match). At the press the fighter
@@ -287,6 +297,17 @@ toggles her form at its tick, at most once per move. The swap exchanges the live
 with the other form's bank in `CharacterState.Form`; F keeps one clock. A running move keeps the definition it started
 with, and its hitboxes and hit records carry its form. Compiler and cooked loader enforce the same rules
 (`FormsBoundsError`). Ability Lab shows and edits form 0 only.
+
+A `spawnProjectile` may carry a `homing` block or a `perch` block (runtime API `1.18.0`, ADR-0051 sections 5 and 9,
+Nyx's Hex Crow). `homing.turnDegreesPerTick` (0–90) steers toward the target captured at spawn until it is behind.
+A `perch` lands with no damage on the first body it meets in its dive and rides that fighter for `perchTicks`
+(1–1200). A damaging hit from the thrower's other form pops it (`pop`), and a shield or an air dodge by its carrier
+swats it off. Its optional `dive` block (runtime API `1.21.0`) gives the perch its lifecycle. It rises at the
+projectile's speed to `hoverHeight` above the target's feet for at most `maxRiseTicks`, then marks the spot under it
+for `markTicks`, then dives straight at it at `diveSpeed`. A diving perch has no `homing` and no gravity. Without a
+`dive` block the whole flight is its dive. The optional `peck` deals `damage` (whole, 1–20) every `intervalTicks` with
+no reaction, and `scatterPresentationId` shows every exit but a pop or a KO. Compiler and cooked loader enforce the
+same rules (`ProjectilePerchContract`).
 
 A `spawnProjectile` may carry a `return` block (runtime API `1.8.0`; Sir Bonk's pot
 lid). The projectile needs a positive speed and no gravity. It flies out for

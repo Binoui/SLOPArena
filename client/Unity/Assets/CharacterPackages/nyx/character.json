@@ -11,9 +11,9 @@
     "airSpeedMax": 7,
     "airAccelStick": 16,
     "airAccelBase": 3.2,
-    "jumpForce": 10,
+    "jumpForce": 9.4,
     "shortHopForce": 6,
-    "airJumpVMultiplier": 0.85,
+    "airJumpVMultiplier": 0.8,
     "airJumpHMultiplier": 0.85,
     "gravity": 20,
     "airFloatGravity": 0,
@@ -335,6 +335,17 @@
             ],
             "operations": [
               {
+                "kind": "emitPresentation",
+                "tick": 0,
+                "unit": "ticks",
+                "presentationId": "presentation.nyx.cast-aura",
+                "placement": {
+                  "attachmentMode": "bone",
+                  "boneId": "bone.right-hand",
+                  "durationTicks": 19
+                }
+              },
+              {
                 "kind": "startupAimCorrection",
                 "tick": 0,
                 "unit": "ticks",
@@ -419,6 +430,17 @@
             ],
             "operations": [
               {
+                "kind": "emitPresentation",
+                "tick": 0,
+                "unit": "ticks",
+                "presentationId": "presentation.nyx.cast-aura",
+                "placement": {
+                  "attachmentMode": "bone",
+                  "boneId": "bone.right-hand",
+                  "durationTicks": 24
+                }
+              },
+              {
                 "kind": "spawnHitbox",
                 "tick": 10,
                 "unit": "meters",
@@ -490,6 +512,17 @@
               "anim.nyx.g3"
             ],
             "operations": [
+              {
+                "kind": "emitPresentation",
+                "tick": 0,
+                "unit": "ticks",
+                "presentationId": "presentation.nyx.cast-aura",
+                "placement": {
+                  "attachmentMode": "bone",
+                  "boneId": "bone.left-hand",
+                  "durationTicks": 32
+                }
+              },
               {
                 "kind": "startupAimCorrection",
                 "tick": 0,
@@ -601,6 +634,17 @@
             ],
             "operations": [
               {
+                "kind": "emitPresentation",
+                "tick": 0,
+                "unit": "ticks",
+                "presentationId": "presentation.nyx.cast-aura",
+                "placement": {
+                  "attachmentMode": "bone",
+                  "boneId": "bone.right-hand",
+                  "durationTicks": 23
+                }
+              },
+              {
                 "kind": "spawnHitbox",
                 "tick": 13,
                 "unit": "meters",
@@ -672,6 +716,17 @@
               "anim.nyx.g4"
             ],
             "operations": [
+              {
+                "kind": "emitPresentation",
+                "tick": 0,
+                "unit": "ticks",
+                "presentationId": "presentation.nyx.cast-aura",
+                "placement": {
+                  "attachmentMode": "bone",
+                  "boneId": "bone.right-hand",
+                  "durationTicks": 40
+                }
+              },
               {
                 "kind": "startupAimCorrection",
                 "tick": 0,
@@ -757,6 +812,17 @@
             ],
             "operations": [
               {
+                "kind": "emitPresentation",
+                "tick": 0,
+                "unit": "ticks",
+                "presentationId": "presentation.nyx.cast-aura",
+                "placement": {
+                  "attachmentMode": "bone",
+                  "boneId": "bone.right-hand",
+                  "durationTicks": 35
+                }
+              },
+              {
                 "kind": "spawnHitbox",
                 "tick": 25,
                 "unit": "meters",
@@ -802,7 +868,7 @@
     {
       "id": "ground.A",
       "name": "Hex Crow",
-      "description": "Hex Crow.",
+      "description": "A crow climbs over your target, caws to mark the spot and dives. Perched, it pecks them and marks them for Grasp; Nyxxie\u0027s next hit pops it. Dash at the caw to dodge; shield or air dodge to swat it off.",
       "iconId": "icon.a",
       "behavior": "meleeCombo",
       "aimMode": "none",
@@ -829,6 +895,17 @@
             ],
             "operations": [
               {
+                "kind": "emitPresentation",
+                "tick": 0,
+                "unit": "ticks",
+                "presentationId": "presentation.nyx.cast-aura",
+                "placement": {
+                  "attachmentMode": "bone",
+                  "boneId": "bone.right-hand",
+                  "durationTicks": 21
+                }
+              },
+              {
                 "kind": "startupAimCorrection",
                 "tick": 0,
                 "unit": "ticks",
@@ -848,7 +925,7 @@
                   "launchOffsetX": 0,
                   "launchOffsetY": 0.45,
                   "launchOffsetZ": 0.6,
-                  "speed": 9,
+                  "speed": 14,
                   "gravity": 0,
                   "radius": 0.4,
                   "damage": 0,
@@ -856,11 +933,8 @@
                   "baseKnockback": 0,
                   "knockbackGrowth": 0,
                   "stunTicks": 0,
-                  "maxFlightTicks": 150,
+                  "maxFlightTicks": 90,
                   "yawOffsetDegrees": 0,
-                  "homing": {
-                    "turnDegreesPerTick": 3
-                  },
                   "perch": {
                     "perchTicks": 480,
                     "pop": {
@@ -870,7 +944,20 @@
                       "knockbackGrowth": 25,
                       "stunTicks": 18,
                       "presentationId": "presentation.nyx.crow-pop"
-                    }
+                    },
+                    "dive": {
+                      "hoverHeight": 3.6,
+                      "maxRiseTicks": 45,
+                      "markTicks": 14,
+                      "diveSpeed": 18,
+                      "noTargetDistance": 5
+                    },
+                    "peck": {
+                      "intervalTicks": 120,
+                      "damage": 2,
+                      "presentationId": "presentation.nyx.crow-peck"
+                    },
+                    "scatterPresentationId": "presentation.nyx.crow-scatter"
                   }
                 }
               },
@@ -893,7 +980,7 @@
     {
       "id": "ground.E",
       "name": "Bat Scatter",
-      "description": "Bat Scatter.",
+      "description": "Nyx bursts into bats, flies where you point and re-forms. Her recovery.",
       "iconId": "icon.e",
       "behavior": "meleeCombo",
       "aimMode": "none",
@@ -955,7 +1042,7 @@
     {
       "id": "ground.R",
       "name": "Grasp",
-      "description": "Grasp.",
+      "description": "On a target carrying your crow, a shadow hand rises under them and drags them to your feet. Without a crow, a shadow hand bursts up right in front of you and pops them into the air.",
       "iconId": "icon.r",
       "behavior": "meleeCombo",
       "aimMode": "none",
@@ -982,6 +1069,17 @@
             ],
             "operations": [
               {
+                "kind": "emitPresentation",
+                "tick": 0,
+                "unit": "ticks",
+                "presentationId": "presentation.nyx.cast-aura",
+                "placement": {
+                  "attachmentMode": "bone",
+                  "boneId": "bone.right-hand",
+                  "durationTicks": 36
+                }
+              },
+              {
                 "kind": "startCapability",
                 "tick": 0,
                 "unit": "ticks",
@@ -1004,7 +1102,21 @@
                     "maxRange": 9,
                     "noTargetDistance": 4,
                     "warningPresentationId": "presentation.nyx.grasp-warning",
-                    "catchPresentationId": "presentation.nyx.grasp-catch"
+                    "catchPresentationId": "presentation.nyx.grasp-catch",
+                    "unmarked": {
+                      "riseTick": 20,
+                      "activeTicks": 6,
+                      "distance": 1.5,
+                      "radius": 0.7,
+                      "height": 2.2,
+                      "damage": 10,
+                      "angle": 85,
+                      "baseKnockback": 7,
+                      "knockbackGrowth": 26,
+                      "stunTicks": 18,
+                      "recoveryTicks": 32,
+                      "presentationId": "presentation.nyx.grasp-pop"
+                    }
                   }
                 }
               }
@@ -1016,7 +1128,7 @@
     {
       "id": "ground.F",
       "name": "Going Live",
-      "description": "A white and pink flash swaps to Nyxxie and pulls nearby enemies in.",
+      "description": "Nyx lets loose and goes live as Nyxxie: a pink flash pulls nearby enemies in.",
       "iconId": "icon.f",
       "behavior": "meleeCombo",
       "aimMode": "none",
@@ -1147,7 +1259,12 @@
     "presentation.nyx.shadow-hit",
     "presentation.nyx.pink-hit",
     "presentation.nyx.selfie-release",
-    "presentation.nyx.selfie-catch"
+    "presentation.nyx.selfie-catch",
+    "presentation.nyx.crow-peck",
+    "presentation.nyx.crow-scatter",
+    "presentation.nyx.grasp-pop",
+    "presentation.nyx.ring-light-charge",
+    "presentation.nyx.cast-aura"
   ],
   "alternateForm": {
     "id": "fake",
@@ -1752,7 +1869,7 @@
       {
         "id": "ground.A",
         "name": "Ring Light",
-        "description": "Ring Light.",
+        "description": "Nyxxie raises her phone and charges the ring light, then flashes it across mid-range. Anyone facing her is dazzled for a rush in. Look away to dodge it.",
         "iconId": "icon.a",
         "behavior": "meleeCombo",
         "aimMode": "none",
@@ -1764,8 +1881,8 @@
         "timeline": {
           "stages": [
             {
-              "durationTicks": 45,
-              "iasaTicks": 38,
+              "durationTicks": 83,
+              "iasaTicks": 34,
               "landingLagTicks": 0,
               "autoCancelBeforeTicks": 0,
               "autoCancelAfterTicks": 0,
@@ -1782,32 +1899,35 @@
                   "kind": "startupAimCorrection",
                   "tick": 0,
                   "unit": "ticks",
-                  "endTick": 10,
-                  "acquisitionRange": 5,
+                  "endTick": 18,
+                  "acquisitionRange": 6,
                   "acquisitionHalfAngleDegrees": 180,
                   "maxYawDegrees": 180,
                   "maxPitchDegrees": 0,
-                  "yawDegreesPerSecond": 1440,
+                  "yawDegreesPerSecond": 720,
                   "pitchDegreesPerSecond": 0
                 },
                 {
-                  "kind": "forwardLunge",
-                  "tick": 10,
-                  "unit": "metersPerSecond",
-                  "speed": 24,
-                  "durationTicks": 3,
-                  "stopInAttackRange": true
+                  "kind": "emitPresentation",
+                  "tick": 0,
+                  "unit": "ticks",
+                  "presentationId": "presentation.nyx.ring-light-charge",
+                  "placement": {
+                    "attachmentMode": "bone",
+                    "boneId": "bone.right-hand",
+                    "durationTicks": 24
+                  }
                 },
                 {
                   "kind": "spawnHitbox",
-                  "tick": 13,
+                  "tick": 24,
                   "unit": "meters",
                   "hitbox": {
                     "shape": "sphere",
-                    "radius": 0.5,
-                    "offsetX": 0,
+                    "radius": 0.6,
+                    "offsetX": 0.0,
                     "offsetY": 0.1,
-                    "offsetZ": 0.8,
+                    "offsetZ": 1.0,
                     "endOffsetX": 0,
                     "endOffsetY": 0,
                     "endOffsetZ": 0,
@@ -1822,20 +1942,20 @@
                     "interruptible": true,
                     "hitGroup": 1,
                     "knockbackDirection": "awayFromOwner",
-                    "fixedHitstunTicks": 36,
+                    "fixedHitstunTicks": 60,
                     "requiresFacingOwner": true
                   }
                 },
                 {
                   "kind": "spawnHitbox",
-                  "tick": 13,
+                  "tick": 24,
                   "unit": "meters",
                   "hitbox": {
                     "shape": "sphere",
-                    "radius": 0.65,
-                    "offsetX": 0,
+                    "radius": 0.8,
+                    "offsetX": 0.0,
                     "offsetY": 0.1,
-                    "offsetZ": 1.5,
+                    "offsetZ": 2.1,
                     "endOffsetX": 0,
                     "endOffsetY": 0,
                     "endOffsetZ": 0,
@@ -1850,20 +1970,20 @@
                     "interruptible": true,
                     "hitGroup": 1,
                     "knockbackDirection": "awayFromOwner",
-                    "fixedHitstunTicks": 36,
+                    "fixedHitstunTicks": 60,
                     "requiresFacingOwner": true
                   }
                 },
                 {
                   "kind": "spawnHitbox",
-                  "tick": 13,
+                  "tick": 24,
                   "unit": "meters",
                   "hitbox": {
                     "shape": "sphere",
-                    "radius": 0.55,
-                    "offsetX": -0.65,
+                    "radius": 0.95,
+                    "offsetX": 0.0,
                     "offsetY": 0.1,
-                    "offsetZ": 1.8,
+                    "offsetZ": 3.0,
                     "endOffsetX": 0,
                     "endOffsetY": 0,
                     "endOffsetZ": 0,
@@ -1878,20 +1998,20 @@
                     "interruptible": true,
                     "hitGroup": 1,
                     "knockbackDirection": "awayFromOwner",
-                    "fixedHitstunTicks": 36,
+                    "fixedHitstunTicks": 60,
                     "requiresFacingOwner": true
                   }
                 },
                 {
                   "kind": "spawnHitbox",
-                  "tick": 13,
+                  "tick": 24,
                   "unit": "meters",
                   "hitbox": {
                     "shape": "sphere",
-                    "radius": 0.55,
-                    "offsetX": 0.65,
+                    "radius": 0.85,
+                    "offsetX": -0.85,
                     "offsetY": 0.1,
-                    "offsetZ": 1.8,
+                    "offsetZ": 3.95,
                     "endOffsetX": 0,
                     "endOffsetY": 0,
                     "endOffsetZ": 0,
@@ -1906,13 +2026,41 @@
                     "interruptible": true,
                     "hitGroup": 1,
                     "knockbackDirection": "awayFromOwner",
-                    "fixedHitstunTicks": 36,
+                    "fixedHitstunTicks": 60,
+                    "requiresFacingOwner": true
+                  }
+                },
+                {
+                  "kind": "spawnHitbox",
+                  "tick": 24,
+                  "unit": "meters",
+                  "hitbox": {
+                    "shape": "sphere",
+                    "radius": 0.85,
+                    "offsetX": 0.85,
+                    "offsetY": 0.1,
+                    "offsetZ": 3.95,
+                    "endOffsetX": 0,
+                    "endOffsetY": 0,
+                    "endOffsetZ": 0,
+                    "startBoneId": null,
+                    "endBoneId": null,
+                    "damage": 0,
+                    "angle": 30,
+                    "baseKnockback": 0,
+                    "knockbackGrowth": 0,
+                    "stunTicks": 18,
+                    "durationTicks": 6,
+                    "interruptible": true,
+                    "hitGroup": 1,
+                    "knockbackDirection": "awayFromOwner",
+                    "fixedHitstunTicks": 60,
                     "requiresFacingOwner": true
                   }
                 },
                 {
                   "kind": "emitPresentation",
-                  "tick": 13,
+                  "tick": 24,
                   "unit": "ticks",
                   "presentationId": "presentation.nyx.ring-light",
                   "placement": {
@@ -1930,7 +2078,7 @@
       {
         "id": "ground.E",
         "name": "Ring Light Rise",
-        "description": "Ring Light Rise.",
+        "description": "Ring light rotor chops during the rise, then pops victims up and away.",
         "iconId": "icon.e",
         "behavior": "meleeCombo",
         "aimMode": "none",
@@ -1981,16 +2129,121 @@
                     "boneId": "bone.hips",
                     "durationTicks": 63
                   }
+                },
+                {
+                  "kind": "spawnHitbox",
+                  "tick": 15,
+                  "unit": "meters",
+                  "hitbox": {
+                    "shape": "sphere",
+                    "radius": 1,
+                    "offsetX": 0,
+                    "offsetY": 1.08,
+                    "offsetZ": 0,
+                    "endOffsetX": 0,
+                    "endOffsetY": 0,
+                    "endOffsetZ": 0,
+                    "startBoneId": "bone.hips",
+                    "endBoneId": null,
+                    "damage": 2,
+                    "angle": 85,
+                    "baseKnockback": 5,
+                    "knockbackGrowth": 18,
+                    "stunTicks": 12,
+                    "durationTicks": 8,
+                    "interruptible": true,
+                    "hitGroup": 1,
+                    "knockbackDirection": "awayFromOwner"
+                  }
+                },
+                {
+                  "kind": "spawnHitbox",
+                  "tick": 23,
+                  "unit": "meters",
+                  "hitbox": {
+                    "shape": "sphere",
+                    "radius": 1,
+                    "offsetX": 0,
+                    "offsetY": 1.08,
+                    "offsetZ": 0,
+                    "endOffsetX": 0,
+                    "endOffsetY": 0,
+                    "endOffsetZ": 0,
+                    "startBoneId": "bone.hips",
+                    "endBoneId": null,
+                    "damage": 2,
+                    "angle": 85,
+                    "baseKnockback": 5,
+                    "knockbackGrowth": 18,
+                    "stunTicks": 12,
+                    "durationTicks": 8,
+                    "interruptible": true,
+                    "hitGroup": 2,
+                    "knockbackDirection": "awayFromOwner"
+                  }
+                },
+                {
+                  "kind": "spawnHitbox",
+                  "tick": 31,
+                  "unit": "meters",
+                  "hitbox": {
+                    "shape": "sphere",
+                    "radius": 1,
+                    "offsetX": 0,
+                    "offsetY": 1.08,
+                    "offsetZ": 0,
+                    "endOffsetX": 0,
+                    "endOffsetY": 0,
+                    "endOffsetZ": 0,
+                    "startBoneId": "bone.hips",
+                    "endBoneId": null,
+                    "damage": 2,
+                    "angle": 85,
+                    "baseKnockback": 5,
+                    "knockbackGrowth": 18,
+                    "stunTicks": 12,
+                    "durationTicks": 8,
+                    "interruptible": true,
+                    "hitGroup": 3,
+                    "knockbackDirection": "awayFromOwner"
+                  }
+                },
+                {
+                  "kind": "spawnHitbox",
+                  "tick": 39,
+                  "unit": "meters",
+                  "hitbox": {
+                    "shape": "sphere",
+                    "radius": 1,
+                    "offsetX": 0,
+                    "offsetY": 1.08,
+                    "offsetZ": 0,
+                    "endOffsetX": 0,
+                    "endOffsetY": 0,
+                    "endOffsetZ": 0,
+                    "startBoneId": "bone.hips",
+                    "endBoneId": null,
+                    "damage": 4,
+                    "angle": 70,
+                    "baseKnockback": 9,
+                    "knockbackGrowth": 32,
+                    "stunTicks": 18,
+                    "durationTicks": 6,
+                    "interruptible": true,
+                    "hitGroup": 4,
+                    "knockbackDirection": "awayFromOwner"
+                  }
                 }
               ]
             }
           ]
-        }
+        },
+        "hitPresentationId": "presentation.nyx.pink-hit"
       },
       {
         "id": "ground.R",
         "name": "Selfie Grab",
-        "description": "Selfie Grab.",
+        "description": "Nyxxie lunges in, poses for a selfie with them, and the flash blasts them away. Beats shields.",
         "iconId": "icon.r",
         "behavior": "meleeCombo",
         "aimMode": "none",
@@ -2089,7 +2342,7 @@
       {
         "id": "ground.F",
         "name": "Logging Off",
-        "description": "A violet shard burst swaps to Nyx and pushes nearby enemies away.",
+        "description": "Nyxxie gets serious and logs off as Nyx: a violet shard burst pushes nearby enemies away.",
         "iconId": "icon.f",
         "behavior": "meleeCombo",
         "aimMode": "none",

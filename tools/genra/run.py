@@ -36,7 +36,7 @@ REPO = TOOLS.parent
 sys.path.insert(0, str(TOOLS))
 
 from genra import claude_runner  # noqa: E402
-from genra.brief import Brief  # noqa: E402
+from genra.brief import print_preflight, Brief  # noqa: E402
 from genra.rigpack import verify_rigpack  # noqa: E402
 
 PROMPT = """You are the animator for one bounded SlopArena animation job. Author the requested move on the actual \
@@ -330,14 +330,16 @@ def prepare_brief(brief: Brief, scratch: Path, run_dir: Path, keys=None, stage='
 def api_reference() -> str:
     """Small, scratch-readable API reference generated from the installed toolkit."""
     from genra.clip import Clip, Pose
-    from genra import solve
+    from genra import flow, solve
     symbols = [Clip.load, Clip.save, Clip.from_keys, Clip.pose, Clip.set_pose, Clip.overlap,
-               Pose.copy, Pose.pos, Pose.rotate, Pose.axis, Pose.set_hinge,
+               Pose.copy, Pose.pos, Pose.rotate, Pose.axis, Pose.set_hinge, flow.flow, flow.Accent, flow.key_drift,
                solve.solve, solve.two_bone, solve.two_hand_grip, solve.track, solve.carry, solve.hold_grip]
     lines = ['# Authoring API', '', 'Pose and Clip live in genra.clip; there is no genra.pose module.',
              'Use Pose.copy(), or load a Clip again. Do not deepcopy/pickle a USD stage.',
              'solve() returns (Pose, list[dict]); two_bone() edits a Pose and returns a float miss.',
-             'two_hand_grip() returns (Pose, dict); carry()/track()/hold_grip() edit the Clip and return a dict.', '']
+             'two_hand_grip() returns (Pose, dict); carry()/track()/hold_grip() edit the Clip and return a dict.',
+             'flow(b) (genra.flow) returns (Clip, FlowReport): the approved keys exactly, moving between them; with '
+             'approved keys, result.json starts as flow(b) and flow.txt prints its report. Run contacts after it.', '']
     for symbol in symbols:
         lines += [f'## {symbol.__qualname__}{inspect.signature(symbol)}', '',
                   inspect.getdoc(symbol) or '', '']
@@ -345,11 +347,25 @@ def api_reference() -> str:
 
 
 def seed_candidate(brief: Brief, scratch: Path, run_dir: Path) -> dict:
-    """Initialize a recoverable candidate, without claiming that it passes checks."""
+    """Initialize a recoverable candidate, without claiming that it passes checks. A full run on approved keys starts
+    from flow(b), the keys exactly with the body moving between them, so a first take flows even when the animator
+    changes nothing; scratch/flow.txt holds its report (or why the plain keys were used instead)."""
     from genra.clip import Clip
     n = brief['clock']['duration_ticks'] + 1
     source = next((p for p in (scratch / 'previous/result.json', scratch / 'keys/result.json') if p.is_file()), None)
     clip = Clip.load(brief.rig, source, frame=brief.entry_frame) if source else None
+    seeded = {}
+    if (clip is not None and len(clip) == n and source.parent.name == 'keys' and brief.get('approved_keys')
+            and brief.get('authoring_stage', 'full') == 'full'):
+        from genra.flow import flow
+        try:
+            clip, report = flow(brief)
+            text, source = str(report), f'flow(b) through {source}'
+            seeded['flow'] = {'before': report.flow_before, 'after': report.flow_after}
+        except Exception as error:  # the plain keys still make a valid start; say why flow was not used
+            text = f'flow(b) not used, starting from the plain keys: {type(error).__name__}: {error}'
+            seeded['flowError'] = text
+        (scratch / 'flow.txt').write_text(text + '\n')
     if clip is None or len(clip) != n:
         source = None  # a changed clock needs fresh authoring, never an implicit retime
         clip = Clip.from_keys({0: brief.entry_pose, n - 1: brief.exit_pose}, n)
@@ -359,7 +375,8 @@ def seed_candidate(brief: Brief, scratch: Path, run_dir: Path) -> dict:
     (scratch / 'author.py').write_text((HERE / 'author.py.template').read_text())
     (scratch / 'API.md').write_text(api_reference())
     digest = hashlib.sha256((scratch / 'result.json').read_bytes()).hexdigest()
-    return {'source': str(source) if source else 'entry/exit placeholder', 'sha256': digest, 'initialSha256': digest}
+    return {'source': str(source) if source else 'entry/exit placeholder', 'sha256': digest, 'initialSha256': digest,
+            **seeded}
 
 
 def capture_checkpoint(brief: Brief, scratch: Path, run_dir: Path, checkpoint: dict) -> bool:
@@ -386,14 +403,42 @@ def capture_checkpoint(brief: Brief, scratch: Path, run_dir: Path, checkpoint: d
     return True
 
 
+def assess_checkpoint(brief, run_dir, checkpoint, plateau, stage):
+    """Check the archived bytes, not scratch; retain every measured candidate and report."""
+    from genra.clip import Clip
+    from genra.checks import check_clip
+    archive = run_dir / 'checkpoints'
+    archive.mkdir(exist_ok=True)
+    number = checkpoint.get('assessed', 0)
+    candidate = archive / f'{number:04d}-result.json'
+    shutil.copy2(run_dir / 'checkpoint-result.json', candidate)
+    checkpoint['assessed'] = number + 1
+    report_path = archive / f'{number:04d}-check.json'
+    try:
+        clip = Clip.load(brief.rig, candidate, frame=brief.entry_frame)
+        report = check_clip(clip, brief.check_spec(stage=stage), mode='fast')
+        report['sha256'] = checkpoint['sha256']
+        report.setdefault('keyTicks', sorted(brief.key_beats))
+        report_path.write_text(json.dumps(report, indent=2, default=str))
+        plateau.observe(json.loads(report_path.read_text()))
+    except Exception as error:
+        # A checker failure is not evidence of quality progress or of a plateau.
+        plateau.stale = 0
+        report_path.write_text(json.dumps({'sha256': checkpoint['sha256'],
+                                         'error': f'{type(error).__name__}: {error}'}, indent=2))
+
+
 def author(brief_path, name=None, model='claude-opus-5-5', effort='medium', timeout=1800,
            python=str(REPO / 'artifacts/genra-20261014/.venv/bin/python'), out_root=str(REPO / 'artifacts/genra-runs'),
            prompt_from=None, cache_1h=False, probe=False, dry_run=False, revise=None, review=None, round_number=1,
-           stage='full', keys=None, owner=None, skip=(), checkpoint_timeout=1200):
+           stage='full', keys=None, owner=None, skip=(), checkpoint_timeout=1200, plateau_checkpoints=3):
     """One authoring (or revision) job. Returns (exit code, run directory). stage 'keys' authors only the key poses;
     `keys` is an approved keys run whose poses a full run keeps; a revision carries the owner's direction (`owner`)
     and leaves the review issues numbered in `skip` aside (revision_notes)."""
+    plateau = claude_runner.CheckpointPlateau(plateau_checkpoints)
     brief = Brief(brief_path)
+    print_preflight(brief.data)
+    print('Route: approved keys -> first take -> owner look -> run.py --revise --owner (or --owner-file). Director is opt-in.')
     manifest = verify_rigpack(brief.rigpack)
     stamp = datetime.datetime.now().strftime('%Y%m%d-%H%M%S')
     run_id = f"{stamp}-{name or brief['name']}" + ('-probe' if probe else '-keys' if stage == 'keys' else '')
@@ -438,9 +483,17 @@ def author(brief_path, name=None, model='claude-opus-5-5', effort='medium', time
     checkpoint = seed_candidate(brief, scratch, run_dir) if not probe else None
     if not probe:
         prompt += ('\n\nA starting result.json and author.py are already here. Read API.md for the actual signatures. '
-                   'Save result.json before checks; failed checks do not prevent saving. '
+                   'Save result.json before checks and after every verified fix; failed checks do not prevent saving. '
+                   f'The runner stops after {plateau_checkpoints} changed checkpoints without reducing failures or '
+                   'failing check kinds (0 disables this bound), and archives numeric checks with the saved candidates. '
+                   'When a contact or grip check fails, first run ./genra continuity result.json. '
+                   'Read the implicated key interval, roll, limit and reach diagnostics before another solve. '
+                   'Use --replay-carry only for a chosen interval with --keys a,b; it runs one both-ways solve '
+                   'on a copy and reports landing disagreement. Large key turns are risks, not proof of flips. '
                    'Quality warnings are advisory: preserve the move\'s intent and explain tradeoffs. '
-                   'Do not add arbitrary sway just to lower a flow score.\n')
+                   'Do not add arbitrary sway just to lower a flow score.\n'
+                   'Build flow into this first take. Normals default to a plain, short recovery with no extra '
+                   'gesture or flourish; personality can live in the move itself, and specials can carry more.\n')
     (run_dir / 'prompt.txt').write_text(prompt)
     config = {'brief': str(Path(brief_path).resolve()), 'model': model, 'effort': effort, 'timeout': timeout,
               'python': python, 'scratch': str(scratch), 'readable': [str(p) for p in readable],
@@ -448,6 +501,7 @@ def author(brief_path, name=None, model='claude-opus-5-5', effort='medium', time
               'promptFrom': prompt_from, 'cache5m': not cache_1h, 'revise': str(revise) if revise else None,
               'review': str(review) if review else None, 'stage': stage, 'keys': str(keys) if keys else None,
               'owner': owner, 'skippedIssues': list(skip), 'checkpointTimeout': checkpoint_timeout,
+              'plateauCheckpoints': plateau_checkpoints,
               'initialCheckpoint': dict(checkpoint) if checkpoint else None}
     (run_dir / 'run-config.json').write_text(json.dumps(config, indent=2))
     print(f'{run_id}: prompt {len(prompt)} chars, {len(images)} images', flush=True)
@@ -457,11 +511,20 @@ def author(brief_path, name=None, model='claude-opus-5-5', effort='medium', time
     summary = {'status': 'running', 'total_cost_usd': None}
     (run_dir / 'summary.json').write_text(json.dumps(summary, indent=2))
     # No --add-dir: add-dir paths become writable sandbox working directories (even with denyWrite).
-    progress = (lambda: capture_checkpoint(brief, scratch, run_dir, checkpoint)) if checkpoint else None
+    def progress():
+        changed = capture_checkpoint(brief, scratch, run_dir, checkpoint)
+        if changed:
+            assess_checkpoint(brief, run_dir, checkpoint, plateau, stage)
+        return changed
+
+    if checkpoint:
+        assess_checkpoint(brief, run_dir, checkpoint, plateau, stage)
+
     try:
         code, result = claude_runner.run(prompt, images, scratch, run_dir, readable, [], model,
                                          effort, timeout=timeout, cache_5m=not cache_1h,
-                                         progress=progress, progress_timeout=checkpoint_timeout)
+                                         progress=progress if checkpoint else None, progress_timeout=checkpoint_timeout,
+                                         stop=lambda: plateau.stopped)
     except Exception as error:
         code, result = 1, None
         summary['providerError'] = f'{type(error).__name__}: {error}'
@@ -470,7 +533,10 @@ def author(brief_path, name=None, model='claude-opus-5-5', effort='medium', time
     calls = claude_runner.tool_calls(events) if events.is_file() else []
     (run_dir / 'tool-audit.json').write_text(json.dumps(audit(calls, readable + [scratch]), indent=2))
     if checkpoint:
-        capture_checkpoint(brief, scratch, run_dir, checkpoint)
+        progress()
+        summary.update(plateauCheckpoints=plateau.limit, plateauStale=plateau.stale)
+        if code == 125:
+            summary['nextTask'] = plateau.next_task
         saved = run_dir / 'checkpoint-result.json'
         if not (scratch / 'result.json').is_file() or (scratch / 'result.json').read_bytes() != saved.read_bytes():
             shutil.copy2(saved, scratch / 'result.json')
@@ -478,7 +544,7 @@ def author(brief_path, name=None, model='claude-opus-5-5', effort='medium', time
         summary['checkpointOnly'] = checkpoint['sha256'] == checkpoint['initialSha256']
     shutil.copytree(scratch, run_dir / 'scratch', ignore=shutil.ignore_patterns('.claude'))
     summary.update(returncode=code, wallSeconds=round(wall, 1), toolCalls=len(calls),
-                   status='timed_out' if code is None else 'stalled' if code == 124 else
+                   status='timed_out' if code is None else 'stalled' if code == 124 else 'plateaued' if code == 125 else
                    'interrupted' if code == 130 else 'completed' if code == 0 else 'failed')
     if code == 0 and summary.get('checkpointOnly'):
         summary['status'] = 'no_authored_changes'
@@ -497,6 +563,20 @@ def author(brief_path, name=None, model='claude-opus-5-5', effort='medium', time
     return (0 if code == 0 and not summary.get('checkpointOnly') else 1), run_dir
 
 
+def owner_direction(owner=None, owner_file=None):
+    """Read Markdown verbatim, or serialize a JSON direction for the prompt."""
+    if owner_file is None:
+        return owner
+    path = Path(owner_file)
+    text = path.read_text()
+    if path.suffix.lower() == '.json':
+        value = json.loads(text)
+        text = value if isinstance(value, str) else json.dumps(value, indent=2, ensure_ascii=False)
+    if not text.strip():
+        raise ValueError('owner direction file is empty')
+    return text
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__.split('\n')[0])
     parser.add_argument('brief')
@@ -506,6 +586,8 @@ def main(argv=None):
     parser.add_argument('--timeout', type=int, default=1800)
     parser.add_argument('--checkpoint-timeout', type=int, default=1200,
                         help='stop after this many seconds without a changed, loadable result (default 1200)')
+    parser.add_argument('--plateau-checkpoints', type=int, default=3,
+                        help='stop after K changed checkpoints without fewer failures or failing check kinds; 0 disables (default 3)')
     parser.add_argument('--python', default=str(REPO / 'artifacts/genra-20261014/.venv/bin/python'))
     parser.add_argument('--out-root', default=str(REPO / 'artifacts/genra-runs'))
     parser.add_argument('--prompt-from', help="reuse an earlier run's prompt.txt verbatim (replicates)")
@@ -516,13 +598,19 @@ def main(argv=None):
     parser.add_argument('--revise', help='an earlier run directory to revise (its scratch scripts and result.json)')
     parser.add_argument('--review', help="the director's review.json of that run (review.py); optional with --owner")
     parser.add_argument('--round', type=int, default=1, help='revision number, for the prompt')
-    parser.add_argument('--owner', help="the owner's direction for a revision, ahead of the director's review")
+    direction = parser.add_mutually_exclusive_group()
+    direction.add_argument('--owner-file', help='Markdown or JSON owner direction; see briefs/OWNER-DIRECTION.md')
+    direction.add_argument('--owner', help="the owner's direction for a revision, ahead of the director's review")
     parser.add_argument('--skip', default='', help='review issue numbers (from 1) the owner set aside, e.g. 2,5')
     parser.add_argument('--stage', choices=['full', 'keys'], default='full',
                         help='keys: author only the key poses (Brief.key_beats) for the owner to approve first')
     parser.add_argument('--keys', help='an approved --stage keys run (or a result.json of approved key poses): a full '
                         'run keeps its key poses')
     args = parser.parse_args(argv)
+    try:
+        args.owner = owner_direction(args.owner, args.owner_file)
+    except (OSError, ValueError) as error:
+        parser.error(str(error))
     if args.review and not args.revise:
         parser.error('--review needs --revise')
     if args.revise and not (args.review or args.owner):
@@ -532,7 +620,7 @@ def main(argv=None):
     code, _ = author(args.brief, args.name, args.model, args.effort, args.timeout, args.python, args.out_root,
                      args.prompt_from, args.cache_1h, args.probe, args.dry_run, args.revise, args.review, args.round,
                      args.stage, args.keys, args.owner, [int(k) for k in args.skip.split(',') if k.strip()],
-                     args.checkpoint_timeout)
+                     args.checkpoint_timeout, args.plateau_checkpoints)
     return code
 
 

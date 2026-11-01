@@ -1,22 +1,9 @@
-"""Review loop: the director reviews a clip in Unity, the animator revises it, up to N rounds, unattended.
+"""Author one take for the owner; opt into automated review with --director.
 
-    <genra python> tools/genra/loop.py BRIEF.json [--from artifacts/genra-runs/<id>] [--rounds 1]
-    <genra python> tools/genra/loop.py BRIEF.json --from RUN --start-review <loop>/review-N --polish --rounds 1
-    <genra python> tools/genra/loop.py BRIEF.json --keys artifacts/genra-runs/<approved run.py --stage keys run>
-
-Without --from, round 0 authors the clip from the brief (run.py). One revision is the default (owner, 2026-10-21: better
-briefs and the owner's own look beat more unattended rounds, which trade small problems for new ones). Each round reviews
-the latest clip (review.py, with the
-brief's review block for the style reference and travel) and, unless the director accepts it with every check passing,
-revises it (run.py --revise). The last revision is reviewed too, so the owner gets the final clip with its review.
---polish keeps revising an accepted clip while the director still lists (minor) issues, and --owner always gets its
-revision even when the director accepts round 0; --start-review reuses an
-existing review of the --from clip as round 0 instead of rendering and reviewing it again. --owner gives the first
-revision the owner's direction after their look at the take, ahead of the director's, and --skip sets aside review
-issues the owner does not want (2026-10-22: a smoothing pass that keeps the approved poses, not the re-pose the review
-also asked for).
-loop.md in artifacts/genra-loops/<id>/ logs every round: the run, the checks, the director's verdict and issues, which
-earlier issues were fixed, and the cost.
+Default: approved keys -> first take -> owner look -> run.py --revise --owner.
+--director enables the existing review/revision loop, including a final review.
+--rounds 0 alone never buys a review. With --director it reviews without revising.
+--start-review reuses existing evidence; --polish and --skip apply to director mode.
 """
 from __future__ import annotations
 
@@ -51,13 +38,17 @@ def form_metrics(checks_text: str) -> dict:
     return values
 
 
+def cost_text(value):
+    return 'UNKNOWN' if value is None else f'${value:.2f}'
+
+
 def log_round(lines: list, number: int, run_dir: Path, verdict: dict, review_dir: Path, run_cost: float | None):
     notes = verdict['review'] or {}
     report = (review_dir / 'checks.txt').read_text()
     checks = report.splitlines()[0]
     form = form_metrics(report)
-    lines += [f'## Round {number}', '', f'- Clip: `{run_dir.relative_to(REPO)}` (authoring ${run_cost or 0:.2f})',
-              f"- Review: `{review_dir.relative_to(REPO)}` (${verdict['costUsd'] or 0:.2f}); checks {checks}",
+    lines += [f'## Round {number}', '', f'- Clip: `{run_dir.relative_to(REPO)}` (authoring {cost_text(run_cost)})',
+              f"- Review: `{review_dir.relative_to(REPO)}` ({cost_text(verdict.get('costUsd'))}); checks {checks}",
               f"- Verdict: **{notes.get('verdict', 'none')}**. {notes.get('summary', '')}"]
     if form:
         lines.append('- Form: ' + '; '.join(f'{k} {v:.2f}' for k, v in form.items()))
@@ -115,8 +106,10 @@ def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__.split('\n')[0])
     parser.add_argument('brief')
     parser.add_argument('--from', dest='start', help='start from this run directory instead of authoring round 0')
+    parser.add_argument('--director', action='store_true', help='opt into paid director reviews and revisions')
+    parser.add_argument('--dry-run', action='store_true', help='prepare the take without model calls or reviews')
     parser.add_argument('--rounds', type=int, default=1,
-                        help='revisions at most (default 1: one review, one revision, a final review; the owner looks next)')
+                        help='revisions at most with --director (default 1)')
     parser.add_argument('--effort', default='medium', help="the animator's effort")
     parser.add_argument('--timeout', type=int, default=1800, help="the animator's time limit in seconds (a long move needs more)")
     parser.add_argument('--review-effort', default='high')
@@ -130,6 +123,26 @@ def main(argv=None):
     args = parser.parse_args(argv)
     if args.start_review and not args.start:
         parser.error('--start-review reviews the --from clip')
+    if args.rounds < 0:
+        parser.error('--rounds must be nonnegative')
+    if not args.director:
+        if args.start_review or args.polish or args.skip:
+            parser.error('--start-review, --polish and --skip need --director')
+        if args.owner and not args.start:
+            parser.error('--owner needs --from; use run.py --revise --owner after the owner looks')
+        if args.start and not args.owner:
+            print('Owner look: revise this take with run.py --revise RUN --owner or --owner-file. No director called.')
+            return 0
+        code, _ = author(Path(args.brief).resolve(), effort=args.effort, timeout=args.timeout,
+                         keys=args.keys, revise=args.start, owner=args.owner, dry_run=args.dry_run)
+        return code
+    if args.dry_run:
+        print('Opt-in director route: first take -> review -> bounded revisions -> final review. Dry run buys no review.')
+        if args.start:
+            return 0
+        code, _ = author(Path(args.brief).resolve(), effort=args.effort, timeout=args.timeout,
+                         keys=args.keys, dry_run=True)
+        return code
     problems = preflight(Brief(Path(args.brief).resolve()))
     if problems:
         raise SystemExit('Pre-flight: ' + '; '.join(problems) + '. Fix the brief (or the clip it starts or ends on) first.')

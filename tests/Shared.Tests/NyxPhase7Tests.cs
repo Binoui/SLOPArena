@@ -70,13 +70,13 @@ public sealed class FacingHitboxTests
         dummy.FacingYaw = facing ? MathF.PI : 0;
         sim.SetState(100, dummy);
         FormsFixture.Step(sim, new InputState { ActiveSlot = AbilitySlots.A, TargetEntityId = 100 });
-        for (int i = 0; i < 20 && !sim.Resolver.GetActiveHitboxes().Any(h => h.SourceEvent.RequiresFacingOwner); i++) FormsFixture.Step(sim);
+        for (int i = 0; i < 60 && !sim.Resolver.GetActiveHitboxes().Any(h => h.SourceEvent.RequiresFacingOwner); i++) FormsFixture.Step(sim);
         Assert.Contains(sim.Resolver.GetActiveHitboxes(), h => h.SourceEvent.RequiresFacingOwner);
         var copy = FormsFixture.Sim(def, 1);
         copy.RestoreSnapshot(sim.CaptureSnapshot());
         bool connected = sim.GetState(100).HitstunTicks > 0;
         Assert.True(sim.CaptureSnapshot().ContentEquals(copy.CaptureSnapshot()));
-        for (int i = 0; i < 35; i++)
+        for (int i = 0; i < 70; i++)
         {
             FormsFixture.Step(sim);
             FormsFixture.Step(copy);
@@ -217,7 +217,7 @@ public sealed class NyxCpuTests
     }
 
     [Fact]
-    public void SelfieGrabIsAnAvailableShieldPunishAndBothRangedSpecialsAreUsed()
+    public void SelfieGrabPunishesShieldsHexCrowIsUsedAtRangeAndGraspUpClose()
     {
         var def = TestHelpers.ResolveSourceDef("nyx");
         var self = TestHelpers.PlayerState(0, 0); self.Form.Active = 1; self.SetCooldown(AbilitySlots.F, 300);
@@ -227,20 +227,27 @@ public sealed class NyxCpuTests
         for (int seed = 0; seed < 100; seed++)
             grabbed |= policy.Decide(self, def, new Random(seed), Memory(CpuDifficulty.Hard, target)).ActiveSlot == AbilitySlots.R;
         Assert.True(grabbed);
-        self.Form.Active = 0; target.PZ = 6; target.State = ActionState.Idle;
-        var used = new HashSet<byte>();
-        for (int seed = 0; seed < 100; seed++)
+        self.Form.Active = 0; target.State = ActionState.Idle;
+        HashSet<byte> Used(float distance)
         {
-            var memory = Memory(CpuDifficulty.Hard, target); var rng = new Random(seed);
-            for (int tick = 0; tick < 30; tick++)
+            target.PZ = distance;
+            var used = new HashSet<byte>();
+            for (int seed = 0; seed < 100; seed++)
             {
-                policy.ObserveOpponent(memory, target, def);
-                var input = policy.Decide(self, def, rng, memory);
-                if (input.ActiveSlot == 0) continue;
-                used.Add(input.ActiveSlot); break;
+                var memory = Memory(CpuDifficulty.Hard, target); var rng = new Random(seed);
+                for (int tick = 0; tick < 30; tick++)
+                {
+                    policy.ObserveOpponent(memory, target, def);
+                    var input = policy.Decide(self, def, rng, memory);
+                    if (input.ActiveSlot == 0) continue;
+                    used.Add(input.ActiveSlot); break;
+                }
             }
+            return used;
         }
-        Assert.Contains(AbilitySlots.A, used);
-        Assert.Contains(AbilitySlots.R, used);
+        Assert.Contains(AbilitySlots.A, Used(6f));
+        // The CPU does not read marks, so it plans Grasp as its unmarked hand.
+        Assert.DoesNotContain(AbilitySlots.R, Used(6f));
+        Assert.Contains(AbilitySlots.R, Used(1.6f));
     }
 }

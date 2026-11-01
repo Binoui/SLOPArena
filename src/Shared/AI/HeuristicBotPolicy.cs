@@ -1312,6 +1312,12 @@ public sealed partial class HeuristicBotPolicy
                 // The hop only travels; the shell's splash is not part of the move.
                 movementReach = MathF.Max(movementReach, x.MaxRange);
                 hasMovement = true; break;
+            case CookedTetherCapabilityParameters { AtTarget.Unmarked: { } hand }:
+                // The CPU does not read marks, so it plans for the unmarked hand ahead of her.
+                hitReach = MathF.Max(hitReach, hand.Distance + hand.Radius);
+                damage += hand.Damage;
+                hasDamage = true;
+                break;
             case CookedTetherCapabilityParameters { AtTarget: { } at }:
                 // The placed catch reaches as far as its spot; the reel is not modelled.
                 hitReach = MathF.Max(hitReach, at.MaxRange + at.Radius);
@@ -1356,7 +1362,7 @@ public sealed partial class HeuristicBotPolicy
             CookedCycloneKickCapabilityParameters x => x.WindupTicks,
             CookedChargedProjectileCapabilityParameters x => x.FireTriggerTick,
             CookedChargedStreamCapabilityParameters x => x.FireTriggerTick,
-            CookedTetherCapabilityParameters x => x.AtTarget?.WarningTicks ?? x.ThrowTick,
+            CookedTetherCapabilityParameters x => x.AtTarget?.Unmarked?.RiseTick ?? x.AtTarget?.WarningTicks ?? x.ThrowTick,
             CookedCommandGrabCapabilityParameters x => x.CaptureTick,
             CookedCannonballCapabilityParameters x => x.TakeoffTick,
             CookedFingerGunsCapabilityParameters x => x.FireTriggerTick,

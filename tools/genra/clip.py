@@ -279,7 +279,7 @@ class Clip:
         """Per-tick char-frame positions (n_ticks, 3) of a joint."""
         return self.frame.to_char(self.world()[:, self.rig.index(joint), 3, :3])
 
-    def overlap(self, delays: dict, cycle=None) -> 'Clip':
+    def overlap(self, delays: dict, cycle=None, preserve_ticks=()) -> 'Clip':
         """Follow-through: a copy in which each listed joint's local rotation plays `delays[joint]` ticks late
         (fractions interpolate), so it trails its parent instead of moving with it in one piece. Typical delays:
         forearm 1-2 and hand 2-3 behind the upper arm; neck 1-2 and head 2-3 behind the chest; a hand that holds a
@@ -287,7 +287,12 @@ class Clip:
         relative to its parent.
         cycle=(first, last) for a loop: the delay wraps inside the cycle, so the seam stays closed. Otherwise the
         first tick holds while the delayed motion starts. Translations (the hips) keep their path. Re-check planted
-        feet, held weapons and clearances afterwards."""
+        feet, held weapons and clearances afterwards.
+        preserve_ticks: key ticks this clip must keep exactly (approved keys). The delay then peaks between them and is
+        zero, with zero slope, on each (genra.flow's lag), at most a fifth of each key segment."""
+        if len(preserve_ticks):
+            from .flow import _overlap_between
+            return _overlap_between(self, delays, preserve_ticks, cycle)
         out = Clip(self.rig, self.t.copy(), self.q.copy(), self.s.copy(), self.frame)
         n = len(self)
         for joint, delay in delays.items():

@@ -548,6 +548,13 @@ namespace SlopArena.Shared
             {
                 w.WriteFloat(perch.Damage); w.WriteSByte(perch.Angle); w.WriteFloat(perch.BaseKnockback);
                 w.WriteFloat(perch.KnockbackGrowth); w.WriteUShort(perch.StunTicks); w.WriteString(perch.PresentationId);
+                w.WriteFloat(perch.RiseSpeed); w.WriteFloat(perch.HoverHeight); w.WriteFloat(perch.DiveSpeed);
+                w.WriteUShort(perch.MaxRiseTicks); w.WriteUShort(perch.MarkTicks);
+                w.WriteUShort(perch.PeckIntervalTicks); w.WriteFloat(perch.PeckDamage);
+                w.WriteString(perch.PeckPresentationId); w.WriteString(perch.ScatterPresentationId);
+                w.WriteByte((byte)perch.Phase); w.WriteUShort(perch.PhaseTicks); w.WriteULong(perch.TargetId);
+                w.WriteFloat(perch.SpotX); w.WriteFloat(perch.SpotY); w.WriteFloat(perch.SpotZ);
+                w.WriteUShort(perch.DiveTicks);
             }
             w.WriteBool(hb.OwnerDamage.HasValue);
             if (hb.OwnerDamage.HasValue) w.WriteFloat(hb.OwnerDamage.Value);
@@ -641,11 +648,22 @@ namespace SlopArena.Shared
             hb.HomingTurnCos = r.ReadFloat();
             hb.HomingTurnSin = r.ReadFloat();
             if (r.ReadBool())
-                hb.Perch = new ProjectilePerch
+            {
+                var perch = new ProjectilePerch
                 {
                     Damage = r.ReadFloat(), Angle = r.ReadSByte(), BaseKnockback = r.ReadFloat(),
                     KnockbackGrowth = r.ReadFloat(), StunTicks = r.ReadUShort(), PresentationId = r.ReadString(),
+                    RiseSpeed = r.ReadFloat(), HoverHeight = r.ReadFloat(), DiveSpeed = r.ReadFloat(),
+                    MaxRiseTicks = r.ReadUShort(), MarkTicks = r.ReadUShort(),
+                    PeckIntervalTicks = r.ReadUShort(), PeckDamage = r.ReadFloat(),
+                    PeckPresentationId = r.ReadString(), ScatterPresentationId = r.ReadString(),
+                    Phase = (PerchPhase)r.ReadByte(), PhaseTicks = r.ReadUShort(), TargetId = r.ReadULong(),
+                    SpotX = r.ReadFloat(), SpotY = r.ReadFloat(), SpotZ = r.ReadFloat(), DiveTicks = r.ReadUShort(),
                 };
+                if (perch.Phase > PerchPhase.Perched || (perch.Phase == PerchPhase.Perched) != (hb.AttachedEntityId != 0))
+                    throw SnapshotReader.Malformed("perch phase");
+                hb.Perch = perch;
+            }
             if (r.ReadBool()) hb.OwnerDamage = r.ReadFloat();
             hb.ContactExplosion = r.ReadBool();
             hb.MinePhase = (MinePhase)r.ReadByte();

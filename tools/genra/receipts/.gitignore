@@ -1,0 +1,2 @@
+# Receipts and history are source-controlled evidence. Atomic-write scratch files are not.
+*.tmp

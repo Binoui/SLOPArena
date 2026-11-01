@@ -606,7 +606,29 @@ public sealed record TetherAtTargetSource(
     float MaxRange,
     float NoTargetDistance,
     string WarningPresentationId = "",
-    string CatchPresentationId = "");
+    string CatchPresentationId = "",
+    TetherUnmarkedSource? Unmarked = null);
+
+/// <summary>
+/// The placed catch's unmarked branch (runtime API 1.21.0, ADR-0051 section 10). With it, the catch rises only under a
+/// current target that carries the thrower's perch within maxRange. Any other press raises this hand instead: an
+/// upright capsule of <see cref="Radius"/> and <see cref="Height"/> standing <see cref="Distance"/> ahead of her,
+/// risen at <see cref="RiseTick"/> after the press and active for <see cref="ActiveTicks"/>. It hits as an ordinary
+/// attack with its own launch, then she recovers for <see cref="RecoveryTicks"/>.
+/// </summary>
+public sealed record TetherUnmarkedSource(
+    ushort RiseTick,
+    ushort ActiveTicks,
+    float Distance,
+    float Radius,
+    float Height,
+    float Damage,
+    float Angle,
+    float BaseKnockback,
+    float KnockbackGrowth,
+    ushort StunTicks,
+    ushort RecoveryTicks,
+    string PresentationId = "");
 
 /// <summary>
 /// slop.ability.cannonball.v1 (runtime API 1.14.0, ADR-0050), Bashie's ground R: a tucked hop onto where her current

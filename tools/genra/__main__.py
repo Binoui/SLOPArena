@@ -81,18 +81,30 @@ def main(argv=None):
     contacts.add_argument('--tolerance', type=float, default=0.02,
                           help="metres above a foot or toe joint's lowest point that still count as down (default 0.02)")
     contacts.add_argument('--json', action='store_true')
+    continuity = sub.add_parser('continuity', help='read-only key interval/contact diagnostics before retries')
+    continuity.add_argument('clip')
+    continuity.add_argument('--brief', default='brief.json')
+    continuity.add_argument('--keys', type=_ints, help='comma-separated ticks, default brief key beats')
+    continuity.add_argument('--replay-carry', action='store_true', help='one offline both-ways carry on a copy per interval')
     summary = sub.add_parser('summary', help='print the rig summary')
     summary.add_argument('--brief', default='brief.json')
     args = parser.parse_args(argv)
 
     brief_path = (resolved_brief_path(args.brief, args.clip)
-                  if args.command == 'check' and not args.clip.startswith('reference:') else args.brief)
+                  if args.command in ('check', 'continuity') and not args.clip.startswith('reference:') else args.brief)
     brief = Brief(brief_path)
     if args.command == 'summary':
         from .summary import rig_summary
         print(rig_summary(brief))
         return 0
     clip = _clip(brief, args.clip)
+    if args.command == 'continuity':
+        from .solve import continuity_report
+        spec = brief.check_spec()
+        print(json.dumps(continuity_report(clip, args.keys or brief.key_beats,
+                         hold=spec.get('two_hands_hold', 'exact'), grip_span=spec.get('two_hands'),
+                         replay_carry=args.replay_carry), indent=2))
+        return 0
     ticks = getattr(args, 'ticks', None) or brief.review_ticks
     views = tuple(v for v in args.views.split(',') if v) if getattr(args, 'views', None) else brief.review_views
     if args.command == 'motion':

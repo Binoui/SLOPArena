@@ -772,7 +772,24 @@ public sealed record CookedTetherAtTarget(
     float MaxRange,
     float NoTargetDistance,
     string WarningPresentationId = "",
-    string CatchPresentationId = "");
+    string CatchPresentationId = "",
+    [property: System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+    CookedTetherUnmarked? Unmarked = null);
+
+/// <summary>The placed catch's unmarked branch (ADR-0051 section 10); see <see cref="TetherUnmarkedSource"/>.</summary>
+public sealed record CookedTetherUnmarked(
+    ushort RiseTick,
+    ushort ActiveTicks,
+    float Distance,
+    float Radius,
+    float Height,
+    float Damage,
+    float Angle,
+    float BaseKnockback,
+    float KnockbackGrowth,
+    ushort StunTicks,
+    ushort RecoveryTicks,
+    string PresentationId = "");
 
 public sealed record CookedSteeredChargeCapabilityParameters(
     float GallopSpeed,

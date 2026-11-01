@@ -196,7 +196,7 @@
           "slot": "A"
         },
         {
-          "ticks": 99
+          "ticks": 109
         },
         {
           "ticks": 1,
@@ -215,20 +215,20 @@
       ],
       "phases": [
         {
-          "name": "flight",
-          "at": "cue:presentation.nyx.crow-launch+1"
+          "name": "rising",
+          "at": "start+28"
+        },
+        {
+          "name": "caw",
+          "at": "start+40"
         },
         {
           "name": "perched",
-          "at": "start+35"
+          "at": "start+80"
         },
         {
           "name": "pop",
           "at": "cue:presentation.nyx.crow-pop"
-        },
-        {
-          "name": "late",
-          "at": "cue:presentation.nyx.crow-pop+16"
         }
       ]
     },
@@ -309,7 +309,7 @@
       "slot": "ground.R",
       "form": 0,
       "dummy": {
-        "distance": 3.0
+        "distance": 1.6
       },
       "input": [
         {
@@ -318,6 +318,50 @@
         },
         {
           "ticks": 129
+        }
+      ],
+      "label": "Grasp, no crow"
+    },
+    {
+      "id": "real-r-crow",
+      "slot": "ground.R",
+      "form": 0,
+      "label": "Grasp on a crowed target",
+      "dummy": {
+        "distance": 4.0
+      },
+      "input": [
+        {
+          "ticks": 1,
+          "slot": "A"
+        },
+        {
+          "ticks": 109
+        },
+        {
+          "ticks": 1,
+          "slot": "R"
+        },
+        {
+          "ticks": 129
+        }
+      ],
+      "phases": [
+        {
+          "name": "perched",
+          "at": "start+80"
+        },
+        {
+          "name": "warning",
+          "at": "cue:presentation.nyx.grasp-warning+4"
+        },
+        {
+          "name": "catch",
+          "at": "cue:presentation.nyx.grasp-catch+1"
+        },
+        {
+          "name": "drag",
+          "at": "cue:presentation.nyx.grasp-catch+20"
         }
       ]
     },
@@ -618,7 +662,7 @@
       "slot": "ground.A",
       "form": 1,
       "dummy": {
-        "distance": 2.0
+        "distance": 4.2
       },
       "input": [
         {
@@ -627,6 +671,24 @@
         },
         {
           "ticks": 109
+        }
+      ],
+      "phases": [
+        {
+          "name": "wind-up",
+          "at": "start+12"
+        },
+        {
+          "name": "charged",
+          "at": "hit-2"
+        },
+        {
+          "name": "flash",
+          "at": "hit+1"
+        },
+        {
+          "name": "dazzled",
+          "at": "hit+20"
         }
       ]
     },

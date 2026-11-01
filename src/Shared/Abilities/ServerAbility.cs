@@ -347,10 +347,32 @@ namespace SlopArena.Shared.Abilities
             if (projectile.Perch is { } perch)
             {
                 spawned.StickyFuseTicks = perch.PerchTicks;
-                spawned.Perch = ProjectilePerch.From(perch.Pop);
+                spawned.Perch = Perch(in s, perch, projectile.Speed);
             }
             SpawnResolverHitbox(spawned);
             return spawned;
+        }
+
+        /// <summary>
+        /// A perch starts Rising over her current target's feet (ADR-0051 section 9), or over the spot the dive's
+        /// noTargetDistance ahead of her feet without one.
+        /// </summary>
+        private ProjectilePerch Perch(in CharacterState s, CookedProjectilePerch cooked, float riseSpeed)
+        {
+            var perch = ProjectilePerch.From(cooked, riseSpeed);
+            if (cooked.Dive == null) return perch;
+            if (OwnerSimulation != null && OwnerSimulation.TryGetCurrentTarget(in s, out ulong target, out _)
+                && OwnerSimulation.TryGetPerchTargetFeet(s.EntityId, target, out var feet))
+            {
+                perch.TargetId = target;
+                (perch.SpotX, perch.SpotY, perch.SpotZ) = (feet.X, feet.Y, feet.Z);
+                return perch;
+            }
+            float ahead = cooked.Dive.NoTargetDistance;
+            perch.SpotX = s.PX + MathF.Sin(s.FacingYaw) * ahead;
+            perch.SpotY = s.PY - (CharacterDef?.CapsuleHeight ?? 0f) * 0.5f;
+            perch.SpotZ = s.PZ + MathF.Cos(s.FacingYaw) * ahead;
+            return perch;
         }
 
         /// <summary>Spawn a raw hitbox while preserving this activation's provenance.</summary>

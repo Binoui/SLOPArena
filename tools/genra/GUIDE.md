@@ -218,6 +218,33 @@ allowed. If the motion needs a repair, useful approaches include:
 - **A settle that gives.** Before the exit hold, ease into the final pose with a small overshoot in the chest and the
   weapon, not by sliding into it.
 
+### Passing through keys
+
+Most counted stops come from interpolation, not from the keys. `Clip.from_keys` uses a monotone spline, so its
+slope is zero wherever a joint turns back at a key: that joint stops on every such key, and so does every other
+joint that turns back there. FightGuy's Flip Kick flow pass (owner: "really good", 2026-11-01) cut stops from 1.52 to
+0.39 a second and kept every approved key within 1.4 cm. It worked like this:
+
+- **Tangents through the keys.** Interpolate each body joint with Catmull-Rom tangents (slope from the key before
+  to the key after), so the joint is still moving when it lands on its key. Arrive at the exit pose with a little
+  of the next clip's own motion instead of a dead stop.
+- **Hinges on their own curves.** Drive each knee and elbow by its bend angle through its own keys. Where a hinge
+  reverses, give it a small slope in and out (about 0.5 degrees per tick) so it turns over crisply instead of
+  parking. A hinge that must hold (a locked kicking leg) can give a degree or two without visibly bending.
+- **A wave up the spine.** Between keys, the spine arches ahead of a turn and curls into a tuck. Spine, Spine1,
+  Spine2, Neck and Head each run about a tick behind the one below.
+- **Drift in arcs.** Add a small drift to the free arms, collarbones, hands and feet between keys (3-8 degrees). Add
+  a second curve on another axis that is zero on the keys and steepest between them, so each out-and-back becomes a
+  small loop that never stops at its peak.
+- **Lag between keys, not on them.** A delay that peaks halfway between two keys and returns to zero on each
+  (shoulder 0.6, upper arm 1, forearm 1.8 and hand 2.6 ticks; spine 0.5 to head 1.5) lets the chain trail while every
+  key still lands. Use less lag in a fast swing.
+- **An ordered settle.** The hips over-rotate a few degrees past the recovered pose first. The chest, head and hands
+  follow 1-6 ticks later, then everything eases into the exit pose.
+- **Fingers follow the arms.** Fingers curl a few degrees with the arm's speed, about two ticks late.
+
+`examples/fightguy-flip-kick-flow/` has that run's script, with each technique as a small function.
+
 ## Form
 
 The check measures anatomy and gait the way the roster's approved clips do:

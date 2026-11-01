@@ -8,6 +8,7 @@ answered this record's six questions the same day and asked for the build to go 
 [ADR-0045](0045-bashie-shell-state.md) (a fighter state that moves read, `slop.ability.thrust.v1`) and
 [ADR-0048](0048-bashie-rescue-ring-tether.md) (tether, `Reeled`)
 **Merged:** Selfie Grab's command grab also runs Title Match; its victim is `CommandGrabbed` ([ADR-0057](0057-one-command-grab.md)).
+**Amended:** 2026-11-01, [specials that work alone](#amendment-2026-11-01-specials-that-work-alone): the crow's dive lifecycle, Grasp's unmarked branch, Ring Light and the cast effect.
 
 ## Context
 
@@ -368,3 +369,76 @@ The owner answered the six questions on 2026-10-29.
   if needed.
 - Risk: Unity keys projectile visual rows by canonical slot ID. If both forms ever throw projectiles from the same
   slot, the rows need a form qualifier. Nyx's kit does not do that.
+
+## Amendment, 2026-11-01: specials that work alone
+
+The owner's first plays found that Hex Crow felt undodgeable and pointless alone: it chased at 9 m/s with a
+180°/s turn, dealt nothing, and paid off only when Nyxxie popped it. Grasp always dragged, and Nyxxie's Ring Light
+played like a weaker ground 3. On 2026-11-01 the owner approved four changes: the crow dives instead of chasing,
+works alone once perched, and can be shaken off; Grasp drags only a crowed target; Ring Light becomes a ranged,
+telegraphed flash; and Nyx shows a cast effect while her shadows work. This section records the engine shape. Tuning
+values and their reasons are in [her page](../characters/nyx.md#round-2-values).
+
+### 9. The crow's lifecycle is a state machine on the perch
+
+Hex Crow lives through these phases:
+
+| Phase | What it does | Ends when | Next |
+| --- | --- | --- | --- |
+| Rising | Flies at the projectile's `speed` toward a hover point `hoverHeight` above its target's feet. It follows the target there, touches no one and can be hit. | It reaches the point, or `maxRiseTicks` pass | Marking |
+| Marking | Holds still and caws. The spot is fixed at the target's feet, under the crow, and every client draws the drop line from the crow to the spot. | `markTicks` pass | Diving |
+| Diving | Flies straight at the spot at `diveSpeed`. It does not turn. The first fighter body it meets carries it; a shield spends it. | It perches, or it reaches the spot | Perched, or gone (missed) |
+| Perched | Rides the carrier. Every `peck.intervalTicks` it deals `peck.damage` with no hitstun, hitstop or reaction. | A pop, a swat, `perchTicks`, or a KO | Gone |
+
+Every flight phase is fragile: an opposing active hitbox breaks the crow. A carrier who shields or starts an air
+dodge swats it off. A damaging hit from the thrower's other form still takes it and queues its pop (section 5).
+Without a target, the spot is `noTargetDistance` ahead of her on her feet's level.
+
+- **A. Phases on the projectile's perch record (chosen).** The resolver's perch record gains `Phase`, a phase clock,
+  the tracked target, the spot and the dive length. The resolver steps the flight before its hit pass, as it steps
+  homing, and the hit pass lets a perch touch bodies only while it dives. The simulation applies the swat and the
+  pecks, because they read fighter states. World Snapshots write the record, so a restore at any phase replays the
+  same flight. Every ending removes the projectile. The pop is a hit; every other ending except a KO emits the
+  perch's `scatterPresentationId` from the simulation, so online clients see a swat without following resolver
+  removals.
+- **B. Keep homing and slow it down.** Rejected. A slower chase is still a chase with no moment to react to, and the
+  owner asked for a dodge at the caw.
+- **C. A capability that owns the crow.** Rejected for the reason in 5C: activations end with their move, and the
+  crow outlives it.
+- **D. A mark on the victim's `CharacterState`.** Rejected for the reason in 5B: the flight still needs a projectile,
+  and every fighter's state would grow for one move.
+
+A `dive` block commits the perch to its line, so it rejects `homing`, and Hex Crow uses one: the crow no longer
+chases. A perch without a `dive` block is in its dive from the throw, as before, so an older cook keeps its flight
+until it is recooked. `homing` stays a public block, as section 5 records for Manki's migration. `peck` is optional.
+The swat applies to every perch. Runtime API 1.21.0 adds `perch.dive`, `perch.peck`, `perch.scatterPresentationId` and
+`atTarget.unmarked`. World Snapshot v24 writes the perch's phase record and the tether's branch.
+
+### 10. Grasp branches on the mark, as capability data
+
+- **A. An `unmarked` block on the tether's `atTarget` (chosen).** With the block present, the placed catch rises
+  only under a current target that carries the thrower's perch and stands within `maxRange`. Otherwise the move takes
+  its unmarked branch: an upright hand of `radius` and `height` rises `distance` ahead of her at `riseTick`. It is an
+  ordinary hit for `activeTicks`, with its own damage and launch, and confirms a hit for the swap-cancel. She then
+  recovers for `recoveryTicks`. The branch is chosen at the press and written in the tether's snapshot record. The
+  simulation answers one generic question: does this fighter carry a perch thrown by this owner?
+- **B. A `requiresMark` flag and a separate hitbox operation on the timeline.** Rejected. Timelines cannot branch,
+  so the hitbox would also fire when the catch does.
+- **C. A simulation rule that makes every placed catch need a crow.** Rejected: it would be a Nyx special case in
+  the simulation.
+- **D. Two moves, one per branch.** Rejected: one button, and the grid has no conditional slots.
+
+Without the block, a placed catch behaves as before.
+
+### 11. Ring Light and the cast effect need no new engine piece
+
+Ring Light loses its lunge and keeps its facing filter. It turns toward her target through most of its wind-up,
+then commits, and its flash is a longer cone of fixed-Hitstun spheres. The stage grows with its flash tick, so the
+approved clip still reaches its flash pose on the flash. Attack clips span their stage clock.
+
+The cast effect (owner's pick "C + A") is presentation only. One attack-bound `presentation.nyx.cast-aura`, emitted
+at tick 0 on her six normals, Hex Crow and Grasp, lasts through the move's last active tick, so interruption or
+recovery cuts it. It is attached to the casting hand, the hand nearer the move's hitbox at its first active tick.
+Its ink pool sits at her feet on the ground; in the air the pool becomes a flat ink swirl under her boots. Bat
+Scatter and Going Live do not show it. Grasp's cue lasts through the marked catch, so in the unmarked branch it
+fades ten ticks into her recovery.

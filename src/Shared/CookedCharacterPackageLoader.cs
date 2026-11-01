@@ -31,7 +31,7 @@ public sealed class CookedCharacterPackageLoadResult
 public static class CookedCharacterPackageLoader
 {
     private static readonly HashSet<string> SupportedRuntimeApiMinimums = new(
-        Enumerable.Range(0, 21).Select(minor => $"1.{minor}.0"), StringComparer.Ordinal);
+        Enumerable.Range(0, 22).Select(minor => $"1.{minor}.0"), StringComparer.Ordinal);
 
     /// <summary>True when an admitted 1.N.0 runtime API minimum is at least 1.<paramref name="minor"/>.0.</summary>
     private static bool ApiAtLeast(string runtimeApiMin, int minor)
@@ -669,8 +669,12 @@ public static class CookedCharacterPackageLoader
             foreach (string clip in new[] { tether.ReelAnimationId, tether.RetractAnimationId })
                 if (clip.Length > 0 && stage.AnimationIds.ToList().IndexOf(clip) <= 0)
                     Fail("A tether phase clip must be listed in its stage after the throw clip.");
+            if (tether.AtTarget?.Unmarked != null && !ApiAtLeast(runtimeApiMin, 21))
+                diagnostics.Add(Error("package.compatibility.unsupported", "manifest.runtimeApiMin",
+                    "The placed catch's unmarked branch requires runtime API 1.21.0."));
             foreach (string id in new[] { tether.ThrowPresentationId, tether.RetractPresentationId,
-                         tether.AtTarget?.WarningPresentationId ?? "", tether.AtTarget?.CatchPresentationId ?? "" })
+                         tether.AtTarget?.WarningPresentationId ?? "", tether.AtTarget?.CatchPresentationId ?? "",
+                         tether.AtTarget?.Unmarked?.PresentationId ?? "" })
                 if (id.Length > 0 && !definition.PresentationIds.Contains(id, StringComparer.Ordinal))
                     Fail("Tether presentation ID is not declared.");
         }
@@ -705,9 +709,12 @@ public static class CookedCharacterPackageLoader
             if (projectile.Perch is not { } perch) continue;
             if (definition.AlternateForm == null)
                 Fail("A perched projectile needs a second form to pop it.");
-            if (perch.Pop.PresentationId.Length > 0
-                && !definition.PresentationIds.Contains(perch.Pop.PresentationId, StringComparer.Ordinal))
-                Fail("Pop presentation ID is not declared.");
+            if (ProjectilePerchContract.RequiresRuntimeApi121(perch) && !ApiAtLeast(runtimeApiMin, 21))
+                diagnostics.Add(Error("package.compatibility.unsupported", "manifest.runtimeApiMin",
+                    "A perch's dive, peck and scatter require runtime API 1.21.0."));
+            foreach (string id in new[] { perch.Pop.PresentationId, perch.Peck?.PresentationId ?? "", perch.ScatterPresentationId })
+                if (id.Length > 0 && !definition.PresentationIds.Contains(id, StringComparer.Ordinal))
+                    Fail("Perch presentation ID is not declared.");
         }
     }
 
@@ -745,7 +752,7 @@ public static class CookedCharacterPackageLoader
             if (recoveries.Length != 1 || slot.Timeline.Stages.Count != 1 || stage.IasaTicks != 0
                 || slot.Behavior != AuthoringAbilityBehavior.MeleeCombo || slot.AimMode != AuthoringAimMode.None
                 || !slot.IsRecoveryMove || recoveries[0].Tick != 0
-                || stage.Operations.Any(op => op != recoveries[0] && op is not CookedEmitPresentationOperation)
+                || stage.Operations.Any(op => op != recoveries[0] && op is not CookedEmitPresentationOperation && op is not CookedSpawnHitboxOperation)
                 || recoveries[0].Parameters is not CookedAimedRecoveryCapabilityParameters recovery
                 || !CharacterPackageCompiler.ValidAimedRecovery(recovery.StartupTicks, recovery.VerticalSpeed,
                     recovery.DirectionalVerticalSpeed, recovery.HorizontalSpeed, recovery.PreparationRiseSpeed, recovery.Hop,
@@ -1211,11 +1218,26 @@ public static class CookedCharacterPackageLoader
             CookedProjectilePerch? perch = null;
             if (q.TryGetValue("perch", out var pe))
             {
-                var t = O(pe, "perchTicks", "pop");
+                var t = OOptional(pe, new[] { "dive", "peck", "scatterPresentationId" }, "perchTicks", "pop", "dive", "peck",
+                    "scatterPresentationId");
                 var pop = OOptional(t["pop"], new[] { "presentationId" }, "damage", "angle", "baseKnockback",
                     "knockbackGrowth", "stunTicks", "presentationId");
+                CookedProjectileDive? dive = null;
+                if (t.TryGetValue("dive", out var v))
+                {
+                    var x = O(v, "hoverHeight", "maxRiseTicks", "markTicks", "diveSpeed", "noTargetDistance");
+                    dive = new CookedProjectileDive(F(x, "hoverHeight"), U(x, "maxRiseTicks"), U(x, "markTicks"),
+                        F(x, "diveSpeed"), F(x, "noTargetDistance"));
+                }
+                CookedProjectilePeck? peck = null;
+                if (t.TryGetValue("peck", out var k))
+                {
+                    var x = OOptional(k, new[] { "presentationId" }, "intervalTicks", "damage", "presentationId");
+                    peck = new CookedProjectilePeck(U(x, "intervalTicks"), F(x, "damage"), SO(x, "presentationId", ""));
+                }
                 perch = new CookedProjectilePerch(U(t, "perchTicks"), new CookedProjectilePop(F(pop, "damage"), F(pop, "angle"),
-                    F(pop, "baseKnockback"), F(pop, "knockbackGrowth"), U(pop, "stunTicks"), SO(pop, "presentationId", "")));
+                    F(pop, "baseKnockback"), F(pop, "knockbackGrowth"), U(pop, "stunTicks"), SO(pop, "presentationId", "")),
+                    dive, peck, SO(t, "scatterPresentationId", ""));
             }
             return new CookedProjectile(F(q, "launchOffsetX"), F(q, "launchOffsetY"), F(q, "launchOffsetZ"), F(q, "speed"), F(q, "gravity"), F(q, "radius"), F(q, "damage"), F(q, "angle"), F(q, "baseKnockback"), F(q, "knockbackGrowth"), U(q, "stunTicks"), U(q, "maxFlightTicks"), F(q, "yawOffsetDegrees"), back, homing, perch);
         }
@@ -1340,12 +1362,21 @@ public static class CookedCharacterPackageLoader
             CookedTetherAtTarget? at = null;
             if (q.TryGetValue("atTarget", out var a))
             {
-                var t = OOptional(a, new[] { "warningPresentationId", "catchPresentationId" }, "warningTicks",
+                var t = OOptional(a, new[] { "warningPresentationId", "catchPresentationId", "unmarked" }, "warningTicks",
                     "catchTicks", "radius", "height", "damage", "maxRange", "noTargetDistance", "warningPresentationId",
-                    "catchPresentationId");
+                    "catchPresentationId", "unmarked");
+                CookedTetherUnmarked? hand = null;
+                if (t.TryGetValue("unmarked", out var h))
+                {
+                    var u = OOptional(h, new[] { "presentationId" }, "riseTick", "activeTicks", "distance", "radius", "height",
+                        "damage", "angle", "baseKnockback", "knockbackGrowth", "stunTicks", "recoveryTicks", "presentationId");
+                    hand = new CookedTetherUnmarked(U(u, "riseTick"), U(u, "activeTicks"), F(u, "distance"), F(u, "radius"),
+                        F(u, "height"), F(u, "damage"), F(u, "angle"), F(u, "baseKnockback"), F(u, "knockbackGrowth"),
+                        U(u, "stunTicks"), U(u, "recoveryTicks"), SO(u, "presentationId", ""));
+                }
                 at = new CookedTetherAtTarget(U(t, "warningTicks"), U(t, "catchTicks"), F(t, "radius"), F(t, "height"),
                     F(t, "damage"), F(t, "maxRange"), F(t, "noTargetDistance"), SO(t, "warningPresentationId", ""),
-                    SO(t, "catchPresentationId", ""));
+                    SO(t, "catchPresentationId", ""), hand);
                 if (q.ContainsKey("projectile") || q.ContainsKey("retractSpeed"))
                     throw new InvalidDataException("A placed catch throws no ring.");
             }

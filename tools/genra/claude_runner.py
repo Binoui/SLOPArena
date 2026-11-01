@@ -45,11 +45,52 @@ def message(prompt, images) -> str:
     return json.dumps({'type': 'user', 'message': {'role': 'user', 'content': content}}) + '\n'
 
 
+class CheckpointPlateau:
+    """Best failing-check baseline and consecutive changed saves without improvement."""
+
+    def __init__(self, limit=3):
+        if limit < 0:
+            raise ValueError('Plateau checkpoints must be nonnegative (0 disables)')
+        self.limit = limit
+        self.best_count = None
+        self.best_checks = set()
+        self.stale = 0
+        self.next_task = None
+
+    def observe(self, report):
+        failures = report['failures']
+        checks = {f['check'] for f in failures}
+        improved = (self.best_count is None or len(failures) < self.best_count
+                    or checks < self.best_checks)
+        if self.best_count is None or checks < self.best_checks:
+            self.best_checks = checks
+        self.best_count = min(self.best_count, len(failures)) if self.best_count is not None else len(failures)
+        self.stale = 0 if improved or not failures else self.stale + 1
+        if failures:
+            failure = failures[0]
+            ticks = failure.get('ticks', [failure['tick']] if 'tick' in failure else [])
+            interval = [min(ticks), max(ticks)] if ticks else None
+            key_ticks = report.get('keyTicks', [])
+            tick = failure.get('tick', min(ticks) if ticks else None)
+            if tick is not None:
+                interval = next(([a, b] for a, b in zip(key_ticks, key_ticks[1:]) if a <= tick <= b), interval)
+            self.next_task = {'check': failure['check'], 'interval': interval,
+                              'message': failure['message']}
+        else:
+            self.next_task = None
+        return self.stopped
+
+    @property
+    def stopped(self):
+        return bool(self.limit and self.stale >= self.limit)
+
+
 def run(prompt, images, scratch, evidence, readable, read_dirs, model='claude-opus-5-5', effort='medium',
         tools='Bash,Read,Grep,Glob', timeout=1800, cache_5m=False, schema=None,
-        progress=None, progress_timeout=1200):
+        progress=None, progress_timeout=1200, stop=None):
     """Run one job in `scratch`. Returns (returncode or None on timeout, final result event or None). With a JSON
-    `schema`, the reply is validated against it and the result event carries it as `structured_output`."""
+    `schema`, the reply is validated against it and the result event carries it as `structured_output`.
+    Return code 124 means no changed checkpoint; 125 means the `stop` callback requested a plateau stop."""
     if timeout <= 0 or (progress is not None and progress_timeout <= 0):
         raise ValueError('Timeouts must be positive seconds')
     scratch, evidence = Path(scratch), Path(evidence)
@@ -89,6 +130,10 @@ def run(prompt, images, scratch, evidence, readable, read_dirs, model='claude-op
                     if progress:
                         if progress():
                             last_progress = time.monotonic()
+                        if stop and stop():
+                            err.write('Checkpoint checks plateaued. See summary nextTask.\n')
+                            code = 125
+                            break
                         if time.monotonic() - last_progress >= progress_timeout:
                             err.write(f'No changed, loadable checkpoint for {progress_timeout} seconds.\n')
                             code = 124

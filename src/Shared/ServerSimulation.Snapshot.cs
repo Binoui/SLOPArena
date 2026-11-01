@@ -27,7 +27,8 @@ namespace SlopArena.Shared
         // 19: a hitbox's own hit presentation and the activation's sweetspot contact (ADR-0053).
         // 20: perching projectiles and their queued pops (ADR-0051).
         // 23: Kamikaze's vulnerable startup/travel phase.
-        public const uint SnapshotFormatVersion = 23;
+        // 24: a perch's dive lifecycle and pecks, and the tether's unmarked branch (ADR-0051 sections 9 and 10).
+        public const uint SnapshotFormatVersion = 24;
 
         private readonly List<ulong> _abilityOrder = new();
 

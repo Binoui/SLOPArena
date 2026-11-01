@@ -1,14 +1,19 @@
 # Nyx
 
-> **Identity (owner, 2026-10-28):** a goth girl with two forms, like Zelda and Sheik in Melee. The real goth is a
-> shadow spellcaster and witch. The fake goth is an influencer who fights as a brawler with crowd control ("cause
-> influencer... get it?"). The fake form parodies the "goth girlfriend" content e-girl: the reference must read
-> clearly "without overboard into ridiculous sexualization". Name picked on 2026-10-29: Nyx, the Greek night
-> goddess; her fake form calls herself Nyxxie.
+> **Identity (owner, 2026-10-28; tone set 2026-11-01):** one woman with two forms, like Zelda and Sheik in Melee.
+> Nyx is a brilliant shadow witch who takes herself too seriously. Nyxxie is the influencer she becomes on stream:
+> the fun, confident one, the better athlete, who hypes people up and honestly loves the goth look. She fights as a
+> brawler with crowd control ("cause influencer... get it?"). The parody is aimed at influencer culture and the
+> "goth girlfriend" content genre, not at her, and it must read clearly "without overboard into ridiculous
+> sexualization". Neither form is the real one losing: Going Live is Nyx letting loose, and Logging Off is Nyxxie
+> getting serious. The owner on 2026-11-01: "yes she's a bit the butt of the joke but i don't want the character to
+> be too judgy of her; nyx is also a bit uptight, nyxxie also has qualities." Name picked on 2026-10-29: Nyx, the
+> Greek night goddess; Nyxxie is the name she streams under. Internal IDs keep form 0 as `real` and form 1 as `fake`;
+> player-facing text never says "fake".
 
 ## Status
 
-Both forms have authored normals, hit-confirmed F cancels, and their recoveries. Nyxxie's A is Ring Light, a short lunge into a zero-launch dazzle that only catches fighters facing her. Her other three specials use new engine pieces: Grasp (real R) places a catch on her target's spot and drags a caught target to her feet, Hex Crow (real A) is a slow homing crow that perches and pops on her next fake-form hit, and Selfie Grab (fake R) is a lunging command grab with a held selfie and a launch. The owner approved all 24 GenRA candidates and the effect concepts on 2026-10-29. Her own clips and cut-paper effects are now bound in the package. The timing slowdown below lengthens both forms while preserving hitbox shapes and hit reactions. The Stomp-Kick contact mismatch still needs a decision.
+Both forms have authored normals, hit-confirmed F cancels, and their recoveries. Round 2 (2026-11-01, [below](#round-2-values)) made her specials work on their own. Hex Crow (Nyx's A) climbs over her target, caws, and dives along a drop line; perched, it pecks and marks the target, and Nyxxie's next hit pops it. Grasp (Nyx's R) drags a crowed target to her feet and otherwise pops up a target right in front of her. Nyxxie's Ring Light (A) winds up, then flashes across mid-range and dazzles fighters facing her. Selfie Grab (Nyxxie's R) is a lunging command grab with a held selfie and a launch. The owner approved all 24 GenRA candidates and the effect concepts on 2026-10-29. Her own clips and cut-paper effects are now bound in the package. The timing slowdown below lengthens both forms while preserving hitbox shapes and hit reactions. The Stomp-Kick contact mismatch still needs a decision.
 
 | Piece | State | Where |
 | --- | --- | --- |
@@ -32,29 +37,31 @@ Nyx is drawn like the roster's other humans, FightGuy and Wibou: adult anatomy, 
 low-poly faces. Rounds of big-eyed, doll-like concepts were rejected as "not SLOPArena". She is one woman, so both
 forms keep the same face, height, build and long straight black hair with blunt bangs.
 
-- **Real form:** a stark white face, black lips, waist-length straight hair, a long black dress with puffed
+- **Nyx:** a stark white face, black lips, waist-length straight hair, a long black dress with puffed
   shoulders and no slit, a square-buckled belt, a spiked choker, silver chains, a big ankh, a bat brooch, stacked
   studded bangles, rings, and buckled platform boots. She stands straight and stiff. The owner asked for straight
   posture, straight hair, a white face, more jewelry and fewer dangly bits.
-- **Fake form:** normal skin, a cat-ear headband with pink LED ears, huge false lashes, overlined dark lips, a pink
+- **Nyxxie:** normal skin, a cat-ear headband with pink LED ears, huge false lashes, overlined dark lips, a pink
   heart under the left eye, a spiked O-ring choker, a fishnet top over a black tank top, studded belts with a heart
   charm, a black-and-pink pleated skirt over shorts, fishnet tights, and pink-buckled platform boots. A backpack
   carries a pole with a ring light above her left shoulder. She holds one phone; the owner dropped the second one.
 
 ## Kit
 
-Each form has to win on its own, and switching should be the fun part. The real form barely moves while her
-shadows hit from range. The fake form never stops moving and hits hard up close. The swap moves enemies to the
-range the next form wants.
+Each form has to win on its own, and switching should be the fun part. Nyx barely moves while her shadows hit from
+range. Nyxxie never stops moving and hits hard up close. The swap moves enemies to the range the next form wants.
 
 ### Movement
 
-The forms split like Zelda and Sheik (owner, 2026-10-29). The real form is slow on the ground and floaty in the
-air. The fake form runs fast and falls fast.
+The forms split like Zelda and Sheik (owner, 2026-10-29). Nyx is slow on the ground and floaty in the air. Her jump
+force is 9.4 with a 0.8 air-jump vertical multiplier and gravity 20, for roughly 2.2 m and 1.4 m of rise. Nyxxie runs
+fast and falls fast.
 
-### Real form: the witch
+### Nyx: the witch
 
-Her body barely moves, so her animations are small gestures and her shadow effects carry the hits.
+Her body barely moves, so her animations are small gestures and her shadow effects carry the hits. While a shadow
+spell winds up and hits, an ink pool with short tendrils spreads at her feet and a violet ink flame burns on her
+casting hand.
 
 | Slot | Move | What happens |
 | --- | --- | --- |
@@ -64,12 +71,12 @@ Her body barely moves, so her animations are small gestures and her shadow effec
 | Air 1 | Shadow Ring | A ring of shadow spins around her. |
 | Air 3 | Up Claw | A shadow claw rakes upward above her. |
 | Air 4 | Shadow Fist | A shadow fist slams down below her. Spike. |
-| A | Hex Crow | A slow crow flies at the current target. The target can outrun it, shield it or hit it away. If it arrives, it perches on the target's head. |
+| A | Hex Crow | A crow climbs over the current target, caws and marks the spot under it with a drop line, then dives straight down that line. A dash or an air dodge at the caw avoids it, and any hit knocks it out of the air. Perched, it pecks its carrier every two seconds and marks them for Grasp. A shield or an air dodge swats it off. |
 | E | Bat Scatter | She bursts into bats, flies in the stick's direction and re-forms. Her recovery. |
-| R | Grasp | After a warning, a shadow hand rises under the current target and drags them to her feet. |
-| F | Going Live | The swap to the fake form. A ring-light flash pulls nearby enemies in. |
+| R | Grasp | On a target carrying her crow, a shadow hand rises under them after a warning and drags them to her feet. Without a crow, a short shadow hand bursts up right in front of her and pops the target into the air. |
+| F | Going Live | Nyx lets loose and swaps to Nyxxie. A ring-light flash pulls nearby enemies in. |
 
-### Fake form: the influencer
+### Nyxxie: the influencer
 
 All her moves use props she already carries: the phone, the ring light and the platform boots. No move summons a
 crowd: the owner ruled crowds out as too messy in play.
@@ -82,25 +89,26 @@ crowd: the owner ruled crowds out as too messy in play.
 | Air 1 | Spinning Slap | She spins with the phone hand out. |
 | Air 3 | Ring Light Overhead | The pole swings in an arc above her. |
 | Air 4 | Double Dropkick | Both boots drive down. Spike. |
-| A | Ring Light | She snaps toward the target and flashes a short cone that dazzles everyone facing her. |
-| E | Ring Light Rise | The ring light spins like a helicopter rotor and lifts her. Her recovery. |
+| A | Ring Light | She raises her phone and charges the ring light, then flashes it across mid-range. Only fighters facing her are dazzled, long enough for her to rush in. Not instant: it baits an approach. |
+| E | Ring Light Rise | The ring light leaves her back and spins overhead to lift her. Three light chops lead into an upward pop. Her recovery. |
 | R | Selfie Grab | A short lunge into a command grab. She poses, and the selfie flash blasts the victim away. |
-| F | Logging Off | The swap to the real form. A shadow-shard burst pushes nearby enemies away. |
+| F | Logging Off | Nyxxie gets serious and swaps back to Nyx. A shadow-shard burst pushes nearby enemies away. |
 
 ### The swap and the crow
 
-- **Both swaps hit.** Going Live pulls enemies in for the fake form's close range. Logging Off pushes them out to
-  the real form's range. The owner set these directions on 2026-10-28.
+- **Both swaps hit.** Going Live pulls enemies in for Nyxxie's close range. Logging Off pushes them out to Nyx's
+  range. The owner set these directions on 2026-10-28.
 - **Swap-cancel.** When a move connects, F during its recovery swaps at once. This is what makes her a combo
   character rather than two characters.
-- **The crow carries across.** A perched crow stays through the swap. The fake form's next hit on that target pops
-  it for a bonus hit. The owner called it "a fine addition, not too much".
+- **The crow carries across.** A perched crow stays through the swap. Nyxxie's next hit on that target pops it for a
+  bonus hit. The owner called it "a fine addition, not too much".
 
-Three combos the kit is built for:
+Four combos the kit is built for. The Shared sim checks each one from source and from the saved package.
 
-1. Grasp drags the target in, Going Live pulls them tight, then Phone Slaps into Selfie Grab.
-2. Ring Light Uppercut launches, Logging Off pushes them further away, then Hex Crow chases them as they fall.
-3. Hex Crow perches, she swaps, and any fake-form hit pops the crow.
+1. Hex Crow perches, Grasp drags the crowed target in, Going Live pulls them tight, then Phone Slaps pops the crow.
+2. Ring Light Uppercut launches, Logging Off pushes them further away, then Hex Crow dives on them as they come down.
+3. Hex Crow perches, she swaps, and any of Nyxxie's hits pops the crow.
+4. Ring Light dazzles from mid-range, a Beeline closes the gap, then Phone Slaps lands before the dazzle ends.
 
 The kit follows the owner's play verdicts: specials pick the current target and can be dodged by moving
 ([character kit principles](character-kit-design-principles.md)).
@@ -108,8 +116,8 @@ The kit follows the owner's play verdicts: specials pick the current target and 
 ## Effects
 
 Effects use the game's flat comic style: a near-black ink outline with dark, accent and pale bands, never smoke,
-bloom or particle haze. The real form's shadows are deep violet with a pale lavender core, cut like torn black paper.
-The fake form's effects are hot pink and white, with small flat hearts and four-point sparkles. The
+bloom or particle haze. Nyx's shadows are deep violet with a pale lavender core, cut like torn black paper.
+Nyxxie's effects are hot pink and white, with small flat hearts and four-point sparkles. The
 [move concepts](../design/references/nyx/nyx-moves.jpg) show one key frame per special, both swaps and the crow pop.
 
 Two effects hide work that would cost too much to animate:
@@ -127,7 +135,7 @@ Both forms share one skeleton. Each form is a skinned mesh on that skeleton, and
 draws. Because she is one woman, the same clips and cooked poses fit both bodies.
 
 1. Tripo returned each form as one dressed mesh, about 26,000 vertices, with a 4K texture and no rig.
-2. The fake form's backpack, pole and ring light come off the body. They hang as one rigid prop on a spine bone,
+2. Nyxxie's backpack, pole and ring light come off the body. They hang as one rigid prop on a spine bone,
    the way Bashie's shell hangs on her mid-back bone. The ring-light swings also need a hand-held copy of the pole
    that shows while the backpack's copy hides.
 3. The owner rigs each body in Mixamo. The build then puts both meshes on one skeleton.
@@ -137,8 +145,8 @@ draws. Because she is one woman, the same clips and cooked poses fit both bodies
 
 Each move gets a pose sheet on the actual model before any motion is authored, following the
 [GenRA workflow](genra-animation-workflow.md). The 24 sheets cover six normals, three specials, the swap, an idle
-and a run per form. Idles stay calm, with one slow gesture. The real form's run is the joke "creepy glide": fast
-legs under the dress and a torso that never moves. The fake form runs while filming herself.
+and a run per form. Idles stay calm, with one slow gesture. Nyx's run is the joke "creepy glide": fast
+legs under the dress and a torso that never moves. Nyxxie runs while filming herself.
 
 ## Animation integration, 2026-10-29
 
@@ -170,9 +178,9 @@ completion to the timeline or capability. Air A, E, R, and F alias their ground 
 | real | ground.1 | 11 | 11 to 18 | 32 | 41 |
 | real | ground.3 | 18 | 18 to 31 | 45 | 55 |
 | real | ground.4 | 30 | 30 to 39 | 70 | 80 |
-| real | ground.A | 20 | 20 | 40 | 50 |
+| real | ground.A | 20 (launch) | 20 | 40 | 50 |
 | real | ground.E | none | none | 0 | 63 |
-| real | ground.R | 30 | 30 to 35 | 0 | 105 |
+| real | ground.R | 30 with a crow, 20 without | 30 to 35 with a crow, 20 to 25 without | 0 | 105 with a crow, 59 without |
 | real | ground.F | 11 | 11 to 14 | 23 | 38 |
 | real | air.1 | 10 | 10 to 23 | 43 | 50 |
 | real | air.3 | 13 | 13 to 22 | 45 | 53 |
@@ -180,7 +188,7 @@ completion to the timeline or capability. Air A, E, R, and F alias their ground 
 | fake | ground.1 | 11 | 11 to 15, 22 to 26, 35 to 41 | 51 | 59 |
 | fake | ground.3 | 20 | 20 to 30 | 50 | 60 |
 | fake | ground.4 | 20 | 20 to 28 | 58 | 65 |
-| fake | ground.A | 13 | 13 to 18 | 38 | 45 |
+| fake | ground.A | 24 | 24 to 29 | 34 | 83 |
 | fake | ground.E | none | none | 0 | 63 |
 | fake | ground.R | 13 | 13 to 18 | 85 | 95 |
 | fake | ground.F | 13 | 13 to 16 | 25 | 41 |
@@ -231,26 +239,27 @@ All IDs below have the prefix `presentation.nyx.`.
 
 | Form | Move | Effects and how they match the hit |
 | --- | --- | --- |
-| Real | Shadow Flick | `shadow-claws`. Three curved violet claw blades rake from her shoulder into the far cap of the capsule (2.65 m), snap out on the first live tick, hold through hitstop and fade with the capsule; shards break off at the tips. The top claw sits inside the capsule by her shoulder. |
-| Real | Grasping Hands | `rising-hands`. One clawed shadow hand per hit sphere rises from its lower edge; the fingers spread to the top of the sphere and curl in toward her head. Every finger stays inside its sphere. |
-| Real | Shadow Lash | `floor-lash`. A snaking shadow whip along the floor from her feet to where the capsule sinks into the floor (about 5 m), riding at half the capsule's height, with a violet crack at its far end. |
-| Real | Shadow Ring | `shadow-ring`. Three violet crescents spin once round her on the sphere's equator, their tips at its edge (1.35 m); shards fly off the rim. |
-| Real | Up Claw | `up-claw`. Three claw blades rake up over the sphere from its front to its back, the way her hand sweeps; the middle one reaches its top. |
-| Real | Shadow Fist | `spike-fist`. Three violet talons drive down through the lower hit sphere to its floor, drawn toward the camera so her dress cannot hide them, with a burst star, a slam ring low in the sphere and shards driven down. Every talon stays inside the sphere. |
-| Real | Hex Crow | `crow-launch`, `crow`, `crow-pop`. A violet ring and feathers where the crow leaves her hand; in flight the crow sheds feathers and violet shards; the pop is a violet star and ring with a burst of feathers. |
-| Real | Bat Scatter | `bat-scatter`. A violet star and flapping bats burst out, a swarm circles her body through the thrust and sheds bats along her path, then converges into a second star where she re-forms. No damaging hitbox; the swarm is sized to her body. |
-| Real | Grasp | `grasp-warning`, `grasp-catch`, `grasp-drag`. A violet ring at the catch radius with six claw tips rising from its edge, then a giant five-fingered shadow hand erupting round the target to the catch's height, then a hand closed round the dragged target with a floor tendril back to her. |
-| Real | Going Live | `going-live`. A pink shock ring at the hit sphere's equator (3 m), full size from the first live tick, a quicker floor ring at its footprint, a comic flash behind her, focus lines out to the edge, and hearts that land on the ring. |
-| Fake | Phone Slaps | `phone-slaps`. Each slap has its own beat, picked by the emit's tick: a pink swoosh across its hit sphere the way it swings (forehand, backhand, down), a star where it lands and hearts; the launcher's is biggest. |
-| Fake | Ring Light Uppercut | `pole-uppercut`. A held pink arc rising through the forward-leaning capsule to its top, and the pole's measured trail while the pole is inside the capsule, with glints. |
-| Fake | Platform Stomp-Kick | `stomp-impact`. A pink blast fans from her boot sole down and forward to the far end of the low capsule (2.45 m), where a star and hearts land. |
-| Fake | Spinning Slap | `spin-arc`. A pink trail sweeps a full turn round her on the phone's measured path, from her hand out to the hit sphere's surface at the phone's height (1 m). |
-| Fake | Ring Light Overhead | `pole-overhead`. The roster's `SwordSweepTrail` in pink along the pole's measured path, one trail for the chop down to the front and one for the lift back overhead, both inside the capsule that now runs along that swing. Star glints mark the swing, the bottom of the chop and the crest, with a heart. The cue lasts 22 ticks so the trail fades out. |
-| Fake | Double Dropkick | `dropkick-spike`. Each boot's drive into the hit shows as a pink trail at impact, and two pink spikes point from her soles down the capsule to its far end. |
-| Fake | Ring Light | `ring-light`. A fan of pink light rays from her phone out to the far side of the four facing-filtered spheres (2.35 m), a small ring-light flash at the phone, and hearts and sparkles along the fan's edge. |
-| Fake | Ring Light Rise | `rotor-arcs`. The ring light spins over her head like a rotor, three pink blades inside a pink ring that spin up through the startup, with a downdraft and shed sparkles once she rises. No damaging hitbox. |
-| Fake | Selfie Grab | `selfie-catch`, `selfie-pop`, `selfie-release`. Pink viewfinder brackets snap round the capture sphere, the selfie flash is a white-hot star and opening shutter ring with hearts, and a big pink "like" heart pops over her head at the launch. |
-| Fake | Logging Off | `logging-off`. Going Live in violet: a violet shock ring at the 3 m sphere, a floor ring, a violet flash behind her, focus lines, shards and feathers at the edge. |
+| Nyx | Shadow Flick | `shadow-claws`. Three curved violet claw blades rake from her shoulder into the far cap of the capsule (2.65 m), snap out on the first live tick, hold through hitstop and fade with the capsule; shards break off at the tips. The top claw sits inside the capsule by her shoulder. |
+| Nyx | Grasping Hands | `rising-hands`. One clawed shadow hand per hit sphere rises from its lower edge; the fingers spread to the top of the sphere and curl in toward her head. Every finger stays inside its sphere. |
+| Nyx | Shadow Lash | `floor-lash`. A snaking shadow whip along the floor from her feet to where the capsule sinks into the floor (about 5 m), riding at half the capsule's height, with a violet crack at its far end. |
+| Nyx | Shadow Ring | `shadow-ring`. Three violet crescents spin once round her on the sphere's equator, their tips at its edge (1.35 m); shards fly off the rim. |
+| Nyx | Up Claw | `up-claw`. Three claw blades rake up over the sphere from its front to its back, the way her hand sweeps; the middle one reaches its top. |
+| Nyx | Shadow Fist | `spike-fist`. Three violet talons drive down through the lower hit sphere to its floor, drawn toward the camera so her dress cannot hide them, with a burst star, a slam ring low in the sphere and shards driven down. Every talon stays inside the sphere. |
+| Nyx | Hex Crow | `crow-launch`, `crow`, `crow-peck`, `crow-scatter`, `crow-pop`. A violet ring and feathers where the crow leaves her hand; rising, it flaps hard and sheds feathers and violet shards. At the caw it spreads its wings, a violet star and caw lines burst from its beak, and the roster's dotted drop line runs in lavender from it to the spot, with a violet ring on the spot the size of a contact. Diving, it tucks its wings and the line shortens with it. Perched, it folds its wings and dips its head for each peck, which shows a small violet star and claw scratches on the carrier's head. Any exit but the pop scatters it in feathers round a violet ring; the pop is a violet star and ring with a burst of feathers. |
+| Nyx | Bat Scatter | `bat-scatter`. A violet star and flapping bats burst out, a swarm circles her body through the thrust and sheds bats along her path, then converges into a second star where she re-forms. No damaging hitbox; the swarm is sized to her body. |
+| Nyx | Grasp | `grasp-warning`, `grasp-catch`, `grasp-drag`, `grasp-pop`. On a crowed target: a violet ring at the catch radius with six claw tips rising from its edge, then a giant five-fingered shadow hand erupting round the target to the catch's height, then a hand closed round the dragged target with a floor tendril back to her. Without a crow: a shadow hand bursts up from the floor ahead of her to the hand's height, fingers flaring outward as it flings, with a ring at its base, rising streaks and shards. |
+| Nyx | Cast effect | `cast-aura`, on her six normals, Hex Crow and Grasp from tick 0 through the last active tick, cut by recovery or interruption. On the casting hand (the one nearer the spell's first contact, measured from the clip) three ink flame tongues burn inside a broken three-arc sigil. On the ground a compact ink pool 1.2 m across hugs her hem with three thin tendrils; in the air it becomes a flat three-armed ink swirl under her boots. Ink rim, violet band, deep ink core with a lavender sheen; no haze. |
+| Nyx | Going Live | `going-live`. A pink shock ring at the hit sphere's equator (3 m), full size from the first live tick, a quicker floor ring at its footprint, a comic flash behind her, focus lines out to the edge, and hearts that land on the ring. |
+| Nyxxie | Phone Slaps | `phone-slaps`. Each slap has its own beat, picked by the emit's tick: a pink swoosh across its hit sphere the way it swings (forehand, backhand, down), a star where it lands and hearts; the launcher's is biggest. |
+| Nyxxie | Ring Light Uppercut | `pole-uppercut`. A held pink arc rising through the forward-leaning capsule to its top, and the pole's measured trail while the pole is inside the capsule, with glints. |
+| Nyxxie | Platform Stomp-Kick | `stomp-impact`. A pink blast fans from her boot sole down and forward to the far end of the low capsule (2.45 m), where a star and hearts land. |
+| Nyxxie | Spinning Slap | `spin-arc`. A pink trail sweeps a full turn round her on the phone's measured path, from her hand out to the hit sphere's surface at the phone's height (1 m). |
+| Nyxxie | Ring Light Overhead | `pole-overhead`. The roster's `SwordSweepTrail` in pink along the pole's measured path, one trail for the chop down to the front and one for the lift back overhead, both inside the capsule that now runs along that swing. Star glints mark the swing, the bottom of the chop and the crest, with a heart. The cue lasts 22 ticks so the trail fades out. |
+| Nyxxie | Double Dropkick | `dropkick-spike`. Each boot's drive into the hit shows as a pink trail at impact, and two pink spikes point from her soles down the capsule to its far end. |
+| Nyxxie | Ring Light | `ring-light-charge`, `ring-light`. The wind-up: the ring light opens behind her phone and spins up to full size by the flash, sparkles stream into the lens faster and faster, and in the last third three glints shoot out along her facing to the flash's far edge. The flash: a fan of pink light rays from her phone out to the far side of the five facing-filtered spheres (4.9 m), a big ring-light burst and pink star at the phone, focus lines that race out and stop at the fan's edge, and hearts and sparkles along it. |
+| Nyxxie | Ring Light Rise | `rotor-arcs`. The ring light spins over her head like a rotor, three pink blades inside a pink ring that spin up through the startup, with a downdraft and shed sparkles once she rises. A 1 m hip-tracked rotor hitbox pulses at ticks 15, 23 and 31 for 2 damage each, then finishes at tick 39 for 4 damage. Both pole meshes hide until the move ends or is cancelled. |
+| Nyxxie | Selfie Grab | `selfie-catch`, `selfie-pop`, `selfie-release`. Pink viewfinder brackets snap round the capture sphere, the selfie flash is a white-hot star and opening shutter ring with hearts, and a big pink "like" heart pops over her head at the launch. |
+| Nyxxie | Logging Off | `logging-off`. Going Live in violet: a violet shock ring at the 3 m sphere, a floor ring, a violet flash behind her, focus lines, shards and feathers at the edge. |
 
 Confirmed contacts use `shadow-hit` (a violet star, streaks, three claw scratches and
 shards) or `pink-hit` (a pink star, streaks, a heart and sparkles), with Hierarchy
@@ -266,7 +275,30 @@ knockback, its 14 active ticks and the 55-tick move are unchanged. The ring stay
 inside it for every clean frame from tick 10 to 26; the old capsule missed the ring by
 0.3 to 0.6 m through the chop.
 
+## Round 2 values
+
+The owner approved the round 2 designs on 2026-11-01 ([ADR-0051 sections 9 to 11](../adr/0051-nyx-two-forms.md#amendment-2026-11-01-specials-that-work-alone)).
+These values are starting points picked from the roster; play decides. `tmp/nyx-kit-round2/apply_round2.py` applies them.
+
+| Piece | Value | Why |
+| --- | --- | --- |
+| Hex Crow rise | 14 m/s, at most 45 ticks | Faster than every run speed (Nyxxie's 11.1 m/s is the fastest), so it gets over a fleeing target; slower than the Beeline's 24 m/s. A target more than about 10 m away gets a diagonal dive from where the rise ended. |
+| Hex Crow hover | 3.6 m above the target's feet | About 2 m over a 1.5 to 1.7 m fighter's head: clearly up there, and still inside the match camera's frame. |
+| Hex Crow caw | 14 ticks, then a dive at 18 m/s | Caw to contact on a standing target is about 20 ticks (0.33 s): the Beeline leaves the spot after its 12-tick float and about 3 ticks of travel, an air dodge within 4 ticks. Grasp's warning is 15 ticks, the same family of tells. |
+| Hex Crow flight | 90 ticks | The rise, the caw and the longest dive. |
+| Hex Crow peck | 2 damage every 120 ticks | Three pecks, 6%, over a full 480-tick perch (it leaves on the tick a fourth would land), a little under one Shadow Flick (7%): an ignored crow costs about a normal, less than the pop plus Grasp. |
+| Grasp without a crow | Rises at tick 20, 6 active ticks, 1.5 m ahead, radius 0.7, height 2.2 | Starts between her ground 3 (18) and the crow's launch (20); the window matches the catch's 6 ticks; it reaches 0.8 to 2.2 m ahead, right in front of her. |
+| Grasp's pop | 10 damage, 85°, knockback 7 + 26 growth, stun 18 | Between Grasping Hands (9, 80°, 5 + 28) and Ring Light Uppercut (11, 82°, 6 + 34), at Up Claw's angle, so she can follow it in the air. |
+| Grasp recovery | 32 ticks | 59 ticks in all against her ground 3's 55, so a whiff is punishable. |
+| Ring Light wind-up | Flash at tick 24, aim correction to tick 18 at 720°/s within 6 m | The slowest tell in her kit (Grasp 15, the caw 14). It tracks for most of the wind-up, then commits. |
+| Ring Light stage | 83 ticks, IASA 34 | 24 / 83 keeps the approved clip's flash pose (13 / 45) on the flash, since clips span their stage. She is free 4 ticks after the 6-tick flash. |
+| Ring Light reach | Five spheres to 4.9 m, 3.4 m wide at the far end | Mid-range, like Shadow Lash's 5 m; a fighter is dazzled up to about 4.7 m straight ahead. |
+| Ring Light dazzle | 60 ticks of fixed Hitstun, no damage or launch | Measured: from the flash's far edge (4.6 m), a Beeline at IASA and Phone Slaps land 49 ticks after the flash with 18 dazzle ticks left, about a human reaction. |
+
 ## Open items
+
+- The CPU does not read marks yet: it plans Grasp as its unmarked hand, so it never Grasps a crowed target from range.
+- Grasp's cast effect lasts through the marked catch, so in the unmarked branch it fades ten ticks into her recovery.
 
 - Ring Light Uppercut's capsule leans forward to (0, 1.05, 1.6) while the pole swings up and back over her head; the pole leaves the capsule after tick 23, so its trail stops there and a held arc shows the rest of the reach. Moving the capsule onto the pole, as was done for the Overhead, is a gameplay change for the balancing pass.
 - Double Dropkick's capsule reaches 1.05 m below her soles. Near the ground, its spikes and most of the capsule are under the floor.

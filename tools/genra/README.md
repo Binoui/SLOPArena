@@ -109,6 +109,14 @@ of the striking part each view shows at contact. This is information, not a chec
 
 ## Rig packs and briefs
 
+`run.py` prints advisory brief lint before any model call, including `--dry-run`.
+Optional `purpose` accepts `attack`, `special`, `idle`, `locomotion`, `loop`, or `other`.
+When absent, the runner reports an inference from the name and notes.
+Lint checks slow authoring for attacks and specials, striking-part targets, calm idle budgets,
+plain normal recoveries, recovery flourishes, and contradictory direction. Warnings never block a run.
+Use `clock.game_duration_ticks` for a numeric authored/game ratio check around 2x, with a 1.7-2.3 tolerance.
+Older briefs can state twice-speed authoring in their notes or timing contract.
+
 A rig pack holds `rig.usda`, `references/*.usda`, `textures/`, `images/` and a hash
 manifest; the runner refuses changed files. Rig packs live under `artifacts/genra-rigpacks/`
 and are local.
@@ -364,13 +372,20 @@ forearm and shin.
 
 ## Review loop
 
-The authoring model checks its own work, but it looks at few images and judges them leniently: Sir Bonk's run v2 (2026-10-20)
-viewed renders twice in 20 tool calls, built every curve from sines and mirrored the legs, and shipped a fist folded 117°
-off its forearm. Review is a separate job with better eyes, and the loop feeds its notes back:
+The default route is approved keys, first take, owner look, then `run.py --revise --owner` when requested.
+Build flow into the first take. Flow stays advisory, and the owner judges stiffness at game speed.
+Normals get a plain, short recovery; personality can live in the move itself. Specials can carry more.
+
+Use `run.py BRIEF --revise RUN --owner-file direction.md` with the
+[owner direction template](briefs/OWNER-DIRECTION.md). Markdown is passed verbatim; JSON strings and objects also work.
+`--owner "text"` remains available. The two direction flags are mutually exclusive.
+
+The director is an opt-in diagnostic. Calling `review.py` explicitly opts in.
+For automated rounds, add `--director` to `loop.py`.
 
 ```bash
 $PY tools/genra/review.py BRIEF.json RESULT.json [--asset Assets/...anim] [--reference oldrun] [--travel 0.1515]
-$PY tools/genra/loop.py BRIEF.json [--from artifacts/genra-runs/<id>] [--rounds 1]
+$PY tools/genra/loop.py BRIEF.json --director [--from artifacts/genra-runs/<id>] [--rounds 1]
 $PY tools/genra/review_benchmark.py [--only sir-run-v2]
 ```
 
@@ -390,14 +405,12 @@ $PY tools/genra/review_benchmark.py [--only sir-run-v2]
   the owner wants cartoony, hand-keyed motion, and the roster's approved clips are the bar. Sir Bonk's pack carries
   `oldrun` (the old Bonk run, Grruzam's big-sword `Run_ver_B`), `swordrun` (Grruzam `Run_ver_A`), `fightguyrun`, `wibourun`
   and `mankirun`.
-- **The loop** (`loop.py`) reviews the latest clip and, unless the director accepts it with every check passing, revises
-  it once by default (the owner's call, 2026-10-21: extra unattended rounds traded small problems for new ones, and better
-  brief data and the owner's own look mattered more): `run.py --revise RUN --review review.json` copies the previous scripts and `result.json` into `previous/` and adds
-  the notes and the Unity evidence to the prompt. The last revision is reviewed too. `artifacts/genra-loops/<id>/loop.md`
-  logs every round, including which earlier issues each review found fixed and the form numbers. A round that fixes its
-  notes can lose ground the notes did not mention: Sir Bonk's polish round fixed three notes, but the legs' mirror error
-  fell from 7.2° to 3.1° and the chest counter-rotation halved. `--polish` keeps revising an accepted clip while the
-  director still lists issues; `--start-review` reuses an existing review of the `--from` clip as round 0.
+- **The loop** authors one take for the owner by default. `--rounds 0` alone never buys a review.
+  With `--director`, it reviews the latest clip, revises at most `--rounds` times, and reviews the final revision.
+  `--director --rounds 0` reviews without revising. `--polish`, `--skip`, and `--start-review` require director mode.
+  An owner's `--owner` direction takes priority over the director's notes.
+  `artifacts/genra-loops/<id>/loop.md` logs the rounds and shows missing costs as `UNKNOWN`, including reused takes.
+  `--dry-run` prepares authoring without any model call or review.
 - **One constraint contract per run:** the run's saved `brief.json` and `keys/result.json`
   retain its resolved brief and approved poses outside writable scratch. Authoring postprocessing,
   review (including direct `review.py`) and `genra check` on that saved result use this contract.
@@ -656,3 +669,32 @@ It loads no settings, MCP servers, skills or memory. Bash is pre-approved inside
 bubblewrap sandbox, which can read only the toolkit, the rig pack and the venv, can write
 nowhere in the repository, and has no network. Do not pass `--add-dir` for repository
 paths: add-dir directories become writable even under `denyWrite`.
+
+### Promotion receipts and owner verdicts
+
+Every `unity_clip.py promote` writes a `PromotionReceipt` JSON under `tools/genra/receipts/`,
+keyed by the target path's SHA-256. Add these files to source control with the promoted clip.
+One file per target avoids a shared append log. Repeating the same promotion preserves its verdict
+and date. A changed source or clip archives the previous receipt under `receipts/history/` and clears the verdict.
+
+New `write` reports record the source run, transforms, and exported asset hash. Promotion finds
+these reports by source asset and hash. For older exports, pass `--run-dir RUN` and optionally
+`--write-report REPORT.json`. Unrecorded transforms and final checks stay unknown.
+A cut or retime uses its export phase check, whose flow metrics may be unknown.
+The receipt snapshots the source check separately in `runs` and hashes the promoted target's bytes.
+
+```sh
+python3 tools/genra/receipts.py verdict Assets/CharacterPackages/fightguy/Animations/flip.anim good --note "Accepted in game"
+python3 tools/genra/receipts.py summary
+python3 tools/genra/receipts.py dry-run RUN --target Assets/CharacterPackages/fightguy/Animations/flip.anim --clip PATH.anim
+```
+
+Verdict accepts an exact target path or an unambiguous move name, with `good`, `redo`, or `rejected`.
+The summary counts unique linked keys, takes, and revisions. Cost uses the ledger's recorded
+list-price parser and traverses both `keys` and `revise` links without double-counting.
+Missing cost or provenance makes the total `UNKNOWN` or partial, even when known costs sum to zero.
+It excludes unlinked experiments and director-review costs.
+First-take acceptance requires a `good` verdict and exactly one full take in the recorded chain.
+Flow passes count full takes with recorded flow metrics, passing checks, and no flow warnings or failures.
+Missing flow evidence stays unknown. These are chain-local counts, not a claim about all attempts for a move.
+`dry-run` prints JSON without updating the manifest or inferring a historical owner verdict.

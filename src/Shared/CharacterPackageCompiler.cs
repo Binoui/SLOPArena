@@ -151,6 +151,12 @@ public static class CharacterPackageCompiler
                 or SpawnProjectileOperationSource { Projectile.Homing: not null }
                 or SpawnProjectileOperationSource { Projectile.Perch: not null }
                 or StartCapabilityOperationSource { CapabilityId: CommandGrabCapabilityId })));
+    /// <summary>Nyx's round 2 (ADR-0051 sections 9 and 10): a perch's dive, peck or scatter and the placed catch's unmarked branch.</summary>
+    private static bool RequiresRuntimeApi121(CharacterAuthoringDocument character)
+        => AllSlots(character).Any(slot => slot.Timeline.Stages.Any(stage => stage.Operations.Any(operation =>
+            operation is StartCapabilityOperationSource { Parameters: TetherCapabilityParameters { AtTarget.Unmarked: not null } }
+            || operation is SpawnProjectileOperationSource { Projectile.Perch: { } perch }
+                && ProjectilePerchContract.RequiresRuntimeApi121(ProjectilePerchContract.Cook(perch)))));
     /// <summary>A command grab with a level lunge, a hold stage, a lock release or a credited catch (ADR-0057).</summary>
     private static bool RequiresRuntimeApi120(CharacterAuthoringDocument character)
         => AllSlots(character).Any(slot => slot.Timeline.Stages.Any(stage => stage.Operations.Any(operation =>
@@ -286,7 +292,8 @@ public static class CharacterPackageCompiler
         if (d.HasErrors) return;
         var metadata = new CookedPackageMetadata(
             m.PackageId, m.Version, CookedSchemaVersion,
-            RequiresRuntimeApi120(c) ? "1.20.0"
+            RequiresRuntimeApi121(c) ? "1.21.0"
+            : RequiresRuntimeApi120(c) ? "1.20.0"
             : c.Shell?.Splash?.Hitbox.RequiresFacingOwner == true || c.Shell?.Ride?.Wave.RequiresFacingOwner == true
             || AllSlots(c).Any(slot => slot.Timeline.Stages.Any(stage => stage.Operations.Any(op =>
                 op is SpawnHitboxOperationSource { Hitbox.RequiresFacingOwner: true }
@@ -406,9 +413,9 @@ public static class CharacterPackageCompiler
                 || slot.Behavior != AuthoringAbilityBehavior.MeleeCombo || slot.AimMode != AuthoringAimMode.None
                 || !slot.IsRecoveryMove || recoveries[0].Tick != 0
                 || recoveries[0].Parameters is not AimedRecoveryCapabilityParameters
-                || stage.Operations.Any(op => op != recoveries[0] && op is not EmitPresentationOperationSource))
+                || stage.Operations.Any(op => op != recoveries[0] && op is not EmitPresentationOperationSource && op is not SpawnHitboxOperationSource))
                 d.Error("capability.ambiguous", $"character.slots[{index}]",
-                    "Aimed recovery requires one tick-zero lifecycle in one recovery stage, no aim or IASA, and only presentation operations alongside it.");
+                    "Aimed recovery requires one tick-zero lifecycle in one recovery stage, no aim or IASA, and only presentation or hitbox operations alongside it.");
             if (recoveries[0].Parameters is AimedRecoveryCapabilityParameters recovery && recovery.StartupTicks >= stage.DurationTicks)
                 d.Error("value.out-of-range", $"character.slots[{index}].timeline",
                     "Aimed recovery must launch before its stage ends.");
@@ -784,7 +791,26 @@ public static class CharacterPackageCompiler
             || !(at.NoTargetDistance >= 0f && at.NoTargetDistance <= at.MaxRange))
             return "atTarget needs 0 < maxRange <= 32 and 0 <= noTargetDistance <= maxRange.";
         if (!(x.ReelSpeed > 0f && x.ReelSpeed <= 60f)) return "reelSpeed must be above 0 and at most 60.";
-        return TetherReelBoundsError(x);
+        return TetherUnmarkedBoundsError(at.Unmarked) ?? TetherReelBoundsError(x);
+    }
+
+    private static string? TetherUnmarkedBoundsError(CookedTetherUnmarked? hand)
+    {
+        if (hand == null) return null;
+        if (!AllFinite(hand.Distance, hand.Radius, hand.Height, hand.Damage, hand.Angle, hand.BaseKnockback,
+                hand.KnockbackGrowth))
+            return "atTarget.unmarked values must be finite.";
+        if (hand.RiseTick == 0 || hand.RiseTick > 120) return "atTarget.unmarked.riseTick must be 1 to 120.";
+        if (hand.ActiveTicks == 0 || hand.ActiveTicks > 60) return "atTarget.unmarked.activeTicks must be 1 to 60.";
+        if (hand.RecoveryTicks > 240) return "atTarget.unmarked.recoveryTicks must be 0 to 240.";
+        if (!(hand.Distance >= 0f && hand.Distance <= 6f)) return "atTarget.unmarked.distance must be 0 to 6.";
+        if (!(hand.Radius > 0f && hand.Radius <= 3f) || !(hand.Height >= 2f * hand.Radius && hand.Height <= 6f))
+            return "The unmarked hand needs 0 < radius <= 3 and a height of two radii up to 6.";
+        if (!(hand.Damage > 0f && hand.Damage <= 100f)) return "atTarget.unmarked.damage must be above 0 and at most 100.";
+        if (hand.Angle < -90f || hand.Angle > 90f) return "atTarget.unmarked.angle must be -90 to 90.";
+        if (hand.BaseKnockback < 0f || hand.KnockbackGrowth < 0f) return "The unmarked hand's knockback cannot be negative.";
+        if (hand.StunTicks > 240) return "atTarget.unmarked.stunTicks must be 0 to 240.";
+        return null;
     }
 
     private static string? TetherReelBoundsError(CookedTetherCapabilityParameters x)
@@ -1261,7 +1287,8 @@ public static class CharacterPackageCompiler
                 foreach (var (id, field) in new[] { (tether.ThrowPresentationId, "throwPresentationId"),
                              (tether.RetractPresentationId, "retractPresentationId"),
                              (tether.AtTarget?.WarningPresentationId ?? "", "atTarget.warningPresentationId"),
-                             (tether.AtTarget?.CatchPresentationId ?? "", "atTarget.catchPresentationId") })
+                             (tether.AtTarget?.CatchPresentationId ?? "", "atTarget.catchPresentationId"),
+                             (tether.AtTarget?.Unmarked?.PresentationId ?? "", "atTarget.unmarked.presentationId") })
                     if (!string.IsNullOrEmpty(id) && !c.PresentationIds.Contains(id, StringComparer.Ordinal))
                         d.Error("reference.unresolved", "character.operation.parameters." + field, "Presentation ID is not declared.");
                 break;
@@ -1383,9 +1410,11 @@ public static class CharacterPackageCompiler
         if (c.AlternateForm == null)
             d.Error("capability.ambiguous", "character.projectile.perch",
                 "A perched projectile pops on a hit from the thrower's other form: it needs slop.ability.forms.v1.");
-        string id = projectile.Perch.Pop.PresentationId;
-        if (id.Length > 0 && !c.PresentationIds.Contains(id, StringComparer.Ordinal))
-            d.Error("reference.unresolved", "character.projectile.perch.pop.presentationId", "Presentation ID is not declared.");
+        foreach (var (id, field) in new[] { (projectile.Perch.Pop.PresentationId, "pop.presentationId"),
+                     (projectile.Perch.Peck?.PresentationId ?? "", "peck.presentationId"),
+                     (projectile.Perch.ScatterPresentationId, "scatterPresentationId") })
+            if (id.Length > 0 && !c.PresentationIds.Contains(id, StringComparer.Ordinal))
+                d.Error("reference.unresolved", "character.projectile.perch." + field, "Presentation ID is not declared.");
     }
 
     private static void ValidateProjectileReturn(ProjectileSource projectile, CharacterAuthoringDocument c, DiagnosticBag d)
@@ -1868,7 +1897,10 @@ public static class CharacterPackageCompiler
             x.ReelSpeed, x.AnchorDistance, x.ArrivalStunTicks, x.MaxReelTicks, x.RetractSpeed, x.MissRecoveryTicks,
             x.AirGravityScale, x.ReelAnimationId, x.RetractAnimationId, x.ThrowPresentationId, x.RetractPresentationId,
             x.AtTarget is not { } at ? null : new CookedTetherAtTarget(at.WarningTicks, at.CatchTicks, at.Radius,
-                at.Height, at.Damage, at.MaxRange, at.NoTargetDistance, at.WarningPresentationId, at.CatchPresentationId)),
+                at.Height, at.Damage, at.MaxRange, at.NoTargetDistance, at.WarningPresentationId, at.CatchPresentationId,
+                at.Unmarked is not { } hand ? null : new CookedTetherUnmarked(hand.RiseTick, hand.ActiveTicks, hand.Distance,
+                    hand.Radius, hand.Height, hand.Damage, hand.Angle, hand.BaseKnockback, hand.KnockbackGrowth,
+                    hand.StunTicks, hand.RecoveryTicks, hand.PresentationId))),
         CommandGrabCapabilityParameters x => new CookedCommandGrabCapabilityParameters(x.LungeTicks, x.LungeSpeed,
             x.StopDistance, x.CaptureTick, CookHitbox(x.Capture), x.ReleaseTick,
             x.Launch is not { } launch ? null : new CookedGrabLaunch(launch.Damage, launch.Angle, launch.BaseKnockback,
@@ -2184,6 +2216,22 @@ public static class CharacterPackageCompiler
         w.WriteNumber("stunTicks", perch.Pop.StunTicks);
         OptionalString(w, "presentationId", perch.Pop.PresentationId);
         w.WriteEndObject();
+        if (perch.Dive is { } dive)
+        {
+            w.WritePropertyName("dive"); w.WriteStartObject();
+            Number(w, "hoverHeight", dive.HoverHeight); w.WriteNumber("maxRiseTicks", dive.MaxRiseTicks);
+            w.WriteNumber("markTicks", dive.MarkTicks); Number(w, "diveSpeed", dive.DiveSpeed);
+            Number(w, "noTargetDistance", dive.NoTargetDistance);
+            w.WriteEndObject();
+        }
+        if (perch.Peck is { } peck)
+        {
+            w.WritePropertyName("peck"); w.WriteStartObject();
+            w.WriteNumber("intervalTicks", peck.IntervalTicks); Number(w, "damage", peck.Damage);
+            OptionalString(w, "presentationId", peck.PresentationId);
+            w.WriteEndObject();
+        }
+        OptionalString(w, "scatterPresentationId", perch.ScatterPresentationId);
         w.WriteEndObject();
     }
     private static void WriteParameters(Utf8JsonWriter w, CookedCapabilityParameters p)
@@ -2284,6 +2332,17 @@ public static class CharacterPackageCompiler
                     Number(w, "maxRange", at.MaxRange); Number(w, "noTargetDistance", at.NoTargetDistance);
                     OptionalString(w, "warningPresentationId", at.WarningPresentationId);
                     OptionalString(w, "catchPresentationId", at.CatchPresentationId);
+                    if (at.Unmarked is { } hand)
+                    {
+                        w.WritePropertyName("unmarked"); w.WriteStartObject();
+                        w.WriteNumber("riseTick", hand.RiseTick); w.WriteNumber("activeTicks", hand.ActiveTicks);
+                        Number(w, "distance", hand.Distance); Number(w, "radius", hand.Radius); Number(w, "height", hand.Height);
+                        Number(w, "damage", hand.Damage); Number(w, "angle", hand.Angle);
+                        Number(w, "baseKnockback", hand.BaseKnockback); Number(w, "knockbackGrowth", hand.KnockbackGrowth);
+                        w.WriteNumber("stunTicks", hand.StunTicks); w.WriteNumber("recoveryTicks", hand.RecoveryTicks);
+                        OptionalString(w, "presentationId", hand.PresentationId);
+                        w.WriteEndObject();
+                    }
                     w.WriteEndObject();
                 }
                 break;

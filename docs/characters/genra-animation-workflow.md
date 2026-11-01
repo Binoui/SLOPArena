@@ -282,6 +282,35 @@ builds the transitions, and the check keeps the approved poses. E1's upright
 launch and hunched haul were pose misses. They survived two 30–45 minute
 revisions that spent their time solving transitions.
 
+### Flow pass
+
+Build flow into the first take. The default route is approved keys, first take, owner look,
+then an owner-directed revision only when requested. Do not budget a paid flow pass for every move.
+Flow measurements stay warnings. Stiffness can be intentional, and the owner judges the result at game speed.
+
+1. Run `run.py BRIEF --stage keys` and get the poses approved.
+2. Run `run.py BRIEF --keys <keys run>` and show the first take.
+3. If the owner requests a change, run `run.py BRIEF --revise <take run> --owner-file direction.md`.
+   Inline `--owner "text"` also works. Keep `--keys <keys run>` when using approved keys.
+
+Copy the [owner direction template](../../tools/genra/briefs/OWNER-DIRECTION.md).
+Name what to keep, the key tolerance in centimetres, targets, body parts, tick ranges, amounts, and lags.
+State prohibitions such as no new gestures or flourishes. Treat numerical flow targets as advisory.
+FightGuy Flip Kick's successful revision used this kind of concrete direction.
+
+Normals default to a plain, short recovery. The move itself can carry personality, as Nyx's moves do.
+Specials can carry more acting. Avoid a cocky settle or an extra pose in a normal's recovery.
+
+`run.py` prints advisory brief lint before any model call, including with `--dry-run`.
+Set optional `purpose` to `attack`, `special`, `idle`, `locomotion`, `loop`, or `other`.
+Otherwise the runner reports its inference from the name and notes.
+For attacks and specials, author about twice the game length and provide striking-part position or arc targets.
+Record `clock.game_duration_ticks` when known. For idles, state a calm, slow speed budget with at most one slow gesture.
+
+The automated director is an opt-in diagnostic. Invoke `review.py` explicitly or use
+`loop.py BRIEF --director --rounds 1` for a review, at most one revision, and a final review.
+Without `--director`, `loop.py` authors one take for the owner. `--rounds 0` alone never buys a review.
+
 Blocking checks now distinguish story-pose validity from provisional motion risks. A Humanoid violation between
 valid poses is a transition problem; a violation on a story tick is a pose problem. Window/arc checks stay visible
 in the transition report. The scratch CLI inherits the stage; `--stage full` explicitly checks all motion.
@@ -303,7 +332,7 @@ clearance, visibility and automatic renders. Run the default full check and insp
 its renders when a pose pass is ready to judge and before delivery. The runner's
 final checks and the director's review always run full checks. Review uses the
 run's saved brief and approved poses; reused reviews get fresh full checks too.
-The loop only selects a candidate that passes both authoring and review checks.
+In opt-in director mode, the loop only selects a candidate that passes both authoring and review checks.
 
 Hold contacts with the toolkit's contact tools rather than by searching poses
 (see the [toolkit README](../../tools/genra/README.md#contacts-flips-and-key-poses)):

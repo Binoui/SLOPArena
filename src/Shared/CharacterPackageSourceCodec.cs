@@ -768,6 +768,22 @@ public static class CharacterPackageSourceCodec
         w.WriteNumber("stunTicks", perch.Pop.StunTicks);
         OptionalString(w, "presentationId", perch.Pop.PresentationId);
         w.WriteEndObject();
+        if (perch.Dive is { } dive)
+        {
+            w.WritePropertyName("dive"); w.WriteStartObject();
+            Number(w, "hoverHeight", dive.HoverHeight); w.WriteNumber("maxRiseTicks", dive.MaxRiseTicks);
+            w.WriteNumber("markTicks", dive.MarkTicks); Number(w, "diveSpeed", dive.DiveSpeed);
+            Number(w, "noTargetDistance", dive.NoTargetDistance);
+            w.WriteEndObject();
+        }
+        if (perch.Peck is { } peck)
+        {
+            w.WritePropertyName("peck"); w.WriteStartObject();
+            w.WriteNumber("intervalTicks", peck.IntervalTicks); Number(w, "damage", peck.Damage);
+            OptionalString(w, "presentationId", peck.PresentationId);
+            w.WriteEndObject();
+        }
+        OptionalString(w, "scatterPresentationId", perch.ScatterPresentationId);
         w.WriteEndObject();
     }
     private static void WriteParameters(Utf8JsonWriter w, TypedCapabilityParameters x)
@@ -885,6 +901,17 @@ public static class CharacterPackageSourceCodec
                     Number(w, "maxRange", at.MaxRange); Number(w, "noTargetDistance", at.NoTargetDistance);
                     OptionalString(w, "warningPresentationId", at.WarningPresentationId);
                     OptionalString(w, "catchPresentationId", at.CatchPresentationId);
+                    if (at.Unmarked is { } hand)
+                    {
+                        w.WritePropertyName("unmarked"); w.WriteStartObject();
+                        w.WriteNumber("riseTick", hand.RiseTick); w.WriteNumber("activeTicks", hand.ActiveTicks);
+                        Number(w, "distance", hand.Distance); Number(w, "radius", hand.Radius); Number(w, "height", hand.Height);
+                        Number(w, "damage", hand.Damage); Number(w, "angle", hand.Angle);
+                        Number(w, "baseKnockback", hand.BaseKnockback); Number(w, "knockbackGrowth", hand.KnockbackGrowth);
+                        w.WriteNumber("stunTicks", hand.StunTicks); w.WriteNumber("recoveryTicks", hand.RecoveryTicks);
+                        OptionalString(w, "presentationId", hand.PresentationId);
+                        w.WriteEndObject();
+                    }
                     w.WriteEndObject();
                 }
                 break;
@@ -1382,14 +1409,33 @@ public static class CharacterPackageSourceCodec
     private static ProjectilePerchSource? ParsePerch(Dictionary<string, JsonElement> p, string path, DiagnosticBag d)
     {
         if (!p.ContainsKey("perch")) return null;
-        var perch = Object(p, "perch", path, d, "perchTicks", "pop");
+        var perch = Object(p, "perch", path, d, "perchTicks", "pop", "dive", "peck", "scatterPresentationId");
         var pop = Object(perch, "pop", path + ".pop", d, "damage", "angle", "baseKnockback", "knockbackGrowth", "stunTicks",
             "presentationId");
         string pp = path + ".pop.";
+        ProjectileDiveSource? dive = null;
+        if (perch.ContainsKey("dive"))
+        {
+            var v = Object(perch, "dive", path + ".dive", d, "hoverHeight", "maxRiseTicks", "markTicks", "diveSpeed",
+                "noTargetDistance");
+            string vp = path + ".dive.";
+            dive = new ProjectileDiveSource(Float(v, "hoverHeight", vp + "hoverHeight", d),
+                UShort(v, "maxRiseTicks", vp + "maxRiseTicks", d), UShort(v, "markTicks", vp + "markTicks", d),
+                Float(v, "diveSpeed", vp + "diveSpeed", d), Float(v, "noTargetDistance", vp + "noTargetDistance", d));
+        }
+        ProjectilePeckSource? peck = null;
+        if (perch.ContainsKey("peck"))
+        {
+            var k = Object(perch, "peck", path + ".peck", d, "intervalTicks", "damage", "presentationId");
+            string kp = path + ".peck.";
+            peck = new ProjectilePeckSource(UShort(k, "intervalTicks", kp + "intervalTicks", d), Float(k, "damage", kp + "damage", d),
+                OptionalString(k, "presentationId", kp + "presentationId", d) ?? "");
+        }
         return new ProjectilePerchSource(UShort(perch, "perchTicks", path + ".perchTicks", d), new ProjectilePopSource(
             Float(pop, "damage", pp + "damage", d), Float(pop, "angle", pp + "angle", d),
             Float(pop, "baseKnockback", pp + "baseKnockback", d), Float(pop, "knockbackGrowth", pp + "knockbackGrowth", d),
-            UShort(pop, "stunTicks", pp + "stunTicks", d), OptionalString(pop, "presentationId", pp + "presentationId", d) ?? ""));
+            UShort(pop, "stunTicks", pp + "stunTicks", d), OptionalString(pop, "presentationId", pp + "presentationId", d) ?? ""),
+            dive, peck, OptionalString(perch, "scatterPresentationId", path + ".scatterPresentationId", d) ?? "");
     }
 
     private static TypedCapabilityParameters ParseCapabilityParameters(Dictionary<string, JsonElement> parent, string path, DiagnosticBag d)
@@ -1631,8 +1677,22 @@ public static class CharacterPackageSourceCodec
     private static readonly string[] TetherAtTargetFields =
     {
         "warningTicks", "catchTicks", "radius", "height", "damage", "maxRange", "noTargetDistance",
-        "warningPresentationId", "catchPresentationId",
+        "warningPresentationId", "catchPresentationId", "unmarked",
     };
+
+    private static readonly string[] TetherUnmarkedFields =
+    {
+        "riseTick", "activeTicks", "distance", "radius", "height", "damage", "angle", "baseKnockback", "knockbackGrowth",
+        "stunTicks", "recoveryTicks", "presentationId",
+    };
+
+    private static TetherUnmarkedSource ParseUnmarked(Dictionary<string, JsonElement> u, string up, DiagnosticBag d)
+        => new(UShort(u, "riseTick", up + "riseTick", d), UShort(u, "activeTicks", up + "activeTicks", d),
+            Float(u, "distance", up + "distance", d), Float(u, "radius", up + "radius", d), Float(u, "height", up + "height", d),
+            Float(u, "damage", up + "damage", d), Float(u, "angle", up + "angle", d),
+            Float(u, "baseKnockback", up + "baseKnockback", d), Float(u, "knockbackGrowth", up + "knockbackGrowth", d),
+            UShort(u, "stunTicks", up + "stunTicks", d), UShort(u, "recoveryTicks", up + "recoveryTicks", d),
+            OptionalString(u, "presentationId", up + "presentationId", d) ?? "");
 
     /// <summary>A thrown ring needs its projectile and retract speed; a placed catch (atTarget) has neither.</summary>
     private static TetherCapabilityParameters ParseTether(Dictionary<string, JsonElement> p, string path, DiagnosticBag d)
@@ -1647,7 +1707,9 @@ public static class CharacterPackageSourceCodec
                 Float(a, "height", ap + "height", d), Float(a, "damage", ap + "damage", d),
                 Float(a, "maxRange", ap + "maxRange", d), Float(a, "noTargetDistance", ap + "noTargetDistance", d),
                 OptionalString(a, "warningPresentationId", ap + "warningPresentationId", d) ?? "",
-                OptionalString(a, "catchPresentationId", ap + "catchPresentationId", d) ?? "");
+                OptionalString(a, "catchPresentationId", ap + "catchPresentationId", d) ?? "",
+                a.ContainsKey("unmarked") ? ParseUnmarked(Object(a, "unmarked", ap + "unmarked", d, TetherUnmarkedFields),
+                    ap + "unmarked.", d) : null);
             foreach (string thrown in new[] { "projectile", "retractSpeed" })
                 if (p.ContainsKey(thrown))
                     d.Error("operation.parameter-unknown", path + "." + thrown, "A placed catch (atTarget) throws no ring.");

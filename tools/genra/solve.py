@@ -620,6 +620,96 @@ def carry(clip, keys, grip=True, reg=0.05, wrists=45.0, continuity=0.3, hold='ex
     return report | {'landing (deg)': landing}
 
 
+def continuity_report(clip, keys, *, hold='exact', grip_span=None, targets=None, replay_carry=False,
+                      elbows=False) -> dict:
+    """Read-only interval diagnostics before contact retries. Angles are degrees, distances metres.
+
+    `keys` are ticks in a dense Clip. `grip_span` is the inclusive two-hand interval, or None for no grip.
+    `targets` are solve-style position targets, or a callable (tick, pose) returning them.
+    Default landing compares tick b-1 to key b. `replay_carry=True` additionally runs ONE both-ways carry
+    per interval on a copy, using the existing solver. This can be slow; it never repairs the source.
+    Branch risks are large key rotation differences, not proof of an IK branch change. Observed roll flips
+    use the same one/three-tick measurement as check_clip. Unreachable means a geometric reach lower bound;
+    bounds assume the current shoulder position. Moving the torso may restore reach.
+    An unsatisfied contact alone is not evidence that no solution exists.
+    """
+    from .checks import twist_speed
+    from .clip import Clip
+    keys = sorted(set(int(k) for k in keys))
+    if len(keys) < 2 or keys[0] < 0 or keys[-1] >= len(clip):
+        raise ValueError('Need at least two key ticks within the clip')
+    rig = clip.rig
+    arms = [n for n in GRIP_ARMS if n in rig.names]
+    rolls = {span: twist_speed(clip, span) for span in (1, 3)}
+    intervals = []
+    for a, b in zip(keys, keys[1:]):
+        landing = []
+        risks = []
+        for name in arms:
+            j = rig.index(name)
+            def angle(x, y):
+                return float(np.degrees((Rotation.from_quat(x).inv() * Rotation.from_quat(y)).magnitude()))
+            landing.append({'joint': name, 'tick': b, 'degrees': round(angle(clip.q[b-1, j], clip.q[b, j]), 2)})
+            d = angle(clip.q[a, j], clip.q[b, j])
+            if d > 120:
+                risks.append({'joint': name, 'tick': b, 'degrees': round(d, 2)})
+        flips = []
+        for span, series in rolls.items():
+            for name, values in series.items():
+                for i in np.where(values > (60 if span == 1 else 120))[0]:
+                    tick = int(i) + span
+                    if a < tick <= b:
+                        flips.append({'joint': name, 'tick': tick, 'span': span, 'degrees': round(float(values[i]), 2)})
+        excess, contacts, unreachable = [], [], []
+        for tick in range(a, b + 1):
+            pose = clip.pose(tick)
+            for j in rig.humanoid_limited:
+                degrees, muscle = rig.humanoid_excess(j, pose.q[j])
+                if degrees > 5:
+                    excess.append({'joint': rig.names[j], 'tick': tick, 'degrees': round(float(degrees), 2),
+                                   'muscle': muscle})
+            wanted = list(targets(tick, pose) if callable(targets) else targets or [])
+            if grip_span and grip_span[0] <= tick <= grip_span[1] and rig.grip:
+                contacts.append({'tick': tick, **hold_report(pose, hold)})
+                if hold == 'exact':
+                    goal = np.asarray(rig.grip['matrix']) @ pose.world()[rig.index(rig.grip['weapon'])]
+                    wanted.append({'pos': rig.grip['hand'], 'at': pose.frame.to_char(goal[3, :3])})
+                else:
+                    target = handle_target(rig)
+                    hilt = pose.pos('bladeHilt')
+                    axis = unit(hilt - pose.pos('bladeEnd'))
+                    shoulder = pose.pos('LeftArm')
+                    along = np.clip(float((shoulder - hilt) @ axis), *target['along'])
+                    # A conservative bound for any allowed fist orientation and position on the handle.
+                    wanted.append({'pos': target['handle'], 'at': hilt + axis * along,
+                                   'reachSlack': np.linalg.norm(target['fist']) + target['slack']})
+            for target in wanted:
+                name = target.get('pos', '')
+                if name not in ('LeftHand', 'RightHand'):
+                    continue
+                side = name[:-4]
+                shoulder, elbow, hand = (pose.pos(side + suffix) for suffix in ('Arm', 'ForeArm', 'Hand'))
+                reach = np.linalg.norm(elbow - shoulder) + np.linalg.norm(hand - elbow)
+                bound = float(np.linalg.norm(np.asarray(target['at']) - shoulder) - reach - target.get('reachSlack', 0.0))
+                if bound > 0.001:
+                    unreachable.append({'joint': name, 'tick': tick, 'beyondReachMetres': round(bound, 4)})
+        row = {'interval': [a, b], 'landing': sorted(landing, key=lambda r: -r['degrees']),
+               'branchRisks': risks, 'rollFlips': sorted(flips, key=lambda r: -r['degrees']),
+               'humanoidExcess': excess, 'contacts': contacts, 'unreachable': unreachable}
+        if replay_carry:
+            trial = Clip(rig, clip.t.copy(), clip.q.copy(), clip.s.copy(), clip.frame)
+            # Do not impose a two-hand hold outside its authored contact interval.
+            grip = bool(grip_span and grip_span[0] <= a and b <= grip_span[1])
+            row['carry'] = carry(trial, [a, b], grip=grip, hold=hold, elbows=elbows, both_ways=True)
+            row['carryLanding'] = sorted(
+                [{'joint': name, 'tick': b, 'degrees': round(angle(trial.q[b-1, rig.index(name)],
+                                                                 clip.q[b, rig.index(name)]), 2)}
+                 for name in arms], key=lambda r: -r['degrees'])
+        intervals.append(row)
+    return {'intervals': intervals, 'landingMeasure': 'last sampled tick to next key, local arm rotation',
+            'replayedCarry': replay_carry}
+
+
 BLEND_HOLD = 2.0  # per radian: the final solve of a both-ways carry stays near the blend of its two passes
 
 

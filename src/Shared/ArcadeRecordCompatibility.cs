@@ -184,7 +184,12 @@ public static class ArcadeRecordCompatibility
         {
             x.LaunchOffsetX, x.LaunchOffsetY, x.LaunchOffsetZ, x.Speed, x.Gravity, x.Radius, x.Damage, x.Angle,
             x.BaseKnockback, x.KnockbackGrowth, x.StunTicks, x.MaxFlightTicks, x.YawOffsetDegrees,
-            x.Homing, Perch = x.Perch == null ? null : x.Perch with { Pop = x.Perch.Pop with { PresentationId = "" } },
+            x.Homing, Perch = x.Perch == null ? null : x.Perch with
+            {
+                Pop = x.Perch.Pop with { PresentationId = "" },
+                Peck = x.Perch.Peck == null ? null : x.Perch.Peck with { PresentationId = "" },
+                ScatterPresentationId = "",
+            },
         }
         : x.Return == null
         ? new
@@ -214,7 +219,11 @@ public static class ArcadeRecordCompatibility
         CookedTetherCapabilityParameters x => x with
         {
             ThrowPresentationId = "", RetractPresentationId = "",
-            AtTarget = x.AtTarget == null ? null : x.AtTarget with { WarningPresentationId = "", CatchPresentationId = "" },
+            AtTarget = x.AtTarget == null ? null : x.AtTarget with
+            {
+                WarningPresentationId = "", CatchPresentationId = "",
+                Unmarked = x.AtTarget.Unmarked == null ? null : x.AtTarget.Unmarked with { PresentationId = "" },
+            },
         },
         CookedCannonballCapabilityParameters x => x with { LaunchPresentationId = "" },
         CookedChargedProjectileCapabilityParameters x => new

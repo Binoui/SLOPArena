@@ -218,7 +218,7 @@ class PipelineTests(unittest.TestCase):
         with patch('genra.loop.REPO', self.root), patch('genra.loop.preflight', return_value=[]), \
                 patch('genra.loop.author', return_value=(0, second)), patch('genra.loop.review', side_effect=review), \
                 contextlib.redirect_stdout(io.StringIO()):
-            code = main([str(self.source), '--from', str(first), '--rounds', '1'])
+            code = main([str(self.source), '--from', str(first), '--rounds', '1', '--director'])
         log = next((self.root / 'artifacts/genra-loops').glob('*/loop.md')).read_text()
         return code, log
 
@@ -369,10 +369,105 @@ class PipelineTests(unittest.TestCase):
         with patch('genra.loop.REPO', self.root), patch('genra.loop.preflight', return_value=[]), \
                 patch('genra.loop.review') as review, patch('genra.loop.author') as author_job, \
                 contextlib.redirect_stdout(io.StringIO()):
-            code = main([str(self.source), '--from', str(run)])
+            code = main([str(self.source), '--from', str(run), '--director'])
         self.assertEqual(code, 1)
         review.assert_not_called()
         author_job.assert_not_called()
+
+
+class OwnerRouteTests(unittest.TestCase):
+    def test_default_and_zero_rounds_never_call_director(self):
+        from genra.loop import main
+        for options in ([], ['--rounds', '0']):
+            with patch('genra.loop.author', return_value=(0, Path('/tmp/take'))) as job, \
+                    patch('genra.loop.review') as director:
+                self.assertEqual(main(['brief.json', *options]), 0)
+                job.assert_called_once()
+                director.assert_not_called()
+
+    def test_director_dry_run_never_calls_review(self):
+        from genra.loop import main
+        with patch('genra.loop.author', return_value=(0, Path('/tmp/take'))) as job, \
+                patch('genra.loop.review') as director:
+            self.assertEqual(main(['brief.json', '--director', '--dry-run']), 0)
+            self.assertTrue(job.call_args.kwargs['dry_run'])
+            director.assert_not_called()
+
+    def test_owner_file_markdown_json_and_inline_reach_revision(self):
+        from genra.run import main
+        with tempfile.TemporaryDirectory() as tmp:
+            for suffix, content, expected in (
+                    ('.md', '# Keep\nKeys within 2 cm.', '# Keep\nKeys within 2 cm.'),
+                    ('.json', '{"keep": "keys"}', '{\n  "keep": "keys"\n}')):
+                path = Path(tmp) / ('direction' + suffix)
+                path.write_text(content)
+                with patch('genra.run.author', return_value=(0, Path(tmp))) as job:
+                    self.assertEqual(main(['brief.json', '--revise', 'take', '--owner-file', str(path)]), 0)
+                    self.assertEqual(job.call_args.args[16], expected)
+            with patch('genra.run.author', return_value=(0, Path(tmp))) as job:
+                main(['brief.json', '--revise', 'take', '--owner', 'Keep the arc'])
+                self.assertEqual(job.call_args.args[16], 'Keep the arc')
+
+    def test_loop_cost_display_preserves_unknown_and_real_zero(self):
+        from genra.loop import log_round
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            (root / 'checks.txt').write_text('PASS\n')
+            lines = []
+            with patch('genra.loop.REPO', root):
+                log_round(lines, 0, root, {'review': None, 'costUsd': None}, root, None)
+            self.assertEqual('\n'.join(lines).count('UNKNOWN'), 2)
+            self.assertNotIn('$0.00', '\n'.join(lines))
+            with patch('genra.loop.REPO', root):
+                log_round(lines, 1, root, {'review': None, 'costUsd': 0}, root, 0)
+            self.assertEqual('\n'.join(lines).count('$0.00'), 2)
+
+    def test_lint_reports_named_advisory_rules_and_infers_purpose(self):
+        from genra.brief import lint_brief, brief_purpose
+        data = {'name': 'fighter-a3', 'clock': {'duration_ticks': 60, 'game_duration_ticks': 60},
+                'description': 'Recovery has a cocky settle. No flourish.'}
+        self.assertEqual(brief_purpose(data), ('attack', True))
+        self.assertEqual({w.rule for w in lint_brief(data)},
+                         {'author-slow', 'strike-target', 'normal-recovery', 'recovery-flourish', 'contradiction'})
+        data.update(purpose='idle', description='A busy loop with gestures.')
+        self.assertEqual([w.rule for w in lint_brief(data)], ['idle-budget'])
+        data['description'] = 'A calm slow loop, at most one slow gesture.'
+        self.assertEqual(lint_brief(data), [])
+
+    def test_lint_detects_same_sentence_conflict_and_respects_numeric_clock(self):
+        from genra.brief import lint_brief, brief_purpose
+        data = {'purpose': 'attack', 'name': 'test-ground-1',
+                'clock': {'duration_ticks': 60, 'game_duration_ticks': 30},
+                'strike': ['RightHand'],
+                'targets': [{'kind': 'ahead', 'a': 'RightHand', 'b': 'Hips'}],
+                'description': 'A plain short recovery with a cocky settle, no flourish.'}
+        self.assertEqual({w.rule for w in lint_brief(data)}, {'recovery-flourish', 'contradiction'})
+        data['description'] = 'A plain short recovery to the idle pose. No flourish.'
+        self.assertEqual(lint_brief(data), [])
+        data['clock']['game_duration_ticks'] = 60
+        self.assertEqual([w.rule for w in lint_brief(data)], ['author-slow'])
+        data.pop('purpose')
+        data['name'] = 'fighter-gf-special'
+        data['notes'] = 'Blends to air.3 afterwards.'
+        self.assertEqual(brief_purpose(data), ('special', True))
+
+    def test_flip_kick_brief_passes_lint_without_loading_rig(self):
+        from genra.brief import lint_brief
+        path = REPO / 'tools/genra/briefs/fightguy-a3-flip-kick.json'
+        self.assertEqual(lint_brief(json.loads(path.read_text())), [])
+
+    def test_lint_prints_before_any_provider_call(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / 'brief.json'
+            path.write_text(json.dumps({'name': 'test-g1', 'rigpack': 'missing',
+                                        'clock': {'duration_ticks': 60}}))
+            output = io.StringIO()
+            with patch('genra.run.verify_rigpack', side_effect=ValueError('missing rig')), \
+                    patch('genra.claude_runner.run') as provider, contextlib.redirect_stdout(output):
+                with self.assertRaisesRegex(ValueError, 'missing rig'):
+                    author(path)
+            self.assertIn('WARNING [strike-target]', output.getvalue())
+            provider.assert_not_called()
 
 
 class RunnerAndChatterTests(unittest.TestCase):

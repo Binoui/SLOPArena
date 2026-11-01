@@ -265,6 +265,14 @@ public class WorldSnapshotContractTests
                 continue;
             field.SetValue(ability, Fill(field.FieldType, rng));
         }
+        // A tether takes its unmarked branch only when its placed catch has one.
+        if (ability is TetherAbility tether && InstanceFields(typeof(TetherAbility)).Single(f => f.Name == "_parameters")
+                .GetValue(tether) is CookedTetherCapabilityParameters parameters && parameters.AtTarget?.Unmarked == null)
+        {
+            SetField(tether, "_unmarked", false);
+            var phase = InstanceFields(typeof(TetherAbility)).Single(f => f.Name == "_phase");
+            if (phase.GetValue(tether)!.ToString() == "Hand") phase.SetValue(tether, Enum.Parse(phase.FieldType, "Out"));
+        }
     }
 
     private static void SetField(object target, string name, object value)
@@ -329,6 +337,13 @@ public class WorldSnapshotContractTests
                 if (field.FieldType == typeof(CharacterDefinition) || field.FieldType == typeof(BakedAnimationData))
                     continue; // content references are re-linked, never written
                 field.SetValue(boxed, Fill(field.FieldType, rng));
+            }
+            if (boxed is Hitbox { Perch: { } perch } crow)
+            {
+                // Perched is exactly the phase with a carrier.
+                perch.Phase = crow.AttachedEntityId != 0 ? PerchPhase.Perched : PerchPhase.Diving;
+                crow.Perch = perch;
+                boxed = crow;
             }
             if (boxed is Hitbox { Shape: HitboxShape.Ring } ring)
             {
