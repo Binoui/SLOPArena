@@ -439,12 +439,16 @@ namespace SlopArena.Shared
             if (s.State == ActionState.GrabAttempt)
                 DecayHorizontalSpeed(ref s, stats.RunSpeed / DefenseConfig.GrabBrakeTicks);
 
-            if (!input.GrabPressed && input.Jump && s.JumpsLeft > 0 && s.AnimLockTicks == 0
+            bool canJump = !input.GrabPressed && input.Jump && s.AnimLockTicks == 0
                 && s.HitstunTicks == 0 && !blockStunLocked && !verticalMotionOwned
                 && s.LandingLagTicks == 0 && s.State != ActionState.JumpSquat
                 && s.State != ActionState.Aiming && s.State != ActionState.LedgeHang
                 && !HasKnockback(s) && !HasQueuedLaunch(s)
-                && (!IsDefenseActionState(s.State) || s.State == ActionState.Shielding))
+                && (!IsDefenseActionState(s.State) || s.State == ActionState.Shielding);
+            float wallJumpX = 0f, wallJumpZ = 0f;
+            bool wallJump = canJump && !s.IsGrounded && !s.WallJumpUsed
+                && TryFindWallJumpNormal(in s, def, in arena, input, out wallJumpX, out wallJumpZ);
+            if (canJump && (wallJump || s.JumpsLeft > 0))
             {
                 movementActionAccepted = true;
                 if (s.IsGrounded && input.ShieldHeld
@@ -470,17 +474,28 @@ namespace SlopArena.Shared
                 }
                 else
                 {
-                    // An air jump hops out of the coast.
+                    // An airborne jump hops out of the coast.
                     if (s.State == ActionState.Shell)
                     {
                         s.State = ActionState.Idle;
                         s.StateTicks = 0;
                     }
                     s.VY = stats.JumpForce * stats.AirJumpVMultiplier;
-                    (float dirX, float dirZ) = GetInputDirection(input);
-                    s.VX += dirX * stats.AirSpeedMax * stats.AirJumpHMultiplier;
-                    s.VZ += dirZ * stats.AirSpeedMax * stats.AirJumpHMultiplier;
-                    s.JumpsLeft--;
+                    if (wallJump)
+                    {
+                        s.VY *= WallJumpConfig.VerticalScale;
+                        s.VX = wallJumpX * stats.AirSpeedMax * WallJumpConfig.AwayScale;
+                        s.VZ = wallJumpZ * stats.AirSpeedMax * WallJumpConfig.AwayScale;
+                        s.FacingYaw = MathF.Atan2(-wallJumpX, -wallJumpZ);
+                        s.WallJumpUsed = true;
+                    }
+                    else
+                    {
+                        (float dirX, float dirZ) = GetInputDirection(input);
+                        s.VX += dirX * stats.AirSpeedMax * stats.AirJumpHMultiplier;
+                        s.VZ += dirZ * stats.AirSpeedMax * stats.AirJumpHMultiplier;
+                        s.JumpsLeft--;
+                    }
                     s.AirTimeTicks = stats.FloatWindowTicks;
                 }
             }
@@ -490,7 +505,12 @@ namespace SlopArena.Shared
                     s.LandingLagTicks > 0 ? "landing_lag" :
                     s.HitstunTicks > 0 || blockStunLocked ? "hitstun" :
                     s.State == ActionState.JumpSquat ? "already_squatting" :
-                    s.JumpsLeft <= 0 ? "no_jumps" : "unknown";
+                    verticalMotionOwned ? "vertical_motion_owned" :
+                    s.State == ActionState.Aiming ? "aiming" :
+                    s.State == ActionState.LedgeHang ? "ledge_hang" :
+                    HasKnockback(s) ? "knockback" : HasQueuedLaunch(s) ? "queued_launch" :
+                    IsDefenseActionState(s.State) && s.State != ActionState.Shielding ? "defense" :
+                    s.JumpsLeft <= 0 ? "no_jumps_or_wall_jump" : "unknown";
                 OnDebugLog?.Invoke($"[JumpBlocked] input.Jump=true but blocked by {reason}");
             }
 
@@ -1080,6 +1100,29 @@ namespace SlopArena.Shared
             }
         }
 
+        private static bool TryFindWallJumpNormal(in CharacterState s, CharacterDefinition def,
+            in ArenaDefinition arena, InputState input, out float wallX, out float wallZ)
+        {
+            wallX = wallZ = 0f;
+            (float dirX, float dirZ) = GetInputDirection(input);
+            if (dirX * dirX + dirZ * dirZ <= 0.000001f || !ArenaCollision.HasTriangles(arena))
+                return false;
+            float endX = s.PX + dirX * WallJumpConfig.ProbeDistance;
+            float endZ = s.PZ + dirZ * WallJumpConfig.ProbeDistance;
+            int[] candidates = TriangleCandidates(in arena);
+            int count = ArenaCollision.GetCandidateTrianglesForSweep(s.PX, s.PY, s.PZ,
+                endX, s.PY, endZ, def.CapsuleRadius, def.CapsuleHeight, in arena, candidates);
+            if (!ArenaCollision.SweepCapsule(s.PX, s.PY, s.PZ, endX, s.PY, endZ,
+                def.CapsuleRadius, def.CapsuleHeight, in arena, candidates, count, out var contact)
+                || MathF.Abs(contact.NormalY) > 0.5f)
+                return false;
+            float sideNormal = MathF.Sqrt(contact.NormalX * contact.NormalX + contact.NormalZ * contact.NormalZ);
+            if (sideNormal <= 0.000001f) return false;
+            wallX = contact.NormalX / sideNormal;
+            wallZ = contact.NormalZ / sideNormal;
+            return -(dirX * wallX + dirZ * wallZ) >= WallJumpConfig.PressedThreshold;
+        }
+
         /// <summary>
         /// Moves one character through triangle geometry. The remaining displacement is
         /// projected against each contact, so walls slide and corners settle without
@@ -1521,6 +1564,7 @@ namespace SlopArena.Shared
                 ClearKnockback(ref s);
                 s.AirDodgesLeft = MaxAirDodges;
                 s.HomingDashAirUsed = false;
+                s.WallJumpUsed = false;
             }
         }
 
@@ -1719,6 +1763,7 @@ namespace SlopArena.Shared
         {
             s.AirDodgesLeft = MaxAirDodges;
             s.HomingDashAirUsed = false;
+            s.WallJumpUsed = false;
             s.JumpsLeft = stats.MaxJumps;
         }
 

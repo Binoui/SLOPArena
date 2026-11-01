@@ -1,0 +1,101 @@
+{
+ "stage": "log_off",
+ "notes": "31b: Wibou short-hops at FightGuy, FightGuy's High Kick (press t18, hitbox t26), Wibou air-dodges through it (t19, 8 invulnerable ticks) and lands behind, then Quick Slash; side-on midpoint camera",
+ "capture": {
+  "from": 2,
+  "to": 140,
+  "step": 1,
+  "width": 1080,
+  "height": 1920,
+  "quality": 92
+ },
+ "fighters": [
+  {
+   "id": 1,
+   "package": "wibou",
+   "feet": [
+    -8.82,
+    0,
+    -4.7
+   ],
+   "yaw": 67.6,
+   "damage": 35,
+   "target": 2,
+   "input": [
+    {
+     "from": 4,
+     "to": 5,
+     "jump": true
+    },
+    {
+     "from": 4,
+     "to": 34,
+     "move": 67.6
+    },
+    {
+     "at": 20,
+     "shield": true
+    },
+    {
+     "from": 46,
+     "to": 49,
+     "face": 287.6
+    },
+    {
+     "at": 50,
+     "press": "1"
+    },
+    {
+     "at": 58,
+     "press": "1"
+    }
+   ]
+  },
+  {
+   "id": 2,
+   "package": "fightguy",
+   "feet": [
+    -5.97,
+    0,
+    -2.45
+   ],
+   "yaw": 247.6,
+   "damage": 60,
+   "target": 1,
+   "input": [
+    {
+     "at": 17,
+     "press": "3"
+    }
+   ]
+  }
+ ],
+ "cameras": [
+  {
+   "name": "side",
+   "pos": [
+    -4.94,
+    2.2,
+    -9.54
+   ],
+   "look": [
+    -7.6,
+    0.9,
+    -3.1
+   ],
+   "follow": [
+    1,
+    2
+   ],
+   "lookOffset": [
+    0,
+    1.0,
+    0
+   ],
+   "move": true,
+   "ease": 0.15,
+   "fov": 50,
+   "far": 4000
+  }
+ ]
+}

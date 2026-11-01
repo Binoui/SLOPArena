@@ -166,6 +166,9 @@ public sealed class TrainingArenaTests(ITestOutputHelper output)
                 stick = desired / def.Movement.AirSpeedMax;
             }
             else if (airborne) break;
+            // Measure ordinary jump heights without the wall-jump priority changing the route.
+            if (!s.IsGrounded && (t == 0 || jumps == 2 && t == second))
+                sim.SetState(1, s with { WallJumpUsed = true });
             short yaw = (short)MathF.Round(MathF.Atan2(direction.X, direction.Y) * 18000 / MathF.PI);
             Tick(sim, new()
             {

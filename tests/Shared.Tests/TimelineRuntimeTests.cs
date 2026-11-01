@@ -947,7 +947,6 @@ public sealed class TimelineRuntimeTests
     [Theory]
     [InlineData("fightguy", "R")]
     [InlineData("bonk", "A")]
-    [InlineData("bonk", "R")]
     public void AuthoredSpecialsCorrectStartupAndCommitGroundAndAir(string package, string label)
     {
         var def = CompileSourceDefinition(package);

@@ -1,19 +1,13 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace SlopArena.Shared.Abilities;
 
-/// <summary>
-/// A steerable charge with a lance (slop.ability.steered-charge.v1), Sir Bonk's joust: a gallop at a
-/// fixed speed whose heading the stick turns within a capped rate, a lance hitbox and optional armour
-/// while it lasts. The first fighter the lance hits ends it with the hit ending. A shield, a wall or
-/// running out of gallop ends it with the miss ending: a skid to a stop, optionally turning round. With
-/// no ground under it (started in the air, or galloped off a ledge) it strides level on thin air, hangs
-/// for the look-down and ends, so the fighter falls and can act again. It owns the end of its move.
-/// </summary>
-public sealed class SteeredChargeAbility : ServerAbility, ILandingContinuationCapability
+/// <summary>The rear, gallop, scoop, carry and fling of steered-charge.v2 (ADR-0059).</summary>
+public sealed class SteeredChargeAbility : ServerAbility, ILandingContinuationCapability, ICommandHold
 {
-    private enum Phase : byte { Gallop, AirStrides, LookDown, HitEnding, MissEnding, Ended }
+    private enum Phase : byte { Rear, Gallop, Carry, AirStrides, AirCarry, LookDown, Fling, HitEnding, MissEnding, Ended }
     private enum Outcome : byte { None, Hit, Blocked }
 
     // Terrain stops the gallop when a tick keeps less than this share of its forward travel, as the
@@ -33,6 +27,54 @@ public sealed class SteeredChargeAbility : ServerAbility, ILandingContinuationCa
     private float _yaw;
     private float _prevX;
     private float _prevZ;
+    private float _prevY;
+    private ulong _targetId;
+    private byte _targetDeaths;
+    private bool _challenged, _tracking;
+    private ushort _rearTicks, _carryTicks;
+    public bool ReleaseRequested { get; private set; }
+    public override ICommandHold? CommandHold => this;
+    public HoldCatch CatchKind => HoldCatch.LandedHit;
+    public bool Catches => _outcome == Outcome.None && _phase is Phase.Gallop or Phase.AirStrides;
+    public bool Holding => _phase is Phase.Carry or Phase.AirCarry;
+    public float? AnchorDistance => _parameters.Carry.AnchorDistance;
+    public float AnchorHeight => _parameters.Carry.AnchorHeight;
+    public CookedGrabLaunch? Launch => _parameters.Carry.Fling;
+    public ushort ReleaseLockTicks => 0;
+
+    public override bool TryConsumeActiveSlotPress(ref CharacterState owner, in InputState input)
+    {
+        if (input.ActiveSlot != Slot + 1 || _phase == Phase.Ended) return false;
+        if (Holding) ReleaseRequested = true;
+        owner.BufferedSlot = 0;
+        return true;
+    }
+
+    public void OnCaught(ref CharacterState owner)
+    {
+        _phase = _phase == Phase.AirStrides ? Phase.AirCarry : Phase.Carry;
+        _carryTicks = 0;
+        RemoveLance(ref owner);
+        Drive(ref owner, _parameters.GallopSpeed);
+        Emit(ref owner, CharacterDef!, _parameters.Carry.ScoopPresentationId, PresentationEventSource.CapabilityLaunch);
+    }
+    public void OnClashed(ref CharacterState owner) => _outcome = Outcome.Hit;
+    public void OnPlaced(ref CharacterState owner, bool blocked)
+    {
+        if (blocked) ReleaseRequested = true;
+    }
+    public void OnReleased(ref CharacterState owner)
+    {
+        ReleaseRequested = false;
+        if (_phase == Phase.AirCarry) StartLookDown(ref owner, CharacterDef!);
+        else
+        {
+            Enter(ref owner, Phase.Fling);
+            ShowClip(ref owner, _parameters.Carry.FlingAnimationId);
+            Hold(ref owner);
+        }
+        Emit(ref owner, CharacterDef!, _parameters.Carry.FlingPresentationId, PresentationEventSource.CapabilityLanding);
+    }
     private bool _measureTravel;
     // A timeline that starts this capability after tick zero ticks it in the same frame, before the
     // movement step has applied the velocity OnStart set: that tick has nothing to measure or count.
@@ -42,11 +84,11 @@ public sealed class SteeredChargeAbility : ServerAbility, ILandingContinuationCa
     public SteeredChargeAbility(CookedSteeredChargeCapabilityParameters parameters)
         => _parameters = parameters ?? throw new ArgumentNullException(nameof(parameters));
 
-    public override bool OwnsVerticalMotion => _phase is Phase.AirStrides or Phase.LookDown;
+    public override bool OwnsVerticalMotion => _phase is Phase.AirStrides or Phase.AirCarry or Phase.LookDown || _phase == Phase.Rear && AirborneAtStart;
     // Fighters move before abilities tick, so the strides and the look-down switch gravity off to
     // hold their height instead of only zeroing the vertical speed afterwards.
-    public override float GravityMultiplier => _phase is Phase.AirStrides or Phase.LookDown ? 0f : 1f;
-    public override bool HasArmor => _parameters.Armored && (_phase is Phase.Gallop or Phase.AirStrides);
+    public override float GravityMultiplier => OwnsVerticalMotion ? 0f : 1f;
+    public override bool HasArmor => _parameters.Armored && (_phase is Phase.Gallop or Phase.Carry or Phase.AirStrides or Phase.AirCarry);
 
     public override void OnStart(ref CharacterState s, CharacterDefinition def)
     {
@@ -57,18 +99,17 @@ public sealed class SteeredChargeAbility : ServerAbility, ILandingContinuationCa
         s.State = ActionState.Attacking;
         s.IsAiming = false;
         s.IsFastFalling = false;
-        ShowClip(ref s, _parameters.GallopAnimationId);
-        _lanceHits = SpawnHitbox(ref s, CookedCharacterRuntimeAdapter.ToHitboxEvent(_parameters.LanceHitbox) with
-        {
-            DurationTicks = ushort.MaxValue,
-            HitGroup = 0,
-        }, followOwner: true);
-        if (s.IsGrounded)
-            Enter(ref s, Phase.Gallop);
-        else
-            StartAirStrides(ref s);
-        Drive(ref s, _parameters.GallopSpeed);
-        Emit(ref s, def, _parameters.GallopPresentationId, PresentationEventSource.CapabilityLaunch);
+        _challenged = OwnerSimulation!.TryTakeChallenge(ref s, out _targetId);
+        if (!_challenged) _targetId = 0;
+        if (SimulationStates!.TryGetValue(_targetId, out var target)) _targetDeaths = target.Deaths;
+        _tracking = _targetId != 0;
+        _rearTicks = _challenged ? _parameters.ChallengedRearTicks : Move!.Timeline.Stages[0].DurationTicks;
+        Enter(ref s, Phase.Rear);
+        s.AnimLockTicks = ushort.MaxValue;
+        Hold(ref s);
+        if (AirborneAtStart) s.VY = 0f;
+        FaceTarget(ref s);
+        if (_challenged) Emit(ref s, def, _parameters.ChallengePresentationId, PresentationEventSource.CapabilityLaunch);
         _startedThisTick = true;
     }
 
@@ -77,18 +118,82 @@ public sealed class SteeredChargeAbility : ServerAbility, ILandingContinuationCa
         if (_startedThisTick)
         {
             _startedThisTick = false;
-            if (s.PX == _prevX && s.PZ == _prevZ)
-                return;
+            if (!_challenged) OwnerSimulation!.TryGetCurrentTarget(in s, out _targetId, out _);
+            if (SimulationStates!.TryGetValue(_targetId, out var target)) _targetDeaths = target.Deaths;
+            _tracking = _targetId != 0;
+            FaceTarget(ref s);
+            _phaseTicks = 1;
+            return;
         }
         if (_phaseTicks < ushort.MaxValue) _phaseTicks++;
         switch (_phase)
         {
+            case Phase.Rear:
+                Hold(ref s);
+                if (AirborneAtStart) s.VY = 0f;
+                FaceTarget(ref s);
+                if (_phaseTicks >= _rearTicks) StartGallop(ref s, def);
+                break;
+            case Phase.Carry:
+            case Phase.AirCarry: TickCarry(ref s, input, def); break;
+            case Phase.Fling:
+                Hold(ref s);
+                if (_phaseTicks >= _parameters.Carry.FlingTicks)
+                    Finish(ref s);
+                break;
             case Phase.Gallop: TickGallop(ref s, input, def); break;
             case Phase.AirStrides: TickAirStrides(ref s, input, def); break;
             case Phase.LookDown: TickLookDown(ref s); break;
             case Phase.HitEnding: TickHitEnding(ref s); break;
             case Phase.MissEnding: TickMissEnding(ref s); break;
         }
+    }
+
+    private void StartGallop(ref CharacterState s, CharacterDefinition def)
+    {
+        ShowClip(ref s, _parameters.GallopAnimationId);
+        Enter(ref s, s.IsGrounded ? Phase.Gallop : Phase.AirStrides);
+        var lance = CookedCharacterRuntimeAdapter.ToHitboxEvent(_parameters.LanceHitbox) with { DurationTicks = ushort.MaxValue, HitGroup = 1 };
+        var chest = CookedCharacterRuntimeAdapter.ToHitboxEvent(_parameters.ChestHitbox) with { DurationTicks = ushort.MaxValue, HitGroup = 1 };
+        _lanceHits = SpawnHitbox(ref s, lance, followOwner: true);
+        SpawnHitbox(ref s, chest, followOwner: true);
+        s.VY = 0f;
+        Drive(ref s, _parameters.GallopSpeed);
+        Emit(ref s, def, _parameters.GallopPresentationId, PresentationEventSource.CapabilityLaunch);
+    }
+
+    private void FaceTarget(ref CharacterState s)
+    {
+        if (!_tracking || !SimulationStates!.TryGetValue(_targetId, out var target) || target.Deaths != _targetDeaths) return;
+        float x = target.PX - s.PX, z = target.PZ - s.PZ;
+        if (x * x + z * z > .000001f) _yaw = MathF.Atan2(x, z);
+        s.FacingYaw = _yaw;
+    }
+
+    private void TickCarry(ref CharacterState s, InputState input, CharacterDefinition def)
+    {
+        if (!OwnerSimulation!.HasCommandHold(in s))
+        {
+            if (_phase == Phase.AirCarry) StartLookDown(ref s, def);
+            else StartEnding(ref s, def, Phase.HitEnding);
+            return;
+        }
+        bool air = _phase == Phase.AirCarry;
+        if (!air && !s.IsGrounded)
+        {
+            // A ground passenger must never pull the rider off the stage.
+            s.PX = _prevX; s.PY = _prevY; s.PZ = _prevZ;
+            s.IsGrounded = true; s.VY = 0f;
+            ReleaseRequested = true;
+        }
+        if (_measureTravel && Blocked(in s)) ReleaseRequested = true;
+        if (++_carryTicks >= _parameters.Carry.MaxCarryTicks || air && _phaseTicks >= _parameters.AirStrideTicks)
+            ReleaseRequested = true;
+        if (air && s.IsGrounded) _phase = Phase.Carry;
+        Steer(in s, input, air);
+        LoopGallopClip(ref s);
+        if (air) s.VY = 0f;
+        Drive(ref s, ReleaseRequested ? 0f : _parameters.GallopSpeed);
     }
 
     private void TickGallop(ref CharacterState s, InputState input, CharacterDefinition def)
@@ -121,7 +226,7 @@ public sealed class SteeredChargeAbility : ServerAbility, ILandingContinuationCa
             StartEnding(ref s, def, Phase.MissEnding);
             return;
         }
-        Steer(input);
+        Steer(in s, input, _phase == Phase.AirStrides);
         LoopGallopClip(ref s);
         Drive(ref s, _parameters.GallopSpeed);
     }
@@ -140,7 +245,7 @@ public sealed class SteeredChargeAbility : ServerAbility, ILandingContinuationCa
             StartLookDown(ref s, def);
             return;
         }
-        Steer(input);
+        Steer(in s, input, _phase == Phase.AirStrides);
         LoopGallopClip(ref s);
         s.VY = 0f;
         s.IsFastFalling = false;
@@ -233,6 +338,7 @@ public sealed class SteeredChargeAbility : ServerAbility, ILandingContinuationCa
             Phase.AirStrides => (ushort)Math.Min(ushort.MaxValue,
                 _parameters.AirStrideTicks + _parameters.LookDownTicks + 1),
             Phase.LookDown => _parameters.LookDownTicks,
+            Phase.Fling => _parameters.Carry.FlingTicks,
             Phase.HitEnding => _parameters.HitEndingTicks,
             Phase.MissEnding => _parameters.MissEndingTicks,
             _ => 0,
@@ -247,13 +353,59 @@ public sealed class SteeredChargeAbility : ServerAbility, ILandingContinuationCa
         return moved < expected * BlockedTravelRatio;
     }
 
-    private void Steer(InputState input)
+    private void Steer(in CharacterState owner, InputState input, bool air)
     {
-        float turn = _parameters.TurnDegreesPerSecond * MathF.PI / 180f * Simulation.TickDt;
-        if (turn <= 0f || input.MoveX * input.MoveX + input.MoveY * input.MoveY < SteerDeadZone * SteerDeadZone)
+        var self = owner;
+        float? assist = Catches && _parameters.Assist is { } a
+            ? AssistHeading(in owner, _yaw, _targetId, a, SimulationStates!.Values.Where(t =>
+                OwnerSimulation!.IsEligibleEnemy(self.EntityId, t.EntityId, self.PX, self.PZ, a.AssistRange, out _))) : null;
+        if (assist is { } heading)
+        {
+            TurnToward(heading, _parameters.Assist!.AssistDegreesPerSecond);
             return;
-        float delta = NormalizeYaw(MathF.Atan2(input.MoveX, input.MoveY) - _yaw);
-        _yaw = NormalizeYaw(_yaw + Math.Clamp(delta, -turn, turn));
+        }
+        bool stick = input.MoveX * input.MoveX + input.MoveY * input.MoveY >= SteerDeadZone * SteerDeadZone;
+        float desired;
+        float rate = _parameters.TurnDegreesPerSecond;
+        if (_tracking && SimulationStates!.TryGetValue(_targetId, out var target) && target.Deaths == _targetDeaths)
+        {
+            desired = MathF.Atan2(target.PX - _prevX, target.PZ - _prevZ);
+            if (MathF.Abs(NormalizeYaw(desired - _yaw)) > MathF.PI * .5f) _tracking = false;
+        }
+        else { _tracking = false; desired = _yaw; }
+        if (stick) desired = MathF.Atan2(input.MoveX, input.MoveY);
+        else
+        {
+            if (air || !_tracking) return;
+            rate = _challenged ? _parameters.ChallengedTrackDegreesPerSecond : _parameters.TrackDegreesPerSecond;
+        }
+        TurnToward(desired, rate);
+    }
+
+    private void TurnToward(float desired, float rate)
+    {
+        float turn = rate * MathF.PI / 180f * Simulation.TickDt;
+        _yaw = NormalizeYaw(_yaw + Math.Clamp(NormalizeYaw(desired - _yaw), -turn, turn));
+    }
+
+    internal static float? AssistHeading(in CharacterState owner, float yaw, ulong preferred,
+        ChargeAssistParameters assist, IEnumerable<CharacterState> eligible)
+    {
+        float best = assist.AssistRange * assist.AssistRange;
+        ulong bestId = ulong.MaxValue;
+        float? heading = null;
+        foreach (var target in eligible)
+        {
+            float dx = target.PX - owner.PX, dz = target.PZ - owner.PZ;
+            float distance = dx * dx + dz * dz;
+            float desired = MathF.Atan2(dx, dz);
+            if (distance < .000001f || distance > assist.AssistRange * assist.AssistRange
+                || MathF.Abs(NormalizeYaw(desired - yaw)) > assist.AssistHalfAngleDegrees * MathF.PI / 180f) continue;
+            if (target.EntityId == preferred) return desired;
+            if (distance > best || distance == best && target.EntityId >= bestId) continue;
+            best = distance; bestId = target.EntityId; heading = desired;
+        }
+        return heading;
     }
 
     private void Drive(ref CharacterState s, float speed)
@@ -262,6 +414,7 @@ public sealed class SteeredChargeAbility : ServerAbility, ILandingContinuationCa
         s.FacingYaw = _yaw;
         s.VX = MathF.Sin(_yaw) * speed;
         s.VZ = MathF.Cos(_yaw) * speed;
+        _prevY = s.PY;
         _prevX = s.PX;
         _prevZ = s.PZ;
         _measureTravel = speed > 0f;
@@ -317,7 +470,7 @@ public sealed class SteeredChargeAbility : ServerAbility, ILandingContinuationCa
     public override void OnHitEntity(ref CharacterState attacker, ref CharacterState target,
         CharacterDefinition attackerDef, CharacterDefinition targetDef, ref float damage, ref float knockbackForce)
     {
-        if (target.EntityId != attacker.EntityId && (_phase is Phase.Gallop or Phase.AirStrides))
+        if (target.EntityId != attacker.EntityId && Catches)
         {
             _outcome = Outcome.Hit;
             // He stops dead on the hit. The hit ending holds him too, but only from the next ability tick: the hitstop
@@ -328,7 +481,7 @@ public sealed class SteeredChargeAbility : ServerAbility, ILandingContinuationCa
 
     public override void OnShieldBlock(ref CharacterState attacker, ref CharacterState defender)
     {
-        if ((_phase is Phase.Gallop or Phase.AirStrides) && _outcome == Outcome.None)
+        if ((_phase is Phase.Gallop or Phase.Carry or Phase.AirStrides or Phase.AirCarry) && _outcome == Outcome.None)
             _outcome = Outcome.Blocked;
     }
 
@@ -341,7 +494,7 @@ public sealed class SteeredChargeAbility : ServerAbility, ILandingContinuationCa
 
     public override void OnCancel(ref CharacterState s)
     {
-        bool ownsVelocity = _phase is Phase.Gallop or Phase.AirStrides or Phase.MissEnding;
+        bool ownsVelocity = _phase is Phase.Gallop or Phase.Carry or Phase.AirStrides or Phase.AirCarry or Phase.MissEnding;
         _phase = Phase.Ended;
         if (ownsVelocity)
             s.VX = s.VZ = 0f;
@@ -358,6 +511,8 @@ public sealed class SteeredChargeAbility : ServerAbility, ILandingContinuationCa
     {
         base.WriteSnapshot(w);
         w.WriteByte((byte)_phase);
+        w.WriteULong(_targetId); w.WriteByte(_targetDeaths); w.WriteBool(_challenged); w.WriteBool(_tracking);
+        w.WriteUShort(_rearTicks); w.WriteUShort(_carryTicks); w.WriteBool(ReleaseRequested); w.WriteFloat(_prevY);
         w.WriteByte((byte)_outcome);
         w.WriteUShort(_phaseTicks);
         w.WriteUShort(_gallopTicks);
@@ -374,6 +529,9 @@ public sealed class SteeredChargeAbility : ServerAbility, ILandingContinuationCa
     {
         base.ReadSnapshot(r);
         _phase = (Phase)r.ReadByte();
+        if (_phase > Phase.Ended) throw SnapshotReader.Malformed("charge phase");
+        _targetId = r.ReadULong(); _targetDeaths = r.ReadByte(); _challenged = r.ReadBool(); _tracking = r.ReadBool();
+        _rearTicks = r.ReadUShort(); _carryTicks = r.ReadUShort(); ReleaseRequested = r.ReadBool(); _prevY = r.ReadFloat();
         _outcome = (Outcome)r.ReadByte();
         _phaseTicks = r.ReadUShort();
         _gallopTicks = r.ReadUShort();

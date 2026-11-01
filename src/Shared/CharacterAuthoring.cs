@@ -176,7 +176,8 @@ public sealed record CharacterPresentationSource(
     string AirDodge = "",
     string Shell = "",
     string Flying = "",
-    string MayhemLaugh = "");
+    string MayhemLaugh = "",
+    string WallJump = "");
 
 public sealed record HurtboxCapsuleSource(
     float StartX,
@@ -392,7 +393,8 @@ public sealed record ProjectileSource(
     float YawOffsetDegrees = 0f,
     ProjectileReturnSource? Return = null,
     ProjectileHomingSource? Homing = null,
-    ProjectilePerchSource? Perch = null);
+    ProjectilePerchSource? Perch = null,
+    ushort ChallengeTicks = 0);
 
 /// <summary>
 /// A projectile's optional "return" block: it flies out for outboundTicks (or until it meets the stage
@@ -408,7 +410,7 @@ public sealed record ProjectileReturnSource(
     float SelfHitDamage,
     ushort SelfHitStunTicks,
     string CatchPresentationId = "",
-    string SelfHitPresentationId = "");
+    string SelfHitPresentationId = "", ProjectileLegHit? Hit = null);
 
 public abstract record TypedCapabilityParameters;
 
@@ -509,7 +511,7 @@ public sealed record WibouRisingSlashCapabilityParameters(
     float HomingSpeed) : TypedCapabilityParameters;
 
 /// <summary>
-/// A steerable charge (slop.ability.steered-charge.v1): a gallop at a fixed speed whose heading the
+/// A steerable charge (slop.ability.steered-charge.v2): a gallop at a fixed speed whose heading the
 /// stick turns within a capped rate, with a lance hitbox and optional armour for as long as it lasts.
 /// The first fighter the lance hits ends it with the hit ending; a shield, a wall or running out of
 /// gallop ends it with the miss ending (a skid, optionally turning round). With no ground under it the
@@ -528,6 +530,12 @@ public sealed record SteeredChargeCapabilityParameters(
     bool TurnAroundOnMiss,
     ushort AirStrideTicks,
     ushort LookDownTicks,
+    ushort ChallengedRearTicks,
+    float TrackDegreesPerSecond,
+    float ChallengedTrackDegreesPerSecond,
+    HitboxSource ChestHitbox,
+    SteeredChargeCarrySource Carry,
+    string ChallengePresentationId = "",
     string GallopAnimationId = "",
     ushort GallopLoopTicks = 0,
     string HitEndingAnimationId = "",
@@ -536,7 +544,8 @@ public sealed record SteeredChargeCapabilityParameters(
     string GallopPresentationId = "",
     string HitEndingPresentationId = "",
     string MissEndingPresentationId = "",
-    string AirEndingPresentationId = "") : TypedCapabilityParameters;
+    string AirEndingPresentationId = "",
+    ChargeAssistParameters? Assist = null) : TypedCapabilityParameters;
 /// <summary>Where a thrust points (ADR-0045).</summary>
 public enum ThrustAim : byte
 {
@@ -646,15 +655,25 @@ public sealed record CannonballCapabilityParameters(
     float MaxLaunchSpeed,
     string LaunchPresentationId = "") : TypedCapabilityParameters;
 public sealed record TargetedLeapCapabilityParameters(
-    ushort MaxAimTicks,
-    ushort MaxFlightTicks,
-    float MinRange,
+    ushort RiseTicks,
+    float RiseHeight,
+    ushort HangTicks,
+    ushort DropTicks,
     float MaxRange,
-    float LaunchVerticalSpeed,
-    ushort LandingSeekTick,
-    ushort RecoveryTicks,
+    float NoTargetDistance,
+    ushort MaxFallTicks,
+    ushort HitRecoveryTicks,
+    ushort MissRecoveryTicks,
     HitboxSource Hitbox,
-    string LaunchPresentationId = "",
+    string RiseAnimationId = "",
+    string HangAnimationId = "",
+    ushort HangPoseTick = 0,
+    string DropAnimationId = "",
+    string LandingAnimationId = "",
+    ushort HitLandingSeekTick = 0,
+    string RisePresentationId = "",
+    string HangPresentationId = "",
+    string LockPresentationId = "",
     string LandingPresentationId = "") : TypedCapabilityParameters;
 public sealed record MankiRoundBombCapabilityParameters(
     ushort ArmTicks,
@@ -801,3 +820,5 @@ public enum SourceSlotId : byte
     AirR = 14,
     AirF = 15,
 }
+
+public sealed record ChargeAssistParameters(float AssistRange, float AssistHalfAngleDegrees, float AssistDegreesPerSecond);

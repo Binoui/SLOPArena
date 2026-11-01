@@ -19,6 +19,7 @@ public sealed class MoveReliability
     public List<ReachBand> Reach = new();
     public List<VerticalBand> Vertical = new();
     public List<SamplingRow> Sampling = new();
+    public List<SwingRow> Swing = new();
     /// <summary>Ground moves with several damaging hitboxes: where around the attacker each one can land.</summary>
     public List<HitCoverage> Hits = new();
     /// <summary>Ground moves: where in front of, above and behind the attacker an idle target is touched.</summary>
@@ -86,3 +87,21 @@ public sealed class HitCoverage
     public List<(string Target, float Distance, int Bearings)> Touched = new();
 }
 
+/// <summary>One anchored hitbox's rotation inside and around its active window, in cooked-pose degrees.</summary>
+public sealed class SwingRow
+{
+    public int Event;
+    public string Anchor = "";
+    public int FirstTick;
+    public int LastTick;
+    public int SampledThroughTick;
+    public int ActiveTicks => LastTick - FirstTick + 1;
+    /// <summary>Rotation on firstActive+1..lastActive divided by rotation on 1..SampledThroughTick; zero for a still segment.</summary>
+    public double InsideShare;
+    public int PrePeakTick;
+    public float PrePeakDegrees;
+    public int InPeakTick;
+    public float InPeakDegrees;
+    public int ParkedTicks;
+    public List<string> Flags = new();
+}

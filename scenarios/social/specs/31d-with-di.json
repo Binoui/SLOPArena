@@ -1,0 +1,90 @@
+{
+ "stage": "splash_deck",
+ "notes": "31d: 31c with one change: Wibou holds the stick south (toward the deck) from the hit tick through the hitstop (t69-95); the launch bends about 15 degrees inward and he lands on the deck",
+ "capture": {
+  "from": 50,
+  "to": 200,
+  "step": 1,
+  "width": 1080,
+  "height": 1920,
+  "quality": 92
+ },
+ "fighters": [
+  {
+   "id": 1,
+   "package": "bonk",
+   "feet": [
+    7.5,
+    0,
+    7.6
+   ],
+   "yaw": 292,
+   "target": 2,
+   "input": [
+    {
+     "at": 20,
+     "press": "4"
+    }
+   ]
+  },
+  {
+   "id": 2,
+   "package": "wibou",
+   "feet": [
+    6.0,
+    0,
+    8.2
+   ],
+   "yaw": 112,
+   "damage": 100,
+   "target": 1,
+   "input": [
+    {
+     "from": 69,
+     "to": 95,
+     "move": 180
+    }
+   ]
+  }
+ ],
+ "cameras": [
+  {
+   "name": "b",
+   "pos": [
+    9.5,
+    4.3,
+    2.2
+   ],
+   "look": [
+    6.0,
+    0.8,
+    8.2
+   ],
+   "follow": 2,
+   "lookOffset": [
+    0,
+    0.5,
+    0
+   ],
+   "move": true,
+   "ease": 0.12,
+   "fov": 50,
+   "far": 4000
+  },
+  {
+   "name": "top",
+   "pos": [
+    -2,
+    45,
+    4
+   ],
+   "look": [
+    -2,
+    0,
+    4.01
+   ],
+   "fov": 40,
+   "far": 4000
+  }
+ ]
+}

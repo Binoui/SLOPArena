@@ -7,6 +7,7 @@ on:
       - src/Shared/**
       - content-cooked/**
       - data/arenas/**
+      - client/Unity/Assets/CharacterPackages/**
       - .github/workflows/web-demo.yml
   pull_request:
     paths:
@@ -35,6 +36,16 @@ jobs:
         run: client/Web/scripts/assets.sh fetch
         env:
           GH_TOKEN: ${{ github.token }}
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.13'
+      - name: Re-export Unity effects
+        run: |
+          pip install pyyaml pillow
+          node client/Web/scripts/vfx-reference.mjs --write
+          node client/Web/scripts/export-vfx.mjs > /dev/null
+      - name: Check fighter models against Unity
+        run: python3 client/Web/scripts/asset-sources.py check --github
       - name: Build the WASM sim
         run: client/Web/scripts/build.sh
       - name: Smoke-test a headless match

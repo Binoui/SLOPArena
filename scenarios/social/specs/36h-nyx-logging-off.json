@@ -1,0 +1,276 @@
+{
+ "stage": "splash_deck",
+ "notes": "36h Going Live at 2 (off screen), Ring Light Uppercut launches Wibou, Logging Off pushes him, Hex Crow dives on him",
+ "capture": {
+  "from": 378,
+  "to": 512,
+  "step": 1,
+  "width": 1920,
+  "height": 1080,
+  "quality": 92
+ },
+ "fighters": [
+  {
+   "id": 1,
+   "package": "nyx",
+   "feet": [
+    2,
+    0,
+    5
+   ],
+   "yaw": 90,
+   "target": 2,
+   "input": [
+    {
+     "at": 2,
+     "press": "F"
+    },
+    {
+     "at": 370,
+     "press": "3"
+    },
+    {
+     "at": 372,
+     "press": "3"
+    },
+    {
+     "at": 374,
+     "press": "3"
+    },
+    {
+     "at": 376,
+     "press": "3"
+    },
+    {
+     "at": 378,
+     "press": "3"
+    },
+    {
+     "at": 380,
+     "press": "3"
+    },
+    {
+     "at": 392,
+     "press": "F"
+    },
+    {
+     "at": 394,
+     "press": "F"
+    },
+    {
+     "at": 396,
+     "press": "F"
+    },
+    {
+     "at": 398,
+     "press": "F"
+    },
+    {
+     "at": 400,
+     "press": "F"
+    },
+    {
+     "at": 402,
+     "press": "F"
+    },
+    {
+     "at": 404,
+     "press": "F"
+    },
+    {
+     "at": 406,
+     "press": "F"
+    },
+    {
+     "at": 408,
+     "press": "F"
+    },
+    {
+     "at": 410,
+     "press": "F"
+    },
+    {
+     "at": 412,
+     "press": "F"
+    },
+    {
+     "at": 414,
+     "press": "F"
+    },
+    {
+     "at": 416,
+     "press": "F"
+    },
+    {
+     "at": 418,
+     "press": "F"
+    },
+    {
+     "at": 420,
+     "press": "F"
+    },
+    {
+     "at": 422,
+     "press": "F"
+    },
+    {
+     "at": 424,
+     "press": "F"
+    },
+    {
+     "at": 426,
+     "press": "F"
+    },
+    {
+     "at": 428,
+     "press": "F"
+    },
+    {
+     "at": 430,
+     "press": "F"
+    },
+    {
+     "at": 432,
+     "press": "F"
+    },
+    {
+     "at": 434,
+     "press": "F"
+    },
+    {
+     "at": 436,
+     "press": "F"
+    },
+    {
+     "at": 438,
+     "press": "F"
+    },
+    {
+     "at": 440,
+     "press": "F"
+    },
+    {
+     "at": 430,
+     "press": "A"
+    },
+    {
+     "at": 432,
+     "press": "A"
+    },
+    {
+     "at": 434,
+     "press": "A"
+    },
+    {
+     "at": 436,
+     "press": "A"
+    },
+    {
+     "at": 438,
+     "press": "A"
+    },
+    {
+     "at": 440,
+     "press": "A"
+    },
+    {
+     "at": 442,
+     "press": "A"
+    },
+    {
+     "at": 444,
+     "press": "A"
+    },
+    {
+     "at": 446,
+     "press": "A"
+    },
+    {
+     "at": 448,
+     "press": "A"
+    },
+    {
+     "at": 450,
+     "press": "A"
+    },
+    {
+     "at": 452,
+     "press": "A"
+    },
+    {
+     "at": 454,
+     "press": "A"
+    },
+    {
+     "at": 456,
+     "press": "A"
+    },
+    {
+     "at": 458,
+     "press": "A"
+    },
+    {
+     "at": 460,
+     "press": "A"
+    },
+    {
+     "at": 462,
+     "press": "A"
+    },
+    {
+     "at": 464,
+     "press": "A"
+    },
+    {
+     "at": 466,
+     "press": "A"
+    },
+    {
+     "at": 468,
+     "press": "A"
+    },
+    {
+     "at": 470,
+     "press": "A"
+    }
+   ]
+  },
+  {
+   "id": 2,
+   "package": "wibou",
+   "feet": [
+    3.2,
+    0,
+    5
+   ],
+   "yaw": 270,
+   "damage": 40,
+   "target": 1
+  }
+ ],
+ "cameras": [
+  {
+   "name": "m",
+   "pos": [
+    2.7,
+    2.6,
+    -3.5
+   ],
+   "look": [
+    2.7,
+    2.2,
+    5
+   ],
+   "follow": 2,
+   "lookOffset": [
+    -0.9,
+    1.2,
+    0
+   ],
+   "ease": 0.12,
+   "move": true,
+   "fov": 44,
+   "far": 4000
+  }
+ ]
+}

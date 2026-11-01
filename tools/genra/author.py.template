@@ -1,23 +1,32 @@
-"""Working starting point. Run with ./py author.py after adding the requested motion."""
+"""Start with the seeded take. Run with ./py author.py after adding the requested motion."""
 from genra.brief import Brief
 from genra.clip import Clip, Pose
+from genra.flow import flow, Accent, key_drift
+from genra.solve import solve, carry, pin, track, hold_grip, two_bone, two_hand_grip
 from genra.checks import check_clip, format_report
-from genra.solve import carry, solve, track, two_bone, two_hand_grip
 
 b = Brief('brief.json')
 rig = b.rig
-clip = Clip.load(rig, 'result.json', frame=b.entry_frame)
+if b.get('approved_keys') and b.get('authoring_stage', 'full') == 'full':
+    clip, report = flow(b)
+    print(report)
+else:
+    clip = Clip.load(rig, 'result.json', frame=b.entry_frame)
 keys = {tick: clip.pose(tick) for tick in b.key_beats}
 
-# Edit a copy of a pose, then install it with clip.set_pose(tick, pose).
-# For new blocking: edit keys, then Clip.from_keys(keys, b['clock']['duration_ticks'] + 1).
-# For a two-handed key, seed from its neighbour to keep the same elbow/roll branch:
-# pose, report = two_hand_grip(keys[tick], blade=direction, hilt=position,
-#                             seed=keys[previous_tick], hold=b.get('two_hands_hold', 'exact'))
-# solve() returns (Pose, list[dict]); two_bone() edits a Pose and returns a miss in metres.
-# carry()/track() edit a Clip and return a report. API.md has the live signatures.
+# To keep a revision's edits, load it instead of regenerating flow:
+# clip = Clip.load(rig, 'previous/result.json', frame=b.entry_frame)
+# Without approved keys, author poses and pass them as flow(b, keys=keys).
+# An owner-directed accent can use Accent('spine', tick=20, degrees=3, axis=(1, 0, 0)).
+# solve returns a Pose and a list of diagnostic dicts:
+# pose, report = solve(clip.pose(tick), ['RightArm', 'RightForeArm'],
+#                      [{'pos': 'RightHand', 'at': target}], seed=keys[previous_tick])
+# clip.set_pose(tick, pose)
+# Run contacts after flow. These edit the clip and return diagnostic dicts:
+# report = carry(clip, keys, both_ways=True)
+# report = track(clip, first, last, joints, targets)
+# print(key_drift(clip, keys))
 
-# Save BEFORE checking: failed checks are useful, recoverable work too.
-clip.save('result.json')  # atomic; do not use deepcopy on a Pose, Clip or USD rig
+clip.save('result.json')
 report = check_clip(clip, b.check_spec(), mode='fast')
 print(format_report(report))

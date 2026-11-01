@@ -157,7 +157,7 @@ Shader "SLOPArena/StageNeon"
 
             half4 Frag(Varyings input, FRONT_FACE_TYPE face : FRONT_FACE_SEMANTIC) : SV_Target
             {
-                StageCutawayClip(input.positionWS, input.positionCS);
+                half4 sightRim = StageCutawayClipRim(input.positionWS, input.positionCS);
                 half3 normalWS = normalize(input.normalWS);
                 normalWS = IS_FRONT_VFACE(face, normalWS, -normalWS);
                 half4 tex = SAMPLE_TEXTURE2D(_BaseMap, sampler_BaseMap, input.uv);
@@ -167,7 +167,7 @@ Shader "SLOPArena/StageNeon"
                 half glow = input.color.a * tex.a;
                 half3 color = albedo * base + albedo * (glow * _Glow * input.anim);
                 color = lerp(color, MixFog(color, input.fogFactor), _FogAmount);
-                return half4(color, 1.0h);
+                return half4(StageCutawayApplyRim(color, sightRim), 1.0h);
             }
             ENDHLSL
         }

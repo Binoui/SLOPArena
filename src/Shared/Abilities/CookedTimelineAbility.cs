@@ -60,6 +60,20 @@ public sealed class CookedTimelineAbility : ServerAbility
             return false;
         }
     }
+    public override bool TryConsumeActiveSlotPress(ref CharacterState owner, in InputState input)
+    {
+        foreach (var capability in _capabilities)
+            if (capability.TryConsumeActiveSlotPress(ref owner, in input)) return true;
+        return false;
+    }
+    public override MoveSpot? Spot
+    {
+        get
+        {
+            foreach (var capability in _capabilities) if (capability.Spot is { } spot) return spot;
+            return null;
+        }
+    }
     public override TetherAbility? Tether
     {
         get
@@ -70,12 +84,12 @@ public sealed class CookedTimelineAbility : ServerAbility
             return null;
         }
     }
-    public override CommandGrabAbility? CommandGrab
+    public override ICommandHold? CommandHold
     {
         get
         {
             for (var i = 0; i < _capabilities.Count; i++)
-                if (_capabilities[i].CommandGrab is { } grab)
+                if (_capabilities[i].CommandHold is { } grab)
                     return grab;
             return null;
         }
@@ -86,6 +100,13 @@ public sealed class CookedTimelineAbility : ServerAbility
             if (_capabilities[i].HeldCutFor(victimId) is { } hold)
                 return hold;
         return null;
+    }
+    public override bool CatchesHit(in SpellResolver.HitResult hit)
+    {
+        for (var i = 0; i < _capabilities.Count; i++)
+            if (_capabilities[i].CatchesHit(in hit))
+                return true;
+        return false;
     }
     public override bool IgnoresFighterPushboxes
     {
@@ -150,7 +171,7 @@ public sealed class CookedTimelineAbility : ServerAbility
     }
     internal ActiveMoveView GetMoveView(in CharacterState owner)
         => new(_slot, _stageIndex, _stageTick, AirborneAtStart, AnimIndex,
-            ActiveMoveView.ResolvePose(_slot, AnimIndex, owner.AttackElapsedTicks));
+            ActiveMoveView.ResolvePose(_slot, AnimIndex, owner.AttackElapsedTicks), Spot);
 
     internal bool IsHoldingAim => _unlimitedAimHold;
     internal bool ContinuesThroughLanding

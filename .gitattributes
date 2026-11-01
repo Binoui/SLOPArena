@@ -1,0 +1,8 @@
+# Unity-generated YAML and mesh dumps produce huge, unreviewable line diffs (one Nyx idle
+# swap was 1.3M lines) that time out diff viewers such as T3's commit panel. Show them as
+# binary in `git diff`; use `git diff --text -- <path>` when you really need the lines.
+# Only diff output changes: storage, merges and history are unaffected.
+*.anim   -diff linguist-generated
+*.obj    -diff linguist-generated
+*.prefab -diff linguist-generated
+*.unity  -diff linguist-generated

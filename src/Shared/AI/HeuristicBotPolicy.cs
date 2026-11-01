@@ -1158,7 +1158,7 @@ public sealed partial class HeuristicBotPolicy
                         case CookedStartCapabilityOperation capability
                             when IsSupportedCapability(capability.Parameters):
                             startup = Math.Min(startup,
-                                operationTick + CapabilityFirstActiveTicks(capability.Parameters));
+                                operationTick + CapabilityFirstActiveTicks(capability.Parameters, stage.DurationTicks));
                             CapabilityTravelParameters(capability.Parameters,
                                 ref travelTicks, ref travelSpeed, ref travelOffset);
                             functional = true;
@@ -1295,12 +1295,13 @@ public sealed partial class HeuristicBotPolicy
                     x.RiseSpeed * x.RiseTicks / 60f);
                 recoveryRequiresDelayedOpponent = true;
                 hasMovement = true; hasDamage = true; break;
-            case CookedFlashCutCapabilityParameters x:
-                // Anyone inside the lock sphere when the stance ends is cut, wherever they run.
-                hitReach = MathF.Max(hitReach, x.LockRange);
-                damage += x.CutHitbox.Damage; hasDamage = true; hasMovement = true; break;
+            case CookedFlashCutCapabilityParameters:
+                // A counter only answers a threat (the Defend plan), so it never joins the attacks.
+                break;
             case CookedTargetedLeapCapabilityParameters x:
                 hitReach = MathF.Max(hitReach, x.MaxRange + MathF.Max(x.Hitbox.OffsetZ, x.Hitbox.EndOffsetZ) + x.Hitbox.Radius);
+                recoveryVertical = MathF.Max(recoveryVertical, x.RiseHeight);
+                recoveryHorizontal = MathF.Max(recoveryHorizontal, x.NoTargetDistance);
                 damage += x.Hitbox.Damage; hasDamage |= x.Hitbox.Damage > 0f; hasMovement = true; break;
             case CookedThrustCapabilityParameters x:
                 // The thrust only travels; the shell's bowling hitbox is not part of the move.
@@ -1340,7 +1341,7 @@ public sealed partial class HeuristicBotPolicy
                 hitReach = MathF.Max(hitReach, x.GallopSpeed * x.MaxGallopTicks / 60f
                     + MathF.Max(x.LanceHitbox.OffsetZ, x.LanceHitbox.EndOffsetZ) + x.LanceHitbox.Radius);
                 recoveryHorizontal = MathF.Max(recoveryHorizontal, x.GallopSpeed * x.AirStrideTicks / 60f);
-                damage += x.LanceHitbox.Damage; hasDamage |= x.LanceHitbox.Damage > 0f; hasMovement = true; break;
+                damage += x.LanceHitbox.Damage + x.Carry.Fling.Damage; hasDamage |= x.LanceHitbox.Damage > 0f; hasMovement = true; break;
             case CookedMankiRoundBombCapabilityParameters x:
                 hitReach = MathF.Max(hitReach, x.TriggerRadius);
                 damage += x.ExplosionDamage; hasDamage |= x.ExplosionDamage > 0f; break;
@@ -1354,7 +1355,7 @@ public sealed partial class HeuristicBotPolicy
         }
     }
 
-    private static ushort CapabilityFirstActiveTicks(CookedCapabilityParameters parameters)
+    private static ushort CapabilityFirstActiveTicks(CookedCapabilityParameters parameters, ushort stageDuration)
         => parameters switch
         {
             CookedAimedRecoveryCapabilityParameters x => x.StartupTicks,
@@ -1369,7 +1370,8 @@ public sealed partial class HeuristicBotPolicy
             CookedDashStrikeCapabilityParameters _ => 0,
             CookedFlashCutCapabilityParameters x => x.StanceTicks,
             CookedWibouRisingSlashCapabilityParameters _ => 0,
-            CookedTargetedLeapCapabilityParameters x => x.MaxAimTicks,
+            CookedTargetedLeapCapabilityParameters x => (ushort)(x.RiseTicks + x.HangTicks + x.DropTicks),
+            CookedSteeredChargeCapabilityParameters _ => stageDuration,
             CookedMankiRoundBombCapabilityParameters x => (ushort)(x.ArmTicks + x.WarningTicks),
             CookedMankiJetpackBoostCapabilityParameters x => x.StartupTicks,
             CookedMankiBazookaCapabilityParameters x => x.ChargeTicks > 0 ? x.ChargeTicks : x.FireTriggerTick,
@@ -1414,8 +1416,14 @@ public sealed partial class HeuristicBotPolicy
                 travelSpeed = MathF.Max(travelSpeed, x.ProjectileSpeed);
                 travelOffset = MathF.Max(travelOffset, x.HitboxRadius);
                 break;
+            case CookedSteeredChargeCapabilityParameters x:
+                travelTicks = Math.Max(travelTicks, x.MaxGallopTicks);
+                travelSpeed = MathF.Max(travelSpeed, x.GallopSpeed);
+                travelOffset = MathF.Max(travelOffset, MathF.Max(x.LanceHitbox.OffsetZ, x.ChestHitbox.OffsetZ)
+                    + MathF.Max(x.LanceHitbox.Radius, x.ChestHitbox.Radius));
+                break;
             case CookedTargetedLeapCapabilityParameters x:
-                travelTicks = Math.Max(travelTicks, x.MaxFlightTicks);
+                travelTicks = Math.Max(travelTicks, x.DropTicks);
                 break;
         }
     }

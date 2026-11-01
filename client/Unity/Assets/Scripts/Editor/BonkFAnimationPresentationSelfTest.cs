@@ -89,6 +89,65 @@ public static class BonkFAnimationPresentationSelfTest
         }
     }
 
+    [MenuItem("Tools/SLOPArena/Tests/Bonk E Landing Continuity")]
+    public static void RunLeapLandingContinuity()
+    {
+        if (Application.isPlaying)
+            throw new InvalidOperationException("Run the landing pose check in Edit Mode.");
+        var preview = AbilityLabPackagePreviewLoader.Load("bonk");
+        var scene = EditorSceneManager.NewPreviewScene();
+        var root = new GameObject("Bonk E landing regression") { hideFlags = HideFlags.HideAndDontSave };
+        SceneManager.MoveGameObjectToScene(root, scene);
+        try
+        {
+            var definition = CookedCharacterRuntimeAdapter.ToCharacterDefinition(preview.Package) with { Class = CharacterClass.Bonk };
+            var renderer = root.AddComponent<PlayerRenderer>();
+            if (!renderer.Configure(definition, preview.BakedPoses, preview.AnimationCatalog, preview.Rig, out var error))
+                throw new InvalidOperationException(error);
+            var graph = root.GetComponentInChildren<AnimancerComponent>();
+            graph.Animator.cullingMode = AnimatorCullingMode.AlwaysAnimate;
+            var hips = graph.Animator.GetBoneTransform(HumanBodyBones.Hips);
+            var head = graph.Animator.GetBoneTransform(HumanBodyBones.Head);
+            foreach (var action in new[] { "ground.E", "air.E" })
+            {
+                var recording = new AbilityLabSimulationController().RunScenario(definition, preview.BakedPoses,
+                    new AbilityLabScenarioOptions(action, 220, 25f),
+                    new Vector3(20f, definition.CapsuleHeight * 0.5f, 10f), 0f);
+                int checkedFrames = 0;
+                Vector3? previousDirection = null;
+                foreach (var frame in recording.Frames)
+                {
+                    var actor = frame.Actor;
+                    if (actor.State != ActionState.Attacking) continue;
+                    var slot = definition.GetCookedSlotAbility(actor.AttackSlot, action.StartsWith("air."));
+                    string id = slot.Clip(actor.AnimIndex).AnimationId;
+                    bool handoff = id == "anim.bonk.ge-drop" && actor.AttackElapsedTicks >= 16
+                        || id == "anim.bonk.ge-land" && actor.AttackElapsedTicks <= 6;
+                    if (!handoff) continue;
+                    if (!renderer.PlayScrubbedState(actor, slot.IsAir, frame.ActorPoseTicks))
+                        throw new InvalidOperationException($"{action}: landing pose was unavailable.");
+                    var direction = (head.position - hips.position).normalized;
+                    if (previousDirection.HasValue && Vector3.Angle(previousDirection.Value, direction) > 45f)
+                        throw new InvalidOperationException($"{action} {id} tick {actor.AttackElapsedTicks}: discontinuous landing orientation.");
+                    previousDirection = direction;
+                    float upright = direction.y;
+                    if (upright > 0.7f)
+                        throw new InvalidOperationException($"{action} {id} tick {actor.AttackElapsedTicks}: upright landing snap ({upright:F3}).");
+                    checkedFrames++;
+                }
+                if (checkedFrames < 9)
+                    throw new InvalidOperationException($"{action}: did not exercise the drop/landing handoff.");
+            }
+            Debug.Log("[BonkELandingContinuitySelfTest] Passed ground and air drop/landing poses without an upright snap.");
+        }
+        finally
+        {
+            UnityEngine.Object.DestroyImmediate(root);
+            UnityEngine.Object.DestroyImmediate(preview.AnimationCatalog);
+            EditorSceneManager.ClosePreviewScene(scene);
+        }
+    }
+
     [MenuItem("Tools/SLOPArena/Tests/Bonk F Animation Presentation")]
     public static void Run()
     {

@@ -40,12 +40,17 @@ namespace SlopArena.Shared.Abilities
         /// <summary>The tether this activation runs, if any (ADR-0048): its contacts catch instead of hitting.</summary>
         public virtual TetherAbility? Tether => null;
         /// <summary>The command grab this activation runs, if any (ADR-0057): its capture holds the fighter it catches.</summary>
-        public virtual CommandGrabAbility? CommandGrab => null;
+        public virtual ICommandHold? CommandHold => null;
+        public virtual MoveSpot? Spot => null;
+        public virtual bool TryConsumeActiveSlotPress(ref CharacterState owner, in InputState input) => false;
         /// <summary>A capability that keeps its timeline in the current stage past the stage's length (a command grab's whiff).</summary>
         internal virtual bool HoldsStage => false;
 
         /// <summary>The hold this activation's contact puts on that victim (ADR-0052), or null for an ordinary hit.</summary>
         public virtual HeldCutRelease? HeldCutFor(ulong victimId) => null;
+
+        /// <summary>Whether this activation catches a fighter's damaging hit on its owner instead of taking it (a counter).</summary>
+        public virtual bool CatchesHit(in SpellResolver.HitResult hit) => false;
 
         /// <summary>
         /// True while this activation's authored armor window remains active. A capability may report
@@ -306,6 +311,7 @@ namespace SlopArena.Shared.Abilities
                 VY = dirY * projectile.Speed,
                 VZ = dirZ * projectile.Speed,
                 Radius = radius,
+                ChallengeTicks = projectile.ChallengeTicks,
                 Shape = HitboxShape.Sphere,
                 Damage = damage,
                 BaseKnockback = projectile.BaseKnockback,
@@ -324,6 +330,7 @@ namespace SlopArena.Shared.Abilities
                 // A boomerang keeps flying through what it hits, once per fighter per leg.
                 spawned.Return = new ProjectileReturn
                 {
+                    Hit = back.Hit,
                     OutboundTicks = back.OutboundTicks,
                     ReturnSpeed = back.ReturnSpeed,
                     ReturnAcceleration = back.ReturnAcceleration,

@@ -124,12 +124,14 @@ public class WorldSnapshotContractTests
     [Fact]
     public void HitboxCodecCoversEveryFieldAndRelinksOwnerContent()
     {
-        var content = BuiltInContentResolver.Resolve(CharacterClass.Wibou);
+        var definition = TestHelpers.ResolveSourceDef("wibou");
+        var baked = BakedAnimationData.LoadFromBin(System.IO.File.ReadAllBytes(System.IO.Path.Combine(AppContext.BaseDirectory,
+            "../../../../../content-cooked/wibou/poses.bin")));
         var original = (Hitbox)Fill(typeof(Hitbox), new Random(3));
-        original.Def = content.Definition;
-        original.Baked = content.BakedAnimation;
+        original.Def = definition;
+        original.Baked = baked;
         (CharacterDefinition?, BakedAnimationData?) Owner(ulong id)
-            => id == original.OwnerId ? (content.Definition, content.BakedAnimation) : (null, null);
+            => id == original.OwnerId ? (definition, baked) : (null, null);
 
         var w = new SnapshotWriter();
         SnapshotCodecs.Write(w, original, Owner);
@@ -139,7 +141,7 @@ public class WorldSnapshotContractTests
         AssertDeepEqual(original, copy, nameof(Hitbox));
 
         var foreign = original;
-        foreign.Def = BuiltInContentResolver.Resolve(CharacterClass.Bonk).Definition;
+        foreign.Def = TestHelpers.ResolveSourceDef("bonk");
         Assert.Throws<InvalidOperationException>(() => SnapshotCodecs.Write(new SnapshotWriter(), foreign, Owner));
     }
 
@@ -167,7 +169,7 @@ public class WorldSnapshotContractTests
         int checkedSlots = 0;
         foreach (var cls in Roster)
         {
-            var def = BuiltInContentResolver.Resolve(cls).Definition;
+            var def = TestHelpers.ResolveSourceDef(cls.ToString().ToLowerInvariant());
             foreach (var slot in def.CookedSlots!)
             {
                 var names = slot.Timeline.Stages.SelectMany(x => x.AnimationIds).ToArray();
@@ -200,7 +202,7 @@ public class WorldSnapshotContractTests
     private static IEnumerable<CookedStartCapabilityOperation> RosterCapabilityOperations()
     {
         foreach (var cls in Roster)
-            foreach (var slot in BuiltInContentResolver.Resolve(cls).Definition.CookedSlots!)
+            foreach (var slot in TestHelpers.ResolveSourceDef(cls.ToString().ToLowerInvariant()).CookedSlots!)
                 foreach (var stage in slot.Timeline.Stages)
                     foreach (var operation in stage.Operations)
                         if (operation is CookedStartCapabilityOperation capability)
@@ -302,6 +304,7 @@ public class WorldSnapshotContractTests
         if (type == typeof(ulong)) return ((ulong)rng.Next() << 24) | (ulong)rng.Next(1, 1 << 20);
         if (type == typeof(float)) return (float)(rng.NextDouble() * 200 - 100);
         if (type == typeof(double)) return rng.NextDouble();
+        if (type == typeof(ProjectileLegHit)) return new ProjectileLegHit(5, 0, 20, 0, 1, 48);
         if (type == typeof(string)) return "s" + rng.Next(1000);
         if (type.IsEnum)
         {

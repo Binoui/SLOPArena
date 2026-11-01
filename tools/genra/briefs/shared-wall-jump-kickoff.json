@@ -1,0 +1,61 @@
+{
+  "name": "shared-wall-jump-kickoff",
+  "purpose": "other",
+  "notes": "Shared wall jump (owner direction A, Kick-off, 2026-11-01). The wall jump is new in the Shared sim: airborne, stick into a wall, Jump gives the air jump's upward speed plus a push straight away from the wall, and the fighter turns to face the wall (the stage) at the same tick. Rise time to the fall: 18 ticks (FightGuy, Wibou) to 24 ticks (Sir Bonk). Authored on Sir Bonk v2 so the plank stays clear of the body, as the shared tumble was; Humanoid retargeting plays it on all seven fighters.",
+  "rigpack": "artifacts/genra-rigpacks/bonk-unity-sirv2",
+  "character": "Sir Bonk v2 (a Humanoid body with Mixamo names, index-finger chains only besides the thumbs; a 3x4 cape chain Cape_L/C/R1..4 under Spine2 that a spring drives in the game, so leave it at rest; a 1.42 m plank greatsword fixed to the right hand as joint Weapon0, with bladeHilt at the crossguard and bladeEnd at the tip; a pot-lid pauldron fixed to the left upper arm as joint Weapon1). The right pauldron, a big round pot lid, is part of the body mesh and sits out over the right shoulder joint: keep the right forearm and hand out of it. This one clip is shared: Unity's Humanoid retargeting also plays it on FightGuy (a plain martial artist), Wibou (a swordsman with a shorter sword in the right hand), Manki (a monkey), Bashie (a turtle with a shell on her back), Nyx (a goth girl in a dress) and the salamander gunslinger, so keep it a clean, generic athletic motion with no Bonk-only gestures.",
+  "references": {
+    "fall": "references/fall.usda",
+    "jump": "references/jump.usda",
+    "double": "references/double.usda",
+    "idle": "references/idle.usda"
+  },
+  "entry": {
+    "reference": "fall",
+    "tick": 0,
+    "match": false
+  },
+  "exit": {
+    "from_tick": 18,
+    "reference": "fall",
+    "tick": 0
+  },
+  "clock": {
+    "duration_ticks": 20
+  },
+  "timing": {
+    "fixed": [
+      "20 ticks played once, from tick 0 in the air at the moment of the kick",
+      "ticks 18-20 are the fall pose exactly (reference 'fall', tick 0): the game crossfades into the fall loop over 0.15 s once the fighter starts descending, 18-24 ticks after the kick"
+    ],
+    "adjustable": [
+      "how the release spreads over ticks 5-18, as long as the legs are extended by tick 4 and the body is easing into the fall by tick 14"
+    ]
+  },
+  "description": "The wall jump: the clip every fighter plays when they kick off a wall in mid air. It is a recovery tool: a fighter knocked off the stage falls along the solid wall under the stage edge, presses into it and kicks off, gaining height to get back. It must read instantly as 'pushed off the wall with both feet'.\n\nHow the game plays it. Tick 0 is the kick: the fighter is in the air, right against the wall, and the game turns them to face the wall (the stage) on this tick, so in the character frame the wall is straight AHEAD, touching the front of the body. The game then carries the fighter up and BACKWARD, away from the wall, for 18-24 ticks before the fall. The fighter does not travel in the clip; the game moves them. Only the hips joint may translate, and keep the hips within 15 cm of the fall reference's height. The game crossfades in over about 0.05 s from the fall, the jump or an air jump, so tick 0 may differ from the entry pose (the entry only sets the frame). Ticks 18-20 are exactly the fall's first pose (`b.exit_pose`). The match camera sits behind and above, often looking at the fighter's back with the wall beyond them, so the silhouette of the legs driving into the wall and the arms swinging must read from behind and from the side.\n\nThe motion, direction A, the kick-off:\n- Tick 0, the plant: a compact crouch against the wall. Both knees pulled up in front of the chest, thighs close to horizontal, both soles flat toward the wall as if planted on it, the feet 0.3-0.45 m ahead of the hips and at most 0.45 m below them. The chest folds slightly forward over the knees, chin down, eyes on the wall. Both arms low and swept back, the hands beside or just behind the hips, so the plank trails behind and to the right, pointing back and down, well clear of the legs.\n- Ticks 0-4, the push (fast): both legs drive straight into the wall, forward and down, the knees almost straight by tick 4, the toes pointed through the push. The hips lead backward away from the wall; the chest trails the hips by 1-2 ticks, the head and arms trail more. The arms swing forward and up past the hips, out to the sides, the plank swinging with the right arm and staying to the right of the body.\n- Ticks 5-10, the release: the legs fold back under the body, loose and asymmetric (one knee higher than the other), the arms keep rising to about shoulder height or a little above, out to the sides for balance, the hands opening. The chest opens and lifts and the body leans back slightly, as the push throws the hips away from the wall; the head comes up, still looking at the wall.\n- Ticks 10-18, settle: ease into the fall pose with overlap: the hips settle first, then the chest, then the arms and head 1-3 ticks later. Never a dead hold: the arms drift and the fingers relax as the pose settles. By tick 18 the pose is the fall exactly.\n\nFlow. Every key is a moving pose: the hips lead, the chest trails 1-3 ticks, the arms and head trail more, the fingers and the free wrist trail the hands. Use the toolkit's flow defaults; no pose-to-pose stops. The cape stays at rest (the game springs it).\n\nKeep the plank out of the legs, the head and the body on every tick; it is a big prop and the shared clip must keep shorter swords (Wibou) clear too.",
+  "keys": [0, 4, 9, 14, 20],
+  "fast_windows": [[0, 5]],
+  "views": ["profile", "front", "three-quarter-right", "gameplay"],
+  "preview_views": ["profile", "gameplay"],
+  "review_ticks": [0, 2, 4, 6, 8, 10, 12, 14, 16, 18, 20],
+  "images": [
+    "../../sir-bonk-idle-run-20261020/sir-bonk-model.png"
+  ],
+  "image_notes": "1: the Sir Bonk model in its rest T-pose (front, three-quarter, side, back, three-quarter back). Proportions only; the motion is generic.",
+  "targets": [
+    {"name": "plant: left foot ahead of the hips at tick 0 (m)", "kind": "ahead", "a": "LeftFoot", "b": "Hips", "tick": 0, "min": 0.3},
+    {"name": "plant: right foot ahead of the hips at tick 0 (m)", "kind": "ahead", "a": "RightFoot", "b": "Hips", "tick": 0, "min": 0.3},
+    {"name": "plant: left foot high, at most 0.45 m below the hips at tick 0 (m)", "kind": "below", "a": "LeftFoot", "b": "Hips", "tick": 0, "max": 0.45},
+    {"name": "plant: right foot high, at most 0.45 m below the hips at tick 0 (m)", "kind": "below", "a": "RightFoot", "b": "Hips", "tick": 0, "max": 0.45},
+    {"name": "plant: right hand behind the chest at tick 0 (m)", "kind": "ahead", "a": "RightHand", "b": "Spine2", "tick": 0, "max": 0.0},
+    {"name": "plant: plank tip behind the hilt at tick 0 (m)", "kind": "ahead", "a": "bladeEnd", "b": "bladeHilt", "tick": 0, "max": -0.3},
+    {"name": "push: left leg extended, foot far from the hips at tick 4 (m)", "kind": "distance", "a": "LeftFoot", "b": "Hips", "tick": 4, "min": 0.8},
+    {"name": "push: right leg extended, foot far from the hips at tick 4 (m)", "kind": "distance", "a": "RightFoot", "b": "Hips", "tick": 4, "min": 0.8},
+    {"name": "push: left foot still ahead of the hips at tick 4 (m)", "kind": "ahead", "a": "LeftFoot", "b": "Hips", "tick": 4, "min": 0.35},
+    {"name": "push: plank tip to the right of the centre line at tick 4 (m)", "kind": "char", "a": "bladeEnd", "axis": "right", "tick": 4, "min": 0.15},
+    {"name": "release: left hand at or above the upper chest at tick 9 (m)", "kind": "below", "a": "Spine2", "b": "LeftHand", "tick": 9, "min": 0.0},
+    {"name": "release: right hand at or above the upper chest at tick 9 (m)", "kind": "below", "a": "Spine2", "b": "RightHand", "tick": 9, "min": 0.0},
+    {"name": "release: slight lean back, head not ahead of the hips at tick 8 (m)", "kind": "ahead", "a": "Head", "b": "Hips", "tick": 8, "max": 0.02},
+    {"name": "hips stay near the fall height (m)", "kind": "range", "a": "Hips", "axis": "up", "window": [0, 20], "max": 0.15}
+  ]
+}

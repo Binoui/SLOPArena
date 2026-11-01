@@ -10,8 +10,9 @@ using Xunit;
 namespace SlopArena.Shared.Tests;
 
 /// <summary>
-/// Wibou's flash (ADR-0052): the stance locks, homing legs cut each locked victim and hold them, and every held
-/// victim launches on the pop tick fixed at the lock. Wibou's source with fixture numbers, against engine fighters.
+/// Wibou's flash (ADR-0052), a counter: a hit caught in the stance locks, straight legs cut each locked victim and
+/// hold them, and every held victim launches on the pop tick fixed at the lock. Wibou's source with fixture numbers,
+/// against engine fighters.
 /// </summary>
 public sealed class FlashCutTests
 {
@@ -251,7 +252,8 @@ public sealed class FlashCutTests
             _ => new FlashDuel().WithVictims(1).With(FlashDuel.Third, 40f, 0f, yawDegrees: 90f, def: BashieShellFixture.Definition),
         };
         var whistle = capture == "wave" ? new InputState { ActiveSlot = AbilitySlots.F } : default;
-        duel.Step(flash ? new InputState { ActiveSlot = AbilitySlots.F } : default, (FlashDuel.Third, whistle));
+        if (flash) duel.Press((FlashDuel.Third, whistle));
+        else duel.Step(default, (FlashDuel.Third, whistle));
         uint heldAt = duel.RunTo(() => flash ? duel.State(FlashDuel.V2).State == ActionState.CutHeld
             : duel.Tick > FlashDuel.StanceEnd);
         var victim = duel.State(FlashDuel.V2);
@@ -303,10 +305,39 @@ public sealed class FlashCutTests
     }
 
     [Fact]
-    public void WithNobodyInRangeHeWhiffsAndANormalPunishesTheWhiff()
+    public void AJabCaughtInTheStanceDealsNoDamageAndTheJabberIsCutAndPops()
     {
-        var duel = new FlashDuel().With(FlashDuel.Third, 0f, FlashDuel.P.LockRange + .6f, yawDegrees: 180f, def: Jabber);
+        var duel = new FlashDuel().With(FlashDuel.Third, 0f, 1.1f, yawDegrees: 180f, def: Jabber);
+        duel.PressUncaught();
+        duel.Step(others: (FlashDuel.Third, new InputState { ActiveSlot = AbilitySlots.Slot1 }));
+        duel.RunTo(() => duel.Single(FlashDuel.Lock).Any(), maxTicks: 12);
+        Assert.True(duel.Tick < FlashDuel.StanceEnd, "the catch locks at once, not at the end of the stance");
+        Assert.DoesNotContain(duel.Hits, h => h.TargetEntityId == FlashDuel.Wibou);
+        uint popped = duel.RunTo(() => duel.Single(FlashDuel.Pop).Any());
+        Assert.Contains(duel.History, s => s.Id == FlashDuel.Third && s.State.State == ActionState.CutHeld);
+        Assert.Equal(0, duel.State(FlashDuel.Wibou).DamagePercent);
+        Assert.DoesNotContain(duel.History, s => s.Id == FlashDuel.Wibou && s.Tick <= popped
+            && (s.State.HitstunTicks > 0 || s.State.State == ActionState.Hitstun));
+        Assert.Equal((ushort)FlashDuel.P.CutHitbox.Damage, duel.State(FlashDuel.Third).DamagePercent);
+    }
+
+    [Fact]
+    public void TheVictimALegDashesAtCannotHitHimOutOfIt()
+    {
+        var duel = new FlashDuel().WithVictims(1);
         duel.Press();
+        duel.RunTo(() => duel.Single(FlashDuel.Lock).Any());
+        duel.Spawn(FlashDuel.V2, FlashDuel.Wibou, damage: 12f, angle: 40, knockback: 20f);
+        duel.RunTo(() => duel.Single(FlashDuel.Pop).Any());
+        Assert.Equal(0, duel.State(FlashDuel.Wibou).DamagePercent);
+        Assert.Contains(duel.History, s => s.Id == FlashDuel.V2 && s.State.State == ActionState.CutHeld);
+    }
+
+    [Fact]
+    public void AStanceNobodyHitsWhiffsAndANormalPunishesTheWhiff()
+    {
+        var duel = new FlashDuel().With(FlashDuel.Third, 0f, 3f, yawDegrees: 180f, def: Jabber);
+        duel.PressUncaught();
         duel.RunTo(() => duel.Tick >= FlashDuel.StanceEnd);
         Assert.Empty(duel.Single(FlashDuel.Lock));
         Assert.Equal(AbilitySlots.F, duel.State(FlashDuel.Wibou).AttackSlot);
@@ -319,7 +350,7 @@ public sealed class FlashCutTests
         Assert.Contains(duel.Hits, h => h.OwnerEntityId == FlashDuel.Third && h.TargetEntityId == FlashDuel.Wibou && !h.Blocked);
 
         var alone = new FlashDuel();
-        alone.Press();
+        alone.PressUncaught();
         uint free = alone.RunTo(() => alone.State(FlashDuel.Wibou).AttackSlot == 0);
         Assert.Equal(FlashDuel.StanceEnd + FlashDuel.P.WhiffTicks, free);
         Assert.Single(alone.Single(FlashDuel.Click));
@@ -407,17 +438,37 @@ public sealed class FlashCutTests
     }
 
     [Fact]
-    public void TheCpuUsesTheFlashOnAnOpponentInRange()
+    public void TheCpuNeverOpensWithTheCounterAgainstAnIdleOpponentInRange()
     {
-        var duel = new FlashDuel().With(FlashDuel.V2, 0f, 5f);
+        var duel = new FlashDuel().With(FlashDuel.V2, 0f, 3f);
         var self = duel.State(FlashDuel.Wibou);
-        self.SetCooldown(AbilitySlots.R, 600);
         var policy = new HeuristicBotPolicy();
         var memory = new BotMemory { Difficulty = CpuDifficulty.Hard };
-        bool used = false;
-        for (int tick = 0; tick < 600 && !used; tick++)
-            used = policy.Decide(self, duel.State(FlashDuel.V2), FlashDuel.Def, new Random(tick), memory).ActiveSlot == AbilitySlots.F;
-        Assert.True(used);
+        for (int tick = 0; tick < 600; tick++)
+            Assert.NotEqual(AbilitySlots.F,
+                policy.Decide(self, duel.State(FlashDuel.V2), FlashDuel.Def, new Random(tick), memory).ActiveSlot);
+    }
+
+    [Fact]
+    public void TheCpuCountersAJabAndCutsTheJabber()
+    {
+        var duel = new FlashDuel().With(FlashDuel.Third, 0f, 1.1f, yawDegrees: 180f, def: Jabber);
+        var policy = new HeuristicBotPolicy();
+        var memory = new BotMemory { Difficulty = CpuDifficulty.Hard };
+        var rng = new Random(7);
+        var arena = TestHelpers.TestArena();
+        for (int tick = 0; tick < 600 && !duel.Single(FlashDuel.Lock).Any(); tick++)
+        {
+            var wibou = duel.State(FlashDuel.Wibou);
+            policy.ObserveOpponent(memory, duel.State(FlashDuel.Third), Jabber, null, duel.Sim.GetActiveMove(FlashDuel.Third)?.Slot);
+            memory.ChooseOpponent(wibou);
+            var input = policy.Decide(wibou, FlashDuel.Def, rng, memory, arena, activeMove: duel.Sim.GetActiveMove(FlashDuel.Wibou)?.Slot);
+            var jab = tick % 30 == 0 ? new InputState { ActiveSlot = AbilitySlots.Slot1 } : default;
+            duel.Step(input with { MoveX = 0f, MoveY = 0f }, (FlashDuel.Third, jab));
+        }
+        Assert.Contains(duel.Single(FlashDuel.Lock), _ => true);
+        duel.RunTo(() => duel.Single(FlashDuel.Pop).Any());
+        Assert.Contains(duel.History, s => s.Id == FlashDuel.Third && s.State.State == ActionState.CutHeld);
     }
 
     [Fact]
@@ -510,6 +561,7 @@ internal sealed class FlashDuel
     internal readonly List<(uint Tick, ulong Id, CharacterState State)> History = new();
     internal List<TimelinePresentationEvent> LastEvents = new();
     private readonly List<ulong> _ids = new() { Wibou };
+    private ulong _catchBy;
 
     internal FlashDuel(float blastLines = 0f, CharacterDefinition? wibou = null)
     {
@@ -552,11 +604,26 @@ internal sealed class FlashDuel
         return this;
     }
 
+    /// <summary>
+    /// Presses F and has the first other fighter hit him on the stance's second-to-last tick, so the catch locks on
+    /// <see cref="StanceEnd"/>, where the lock would fall with nobody to catch.
+    /// </summary>
     internal void Press(params (ulong Id, InputState Input)[] others)
+    {
+        _catchBy = _ids.Skip(1).FirstOrDefault();
+        PressUncaught(others);
+    }
+
+    internal void PressUncaught(params (ulong Id, InputState Input)[] others)
         => Step(new InputState { ActiveSlot = AbilitySlots.F }, others);
 
     internal void Step(InputState wibou = default, params (ulong Id, InputState Input)[] others)
     {
+        if (_catchBy != 0 && Tick + 1 == StanceEnd - 1)
+        {
+            Spawn(_catchBy, Wibou, damage: 1f, angle: 0, knockback: 0f);
+            _catchBy = 0;
+        }
         var inputs = _ids.ToDictionary(id => id, _ => default(InputState));
         inputs[Wibou] = wibou;
         foreach (var (id, input) in others) inputs[id] = input;

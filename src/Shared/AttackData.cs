@@ -58,6 +58,7 @@ namespace SlopArena.Shared
     /// </summary>
     public struct ProjectileReturn
     {
+        public ProjectileLegHit? Hit;
         public ushort OutboundTicks;
         public float ReturnSpeed;
         public float ReturnAcceleration;

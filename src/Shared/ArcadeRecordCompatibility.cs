@@ -179,7 +179,11 @@ public static class ArcadeRecordCompatibility
     /// order, so content without a return keeps its fingerprint. A return block joins it, minus its
     /// presentation IDs.
     /// </summary>
-    private static object Projectile(CookedProjectile x) => x.Homing != null || x.Perch != null
+    private static object Projectile(CookedProjectile x) => x.ChallengeTicks > 0 || x.Return?.Hit != null
+        ? new { x.LaunchOffsetX, x.LaunchOffsetY, x.LaunchOffsetZ, x.Speed, x.Gravity, x.Radius, x.Damage, x.Angle,
+            x.BaseKnockback, x.KnockbackGrowth, x.StunTicks, x.MaxFlightTicks, x.YawOffsetDegrees, x.ChallengeTicks,
+            Return = x.Return == null ? null : x.Return with { CatchPresentationId = "", SelfHitPresentationId = "" }, x.Homing, x.Perch }
+        : x.Homing != null || x.Perch != null
         ? new
         {
             x.LaunchOffsetX, x.LaunchOffsetY, x.LaunchOffsetZ, x.Speed, x.Gravity, x.Radius, x.Damage, x.Angle,
@@ -206,10 +210,11 @@ public static class ArcadeRecordCompatibility
 
     private static object Parameters(CookedCapabilityParameters p) => p switch
     {
-        CookedTargetedLeapCapabilityParameters x => x with { LaunchPresentationId = "", LandingPresentationId = "" },
+        CookedTargetedLeapCapabilityParameters x => x with { RiseAnimationId = "", HangAnimationId = "", DropAnimationId = "", LandingAnimationId = "", HangPoseTick = 0, HitLandingSeekTick = 0, RisePresentationId = "", HangPresentationId = "", LockPresentationId = "", LandingPresentationId = "" },
         CookedSteeredChargeCapabilityParameters x => x with
         {
-            GallopPresentationId = "", HitEndingPresentationId = "",
+            GallopPresentationId = "", HitEndingPresentationId = "", ChallengePresentationId = "",
+            Carry = x.Carry with { FlingAnimationId = "", ScoopPresentationId = "", FlingPresentationId = "" },
             MissEndingPresentationId = "", AirEndingPresentationId = "",
         },
         CookedMankiRoundBombCapabilityParameters x => x with { ExplosionPresentationId = "" },

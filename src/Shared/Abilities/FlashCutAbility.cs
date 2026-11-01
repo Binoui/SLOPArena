@@ -3,13 +3,14 @@ using System;
 namespace SlopArena.Shared.Abilities;
 
 /// <summary>
-/// The flash (ADR-0052). A still stance locks every eligible opponent in range on its last tick and fixes the pop
-/// tick. Then one fixed-duration straight leg dashes through each locked victim in turn, its cut reaching only that
-/// victim and holding them, and he sheathes. Every held victim pops on that tick. With nobody locked he whiffs.
+/// The flash (ADR-0052), a counter. A fighter's hit during the still stance is caught, and on the next tick he locks
+/// every eligible opponent in range and fixes the pop tick. Then one fixed-duration straight leg dashes through each
+/// locked victim in turn, its cut reaching only that victim and holding them, and he sheathes. Every held victim pops
+/// on that tick. A stance that catches nothing, or a catch with nobody to lock, whiffs.
 /// </summary>
 public sealed class FlashCutAbility : ServerAbility
 {
-    private enum Phase : byte { Stance, Legs, Sheathe, Recovery, Whiff, Done }
+    private enum Phase : byte { Stance, Caught, Legs, Sheathe, Recovery, Whiff, Done }
     private const float BlockedTravelRatio = .6f;
     /// <summary>The longest his recovery waits past its authored length for popped victims to leave hitstun.</summary>
     internal const ushort MaxReelWaitTicks = 60;
@@ -31,9 +32,24 @@ public sealed class FlashCutAbility : ServerAbility
         => _p = parameters ?? throw new ArgumentNullException(nameof(parameters));
 
     public override bool IgnoresFighterPushboxes => _phase == Phase.Legs;
-    public override bool HoldsFighterPushboxPosition => _phase is Phase.Stance or Phase.Sheathe or Phase.Recovery or Phase.Whiff;
-    public override bool OwnsVerticalMotion => _phase is Phase.Stance or Phase.Legs or Phase.Sheathe or Phase.Whiff;
+    public override bool HoldsFighterPushboxPosition => _phase is Phase.Stance or Phase.Caught or Phase.Sheathe or Phase.Recovery or Phase.Whiff;
+    public override bool OwnsVerticalMotion => _phase is Phase.Stance or Phase.Caught or Phase.Legs or Phase.Sheathe or Phase.Whiff;
     public override float GravityMultiplier => OwnsVerticalMotion ? 0f : 1f;
+
+    /// <summary>
+    /// The stance catches any fighter's hit, and keeps catching for the tick before the lock. A leg's own victim cannot
+    /// hit him out of it, so a countered multi-hit move does not interrupt the cut it earned.
+    /// </summary>
+    public override bool CatchesHit(in SpellResolver.HitResult hit)
+    {
+        if (_phase == Phase.Stance)
+        {
+            _phase = Phase.Caught;
+            return true;
+        }
+        return _phase == Phase.Caught
+            || _phase == Phase.Legs && _leg < _victims.Length && _victims[_leg].Id == hit.OwnerEntityId;
+    }
 
     public override HeldCutRelease? HeldCutFor(ulong victimId)
     {
@@ -67,7 +83,11 @@ public sealed class FlashCutAbility : ServerAbility
         {
             case Phase.Stance:
                 Hold(ref s);
-                if (++_phaseTicks >= _p.StanceTicks) Lock(ref s, def, now);
+                if (++_phaseTicks >= _p.StanceTicks) EnterWhiff(ref s);
+                break;
+            case Phase.Caught:
+                Hold(ref s);
+                Lock(ref s, def, now);
                 break;
             case Phase.Legs:
                 Leg(ref s, def);
@@ -101,8 +121,7 @@ public sealed class FlashCutAbility : ServerAbility
         _phaseTicks = 0;
         if (_victims.Length == 0)
         {
-            _phase = Phase.Whiff;
-            s.AnimLockTicks = _p.WhiffTicks;
+            EnterWhiff(ref s);
             return;
         }
         int popAfter = _p.PopAfterLock(_victims.Length);
@@ -198,6 +217,13 @@ public sealed class FlashCutAbility : ServerAbility
         _lastX = s.PX;
         _lastZ = s.PZ;
         return true;
+    }
+
+    private void EnterWhiff(ref CharacterState s)
+    {
+        _phase = Phase.Whiff;
+        _phaseTicks = 0;
+        s.AnimLockTicks = _p.WhiffTicks;
     }
 
     private void EnterSheathe(ref CharacterState s)

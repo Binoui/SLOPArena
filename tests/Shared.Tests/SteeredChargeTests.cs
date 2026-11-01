@@ -5,344 +5,345 @@ using Xunit;
 
 namespace SlopArena.Shared.Tests;
 
-/// <summary>
-/// slop.ability.steered-charge.v1, Sir Bonk's joust: a steerable gallop with a lance that ends on its
-/// first hit, skids and turns round on a miss, a shield or a wall, and strides on thin air before a drop.
-/// </summary>
 public sealed class SteeredChargeTests
 {
-    private const float Speed = 12f;
-    private const ushort StartTick = 10;
-    internal static readonly string[] Clips = { "anim.r", "anim.r-air", "anim.r-gallop", "anim.r-hit", "anim.r-miss" };
-    private const byte AirClip = 1, GallopClip = 2, HitClip = 3, MissClip = 4;
-
+    private static CookedHitbox Contact => new(AuthoringHitboxShape.Sphere, .65f, 0, 0, 1, 0, 0, 0,
+        null, null, 3, 40, 8, 30, 20, 1, false, 0);
     internal static CookedSteeredChargeCapabilityParameters Parameters { get; } = new(
-        Speed, 180f, 60, true,
-        new CookedHitbox(AuthoringHitboxShape.Sphere, .6f, 0f, 0f, 1f, 0f, 0f, 0f, null, null,
-            10f, 40f, 8f, 30f, 20, 1, true, 0),
-        20, 30, 12, true, 15, 10,
-        GallopAnimationId: "anim.r-gallop", GallopLoopTicks: 24,
-        HitEndingAnimationId: "anim.r-hit", MissEndingAnimationId: "anim.r-miss", AirEndingAnimationId: "anim.r-air");
+        18, 240, 90, true, Contact, 18, 30, 12, false, 45, 20, 9, 240, 420, Contact,
+        new CookedSteeredChargeCarry(1.1f, .4f, 36, new CookedGrabLaunch(12, 40, 12, 36, 20), 18));
 
-    private static readonly CharacterDefinition Definition = CreateDefinition();
-    private static readonly CharacterDefinition TargetDef = TestHelpers.EngineDef;
-
-    [Fact]
-    public void GallopRunsAtItsSpeedThenSkidsAndTurnsRoundWhenItRunsOut()
+    internal static CharacterDefinition Definition(CookedSteeredChargeCapabilityParameters? parameters = null)
     {
-        var sim = MakeSim();
-        StartGallop(sim);
-        float startZ = sim.GetState(1).PZ;
-        Assert.Equal(GallopClip, sim.GetState(1).ComboStage);
-        AssertPhase(sim, GallopClip);
-
-        for (int i = 0; i < 30; i++)
-            Tick(sim, default);
-        Assert.InRange(sim.GetState(1).PZ - startZ, Speed * 30 / 60f - .05f, Speed * 30 / 60f + .05f);
-        Assert.InRange(sim.GetState(1).PX, -.001f, .001f);
-
-        bool skidded = false;
-        float lastSpeed = Speed;
-        int ticks = 0;
-        for (; ticks < 200 && sim.GetActiveAbility(1) != null; ticks++)
-        {
-            Tick(sim, default);
-            var state = sim.GetState(1);
-            if (state.ComboStage != MissClip) continue;
-            skidded = true;
-            AssertPhase(sim, MissClip);
-            Assert.True(state.VZ <= lastSpeed + .001f, "the skid only slows down");
-            lastSpeed = state.VZ;
-        }
-
-        Assert.True(skidded);
-        var done = sim.GetState(1);
-        Assert.Equal(ActionState.Idle, done.State);
-        Assert.InRange(MathF.Abs(done.FacingYaw), MathF.PI - .001f, MathF.PI + .001f);
-        Assert.Empty(sim.Resolver.GetActiveHitboxes());
+        var def = TestHelpers.EngineDef;
+        var slots = def.CookedSlots!.ToArray();
+        foreach (int n in new[] { 5, 12 })
+            slots[n] = new CookedSlotDefinition(n, n == 5 ? "ground.R" : "air.R", n == 12, "Joust", "", "",
+                AuthoringAbilityBehavior.MeleeCombo, AuthoringAimMode.None, 0, false, false,
+                new CookedTimeline(new[] { new CookedStage(18, 0, 0, 0, 0, Array.Empty<string>(),
+                    new CookedTimelineOperation[] { new CookedStartCapabilityOperation(0, AuthoringUnit.Ticks,
+                        CharacterPackageCompiler.SteeredChargeCapabilityId, "2", parameters ?? Parameters) }) }));
+        return def with { CookedSlots = slots };
     }
-
-    [Fact]
-    public void StickSteersTheGallopWithinItsTurnRate()
+    internal static ServerSimulation Duel(bool air = false, bool challenge = false, ArenaDefinition? arena = null)
     {
-        var sim = MakeSim();
-        StartGallop(sim);
-        var right = new InputState { MoveX = 1f };
-        for (int i = 0; i < 15; i++)
-            Tick(sim, right);
-        // 180 degrees a second is 3 degrees a tick: 15 ticks turn 45 degrees toward +X.
-        Assert.InRange(sim.GetState(1).FacingYaw, MathF.PI / 4f - .06f, MathF.PI / 4f + .06f);
-
-        for (int i = 0; i < 30; i++)
-            Tick(sim, right);
-        var state = sim.GetState(1);
-        Assert.InRange(state.FacingYaw, MathF.PI / 2f - .001f, MathF.PI / 2f + .001f);
-        Assert.InRange(MathF.Sqrt(state.VX * state.VX + state.VZ * state.VZ), Speed - .001f, Speed + .001f);
-    }
-
-    [Fact]
-    public void FirstFighterTheLanceHitsEndsTheGallopWithTheHitEnding()
-    {
-        var sim = MakeSim();
-        RegisterTarget(sim, 0f, 6f);
-        StartGallop(sim);
-
-        int hits = 0;
-        bool hitEnding = false, launched = false;
-        for (int i = 0; i < 200 && sim.GetActiveAbility(1) != null; i++)
-        {
-            Tick(sim, default);
-            hits += sim.LastTickHits.Count(hit => hit.TargetEntityId == 2 && !hit.Blocked);
-            var victim = sim.GetState(2);
-            launched |= victim.State == ActionState.Hitstun || Simulation.HasKnockback(victim) || victim.HitstopTicks > 0;
-            var state = sim.GetState(1);
-            if (state.ComboStage == HitClip)
-            {
-                hitEnding = true;
-                AssertPhase(sim, HitClip);
-                Assert.Equal(0f, state.VX);
-                Assert.Equal(0f, state.VZ);
-            }
-        }
-
-        Assert.Equal(1, hits);
-        Assert.True(hitEnding);
-        var target = sim.GetState(2);
-        Assert.Equal((ushort)10, target.DamagePercent);
-        Assert.True(launched, "the unhorsed fighter is launched");
-        Assert.True(sim.GetState(1).PZ < 6f, "the galloper stops at the fighter he unhorses");
-        Assert.InRange(sim.GetState(1).FacingYaw, -.001f, .001f);
-    }
-
-    [Fact]
-    public void ShieldEndsTheGallopWithTheSkid()
-    {
-        var sim = MakeSim();
-        RegisterTarget(sim, 0f, 6f, shield: true);
-        StartGallop(sim, shieldHeld: true);
-
-        bool blocked = false, skidded = false;
-        for (int i = 0; i < 200 && sim.GetActiveAbility(1) != null; i++)
-        {
-            Tick(sim, default, shieldHeld: true);
-            blocked |= sim.LastTickHits.Any(hit => hit.TargetEntityId == 2 && hit.Blocked);
-            skidded |= sim.GetState(1).ComboStage == MissClip;
-            Assert.NotEqual(HitClip, sim.GetState(1).ComboStage);
-        }
-
-        Assert.True(blocked);
-        Assert.True(skidded);
-        Assert.Equal((ushort)0, sim.GetState(2).DamagePercent);
-    }
-
-    [Fact]
-    public void WallEndsTheGallopWithTheSkid()
-    {
-        var sim = MakeSim(ArenaWithWall(4f));
-        StartGallop(sim);
-
-        int gallopTicks = 0;
-        bool skidded = false;
-        for (int i = 0; i < 200 && sim.GetActiveAbility(1) != null; i++)
-        {
-            Tick(sim, default);
-            if (sim.GetState(1).ComboStage == GallopClip) gallopTicks++;
-            skidded |= sim.GetState(1).ComboStage == MissClip;
-        }
-
-        Assert.True(skidded);
-        Assert.True(gallopTicks < 30, $"the wall ends the gallop early ({gallopTicks} ticks)");
-        Assert.True(sim.GetState(1).PZ < 4f);
-    }
-
-    [Fact]
-    public void ArmourAbsorbsHitsWhileGalloping()
-    {
-        var sim = MakeSim();
-        RegisterTarget(sim, 0f, -8f);
-        StartGallop(sim);
-        var galloper = sim.GetState(1);
-        sim.Resolver.Spawn(new Hitbox
-        {
-            X = galloper.PX, Y = galloper.PY, Z = galloper.PZ, Radius = 1f, Shape = HitboxShape.Sphere,
-            Damage = 7f, BaseKnockback = 20f, KnockbackGrowth = 50f, KnockbackAngle = 45, StunTicks = 20,
-            DurationTicks = 1, OwnerId = 2, ActivationId = 999,
-        });
-        Tick(sim, default);
-
-        Assert.Contains(sim.LastTickHits, hit => hit.TargetEntityId == 1 && hit.ArmorProtected);
-        var state = sim.GetState(1);
-        Assert.Equal((ushort)7, state.DamagePercent);
-        Assert.Equal(ActionState.Attacking, state.State);
-        Assert.NotNull(sim.GetActiveAbility(1));
-    }
-
-    [Fact]
-    public void AirChargeStridesLevelThenLooksDownAndDrops()
-    {
-        var sim = MakeSim(airborneAt: 5f);
-        StartGallop(sim);
-        float strideY = sim.GetState(1).PY;
-
-        int strides = 0, lookDown = 0;
-        for (int i = 0; i < 100 && sim.GetActiveAbility(1) != null; i++)
-        {
-            Tick(sim, default);
-            var state = sim.GetState(1);
-            if (sim.GetActiveAbility(1) == null) break;
-            Assert.InRange(state.PY, strideY - .001f, strideY + .001f);
-            if (state.ComboStage == AirClip)
-            {
-                AssertPhase(sim, AirClip);
-                lookDown++;
-                Assert.Equal(0f, state.VZ);
-            }
-            else
-            {
-                strides++;
-                Assert.InRange(state.VZ, Speed - .001f, Speed + .001f);
-            }
-        }
-
-        Assert.Null(sim.GetActiveAbility(1));
-        Assert.InRange(strides, 14, 17);
-        Assert.InRange(lookDown, 9, 11);
-        Tick(sim, default);
-        Tick(sim, default);
-        var falling = sim.GetState(1);
-        Assert.False(falling.IsGrounded);
-        Assert.True(falling.PY < strideY, "after the look-down he falls");
-        Assert.NotEqual(ActionState.Attacking, falling.State);
-    }
-
-    [Fact]
-    public void GallopingOffALedgeStridesOnThinAirAndDrops()
-    {
-        var sim = MakeSim(LedgeArena(edgeZ: 8));
-        StartGallop(sim);
-
-        bool lookedDown = false, skidded = false;
-        for (int i = 0; i < 200 && sim.GetActiveAbility(1) != null; i++)
-        {
-            Tick(sim, default);
-            lookedDown |= sim.GetState(1).ComboStage == AirClip;
-            skidded |= sim.GetState(1).ComboStage == MissClip;
-        }
-
-        Assert.True(lookedDown);
-        Assert.False(skidded);
-        var state = sim.GetState(1);
-        Assert.False(state.IsGrounded);
-        Assert.True(state.PZ > 8f);
-    }
-
-    [Fact]
-    public void InterruptionRemovesTheLance()
-    {
-        var sim = MakeSim();
-        StartGallop(sim);
-        Assert.NotEmpty(sim.Resolver.GetActiveHitboxes());
-
-        var hit = sim.GetState(1);
-        hit.State = ActionState.Hitstun;
-        hit.HitstunTicks = 20;
-        sim.SetState(1, hit);
-        Tick(sim, default);
-
-        Assert.Null(sim.GetActiveAbility(1));
-        Assert.Empty(sim.Resolver.GetActiveHitboxes());
-    }
-
-    private static ServerSimulation MakeSim(ArenaDefinition? arena = null, float? airborneAt = null)
-    {
-        var sim = new ServerSimulation(arena ?? TestHelpers.TestArena());
-        var state = TestHelpers.PlayerState() with { PY = TestHelpers.GroundPY(Definition) };
-        if (airborneAt.HasValue)
-            state = state with { PY = airborneAt.Value, IsGrounded = false };
-        sim.RegisterEntity(1, Definition, state);
+        var sim = new ServerSimulation(arena ?? TestHelpers.TestArena()); var def = Definition();
+        sim.RegisterEntity(1, def, TestHelpers.PlayerState(100, 100) with { PY = air ? 20 : TestHelpers.GroundPY(def),
+            IsGrounded = !air, Challenge = challenge ? new Challenge(2, 0, 120) : default });
+        sim.RegisterEntity(2, def, TestHelpers.PlayerState(100, 104) with { PY = air ? 20 : TestHelpers.GroundPY(def), IsGrounded = !air });
+        if (air) sim.NoGravityEntityId = 2;
         return sim;
     }
+    internal static void Step(ServerSimulation sim, byte slot = 0, bool shield = false)
+        => sim.Tick(new Dictionary<ulong, InputState> { [1] = new() { ActiveSlot = slot }, [2] = new() { ShieldHeld = shield } });
 
-    private static void AssertPhase(ServerSimulation simulation, byte clip)
+    private static CharacterDefinition AssistedDefinition(bool assist, ushort gallop = 150)
     {
-        Assert.Equal(clip, simulation.GetState(1).AnimIndex);
-        var move = Assert.IsType<ActiveMoveView>(simulation.GetActiveMove(1));
-        Assert.Equal(clip, move.ClipIndex);
-        Assert.Equal(Clips[clip], move.Pose.AnimationId);
+        return Definition(Parameters with { MaxGallopTicks = gallop,
+            Assist = assist ? new ChargeAssistParameters(3.5f, 70, 900) : null });
     }
 
-    private static void RegisterTarget(ServerSimulation sim, float x, float z, bool shield = false)
-        => sim.RegisterEntity(2, TargetDef, TestHelpers.PlayerState(x, z) with
+    [Theory]
+    [InlineData(false, false)]
+    [InlineData(true, false)]
+    [InlineData(false, true)]
+    [InlineData(true, true)]
+    public void AssistCatchesOffsetTargetDespiteStickAway(bool assist, bool stickAway)
+    {
+        var def = AssistedDefinition(assist); var sim = new ServerSimulation(TestHelpers.TestArena());
+        sim.RegisterEntity(1, def, TestHelpers.PlayerState(100, 100) with { PY = TestHelpers.GroundPY(def) });
+        sim.RegisterEntity(2, def, TestHelpers.PlayerState(100, 110) with { PY = TestHelpers.GroundPY(def) });
+        Step(sim, AbilitySlots.R);
+        for (int i = 0; i < 18; i++) Step(sim);
+        var target = sim.GetState(2);
+        sim.SetState(2, target with { PX = 101.2f, PZ = sim.GetState(1).PZ + 1.0f });
+        bool caught = false;
+        for (int i = 0; i < 20; i++)
         {
-            EntityId = 2,
-            PY = TestHelpers.GroundPY(TargetDef),
-            State = shield ? ActionState.Shielding : ActionState.Idle,
-        });
-
-    /// <summary>Press R and tick through the startup until the gallop is moving.</summary>
-    private static void StartGallop(ServerSimulation sim, bool shieldHeld = false)
-    {
-        Tick(sim, new InputState { ActiveSlot = AbilitySlots.R }, shieldHeld);
-        for (int i = 0; i < StartTick + 2 && sim.GetState(1).VZ <= 0f; i++)
-            Tick(sim, default, shieldHeld);
-        Assert.True(sim.GetState(1).VZ > 0f, "the gallop starts after the rear-up");
+            sim.Tick(new Dictionary<ulong, InputState> { [1] = new() { MoveX = stickAway ? -1 : 0 }, [2] = default });
+            caught |= sim.GetState(2).State == ActionState.CommandGrabbed;
+        }
+        Assert.Equal(assist, caught);
     }
 
-    private static void Tick(ServerSimulation sim, InputState attacker, bool shieldHeld = false)
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void DodgeBehindEscapesWithoutTurningBack(bool air)
     {
-        var inputs = new Dictionary<ulong, InputState> { [1] = attacker };
-        if (shieldHeld)
-            inputs[2] = new InputState { ShieldHeld = true };
-        sim.Tick(inputs);
+        var def = AssistedDefinition(true); var sim = new ServerSimulation(TestHelpers.TestArena());
+        var owner = TestHelpers.PlayerState(100, 100) with { PY = air ? 20 : TestHelpers.GroundPY(def), IsGrounded = !air };
+        sim.RegisterEntity(1, def, owner);
+        sim.RegisterEntity(2, def, owner with { EntityId = 2, PZ = 110 });
+        if (air) sim.NoGravityEntityId = 2;
+        Step(sim, AbilitySlots.R);
+        for (int t = 0; t < 18; t++) Step(sim);
+        sim.SetState(2, sim.GetState(2) with { PX = 101.2f, PZ = 98 });
+        for (int t = 0; t < 20; t++) Step(sim);
+        Assert.Equal((ushort)0, sim.GetState(2).DamagePercent);
+        TestHelpers.AssertNear(0, sim.GetState(1).FacingYaw, .001f);
     }
 
-    internal static CookedSlotDefinition Slot(int ordinal, string id, bool air) => new(
-        ordinal, id, air, "Joust fixture", "", "", AuthoringAbilityBehavior.MeleeCombo, AuthoringAimMode.None,
-        0, false, false,
-        new CookedTimeline(new[]
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void SnapshotDuringAssistedTurnReplaysIdentically(bool air)
+    {
+        var def = AssistedDefinition(true);
+        ServerSimulation Make()
         {
-            new CookedStage(30, 0, 0, 0, 0, Clips, new CookedTimelineOperation[]
+            var sim = new ServerSimulation(TestHelpers.TestArena());
+            var owner = TestHelpers.PlayerState(100, 100) with { PY = air ? 20 : TestHelpers.GroundPY(def), IsGrounded = !air };
+            sim.RegisterEntity(1, def, owner);
+            sim.RegisterEntity(2, def, owner with { EntityId = 2, PZ = 110 });
+            if (air) sim.NoGravityEntityId = 2;
+            return sim;
+        }
+        var sim = Make(); Step(sim, AbilitySlots.R);
+        for (int t = 0; t < 18; t++) Step(sim);
+        sim.SetState(2, sim.GetState(2) with { PX = 101.2f, PZ = sim.GetState(1).PZ + 1 });
+        Step(sim);
+        var restored = Make(); restored.RestoreSnapshot(sim.CaptureSnapshot());
+        for (int t = 0; t < 80; t++)
+        {
+            Step(sim); Step(restored);
+            Assert.True(sim.CaptureSnapshot().ContentEquals(restored.CaptureSnapshot()), $"assist replay diverged at {t}");
+        }
+    }
+
+    [Fact]
+    public void AssistPrefersSelectedTargetThenNearestWithStableTiesAndIgnoresBehind()
+    {
+        var owner = TestHelpers.PlayerState(100, 100);
+        var near = owner with { EntityId = 2, PX = 101, PZ = 102 };
+        var selected = owner with { EntityId = 3, PX = 99, PZ = 103 };
+        var a = new ChargeAssistParameters(3.5f, 70, 900);
+        Assert.Equal(MathF.Atan2(-1, 3), Abilities.SteeredChargeAbility.AssistHeading(owner, 0, 3, a, new[] { near, selected }));
+        Assert.Equal(MathF.Atan2(1, 2), Abilities.SteeredChargeAbility.AssistHeading(owner, 0, 0, a, new[] { selected, near }));
+        Assert.Null(Abilities.SteeredChargeAbility.AssistHeading(owner, 0, 3, a, new[] { selected with { PZ = 99 } }));
+        Assert.Equal(MathF.Atan2(1, 2), Abilities.SteeredChargeAbility.AssistHeading(owner, 0, 0, a,
+            new[] { near with { EntityId = 4, PX = 99 }, near }));
+    }
+
+    [Fact]
+    public void LongerGallopTravelsEighteenMetresFarther()
+    {
+        float Travel(ushort ticks)
+        {
+            var def = AssistedDefinition(true, ticks); var sim = new ServerSimulation(TestHelpers.TestArena());
+            sim.RegisterEntity(1, def, TestHelpers.PlayerState(100, 100) with { PY = TestHelpers.GroundPY(def) });
+            Step(sim, AbilitySlots.R);
+            for (int i = 0; i < 220; i++) Step(sim);
+            return sim.GetState(1).PZ;
+        }
+        TestHelpers.AssertNear(18f, Travel(150) - Travel(90), .02f);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void ScoopsCarriesThenConsumesSameSlotPressAndFlingsOnce(bool air)
+    {
+        var sim = Duel(air); Step(sim, AbilitySlots.R);
+        for (int i = 0; i < 16; i++) Step(sim);
+        Assert.InRange(sim.GetState(1).PZ, 99.99f, 100.01f);
+        for (int i = 0; i < 40 && sim.GetState(2).State != ActionState.CommandGrabbed; i++) Step(sim);
+        Assert.Equal(ActionState.CommandGrabbed, sim.GetState(2).State);
+        Assert.Equal((ushort)3, sim.GetState(2).DamagePercent);
+        float z = sim.GetState(1).PZ;
+        for (int i = 0; i < 4; i++) Step(sim);
+        Assert.True(sim.GetState(1).PZ > z + .8f);
+        Assert.InRange(sim.GetState(2).PZ - sim.GetState(1).PZ, 1.05f, 1.15f);
+        Step(sim, AbilitySlots.R);
+        var fling = Assert.Single(sim.LastTickHits.Where(h => h.TargetEntityId == 2));
+        Assert.Equal(12, fling.Damage);
+        Assert.Equal(AbilitySlots.R, fling.AttackSlot);
+        Assert.Equal((ulong)0, sim.GetState(1).InteractionId);
+        for (int i = 0; i < 80; i++) Step(sim);
+        Assert.Null(sim.GetActiveAbility(1));
+        Assert.Equal((ushort)15, sim.GetState(2).DamagePercent);
+    }
+
+    [Fact]
+    public void ChallengeHalvesRearAndIsConsumedEvenOnAMiss()
+    {
+        var sim = Duel(challenge: true); Step(sim, AbilitySlots.R);
+        Assert.Equal(default, sim.GetState(1).Challenge);
+        for (int i = 0; i < 12; i++) Step(sim);
+        Assert.True(sim.GetState(1).PZ > 100.4f);
+    }
+
+    [Fact]
+    public void ShieldBlocksTheScoop()
+    {
+        var sim = Duel(); Step(sim, AbilitySlots.R, true);
+        bool blocked = false;
+        for (int i = 0; i < 90; i++) { Step(sim, shield: true); blocked |= sim.LastTickHits.Any(h => h.Blocked); }
+        Assert.True(blocked);
+        Assert.Equal((ushort)0, sim.GetState(2).DamagePercent);
+        Assert.Equal((ulong)0, sim.GetState(2).InteractionId);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void SnapshotMidCarryReplaysTheSameTimedFling(bool air)
+    {
+        var sim = Duel(air); Step(sim, AbilitySlots.R);
+        for (int i = 0; i < 60 && sim.GetState(2).State != ActionState.CommandGrabbed; i++) Step(sim);
+        Assert.Equal(ActionState.CommandGrabbed, sim.GetState(2).State);
+        for (int i = 0; i < 5; i++) Step(sim);
+        var restored = Duel(air); restored.RestoreSnapshot(sim.CaptureSnapshot());
+        for (int i = 0; i < 100; i++)
+        {
+            Step(sim); Step(restored);
+            Assert.True(sim.CaptureSnapshot().ContentEquals(restored.CaptureSnapshot()), $"carry replay diverged at {i}");
+        }
+        Assert.Equal((ushort)15, sim.GetState(2).DamagePercent);
+    }
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void CarryStopsAndFlingsAtTheGroundLedgeOrWall(bool wall)
+    {
+        var arena = TestHelpers.TestArena();
+        if (wall)
+        {
+            arena.CollisionTriangles = new[]
             {
-                new CookedStartCapabilityOperation(StartTick, AuthoringUnit.Ticks,
-                    CharacterPackageCompiler.SteeredChargeCapabilityId,
-                    CharacterPackageCompiler.SteeredChargeCapabilityVersion, Parameters),
-            }),
-        }));
+                new CollisionTriangle { AX = 90, AY = 0, AZ = 90, BX = 90, BY = 0, BZ = 120, CX = 120, CY = 0, CZ = 90 },
+                new CollisionTriangle { AX = 90, AY = 0, AZ = 120, BX = 120, BY = 0, BZ = 120, CX = 120, CY = 0, CZ = 90 },
+                new CollisionTriangle { AX = 90, AY = 0, AZ = 106, BX = 90, BY = 8, BZ = 106, CX = 120, CY = 0, CZ = 106 },
+                new CollisionTriangle { AX = 120, AY = 8, AZ = 106, BX = 120, BY = 0, BZ = 106, CX = 90, CY = 8, CZ = 106 },
+            };
+            arena.MinX = arena.MinZ = 90; arena.MaxX = arena.MaxZ = 120;
+            arena.SpatialGrid = ArenaCollision.BuildSpatialGrid(in arena);
+        }
+        else
+            for (int z = 106; z < arena.Heightmap.Height; z++)
+                for (int x = 0; x < arena.Heightmap.Width; x++) arena.Heightmap.Data[z * arena.Heightmap.Width + x] = float.MinValue;
+        var sim = Duel(arena: arena); Step(sim, AbilitySlots.R);
+        for (int i = 0; i < 50 && sim.GetState(2).State != ActionState.CommandGrabbed; i++) Step(sim);
+        Assert.True(sim.GetState(2).State == ActionState.CommandGrabbed, $"holder {sim.GetState(1).PX}, {sim.GetState(1).PY}, {sim.GetState(1).PZ}, {sim.GetState(1).State}; victim {sim.GetState(2).PX}, {sim.GetState(2).PY}, {sim.GetState(2).PZ}, damage {sim.GetState(2).DamagePercent}");
+        for (int i = 0; i < 30 && sim.GetState(1).InteractionId != 0; i++) Step(sim);
+        Assert.Equal((ulong)0, sim.GetState(1).InteractionId);
+        Assert.Equal((ushort)15, sim.GetState(2).DamagePercent);
+        Assert.True(sim.GetState(1).IsGrounded);
+        Assert.True(sim.GetState(1).PZ < 106);
 
-    private static CharacterDefinition CreateDefinition()
-    {
-        var definition = TestHelpers.EngineDef;
-        var slots = definition.CookedSlots!.ToArray();
-        slots[5] = Slot(5, "ground.R", false);
-        slots[12] = Slot(12, "air.R", true);
-        definition = definition with { CookedSlots = slots };
-        return definition;
     }
 
-    /// <summary>A floor at y = 0 that ends at <paramref name="edgeZ"/>, with nothing beyond.</summary>
-    private static ArenaDefinition LedgeArena(int edgeZ)
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void NeutralGroundTrackingGivesUpAfterAPassAndAirNeverTracks(bool air)
     {
-        var arena = TestHelpers.TestArena();
-        var data = arena.Heightmap.Data;
-        for (int z = edgeZ; z < arena.Heightmap.Height; z++)
-            for (int x = 0; x < arena.Heightmap.Width; x++)
-                data[z * arena.Heightmap.Width + x] = float.MinValue;
-        return arena;
+        var sim = Duel(air); Step(sim, AbilitySlots.R);
+        for (int i = 0; i < 19; i++) Step(sim);
+        var target = sim.GetState(2); target.PX = 106; target.PZ = 110; sim.SetState(2, target);
+        Step(sim);
+        Assert.Equal(air, MathF.Abs(sim.GetState(1).FacingYaw) < .001f);
+        target.PZ = 90; sim.SetState(2, target); Step(sim);
+        float yaw = sim.GetState(1).FacingYaw;
+        target.PZ = 110; sim.SetState(2, target); Step(sim);
+        Assert.Equal(yaw, sim.GetState(1).FacingYaw);
     }
 
-    private static ArenaDefinition ArenaWithWall(float wallZ)
+    [Fact]
+    public void BothVolumesRetireWhenTheFirstOfTwoFightersIsScooped()
     {
-        var arena = TestHelpers.TestArena();
-        arena.CollisionTriangles = new[]
+        var sim = Duel(); var def = Definition();
+        sim.RegisterEntity(3, def, TestHelpers.PlayerState(100.05f, 104) with { PY = TestHelpers.GroundPY(def) });
+        Step(sim, AbilitySlots.R);
+        for (int i = 0; i < 50 && sim.GetState(1).InteractionId == 0; i++) Step(sim);
+        var held = sim.GetState(1).InteractionPartnerId;
+        Assert.NotEqual(0UL, held);
+        Assert.Equal((ushort)3, sim.GetState(held).DamagePercent);
+        Assert.Equal((ushort)0, sim.GetState(held == 2 ? 3UL : 2UL).DamagePercent);
+    }
+
+    [Fact]
+    public void AThirdPartyHitOnThePassengerBreaksThePairWithThatHitsReaction()
+    {
+        var sim = Duel(); Step(sim, AbilitySlots.R);
+        for (int i = 0; i < 50 && sim.GetState(2).State != ActionState.CommandGrabbed; i++) Step(sim);
+        var def = Definition();
+        sim.RegisterEntity(3, def, TestHelpers.PlayerState(105, 105) with { PY = TestHelpers.GroundPY(def) });
+        var target = sim.GetState(2);
+        sim.Resolver.Spawn(new Hitbox { X = target.PX, Y = target.PY, Z = target.PZ, Radius = 2,
+            Shape = HitboxShape.Sphere, Damage = 7, StunTicks = 20, BaseKnockback = 12,
+            DurationTicks = 1, OwnerId = 3, OnlyTargetId = 2 });
+        Step(sim);
+        Assert.Equal(0UL, sim.GetState(1).InteractionId);
+        Assert.NotEqual(ActionState.CommandGrabbed, sim.GetState(2).State);
+        Assert.Equal((ushort)10, sim.GetState(2).DamagePercent);
+        Assert.Contains(sim.LastTickHits, h => h.OwnerEntityId == 3 && h.TargetEntityId == 2 && h.Damage == 7);
+        for (int i = 0; i < 80; i++) Step(sim);
+        Assert.Equal((ushort)10, sim.GetState(2).DamagePercent);
+    }
+
+    [Fact]
+    public void ArmourOnTheRiderKeepsTheCarryThroughADamagingHit()
+    {
+        var sim = Duel(); Step(sim, AbilitySlots.R);
+        for (int i = 0; i < 50 && sim.GetState(2).State != ActionState.CommandGrabbed; i++) Step(sim);
+        var def = Definition();
+        sim.RegisterEntity(3, def, TestHelpers.PlayerState(105, 105) with { PY = TestHelpers.GroundPY(def) });
+        var owner = sim.GetState(1); ulong pair = owner.InteractionId;
+        sim.Resolver.Spawn(new Hitbox { X = owner.PX, Y = owner.PY, Z = owner.PZ, Radius = 2,
+            Shape = HitboxShape.Sphere, Damage = 7, StunTicks = 20, BaseKnockback = 12,
+            DurationTicks = 1, OwnerId = 3, OnlyTargetId = 1 });
+        Step(sim);
+        Assert.Equal(pair, sim.GetState(1).InteractionId);
+        Assert.Equal(ActionState.CommandGrabbed, sim.GetState(2).State);
+        Assert.Equal((ushort)7, sim.GetState(1).DamagePercent);
+        Step(sim, AbilitySlots.R);
+        for (int i = 0; i < 20 && sim.GetState(1).InteractionId != 0; i++) Step(sim);
+        Assert.Equal((ushort)15, sim.GetState(2).DamagePercent);
+    }
+
+    [Fact]
+    public void AnArmouredVictimTakesTheContactWithoutBecomingAPassenger()
+    {
+        var def = Definition(); var slots = def.CookedSlots!.ToArray();
+        slots[0] = new CookedSlotDefinition(0, "ground.1", false, "Armour fixture", "", "",
+            AuthoringAbilityBehavior.MeleeCombo, AuthoringAimMode.None, 0, false, false,
+            new CookedTimeline(new[] { new CookedStage(120, 0, 0, 0, 0, Array.Empty<string>(),
+                new CookedTimelineOperation[] { new CookedArmorWindowOperation(0, AuthoringUnit.Ticks, 120) }) }));
+        var sim = new ServerSimulation(TestHelpers.TestArena());
+        sim.RegisterEntity(1, def, TestHelpers.PlayerState(100, 100) with { PY = TestHelpers.GroundPY(def) });
+        sim.RegisterEntity(2, def with { CookedSlots = slots }, TestHelpers.PlayerState(100, 104) with { PY = TestHelpers.GroundPY(def) });
+        sim.Tick(new Dictionary<ulong, InputState> { [1] = new() { ActiveSlot = AbilitySlots.R }, [2] = new() { ActiveSlot = AbilitySlots.Slot1 } });
+        Assert.True(sim.GetActiveAbility(2)?.HasArmor == true, $"initial target {sim.GetState(2).State}, slot {sim.GetState(2).AttackSlot}");
+        for (int i = 0; i < 80; i++)
         {
-            new CollisionTriangle { AX = -10f, AY = 0f, AZ = -10f, BX = -10f, BY = 0f, BZ = 10f, CX = 10f, CY = 0f, CZ = -10f },
-            new CollisionTriangle { AX = -10f, AY = 0f, AZ = 10f, BX = 10f, BY = 0f, BZ = 10f, CX = 10f, CY = 0f, CZ = -10f },
-            new CollisionTriangle { AX = -10f, AY = 0f, AZ = wallZ, BX = -10f, BY = 3f, BZ = wallZ, CX = 10f, CY = 0f, CZ = wallZ },
-            new CollisionTriangle { AX = 10f, AY = 3f, AZ = wallZ, BX = 10f, BY = 0f, BZ = wallZ, CX = -10f, CY = 3f, CZ = wallZ },
-        };
-        arena.MinX = arena.MinZ = -10f;
-        arena.MaxX = arena.MaxZ = 10f;
-        arena.SpatialGrid = ArenaCollision.BuildSpatialGrid(in arena);
-        return arena;
+            bool armour = sim.GetActiveAbility(2)?.HasArmor == true;
+            Step(sim);
+            Assert.True(sim.GetState(2).State != ActionState.CommandGrabbed,
+                $"tick {i}, armour before {armour}, target move {sim.GetState(2).AttackSlot}, damage {sim.GetState(2).DamagePercent}");
+        }
+        Assert.Equal((ushort)3, sim.GetState(2).DamagePercent);
+        Assert.Equal(0UL, sim.GetState(1).InteractionId);
     }
+
+    [Fact]
+    public void AGrabOnTheRiderFreesThePassengerWithoutFlingingIt()
+    {
+        var sim = Duel(); Step(sim, AbilitySlots.R);
+        for (int i = 0; i < 50 && sim.GetState(2).State != ActionState.CommandGrabbed; i++) Step(sim);
+        var owner = sim.GetState(1);
+        var def = Definition() with { CaptureGeometry = new CookedCaptureGeometry(1.5f, .8f, 1.2f, .6f,
+            new CaptureAnchor(0, .6f, .2f), new CaptureAnchor(0, .6f, .65f)) };
+        sim.RegisterEntity(3, def, TestHelpers.PlayerState(owner.PX + 1.2f, owner.PZ + .3f) with {
+            PY = TestHelpers.GroundPY(def), State = ActionState.GrabAttempt, InteractionPhase = (byte)DefenseInteractionPhase.Attempt,
+            StateTicks = DefenseConfig.GrabWhiffRecoveryTicks + DefenseConfig.GrabActiveTicks,
+            FacingYaw = -MathF.PI * .5f, CapturedYaw = -9000 });
+        Step(sim);
+        Assert.Equal(ActionState.Grabbed, sim.GetState(1).State);
+        Assert.Equal(3UL, sim.GetState(1).InteractionPartnerId);
+        Assert.Equal(0UL, sim.GetState(2).InteractionId);
+        Assert.Equal((ushort)3, sim.GetState(2).DamagePercent);
+        Assert.NotEqual(ActionState.CommandGrabbed, sim.GetState(2).State);
+    }
+
 }

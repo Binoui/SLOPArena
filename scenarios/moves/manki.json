@@ -487,6 +487,48 @@
           "at": "cue:presentation.manki.kamikaze.explosion+18"
         }
       ]
+    },
+    {
+      "id": "ground.4",
+      "slot": "ground.4",
+      "label": "Head Slam",
+      "dummy": {
+        "distance": 1
+      },
+      "input": [
+        {
+          "ticks": 8
+        },
+        {
+          "ticks": 1,
+          "slot": "4"
+        },
+        {
+          "ticks": 71
+        }
+      ],
+      "phases": [
+        {
+          "name": "wind-up",
+          "at": "start+12"
+        },
+        {
+          "name": "ram",
+          "at": "hit"
+        },
+        {
+          "name": "fold",
+          "at": "start+19"
+        },
+        {
+          "name": "recovery",
+          "at": "start+40"
+        },
+        {
+          "name": "idle",
+          "at": "end"
+        }
+      ]
     }
   ],
   "size": "1280x720"

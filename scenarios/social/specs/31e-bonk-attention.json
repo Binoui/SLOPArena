@@ -1,0 +1,42 @@
+{
+ "stage": "splash_deck",
+ "notes": "31e: Sir Bonk alone front-on in close-up, idle at attention, for the closing question plate",
+ "capture": {
+  "from": 8,
+  "to": 140,
+  "step": 1,
+  "width": 1080,
+  "height": 1920,
+  "quality": 92
+ },
+ "fighters": [
+  {
+   "id": 1,
+   "package": "bonk",
+   "feet": [
+    0,
+    0,
+    4
+   ],
+   "yaw": 180,
+   "input": []
+  }
+ ],
+ "cameras": [
+  {
+   "name": "f",
+   "pos": [
+    0.6,
+    1.3,
+    -2.0
+   ],
+   "look": [
+    0,
+    1.45,
+    4
+   ],
+   "fov": 40,
+   "far": 4000
+  }
+ ]
+}

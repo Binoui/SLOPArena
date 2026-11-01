@@ -310,6 +310,61 @@ public sealed class ReturningProjectileTests
         }
     }
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void ReturnHitOverridesValuesRecordsChallengeAndLetsABusyOwnerCatch(bool shield)
+    {
+        var def = CreateDefinition();
+        var slots = def.CookedSlots!.ToArray();
+        var lid = Lid(0f) with { ChallengeTicks = 120, Return = Lid().Return! with
+            { Hit = new ProjectileLegHit(5, 0, 20, 0, 1, 48) } };
+        slots[3] = new CookedSlotDefinition(3, "ground.A", false, "Lid", "", "", AuthoringAbilityBehavior.MeleeCombo, AuthoringAimMode.None, 0, false, false, new CookedTimeline(new[] {
+            new CookedStage(16, 0, 0, 0, 0, Array.Empty<string>(), new CookedTimelineOperation[] {
+                new CookedSpawnProjectileOperation(2, AuthoringUnit.Meters, lid) }) }));
+        def = def with { CookedSlots = slots };
+        var sim = new ServerSimulation(TestHelpers.TestArena());
+        sim.RegisterEntity(1, def, TestHelpers.PlayerState() with { PY = TestHelpers.GroundPY(def) });
+        RegisterTarget(sim, 0, 3, shield);
+        Throw(sim, shield);
+        bool returnHit = false, caught = false;
+        for (int t = 0; t < 160; t++)
+        {
+            Tick(sim, t == 18 ? new InputState { ActiveSlot = AbilitySlots.Slot1 } : default, shield);
+            foreach (var h in sim.LastTickHits.Where(h => h.TargetEntityId == 2 && h.ReturnPhase == 2 && !h.Blocked))
+            {
+                returnHit = true;
+                Assert.Equal(5, h.Damage);
+                Assert.Equal((ushort)48, h.FixedHitstunTicks);
+                Assert.Equal((ulong)2, sim.GetState(1).Challenge.TargetId);
+            }
+            bool catchNow = sim.GetPresentationEvents(clear: true).Any(e => e.Source == PresentationEventSource.ProjectileCatch);
+            if (catchNow && !shield) Assert.Equal(AbilitySlots.Slot1, sim.GetState(1).AttackSlot);
+            caught |= catchNow;
+        }
+        Assert.Equal(!shield, returnHit);
+        Assert.Equal(!shield, caught);
+        if (shield) Assert.Equal(default, sim.GetState(1).Challenge);
+        else Assert.Equal((ushort)0, sim.GetState(1).DamagePercent);
+    }
+
+    [Fact]
+    public void TurningClearsOutboundHomingAndSwapsTheReturnHitValues()
+    {
+        var resolver = new SpellResolver();
+        resolver.Spawn(new Hitbox { X = 5, Y = 5, Z = 5, VZ = 15, Radius = .75f, DurationTicks = 200,
+            OwnerId = 1, ActivationId = 2, HomingTargetEntityId = 3, Damage = 9, StunTicks = 12,
+            Return = new ProjectileReturn { OutboundTicks = 34, ReturnSpeed = 16, ReturnAcceleration = 80,
+                Hit = new ProjectileLegHit(5, 0, 20, 0, 1, 48) } });
+        resolver.TurnReturningProjectile(1, 2, 3);
+        var lid = Assert.Single(resolver.GetActiveHitboxes());
+        Assert.True(lid.ReturnLeg);
+        Assert.Equal(0UL, lid.HomingTargetEntityId);
+        Assert.Equal(5, lid.Damage); Assert.Equal(20, lid.BaseKnockback);
+        Assert.Equal((ushort)48, lid.FixedHitstunTicks);
+        Assert.Equal(AuthoringKnockbackDirection.TowardOwner, lid.KnockbackDirection);
+    }
+
     private static IEnumerable<Hitbox> Lids(ServerSimulation sim)
         => sim.Resolver.GetActiveHitboxes().Where(h => h.Return.HasValue);
 

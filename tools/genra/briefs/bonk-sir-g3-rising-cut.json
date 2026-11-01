@@ -1,0 +1,300 @@
+{
+  "name": "bonk-sir-g3-rising-cut",
+  "purpose": "attack",
+  "notes": "Sir Bonk ground.3 (anim.bonk.g3, the player's normal 2), 2026-11-01. Replaces Sunrise: the owner found its plank path confusing ('the path taken by the sword itself is bad'). From the gameplay camera Sunrise's biggest visible swing was its wind-up, down to his right, and its real hit rose in front of him and fell behind his back, hidden by his body (tmp/bonk-paths). The owner picked path A, the Rising Cut (artifacts/sir-bonk-normals-20261101/rising-cut-path.png). Authored at twice the game length (120 ticks for a 60-tick move: hit 13-19, free 38). First brief on the v2 body (pack bonk-unity-sirv2rise, frozen copy of the 2026-11-01 16:10 v2 snapshot). Keys approved by the owner 2026-11-01 (\"go for it\"): run 20261101-180227 (draw re-keyed tip-down in front).",
+  "rigpack": "artifacts/genra-rigpacks/bonk-unity-sirv2rise",
+  "character": "Sir Bonk v2 (a Humanoid body with Mixamo names, index-finger chains only besides the thumbs; a 3x4 cape chain Cape_L/C/R1..4 under Spine2 that a spring drives in the game, so leave it at rest; a 1.42 m plank greatsword fixed to the right hand as joint Weapon0, with bladeHilt at the crossguard and bladeEnd at the tip; a pot-lid pauldron fixed to the left upper arm as joint Weapon1). The right pauldron, a big round pot lid, is part of the body mesh and sits out over the right shoulder joint: keep the right forearm and hand out of it.",
+  "description": "Sir Bonk's normal 2, the Rising Cut: one fast one-handed cut that rises from low on his left, across the front of him, to high over his right shoulder. It is the mirror of his normal 1, the Squire's Cut, which cuts down from high on his right to low on his left. Together they read as one knight's pair: 1 cuts down, 2 cuts up. It catches people in front of him and people jumping at him.\n\nWhy this move exists. His old normal 2 (Sunrise) swung the plank down to his right in the wind-up, then up in front of him and over his head to behind him. From the game camera, which sits behind him, the biggest swing the player saw was the wind-up, and the real hit happened behind his own back. Image 3 shows the new path drawn from that camera over his idle: the shaded fan is the hit, the arrow is the tip. That path is the whole point of this brief.\n\nWho he is. Sir Bonk is a goofy, good-hearted wannabe knight who knighted himself (image 1): a blue mop bucket as a helm with a broom crest, pot-lid pauldrons, a barrel-stave chest plate, a tabard with a painted crown, a cape, big boots and a plank greatsword. He takes himself completely seriously. The owner wants normals clean: no gags; the energy comes from his body.\n\nHis idle, where this move starts and ends (image 2; character frame, from his hips): feet square and shoulder-wide, toes at up = -1.03 (the floor is at up = -1.085). He holds the plank upright in front of his right shoulder like a knight at attention: the right hand about 0.35 m to his right, 0.26 m ahead and 0.40 m above the hips; the hilt 0.80 m and the tip 2.18 m above the hips, the blade nearly vertical. The left hand hangs by his left hip.\n\nHow the game plays it. This clip is authored at twice the game's length: 120 ticks here play in the game's 60. The plank itself is the hitbox from tick 26 to tick 38 here (game 13-19): whoever it sweeps through gets hit. So the plank must be crossing in front of him for all of those ticks, and the fast part of the swing must be inside them, not before: the pose before the cut is held loaded on tick 22-24 and the cut starts moving at tick 24-26. From tick 76 (game 38) the player can act again. Ticks 108-120 are his idle pose exactly (`b.exit_pose`).\n\nThe path, seen from behind him (the `gameplay` view; image 3). It must read as one sweep across the screen from low left to high right. Nothing goes behind him, and nothing swings toward or away from that camera. The wind-up is short and small: a pose that tells you what is coming, not a second swing.\n\nThe beats:\n- Ticks 0-22, the draw: he brings the plank down across his body and cocks it low on his left, like drawing a sword from a scabbard on his left hip. The right hand travels to just outside his left hip; the blade points down and forward to his left, the tip 10-40 cm above the floor, ahead of or beside his left foot, never behind him. His hips turn about 20-30 degrees and his chest about 40-50 degrees to his left, his knees bend (hips 6-12 cm lower), weight on the left leg. The left arm swings back out of the way. Eyes on the target ahead. Hold this loaded pose briefly at ticks 22-24 (still, but alive: weight settling).\n- Ticks 24-34, the cut: fast. His hips whip round to the right first, the chest follows, the right foot steps 25-40 cm forward, and the right arm drives the plank up across his front. At tick 30 the plank crosses straight in front of him, pointing forward at chest height, still rising. By tick 34 it is high on his right, above head height.\n- Ticks 34-40, the finish: the arm extends up and out to his right; at tick 40 the blade points up and out over his right shoulder, about 60-75 degrees above level, the tip well above his helmet and not behind him. He rises onto the ball of the right foot with the reach. The left arm counterbalances out to his left.\n- Ticks 40-76, home: the plank comes straight down into his attention hold in front of his right shoulder and the right foot steps back; by tick 76 he is in his stance. A normal's recovery is plain: the shortest calm path, no flourish.\n- Ticks 76-108: he settles into the idle with a little give. Ticks 108-120 hold the idle pose exactly.\n\nThe left toes stay where they are: the heel may lift and the foot may turn on its ball, but it does not slide. The right foot steps out and back. The plank stays clear of his bucket, crest, pauldrons, cape and legs, and its tip never goes into the floor. The fighter does not move; the hips may shift.\n\nFast motion belongs to the cut (ticks 22-42). Use the toolkit's flow functions (flow, Clip.overlap) for follow-through: the head trails the chest, the left arm trails the swing. Do not animate the cape joints (Cape_L/C/R1..4): leave them at their rest rotation. No props other than the plank and the left pauldron. Keep each hand in line with its forearm (wrists under 45 degrees).\n\nBetween the approved keys (the owner approved keys run 20261101-180227): in the draw, ticks 0-12, the blade tips forward and down in front of his right side, the tip staying on his right of the centre line, so from the camera behind him it drops away rather than swinging out to his left. Ticks 12-22 carry it low across to his left hip in one steady move: the tip stays between 10 cm above the floor and hip height and does not rise and fall again. The handle may brush the tabard at tick 22 but must not pass through the torso.",
+  "references": {
+    "idle": "references/idle.usda",
+    "run": "references/run.usda"
+  },
+  "entry": {
+    "reference": "idle",
+    "tick": 0
+  },
+  "exit": {
+    "from_tick": 108
+  },
+  "clock": {
+    "duration_ticks": 120,
+    "contact_tick": 26,
+    "active": [
+      26,
+      38
+    ],
+    "iasa_tick": 76
+  },
+  "timing": {
+    "fixed": [
+      "120 ticks authored for a 60-tick move: the game plays this clip at twice its speed",
+      "the plank is the hitbox from tick 26 to tick 38 (game 13-19): the cut crosses in front of him in those ticks",
+      "the player can act from tick 76 (game 38): the cut and the return to the attention hold read by then",
+      "tick 0 and ticks 108-120 are his idle pose exactly"
+    ],
+    "adjustable": [
+      "the owner may change the game clock later; keep the draw, the cut and the return each one clean motion"
+    ]
+  },
+  "fast_windows": [
+    [
+      22,
+      42
+    ]
+  ],
+  "strike": [
+    "bladeEnd"
+  ],
+  "views": [
+    "gameplay",
+    "three-quarter-right",
+    "front-three-quarter-right",
+    "profile"
+  ],
+  "images": [
+    "../../sir-bonk-idle-v2-20261028/sir-bonk-v2-run-carry.png",
+    "images/idle-entry.png",
+    "../../sir-bonk-normals-20261101/rising-cut-path.png"
+  ],
+  "image_notes": "1: Sir Bonk v2 carrying his plank on the run. 2: his idle, the entry and exit pose, from profile, front and three-quarter right. 3: the path the owner picked, drawn from the game camera behind him over his stance: the shaded fan is where the plank hits, from low on his left (the cocked pose) up across the front to high over his right shoulder; the arrow is the tip.",
+  "keys": [
+    0,
+    12,
+    22,
+    26,
+    30,
+    34,
+    40,
+    56,
+    76,
+    120
+  ],
+  "review_ticks": [
+    0,
+    12,
+    22,
+    24,
+    26,
+    28,
+    30,
+    32,
+    34,
+    38,
+    40,
+    56,
+    76,
+    108,
+    120
+  ],
+  "targets": [
+    {
+      "name": "draw: tip below the chest, no swing over his head at tick 18 (m)",
+      "kind": "char",
+      "a": "bladeEnd",
+      "axis": "up",
+      "tick": 18,
+      "max": 0.3
+    },
+    {
+      "name": "draw: tip below the chest, no swing over his head at tick 14 (m)",
+      "kind": "char",
+      "a": "bladeEnd",
+      "axis": "up",
+      "tick": 14,
+      "max": 0.3
+    },
+    {
+      "name": "draw: tip below the chest, no swing over his head at tick 10 (m)",
+      "kind": "char",
+      "a": "bladeEnd",
+      "axis": "up",
+      "tick": 10,
+      "max": 0.3
+    },
+    {
+      "name": "draw: tip on his left at tick 22 (m)",
+      "kind": "char",
+      "a": "bladeEnd",
+      "axis": "right",
+      "tick": 22,
+      "max": -0.45
+    },
+    {
+      "name": "draw: tip low but above the floor at tick 22 (m)",
+      "kind": "char",
+      "a": "bladeEnd",
+      "axis": "up",
+      "tick": 22,
+      "min": -0.99,
+      "max": -0.55
+    },
+    {
+      "name": "draw: tip not behind him at tick 22 (m)",
+      "kind": "ahead",
+      "a": "bladeEnd",
+      "b": "Hips",
+      "tick": 22,
+      "min": 0.0
+    },
+    {
+      "name": "draw: right hand at his left hip at tick 22 (m)",
+      "kind": "char",
+      "a": "RightHand",
+      "axis": "right",
+      "tick": 22,
+      "max": 0.05
+    },
+    {
+      "name": "draw: chest turned to his left, left shoulder behind the right at tick 22 (m)",
+      "kind": "ahead",
+      "a": "LeftArm",
+      "b": "RightArm",
+      "tick": 22,
+      "max": -0.1
+    },
+    {
+      "name": "draw: knees bent, hips lower at tick 22 (m)",
+      "kind": "char",
+      "a": "Hips",
+      "axis": "up",
+      "tick": 22,
+      "min": -0.14,
+      "max": -0.05
+    },
+    {
+      "name": "cut: tip well ahead of the hips at tick 30 (m)",
+      "kind": "ahead",
+      "a": "bladeEnd",
+      "b": "Hips",
+      "tick": 30,
+      "min": 1.0
+    },
+    {
+      "name": "cut: tip on his centre line at tick 30 (m)",
+      "kind": "char",
+      "a": "bladeEnd",
+      "axis": "right",
+      "tick": 30,
+      "min": -0.3,
+      "max": 0.3
+    },
+    {
+      "name": "cut: tip between waist and head height at tick 30 (m)",
+      "kind": "char",
+      "a": "bladeEnd",
+      "axis": "up",
+      "tick": 30,
+      "min": -0.3,
+      "max": 0.8
+    },
+    {
+      "name": "step: right foot forward at tick 30 (m)",
+      "kind": "char",
+      "a": "RightFoot",
+      "axis": "front",
+      "tick": 30,
+      "min": 0.22
+    },
+    {
+      "name": "finish: tip high above the hilt at tick 40 (m)",
+      "kind": "below",
+      "a": "bladeHilt",
+      "b": "bladeEnd",
+      "tick": 40,
+      "min": 0.9
+    },
+    {
+      "name": "finish: tip on his right at tick 40 (m)",
+      "kind": "char",
+      "a": "bladeEnd",
+      "axis": "right",
+      "tick": 40,
+      "min": 0.3
+    },
+    {
+      "name": "finish: tip not behind him at tick 40 (m)",
+      "kind": "ahead",
+      "a": "bladeEnd",
+      "b": "Hips",
+      "tick": 40,
+      "min": -0.15
+    },
+    {
+      "name": "home: plank upright again at tick 76 (m)",
+      "kind": "below",
+      "a": "bladeHilt",
+      "b": "bladeEnd",
+      "tick": 76,
+      "min": 1.0
+    },
+    {
+      "name": "home: right foot back at tick 76 (m)",
+      "kind": "char",
+      "a": "RightFoot",
+      "axis": "front",
+      "tick": 76,
+      "max": 0.12
+    },
+    {
+      "name": "left toes stay put, front to back (m)",
+      "kind": "range",
+      "a": "LeftToeBase",
+      "axis": "front",
+      "window": [
+        0,
+        120
+      ],
+      "max": 0.06
+    },
+    {
+      "name": "left toes stay put, side to side (m)",
+      "kind": "range",
+      "a": "LeftToeBase",
+      "axis": "right",
+      "window": [
+        0,
+        120
+      ],
+      "max": 0.06
+    },
+    {
+      "kind": "arc",
+      "window": [
+        26,
+        38
+      ],
+      "radius": 0.5,
+      "report": "artifacts/hit-reliability/bonk.json",
+      "name": "arc: FightGuy positions ahead the plank touches, ticks 26-38",
+      "defender": "FightGuy",
+      "side": "ahead",
+      "min": 100
+    },
+    {
+      "kind": "arc",
+      "window": [
+        26,
+        38
+      ],
+      "radius": 0.5,
+      "report": "artifacts/hit-reliability/bonk.json",
+      "name": "arc: FightGuy positions behind him (keep near zero)",
+      "defender": "FightGuy",
+      "side": "behind",
+      "max": 10
+    },
+    {
+      "kind": "arc",
+      "window": [
+        26,
+        38
+      ],
+      "radius": 0.5,
+      "report": "artifacts/hit-reliability/bonk.json",
+      "name": "arc: Manki positions ahead the plank touches",
+      "defender": "Manki",
+      "side": "ahead",
+      "min": 90
+    }
+  ]
+}

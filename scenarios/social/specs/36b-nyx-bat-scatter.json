@@ -1,0 +1,88 @@
+{
+ "stage": "splash_deck",
+ "notes": "36b Wibou runs in and slashes, Nyx bursts into bats over him and re-forms behind him",
+ "capture": {
+  "from": 14,
+  "to": 140,
+  "step": 1,
+  "width": 1920,
+  "height": 1080,
+  "quality": 92
+ },
+ "fighters": [
+  {
+   "id": 1,
+   "package": "nyx",
+   "feet": [
+    10,
+    0,
+    5
+   ],
+   "yaw": 270,
+   "target": 2,
+   "input": [
+    {
+     "at": 20,
+     "press": "E"
+    },
+    {
+     "from": 20,
+     "to": 21,
+     "move": 270
+    }
+   ]
+  },
+  {
+   "id": 2,
+   "package": "wibou",
+   "feet": [
+    4.5,
+    0,
+    5
+   ],
+   "yaw": 90,
+   "damage": 30,
+   "target": 1,
+   "input": [
+    {
+     "from": 2,
+     "to": 18,
+     "move": 90
+    },
+    {
+     "at": 19,
+     "press": "1"
+    },
+    {
+     "at": 21,
+     "press": "1"
+    }
+   ]
+  }
+ ],
+ "cameras": [
+  {
+   "name": "m",
+   "pos": [
+    10,
+    3.2,
+    17
+   ],
+   "look": [
+    10,
+    2,
+    5
+   ],
+   "follow": 1,
+   "lookOffset": [
+    0,
+    0.4,
+    0
+   ],
+   "ease": 0.2,
+   "move": true,
+   "fov": 40,
+   "far": 4000
+  }
+ ]
+}

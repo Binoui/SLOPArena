@@ -440,7 +440,7 @@ internal static partial class Program
 
     private static IEnumerable<SlotAddress> CanonicalAerialSlots()
     {
-        for (int i = 1; i <= 4; i++)
+        foreach (int i in new[] { 1, 3, 4 })
             if (!CanonicalSlotProjection.TryGet(true, i.ToString(CultureInfo.InvariantCulture), out var slot))
                 throw new InvalidDataException($"canonical air.{i} projection is unavailable");
             else yield return slot;

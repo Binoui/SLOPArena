@@ -364,11 +364,12 @@ It does not inject semantic player input. The file has this shape:
 {
   "frames": 300,
   "events": [
-    { "frame": 15, "down": ["LeftShoulder"] },
+    { "frame": 15, "rightStick": [0, -1] },
+    { "frame": 20, "rightStick": [0, 0] },
     { "frame": 30, "down": ["South"] },
     { "frame": 60, "leftStick": [0.5, 0] },
     { "frame": 72, "leftStick": [0, 0] },
-    { "frame": 100, "up": ["South", "LeftShoulder"] }
+    { "frame": 100, "up": ["South"] }
   ]
 }
 ```
@@ -429,9 +430,13 @@ rejected inputs without advancing Training.
 Training `states.jsonl` receipts include the actual target input, action state,
 velocity, damage, accepted hits, and projectile velocity and homing target.
 
-For the default ADR-0042 bindings, Q uses `LeftShoulder` + `South`, and R uses
-`LeftShoulder` + `West`. Press the modifier before the face button. User rebindings
-still apply. The example holds Q, nudges the ground cursor, then releases it.
+By default a special is a right-stick flick (ADR-0042, amended 2026-10-28): down is Q,
+left R, up E and right F. It fires when the stick passes 60% and stays held until the stick
+drops below 35%, so return `rightStick` to `[0, 0]` before the next special. `LeftShoulder`
+alone grabs, so LB + face-button chords grab instead of casting. The Settings → Controls →
+Right Stick: Camera fallback restores the chords (Q `LeftShoulder` + `South`, R
+`LeftShoulder` + `West`). User rebindings still apply. The example flicks Q, jumps, then
+walks right.
 
 Keep setup, capture, and pad playback in your own gateway batch. Its `restore`
 commands must include `sloparena.input.pad-stop`, `sloparena.training.target-clear`,

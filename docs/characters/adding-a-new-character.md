@@ -121,6 +121,15 @@ The defense presentation roles are `presentation.shield`, `grab`, `grabbed`,
 role has a semantic animation ID, the package cooker requires its normal asset-catalog
 binding and deterministic pose track; do not map a role to a generic fallback clip.
 
+The optional `presentation.wallJump` role binds a dedicated wall-jump clip. An absent,
+empty, or unresolved client binding falls back to `presentation.jump`. It follows
+`slide` through source and cooked presentation data. A bound clip requires the normal
+asset-catalog binding and pose track because package admission requires a track for
+every animation binding. Simulation hurtboxes still use the existing jump pose;
+`wallJump` does not enter the Arcade gameplay fingerprint. Like `flying` and
+`mayhemLaugh`, this optional presentation role does not change the cooked schema,
+runtime API minimum, or simulation protocol.
+
 ## 3. Author the canonical grid
 
 Persist these fourteen slot IDs, in ground-then-air order:

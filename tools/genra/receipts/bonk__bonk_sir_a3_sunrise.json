@@ -1,0 +1,406 @@
+{
+  "schema_version": 1,
+  "move": "bonk-sir-a3-rising-cut",
+  "target": "Assets/CharacterPackages/bonk/Animations/bonk_sir_a3_sunrise.anim",
+  "source_asset": "Assets/Art/Experiments/GenRA/bonk/bonk_sir_a3_rising_cut_game48_20261101.anim",
+  "source_run": "artifacts/genra-runs/20261101-200615-bonk-sir-a3-rising-cut",
+  "revise_parent": null,
+  "keys_run": "artifacts/genra-runs/20261101-181151-bonk-sir-a3-rising-cut-keys",
+  "transforms": {
+    "ticks": null,
+    "retime": [
+      [
+        0,
+        0
+      ],
+      [
+        80,
+        48
+      ]
+    ],
+    "alignOrigin": true,
+    "loopTime": false,
+    "grounding": null
+  },
+  "final_check": {
+    "status": "PASS",
+    "scope": "export phase",
+    "flow_metrics": {},
+    "report": {
+      "passed": true,
+      "fastWindows": [
+        [
+          12,
+          24
+        ]
+      ],
+      "failures": [],
+      "maxDegreesPerTick": 35.5
+    }
+  },
+  "clip_sha256": "73a0d02eba342c2d4e1c0b161e6534300c761dc13c7bfde80cbf558961cc65a5",
+  "runs": [
+    {
+      "run": "artifacts/genra-runs/20261101-181151-bonk-sir-a3-rising-cut-keys",
+      "stage": "keys",
+      "cost_usd": null,
+      "config_recorded": true,
+      "flow_clean": null,
+      "check": {
+        "mode": "full",
+        "skipped": [],
+        "passed": true,
+        "failures": [],
+        "warnings": [
+          {
+            "check": "clearance",
+            "message": "Weapon-Torso within 0.1 cm at tick 24 (touching or intersecting)",
+            "pair": "Weapon-Torso",
+            "tick": 24
+          }
+        ],
+        "metrics": {
+          "entryErrorMetres": 7.501121251585403e-07,
+          "exitErrorMetres": 7.501121251585403e-07,
+          "hipTravelMetres": 0.0,
+          "humanoid digit off-axis (deg)": 1.1493588703022688e-05,
+          "humanoid limits exceeded by (deg)": 1.597860352469985e-05,
+          "maxDegreesPerTick": 0.0,
+          "max roll about a limb bone (deg/tick)": 0.0,
+          "closestMetres": {
+            "LeftHand-Head": [
+              0.491,
+              0
+            ],
+            "RightHand-Head": [
+              0.1753,
+              0
+            ],
+            "LeftForeArm-Head": [
+              0.3847,
+              0
+            ],
+            "RightForeArm-Head": [
+              0.1576,
+              0
+            ],
+            "LeftHand-Torso": [
+              0.3045,
+              20
+            ],
+            "RightHand-Torso": [
+              0.0601,
+              0
+            ],
+            "LeftHand-RightHand": [
+              0.6293,
+              20
+            ],
+            "LeftHand-LeftLeg": [
+              0.4398,
+              28
+            ],
+            "LeftHand-RightLeg": [
+              0.6588,
+              28
+            ],
+            "RightHand-LeftLeg": [
+              0.1291,
+              20
+            ],
+            "RightHand-RightLeg": [
+              0.1502,
+              20
+            ],
+            "LeftLeg-RightLeg": [
+              0.0011,
+              28
+            ],
+            "LeftFoot-RightFoot": [
+              0.0104,
+              20
+            ],
+            "LeftFoot-Torso": [
+              0.3085,
+              20
+            ],
+            "RightFoot-Torso": [
+              0.0514,
+              20
+            ],
+            "LeftHand-LeftFoot": [
+              0.7906,
+              20
+            ],
+            "RightHand-RightFoot": [
+              0.4541,
+              20
+            ],
+            "Weapon-Head": [
+              0.0096,
+              0
+            ],
+            "Weapon-Torso": [
+              0.0008,
+              24
+            ],
+            "Weapon-LeftLeg": [
+              0.1206,
+              20
+            ],
+            "Weapon-RightLeg": [
+              0.0968,
+              20
+            ],
+            "Weapon-LeftHand": [
+              0.5302,
+              24
+            ],
+            "LeftForeArm-Prop": [
+              0.0142,
+              20
+            ],
+            "RightForeArm-Prop": [
+              0.4664,
+              0
+            ],
+            "LeftHand-Prop": [
+              0.1746,
+              20
+            ],
+            "RightHand-Prop": [
+              0.499,
+              0
+            ],
+            "Head-Prop": [
+              0.054,
+              0
+            ]
+          },
+          "left wrist bend max (deg)": 20.0989855517627,
+          "right wrist bend max (deg)": 39.44335929511186,
+          "draw: tip below the chest, no swing over his head at tick 10 (m)": -0.8259949890144471,
+          "draw: tip on his left at tick 20 (m)": -1.0150372573083077,
+          "draw: tip below his boots at tick 20 (m)": -1.2026203256984522,
+          "draw: tip not behind him at tick 20 (m)": 1.4779790046832217,
+          "draw: chest turned to his left at tick 20 (m)": -0.30005852001853917,
+          "cut: tip well ahead of the hips at tick 28 (m)": 2.2564284169433737,
+          "cut: tip on his centre line at tick 28 (m)": -0.208224917843852,
+          "cut: tip between hips and head height at tick 28 (m)": 0.3629720140317181,
+          "finish: tip high above the hilt at tick 38 (m)": 1.286849751177628,
+          "finish: tip on his right at tick 38 (m)": 1.3468500880484473,
+          "finish: tip not behind him at tick 38 (m)": 0.5976528859303899
+        },
+        "stage": "keys",
+        "keyTicks": [
+          0,
+          10,
+          20,
+          24,
+          28,
+          32,
+          38,
+          56,
+          80
+        ],
+        "transitionRisks": [],
+        "checkpointOnly": false
+      }
+    },
+    {
+      "run": "artifacts/genra-runs/20261101-200615-bonk-sir-a3-rising-cut",
+      "stage": "full",
+      "cost_usd": 0.27718600000000004,
+      "config_recorded": true,
+      "flow_clean": false,
+      "check": {
+        "mode": "full",
+        "skipped": [],
+        "passed": true,
+        "failures": [],
+        "warnings": [
+          {
+            "check": "clearance",
+            "message": "LeftFoot-RightFoot within 0.7 cm at tick 16 (touching or intersecting)",
+            "pair": "LeftFoot-RightFoot",
+            "tick": 16
+          },
+          {
+            "check": "clearance",
+            "message": "Weapon-Torso within 0.0 cm at tick 14 (touching or intersecting)",
+            "pair": "Weapon-Torso",
+            "tick": 14
+          },
+          {
+            "check": "clearance",
+            "message": "Weapon-RightLeg within 0.3 cm at tick 4 (touching or intersecting)",
+            "pair": "Weapon-RightLeg",
+            "tick": 4
+          },
+          {
+            "check": "flow",
+            "message": "frozen body: 30% of the joint-ticks barely move (hand-made attacks at most 12%); make holds moving holds (key the end of a hold 2-5 degrees on from its start, never the same pose twice) and let the settle give",
+            "window": [
+              3,
+              55
+            ]
+          }
+        ],
+        "metrics": {
+          "entryErrorMetres": 7.501121251585403e-07,
+          "exitErrorMetres": 7.501121251585403e-07,
+          "hipTravelMetres": 0.0,
+          "humanoid digit off-axis (deg)": 1.1493588703022688e-05,
+          "humanoid limits exceeded by (deg)": 0.006969873579773599,
+          "maxDegreesPerTick": 24.445033447625732,
+          "max roll about a limb bone (deg/tick)": 21.346165476089936,
+          "closestMetres": {
+            "LeftHand-Head": [
+              0.491,
+              0
+            ],
+            "RightHand-Head": [
+              0.1619,
+              2
+            ],
+            "LeftForeArm-Head": [
+              0.3847,
+              0
+            ],
+            "RightForeArm-Head": [
+              0.1576,
+              0
+            ],
+            "LeftHand-Torso": [
+              0.2967,
+              26
+            ],
+            "RightHand-Torso": [
+              0.0502,
+              4
+            ],
+            "LeftHand-RightHand": [
+              0.614,
+              22
+            ],
+            "LeftHand-LeftLeg": [
+              0.4225,
+              26
+            ],
+            "LeftHand-RightLeg": [
+              0.6512,
+              26
+            ],
+            "RightHand-LeftLeg": [
+              0.1291,
+              20
+            ],
+            "RightHand-RightLeg": [
+              0.1247,
+              18
+            ],
+            "LeftLeg-RightLeg": [
+              0.0011,
+              40
+            ],
+            "LeftFoot-RightFoot": [
+              0.0067,
+              16
+            ],
+            "LeftFoot-Torso": [
+              0.3085,
+              20
+            ],
+            "RightFoot-Torso": [
+              0.0514,
+              20
+            ],
+            "LeftHand-LeftFoot": [
+              0.7649,
+              26
+            ],
+            "RightHand-RightFoot": [
+              0.4541,
+              20
+            ],
+            "Weapon-Head": [
+              0.0062,
+              54
+            ],
+            "Weapon-Torso": [
+              0.0004,
+              14
+            ],
+            "Weapon-LeftLeg": [
+              0.0735,
+              4
+            ],
+            "Weapon-RightLeg": [
+              0.0031,
+              4
+            ],
+            "Weapon-LeftHand": [
+              0.5302,
+              24
+            ],
+            "LeftForeArm-Prop": [
+              0.0142,
+              20
+            ],
+            "RightForeArm-Prop": [
+              0.461,
+              2
+            ],
+            "LeftHand-Prop": [
+              0.1746,
+              4
+            ],
+            "RightHand-Prop": [
+              0.4649,
+              4
+            ],
+            "Head-Prop": [
+              0.054,
+              0
+            ]
+          },
+          "approved keys moved (m)": 1.9120291096941358e-10,
+          "face visible from the front (min)": 0.8418803418803419,
+          "left wrist bend max (deg)": 20.0989855517627,
+          "right wrist bend max (deg)": 42.608402663579206,
+          "life: torso swing (deg)": 21.492329422980987,
+          "flow: stops per joint per second": 0.9622641509433962,
+          "flow: most of the body stopping together (share)": 0.15,
+          "flow: frozen joint-ticks (share)": 0.30283018867924527,
+          "flow: child trails parent (ticks)": 0.1,
+          "draw: tip below the chest, no swing over his head at tick 10 (m)": -0.8259949890144471,
+          "draw: tip on his left at tick 20 (m)": -1.0150372573083077,
+          "draw: tip below his boots at tick 20 (m)": -1.2026203256984522,
+          "draw: tip not behind him at tick 20 (m)": 1.4779790046832217,
+          "draw: chest turned to his left at tick 20 (m)": -0.30005852001853917,
+          "cut: tip well ahead of the hips at tick 28 (m)": 2.2564284169433737,
+          "cut: tip on his centre line at tick 28 (m)": -0.208224917843852,
+          "cut: tip between hips and head height at tick 28 (m)": 0.3629720140317181,
+          "finish: tip high above the hilt at tick 38 (m)": 1.286849751177628,
+          "finish: tip on his right at tick 38 (m)": 1.3468500880484473,
+          "finish: tip not behind him at tick 38 (m)": 0.5976528859303899,
+          "arc: FightGuy positions ahead the plank touches, ticks 24-38": 120.0,
+          "arc: FightGuy positions behind him (keep near zero)": 0.0
+        },
+        "checkpointOnly": false
+      }
+    }
+  ],
+  "cost": {
+    "known_usd": 0.27718600000000004,
+    "total_usd": null,
+    "completeness": "partial",
+    "missing_runs": [
+      "artifacts/genra-runs/20261101-181151-bonk-sir-a3-rising-cut-keys"
+    ]
+  },
+  "promoted_at": "2026-11-01T19:24:38.008038+00:00",
+  "owner_verdict": null,
+  "owner_date": null,
+  "owner_note": null
+}

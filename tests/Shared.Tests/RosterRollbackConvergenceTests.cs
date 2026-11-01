@@ -26,9 +26,7 @@ public class RosterRollbackConvergenceTests
 
     [Theory]
     [InlineData(CharacterClass.FightGuy, AbilitySlots.A, 0)]
-    [InlineData(CharacterClass.Bonk, AbilitySlots.E, 0)]
     [InlineData(CharacterClass.FightGuy, AbilitySlots.A, 5)]
-    [InlineData(CharacterClass.Bonk, AbilitySlots.E, 5)]
     public void DelayedAimRelease_RecoversAndAcceptsMovementAndAnotherAttack(
         CharacterClass fighter, byte slot, int lossDenominator)
     {
@@ -39,6 +37,21 @@ public class RosterRollbackConvergenceTests
         Assert.Equal(ActionState.Aiming, lab[1].State(1).State);
         Assert.Equal(ActionState.Aiming, lab.Server.GetState(1).State);
         lab.Run(30);
+        AssertRecoveryAndNextInputs(lab);
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(5)]
+    public void TapLeapConvergesWithDelayAndLoss(int lossDenominator)
+    {
+        var lab = Match(CharacterClass.Bonk, lossDenominator);
+        lab[1].Input = (_, tick) => TestHelpers.Input(activeSlot: tick == 30 ? AbilitySlots.E : (byte)0);
+        lab.Run(50);
+        Assert.Equal(ActionState.Attacking, lab[1].State(1).State);
+        Assert.Equal(ActionState.Attacking, lab.Server.GetState(1).State);
+        Assert.False(lab[1].State(1).IsAiming);
+        Assert.False(lab.Server.GetState(1).IsAiming);
         AssertRecoveryAndNextInputs(lab);
     }
 

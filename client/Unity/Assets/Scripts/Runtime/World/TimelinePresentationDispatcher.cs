@@ -61,7 +61,7 @@ namespace SlopArena.Client.World
         public void RegisterHost(ulong entityId, Transform root, CharacterAnimationCatalog catalog)
             => _entries[entityId] = new Entry { Root = root, Catalog = catalog };
 
-        public void Tick(IReadOnlyList<TimelinePresentationEvent> events)
+        public void Tick(IReadOnlyList<TimelinePresentationEvent> events, System.Func<ulong, ActiveMoveView?> activeMove = null)
         {
             for (int i = _active.Count - 1; i >= 0; i--)
             {
@@ -134,12 +134,17 @@ namespace SlopArena.Client.World
                         entry.Renderer.CurrentAttackSequence, presentationEvent.AttackSequence)))
                     continue;
 
+                Vector3 eventPosition = new(presentationEvent.WorldX, presentationEvent.WorldY, presentationEvent.WorldZ);
+                if (presentationEvent.PresentationId == "presentation.bonk.faith.lock"
+                    && activeMove?.Invoke(presentationEvent.EntityId)?.Spot is MoveSpot spot)
+                    eventPosition = new Vector3(spot.X, spot.Y + 0.1f, spot.Z);
+
                 GameObject instance = PresentationPlacementResolver.Instantiate(
                     binding,
                     presentationEvent.Placement,
                     entry.Renderer,
                     entry.Root,
-                    new Vector3(presentationEvent.WorldX, presentationEvent.WorldY, presentationEvent.WorldZ),
+                    eventPosition,
                     Quaternion.Euler(0f, presentationEvent.WorldYaw * Mathf.Rad2Deg, 0f));
                 if (instance == null) continue;
                 foreach (IPresentationOwnerReceiver receiver in instance.GetComponentsInChildren<IPresentationOwnerReceiver>(true))

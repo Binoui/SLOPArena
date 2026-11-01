@@ -21,10 +21,12 @@ public readonly record struct MoveClip(string AnimationId, int StageIndex, ushor
 /// <summary>A computed read of an activation's cooked move, timeline cursor and presentation pose.</summary>
 public readonly record struct ActiveMoveView(
     CookedSlotDefinition Slot, int StageIndex, ushort StageTick, bool AirborneAtStart,
-    byte ClipIndex, AttackPose Pose)
+    byte ClipIndex, AttackPose Pose, MoveSpot? Spot = null)
 {
     public CookedStage Stage => Slot.Timeline.Stages[StageIndex];
 
     internal static AttackPose ResolvePose(CookedSlotDefinition slot, int clipIndex, float elapsedTicks)
         => slot.Clip(clipIndex).At(elapsedTicks);
 }
+
+public readonly record struct MoveSpot(float X, float Y, float Z);

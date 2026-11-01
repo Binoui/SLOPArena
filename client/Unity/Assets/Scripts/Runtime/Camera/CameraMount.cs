@@ -317,7 +317,7 @@ namespace SlopArena.Client.Camera
                     RenderCamera != null ? RenderCamera.aspect : 16f / 9f);
                 _framingAnchor.position = show.center;
                 UpdateBubbles();
-                if (_player != null) StageSightHoles.Publish(PlayerCentre, _subjects);
+                PublishSightHoles();
                 return;
             }
 
@@ -337,7 +337,7 @@ namespace SlopArena.Client.Camera
                 SetCameraYawDeg(_chatSuppressedYaw);
                 SetCameraPitchDeg(_chatSuppressedPitch);
                 _orbital.RadialAxis.Value = _chatSuppressedRadial;
-                if (_player != null) StageSightHoles.Publish(PlayerCentre, _subjects);
+                PublishSightHoles();
                 return;
             }
 
@@ -346,7 +346,7 @@ namespace SlopArena.Client.Camera
             _lastStablePitch = GetCameraPitchDeg();
             _lastStableRadial = _orbital.RadialAxis.Value;
             _hasStableAngles = true;
-            if (_player != null) StageSightHoles.Publish(PlayerCentre, _subjects);
+            PublishSightHoles();
         }
         public void SetMode(CameraMode mode)
         {
@@ -596,6 +596,16 @@ namespace SlopArena.Client.Camera
         }
 
         /// <summary>The rendered player's capsule centre, the reference Shared positions use.</summary>
+        private void PublishSightHoles()
+        {
+            if (_player == null) return;
+            Color colour = _playerRenderer != null
+                ? SeatColours.ForFighter(_playerRenderer.EntityId, _playerRenderer.PlayerNumber) : SeatColours.For(1);
+            Vector3 camera = RenderCamera != null ? RenderCamera.transform.position : PlayerCentre;
+            StageSightHoles.Publish(_playerRenderer != null ? _playerRenderer.EntityId : 0UL, PlayerCentre, colour,
+                _subjects, camera, Time.unscaledDeltaTime);
+        }
+
         private Vector3 PlayerCentre => _player.position - Vector3.up * (_playerRenderer != null ? _playerRenderer.ModelYOffset : 0f);
 
         private float? ResetAvoidance()

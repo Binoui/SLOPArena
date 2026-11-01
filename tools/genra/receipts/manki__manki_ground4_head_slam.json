@@ -1,0 +1,34 @@
+{
+  "schema_version": 1,
+  "move": "manki-g4-ram-v2",
+  "target": "Assets/CharacterPackages/manki/Animations/manki_ground4_head_slam.anim",
+  "source_asset": "Assets/Art/Experiments/GenRA/manki/manki-g4-ram-v2.anim",
+  "source_run": null,
+  "revise_parent": null,
+  "keys_run": null,
+  "transforms": {
+    "ticks": null,
+    "retime": null,
+    "alignOrigin": true,
+    "loopTime": false,
+    "grounding": null
+  },
+  "final_check": {
+    "status": "UNKNOWN",
+    "scope": "source run",
+    "flow_metrics": {},
+    "report": {}
+  },
+  "clip_sha256": "c35789bc2672babe99e226a391890bda5599b49592eec5210b5973a75d46e30d",
+  "runs": [],
+  "cost": {
+    "known_usd": null,
+    "total_usd": null,
+    "completeness": "UNKNOWN",
+    "missing_runs": []
+  },
+  "promoted_at": "2026-11-01T20:14:13.085861+00:00",
+  "owner_verdict": null,
+  "owner_date": null,
+  "owner_note": null
+}

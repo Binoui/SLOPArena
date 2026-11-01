@@ -163,18 +163,20 @@ public class WibouAbilityTests
     }
 
 
-    // ── F: the saved flash cuts, holds and launches an enemy in range ──
+    // ── F: the saved flash counters an enemy's normal, then cuts, holds and launches them ──
 
     [Fact]
-    public void F_FlashCutsHoldsAndLaunchesAnEnemyInRange()
+    public void F_FlashCountersANormalThenCutsHoldsAndLaunchesTheAttacker()
     {
         var sim = SimWithPlayer(out _);
-        var npc = TestHelpers.NpcState(0f, 3f); npc.PY = GroundPY;
+        var npc = TestHelpers.NpcState(0f, 1.2f); npc.PY = GroundPY; npc.FacingYaw = MathF.PI;
         sim.RegisterEntity(100, Def, npc, TestHelpers.LoadBakedData(Def));
         sim.Tick(new() { { 1, TestHelpers.Input(activeSlot: AbilitySlots.F) }, { 100, default } });
+        sim.Tick(new() { { 1, default }, { 100, TestHelpers.Input(activeSlot: AbilitySlots.Slot1) } });
         bool held = false, launched = false;
         for (int i = 0; i < 120; i++)
         {
+            Assert.Equal(0, sim.GetState(1).DamagePercent);
             sim.Tick(new() { { 1, default }, { 100, default } });
             var victim = sim.GetState(100);
             held |= victim.State == ActionState.CutHeld;

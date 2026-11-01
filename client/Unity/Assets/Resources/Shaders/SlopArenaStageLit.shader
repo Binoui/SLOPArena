@@ -182,12 +182,13 @@ Shader "SLOPArena/StageLit"
             )
             {
                 // URP's forward Varyings always carry positionWS; rebuilding it from depth missed every pixel.
-                StageCutawayClip(input.positionWS, input.positionCS);
+                half4 sightRim = StageCutawayClipRim(input.positionWS, input.positionCS);
                 LitPassFragment(input, outColor
             #ifdef _WRITE_RENDERING_LAYERS
                     , outRenderingLayers
             #endif
                 );
+                outColor.rgb = StageCutawayApplyRim(outColor.rgb, sightRim);
             }
             ENDHLSL
         }

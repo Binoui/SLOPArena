@@ -330,6 +330,30 @@ World Snapshots carry the tether's phase, clocks and ring position; the pair liv
 [`TetherTests`](../../tests/Shared.Tests/TetherTests.cs) and the ring restores in
 [`WorldSnapshotTests`](../../tests/Shared.Tests/WorldSnapshotTests.cs).
 
+### Command hold and Scoop
+
+CommandHold is the existing paired interaction with a CommandGrabbed victim.
+`ICommandHold` exposes two entries. Capture catches before shield and through armour, as Title Match and Selfie Grab do.
+LandedHit catches only after shield resolution and refuses armour, existing pairs, held cuts and Swept.
+The refused contact remains an ordinary hit. There is no separate carry interaction.
+
+Every command holder places its victim once after all movement and pushboxes, before hurtboxes and hit resolution.
+The pass places through terrain and then executes any requested release. This makes moving anchors use the holder's
+final position. A Joust carry stops at a ground ledge and queues its outward fling. A third party's damaging hit,
+a grab on the holder or a KO breaks the pair through the existing interruption path.
+
+### Challenge and Leap of Faith
+
+Challenge lives on the challenger, not the target. A projectile with `challengeTicks` records its latest
+unshielded fighter hit with target ID, target death count and expiry tick. Joust consumes it at the press.
+Expiry, an ineligible or out-of-range target and a changed death count make it invalid. The challenger's reset or KO clears it.
+
+Leap of Faith is a press-selected target recovery with fixed rise, tracked hang and locked swept drop.
+A real landing spawns the ring once. A drop ending without support falls under gravity until landing or timeout.
+A confirmed unshielded fighter hit shortens recovery. A shield or miss keeps the full recovery.
+The visible spot comes from `ActiveMoveView`, and never decides collision or damage.
+See [ADR-0059](../adr/0059-sir-bonk-scoop-joust-and-leap-of-faith.md).
+
 ## Damage and hit response
 
 SLOPArena uses damage percent rather than a conventional health pool. A hit applies damage, then Knockback using the hit's parameters and the victim's current percent. Shared retains Light, Medium, Launcher, Kill, Spike, Custom, and Adaptive profiles in [`KnockbackProfile`](../../src/Shared/KnockbackProfile.cs). Cooked package hitboxes project their explicit angle/base/growth values through Custom; Adaptive resolves its angle at contact.

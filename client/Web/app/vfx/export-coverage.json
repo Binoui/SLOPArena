@@ -1,35 +1,35 @@
 {
-  "prefabReferences": 144,
-  "uniquePrefabs": 135,
-  "systems": 396,
+  "prefabReferences": 157,
+  "uniquePrefabs": 145,
+  "systems": 523,
   "modules": {
-    "ClampVelocityModule": 67,
-    "CollisionModule": 7,
-    "ColorModule": 322,
-    "EmissionModule": 395,
-    "InitialModule": 396,
-    "NoiseModule": 3,
-    "RotationModule": 64,
-    "ShapeModule": 180,
-    "SizeModule": 281,
+    "ClampVelocityModule": 69,
+    "CollisionModule": 6,
+    "ColorModule": 461,
+    "EmissionModule": 522,
+    "InitialModule": 523,
+    "NoiseModule": 4,
+    "RotationModule": 104,
+    "ShapeModule": 230,
+    "SizeModule": 389,
     "TrailModule": 6,
-    "UVModule": 96,
-    "VelocityModule": 46
+    "UVModule": 95,
+    "VelocityModule": 48
   },
-  "uniqueSystems": 372,
+  "uniqueSystems": 487,
   "uniqueModules": {
-    "ClampVelocityModule": 67,
-    "CollisionModule": 7,
-    "ColorModule": 308,
-    "EmissionModule": 371,
-    "InitialModule": 372,
-    "NoiseModule": 2,
-    "RotationModule": 60,
-    "ShapeModule": 172,
-    "SizeModule": 266,
+    "ClampVelocityModule": 69,
+    "CollisionModule": 6,
+    "ColorModule": 435,
+    "EmissionModule": 486,
+    "InitialModule": 487,
+    "NoiseModule": 3,
+    "RotationModule": 99,
+    "ShapeModule": 217,
+    "SizeModule": 365,
     "TrailModule": 6,
-    "UVModule": 94,
-    "VelocityModule": 44
+    "UVModule": 93,
+    "VelocityModule": 45
   },
   "textures": [
     {
@@ -1021,6 +1021,45 @@
       "bytes": 64664
     },
     {
+      "file": "MankiSolidEmber-3da614925b.png",
+      "source": "client/Unity/Assets/CharacterPackages/manki/Presentation/MankiSolidEmber.png",
+      "original": [
+        8,
+        8
+      ],
+      "size": [
+        8,
+        8
+      ],
+      "bytes": 80
+    },
+    {
+      "file": "MankiSolidCream-4d52fdfd2a.png",
+      "source": "client/Unity/Assets/CharacterPackages/manki/Presentation/MankiSolidCream.png",
+      "original": [
+        8,
+        8
+      ],
+      "size": [
+        8,
+        8
+      ],
+      "bytes": 81
+    },
+    {
+      "file": "MankiSolidInk-90ea4fe99e.png",
+      "source": "client/Unity/Assets/CharacterPackages/manki/Presentation/MankiSolidInk.png",
+      "original": [
+        8,
+        8
+      ],
+      "size": [
+        8,
+        8
+      ],
+      "bytes": 80
+    },
+    {
       "file": "MankiRocket-5905c25bdf.png",
       "source": "client/Unity/Assets/CharacterPackages/manki/Presentation/MankiRocket.png",
       "original": [
@@ -1060,19 +1099,6 @@
       "bytes": 504
     },
     {
-      "file": "MankiKamikazeGrin-64318c23d0.png",
-      "source": "client/Unity/Assets/CharacterPackages/manki/Presentation/MankiKamikazeGrin.png",
-      "original": [
-        512,
-        512
-      ],
-      "size": [
-        512,
-        512
-      ],
-      "bytes": 58771
-    },
-    {
       "file": "MankiKamikazeFlame-46b395760f.png",
       "source": "client/Unity/Assets/CharacterPackages/manki/Presentation/MankiKamikazeFlame.png",
       "original": [
@@ -1086,17 +1112,69 @@
       "bytes": 10593
     },
     {
-      "file": "MankiBombTrim-cd7374791a.png",
-      "source": "client/Unity/Assets/CharacterPackages/manki/Presentation/MankiBombTrim.png",
+      "file": "MankiSootVolume-6cdec5d7fe.png",
+      "source": "client/Unity/Assets/CharacterPackages/manki/Presentation/MankiSootVolume.png",
       "original": [
-        32,
-        32
+        8,
+        8
       ],
       "size": [
-        32,
-        32
+        8,
+        8
       ],
-      "bytes": 120
+      "bytes": 79
+    },
+    {
+      "file": "MankiScatterFace-1695f91927.png",
+      "source": "client/Unity/Assets/CharacterPackages/manki/Presentation/MankiScatterFace.png",
+      "original": [
+        512,
+        256
+      ],
+      "size": [
+        512,
+        256
+      ],
+      "bytes": 23071
+    },
+    {
+      "file": "MankiTorchVolume-609116811d.png",
+      "source": "client/Unity/Assets/CharacterPackages/manki/Presentation/MankiTorchVolume.png",
+      "original": [
+        8,
+        8
+      ],
+      "size": [
+        8,
+        8
+      ],
+      "bytes": 80
+    },
+    {
+      "file": "MankiBombTriggered-085fa94120.png",
+      "source": "client/Unity/Assets/CharacterPackages/manki/Presentation/MankiBombTriggered.png",
+      "original": [
+        1024,
+        512
+      ],
+      "size": [
+        512,
+        256
+      ],
+      "bytes": 19162
+    },
+    {
+      "file": "MankiEmberStitch-4bbc80fccc.png",
+      "source": "client/Unity/Assets/CharacterPackages/manki/Presentation/MankiEmberStitch.png",
+      "original": [
+        8,
+        8
+      ],
+      "size": [
+        8,
+        8
+      ],
+      "bytes": 79
     },
     {
       "file": "MankiBombShell-3e3b5a7384.png",
@@ -1109,7 +1187,20 @@
         512,
         256
       ],
-      "bytes": 15395
+      "bytes": 14626
+    },
+    {
+      "file": "MankiBombArmed-c6130c1f40.png",
+      "source": "client/Unity/Assets/CharacterPackages/manki/Presentation/MankiBombArmed.png",
+      "original": [
+        1024,
+        512
+      ],
+      "size": [
+        512,
+        256
+      ],
+      "bytes": 15989
     },
     {
       "file": "MankiRibbon-93cc71a4d3.png",
@@ -1125,8 +1216,216 @@
       "bytes": 503
     },
     {
-      "file": "NyxPaperPalette-0319a1675b.png",
-      "source": "client/Unity/Assets/CharacterPackages/nyx/Presentation/Source/NyxPaperPalette.png",
+      "file": "NyxRosterShadowBurst-8c2c0fca37.png",
+      "source": "client/Unity/Assets/CharacterPackages/nyx/Presentation/Source/NyxRosterShadowBurst.png",
+      "original": [
+        256,
+        256
+      ],
+      "size": [
+        256,
+        256
+      ],
+      "bytes": 14427
+    },
+    {
+      "file": "NyxRosterBat-fdf6f7a471.png",
+      "source": "client/Unity/Assets/CharacterPackages/nyx/Presentation/Source/NyxRosterBat.png",
+      "original": [
+        512,
+        256
+      ],
+      "size": [
+        512,
+        256
+      ],
+      "bytes": 14503
+    },
+    {
+      "file": "NyxInkPool-8674667631.png",
+      "source": "client/Unity/Assets/CharacterPackages/nyx/Presentation/Source/NyxInkPool.png",
+      "original": [
+        512,
+        512
+      ],
+      "size": [
+        512,
+        512
+      ],
+      "bytes": 53966
+    },
+    {
+      "file": "NyxClawBlade-27b31ee6fb.png",
+      "source": "client/Unity/Assets/CharacterPackages/nyx/Presentation/Source/NyxClawBlade.png",
+      "original": [
+        512,
+        128
+      ],
+      "size": [
+        512,
+        128
+      ],
+      "bytes": 10213
+    },
+    {
+      "file": "NyxShadowShockRing-1fc02e9f30.png",
+      "source": "client/Unity/Assets/CharacterPackages/nyx/Presentation/Source/NyxShadowShockRing.png",
+      "original": [
+        512,
+        512
+      ],
+      "size": [
+        512,
+        512
+      ],
+      "bytes": 51653
+    },
+    {
+      "file": "NyxRosterFeather-d72774986b.png",
+      "source": "client/Unity/Assets/CharacterPackages/nyx/Presentation/Source/NyxRosterFeather.png",
+      "original": [
+        256,
+        256
+      ],
+      "size": [
+        256,
+        256
+      ],
+      "bytes": 8438
+    },
+    {
+      "file": "NyxClawMarks-ed1295763f.png",
+      "source": "client/Unity/Assets/CharacterPackages/nyx/Presentation/Source/NyxClawMarks.png",
+      "original": [
+        256,
+        256
+      ],
+      "size": [
+        256,
+        256
+      ],
+      "bytes": 19425
+    },
+    {
+      "file": "NyxRosterShard-ea4359fef5.png",
+      "source": "client/Unity/Assets/CharacterPackages/nyx/Presentation/Source/NyxRosterShard.png",
+      "original": [
+        256,
+        256
+      ],
+      "size": [
+        256,
+        256
+      ],
+      "bytes": 6984
+    },
+    {
+      "file": "NyxRosterSparkle-fcdbe67fb3.png",
+      "source": "client/Unity/Assets/CharacterPackages/nyx/Presentation/Source/NyxRosterSparkle.png",
+      "original": [
+        256,
+        256
+      ],
+      "size": [
+        256,
+        256
+      ],
+      "bytes": 6692
+    },
+    {
+      "file": "NyxPinkBlade-71b7cbbdd7.png",
+      "source": "client/Unity/Assets/CharacterPackages/nyx/Presentation/Source/NyxPinkBlade.png",
+      "original": [
+        512,
+        128
+      ],
+      "size": [
+        512,
+        128
+      ],
+      "bytes": 10335
+    },
+    {
+      "file": "NyxRosterPinkBurst-52ff669af8.png",
+      "source": "client/Unity/Assets/CharacterPackages/nyx/Presentation/Source/NyxRosterPinkBurst.png",
+      "original": [
+        256,
+        256
+      ],
+      "size": [
+        256,
+        256
+      ],
+      "bytes": 14410
+    },
+    {
+      "file": "NyxShadowWhip-6c417005e4.png",
+      "source": "client/Unity/Assets/CharacterPackages/nyx/Presentation/Source/NyxShadowWhip.png",
+      "original": [
+        512,
+        128
+      ],
+      "size": [
+        512,
+        128
+      ],
+      "bytes": 6797
+    },
+    {
+      "file": "NyxRosterHeart-cd83bf2b8a.png",
+      "source": "client/Unity/Assets/CharacterPackages/nyx/Presentation/Source/NyxRosterHeart.png",
+      "original": [
+        256,
+        256
+      ],
+      "size": [
+        256,
+        256
+      ],
+      "bytes": 9031
+    },
+    {
+      "file": "NyxShockRing-cd961129c4.png",
+      "source": "client/Unity/Assets/CharacterPackages/nyx/Presentation/Source/NyxShockRing.png",
+      "original": [
+        512,
+        512
+      ],
+      "size": [
+        512,
+        512
+      ],
+      "bytes": 51068
+    },
+    {
+      "file": "NyxRosterPinkBand-a8aecd6a81.png",
+      "source": "client/Unity/Assets/CharacterPackages/nyx/Presentation/Source/NyxRosterPinkBand.png",
+      "original": [
+        256,
+        256
+      ],
+      "size": [
+        256,
+        256
+      ],
+      "bytes": 8021
+    },
+    {
+      "file": "NyxRosterShadowBand-dca9babd61.png",
+      "source": "client/Unity/Assets/CharacterPackages/nyx/Presentation/Source/NyxRosterShadowBand.png",
+      "original": [
+        256,
+        256
+      ],
+      "size": [
+        256,
+        256
+      ],
+      "bytes": 7722
+    },
+    {
+      "file": "NyxCrowPalette-3c4c9e3b0e.png",
+      "source": "client/Unity/Assets/CharacterPackages/nyx/Presentation/Source/NyxCrowPalette.png",
       "original": [
         8,
         1
@@ -1136,6 +1435,45 @@
         1
       ],
       "bytes": 94
+    },
+    {
+      "file": "NyxGlint-9c46d9591e.png",
+      "source": "client/Unity/Assets/CharacterPackages/nyx/Presentation/Source/NyxGlint.png",
+      "original": [
+        256,
+        256
+      ],
+      "size": [
+        256,
+        256
+      ],
+      "bytes": 6663
+    },
+    {
+      "file": "NyxLightRay-6c74f32c18.png",
+      "source": "client/Unity/Assets/CharacterPackages/nyx/Presentation/Source/NyxLightRay.png",
+      "original": [
+        256,
+        128
+      ],
+      "size": [
+        256,
+        128
+      ],
+      "bytes": 3625
+    },
+    {
+      "file": "NyxViewfinder-180f7d7aae.png",
+      "source": "client/Unity/Assets/CharacterPackages/nyx/Presentation/Source/NyxViewfinder.png",
+      "original": [
+        256,
+        256
+      ],
+      "size": [
+        256,
+        256
+      ],
+      "bytes": 3156
     },
     {
       "file": "WibouPixel-f3a77a1cd4.png",
@@ -1333,8 +1671,8 @@
       "bytes": 240
     }
   ],
-  "textureBytes": 2454253,
-  "dataBytes": 11130791,
+  "textureBytes": 2760423,
+  "dataBytes": 5330903,
   "resolvedImportedPrefabs": [
     "client/Unity/Assets/CharacterPackages/bashie/Presentation/BashieRing.prefab",
     "client/Unity/Assets/CharacterPackages/bonk/Presentation/BonkPotLidProjectile.prefab",
@@ -1444,6 +1782,9 @@
       "ShapeModule exported fields not played: alignToDirection, boxThickness, donutRadius, length, m_Mesh, m_MeshMaterialIndex, m_MeshNormalOffset, m_MeshRenderer, m_MeshSpawn, m_SkinnedMeshRenderer, m_Sprite, m_SpriteRenderer, m_Texture, m_TextureAlphaAffectsParticles, m_TextureBilinearFiltering, m_TextureClipChannel, m_TextureClipThreshold, m_TextureColorAffectsParticles, m_TextureUVChannel, m_UseMeshColors, m_UseMeshMaterialIndex, placementMode, randomDirectionAmount, randomPositionAmount, sphericalDirectionAmount",
       "UVModule exported fields not played: animationType, flipU, flipV, rowIndex, rowMode, speedRange, sprites, uvChannelMask"
     ],
+    "client/Unity/Assets/CharacterPackages/bonk/Presentation/BonkFaithHalo.prefab": [
+      "behaviour ArmorGlowPresentation exported but not played"
+    ],
     "client/Unity/Assets/CharacterPackages/bonk/Presentation/BonkFootPlant.prefab": [
       "AudioSource uses existing browser audio path",
       "InitialModule fields not played: customEmitterVelocity, gravitySource",
@@ -1456,6 +1797,14 @@
       "AudioSource uses existing browser audio path"
     ],
     "client/Unity/Assets/CharacterPackages/bonk/Presentation/BonkHeavyHit.prefab": [
+      "AudioSource uses existing browser audio path",
+      "InitialModule fields not played: customEmitterVelocity, gravitySource",
+      "ParticleSystem serialization/control fields not played: autoRandomSeed, cullingMode, emitterVelocityMode, m_CorrespondingSourceObject, m_GameObject, m_ObjectHideFlags, m_PrefabAsset, m_PrefabInstance, moveWithCustomTransform, randomSeed, ringBufferLoopRange, ringBufferMode, serializedVersion, stopAction, useUnscaledTime",
+      "ParticleSystemRenderer fields not played: m_AllowRoll, m_ApplyActiveColorSpace, m_AutoUVMaxAngle, m_AutoUVMaxDistance, m_CastShadows, m_CorrespondingSourceObject, m_DynamicOccludee, m_EnableGPUInstancing, m_Enabled, m_Flip, m_FreeformStretching, m_GameObject, m_IgnoreNormalsForChartDetection, m_ImportantGI, m_LightProbeUsage, m_LightProbeVolumeOverride, m_LightmapParameters, m_MaskInteraction, m_MaxParticleSize, m_Mesh1, m_Mesh2, m_Mesh3, m_MeshDistribution, m_MeshWeighting, m_MeshWeighting1, m_MeshWeighting2, m_MeshWeighting3, m_MinParticleSize, m_MinimumChartSize, m_MotionVectors, m_NormalDirection, m_ObjectHideFlags, m_PrefabAsset, m_PrefabInstance, m_PreserveUVs, m_ProbeAnchor, m_RayTraceProcedural, m_RayTracingAccelStructBuildFlags, m_RayTracingAccelStructBuildFlagsOverride, m_RayTracingMode, m_ReceiveGI, m_ReceiveShadows, m_ReflectionProbeUsage, m_RendererPriority, m_RenderingLayerMask, m_RotateWithStretchDirection, m_ScaleInLightmap, m_SelectedEditorRenderState, m_ShadowBias, m_SmallMeshCulling, m_SortMode, m_SortingLayer, m_SortingLayerID, m_StaticBatchInfo, m_StaticBatchRoot, m_StaticShadowCaster, m_StitchLightmapSeams, m_TrailVertexStreams, m_UseCustomTrailVertexStreams, m_UseCustomVertexStreams, m_VertexStreams, serializedVersion",
+      "ShapeModule exported fields not played: alignToDirection, boxThickness, donutRadius, length, m_Mesh, m_MeshMaterialIndex, m_MeshNormalOffset, m_MeshRenderer, m_MeshSpawn, m_SkinnedMeshRenderer, m_Sprite, m_SpriteRenderer, m_Texture, m_TextureAlphaAffectsParticles, m_TextureBilinearFiltering, m_TextureClipChannel, m_TextureClipThreshold, m_TextureColorAffectsParticles, m_TextureUVChannel, m_UseMeshColors, m_UseMeshMaterialIndex, placementMode, randomDirectionAmount, randomPositionAmount, sphericalDirectionAmount",
+      "UVModule exported fields not played: animationType, flipU, flipV, rowIndex, rowMode, speedRange, sprites, uvChannelMask"
+    ],
+    "client/Unity/Assets/CharacterPackages/bonk/Presentation/BonkJoustBonk.prefab": [
       "AudioSource uses existing browser audio path",
       "InitialModule fields not played: customEmitterVelocity, gravitySource",
       "ParticleSystem serialization/control fields not played: autoRandomSeed, cullingMode, emitterVelocityMode, m_CorrespondingSourceObject, m_GameObject, m_ObjectHideFlags, m_PrefabAsset, m_PrefabInstance, moveWithCustomTransform, randomSeed, ringBufferLoopRange, ringBufferMode, serializedVersion, stopAction, useUnscaledTime",
@@ -1500,6 +1849,14 @@
       "ShapeModule exported fields not played: alignToDirection, boxThickness, donutRadius, length, m_Mesh, m_MeshMaterialIndex, m_MeshNormalOffset, m_MeshRenderer, m_MeshSpawn, m_SkinnedMeshRenderer, m_Sprite, m_SpriteRenderer, m_Texture, m_TextureAlphaAffectsParticles, m_TextureBilinearFiltering, m_TextureClipChannel, m_TextureClipThreshold, m_TextureColorAffectsParticles, m_TextureUVChannel, m_UseMeshColors, m_UseMeshMaterialIndex, placementMode, randomDirectionAmount, randomPositionAmount, sphericalDirectionAmount",
       "UVModule exported fields not played: animationType, flipU, flipV, rowIndex, rowMode, speedRange, sprites, uvChannelMask",
       "behaviour PennantPresentation exported but not played"
+    ],
+    "client/Unity/Assets/CharacterPackages/bonk/Presentation/BonkJoustScoop.prefab": [
+      "AudioSource uses existing browser audio path",
+      "InitialModule fields not played: customEmitterVelocity, gravitySource",
+      "ParticleSystem serialization/control fields not played: autoRandomSeed, cullingMode, emitterVelocityMode, m_CorrespondingSourceObject, m_GameObject, m_ObjectHideFlags, m_PrefabAsset, m_PrefabInstance, moveWithCustomTransform, randomSeed, ringBufferLoopRange, ringBufferMode, serializedVersion, stopAction, useUnscaledTime",
+      "ParticleSystemRenderer fields not played: m_AllowRoll, m_ApplyActiveColorSpace, m_AutoUVMaxAngle, m_AutoUVMaxDistance, m_CastShadows, m_CorrespondingSourceObject, m_DynamicOccludee, m_EnableGPUInstancing, m_Enabled, m_Flip, m_FreeformStretching, m_GameObject, m_IgnoreNormalsForChartDetection, m_ImportantGI, m_LightProbeUsage, m_LightProbeVolumeOverride, m_LightmapParameters, m_MaskInteraction, m_MaxParticleSize, m_Mesh1, m_Mesh2, m_Mesh3, m_MeshDistribution, m_MeshWeighting, m_MeshWeighting1, m_MeshWeighting2, m_MeshWeighting3, m_MinParticleSize, m_MinimumChartSize, m_MotionVectors, m_NormalDirection, m_ObjectHideFlags, m_PrefabAsset, m_PrefabInstance, m_PreserveUVs, m_ProbeAnchor, m_RayTraceProcedural, m_RayTracingAccelStructBuildFlags, m_RayTracingAccelStructBuildFlagsOverride, m_RayTracingMode, m_ReceiveGI, m_ReceiveShadows, m_ReflectionProbeUsage, m_RendererPriority, m_RenderingLayerMask, m_RotateWithStretchDirection, m_ScaleInLightmap, m_SelectedEditorRenderState, m_ShadowBias, m_SmallMeshCulling, m_SortMode, m_SortingLayer, m_SortingLayerID, m_StaticBatchInfo, m_StaticBatchRoot, m_StaticShadowCaster, m_StitchLightmapSeams, m_TrailVertexStreams, m_UseCustomTrailVertexStreams, m_UseCustomVertexStreams, m_VertexStreams, serializedVersion",
+      "ShapeModule exported fields not played: alignToDirection, boxThickness, donutRadius, length, m_Mesh, m_MeshMaterialIndex, m_MeshNormalOffset, m_MeshRenderer, m_MeshSpawn, m_SkinnedMeshRenderer, m_Sprite, m_SpriteRenderer, m_Texture, m_TextureAlphaAffectsParticles, m_TextureBilinearFiltering, m_TextureClipChannel, m_TextureClipThreshold, m_TextureColorAffectsParticles, m_TextureUVChannel, m_UseMeshColors, m_UseMeshMaterialIndex, placementMode, randomDirectionAmount, randomPositionAmount, sphericalDirectionAmount",
+      "UVModule exported fields not played: animationType, flipU, flipV, rowIndex, rowMode, speedRange, sprites, uvChannelMask"
     ],
     "client/Unity/Assets/CharacterPackages/bonk/Presentation/BonkJoustSkid.prefab": [
       "AudioSource uses existing browser audio path",
@@ -1791,9 +2148,8 @@
     ],
     "client/Unity/Assets/CharacterPackages/manki/Presentation/MankiBazookaReady.prefab": [
       "AudioSource uses existing browser audio path",
-      "InitialModule fields not played: customEmitterVelocity, gravitySource",
-      "ParticleSystem serialization/control fields not played: autoRandomSeed, cullingMode, emitterVelocityMode, m_CorrespondingSourceObject, m_GameObject, m_ObjectHideFlags, m_PrefabAsset, m_PrefabInstance, moveWithCustomTransform, randomSeed, ringBufferLoopRange, ringBufferMode, serializedVersion, stopAction, useUnscaledTime",
-      "ParticleSystemRenderer fields not played: m_AllowRoll, m_ApplyActiveColorSpace, m_AutoUVMaxAngle, m_AutoUVMaxDistance, m_CastShadows, m_CorrespondingSourceObject, m_DynamicOccludee, m_EnableGPUInstancing, m_Enabled, m_Flip, m_FreeformStretching, m_GameObject, m_IgnoreNormalsForChartDetection, m_ImportantGI, m_LightProbeUsage, m_LightProbeVolumeOverride, m_LightmapParameters, m_MaskInteraction, m_MaxParticleSize, m_Mesh1, m_Mesh2, m_Mesh3, m_MeshDistribution, m_MeshWeighting, m_MeshWeighting1, m_MeshWeighting2, m_MeshWeighting3, m_MinParticleSize, m_MinimumChartSize, m_MotionVectors, m_NormalDirection, m_ObjectHideFlags, m_PrefabAsset, m_PrefabInstance, m_PreserveUVs, m_ProbeAnchor, m_RayTraceProcedural, m_RayTracingAccelStructBuildFlags, m_RayTracingAccelStructBuildFlagsOverride, m_RayTracingMode, m_ReceiveGI, m_ReceiveShadows, m_ReflectionProbeUsage, m_RendererPriority, m_RenderingLayerMask, m_RotateWithStretchDirection, m_ScaleInLightmap, m_SelectedEditorRenderState, m_ShadowBias, m_SmallMeshCulling, m_SortMode, m_SortingLayer, m_SortingLayerID, m_StaticBatchInfo, m_StaticBatchRoot, m_StaticShadowCaster, m_StitchLightmapSeams, m_TrailVertexStreams, m_UseCustomTrailVertexStreams, m_UseCustomVertexStreams, m_VertexStreams, serializedVersion"
+      "behaviour MankiChargeIris exported but not played",
+      "shader client/Unity/Assets/Resources/Shaders/MankiToonVolume.shader interpreted as unlit texture"
     ],
     "client/Unity/Assets/CharacterPackages/manki/Presentation/MankiBazookaRocket.prefab": [
       "AudioSource uses existing browser audio path",
@@ -1869,7 +2225,15 @@
     ],
     "client/Unity/Assets/CharacterPackages/manki/Presentation/MankiKamikazeExplosion.prefab": [
       "AudioSource uses existing browser audio path",
-      "CollisionModule exported fields not played: colliderForce, collidesWith, collidesWithDynamic, collisionMessages, collisionMode, interiorCollisions, m_Planes, maxCollisionShapes, maxKillSpeed, minKillSpeed, multiplyColliderForceByCollisionAngle, multiplyColliderForceByParticleSize, multiplyColliderForceByParticleSpeed, quality, voxelSize",
+      "InitialModule fields not played: customEmitterVelocity, gravitySource",
+      "ParticleSystem serialization/control fields not played: autoRandomSeed, cullingMode, emitterVelocityMode, m_CorrespondingSourceObject, m_GameObject, m_ObjectHideFlags, m_PrefabAsset, m_PrefabInstance, moveWithCustomTransform, randomSeed, ringBufferLoopRange, ringBufferMode, serializedVersion, stopAction, useUnscaledTime",
+      "ParticleSystemRenderer fields not played: m_AllowRoll, m_ApplyActiveColorSpace, m_AutoUVMaxAngle, m_AutoUVMaxDistance, m_CastShadows, m_CorrespondingSourceObject, m_DynamicOccludee, m_EnableGPUInstancing, m_Enabled, m_Flip, m_FreeformStretching, m_GameObject, m_IgnoreNormalsForChartDetection, m_ImportantGI, m_LightProbeUsage, m_LightProbeVolumeOverride, m_LightmapParameters, m_MaskInteraction, m_MaxParticleSize, m_Mesh1, m_Mesh2, m_Mesh3, m_MeshDistribution, m_MeshWeighting, m_MeshWeighting1, m_MeshWeighting2, m_MeshWeighting3, m_MinParticleSize, m_MinimumChartSize, m_MotionVectors, m_NormalDirection, m_ObjectHideFlags, m_PrefabAsset, m_PrefabInstance, m_PreserveUVs, m_ProbeAnchor, m_RayTraceProcedural, m_RayTracingAccelStructBuildFlags, m_RayTracingAccelStructBuildFlagsOverride, m_RayTracingMode, m_ReceiveGI, m_ReceiveShadows, m_ReflectionProbeUsage, m_RendererPriority, m_RenderingLayerMask, m_RotateWithStretchDirection, m_ScaleInLightmap, m_SelectedEditorRenderState, m_ShadowBias, m_SmallMeshCulling, m_SortMode, m_SortingLayer, m_SortingLayerID, m_StaticBatchInfo, m_StaticBatchRoot, m_StaticShadowCaster, m_StitchLightmapSeams, m_TrailVertexStreams, m_UseCustomTrailVertexStreams, m_UseCustomVertexStreams, m_VertexStreams, serializedVersion",
+      "ShapeModule exported fields not played: alignToDirection, boxThickness, donutRadius, length, m_Mesh, m_MeshMaterialIndex, m_MeshNormalOffset, m_MeshRenderer, m_MeshSpawn, m_SkinnedMeshRenderer, m_Sprite, m_SpriteRenderer, m_Texture, m_TextureAlphaAffectsParticles, m_TextureBilinearFiltering, m_TextureClipChannel, m_TextureClipThreshold, m_TextureColorAffectsParticles, m_TextureUVChannel, m_UseMeshColors, m_UseMeshMaterialIndex, placementMode, randomDirectionAmount, randomPositionAmount, sphericalDirectionAmount",
+      "behaviour MankiGrinScatter exported but not played",
+      "shader client/Unity/Assets/Resources/Shaders/MankiToonVolume.shader interpreted as unlit texture"
+    ],
+    "client/Unity/Assets/CharacterPackages/manki/Presentation/MankiKamikazeStartup.prefab": [
+      "AudioSource uses existing browser audio path",
       "InitialModule fields not played: customEmitterVelocity, gravitySource",
       "ParticleSystem serialization/control fields not played: autoRandomSeed, cullingMode, emitterVelocityMode, m_CorrespondingSourceObject, m_GameObject, m_ObjectHideFlags, m_PrefabAsset, m_PrefabInstance, moveWithCustomTransform, randomSeed, ringBufferLoopRange, ringBufferMode, serializedVersion, stopAction, useUnscaledTime",
       "ParticleSystemRenderer fields not played: m_AllowRoll, m_ApplyActiveColorSpace, m_AutoUVMaxAngle, m_AutoUVMaxDistance, m_CastShadows, m_CorrespondingSourceObject, m_DynamicOccludee, m_EnableGPUInstancing, m_Enabled, m_Flip, m_FreeformStretching, m_GameObject, m_IgnoreNormalsForChartDetection, m_ImportantGI, m_LightProbeUsage, m_LightProbeVolumeOverride, m_LightmapParameters, m_MaskInteraction, m_MaxParticleSize, m_Mesh1, m_Mesh2, m_Mesh3, m_MeshDistribution, m_MeshWeighting, m_MeshWeighting1, m_MeshWeighting2, m_MeshWeighting3, m_MinParticleSize, m_MinimumChartSize, m_MotionVectors, m_NormalDirection, m_ObjectHideFlags, m_PrefabAsset, m_PrefabInstance, m_PreserveUVs, m_ProbeAnchor, m_RayTraceProcedural, m_RayTracingAccelStructBuildFlags, m_RayTracingAccelStructBuildFlagsOverride, m_RayTracingMode, m_ReceiveGI, m_ReceiveShadows, m_ReflectionProbeUsage, m_RendererPriority, m_RenderingLayerMask, m_RotateWithStretchDirection, m_ScaleInLightmap, m_SelectedEditorRenderState, m_ShadowBias, m_SmallMeshCulling, m_SortMode, m_SortingLayer, m_SortingLayerID, m_StaticBatchInfo, m_StaticBatchRoot, m_StaticShadowCaster, m_StitchLightmapSeams, m_TrailVertexStreams, m_UseCustomTrailVertexStreams, m_UseCustomVertexStreams, m_VertexStreams, serializedVersion",
@@ -1877,10 +2241,11 @@
       "UVModule exported fields not played: animationType, flipU, flipV, rowIndex, rowMode, speedRange, sprites, uvChannelMask"
     ],
     "client/Unity/Assets/CharacterPackages/manki/Presentation/MankiKamikazeTrail.prefab": [
+      "AudioSource uses existing browser audio path",
       "InitialModule fields not played: customEmitterVelocity, gravitySource",
       "ParticleSystem serialization/control fields not played: autoRandomSeed, cullingMode, emitterVelocityMode, m_CorrespondingSourceObject, m_GameObject, m_ObjectHideFlags, m_PrefabAsset, m_PrefabInstance, moveWithCustomTransform, randomSeed, ringBufferLoopRange, ringBufferMode, serializedVersion, stopAction, useUnscaledTime",
       "ParticleSystemRenderer fields not played: m_AllowRoll, m_ApplyActiveColorSpace, m_AutoUVMaxAngle, m_AutoUVMaxDistance, m_CastShadows, m_CorrespondingSourceObject, m_DynamicOccludee, m_EnableGPUInstancing, m_Enabled, m_Flip, m_FreeformStretching, m_GameObject, m_IgnoreNormalsForChartDetection, m_ImportantGI, m_LightProbeUsage, m_LightProbeVolumeOverride, m_LightmapParameters, m_MaskInteraction, m_MaxParticleSize, m_Mesh1, m_Mesh2, m_Mesh3, m_MeshDistribution, m_MeshWeighting, m_MeshWeighting1, m_MeshWeighting2, m_MeshWeighting3, m_MinParticleSize, m_MinimumChartSize, m_MotionVectors, m_NormalDirection, m_ObjectHideFlags, m_PrefabAsset, m_PrefabInstance, m_PreserveUVs, m_ProbeAnchor, m_RayTraceProcedural, m_RayTracingAccelStructBuildFlags, m_RayTracingAccelStructBuildFlagsOverride, m_RayTracingMode, m_ReceiveGI, m_ReceiveShadows, m_ReflectionProbeUsage, m_RendererPriority, m_RenderingLayerMask, m_RotateWithStretchDirection, m_ScaleInLightmap, m_SelectedEditorRenderState, m_ShadowBias, m_SmallMeshCulling, m_SortMode, m_SortingLayer, m_SortingLayerID, m_StaticBatchInfo, m_StaticBatchRoot, m_StaticShadowCaster, m_StitchLightmapSeams, m_TrailVertexStreams, m_UseCustomTrailVertexStreams, m_UseCustomVertexStreams, m_VertexStreams, serializedVersion",
-      "UVModule exported fields not played: animationType, flipU, flipV, rowIndex, rowMode, speedRange, sprites, uvChannelMask"
+      "shader client/Unity/Assets/Resources/Shaders/MankiToonVolume.shader interpreted as unlit texture"
     ],
     "client/Unity/Assets/CharacterPackages/manki/Presentation/MankiLighter.prefab": [
       "AudioSource uses existing browser audio path",
@@ -1891,12 +2256,11 @@
       "UVModule exported fields not played: animationType, flipU, flipV, rowIndex, rowMode, speedRange, sprites, uvChannelMask"
     ],
     "client/Unity/Assets/CharacterPackages/manki/Presentation/MankiLitBomb.prefab": [
-      "AudioSource uses existing browser audio path",
       "InitialModule fields not played: customEmitterVelocity, gravitySource",
       "ParticleSystem serialization/control fields not played: autoRandomSeed, cullingMode, emitterVelocityMode, m_CorrespondingSourceObject, m_GameObject, m_ObjectHideFlags, m_PrefabAsset, m_PrefabInstance, moveWithCustomTransform, randomSeed, ringBufferLoopRange, ringBufferMode, serializedVersion, stopAction, useUnscaledTime",
       "ParticleSystemRenderer fields not played: m_AllowRoll, m_ApplyActiveColorSpace, m_AutoUVMaxAngle, m_AutoUVMaxDistance, m_CastShadows, m_CorrespondingSourceObject, m_DynamicOccludee, m_EnableGPUInstancing, m_Enabled, m_Flip, m_FreeformStretching, m_GameObject, m_IgnoreNormalsForChartDetection, m_ImportantGI, m_LightProbeUsage, m_LightProbeVolumeOverride, m_LightmapParameters, m_MaskInteraction, m_MaxParticleSize, m_Mesh1, m_Mesh2, m_Mesh3, m_MeshDistribution, m_MeshWeighting, m_MeshWeighting1, m_MeshWeighting2, m_MeshWeighting3, m_MinParticleSize, m_MinimumChartSize, m_MotionVectors, m_NormalDirection, m_ObjectHideFlags, m_PrefabAsset, m_PrefabInstance, m_PreserveUVs, m_ProbeAnchor, m_RayTraceProcedural, m_RayTracingAccelStructBuildFlags, m_RayTracingAccelStructBuildFlagsOverride, m_RayTracingMode, m_ReceiveGI, m_ReceiveShadows, m_ReflectionProbeUsage, m_RendererPriority, m_RenderingLayerMask, m_RotateWithStretchDirection, m_ScaleInLightmap, m_SelectedEditorRenderState, m_ShadowBias, m_SmallMeshCulling, m_SortMode, m_SortingLayer, m_SortingLayerID, m_StaticBatchInfo, m_StaticBatchRoot, m_StaticShadowCaster, m_StitchLightmapSeams, m_TrailVertexStreams, m_UseCustomTrailVertexStreams, m_UseCustomVertexStreams, m_VertexStreams, serializedVersion",
       "ShapeModule exported fields not played: alignToDirection, boxThickness, donutRadius, length, m_Mesh, m_MeshMaterialIndex, m_MeshNormalOffset, m_MeshRenderer, m_MeshSpawn, m_SkinnedMeshRenderer, m_Sprite, m_SpriteRenderer, m_Texture, m_TextureAlphaAffectsParticles, m_TextureBilinearFiltering, m_TextureClipChannel, m_TextureClipThreshold, m_TextureColorAffectsParticles, m_TextureUVChannel, m_UseMeshColors, m_UseMeshMaterialIndex, placementMode, randomDirectionAmount, randomPositionAmount, sphericalDirectionAmount",
-      "imported mesh 0000000000000000e000000000000000"
+      "shader client/Unity/Assets/Resources/Shaders/MankiToonVolume.shader interpreted as unlit texture"
     ],
     "client/Unity/Assets/CharacterPackages/manki/Presentation/MankiNormalHit.prefab": [
       "InitialModule fields not played: customEmitterVelocity, gravitySource",
@@ -1936,6 +2300,25 @@
       "InitialModule fields not played: customEmitterVelocity, gravitySource",
       "ParticleSystem serialization/control fields not played: autoRandomSeed, cullingMode, emitterVelocityMode, m_CorrespondingSourceObject, m_GameObject, m_ObjectHideFlags, m_PrefabAsset, m_PrefabInstance, moveWithCustomTransform, randomSeed, ringBufferLoopRange, ringBufferMode, serializedVersion, stopAction, useUnscaledTime",
       "ParticleSystemRenderer fields not played: m_AllowRoll, m_ApplyActiveColorSpace, m_AutoUVMaxAngle, m_AutoUVMaxDistance, m_CastShadows, m_CorrespondingSourceObject, m_DynamicOccludee, m_EnableGPUInstancing, m_Enabled, m_Flip, m_FreeformStretching, m_GameObject, m_IgnoreNormalsForChartDetection, m_ImportantGI, m_LightProbeUsage, m_LightProbeVolumeOverride, m_LightmapParameters, m_MaskInteraction, m_MaxParticleSize, m_Mesh1, m_Mesh2, m_Mesh3, m_MeshDistribution, m_MeshWeighting, m_MeshWeighting1, m_MeshWeighting2, m_MeshWeighting3, m_MinParticleSize, m_MinimumChartSize, m_MotionVectors, m_NormalDirection, m_ObjectHideFlags, m_PrefabAsset, m_PrefabInstance, m_PreserveUVs, m_ProbeAnchor, m_RayTraceProcedural, m_RayTracingAccelStructBuildFlags, m_RayTracingAccelStructBuildFlagsOverride, m_RayTracingMode, m_ReceiveGI, m_ReceiveShadows, m_ReflectionProbeUsage, m_RendererPriority, m_RenderingLayerMask, m_RotateWithStretchDirection, m_ScaleInLightmap, m_SelectedEditorRenderState, m_ShadowBias, m_SmallMeshCulling, m_SortMode, m_SortingLayer, m_SortingLayerID, m_StaticBatchInfo, m_StaticBatchRoot, m_StaticShadowCaster, m_StitchLightmapSeams, m_TrailVertexStreams, m_UseCustomTrailVertexStreams, m_UseCustomVertexStreams, m_VertexStreams, serializedVersion",
+      "ShapeModule exported fields not played: alignToDirection, boxThickness, donutRadius, length, m_Mesh, m_MeshMaterialIndex, m_MeshNormalOffset, m_MeshRenderer, m_MeshSpawn, m_SkinnedMeshRenderer, m_Sprite, m_SpriteRenderer, m_Texture, m_TextureAlphaAffectsParticles, m_TextureBilinearFiltering, m_TextureClipChannel, m_TextureClipThreshold, m_TextureColorAffectsParticles, m_TextureUVChannel, m_UseMeshColors, m_UseMeshMaterialIndex, placementMode, randomDirectionAmount, randomPositionAmount, sphericalDirectionAmount",
+      "UVModule exported fields not played: animationType, flipU, flipV, rowIndex, rowMode, speedRange, sprites, uvChannelMask",
+      "behaviour NyxAttackCue exported but not played",
+      "particle NoiseModule uses coherent value noise instead of Unity Perlin"
+    ],
+    "client/Unity/Assets/CharacterPackages/nyx/Presentation/NyxCastAura.prefab": [
+      "behaviour NyxCastAura exported but not played"
+    ],
+    "client/Unity/Assets/CharacterPackages/nyx/Presentation/NyxCrowLaunch.prefab": [
+      "InitialModule fields not played: customEmitterVelocity, gravitySource",
+      "ParticleSystem serialization/control fields not played: autoRandomSeed, cullingMode, emitterVelocityMode, m_CorrespondingSourceObject, m_GameObject, m_ObjectHideFlags, m_PrefabAsset, m_PrefabInstance, moveWithCustomTransform, randomSeed, ringBufferLoopRange, ringBufferMode, serializedVersion, stopAction, useUnscaledTime",
+      "ParticleSystemRenderer fields not played: m_AllowRoll, m_ApplyActiveColorSpace, m_AutoUVMaxAngle, m_AutoUVMaxDistance, m_CastShadows, m_CorrespondingSourceObject, m_DynamicOccludee, m_EnableGPUInstancing, m_Enabled, m_Flip, m_FreeformStretching, m_GameObject, m_IgnoreNormalsForChartDetection, m_ImportantGI, m_LightProbeUsage, m_LightProbeVolumeOverride, m_LightmapParameters, m_MaskInteraction, m_MaxParticleSize, m_Mesh1, m_Mesh2, m_Mesh3, m_MeshDistribution, m_MeshWeighting, m_MeshWeighting1, m_MeshWeighting2, m_MeshWeighting3, m_MinParticleSize, m_MinimumChartSize, m_MotionVectors, m_NormalDirection, m_ObjectHideFlags, m_PrefabAsset, m_PrefabInstance, m_PreserveUVs, m_ProbeAnchor, m_RayTraceProcedural, m_RayTracingAccelStructBuildFlags, m_RayTracingAccelStructBuildFlagsOverride, m_RayTracingMode, m_ReceiveGI, m_ReceiveShadows, m_ReflectionProbeUsage, m_RendererPriority, m_RenderingLayerMask, m_RotateWithStretchDirection, m_ScaleInLightmap, m_SelectedEditorRenderState, m_ShadowBias, m_SmallMeshCulling, m_SortMode, m_SortingLayer, m_SortingLayerID, m_StaticBatchInfo, m_StaticBatchRoot, m_StaticShadowCaster, m_StitchLightmapSeams, m_TrailVertexStreams, m_UseCustomTrailVertexStreams, m_UseCustomVertexStreams, m_VertexStreams, serializedVersion",
+      "ShapeModule exported fields not played: alignToDirection, boxThickness, donutRadius, length, m_Mesh, m_MeshMaterialIndex, m_MeshNormalOffset, m_MeshRenderer, m_MeshSpawn, m_SkinnedMeshRenderer, m_Sprite, m_SpriteRenderer, m_Texture, m_TextureAlphaAffectsParticles, m_TextureBilinearFiltering, m_TextureClipChannel, m_TextureClipThreshold, m_TextureColorAffectsParticles, m_TextureUVChannel, m_UseMeshColors, m_UseMeshMaterialIndex, placementMode, randomDirectionAmount, randomPositionAmount, sphericalDirectionAmount",
+      "behaviour NyxAttackCue exported but not played"
+    ],
+    "client/Unity/Assets/CharacterPackages/nyx/Presentation/NyxCrowPeck.prefab": [
+      "InitialModule fields not played: customEmitterVelocity, gravitySource",
+      "ParticleSystem serialization/control fields not played: autoRandomSeed, cullingMode, emitterVelocityMode, m_CorrespondingSourceObject, m_GameObject, m_ObjectHideFlags, m_PrefabAsset, m_PrefabInstance, moveWithCustomTransform, randomSeed, ringBufferLoopRange, ringBufferMode, serializedVersion, stopAction, useUnscaledTime",
+      "ParticleSystemRenderer fields not played: m_AllowRoll, m_ApplyActiveColorSpace, m_AutoUVMaxAngle, m_AutoUVMaxDistance, m_CastShadows, m_CorrespondingSourceObject, m_DynamicOccludee, m_EnableGPUInstancing, m_Enabled, m_Flip, m_FreeformStretching, m_GameObject, m_IgnoreNormalsForChartDetection, m_ImportantGI, m_LightProbeUsage, m_LightProbeVolumeOverride, m_LightmapParameters, m_MaskInteraction, m_MaxParticleSize, m_Mesh1, m_Mesh2, m_Mesh3, m_MeshDistribution, m_MeshWeighting, m_MeshWeighting1, m_MeshWeighting2, m_MeshWeighting3, m_MinParticleSize, m_MinimumChartSize, m_MotionVectors, m_NormalDirection, m_ObjectHideFlags, m_PrefabAsset, m_PrefabInstance, m_PreserveUVs, m_ProbeAnchor, m_RayTraceProcedural, m_RayTracingAccelStructBuildFlags, m_RayTracingAccelStructBuildFlagsOverride, m_RayTracingMode, m_ReceiveGI, m_ReceiveShadows, m_ReflectionProbeUsage, m_RendererPriority, m_RenderingLayerMask, m_RotateWithStretchDirection, m_ScaleInLightmap, m_SelectedEditorRenderState, m_ShadowBias, m_SmallMeshCulling, m_SortMode, m_SortingLayer, m_SortingLayerID, m_StaticBatchInfo, m_StaticBatchRoot, m_StaticShadowCaster, m_StitchLightmapSeams, m_TrailVertexStreams, m_UseCustomTrailVertexStreams, m_UseCustomVertexStreams, m_VertexStreams, serializedVersion",
       "ShapeModule exported fields not played: alignToDirection, boxThickness, donutRadius, length, m_Mesh, m_MeshMaterialIndex, m_MeshNormalOffset, m_MeshRenderer, m_MeshSpawn, m_SkinnedMeshRenderer, m_Sprite, m_SpriteRenderer, m_Texture, m_TextureAlphaAffectsParticles, m_TextureBilinearFiltering, m_TextureClipChannel, m_TextureClipThreshold, m_TextureColorAffectsParticles, m_TextureUVChannel, m_UseMeshColors, m_UseMeshMaterialIndex, placementMode, randomDirectionAmount, randomPositionAmount, sphericalDirectionAmount"
     ],
     "client/Unity/Assets/CharacterPackages/nyx/Presentation/NyxCrowPop.prefab": [
@@ -1944,17 +2327,78 @@
       "ParticleSystemRenderer fields not played: m_AllowRoll, m_ApplyActiveColorSpace, m_AutoUVMaxAngle, m_AutoUVMaxDistance, m_CastShadows, m_CorrespondingSourceObject, m_DynamicOccludee, m_EnableGPUInstancing, m_Enabled, m_Flip, m_FreeformStretching, m_GameObject, m_IgnoreNormalsForChartDetection, m_ImportantGI, m_LightProbeUsage, m_LightProbeVolumeOverride, m_LightmapParameters, m_MaskInteraction, m_MaxParticleSize, m_Mesh1, m_Mesh2, m_Mesh3, m_MeshDistribution, m_MeshWeighting, m_MeshWeighting1, m_MeshWeighting2, m_MeshWeighting3, m_MinParticleSize, m_MinimumChartSize, m_MotionVectors, m_NormalDirection, m_ObjectHideFlags, m_PrefabAsset, m_PrefabInstance, m_PreserveUVs, m_ProbeAnchor, m_RayTraceProcedural, m_RayTracingAccelStructBuildFlags, m_RayTracingAccelStructBuildFlagsOverride, m_RayTracingMode, m_ReceiveGI, m_ReceiveShadows, m_ReflectionProbeUsage, m_RendererPriority, m_RenderingLayerMask, m_RotateWithStretchDirection, m_ScaleInLightmap, m_SelectedEditorRenderState, m_ShadowBias, m_SmallMeshCulling, m_SortMode, m_SortingLayer, m_SortingLayerID, m_StaticBatchInfo, m_StaticBatchRoot, m_StaticShadowCaster, m_StitchLightmapSeams, m_TrailVertexStreams, m_UseCustomTrailVertexStreams, m_UseCustomVertexStreams, m_VertexStreams, serializedVersion",
       "ShapeModule exported fields not played: alignToDirection, boxThickness, donutRadius, length, m_Mesh, m_MeshMaterialIndex, m_MeshNormalOffset, m_MeshRenderer, m_MeshSpawn, m_SkinnedMeshRenderer, m_Sprite, m_SpriteRenderer, m_Texture, m_TextureAlphaAffectsParticles, m_TextureBilinearFiltering, m_TextureClipChannel, m_TextureClipThreshold, m_TextureColorAffectsParticles, m_TextureUVChannel, m_UseMeshColors, m_UseMeshMaterialIndex, placementMode, randomDirectionAmount, randomPositionAmount, sphericalDirectionAmount"
     ],
+    "client/Unity/Assets/CharacterPackages/nyx/Presentation/NyxCrowScatter.prefab": [
+      "InitialModule fields not played: customEmitterVelocity, gravitySource",
+      "ParticleSystem serialization/control fields not played: autoRandomSeed, cullingMode, emitterVelocityMode, m_CorrespondingSourceObject, m_GameObject, m_ObjectHideFlags, m_PrefabAsset, m_PrefabInstance, moveWithCustomTransform, randomSeed, ringBufferLoopRange, ringBufferMode, serializedVersion, stopAction, useUnscaledTime",
+      "ParticleSystemRenderer fields not played: m_AllowRoll, m_ApplyActiveColorSpace, m_AutoUVMaxAngle, m_AutoUVMaxDistance, m_CastShadows, m_CorrespondingSourceObject, m_DynamicOccludee, m_EnableGPUInstancing, m_Enabled, m_Flip, m_FreeformStretching, m_GameObject, m_IgnoreNormalsForChartDetection, m_ImportantGI, m_LightProbeUsage, m_LightProbeVolumeOverride, m_LightmapParameters, m_MaskInteraction, m_MaxParticleSize, m_Mesh1, m_Mesh2, m_Mesh3, m_MeshDistribution, m_MeshWeighting, m_MeshWeighting1, m_MeshWeighting2, m_MeshWeighting3, m_MinParticleSize, m_MinimumChartSize, m_MotionVectors, m_NormalDirection, m_ObjectHideFlags, m_PrefabAsset, m_PrefabInstance, m_PreserveUVs, m_ProbeAnchor, m_RayTraceProcedural, m_RayTracingAccelStructBuildFlags, m_RayTracingAccelStructBuildFlagsOverride, m_RayTracingMode, m_ReceiveGI, m_ReceiveShadows, m_ReflectionProbeUsage, m_RendererPriority, m_RenderingLayerMask, m_RotateWithStretchDirection, m_ScaleInLightmap, m_SelectedEditorRenderState, m_ShadowBias, m_SmallMeshCulling, m_SortMode, m_SortingLayer, m_SortingLayerID, m_StaticBatchInfo, m_StaticBatchRoot, m_StaticShadowCaster, m_StitchLightmapSeams, m_TrailVertexStreams, m_UseCustomTrailVertexStreams, m_UseCustomVertexStreams, m_VertexStreams, serializedVersion",
+      "ShapeModule exported fields not played: alignToDirection, boxThickness, donutRadius, length, m_Mesh, m_MeshMaterialIndex, m_MeshNormalOffset, m_MeshRenderer, m_MeshSpawn, m_SkinnedMeshRenderer, m_Sprite, m_SpriteRenderer, m_Texture, m_TextureAlphaAffectsParticles, m_TextureBilinearFiltering, m_TextureClipChannel, m_TextureClipThreshold, m_TextureColorAffectsParticles, m_TextureUVChannel, m_UseMeshColors, m_UseMeshMaterialIndex, placementMode, randomDirectionAmount, randomPositionAmount, sphericalDirectionAmount"
+    ],
+    "client/Unity/Assets/CharacterPackages/nyx/Presentation/NyxDropkickSpike.prefab": [
+      "InitialModule fields not played: customEmitterVelocity, gravitySource",
+      "ParticleSystem serialization/control fields not played: autoRandomSeed, cullingMode, emitterVelocityMode, m_CorrespondingSourceObject, m_GameObject, m_ObjectHideFlags, m_PrefabAsset, m_PrefabInstance, moveWithCustomTransform, randomSeed, ringBufferLoopRange, ringBufferMode, serializedVersion, stopAction, useUnscaledTime",
+      "ParticleSystemRenderer fields not played: m_AllowRoll, m_ApplyActiveColorSpace, m_AutoUVMaxAngle, m_AutoUVMaxDistance, m_CastShadows, m_CorrespondingSourceObject, m_DynamicOccludee, m_EnableGPUInstancing, m_Enabled, m_Flip, m_FreeformStretching, m_GameObject, m_IgnoreNormalsForChartDetection, m_ImportantGI, m_LightProbeUsage, m_LightProbeVolumeOverride, m_LightmapParameters, m_MaskInteraction, m_MaxParticleSize, m_Mesh1, m_Mesh2, m_Mesh3, m_MeshDistribution, m_MeshWeighting, m_MeshWeighting1, m_MeshWeighting2, m_MeshWeighting3, m_MinParticleSize, m_MinimumChartSize, m_MotionVectors, m_NormalDirection, m_ObjectHideFlags, m_PrefabAsset, m_PrefabInstance, m_PreserveUVs, m_ProbeAnchor, m_RayTraceProcedural, m_RayTracingAccelStructBuildFlags, m_RayTracingAccelStructBuildFlagsOverride, m_RayTracingMode, m_ReceiveGI, m_ReceiveShadows, m_ReflectionProbeUsage, m_RendererPriority, m_RenderingLayerMask, m_RotateWithStretchDirection, m_ScaleInLightmap, m_SelectedEditorRenderState, m_ShadowBias, m_SmallMeshCulling, m_SortMode, m_SortingLayer, m_SortingLayerID, m_StaticBatchInfo, m_StaticBatchRoot, m_StaticShadowCaster, m_StitchLightmapSeams, m_TrailVertexStreams, m_UseCustomTrailVertexStreams, m_UseCustomVertexStreams, m_VertexStreams, serializedVersion",
+      "ShapeModule exported fields not played: alignToDirection, boxThickness, donutRadius, length, m_Mesh, m_MeshMaterialIndex, m_MeshNormalOffset, m_MeshRenderer, m_MeshSpawn, m_SkinnedMeshRenderer, m_Sprite, m_SpriteRenderer, m_Texture, m_TextureAlphaAffectsParticles, m_TextureBilinearFiltering, m_TextureClipChannel, m_TextureClipThreshold, m_TextureColorAffectsParticles, m_TextureUVChannel, m_UseMeshColors, m_UseMeshMaterialIndex, placementMode, randomDirectionAmount, randomPositionAmount, sphericalDirectionAmount",
+      "behaviour NyxAttackCue exported but not played"
+    ],
+    "client/Unity/Assets/CharacterPackages/nyx/Presentation/NyxFloorLash.prefab": [
+      "InitialModule fields not played: customEmitterVelocity, gravitySource",
+      "ParticleSystem serialization/control fields not played: autoRandomSeed, cullingMode, emitterVelocityMode, m_CorrespondingSourceObject, m_GameObject, m_ObjectHideFlags, m_PrefabAsset, m_PrefabInstance, moveWithCustomTransform, randomSeed, ringBufferLoopRange, ringBufferMode, serializedVersion, stopAction, useUnscaledTime",
+      "ParticleSystemRenderer fields not played: m_AllowRoll, m_ApplyActiveColorSpace, m_AutoUVMaxAngle, m_AutoUVMaxDistance, m_CastShadows, m_CorrespondingSourceObject, m_DynamicOccludee, m_EnableGPUInstancing, m_Enabled, m_Flip, m_FreeformStretching, m_GameObject, m_IgnoreNormalsForChartDetection, m_ImportantGI, m_LightProbeUsage, m_LightProbeVolumeOverride, m_LightmapParameters, m_MaskInteraction, m_MaxParticleSize, m_Mesh1, m_Mesh2, m_Mesh3, m_MeshDistribution, m_MeshWeighting, m_MeshWeighting1, m_MeshWeighting2, m_MeshWeighting3, m_MinParticleSize, m_MinimumChartSize, m_MotionVectors, m_NormalDirection, m_ObjectHideFlags, m_PrefabAsset, m_PrefabInstance, m_PreserveUVs, m_ProbeAnchor, m_RayTraceProcedural, m_RayTracingAccelStructBuildFlags, m_RayTracingAccelStructBuildFlagsOverride, m_RayTracingMode, m_ReceiveGI, m_ReceiveShadows, m_ReflectionProbeUsage, m_RendererPriority, m_RenderingLayerMask, m_RotateWithStretchDirection, m_ScaleInLightmap, m_SelectedEditorRenderState, m_ShadowBias, m_SmallMeshCulling, m_SortMode, m_SortingLayer, m_SortingLayerID, m_StaticBatchInfo, m_StaticBatchRoot, m_StaticShadowCaster, m_StitchLightmapSeams, m_TrailVertexStreams, m_UseCustomTrailVertexStreams, m_UseCustomVertexStreams, m_VertexStreams, serializedVersion",
+      "ShapeModule exported fields not played: alignToDirection, boxThickness, donutRadius, length, m_Mesh, m_MeshMaterialIndex, m_MeshNormalOffset, m_MeshRenderer, m_MeshSpawn, m_SkinnedMeshRenderer, m_Sprite, m_SpriteRenderer, m_Texture, m_TextureAlphaAffectsParticles, m_TextureBilinearFiltering, m_TextureClipChannel, m_TextureClipThreshold, m_TextureColorAffectsParticles, m_TextureUVChannel, m_UseMeshColors, m_UseMeshMaterialIndex, placementMode, randomDirectionAmount, randomPositionAmount, sphericalDirectionAmount",
+      "behaviour NyxAttackCue exported but not played"
+    ],
+    "client/Unity/Assets/CharacterPackages/nyx/Presentation/NyxGoingLive.prefab": [
+      "InitialModule fields not played: customEmitterVelocity, gravitySource",
+      "ParticleSystem serialization/control fields not played: autoRandomSeed, cullingMode, emitterVelocityMode, m_CorrespondingSourceObject, m_GameObject, m_ObjectHideFlags, m_PrefabAsset, m_PrefabInstance, moveWithCustomTransform, randomSeed, ringBufferLoopRange, ringBufferMode, serializedVersion, stopAction, useUnscaledTime",
+      "ParticleSystemRenderer fields not played: m_AllowRoll, m_ApplyActiveColorSpace, m_AutoUVMaxAngle, m_AutoUVMaxDistance, m_CastShadows, m_CorrespondingSourceObject, m_DynamicOccludee, m_EnableGPUInstancing, m_Enabled, m_Flip, m_FreeformStretching, m_GameObject, m_IgnoreNormalsForChartDetection, m_ImportantGI, m_LightProbeUsage, m_LightProbeVolumeOverride, m_LightmapParameters, m_MaskInteraction, m_MaxParticleSize, m_Mesh1, m_Mesh2, m_Mesh3, m_MeshDistribution, m_MeshWeighting, m_MeshWeighting1, m_MeshWeighting2, m_MeshWeighting3, m_MinParticleSize, m_MinimumChartSize, m_MotionVectors, m_NormalDirection, m_ObjectHideFlags, m_PrefabAsset, m_PrefabInstance, m_PreserveUVs, m_ProbeAnchor, m_RayTraceProcedural, m_RayTracingAccelStructBuildFlags, m_RayTracingAccelStructBuildFlagsOverride, m_RayTracingMode, m_ReceiveGI, m_ReceiveShadows, m_ReflectionProbeUsage, m_RendererPriority, m_RenderingLayerMask, m_RotateWithStretchDirection, m_ScaleInLightmap, m_SelectedEditorRenderState, m_ShadowBias, m_SmallMeshCulling, m_SortMode, m_SortingLayer, m_SortingLayerID, m_StaticBatchInfo, m_StaticBatchRoot, m_StaticShadowCaster, m_StitchLightmapSeams, m_TrailVertexStreams, m_UseCustomTrailVertexStreams, m_UseCustomVertexStreams, m_VertexStreams, serializedVersion",
+      "ShapeModule exported fields not played: alignToDirection, boxThickness, donutRadius, length, m_Mesh, m_MeshMaterialIndex, m_MeshNormalOffset, m_MeshRenderer, m_MeshSpawn, m_SkinnedMeshRenderer, m_Sprite, m_SpriteRenderer, m_Texture, m_TextureAlphaAffectsParticles, m_TextureBilinearFiltering, m_TextureClipChannel, m_TextureClipThreshold, m_TextureColorAffectsParticles, m_TextureUVChannel, m_UseMeshColors, m_UseMeshMaterialIndex, placementMode, randomDirectionAmount, randomPositionAmount, sphericalDirectionAmount",
+      "behaviour NyxAttackCue exported but not played"
+    ],
     "client/Unity/Assets/CharacterPackages/nyx/Presentation/NyxGraspCatch.prefab": [
-      "PlacedTetherVisual partner placement played; TetherRopePresenter rope/retract lifecycle not reproduced"
+      "InitialModule fields not played: customEmitterVelocity, gravitySource",
+      "ParticleSystem serialization/control fields not played: autoRandomSeed, cullingMode, emitterVelocityMode, m_CorrespondingSourceObject, m_GameObject, m_ObjectHideFlags, m_PrefabAsset, m_PrefabInstance, moveWithCustomTransform, randomSeed, ringBufferLoopRange, ringBufferMode, serializedVersion, stopAction, useUnscaledTime",
+      "ParticleSystemRenderer fields not played: m_AllowRoll, m_ApplyActiveColorSpace, m_AutoUVMaxAngle, m_AutoUVMaxDistance, m_CastShadows, m_CorrespondingSourceObject, m_DynamicOccludee, m_EnableGPUInstancing, m_Enabled, m_Flip, m_FreeformStretching, m_GameObject, m_IgnoreNormalsForChartDetection, m_ImportantGI, m_LightProbeUsage, m_LightProbeVolumeOverride, m_LightmapParameters, m_MaskInteraction, m_MaxParticleSize, m_Mesh1, m_Mesh2, m_Mesh3, m_MeshDistribution, m_MeshWeighting, m_MeshWeighting1, m_MeshWeighting2, m_MeshWeighting3, m_MinParticleSize, m_MinimumChartSize, m_MotionVectors, m_NormalDirection, m_ObjectHideFlags, m_PrefabAsset, m_PrefabInstance, m_PreserveUVs, m_ProbeAnchor, m_RayTraceProcedural, m_RayTracingAccelStructBuildFlags, m_RayTracingAccelStructBuildFlagsOverride, m_RayTracingMode, m_ReceiveGI, m_ReceiveShadows, m_ReflectionProbeUsage, m_RendererPriority, m_RenderingLayerMask, m_RotateWithStretchDirection, m_ScaleInLightmap, m_SelectedEditorRenderState, m_ShadowBias, m_SmallMeshCulling, m_SortMode, m_SortingLayer, m_SortingLayerID, m_StaticBatchInfo, m_StaticBatchRoot, m_StaticShadowCaster, m_StitchLightmapSeams, m_TrailVertexStreams, m_UseCustomTrailVertexStreams, m_UseCustomVertexStreams, m_VertexStreams, serializedVersion",
+      "PlacedTetherVisual partner placement played; TetherRopePresenter rope/retract lifecycle not reproduced",
+      "ShapeModule exported fields not played: alignToDirection, boxThickness, donutRadius, length, m_Mesh, m_MeshMaterialIndex, m_MeshNormalOffset, m_MeshRenderer, m_MeshSpawn, m_SkinnedMeshRenderer, m_Sprite, m_SpriteRenderer, m_Texture, m_TextureAlphaAffectsParticles, m_TextureBilinearFiltering, m_TextureClipChannel, m_TextureClipThreshold, m_TextureColorAffectsParticles, m_TextureUVChannel, m_UseMeshColors, m_UseMeshMaterialIndex, placementMode, randomDirectionAmount, randomPositionAmount, sphericalDirectionAmount"
     ],
     "client/Unity/Assets/CharacterPackages/nyx/Presentation/NyxGraspDrag.prefab": [
-      "PlacedTetherVisual partner placement played; TetherRopePresenter rope/retract lifecycle not reproduced"
+      "InitialModule fields not played: customEmitterVelocity, gravitySource",
+      "ParticleSystem serialization/control fields not played: autoRandomSeed, cullingMode, emitterVelocityMode, m_CorrespondingSourceObject, m_GameObject, m_ObjectHideFlags, m_PrefabAsset, m_PrefabInstance, moveWithCustomTransform, randomSeed, ringBufferLoopRange, ringBufferMode, serializedVersion, stopAction, useUnscaledTime",
+      "ParticleSystemRenderer fields not played: m_AllowRoll, m_ApplyActiveColorSpace, m_AutoUVMaxAngle, m_AutoUVMaxDistance, m_CastShadows, m_CorrespondingSourceObject, m_DynamicOccludee, m_EnableGPUInstancing, m_Enabled, m_Flip, m_FreeformStretching, m_GameObject, m_IgnoreNormalsForChartDetection, m_ImportantGI, m_LightProbeUsage, m_LightProbeVolumeOverride, m_LightmapParameters, m_MaskInteraction, m_MaxParticleSize, m_Mesh1, m_Mesh2, m_Mesh3, m_MeshDistribution, m_MeshWeighting, m_MeshWeighting1, m_MeshWeighting2, m_MeshWeighting3, m_MinParticleSize, m_MinimumChartSize, m_MotionVectors, m_NormalDirection, m_ObjectHideFlags, m_PrefabAsset, m_PrefabInstance, m_PreserveUVs, m_ProbeAnchor, m_RayTraceProcedural, m_RayTracingAccelStructBuildFlags, m_RayTracingAccelStructBuildFlagsOverride, m_RayTracingMode, m_ReceiveGI, m_ReceiveShadows, m_ReflectionProbeUsage, m_RendererPriority, m_RenderingLayerMask, m_RotateWithStretchDirection, m_ScaleInLightmap, m_SelectedEditorRenderState, m_ShadowBias, m_SmallMeshCulling, m_SortMode, m_SortingLayer, m_SortingLayerID, m_StaticBatchInfo, m_StaticBatchRoot, m_StaticShadowCaster, m_StitchLightmapSeams, m_TrailVertexStreams, m_UseCustomTrailVertexStreams, m_UseCustomVertexStreams, m_VertexStreams, serializedVersion",
+      "PlacedTetherVisual partner placement played; TetherRopePresenter rope/retract lifecycle not reproduced",
+      "ShapeModule exported fields not played: alignToDirection, boxThickness, donutRadius, length, m_Mesh, m_MeshMaterialIndex, m_MeshNormalOffset, m_MeshRenderer, m_MeshSpawn, m_SkinnedMeshRenderer, m_Sprite, m_SpriteRenderer, m_Texture, m_TextureAlphaAffectsParticles, m_TextureBilinearFiltering, m_TextureClipChannel, m_TextureClipThreshold, m_TextureColorAffectsParticles, m_TextureUVChannel, m_UseMeshColors, m_UseMeshMaterialIndex, placementMode, randomDirectionAmount, randomPositionAmount, sphericalDirectionAmount"
+    ],
+    "client/Unity/Assets/CharacterPackages/nyx/Presentation/NyxGraspPop.prefab": [
+      "InitialModule fields not played: customEmitterVelocity, gravitySource",
+      "ParticleSystem serialization/control fields not played: autoRandomSeed, cullingMode, emitterVelocityMode, m_CorrespondingSourceObject, m_GameObject, m_ObjectHideFlags, m_PrefabAsset, m_PrefabInstance, moveWithCustomTransform, randomSeed, ringBufferLoopRange, ringBufferMode, serializedVersion, stopAction, useUnscaledTime",
+      "ParticleSystemRenderer fields not played: m_AllowRoll, m_ApplyActiveColorSpace, m_AutoUVMaxAngle, m_AutoUVMaxDistance, m_CastShadows, m_CorrespondingSourceObject, m_DynamicOccludee, m_EnableGPUInstancing, m_Enabled, m_Flip, m_FreeformStretching, m_GameObject, m_IgnoreNormalsForChartDetection, m_ImportantGI, m_LightProbeUsage, m_LightProbeVolumeOverride, m_LightmapParameters, m_MaskInteraction, m_MaxParticleSize, m_Mesh1, m_Mesh2, m_Mesh3, m_MeshDistribution, m_MeshWeighting, m_MeshWeighting1, m_MeshWeighting2, m_MeshWeighting3, m_MinParticleSize, m_MinimumChartSize, m_MotionVectors, m_NormalDirection, m_ObjectHideFlags, m_PrefabAsset, m_PrefabInstance, m_PreserveUVs, m_ProbeAnchor, m_RayTraceProcedural, m_RayTracingAccelStructBuildFlags, m_RayTracingAccelStructBuildFlagsOverride, m_RayTracingMode, m_ReceiveGI, m_ReceiveShadows, m_ReflectionProbeUsage, m_RendererPriority, m_RenderingLayerMask, m_RotateWithStretchDirection, m_ScaleInLightmap, m_SelectedEditorRenderState, m_ShadowBias, m_SmallMeshCulling, m_SortMode, m_SortingLayer, m_SortingLayerID, m_StaticBatchInfo, m_StaticBatchRoot, m_StaticShadowCaster, m_StitchLightmapSeams, m_TrailVertexStreams, m_UseCustomTrailVertexStreams, m_UseCustomVertexStreams, m_VertexStreams, serializedVersion",
+      "ShapeModule exported fields not played: alignToDirection, boxThickness, donutRadius, length, m_Mesh, m_MeshMaterialIndex, m_MeshNormalOffset, m_MeshRenderer, m_MeshSpawn, m_SkinnedMeshRenderer, m_Sprite, m_SpriteRenderer, m_Texture, m_TextureAlphaAffectsParticles, m_TextureBilinearFiltering, m_TextureClipChannel, m_TextureClipThreshold, m_TextureColorAffectsParticles, m_TextureUVChannel, m_UseMeshColors, m_UseMeshMaterialIndex, placementMode, randomDirectionAmount, randomPositionAmount, sphericalDirectionAmount"
+    ],
+    "client/Unity/Assets/CharacterPackages/nyx/Presentation/NyxGraspWarning.prefab": [
+      "InitialModule fields not played: customEmitterVelocity, gravitySource",
+      "ParticleSystem serialization/control fields not played: autoRandomSeed, cullingMode, emitterVelocityMode, m_CorrespondingSourceObject, m_GameObject, m_ObjectHideFlags, m_PrefabAsset, m_PrefabInstance, moveWithCustomTransform, randomSeed, ringBufferLoopRange, ringBufferMode, serializedVersion, stopAction, useUnscaledTime",
+      "ParticleSystemRenderer fields not played: m_AllowRoll, m_ApplyActiveColorSpace, m_AutoUVMaxAngle, m_AutoUVMaxDistance, m_CastShadows, m_CorrespondingSourceObject, m_DynamicOccludee, m_EnableGPUInstancing, m_Enabled, m_Flip, m_FreeformStretching, m_GameObject, m_IgnoreNormalsForChartDetection, m_ImportantGI, m_LightProbeUsage, m_LightProbeVolumeOverride, m_LightmapParameters, m_MaskInteraction, m_MaxParticleSize, m_Mesh1, m_Mesh2, m_Mesh3, m_MeshDistribution, m_MeshWeighting, m_MeshWeighting1, m_MeshWeighting2, m_MeshWeighting3, m_MinParticleSize, m_MinimumChartSize, m_MotionVectors, m_NormalDirection, m_ObjectHideFlags, m_PrefabAsset, m_PrefabInstance, m_PreserveUVs, m_ProbeAnchor, m_RayTraceProcedural, m_RayTracingAccelStructBuildFlags, m_RayTracingAccelStructBuildFlagsOverride, m_RayTracingMode, m_ReceiveGI, m_ReceiveShadows, m_ReflectionProbeUsage, m_RendererPriority, m_RenderingLayerMask, m_RotateWithStretchDirection, m_ScaleInLightmap, m_SelectedEditorRenderState, m_ShadowBias, m_SmallMeshCulling, m_SortMode, m_SortingLayer, m_SortingLayerID, m_StaticBatchInfo, m_StaticBatchRoot, m_StaticShadowCaster, m_StitchLightmapSeams, m_TrailVertexStreams, m_UseCustomTrailVertexStreams, m_UseCustomVertexStreams, m_VertexStreams, serializedVersion"
     ],
     "client/Unity/Assets/CharacterPackages/nyx/Presentation/NyxHexCrow.prefab": [
       "InitialModule fields not played: customEmitterVelocity, gravitySource",
       "ParticleSystem serialization/control fields not played: autoRandomSeed, cullingMode, emitterVelocityMode, m_CorrespondingSourceObject, m_GameObject, m_ObjectHideFlags, m_PrefabAsset, m_PrefabInstance, moveWithCustomTransform, randomSeed, ringBufferLoopRange, ringBufferMode, serializedVersion, stopAction, useUnscaledTime",
       "ParticleSystemRenderer fields not played: m_AllowRoll, m_ApplyActiveColorSpace, m_AutoUVMaxAngle, m_AutoUVMaxDistance, m_CastShadows, m_CorrespondingSourceObject, m_DynamicOccludee, m_EnableGPUInstancing, m_Enabled, m_Flip, m_FreeformStretching, m_GameObject, m_IgnoreNormalsForChartDetection, m_ImportantGI, m_LightProbeUsage, m_LightProbeVolumeOverride, m_LightmapParameters, m_MaskInteraction, m_MaxParticleSize, m_Mesh1, m_Mesh2, m_Mesh3, m_MeshDistribution, m_MeshWeighting, m_MeshWeighting1, m_MeshWeighting2, m_MeshWeighting3, m_MinParticleSize, m_MinimumChartSize, m_MotionVectors, m_NormalDirection, m_ObjectHideFlags, m_PrefabAsset, m_PrefabInstance, m_PreserveUVs, m_ProbeAnchor, m_RayTraceProcedural, m_RayTracingAccelStructBuildFlags, m_RayTracingAccelStructBuildFlagsOverride, m_RayTracingMode, m_ReceiveGI, m_ReceiveShadows, m_ReflectionProbeUsage, m_RendererPriority, m_RenderingLayerMask, m_RotateWithStretchDirection, m_ScaleInLightmap, m_SelectedEditorRenderState, m_ShadowBias, m_SmallMeshCulling, m_SortMode, m_SortingLayer, m_SortingLayerID, m_StaticBatchInfo, m_StaticBatchRoot, m_StaticShadowCaster, m_StitchLightmapSeams, m_TrailVertexStreams, m_UseCustomTrailVertexStreams, m_UseCustomVertexStreams, m_VertexStreams, serializedVersion",
-      "ShapeModule exported fields not played: alignToDirection, boxThickness, donutRadius, length, m_Mesh, m_MeshMaterialIndex, m_MeshNormalOffset, m_MeshRenderer, m_MeshSpawn, m_SkinnedMeshRenderer, m_Sprite, m_SpriteRenderer, m_Texture, m_TextureAlphaAffectsParticles, m_TextureBilinearFiltering, m_TextureClipChannel, m_TextureClipThreshold, m_TextureColorAffectsParticles, m_TextureUVChannel, m_UseMeshColors, m_UseMeshMaterialIndex, placementMode, randomDirectionAmount, randomPositionAmount, sphericalDirectionAmount"
+      "ShapeModule exported fields not played: alignToDirection, boxThickness, donutRadius, length, m_Mesh, m_MeshMaterialIndex, m_MeshNormalOffset, m_MeshRenderer, m_MeshSpawn, m_SkinnedMeshRenderer, m_Sprite, m_SpriteRenderer, m_Texture, m_TextureAlphaAffectsParticles, m_TextureBilinearFiltering, m_TextureClipChannel, m_TextureClipThreshold, m_TextureColorAffectsParticles, m_TextureUVChannel, m_UseMeshColors, m_UseMeshMaterialIndex, placementMode, randomDirectionAmount, randomPositionAmount, sphericalDirectionAmount",
+      "component class 120"
+    ],
+    "client/Unity/Assets/CharacterPackages/nyx/Presentation/NyxLoggingOff.prefab": [
+      "InitialModule fields not played: customEmitterVelocity, gravitySource",
+      "ParticleSystem serialization/control fields not played: autoRandomSeed, cullingMode, emitterVelocityMode, m_CorrespondingSourceObject, m_GameObject, m_ObjectHideFlags, m_PrefabAsset, m_PrefabInstance, moveWithCustomTransform, randomSeed, ringBufferLoopRange, ringBufferMode, serializedVersion, stopAction, useUnscaledTime",
+      "ParticleSystemRenderer fields not played: m_AllowRoll, m_ApplyActiveColorSpace, m_AutoUVMaxAngle, m_AutoUVMaxDistance, m_CastShadows, m_CorrespondingSourceObject, m_DynamicOccludee, m_EnableGPUInstancing, m_Enabled, m_Flip, m_FreeformStretching, m_GameObject, m_IgnoreNormalsForChartDetection, m_ImportantGI, m_LightProbeUsage, m_LightProbeVolumeOverride, m_LightmapParameters, m_MaskInteraction, m_MaxParticleSize, m_Mesh1, m_Mesh2, m_Mesh3, m_MeshDistribution, m_MeshWeighting, m_MeshWeighting1, m_MeshWeighting2, m_MeshWeighting3, m_MinParticleSize, m_MinimumChartSize, m_MotionVectors, m_NormalDirection, m_ObjectHideFlags, m_PrefabAsset, m_PrefabInstance, m_PreserveUVs, m_ProbeAnchor, m_RayTraceProcedural, m_RayTracingAccelStructBuildFlags, m_RayTracingAccelStructBuildFlagsOverride, m_RayTracingMode, m_ReceiveGI, m_ReceiveShadows, m_ReflectionProbeUsage, m_RendererPriority, m_RenderingLayerMask, m_RotateWithStretchDirection, m_ScaleInLightmap, m_SelectedEditorRenderState, m_ShadowBias, m_SmallMeshCulling, m_SortMode, m_SortingLayer, m_SortingLayerID, m_StaticBatchInfo, m_StaticBatchRoot, m_StaticShadowCaster, m_StitchLightmapSeams, m_TrailVertexStreams, m_UseCustomTrailVertexStreams, m_UseCustomVertexStreams, m_VertexStreams, serializedVersion",
+      "ShapeModule exported fields not played: alignToDirection, boxThickness, donutRadius, length, m_Mesh, m_MeshMaterialIndex, m_MeshNormalOffset, m_MeshRenderer, m_MeshSpawn, m_SkinnedMeshRenderer, m_Sprite, m_SpriteRenderer, m_Texture, m_TextureAlphaAffectsParticles, m_TextureBilinearFiltering, m_TextureClipChannel, m_TextureClipThreshold, m_TextureColorAffectsParticles, m_TextureUVChannel, m_UseMeshColors, m_UseMeshMaterialIndex, placementMode, randomDirectionAmount, randomPositionAmount, sphericalDirectionAmount",
+      "behaviour NyxAttackCue exported but not played"
+    ],
+    "client/Unity/Assets/CharacterPackages/nyx/Presentation/NyxPhoneSlaps.prefab": [
+      "InitialModule fields not played: customEmitterVelocity, gravitySource",
+      "ParticleSystem serialization/control fields not played: autoRandomSeed, cullingMode, emitterVelocityMode, m_CorrespondingSourceObject, m_GameObject, m_ObjectHideFlags, m_PrefabAsset, m_PrefabInstance, moveWithCustomTransform, randomSeed, ringBufferLoopRange, ringBufferMode, serializedVersion, stopAction, useUnscaledTime",
+      "ParticleSystemRenderer fields not played: m_AllowRoll, m_ApplyActiveColorSpace, m_AutoUVMaxAngle, m_AutoUVMaxDistance, m_CastShadows, m_CorrespondingSourceObject, m_DynamicOccludee, m_EnableGPUInstancing, m_Enabled, m_Flip, m_FreeformStretching, m_GameObject, m_IgnoreNormalsForChartDetection, m_ImportantGI, m_LightProbeUsage, m_LightProbeVolumeOverride, m_LightmapParameters, m_MaskInteraction, m_MaxParticleSize, m_Mesh1, m_Mesh2, m_Mesh3, m_MeshDistribution, m_MeshWeighting, m_MeshWeighting1, m_MeshWeighting2, m_MeshWeighting3, m_MinParticleSize, m_MinimumChartSize, m_MotionVectors, m_NormalDirection, m_ObjectHideFlags, m_PrefabAsset, m_PrefabInstance, m_PreserveUVs, m_ProbeAnchor, m_RayTraceProcedural, m_RayTracingAccelStructBuildFlags, m_RayTracingAccelStructBuildFlagsOverride, m_RayTracingMode, m_ReceiveGI, m_ReceiveShadows, m_ReflectionProbeUsage, m_RendererPriority, m_RenderingLayerMask, m_RotateWithStretchDirection, m_ScaleInLightmap, m_SelectedEditorRenderState, m_ShadowBias, m_SmallMeshCulling, m_SortMode, m_SortingLayer, m_SortingLayerID, m_StaticBatchInfo, m_StaticBatchRoot, m_StaticShadowCaster, m_StitchLightmapSeams, m_TrailVertexStreams, m_UseCustomTrailVertexStreams, m_UseCustomVertexStreams, m_VertexStreams, serializedVersion",
+      "ShapeModule exported fields not played: alignToDirection, boxThickness, donutRadius, length, m_Mesh, m_MeshMaterialIndex, m_MeshNormalOffset, m_MeshRenderer, m_MeshSpawn, m_SkinnedMeshRenderer, m_Sprite, m_SpriteRenderer, m_Texture, m_TextureAlphaAffectsParticles, m_TextureBilinearFiltering, m_TextureClipChannel, m_TextureClipThreshold, m_TextureColorAffectsParticles, m_TextureUVChannel, m_UseMeshColors, m_UseMeshMaterialIndex, placementMode, randomDirectionAmount, randomPositionAmount, sphericalDirectionAmount",
+      "behaviour NyxAttackCue exported but not played"
     ],
     "client/Unity/Assets/CharacterPackages/nyx/Presentation/NyxPinkHit.prefab": [
       "InitialModule fields not played: customEmitterVelocity, gravitySource",
@@ -1962,17 +2406,112 @@
       "ParticleSystemRenderer fields not played: m_AllowRoll, m_ApplyActiveColorSpace, m_AutoUVMaxAngle, m_AutoUVMaxDistance, m_CastShadows, m_CorrespondingSourceObject, m_DynamicOccludee, m_EnableGPUInstancing, m_Enabled, m_Flip, m_FreeformStretching, m_GameObject, m_IgnoreNormalsForChartDetection, m_ImportantGI, m_LightProbeUsage, m_LightProbeVolumeOverride, m_LightmapParameters, m_MaskInteraction, m_MaxParticleSize, m_Mesh1, m_Mesh2, m_Mesh3, m_MeshDistribution, m_MeshWeighting, m_MeshWeighting1, m_MeshWeighting2, m_MeshWeighting3, m_MinParticleSize, m_MinimumChartSize, m_MotionVectors, m_NormalDirection, m_ObjectHideFlags, m_PrefabAsset, m_PrefabInstance, m_PreserveUVs, m_ProbeAnchor, m_RayTraceProcedural, m_RayTracingAccelStructBuildFlags, m_RayTracingAccelStructBuildFlagsOverride, m_RayTracingMode, m_ReceiveGI, m_ReceiveShadows, m_ReflectionProbeUsage, m_RendererPriority, m_RenderingLayerMask, m_RotateWithStretchDirection, m_ScaleInLightmap, m_SelectedEditorRenderState, m_ShadowBias, m_SmallMeshCulling, m_SortMode, m_SortingLayer, m_SortingLayerID, m_StaticBatchInfo, m_StaticBatchRoot, m_StaticShadowCaster, m_StitchLightmapSeams, m_TrailVertexStreams, m_UseCustomTrailVertexStreams, m_UseCustomVertexStreams, m_VertexStreams, serializedVersion",
       "ShapeModule exported fields not played: alignToDirection, boxThickness, donutRadius, length, m_Mesh, m_MeshMaterialIndex, m_MeshNormalOffset, m_MeshRenderer, m_MeshSpawn, m_SkinnedMeshRenderer, m_Sprite, m_SpriteRenderer, m_Texture, m_TextureAlphaAffectsParticles, m_TextureBilinearFiltering, m_TextureClipChannel, m_TextureClipThreshold, m_TextureColorAffectsParticles, m_TextureUVChannel, m_UseMeshColors, m_UseMeshMaterialIndex, placementMode, randomDirectionAmount, randomPositionAmount, sphericalDirectionAmount"
     ],
+    "client/Unity/Assets/CharacterPackages/nyx/Presentation/NyxPoleOverhead.prefab": [
+      "InitialModule fields not played: customEmitterVelocity, gravitySource",
+      "ParticleSystem serialization/control fields not played: autoRandomSeed, cullingMode, emitterVelocityMode, m_CorrespondingSourceObject, m_GameObject, m_ObjectHideFlags, m_PrefabAsset, m_PrefabInstance, moveWithCustomTransform, randomSeed, ringBufferLoopRange, ringBufferMode, serializedVersion, stopAction, useUnscaledTime",
+      "ParticleSystemRenderer fields not played: m_AllowRoll, m_ApplyActiveColorSpace, m_AutoUVMaxAngle, m_AutoUVMaxDistance, m_CastShadows, m_CorrespondingSourceObject, m_DynamicOccludee, m_EnableGPUInstancing, m_Enabled, m_Flip, m_FreeformStretching, m_GameObject, m_IgnoreNormalsForChartDetection, m_ImportantGI, m_LightProbeUsage, m_LightProbeVolumeOverride, m_LightmapParameters, m_MaskInteraction, m_MaxParticleSize, m_Mesh1, m_Mesh2, m_Mesh3, m_MeshDistribution, m_MeshWeighting, m_MeshWeighting1, m_MeshWeighting2, m_MeshWeighting3, m_MinParticleSize, m_MinimumChartSize, m_MotionVectors, m_NormalDirection, m_ObjectHideFlags, m_PrefabAsset, m_PrefabInstance, m_PreserveUVs, m_ProbeAnchor, m_RayTraceProcedural, m_RayTracingAccelStructBuildFlags, m_RayTracingAccelStructBuildFlagsOverride, m_RayTracingMode, m_ReceiveGI, m_ReceiveShadows, m_ReflectionProbeUsage, m_RendererPriority, m_RenderingLayerMask, m_RotateWithStretchDirection, m_ScaleInLightmap, m_SelectedEditorRenderState, m_ShadowBias, m_SmallMeshCulling, m_SortMode, m_SortingLayer, m_SortingLayerID, m_StaticBatchInfo, m_StaticBatchRoot, m_StaticShadowCaster, m_StitchLightmapSeams, m_TrailVertexStreams, m_UseCustomTrailVertexStreams, m_UseCustomVertexStreams, m_VertexStreams, serializedVersion",
+      "behaviour NyxAttackCue exported but not played"
+    ],
+    "client/Unity/Assets/CharacterPackages/nyx/Presentation/NyxPoleUppercut.prefab": [
+      "InitialModule fields not played: customEmitterVelocity, gravitySource",
+      "ParticleSystem serialization/control fields not played: autoRandomSeed, cullingMode, emitterVelocityMode, m_CorrespondingSourceObject, m_GameObject, m_ObjectHideFlags, m_PrefabAsset, m_PrefabInstance, moveWithCustomTransform, randomSeed, ringBufferLoopRange, ringBufferMode, serializedVersion, stopAction, useUnscaledTime",
+      "ParticleSystemRenderer fields not played: m_AllowRoll, m_ApplyActiveColorSpace, m_AutoUVMaxAngle, m_AutoUVMaxDistance, m_CastShadows, m_CorrespondingSourceObject, m_DynamicOccludee, m_EnableGPUInstancing, m_Enabled, m_Flip, m_FreeformStretching, m_GameObject, m_IgnoreNormalsForChartDetection, m_ImportantGI, m_LightProbeUsage, m_LightProbeVolumeOverride, m_LightmapParameters, m_MaskInteraction, m_MaxParticleSize, m_Mesh1, m_Mesh2, m_Mesh3, m_MeshDistribution, m_MeshWeighting, m_MeshWeighting1, m_MeshWeighting2, m_MeshWeighting3, m_MinParticleSize, m_MinimumChartSize, m_MotionVectors, m_NormalDirection, m_ObjectHideFlags, m_PrefabAsset, m_PrefabInstance, m_PreserveUVs, m_ProbeAnchor, m_RayTraceProcedural, m_RayTracingAccelStructBuildFlags, m_RayTracingAccelStructBuildFlagsOverride, m_RayTracingMode, m_ReceiveGI, m_ReceiveShadows, m_ReflectionProbeUsage, m_RendererPriority, m_RenderingLayerMask, m_RotateWithStretchDirection, m_ScaleInLightmap, m_SelectedEditorRenderState, m_ShadowBias, m_SmallMeshCulling, m_SortMode, m_SortingLayer, m_SortingLayerID, m_StaticBatchInfo, m_StaticBatchRoot, m_StaticShadowCaster, m_StitchLightmapSeams, m_TrailVertexStreams, m_UseCustomTrailVertexStreams, m_UseCustomVertexStreams, m_VertexStreams, serializedVersion",
+      "behaviour NyxAttackCue exported but not played"
+    ],
+    "client/Unity/Assets/CharacterPackages/nyx/Presentation/NyxRingLight.prefab": [
+      "InitialModule fields not played: customEmitterVelocity, gravitySource",
+      "ParticleSystem serialization/control fields not played: autoRandomSeed, cullingMode, emitterVelocityMode, m_CorrespondingSourceObject, m_GameObject, m_ObjectHideFlags, m_PrefabAsset, m_PrefabInstance, moveWithCustomTransform, randomSeed, ringBufferLoopRange, ringBufferMode, serializedVersion, stopAction, useUnscaledTime",
+      "ParticleSystemRenderer fields not played: m_AllowRoll, m_ApplyActiveColorSpace, m_AutoUVMaxAngle, m_AutoUVMaxDistance, m_CastShadows, m_CorrespondingSourceObject, m_DynamicOccludee, m_EnableGPUInstancing, m_Enabled, m_Flip, m_FreeformStretching, m_GameObject, m_IgnoreNormalsForChartDetection, m_ImportantGI, m_LightProbeUsage, m_LightProbeVolumeOverride, m_LightmapParameters, m_MaskInteraction, m_MaxParticleSize, m_Mesh1, m_Mesh2, m_Mesh3, m_MeshDistribution, m_MeshWeighting, m_MeshWeighting1, m_MeshWeighting2, m_MeshWeighting3, m_MinParticleSize, m_MinimumChartSize, m_MotionVectors, m_NormalDirection, m_ObjectHideFlags, m_PrefabAsset, m_PrefabInstance, m_PreserveUVs, m_ProbeAnchor, m_RayTraceProcedural, m_RayTracingAccelStructBuildFlags, m_RayTracingAccelStructBuildFlagsOverride, m_RayTracingMode, m_ReceiveGI, m_ReceiveShadows, m_ReflectionProbeUsage, m_RendererPriority, m_RenderingLayerMask, m_RotateWithStretchDirection, m_ScaleInLightmap, m_SelectedEditorRenderState, m_ShadowBias, m_SmallMeshCulling, m_SortMode, m_SortingLayer, m_SortingLayerID, m_StaticBatchInfo, m_StaticBatchRoot, m_StaticShadowCaster, m_StitchLightmapSeams, m_TrailVertexStreams, m_UseCustomTrailVertexStreams, m_UseCustomVertexStreams, m_VertexStreams, serializedVersion",
+      "ShapeModule exported fields not played: alignToDirection, boxThickness, donutRadius, length, m_Mesh, m_MeshMaterialIndex, m_MeshNormalOffset, m_MeshRenderer, m_MeshSpawn, m_SkinnedMeshRenderer, m_Sprite, m_SpriteRenderer, m_Texture, m_TextureAlphaAffectsParticles, m_TextureBilinearFiltering, m_TextureClipChannel, m_TextureClipThreshold, m_TextureColorAffectsParticles, m_TextureUVChannel, m_UseMeshColors, m_UseMeshMaterialIndex, placementMode, randomDirectionAmount, randomPositionAmount, sphericalDirectionAmount",
+      "behaviour NyxAttackCue exported but not played"
+    ],
+    "client/Unity/Assets/CharacterPackages/nyx/Presentation/NyxRingLightCharge.prefab": [
+      "InitialModule fields not played: customEmitterVelocity, gravitySource",
+      "ParticleSystem serialization/control fields not played: autoRandomSeed, cullingMode, emitterVelocityMode, m_CorrespondingSourceObject, m_GameObject, m_ObjectHideFlags, m_PrefabAsset, m_PrefabInstance, moveWithCustomTransform, randomSeed, ringBufferLoopRange, ringBufferMode, serializedVersion, stopAction, useUnscaledTime",
+      "ParticleSystemRenderer fields not played: m_AllowRoll, m_ApplyActiveColorSpace, m_AutoUVMaxAngle, m_AutoUVMaxDistance, m_CastShadows, m_CorrespondingSourceObject, m_DynamicOccludee, m_EnableGPUInstancing, m_Enabled, m_Flip, m_FreeformStretching, m_GameObject, m_IgnoreNormalsForChartDetection, m_ImportantGI, m_LightProbeUsage, m_LightProbeVolumeOverride, m_LightmapParameters, m_MaskInteraction, m_MaxParticleSize, m_Mesh1, m_Mesh2, m_Mesh3, m_MeshDistribution, m_MeshWeighting, m_MeshWeighting1, m_MeshWeighting2, m_MeshWeighting3, m_MinParticleSize, m_MinimumChartSize, m_MotionVectors, m_NormalDirection, m_ObjectHideFlags, m_PrefabAsset, m_PrefabInstance, m_PreserveUVs, m_ProbeAnchor, m_RayTraceProcedural, m_RayTracingAccelStructBuildFlags, m_RayTracingAccelStructBuildFlagsOverride, m_RayTracingMode, m_ReceiveGI, m_ReceiveShadows, m_ReflectionProbeUsage, m_RendererPriority, m_RenderingLayerMask, m_RotateWithStretchDirection, m_ScaleInLightmap, m_SelectedEditorRenderState, m_ShadowBias, m_SmallMeshCulling, m_SortMode, m_SortingLayer, m_SortingLayerID, m_StaticBatchInfo, m_StaticBatchRoot, m_StaticShadowCaster, m_StitchLightmapSeams, m_TrailVertexStreams, m_UseCustomTrailVertexStreams, m_UseCustomVertexStreams, m_VertexStreams, serializedVersion",
+      "ShapeModule exported fields not played: alignToDirection, boxThickness, donutRadius, length, m_Mesh, m_MeshMaterialIndex, m_MeshNormalOffset, m_MeshRenderer, m_MeshSpawn, m_SkinnedMeshRenderer, m_Sprite, m_SpriteRenderer, m_Texture, m_TextureAlphaAffectsParticles, m_TextureBilinearFiltering, m_TextureClipChannel, m_TextureClipThreshold, m_TextureColorAffectsParticles, m_TextureUVChannel, m_UseMeshColors, m_UseMeshMaterialIndex, placementMode, randomDirectionAmount, randomPositionAmount, sphericalDirectionAmount",
+      "behaviour NyxAttackCue exported but not played"
+    ],
+    "client/Unity/Assets/CharacterPackages/nyx/Presentation/NyxRisingHands.prefab": [
+      "InitialModule fields not played: customEmitterVelocity, gravitySource",
+      "ParticleSystem serialization/control fields not played: autoRandomSeed, cullingMode, emitterVelocityMode, m_CorrespondingSourceObject, m_GameObject, m_ObjectHideFlags, m_PrefabAsset, m_PrefabInstance, moveWithCustomTransform, randomSeed, ringBufferLoopRange, ringBufferMode, serializedVersion, stopAction, useUnscaledTime",
+      "ParticleSystemRenderer fields not played: m_AllowRoll, m_ApplyActiveColorSpace, m_AutoUVMaxAngle, m_AutoUVMaxDistance, m_CastShadows, m_CorrespondingSourceObject, m_DynamicOccludee, m_EnableGPUInstancing, m_Enabled, m_Flip, m_FreeformStretching, m_GameObject, m_IgnoreNormalsForChartDetection, m_ImportantGI, m_LightProbeUsage, m_LightProbeVolumeOverride, m_LightmapParameters, m_MaskInteraction, m_MaxParticleSize, m_Mesh1, m_Mesh2, m_Mesh3, m_MeshDistribution, m_MeshWeighting, m_MeshWeighting1, m_MeshWeighting2, m_MeshWeighting3, m_MinParticleSize, m_MinimumChartSize, m_MotionVectors, m_NormalDirection, m_ObjectHideFlags, m_PrefabAsset, m_PrefabInstance, m_PreserveUVs, m_ProbeAnchor, m_RayTraceProcedural, m_RayTracingAccelStructBuildFlags, m_RayTracingAccelStructBuildFlagsOverride, m_RayTracingMode, m_ReceiveGI, m_ReceiveShadows, m_ReflectionProbeUsage, m_RendererPriority, m_RenderingLayerMask, m_RotateWithStretchDirection, m_ScaleInLightmap, m_SelectedEditorRenderState, m_ShadowBias, m_SmallMeshCulling, m_SortMode, m_SortingLayer, m_SortingLayerID, m_StaticBatchInfo, m_StaticBatchRoot, m_StaticShadowCaster, m_StitchLightmapSeams, m_TrailVertexStreams, m_UseCustomTrailVertexStreams, m_UseCustomVertexStreams, m_VertexStreams, serializedVersion",
+      "ShapeModule exported fields not played: alignToDirection, boxThickness, donutRadius, length, m_Mesh, m_MeshMaterialIndex, m_MeshNormalOffset, m_MeshRenderer, m_MeshSpawn, m_SkinnedMeshRenderer, m_Sprite, m_SpriteRenderer, m_Texture, m_TextureAlphaAffectsParticles, m_TextureBilinearFiltering, m_TextureClipChannel, m_TextureClipThreshold, m_TextureColorAffectsParticles, m_TextureUVChannel, m_UseMeshColors, m_UseMeshMaterialIndex, placementMode, randomDirectionAmount, randomPositionAmount, sphericalDirectionAmount",
+      "behaviour NyxAttackCue exported but not played"
+    ],
+    "client/Unity/Assets/CharacterPackages/nyx/Presentation/NyxRotorArcs.prefab": [
+      "InitialModule fields not played: customEmitterVelocity, gravitySource",
+      "ParticleSystem serialization/control fields not played: autoRandomSeed, cullingMode, emitterVelocityMode, m_CorrespondingSourceObject, m_GameObject, m_ObjectHideFlags, m_PrefabAsset, m_PrefabInstance, moveWithCustomTransform, randomSeed, ringBufferLoopRange, ringBufferMode, serializedVersion, stopAction, useUnscaledTime",
+      "ParticleSystemRenderer fields not played: m_AllowRoll, m_ApplyActiveColorSpace, m_AutoUVMaxAngle, m_AutoUVMaxDistance, m_CastShadows, m_CorrespondingSourceObject, m_DynamicOccludee, m_EnableGPUInstancing, m_Enabled, m_Flip, m_FreeformStretching, m_GameObject, m_IgnoreNormalsForChartDetection, m_ImportantGI, m_LightProbeUsage, m_LightProbeVolumeOverride, m_LightmapParameters, m_MaskInteraction, m_MaxParticleSize, m_Mesh1, m_Mesh2, m_Mesh3, m_MeshDistribution, m_MeshWeighting, m_MeshWeighting1, m_MeshWeighting2, m_MeshWeighting3, m_MinParticleSize, m_MinimumChartSize, m_MotionVectors, m_NormalDirection, m_ObjectHideFlags, m_PrefabAsset, m_PrefabInstance, m_PreserveUVs, m_ProbeAnchor, m_RayTraceProcedural, m_RayTracingAccelStructBuildFlags, m_RayTracingAccelStructBuildFlagsOverride, m_RayTracingMode, m_ReceiveGI, m_ReceiveShadows, m_ReflectionProbeUsage, m_RendererPriority, m_RenderingLayerMask, m_RotateWithStretchDirection, m_ScaleInLightmap, m_SelectedEditorRenderState, m_ShadowBias, m_SmallMeshCulling, m_SortMode, m_SortingLayer, m_SortingLayerID, m_StaticBatchInfo, m_StaticBatchRoot, m_StaticShadowCaster, m_StitchLightmapSeams, m_TrailVertexStreams, m_UseCustomTrailVertexStreams, m_UseCustomVertexStreams, m_VertexStreams, serializedVersion",
+      "ShapeModule exported fields not played: alignToDirection, boxThickness, donutRadius, length, m_Mesh, m_MeshMaterialIndex, m_MeshNormalOffset, m_MeshRenderer, m_MeshSpawn, m_SkinnedMeshRenderer, m_Sprite, m_SpriteRenderer, m_Texture, m_TextureAlphaAffectsParticles, m_TextureBilinearFiltering, m_TextureClipChannel, m_TextureClipThreshold, m_TextureColorAffectsParticles, m_TextureUVChannel, m_UseMeshColors, m_UseMeshMaterialIndex, placementMode, randomDirectionAmount, randomPositionAmount, sphericalDirectionAmount",
+      "behaviour NyxAttackCue exported but not played"
+    ],
+    "client/Unity/Assets/CharacterPackages/nyx/Presentation/NyxSelfieCatch.prefab": [
+      "InitialModule fields not played: customEmitterVelocity, gravitySource",
+      "ParticleSystem serialization/control fields not played: autoRandomSeed, cullingMode, emitterVelocityMode, m_CorrespondingSourceObject, m_GameObject, m_ObjectHideFlags, m_PrefabAsset, m_PrefabInstance, moveWithCustomTransform, randomSeed, ringBufferLoopRange, ringBufferMode, serializedVersion, stopAction, useUnscaledTime",
+      "ParticleSystemRenderer fields not played: m_AllowRoll, m_ApplyActiveColorSpace, m_AutoUVMaxAngle, m_AutoUVMaxDistance, m_CastShadows, m_CorrespondingSourceObject, m_DynamicOccludee, m_EnableGPUInstancing, m_Enabled, m_Flip, m_FreeformStretching, m_GameObject, m_IgnoreNormalsForChartDetection, m_ImportantGI, m_LightProbeUsage, m_LightProbeVolumeOverride, m_LightmapParameters, m_MaskInteraction, m_MaxParticleSize, m_Mesh1, m_Mesh2, m_Mesh3, m_MeshDistribution, m_MeshWeighting, m_MeshWeighting1, m_MeshWeighting2, m_MeshWeighting3, m_MinParticleSize, m_MinimumChartSize, m_MotionVectors, m_NormalDirection, m_ObjectHideFlags, m_PrefabAsset, m_PrefabInstance, m_PreserveUVs, m_ProbeAnchor, m_RayTraceProcedural, m_RayTracingAccelStructBuildFlags, m_RayTracingAccelStructBuildFlagsOverride, m_RayTracingMode, m_ReceiveGI, m_ReceiveShadows, m_ReflectionProbeUsage, m_RendererPriority, m_RenderingLayerMask, m_RotateWithStretchDirection, m_ScaleInLightmap, m_SelectedEditorRenderState, m_ShadowBias, m_SmallMeshCulling, m_SortMode, m_SortingLayer, m_SortingLayerID, m_StaticBatchInfo, m_StaticBatchRoot, m_StaticShadowCaster, m_StitchLightmapSeams, m_TrailVertexStreams, m_UseCustomTrailVertexStreams, m_UseCustomVertexStreams, m_VertexStreams, serializedVersion",
+      "ShapeModule exported fields not played: alignToDirection, boxThickness, donutRadius, length, m_Mesh, m_MeshMaterialIndex, m_MeshNormalOffset, m_MeshRenderer, m_MeshSpawn, m_SkinnedMeshRenderer, m_Sprite, m_SpriteRenderer, m_Texture, m_TextureAlphaAffectsParticles, m_TextureBilinearFiltering, m_TextureClipChannel, m_TextureClipThreshold, m_TextureColorAffectsParticles, m_TextureUVChannel, m_UseMeshColors, m_UseMeshMaterialIndex, placementMode, randomDirectionAmount, randomPositionAmount, sphericalDirectionAmount",
+      "behaviour NyxAttackCue exported but not played"
+    ],
+    "client/Unity/Assets/CharacterPackages/nyx/Presentation/NyxSelfiePop.prefab": [
+      "InitialModule fields not played: customEmitterVelocity, gravitySource",
+      "ParticleSystem serialization/control fields not played: autoRandomSeed, cullingMode, emitterVelocityMode, m_CorrespondingSourceObject, m_GameObject, m_ObjectHideFlags, m_PrefabAsset, m_PrefabInstance, moveWithCustomTransform, randomSeed, ringBufferLoopRange, ringBufferMode, serializedVersion, stopAction, useUnscaledTime",
+      "ParticleSystemRenderer fields not played: m_AllowRoll, m_ApplyActiveColorSpace, m_AutoUVMaxAngle, m_AutoUVMaxDistance, m_CastShadows, m_CorrespondingSourceObject, m_DynamicOccludee, m_EnableGPUInstancing, m_Enabled, m_Flip, m_FreeformStretching, m_GameObject, m_IgnoreNormalsForChartDetection, m_ImportantGI, m_LightProbeUsage, m_LightProbeVolumeOverride, m_LightmapParameters, m_MaskInteraction, m_MaxParticleSize, m_Mesh1, m_Mesh2, m_Mesh3, m_MeshDistribution, m_MeshWeighting, m_MeshWeighting1, m_MeshWeighting2, m_MeshWeighting3, m_MinParticleSize, m_MinimumChartSize, m_MotionVectors, m_NormalDirection, m_ObjectHideFlags, m_PrefabAsset, m_PrefabInstance, m_PreserveUVs, m_ProbeAnchor, m_RayTraceProcedural, m_RayTracingAccelStructBuildFlags, m_RayTracingAccelStructBuildFlagsOverride, m_RayTracingMode, m_ReceiveGI, m_ReceiveShadows, m_ReflectionProbeUsage, m_RendererPriority, m_RenderingLayerMask, m_RotateWithStretchDirection, m_ScaleInLightmap, m_SelectedEditorRenderState, m_ShadowBias, m_SmallMeshCulling, m_SortMode, m_SortingLayer, m_SortingLayerID, m_StaticBatchInfo, m_StaticBatchRoot, m_StaticShadowCaster, m_StitchLightmapSeams, m_TrailVertexStreams, m_UseCustomTrailVertexStreams, m_UseCustomVertexStreams, m_VertexStreams, serializedVersion",
+      "ShapeModule exported fields not played: alignToDirection, boxThickness, donutRadius, length, m_Mesh, m_MeshMaterialIndex, m_MeshNormalOffset, m_MeshRenderer, m_MeshSpawn, m_SkinnedMeshRenderer, m_Sprite, m_SpriteRenderer, m_Texture, m_TextureAlphaAffectsParticles, m_TextureBilinearFiltering, m_TextureClipChannel, m_TextureClipThreshold, m_TextureColorAffectsParticles, m_TextureUVChannel, m_UseMeshColors, m_UseMeshMaterialIndex, placementMode, randomDirectionAmount, randomPositionAmount, sphericalDirectionAmount",
+      "behaviour NyxAttackCue exported but not played"
+    ],
     "client/Unity/Assets/CharacterPackages/nyx/Presentation/NyxSelfieRelease.prefab": [
       "InitialModule fields not played: customEmitterVelocity, gravitySource",
       "ParticleSystem serialization/control fields not played: autoRandomSeed, cullingMode, emitterVelocityMode, m_CorrespondingSourceObject, m_GameObject, m_ObjectHideFlags, m_PrefabAsset, m_PrefabInstance, moveWithCustomTransform, randomSeed, ringBufferLoopRange, ringBufferMode, serializedVersion, stopAction, useUnscaledTime",
       "ParticleSystemRenderer fields not played: m_AllowRoll, m_ApplyActiveColorSpace, m_AutoUVMaxAngle, m_AutoUVMaxDistance, m_CastShadows, m_CorrespondingSourceObject, m_DynamicOccludee, m_EnableGPUInstancing, m_Enabled, m_Flip, m_FreeformStretching, m_GameObject, m_IgnoreNormalsForChartDetection, m_ImportantGI, m_LightProbeUsage, m_LightProbeVolumeOverride, m_LightmapParameters, m_MaskInteraction, m_MaxParticleSize, m_Mesh1, m_Mesh2, m_Mesh3, m_MeshDistribution, m_MeshWeighting, m_MeshWeighting1, m_MeshWeighting2, m_MeshWeighting3, m_MinParticleSize, m_MinimumChartSize, m_MotionVectors, m_NormalDirection, m_ObjectHideFlags, m_PrefabAsset, m_PrefabInstance, m_PreserveUVs, m_ProbeAnchor, m_RayTraceProcedural, m_RayTracingAccelStructBuildFlags, m_RayTracingAccelStructBuildFlagsOverride, m_RayTracingMode, m_ReceiveGI, m_ReceiveShadows, m_ReflectionProbeUsage, m_RendererPriority, m_RenderingLayerMask, m_RotateWithStretchDirection, m_ScaleInLightmap, m_SelectedEditorRenderState, m_ShadowBias, m_SmallMeshCulling, m_SortMode, m_SortingLayer, m_SortingLayerID, m_StaticBatchInfo, m_StaticBatchRoot, m_StaticShadowCaster, m_StitchLightmapSeams, m_TrailVertexStreams, m_UseCustomTrailVertexStreams, m_UseCustomVertexStreams, m_VertexStreams, serializedVersion",
       "ShapeModule exported fields not played: alignToDirection, boxThickness, donutRadius, length, m_Mesh, m_MeshMaterialIndex, m_MeshNormalOffset, m_MeshRenderer, m_MeshSpawn, m_SkinnedMeshRenderer, m_Sprite, m_SpriteRenderer, m_Texture, m_TextureAlphaAffectsParticles, m_TextureBilinearFiltering, m_TextureClipChannel, m_TextureClipThreshold, m_TextureColorAffectsParticles, m_TextureUVChannel, m_UseMeshColors, m_UseMeshMaterialIndex, placementMode, randomDirectionAmount, randomPositionAmount, sphericalDirectionAmount"
     ],
+    "client/Unity/Assets/CharacterPackages/nyx/Presentation/NyxShadowClaws.prefab": [
+      "InitialModule fields not played: customEmitterVelocity, gravitySource",
+      "ParticleSystem serialization/control fields not played: autoRandomSeed, cullingMode, emitterVelocityMode, m_CorrespondingSourceObject, m_GameObject, m_ObjectHideFlags, m_PrefabAsset, m_PrefabInstance, moveWithCustomTransform, randomSeed, ringBufferLoopRange, ringBufferMode, serializedVersion, stopAction, useUnscaledTime",
+      "ParticleSystemRenderer fields not played: m_AllowRoll, m_ApplyActiveColorSpace, m_AutoUVMaxAngle, m_AutoUVMaxDistance, m_CastShadows, m_CorrespondingSourceObject, m_DynamicOccludee, m_EnableGPUInstancing, m_Enabled, m_Flip, m_FreeformStretching, m_GameObject, m_IgnoreNormalsForChartDetection, m_ImportantGI, m_LightProbeUsage, m_LightProbeVolumeOverride, m_LightmapParameters, m_MaskInteraction, m_MaxParticleSize, m_Mesh1, m_Mesh2, m_Mesh3, m_MeshDistribution, m_MeshWeighting, m_MeshWeighting1, m_MeshWeighting2, m_MeshWeighting3, m_MinParticleSize, m_MinimumChartSize, m_MotionVectors, m_NormalDirection, m_ObjectHideFlags, m_PrefabAsset, m_PrefabInstance, m_PreserveUVs, m_ProbeAnchor, m_RayTraceProcedural, m_RayTracingAccelStructBuildFlags, m_RayTracingAccelStructBuildFlagsOverride, m_RayTracingMode, m_ReceiveGI, m_ReceiveShadows, m_ReflectionProbeUsage, m_RendererPriority, m_RenderingLayerMask, m_RotateWithStretchDirection, m_ScaleInLightmap, m_SelectedEditorRenderState, m_ShadowBias, m_SmallMeshCulling, m_SortMode, m_SortingLayer, m_SortingLayerID, m_StaticBatchInfo, m_StaticBatchRoot, m_StaticShadowCaster, m_StitchLightmapSeams, m_TrailVertexStreams, m_UseCustomTrailVertexStreams, m_UseCustomVertexStreams, m_VertexStreams, serializedVersion",
+      "ShapeModule exported fields not played: alignToDirection, boxThickness, donutRadius, length, m_Mesh, m_MeshMaterialIndex, m_MeshNormalOffset, m_MeshRenderer, m_MeshSpawn, m_SkinnedMeshRenderer, m_Sprite, m_SpriteRenderer, m_Texture, m_TextureAlphaAffectsParticles, m_TextureBilinearFiltering, m_TextureClipChannel, m_TextureClipThreshold, m_TextureColorAffectsParticles, m_TextureUVChannel, m_UseMeshColors, m_UseMeshMaterialIndex, placementMode, randomDirectionAmount, randomPositionAmount, sphericalDirectionAmount",
+      "behaviour NyxAttackCue exported but not played"
+    ],
     "client/Unity/Assets/CharacterPackages/nyx/Presentation/NyxShadowHit.prefab": [
       "InitialModule fields not played: customEmitterVelocity, gravitySource",
       "ParticleSystem serialization/control fields not played: autoRandomSeed, cullingMode, emitterVelocityMode, m_CorrespondingSourceObject, m_GameObject, m_ObjectHideFlags, m_PrefabAsset, m_PrefabInstance, moveWithCustomTransform, randomSeed, ringBufferLoopRange, ringBufferMode, serializedVersion, stopAction, useUnscaledTime",
       "ParticleSystemRenderer fields not played: m_AllowRoll, m_ApplyActiveColorSpace, m_AutoUVMaxAngle, m_AutoUVMaxDistance, m_CastShadows, m_CorrespondingSourceObject, m_DynamicOccludee, m_EnableGPUInstancing, m_Enabled, m_Flip, m_FreeformStretching, m_GameObject, m_IgnoreNormalsForChartDetection, m_ImportantGI, m_LightProbeUsage, m_LightProbeVolumeOverride, m_LightmapParameters, m_MaskInteraction, m_MaxParticleSize, m_Mesh1, m_Mesh2, m_Mesh3, m_MeshDistribution, m_MeshWeighting, m_MeshWeighting1, m_MeshWeighting2, m_MeshWeighting3, m_MinParticleSize, m_MinimumChartSize, m_MotionVectors, m_NormalDirection, m_ObjectHideFlags, m_PrefabAsset, m_PrefabInstance, m_PreserveUVs, m_ProbeAnchor, m_RayTraceProcedural, m_RayTracingAccelStructBuildFlags, m_RayTracingAccelStructBuildFlagsOverride, m_RayTracingMode, m_ReceiveGI, m_ReceiveShadows, m_ReflectionProbeUsage, m_RendererPriority, m_RenderingLayerMask, m_RotateWithStretchDirection, m_ScaleInLightmap, m_SelectedEditorRenderState, m_ShadowBias, m_SmallMeshCulling, m_SortMode, m_SortingLayer, m_SortingLayerID, m_StaticBatchInfo, m_StaticBatchRoot, m_StaticShadowCaster, m_StitchLightmapSeams, m_TrailVertexStreams, m_UseCustomTrailVertexStreams, m_UseCustomVertexStreams, m_VertexStreams, serializedVersion",
       "ShapeModule exported fields not played: alignToDirection, boxThickness, donutRadius, length, m_Mesh, m_MeshMaterialIndex, m_MeshNormalOffset, m_MeshRenderer, m_MeshSpawn, m_SkinnedMeshRenderer, m_Sprite, m_SpriteRenderer, m_Texture, m_TextureAlphaAffectsParticles, m_TextureBilinearFiltering, m_TextureClipChannel, m_TextureClipThreshold, m_TextureColorAffectsParticles, m_TextureUVChannel, m_UseMeshColors, m_UseMeshMaterialIndex, placementMode, randomDirectionAmount, randomPositionAmount, sphericalDirectionAmount"
+    ],
+    "client/Unity/Assets/CharacterPackages/nyx/Presentation/NyxShadowRing.prefab": [
+      "InitialModule fields not played: customEmitterVelocity, gravitySource",
+      "ParticleSystem serialization/control fields not played: autoRandomSeed, cullingMode, emitterVelocityMode, m_CorrespondingSourceObject, m_GameObject, m_ObjectHideFlags, m_PrefabAsset, m_PrefabInstance, moveWithCustomTransform, randomSeed, ringBufferLoopRange, ringBufferMode, serializedVersion, stopAction, useUnscaledTime",
+      "ParticleSystemRenderer fields not played: m_AllowRoll, m_ApplyActiveColorSpace, m_AutoUVMaxAngle, m_AutoUVMaxDistance, m_CastShadows, m_CorrespondingSourceObject, m_DynamicOccludee, m_EnableGPUInstancing, m_Enabled, m_Flip, m_FreeformStretching, m_GameObject, m_IgnoreNormalsForChartDetection, m_ImportantGI, m_LightProbeUsage, m_LightProbeVolumeOverride, m_LightmapParameters, m_MaskInteraction, m_MaxParticleSize, m_Mesh1, m_Mesh2, m_Mesh3, m_MeshDistribution, m_MeshWeighting, m_MeshWeighting1, m_MeshWeighting2, m_MeshWeighting3, m_MinParticleSize, m_MinimumChartSize, m_MotionVectors, m_NormalDirection, m_ObjectHideFlags, m_PrefabAsset, m_PrefabInstance, m_PreserveUVs, m_ProbeAnchor, m_RayTraceProcedural, m_RayTracingAccelStructBuildFlags, m_RayTracingAccelStructBuildFlagsOverride, m_RayTracingMode, m_ReceiveGI, m_ReceiveShadows, m_ReflectionProbeUsage, m_RendererPriority, m_RenderingLayerMask, m_RotateWithStretchDirection, m_ScaleInLightmap, m_SelectedEditorRenderState, m_ShadowBias, m_SmallMeshCulling, m_SortMode, m_SortingLayer, m_SortingLayerID, m_StaticBatchInfo, m_StaticBatchRoot, m_StaticShadowCaster, m_StitchLightmapSeams, m_TrailVertexStreams, m_UseCustomTrailVertexStreams, m_UseCustomVertexStreams, m_VertexStreams, serializedVersion",
+      "ShapeModule exported fields not played: alignToDirection, boxThickness, donutRadius, length, m_Mesh, m_MeshMaterialIndex, m_MeshNormalOffset, m_MeshRenderer, m_MeshSpawn, m_SkinnedMeshRenderer, m_Sprite, m_SpriteRenderer, m_Texture, m_TextureAlphaAffectsParticles, m_TextureBilinearFiltering, m_TextureClipChannel, m_TextureClipThreshold, m_TextureColorAffectsParticles, m_TextureUVChannel, m_UseMeshColors, m_UseMeshMaterialIndex, placementMode, randomDirectionAmount, randomPositionAmount, sphericalDirectionAmount",
+      "behaviour NyxAttackCue exported but not played"
+    ],
+    "client/Unity/Assets/CharacterPackages/nyx/Presentation/NyxSpikeFist.prefab": [
+      "InitialModule fields not played: customEmitterVelocity, gravitySource",
+      "ParticleSystem serialization/control fields not played: autoRandomSeed, cullingMode, emitterVelocityMode, m_CorrespondingSourceObject, m_GameObject, m_ObjectHideFlags, m_PrefabAsset, m_PrefabInstance, moveWithCustomTransform, randomSeed, ringBufferLoopRange, ringBufferMode, serializedVersion, stopAction, useUnscaledTime",
+      "ParticleSystemRenderer fields not played: m_AllowRoll, m_ApplyActiveColorSpace, m_AutoUVMaxAngle, m_AutoUVMaxDistance, m_CastShadows, m_CorrespondingSourceObject, m_DynamicOccludee, m_EnableGPUInstancing, m_Enabled, m_Flip, m_FreeformStretching, m_GameObject, m_IgnoreNormalsForChartDetection, m_ImportantGI, m_LightProbeUsage, m_LightProbeVolumeOverride, m_LightmapParameters, m_MaskInteraction, m_MaxParticleSize, m_Mesh1, m_Mesh2, m_Mesh3, m_MeshDistribution, m_MeshWeighting, m_MeshWeighting1, m_MeshWeighting2, m_MeshWeighting3, m_MinParticleSize, m_MinimumChartSize, m_MotionVectors, m_NormalDirection, m_ObjectHideFlags, m_PrefabAsset, m_PrefabInstance, m_PreserveUVs, m_ProbeAnchor, m_RayTraceProcedural, m_RayTracingAccelStructBuildFlags, m_RayTracingAccelStructBuildFlagsOverride, m_RayTracingMode, m_ReceiveGI, m_ReceiveShadows, m_ReflectionProbeUsage, m_RendererPriority, m_RenderingLayerMask, m_RotateWithStretchDirection, m_ScaleInLightmap, m_SelectedEditorRenderState, m_ShadowBias, m_SmallMeshCulling, m_SortMode, m_SortingLayer, m_SortingLayerID, m_StaticBatchInfo, m_StaticBatchRoot, m_StaticShadowCaster, m_StitchLightmapSeams, m_TrailVertexStreams, m_UseCustomTrailVertexStreams, m_UseCustomVertexStreams, m_VertexStreams, serializedVersion",
+      "ShapeModule exported fields not played: alignToDirection, boxThickness, donutRadius, length, m_Mesh, m_MeshMaterialIndex, m_MeshNormalOffset, m_MeshRenderer, m_MeshSpawn, m_SkinnedMeshRenderer, m_Sprite, m_SpriteRenderer, m_Texture, m_TextureAlphaAffectsParticles, m_TextureBilinearFiltering, m_TextureClipChannel, m_TextureClipThreshold, m_TextureColorAffectsParticles, m_TextureUVChannel, m_UseMeshColors, m_UseMeshMaterialIndex, placementMode, randomDirectionAmount, randomPositionAmount, sphericalDirectionAmount",
+      "behaviour NyxAttackCue exported but not played"
+    ],
+    "client/Unity/Assets/CharacterPackages/nyx/Presentation/NyxSpinArc.prefab": [
+      "InitialModule fields not played: customEmitterVelocity, gravitySource",
+      "ParticleSystem serialization/control fields not played: autoRandomSeed, cullingMode, emitterVelocityMode, m_CorrespondingSourceObject, m_GameObject, m_ObjectHideFlags, m_PrefabAsset, m_PrefabInstance, moveWithCustomTransform, randomSeed, ringBufferLoopRange, ringBufferMode, serializedVersion, stopAction, useUnscaledTime",
+      "ParticleSystemRenderer fields not played: m_AllowRoll, m_ApplyActiveColorSpace, m_AutoUVMaxAngle, m_AutoUVMaxDistance, m_CastShadows, m_CorrespondingSourceObject, m_DynamicOccludee, m_EnableGPUInstancing, m_Enabled, m_Flip, m_FreeformStretching, m_GameObject, m_IgnoreNormalsForChartDetection, m_ImportantGI, m_LightProbeUsage, m_LightProbeVolumeOverride, m_LightmapParameters, m_MaskInteraction, m_MaxParticleSize, m_Mesh1, m_Mesh2, m_Mesh3, m_MeshDistribution, m_MeshWeighting, m_MeshWeighting1, m_MeshWeighting2, m_MeshWeighting3, m_MinParticleSize, m_MinimumChartSize, m_MotionVectors, m_NormalDirection, m_ObjectHideFlags, m_PrefabAsset, m_PrefabInstance, m_PreserveUVs, m_ProbeAnchor, m_RayTraceProcedural, m_RayTracingAccelStructBuildFlags, m_RayTracingAccelStructBuildFlagsOverride, m_RayTracingMode, m_ReceiveGI, m_ReceiveShadows, m_ReflectionProbeUsage, m_RendererPriority, m_RenderingLayerMask, m_RotateWithStretchDirection, m_ScaleInLightmap, m_SelectedEditorRenderState, m_ShadowBias, m_SmallMeshCulling, m_SortMode, m_SortingLayer, m_SortingLayerID, m_StaticBatchInfo, m_StaticBatchRoot, m_StaticShadowCaster, m_StitchLightmapSeams, m_TrailVertexStreams, m_UseCustomTrailVertexStreams, m_UseCustomVertexStreams, m_VertexStreams, serializedVersion",
+      "behaviour NyxAttackCue exported but not played"
+    ],
+    "client/Unity/Assets/CharacterPackages/nyx/Presentation/NyxStompImpact.prefab": [
+      "InitialModule fields not played: customEmitterVelocity, gravitySource",
+      "ParticleSystem serialization/control fields not played: autoRandomSeed, cullingMode, emitterVelocityMode, m_CorrespondingSourceObject, m_GameObject, m_ObjectHideFlags, m_PrefabAsset, m_PrefabInstance, moveWithCustomTransform, randomSeed, ringBufferLoopRange, ringBufferMode, serializedVersion, stopAction, useUnscaledTime",
+      "ParticleSystemRenderer fields not played: m_AllowRoll, m_ApplyActiveColorSpace, m_AutoUVMaxAngle, m_AutoUVMaxDistance, m_CastShadows, m_CorrespondingSourceObject, m_DynamicOccludee, m_EnableGPUInstancing, m_Enabled, m_Flip, m_FreeformStretching, m_GameObject, m_IgnoreNormalsForChartDetection, m_ImportantGI, m_LightProbeUsage, m_LightProbeVolumeOverride, m_LightmapParameters, m_MaskInteraction, m_MaxParticleSize, m_Mesh1, m_Mesh2, m_Mesh3, m_MeshDistribution, m_MeshWeighting, m_MeshWeighting1, m_MeshWeighting2, m_MeshWeighting3, m_MinParticleSize, m_MinimumChartSize, m_MotionVectors, m_NormalDirection, m_ObjectHideFlags, m_PrefabAsset, m_PrefabInstance, m_PreserveUVs, m_ProbeAnchor, m_RayTraceProcedural, m_RayTracingAccelStructBuildFlags, m_RayTracingAccelStructBuildFlagsOverride, m_RayTracingMode, m_ReceiveGI, m_ReceiveShadows, m_ReflectionProbeUsage, m_RendererPriority, m_RenderingLayerMask, m_RotateWithStretchDirection, m_ScaleInLightmap, m_SelectedEditorRenderState, m_ShadowBias, m_SmallMeshCulling, m_SortMode, m_SortingLayer, m_SortingLayerID, m_StaticBatchInfo, m_StaticBatchRoot, m_StaticShadowCaster, m_StitchLightmapSeams, m_TrailVertexStreams, m_UseCustomTrailVertexStreams, m_UseCustomVertexStreams, m_VertexStreams, serializedVersion",
+      "ShapeModule exported fields not played: alignToDirection, boxThickness, donutRadius, length, m_Mesh, m_MeshMaterialIndex, m_MeshNormalOffset, m_MeshRenderer, m_MeshSpawn, m_SkinnedMeshRenderer, m_Sprite, m_SpriteRenderer, m_Texture, m_TextureAlphaAffectsParticles, m_TextureBilinearFiltering, m_TextureClipChannel, m_TextureClipThreshold, m_TextureColorAffectsParticles, m_TextureUVChannel, m_UseMeshColors, m_UseMeshMaterialIndex, placementMode, randomDirectionAmount, randomPositionAmount, sphericalDirectionAmount",
+      "behaviour NyxAttackCue exported but not played"
+    ],
+    "client/Unity/Assets/CharacterPackages/nyx/Presentation/NyxUpClaw.prefab": [
+      "InitialModule fields not played: customEmitterVelocity, gravitySource",
+      "ParticleSystem serialization/control fields not played: autoRandomSeed, cullingMode, emitterVelocityMode, m_CorrespondingSourceObject, m_GameObject, m_ObjectHideFlags, m_PrefabAsset, m_PrefabInstance, moveWithCustomTransform, randomSeed, ringBufferLoopRange, ringBufferMode, serializedVersion, stopAction, useUnscaledTime",
+      "ParticleSystemRenderer fields not played: m_AllowRoll, m_ApplyActiveColorSpace, m_AutoUVMaxAngle, m_AutoUVMaxDistance, m_CastShadows, m_CorrespondingSourceObject, m_DynamicOccludee, m_EnableGPUInstancing, m_Enabled, m_Flip, m_FreeformStretching, m_GameObject, m_IgnoreNormalsForChartDetection, m_ImportantGI, m_LightProbeUsage, m_LightProbeVolumeOverride, m_LightmapParameters, m_MaskInteraction, m_MaxParticleSize, m_Mesh1, m_Mesh2, m_Mesh3, m_MeshDistribution, m_MeshWeighting, m_MeshWeighting1, m_MeshWeighting2, m_MeshWeighting3, m_MinParticleSize, m_MinimumChartSize, m_MotionVectors, m_NormalDirection, m_ObjectHideFlags, m_PrefabAsset, m_PrefabInstance, m_PreserveUVs, m_ProbeAnchor, m_RayTraceProcedural, m_RayTracingAccelStructBuildFlags, m_RayTracingAccelStructBuildFlagsOverride, m_RayTracingMode, m_ReceiveGI, m_ReceiveShadows, m_ReflectionProbeUsage, m_RendererPriority, m_RenderingLayerMask, m_RotateWithStretchDirection, m_ScaleInLightmap, m_SelectedEditorRenderState, m_ShadowBias, m_SmallMeshCulling, m_SortMode, m_SortingLayer, m_SortingLayerID, m_StaticBatchInfo, m_StaticBatchRoot, m_StaticShadowCaster, m_StitchLightmapSeams, m_TrailVertexStreams, m_UseCustomTrailVertexStreams, m_UseCustomVertexStreams, m_VertexStreams, serializedVersion",
+      "ShapeModule exported fields not played: alignToDirection, boxThickness, donutRadius, length, m_Mesh, m_MeshMaterialIndex, m_MeshNormalOffset, m_MeshRenderer, m_MeshSpawn, m_SkinnedMeshRenderer, m_Sprite, m_SpriteRenderer, m_Texture, m_TextureAlphaAffectsParticles, m_TextureBilinearFiltering, m_TextureClipChannel, m_TextureClipThreshold, m_TextureColorAffectsParticles, m_TextureUVChannel, m_UseMeshColors, m_UseMeshMaterialIndex, placementMode, randomDirectionAmount, randomPositionAmount, sphericalDirectionAmount",
+      "behaviour NyxAttackCue exported but not played"
     ],
     "client/Unity/Assets/CharacterPackages/wibou/Presentation/WibouBladeGlint.prefab": [
       "InitialModule fields not played: customEmitterVelocity, gravitySource",

@@ -613,3 +613,15 @@ _Avoid_: mod list, asset list, loadout
 **OfficialException**:
 An explicit case where official content bypasses the creator-facing content model. It records the reason, scope, owner, and migration path.
 _Avoid_: special case, internal shortcut
+
+## Challenge
+
+An owner-local record of the last eligible fighter hit by a projectile authored with `challengeTicks`.
+It names the target, its death count and an absolute expiry tick. Joust consumes it at the press to shorten the rear
+and strengthen tracking. It survives the lid activation, is independent for each challenger, and clears on owner KO or reset.
+
+## Scoop
+
+A landed hit that opens the existing command hold, with a CommandGrabbed victim carried at the holder's anchor.
+Unlike Capture, it is blocked by Shield and does not hold armoured, paired, CutHeld or Swept fighters.
+Joust's scoop deals small damage, carries through the post-movement pair pass and releases as an ordinary credited fling.

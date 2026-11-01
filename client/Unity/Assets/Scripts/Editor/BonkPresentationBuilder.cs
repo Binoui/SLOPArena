@@ -147,6 +147,12 @@ namespace SlopArena.EditorTools
                 ("presentation.bonk.joust.gallop", JoustGallop()),
                 ("presentation.bonk.joust.skid", JoustSkid()),
                 ("presentation.bonk.joust.lookdown", JoustLookDown()),
+                ("presentation.bonk.joust.challenge", JoustNeigh()),
+                ("presentation.bonk.joust.scoop", JoustScoop()),
+                ("presentation.bonk.joust.bonk", BigHit("BonkJoustBonk", thunk: 0.9f, letters: 1f, lift: 0.45f, sound: "bonk_bonk", volume: 0.8f, pitch: 1f)),
+                ("presentation.bonk.faith.halo", FaithHalo()),
+                ("presentation.bonk.faith.lock", Glint()),
+                ("presentation.bonk.challenge.marker", Glint()),
                 ("presentation.bonk.lid.throw", Swing("BonkLidThrow", "bonk_lid_fwip", 0.6f)),
                 ("presentation.bonk.lid.hit", LidHit()),
                 ("presentation.bonk.lid.catch", LidCatch()),
@@ -1131,6 +1137,23 @@ namespace SlopArena.EditorTools
         /// The flying pot lid, face up and spinning flat as it skims out and back. ProjectileVFXManager places the root on
         /// the projectile and leaves its rotation alone (it is not point-first), so the lid stays level on both legs.
         /// </summary>
+        private static GameObject JoustScoop()
+        {
+            var root = _kit.NewRoot("BonkJoustScoop", attackBound: false);
+            var dust = DustPuffs(root, "Scoop dust", 5, 0.35f, 0.45f, 2.2f, ParticleSystemScalingMode.Local, life: 0.45f);
+            FlatRing(dust, 0.2f);
+            Chips(root, 4, ParticleSystemScalingMode.Hierarchy);
+            _kit.Sound(root, "bonk_thock", 0.65f, 0.9f);
+            return Save(root);
+        }
+
+        private static GameObject FaithHalo()
+        {
+            var root = _kit.NewRoot("BonkFaithHalo", attackBound: true);
+            root.AddComponent<ArmorGlowPresentation>().RimColor = new Color(1.4f, 1.05f, 0.45f, 1f);
+            return Save(root);
+        }
+
         private static GameObject PotLidProjectile()
         {
             var root = _kit.NewRoot("BonkPotLidProjectile", attackBound: false);
@@ -1169,6 +1192,7 @@ namespace SlopArena.EditorTools
             _kit.Sound(root, "bonk_lid_whirr", 0.2f, 1f);
             var whirr = root.GetComponent<AudioSource>();
             if (whirr != null) whirr.loop = true;
+            root.transform.localScale *= 5f / 3f;
             return Save(root);
         }
 

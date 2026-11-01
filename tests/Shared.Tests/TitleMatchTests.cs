@@ -19,7 +19,7 @@ public sealed class TitleMatchTests
     private const ulong Guy = 1, Victim = 2, Third = 3;
     private static readonly InputState Grab = new() { ActiveSlot = AbilitySlots.F, TargetEntityId = (byte)Victim };
     private static readonly (CharacterDefinition Def, BakedAnimationData Poses) Fighter =
-        (TestHelpers.ResolveSourceDef("fightguy"), BuiltInContentResolver.Resolve(CharacterClass.FightGuy).BakedAnimation!);
+        (TestHelpers.ResolveSourceDef("fightguy"), BakedAnimationData.LoadFromBin(File.ReadAllBytes(Path.Combine(AppContext.BaseDirectory, "../../../../../content-cooked/fightguy/poses.bin"))));
     private static CookedSlotDefinition Move => Fighter.Def.GetCookedSlotAbility(AbilitySlots.F, false)!;
     private static CookedCommandGrabCapabilityParameters P => (CookedCommandGrabCapabilityParameters)Move.Timeline.Stages[0]
         .Operations.OfType<CookedStartCapabilityOperation>().Single().Parameters;

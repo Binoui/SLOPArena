@@ -319,6 +319,8 @@ public class LogOffArenaTests
         state.PY = -0.25f;
         state.IsGrounded = false;
         state.JumpsLeft = 1;
+        // Isolate the air-jump route; a fresh wall jump kicks toward the opposite shoulder.
+        state.WallJumpUsed = true;
         var sim = TestHelpers.MakeSim(arena);
         sim.RegisterEntity(1, def, state);
         var inputs = new Dictionary<ulong, InputState>();

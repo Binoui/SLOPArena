@@ -9,6 +9,7 @@ console_repo=${CONSOLE_REPO:-../../../SlopArena-console}
 ssh "$host" 'mkdir -p content-factory/app content-factory/data && test -f content-factory/secrets/caddy.env' ||
   { echo "alfred has no content-factory/secrets: see docs/systems/slop-factory.md" >&2; exit 1; }
 scp -q server.py index.html Caddyfile ../../client/Unity/Assets/Fonts/ArchivoBlack-Regular.ttf "$host:content-factory/app/"
+scp -q -r icons "$host:content-factory/app/"
 scp -q compose.yml "$host:content-factory/compose.yml"
 git -C "$console_repo" archive HEAD | ssh "$host" 'docker build -q -t sloparena-console:alfred - >/dev/null'
 # The app files are bind mounts, so compose sees no change: restart the two services that read them.

@@ -228,25 +228,29 @@ public class AbilityLifecycleTests
         }
     }
 
-    [Theory]
-    [MemberData(nameof(GroundAndAirAimingAbilityCases))]
-    public void EveryAuthoredAimingAbility_FacesActivationAim(
-        CharacterClass character, byte wireSlot, bool airborne)
+    [Fact]
+    public void EveryAuthoredAimingAbility_FacesActivationAim()
     {
-        var def = BuiltInContentResolver.Resolve(character).Definition;
-        var sim = TestHelpers.MakeSim();
-        var state = TestHelpers.PlayerState();
-        state.PY = TestHelpers.GroundPY(def) + (airborne ? 2f : 0f);
-        state.IsGrounded = !airborne;
-        TestHelpers.RegisterPlayer(sim, def, state);
-
-        const short aimYaw = 9000; // +90° world yaw
-        sim.Tick(new()
+        foreach (var item in GroundAndAirAimingAbilityCases())
         {
-            { 1, new InputState { ActiveSlot = wireSlot, AimYaw = aimYaw, IsAiming = true } },
-        });
+            var character = (CharacterClass)item[0];
+            byte wireSlot = (byte)item[1];
+            bool airborne = (bool)item[2];
+            var def = BuiltInContentResolver.Resolve(character).Definition;
+            var sim = TestHelpers.MakeSim();
+            var state = TestHelpers.PlayerState();
+            state.PY = TestHelpers.GroundPY(def) + (airborne ? 2f : 0f);
+            state.IsGrounded = !airborne;
+            TestHelpers.RegisterPlayer(sim, def, state);
 
-        TestHelpers.AssertNear(MathF.PI / 2f, sim.GetState(1).FacingYaw);
+            const short aimYaw = 9000; // +90° world yaw
+            sim.Tick(new()
+            {
+                { 1, new InputState { ActiveSlot = wireSlot, AimYaw = aimYaw, IsAiming = true } },
+            });
+
+            TestHelpers.AssertNear(MathF.PI / 2f, sim.GetState(1).FacingYaw);
+        }
     }
 
 [Theory]

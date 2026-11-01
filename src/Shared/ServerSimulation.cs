@@ -227,6 +227,7 @@ namespace SlopArena.Shared
             if (exit is AbilityExit.Reset or AbilityExit.Removed)
             {
                 state.Flight = default;
+                state.Challenge = default;
                 if (exit == AbilityExit.Reset) Flying.Refuel(ref state, Def(id));
                 if (state.State == ActionState.Flying) state.State = ActionState.Idle;
             }
@@ -970,6 +971,13 @@ namespace SlopArena.Shared
 				if (IsEliminated(state)) continue;
 				var input = inputs.TryGetValue(id, out var i) ? i : default;
                 var def = Def(id);
+                if (_activeAbilities.TryGetValue(id, out var activePress) && activePress.TryConsumeActiveSlotPress(ref state, in input))
+                {
+                    input.ActiveSlot = 0;
+                    inputs[id] = input;
+                    _states[id] = state;
+                }
+
                 if (state.Flight.Active && input.ActiveSlot == AbilitySlots.E && state.HitstopTicks == 0)
                 {
                     Flying.End(ref state, def, id != NoCooldownsEntityId, beforeTimers: true);
@@ -1262,7 +1270,8 @@ namespace SlopArena.Shared
 			float closestSide = float.PositiveInfinity;
 			foreach (var (targetId, target) in _states)
 			{
-				if (targetId == grabberId || !CanAttackTarget(grabberId, targetId) || target.InteractionId != 0
+				if (targetId == grabberId || !CanAttackTarget(grabberId, targetId)
+                    || target.InteractionId != 0 && !CanGrabPairedHolder(in target)
 					|| target.State == ActionState.CutHeld
 					|| !TryDef(targetId, out var targetDef)
 					|| IsEliminated(target) || target.InvincibilityTicks > 0)
@@ -1337,7 +1346,7 @@ namespace SlopArena.Shared
 				if (!_states.TryGetValue(candidate.grabber, out var grabber)
 					|| !IsActiveGrabAttempt(in grabber)
 					|| !_states.TryGetValue(candidate.target, out var target)
-					|| target.InteractionId != 0
+					|| target.InteractionId != 0 && !CanGrabPairedHolder(in target)
 					|| _clashedThisTick.Contains(candidate.grabber)
 					|| _clashedThisTick.Contains(candidate.target))
 					continue;
@@ -1374,6 +1383,7 @@ namespace SlopArena.Shared
 					_nextInteractionId = 1;
 			}
 
+            if (target.InteractionId != 0) InterruptInteraction(ref target);
 			ulong interactionId = _nextInteractionId;
 			RetireAbility(grabberId, ref grabber, AbilityExit.Superseded);
 			RetireAbility(targetId, ref target, AbilityExit.Superseded);
@@ -1802,7 +1812,7 @@ namespace SlopArena.Shared
 		/// Server-side validation shared by client acquisition, sticky lock checks, and
 		/// nearest-target selection.
 		/// </summary>
-		private bool IsEligibleEnemy(ulong selfId, ulong targetId, float selfX, float selfZ,
+		internal bool IsEligibleEnemy(ulong selfId, ulong targetId, float selfX, float selfZ,
 			float maxRange, out float distanceSquared)
 		{
 			distanceSquared = 0f;
@@ -1852,6 +1862,25 @@ namespace SlopArena.Shared
 		/// selected target when it is an eligible enemy in lock range, else the closest one. Its combat position is
 		/// a fighter's capsule centre or an object's position.
 		/// </summary>
+        /// <summary>Read the currently valid challenge without consuming it, for presentation.</summary>
+        public bool TryGetChallengeTarget(ulong ownerId, out ulong targetId)
+        {
+            targetId = 0;
+            if (!_states.TryGetValue(ownerId, out var owner)) return false;
+            var challenge = owner.Challenge;
+            targetId = challenge.TargetId;
+            return targetId != 0 && _tick < challenge.UntilTick && _states.TryGetValue(targetId, out var target)
+                && target.Deaths == challenge.TargetDeaths
+                && IsEligibleEnemy(owner.EntityId, targetId, owner.PX, owner.PZ, LockRangeMeters, out _);
+        }
+
+        internal bool TryTakeChallenge(ref CharacterState owner, out ulong targetId)
+        {
+            bool valid = TryGetChallengeTarget(owner.EntityId, out targetId);
+            owner.Challenge = default;
+            return valid;
+        }
+
 		internal bool TryGetCurrentTarget(in CharacterState s, out ulong targetId, out ArcadePoint position)
 		{
 			targetId = s.TargetEntityId;
@@ -2297,7 +2326,7 @@ namespace SlopArena.Shared
 			    || !_states.TryGetValue(contact.OwnerEntityId, out var owner))
 				return false;
 			var config = lid.Return!.Value;
-			if (CatchesReturningProjectile(in owner))
+			if (lid.ReturnHit || CatchesReturningProjectile(in owner))
 			{
 				EmitReturnEvent(in lid, PresentationEventSource.ProjectileCatch, config.CatchPresentationId, in owner);
 				return false;
@@ -2374,20 +2403,13 @@ namespace SlopArena.Shared
 					&& defender.HasArmor;
 				hits[i] = contact;
 			}
-			for (int i = hits.Count - 1; i >= 0; i--)
-			{
-				var contact = hits[i];
-				if (contact.ReturnPhase != 2 || contact.TargetEntityId != contact.OwnerEntityId) continue;
-				if (ResolveReturnToOwner(ref contact))
-					hits[i] = contact;
-				else
-					hits.RemoveAt(i);
-			}
+            hits = hits.OrderBy(h => h.TargetEntityId == h.OwnerEntityId && h.ReturnPhase == 2 ? 1 : 0).ToList();
 			ClashCatches(hits);
 			LastTickHits.Clear();
 			int hitContactOperationIndex = 0;
-			foreach (var hit in hits)
+			foreach (var contactHit in hits)
 			{
+                var hit = contactHit;
 				// A hit on her earlier in this batch ended her ride and its wave.
 				if (hit.OwnerWindow && (!_states.TryGetValue(hit.OwnerEntityId, out var windowOwner)
 					|| windowOwner.State != ActionState.Shell))
@@ -2412,6 +2434,10 @@ namespace SlopArena.Shared
 				if (!_states.TryGetValue(hit.TargetEntityId, out var targetState)) continue;
 				bool attackerExists = _states.TryGetValue(hit.OwnerEntityId, out var attackerState);
 
+                if (hit.ReturnPhase == 2 && hit.TargetEntityId == hit.OwnerEntityId)
+                {
+                    if (!ResolveReturnToOwner(ref hit)) continue;
+                }
 				// Invincible (respawn grace, dash) — the hit is fully ignored (issue #37).
 				if (targetState.InvincibilityTicks > 0) continue;
 				// Her wave catches instead of hitting (ADR-0050); it refuses fighters in a pair itself.
@@ -2425,12 +2451,13 @@ namespace SlopArena.Shared
 				// A command grab's capture holds through a shield and armour; its own move's hits on the fighter it holds
 				// land as damage and hitstop only, and its release is an ordinary hit (ADR-0057). A contact without damage
 				// is never an ordinary hit, nor a hit contact.
-				if (attackerExists && ContactAbility(hit)?.CommandGrab is { } grab)
+				if (attackerExists && ContactAbility(hit)?.CommandHold is { } grab)
 				{
+                    if (grab.CatchKind == HoldCatch.LandedHit && !grab.Catches && !hit.Unblockable) continue;
 					bool ownHeldVictim = grab.Holding && targetState.State == ActionState.CommandGrabbed
 						&& targetState.InteractionId != 0 && targetState.InteractionId == attackerState.InteractionId
 						&& targetState.InteractionPartnerId == hit.OwnerEntityId;
-					if (grab.Catches || ownHeldVictim || hit.Damage <= 0f)
+					if (grab.Catches && grab.CatchKind == HoldCatch.Capture || ownHeldVictim || hit.Damage <= 0f)
 					{
 						if (!ownHeldVictim)
 							CatchOnCommandGrab(in hit, grab, ref attackerState, ref targetState, inputs,
@@ -2464,6 +2491,27 @@ namespace SlopArena.Shared
 					_states[hit.TargetEntityId] = targetState;
 					continue;
 				}
+				// A counter catches the hit whole: no damage, no reaction, no hit contact (Wibou's flash).
+				if (attackerExists && hit.OwnerEntityId != hit.TargetEntityId && hit.Damage > 0f
+					&& _activeAbilities.TryGetValue(hit.TargetEntityId, out var countering) && countering.CatchesHit(in hit))
+					continue;
+                if (attackerExists && !hit.ArmorProtected && !IsMayhemShove(hit.OwnerEntityId, hit.TargetEntityId) && targetState.InteractionId == 0
+                    && targetState.State is not (ActionState.CutHeld or ActionState.Swept)
+                    && ContactAbility(hit)?.CommandHold is { Catches: true, CatchKind: HoldCatch.LandedHit } scoop
+                    && !_damagedThisTick.Contains(hit.TargetEntityId) && attackerState.InteractionId == 0)
+                {
+                    CatchOnCommandGrab(in hit, scoop, ref attackerState, ref targetState, inputs, hitContactOperationIndex++);
+                    _states[hit.OwnerEntityId] = attackerState;
+                    _states[hit.TargetEntityId] = targetState;
+                    continue;
+                }
+                if (attackerExists && hit.OwnerEntityId != hit.TargetEntityId)
+                {
+                    if (hit.ReturnPhase == 2) _spellResolver.RecordReturnHit(hit.OwnerEntityId, hit.ActivationId);
+                    if (hit.ChallengeTicks > 0 && IsEligibleEnemy(hit.OwnerEntityId, hit.TargetEntityId,
+                        attackerState.PX, attackerState.PZ, float.MaxValue, out _))
+                        attackerState.Challenge = new Challenge(hit.TargetEntityId, targetState.Deaths, _tick + hit.ChallengeTicks);
+                }
 				if (targetState.State == ActionState.CutHeld)
 				{
 					HitHeldFighter(in hit, ref targetState, ref attackerState, attackerExists, hitContactOperationIndex++);
@@ -2477,8 +2525,10 @@ namespace SlopArena.Shared
                     targetState.BufferedSlot = 0;
 				// Snapshot settled crouch before reaction cleanup/callbacks. A later
 				// replacement hit may overwrite this queue, but cannot earn a new stance.
-				if (PredictCoupledInteractions && targetState.InteractionId != 0 && hit.Damage > 0f)
-					InterruptInteraction(ref targetState);
+				if (PredictCoupledInteractions && targetState.InteractionId != 0 && hit.Damage > 0f
+                    && !(hit.ArmorProtected && _activeAbilities.TryGetValue(hit.TargetEntityId, out var heldOwner)
+                        && heldOwner.CommandHold is { Holding: true, CatchKind: HoldCatch.LandedHit }))
+                    InterruptInteraction(ref targetState);
 
 				bool crouchBraceEligible = IsCrouchBraceEligible(
 					hit.TargetEntityId, in targetState, Def(hit.TargetEntityId));
@@ -2503,7 +2553,7 @@ namespace SlopArena.Shared
 				// Smash convention: always push away from the attacker.
 				float dirX = hit.DirX;
 				float dirZ = hit.DirZ;
-				if (attackerExists)
+				if (attackerExists && !(hit.Unblockable && ContactAbility(hit)?.CommandHold is { CatchKind: HoldCatch.LandedHit }))
 				{
 					float aDx = targetState.PX - attackerState.PX;
 					float aDz = targetState.PZ - attackerState.PZ;
@@ -2987,9 +3037,8 @@ namespace SlopArena.Shared
 					UpdateCoupledInteractions(releaseDue: false, inputs);
 				CaptureSettledCrouchCandidates();
                 CaptureMayhemPositions();
-				PreTickAbilities(inputs);
-
-				ProcessTargetLock(inputs);
+                PreTickAbilities(inputs);
+                ProcessTargetLock(inputs);
 
 				AimHeldCutPops();
 				SimulateMovement(inputs);
@@ -3008,7 +3057,8 @@ namespace SlopArena.Shared
                 if (_slopball != null) _slopball.PlanMotion(_arcadeBall!);
                 _volley?.PlanMotion(_arcadeBall!);
 
-				var entityList = BuildHurtboxList();
+				PlaceCommandHolds();
+                var entityList = BuildHurtboxList();
 
 				ResolveHits(entityList, inputs);
                 if (_slopball != null) _slopball.FinishTick(_arcadeBall!);

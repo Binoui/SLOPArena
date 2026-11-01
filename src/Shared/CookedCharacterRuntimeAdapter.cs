@@ -24,7 +24,7 @@ public static class CookedCharacterRuntimeAdapter
             ModelResourcePath=c.Presentation.ModelResourcePath, VisualScale=c.Presentation.VisualScale, HurtboxBoneScale=c.Presentation.HurtboxBoneScale, ModelYOffset=c.Presentation.ModelYOffset, ModelSoleOffset=c.Presentation.ModelSoleOffset, AutoModelYOffset=c.Presentation.AutoModelYOffset,
             BakedDataPath="",
             IdleAnim=c.Presentation.Idle, RunAnim=c.Presentation.Run, DashAnim=c.Presentation.Dash, JumpAnim=c.Presentation.Jump, FallAnim=c.Presentation.Fall,
-            CrouchAnim=c.Presentation.Crouch, SlideAnim=c.Presentation.Slide,
+            CrouchAnim=c.Presentation.Crouch, SlideAnim=c.Presentation.Slide, WallJumpAnim=c.Presentation.WallJump,
             ShieldAnim = c.Presentation.Shield, GrabAnim = c.Presentation.Grab,
             GrabbedAnim = c.Presentation.Grabbed, ThrowForwardAnim = c.Presentation.ThrowForward,
             AirDodgeAnim = c.Presentation.AirDodge,

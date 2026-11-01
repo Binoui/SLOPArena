@@ -805,8 +805,8 @@
       "timeline": {
         "stages": [
           {
-            "durationTicks": 40,
-            "iasaTicks": 35,
+            "durationTicks": 44,
+            "iasaTicks": 41,
             "landingLagTicks": 0,
             "autoCancelBeforeTicks": 0,
             "autoCancelAfterTicks": 0,
@@ -823,7 +823,7 @@
                 "kind": "startupAimCorrection",
                 "tick": 0,
                 "unit": "ticks",
-                "endTick": 10,
+                "endTick": 16,
                 "acquisitionRange": 4,
                 "acquisitionHalfAngleDegrees": 180,
                 "maxYawDegrees": 90,
@@ -833,7 +833,7 @@
               },
               {
                 "kind": "spawnHitbox",
-                "tick": 10,
+                "tick": 16,
                 "unit": "meters",
                 "hitbox": {
                   "shape": "sphere",
@@ -859,7 +859,7 @@
               },
               {
                 "kind": "emitPresentation",
-                "tick": 6,
+                "tick": 12,
                 "unit": "ticks",
                 "presentationId": "presentation.manki.normal.heavy",
                 "placement": {

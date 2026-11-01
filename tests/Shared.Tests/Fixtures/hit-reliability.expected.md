@@ -35,6 +35,13 @@ ground.3 Blade <swing> × vs FightGuy:
      -2.5      0         +2.5 
 ```
 
+## Swing
+
+One row per anchored hitbox. Inside share counts rotation after the first active tick through the last, relative to ticks 1 through the earlier of move duration and last active + 15. The step into the first active tick is unswept. Parked ticks turn less than 5° and move the tip less than 0.15 m; the denominator includes all active ticks.
+
+| Move | Active ticks | Inside share | Pre-peak | In-window peak | Parked ticks | Flags |
+|---|---|---:|---|---|---:|---|
+
 ## Bone and weapon sampling
 
 Grid positions (0.5–3 m ahead, ±40°) where a standing FightGuy-sized target lies in the swing's path between ticks but no tested pose touches it. Tested poses are each tick's pose plus the swept poses the engine tests between active ticks, so Untested should stay near zero.

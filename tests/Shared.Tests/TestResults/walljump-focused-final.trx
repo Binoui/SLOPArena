@@ -1,0 +1,204 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TestRun id="8444c70e-bbb2-46ba-b8f0-f68d927fbbed" name="@Robofix 2026-11-01 18:16:24" xmlns="http://microsoft.com/schemas/VisualStudio/TeamTest/2010">
+  <Times creation="2026-11-01T18:16:24.1836357+01:00" queuing="2026-11-01T18:16:24.1836357+01:00" start="2026-11-01T18:16:22.5764975+01:00" finish="2026-11-01T18:16:24.6289465+01:00" />
+  <TestSettings name="default" id="ab595ca5-6eec-401b-bf4b-8fb06a1e6331">
+    <Deployment runDeploymentRoot="_Robofix_2026-11-01_18_16_24" />
+  </TestSettings>
+  <Results>
+    <UnitTestResult executionId="21a65bbb-ade5-4979-9e18-c20ee2baace8" testId="3dd47701-c307-6198-3fa0-5b6c586bf03b" testName="SlopArena.Shared.Tests.LogOffArenaTests.UpperSplit_OneAirJumpRecoversOntoEitherShoulder(cls: Wibou, direction: 1)" computerName="Robofix" duration="00:00:00.0680771" startTime="2026-11-01T18:16:24.2501320+01:00" endTime="2026-11-01T18:16:24.3183312+01:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="21a65bbb-ade5-4979-9e18-c20ee2baace8" />
+    <UnitTestResult executionId="9b8eccc3-a654-445c-b125-62c4d5a08996" testId="fad893bd-33c0-408c-749e-f7276050cfaf" testName="SlopArena.Shared.Tests.WallJumpTests.AwayParallelOrNeutralStickUsesOrdinaryAirJump(x: 0, z: 1)" computerName="Robofix" duration="00:00:00.0002537" startTime="2026-11-01T18:16:24.1423083+01:00" endTime="2026-11-01T18:16:24.1424245+01:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="9b8eccc3-a654-445c-b125-62c4d5a08996" />
+    <UnitTestResult executionId="dccc4b75-5678-4206-9060-99fdee098516" testId="9ceb5ed6-3edf-4588-9fd1-877bd5f75a73" testName="SlopArena.Shared.Tests.WallJumpTests.KnockbackLandingRefreshesWallJump" computerName="Robofix" duration="00:00:00.0016090" startTime="2026-11-01T18:16:24.1459639+01:00" endTime="2026-11-01T18:16:24.1474115+01:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="dccc4b75-5678-4206-9060-99fdee098516" />
+    <UnitTestResult executionId="ed5a1793-ea83-4d53-a9e5-d7778a2467b1" testId="2ced12ca-008d-dc82-cdd2-382384b8efe1" testName="SlopArena.Shared.Tests.WallJumpTests.AwayParallelOrNeutralStickUsesOrdinaryAirJump(x: 0, z: 0)" computerName="Robofix" duration="00:00:00.0006332" startTime="2026-11-01T18:16:24.1417427+01:00" endTime="2026-11-01T18:16:24.1421377+01:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="ed5a1793-ea83-4d53-a9e5-d7778a2467b1" />
+    <UnitTestResult executionId="d78df200-4175-4d49-b2ef-ac9f3f9551c2" testId="9ac96d2b-0c20-8422-393e-c51d86bf5996" testName="SlopArena.Shared.Tests.WallJumpTests.UsedWallJumpFallsBackToRemainingAirJump(jumps: 0)" computerName="Robofix" duration="00:00:00.0003644" startTime="2026-11-01T18:16:24.1454281+01:00" endTime="2026-11-01T18:16:24.1456946+01:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="d78df200-4175-4d49-b2ef-ac9f3f9551c2" />
+    <UnitTestResult executionId="6e831697-0706-416b-97cf-8f6753ce5b61" testId="6906c1a7-3589-cff8-a024-fc60142fb1a9" testName="SlopArena.Shared.Tests.WallJumpTests.WallJumpPushesUpAndAwayWithoutSpendingAirJump(jumps: 0)" computerName="Robofix" duration="00:00:00.0011559" startTime="2026-11-01T18:16:24.1595780+01:00" endTime="2026-11-01T18:16:24.1596159+01:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="6e831697-0706-416b-97cf-8f6753ce5b61" />
+    <UnitTestResult executionId="26674b8f-b903-4e3a-82ab-37046525453e" testId="2f91c640-99d9-b926-84d2-0918f28de678" testName="SlopArena.Shared.Tests.WallJumpTests.AwayParallelOrNeutralStickUsesOrdinaryAirJump(x: 1, z: 0)" computerName="Robofix" duration="00:00:00.0039085" startTime="2026-11-01T18:16:24.1383976+01:00" endTime="2026-11-01T18:16:24.1414926+01:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="26674b8f-b903-4e3a-82ab-37046525453e" />
+    <UnitTestResult executionId="70e30e77-238b-43f7-8e80-010df28ea993" testId="c710d15a-143d-b875-d2d3-05467bb6f72a" testName="SlopArena.Shared.Tests.WallJumpTests.WallJumpClearsFastFallAndExitsShell(action: Shell)" computerName="Robofix" duration="00:00:00.0004436" startTime="2026-11-01T18:16:24.1600005+01:00" endTime="2026-11-01T18:16:24.1600336+01:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="70e30e77-238b-43f7-8e80-010df28ea993" />
+    <UnitTestResult executionId="e2ba3072-0f5a-43eb-ae01-13a225f7b864" testId="38c6e3ba-d081-aa00-7a24-c41fc64fd792" testName="SlopArena.Shared.Tests.WallJumpTests.TakingHitstunDoesNotRefreshWallJump" computerName="Robofix" duration="00:00:00.0481930" startTime="2026-11-01T18:16:24.0895662+01:00" endTime="2026-11-01T18:16:24.1375510+01:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="e2ba3072-0f5a-43eb-ae01-13a225f7b864" />
+    <UnitTestResult executionId="8d94d284-2ee7-4d22-9467-1f5676d3844c" testId="ab01a278-e794-9b6a-548c-2763db1853a8" testName="SlopArena.Shared.Tests.WallJumpTests.HitstunOrKnockbackBlocksWallJump(knockback: False)" computerName="Robofix" duration="00:00:00.0002729" startTime="2026-11-01T18:16:24.1597109+01:00" endTime="2026-11-01T18:16:24.1597450+01:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="8d94d284-2ee7-4d22-9467-1f5676d3844c" />
+    <UnitTestResult executionId="f50938ab-cdec-442d-81b8-acf35ccd77d9" testId="40f39590-264a-3049-9f5f-04a12a0f4039" testName="SlopArena.Shared.Tests.LogOffArenaTests.UpperSplit_OneAirJumpRecoversOntoEitherShoulder(cls: Bonk, direction: -1)" computerName="Robofix" duration="00:00:00.0482142" startTime="2026-11-01T18:16:24.5260435+01:00" endTime="2026-11-01T18:16:24.5741142+01:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="f50938ab-cdec-442d-81b8-acf35ccd77d9" />
+    <UnitTestResult executionId="09d2a7ac-10eb-434b-a8f1-a93085eee535" testId="4534e4d1-9f52-8dda-9940-bbe90e9c6261" testName="SlopArena.Shared.Tests.WallJumpTests.UsedWallJumpFallsBackToRemainingAirJump(jumps: 1)" computerName="Robofix" duration="00:00:00.0027715" startTime="2026-11-01T18:16:24.1426527+01:00" endTime="2026-11-01T18:16:24.1453051+01:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="09d2a7ac-10eb-434b-a8f1-a93085eee535" />
+    <UnitTestResult executionId="e1e3d2bb-5cc5-4ac7-a851-1c727c283270" testId="fcae287a-1116-395d-9de4-3816f98ed0e4" testName="SlopArena.Shared.Tests.LogOffArenaTests.UpperSplit_OneAirJumpRecoversOntoEitherShoulder(cls: Manki, direction: -1)" computerName="Robofix" duration="00:00:00.0518606" startTime="2026-11-01T18:16:24.4270301+01:00" endTime="2026-11-01T18:16:24.4788523+01:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="e1e3d2bb-5cc5-4ac7-a851-1c727c283270" />
+    <UnitTestResult executionId="3940c681-be5a-4cb6-9b92-4c92da0430b4" testId="36c8ac92-81a6-5a1e-810d-2890188d5380" testName="SlopArena.Shared.Tests.WallJumpTests.MashingJumpAgainstSingleWallEventuallyFallsToDeathPlane" computerName="Robofix" duration="00:00:00.0046742" startTime="2026-11-01T18:16:24.1601167+01:00" endTime="2026-11-01T18:16:24.1618208+01:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="3940c681-be5a-4cb6-9b92-4c92da0430b4" />
+    <UnitTestResult executionId="b327cad4-90f8-48b5-8bc7-a0a02edd840b" testId="95580359-fc0d-1ab6-64cf-ae9c3a7425b8" testName="SlopArena.Shared.Tests.WallJumpTests.WallJumpClearsFastFallAndExitsShell(action: Idle)" computerName="Robofix" duration="00:00:00.0061550" startTime="2026-11-01T18:16:24.1599111+01:00" endTime="2026-11-01T18:16:24.1599454+01:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="b327cad4-90f8-48b5-8bc7-a0a02edd840b" />
+    <UnitTestResult executionId="da6cf721-eaf5-474a-aba2-cf2836c46b81" testId="346d73ec-75a5-4c24-95eb-9f0135352fa8" testName="SlopArena.Shared.Tests.LogOffArenaTests.UpperSplit_OneAirJumpRecoversOntoEitherShoulder(cls: Wibou, direction: -1)" computerName="Robofix" duration="00:00:00.0564549" startTime="2026-11-01T18:16:24.3184723+01:00" endTime="2026-11-01T18:16:24.3747749+01:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="da6cf721-eaf5-474a-aba2-cf2836c46b81" />
+    <UnitTestResult executionId="22f24492-6ab0-4361-a5c6-a82c5ee1c789" testId="b276a74b-e03e-3958-635b-8c513a0e03c2" testName="SlopArena.Shared.Tests.LogOffArenaTests.UpperSplit_OneAirJumpRecoversOntoEitherShoulder(cls: FightGuy, direction: -1)" computerName="Robofix" duration="00:00:00.0520210" startTime="2026-11-01T18:16:24.3750631+01:00" endTime="2026-11-01T18:16:24.4268686+01:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="22f24492-6ab0-4361-a5c6-a82c5ee1c789" />
+    <UnitTestResult executionId="bfff1c0e-9749-46db-a971-090228d53988" testId="5e0432ee-8d7b-b61f-cdfb-91fb564d925f" testName="SlopArena.Shared.Tests.WallJumpTests.LandingRefreshesWallJump" computerName="Robofix" duration="00:00:00.0003363" startTime="2026-11-01T18:16:24.1686759+01:00" endTime="2026-11-01T18:16:24.1687761+01:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="bfff1c0e-9749-46db-a971-090228d53988" />
+    <UnitTestResult executionId="a837c923-80f6-4f92-a8b7-b427b53c8a95" testId="c73d892c-c97e-f10e-86a3-2dfc70114c08" testName="SlopArena.Shared.Tests.WorldSnapshotContractTests.CharacterStateCodecCoversEveryField" computerName="Robofix" duration="00:00:00.0074499" startTime="2026-11-01T18:16:24.0879544+01:00" endTime="2026-11-01T18:16:24.1043403+01:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="a837c923-80f6-4f92-a8b7-b427b53c8a95" />
+    <UnitTestResult executionId="88a5b797-8a1e-46b3-8f09-e0eaaba741eb" testId="43f93cd9-6193-341e-45c0-136313ab05e5" testName="SlopArena.Shared.Tests.LogOffArenaTests.UpperSplit_OneAirJumpRecoversOntoEitherShoulder(cls: Bonk, direction: 1)" computerName="Robofix" duration="00:00:00.0468212" startTime="2026-11-01T18:16:24.4791441+01:00" endTime="2026-11-01T18:16:24.5257799+01:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="88a5b797-8a1e-46b3-8f09-e0eaaba741eb" />
+    <UnitTestResult executionId="8148d90f-079a-4b7d-a06e-3926ad78edec" testId="0e35cd80-f3c3-dc72-04bb-149d6c73a814" testName="SlopArena.Shared.Tests.WallJumpTests.HitstunOrKnockbackBlocksWallJump(knockback: True)" computerName="Robofix" duration="00:00:00.0002861" startTime="2026-11-01T18:16:24.1597999+01:00" endTime="2026-11-01T18:16:24.1598336+01:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="8148d90f-079a-4b7d-a06e-3926ad78edec" />
+    <UnitTestResult executionId="b1c7554d-f742-45c6-bba5-d9b86a9c479d" testId="be003b02-52c0-9626-e8ab-c6b8f8e2241e" testName="SlopArena.Shared.Tests.LogOffArenaTests.UpperSplit_OneAirJumpRecoversOntoEitherShoulder(cls: Manki, direction: 1)" computerName="Robofix" duration="00:00:00.0823957" startTime="2026-11-01T18:16:24.0894892+01:00" endTime="2026-11-01T18:16:24.1716402+01:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="b1c7554d-f742-45c6-bba5-d9b86a9c479d" />
+    <UnitTestResult executionId="574c194a-1cc8-4ac4-bc10-74788c5e521b" testId="804b52d1-ffc5-b71b-b5c8-d8d3488433b3" testName="SlopArena.Shared.Tests.WallJumpTests.WallJumpPushesUpAndAwayWithoutSpendingAirJump(jumps: 1)" computerName="Robofix" duration="00:00:00.0009548" startTime="2026-11-01T18:16:24.1593137+01:00" endTime="2026-11-01T18:16:24.1593753+01:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="574c194a-1cc8-4ac4-bc10-74788c5e521b" />
+    <UnitTestResult executionId="98dee201-b543-4eaa-99d3-144c0e901544" testId="18bd7b48-15eb-2256-efe9-415b00b78fc7" testName="SlopArena.Shared.Tests.LogOffArenaTests.UpperSplit_OneAirJumpRecoversOntoEitherShoulder(cls: FightGuy, direction: 1)" computerName="Robofix" duration="00:00:00.0782181" startTime="2026-11-01T18:16:24.1727260+01:00" endTime="2026-11-01T18:16:24.2499925+01:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="98dee201-b543-4eaa-99d3-144c0e901544" />
+    <UnitTestResult executionId="942d014b-44c5-48c8-9ec6-0fbd45af0850" testId="9ca8331c-2ada-6e33-2920-d1f50a078730" testName="SlopArena.Shared.Tests.WallJumpTests.SnapshotRestoresUsedWallJump" computerName="Robofix" duration="00:00:00.0064209" startTime="2026-11-01T18:16:24.1621296+01:00" endTime="2026-11-01T18:16:24.1683648+01:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="942d014b-44c5-48c8-9ec6-0fbd45af0850" />
+  </Results>
+  <TestDefinitions>
+    <UnitTest name="SlopArena.Shared.Tests.WallJumpTests.KnockbackLandingRefreshesWallJump" storage="/home/binoui/documents/projects/sloparena/tests/shared.tests/bin/debug/net8.0/shared.tests.dll" id="9ceb5ed6-3edf-4588-9fd1-877bd5f75a73">
+      <Execution id="dccc4b75-5678-4206-9060-99fdee098516" />
+      <TestMethod codeBase="/home/binoui/Documents/projects/SlopArena/tests/Shared.Tests/bin/Debug/net8.0/Shared.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="SlopArena.Shared.Tests.WallJumpTests" name="KnockbackLandingRefreshesWallJump" />
+    </UnitTest>
+    <UnitTest name="SlopArena.Shared.Tests.LogOffArenaTests.UpperSplit_OneAirJumpRecoversOntoEitherShoulder(cls: FightGuy, direction: 1)" storage="/home/binoui/documents/projects/sloparena/tests/shared.tests/bin/debug/net8.0/shared.tests.dll" id="18bd7b48-15eb-2256-efe9-415b00b78fc7">
+      <Execution id="98dee201-b543-4eaa-99d3-144c0e901544" />
+      <TestMethod codeBase="/home/binoui/Documents/projects/SlopArena/tests/Shared.Tests/bin/Debug/net8.0/Shared.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="SlopArena.Shared.Tests.LogOffArenaTests" name="UpperSplit_OneAirJumpRecoversOntoEitherShoulder" />
+    </UnitTest>
+    <UnitTest name="SlopArena.Shared.Tests.WallJumpTests.UsedWallJumpFallsBackToRemainingAirJump(jumps: 1)" storage="/home/binoui/documents/projects/sloparena/tests/shared.tests/bin/debug/net8.0/shared.tests.dll" id="4534e4d1-9f52-8dda-9940-bbe90e9c6261">
+      <Execution id="09d2a7ac-10eb-434b-a8f1-a93085eee535" />
+      <TestMethod codeBase="/home/binoui/Documents/projects/SlopArena/tests/Shared.Tests/bin/Debug/net8.0/Shared.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="SlopArena.Shared.Tests.WallJumpTests" name="UsedWallJumpFallsBackToRemainingAirJump" />
+    </UnitTest>
+    <UnitTest name="SlopArena.Shared.Tests.LogOffArenaTests.UpperSplit_OneAirJumpRecoversOntoEitherShoulder(cls: Wibou, direction: -1)" storage="/home/binoui/documents/projects/sloparena/tests/shared.tests/bin/debug/net8.0/shared.tests.dll" id="346d73ec-75a5-4c24-95eb-9f0135352fa8">
+      <Execution id="da6cf721-eaf5-474a-aba2-cf2836c46b81" />
+      <TestMethod codeBase="/home/binoui/Documents/projects/SlopArena/tests/Shared.Tests/bin/Debug/net8.0/Shared.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="SlopArena.Shared.Tests.LogOffArenaTests" name="UpperSplit_OneAirJumpRecoversOntoEitherShoulder" />
+    </UnitTest>
+    <UnitTest name="SlopArena.Shared.Tests.WallJumpTests.UsedWallJumpFallsBackToRemainingAirJump(jumps: 0)" storage="/home/binoui/documents/projects/sloparena/tests/shared.tests/bin/debug/net8.0/shared.tests.dll" id="9ac96d2b-0c20-8422-393e-c51d86bf5996">
+      <Execution id="d78df200-4175-4d49-b2ef-ac9f3f9551c2" />
+      <TestMethod codeBase="/home/binoui/Documents/projects/SlopArena/tests/Shared.Tests/bin/Debug/net8.0/Shared.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="SlopArena.Shared.Tests.WallJumpTests" name="UsedWallJumpFallsBackToRemainingAirJump" />
+    </UnitTest>
+    <UnitTest name="SlopArena.Shared.Tests.LogOffArenaTests.UpperSplit_OneAirJumpRecoversOntoEitherShoulder(cls: Wibou, direction: 1)" storage="/home/binoui/documents/projects/sloparena/tests/shared.tests/bin/debug/net8.0/shared.tests.dll" id="3dd47701-c307-6198-3fa0-5b6c586bf03b">
+      <Execution id="21a65bbb-ade5-4979-9e18-c20ee2baace8" />
+      <TestMethod codeBase="/home/binoui/Documents/projects/SlopArena/tests/Shared.Tests/bin/Debug/net8.0/Shared.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="SlopArena.Shared.Tests.LogOffArenaTests" name="UpperSplit_OneAirJumpRecoversOntoEitherShoulder" />
+    </UnitTest>
+    <UnitTest name="SlopArena.Shared.Tests.WallJumpTests.WallJumpClearsFastFallAndExitsShell(action: Idle)" storage="/home/binoui/documents/projects/sloparena/tests/shared.tests/bin/debug/net8.0/shared.tests.dll" id="95580359-fc0d-1ab6-64cf-ae9c3a7425b8">
+      <Execution id="b327cad4-90f8-48b5-8bc7-a0a02edd840b" />
+      <TestMethod codeBase="/home/binoui/Documents/projects/SlopArena/tests/Shared.Tests/bin/Debug/net8.0/Shared.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="SlopArena.Shared.Tests.WallJumpTests" name="WallJumpClearsFastFallAndExitsShell" />
+    </UnitTest>
+    <UnitTest name="SlopArena.Shared.Tests.WallJumpTests.WallJumpPushesUpAndAwayWithoutSpendingAirJump(jumps: 1)" storage="/home/binoui/documents/projects/sloparena/tests/shared.tests/bin/debug/net8.0/shared.tests.dll" id="804b52d1-ffc5-b71b-b5c8-d8d3488433b3">
+      <Execution id="574c194a-1cc8-4ac4-bc10-74788c5e521b" />
+      <TestMethod codeBase="/home/binoui/Documents/projects/SlopArena/tests/Shared.Tests/bin/Debug/net8.0/Shared.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="SlopArena.Shared.Tests.WallJumpTests" name="WallJumpPushesUpAndAwayWithoutSpendingAirJump" />
+    </UnitTest>
+    <UnitTest name="SlopArena.Shared.Tests.LogOffArenaTests.UpperSplit_OneAirJumpRecoversOntoEitherShoulder(cls: Bonk, direction: 1)" storage="/home/binoui/documents/projects/sloparena/tests/shared.tests/bin/debug/net8.0/shared.tests.dll" id="43f93cd9-6193-341e-45c0-136313ab05e5">
+      <Execution id="88a5b797-8a1e-46b3-8f09-e0eaaba741eb" />
+      <TestMethod codeBase="/home/binoui/Documents/projects/SlopArena/tests/Shared.Tests/bin/Debug/net8.0/Shared.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="SlopArena.Shared.Tests.LogOffArenaTests" name="UpperSplit_OneAirJumpRecoversOntoEitherShoulder" />
+    </UnitTest>
+    <UnitTest name="SlopArena.Shared.Tests.WallJumpTests.WallJumpPushesUpAndAwayWithoutSpendingAirJump(jumps: 0)" storage="/home/binoui/documents/projects/sloparena/tests/shared.tests/bin/debug/net8.0/shared.tests.dll" id="6906c1a7-3589-cff8-a024-fc60142fb1a9">
+      <Execution id="6e831697-0706-416b-97cf-8f6753ce5b61" />
+      <TestMethod codeBase="/home/binoui/Documents/projects/SlopArena/tests/Shared.Tests/bin/Debug/net8.0/Shared.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="SlopArena.Shared.Tests.WallJumpTests" name="WallJumpPushesUpAndAwayWithoutSpendingAirJump" />
+    </UnitTest>
+    <UnitTest name="SlopArena.Shared.Tests.WallJumpTests.WallJumpClearsFastFallAndExitsShell(action: Shell)" storage="/home/binoui/documents/projects/sloparena/tests/shared.tests/bin/debug/net8.0/shared.tests.dll" id="c710d15a-143d-b875-d2d3-05467bb6f72a">
+      <Execution id="70e30e77-238b-43f7-8e80-010df28ea993" />
+      <TestMethod codeBase="/home/binoui/Documents/projects/SlopArena/tests/Shared.Tests/bin/Debug/net8.0/Shared.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="SlopArena.Shared.Tests.WallJumpTests" name="WallJumpClearsFastFallAndExitsShell" />
+    </UnitTest>
+    <UnitTest name="SlopArena.Shared.Tests.WallJumpTests.TakingHitstunDoesNotRefreshWallJump" storage="/home/binoui/documents/projects/sloparena/tests/shared.tests/bin/debug/net8.0/shared.tests.dll" id="38c6e3ba-d081-aa00-7a24-c41fc64fd792">
+      <Execution id="e2ba3072-0f5a-43eb-ae01-13a225f7b864" />
+      <TestMethod codeBase="/home/binoui/Documents/projects/SlopArena/tests/Shared.Tests/bin/Debug/net8.0/Shared.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="SlopArena.Shared.Tests.WallJumpTests" name="TakingHitstunDoesNotRefreshWallJump" />
+    </UnitTest>
+    <UnitTest name="SlopArena.Shared.Tests.LogOffArenaTests.UpperSplit_OneAirJumpRecoversOntoEitherShoulder(cls: FightGuy, direction: -1)" storage="/home/binoui/documents/projects/sloparena/tests/shared.tests/bin/debug/net8.0/shared.tests.dll" id="b276a74b-e03e-3958-635b-8c513a0e03c2">
+      <Execution id="22f24492-6ab0-4361-a5c6-a82c5ee1c789" />
+      <TestMethod codeBase="/home/binoui/Documents/projects/SlopArena/tests/Shared.Tests/bin/Debug/net8.0/Shared.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="SlopArena.Shared.Tests.LogOffArenaTests" name="UpperSplit_OneAirJumpRecoversOntoEitherShoulder" />
+    </UnitTest>
+    <UnitTest name="SlopArena.Shared.Tests.WallJumpTests.AwayParallelOrNeutralStickUsesOrdinaryAirJump(x: 1, z: 0)" storage="/home/binoui/documents/projects/sloparena/tests/shared.tests/bin/debug/net8.0/shared.tests.dll" id="2f91c640-99d9-b926-84d2-0918f28de678">
+      <Execution id="26674b8f-b903-4e3a-82ab-37046525453e" />
+      <TestMethod codeBase="/home/binoui/Documents/projects/SlopArena/tests/Shared.Tests/bin/Debug/net8.0/Shared.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="SlopArena.Shared.Tests.WallJumpTests" name="AwayParallelOrNeutralStickUsesOrdinaryAirJump" />
+    </UnitTest>
+    <UnitTest name="SlopArena.Shared.Tests.LogOffArenaTests.UpperSplit_OneAirJumpRecoversOntoEitherShoulder(cls: Manki, direction: -1)" storage="/home/binoui/documents/projects/sloparena/tests/shared.tests/bin/debug/net8.0/shared.tests.dll" id="fcae287a-1116-395d-9de4-3816f98ed0e4">
+      <Execution id="e1e3d2bb-5cc5-4ac7-a851-1c727c283270" />
+      <TestMethod codeBase="/home/binoui/Documents/projects/SlopArena/tests/Shared.Tests/bin/Debug/net8.0/Shared.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="SlopArena.Shared.Tests.LogOffArenaTests" name="UpperSplit_OneAirJumpRecoversOntoEitherShoulder" />
+    </UnitTest>
+    <UnitTest name="SlopArena.Shared.Tests.WallJumpTests.LandingRefreshesWallJump" storage="/home/binoui/documents/projects/sloparena/tests/shared.tests/bin/debug/net8.0/shared.tests.dll" id="5e0432ee-8d7b-b61f-cdfb-91fb564d925f">
+      <Execution id="bfff1c0e-9749-46db-a971-090228d53988" />
+      <TestMethod codeBase="/home/binoui/Documents/projects/SlopArena/tests/Shared.Tests/bin/Debug/net8.0/Shared.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="SlopArena.Shared.Tests.WallJumpTests" name="LandingRefreshesWallJump" />
+    </UnitTest>
+    <UnitTest name="SlopArena.Shared.Tests.LogOffArenaTests.UpperSplit_OneAirJumpRecoversOntoEitherShoulder(cls: Bonk, direction: -1)" storage="/home/binoui/documents/projects/sloparena/tests/shared.tests/bin/debug/net8.0/shared.tests.dll" id="40f39590-264a-3049-9f5f-04a12a0f4039">
+      <Execution id="f50938ab-cdec-442d-81b8-acf35ccd77d9" />
+      <TestMethod codeBase="/home/binoui/Documents/projects/SlopArena/tests/Shared.Tests/bin/Debug/net8.0/Shared.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="SlopArena.Shared.Tests.LogOffArenaTests" name="UpperSplit_OneAirJumpRecoversOntoEitherShoulder" />
+    </UnitTest>
+    <UnitTest name="SlopArena.Shared.Tests.WallJumpTests.SnapshotRestoresUsedWallJump" storage="/home/binoui/documents/projects/sloparena/tests/shared.tests/bin/debug/net8.0/shared.tests.dll" id="9ca8331c-2ada-6e33-2920-d1f50a078730">
+      <Execution id="942d014b-44c5-48c8-9ec6-0fbd45af0850" />
+      <TestMethod codeBase="/home/binoui/Documents/projects/SlopArena/tests/Shared.Tests/bin/Debug/net8.0/Shared.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="SlopArena.Shared.Tests.WallJumpTests" name="SnapshotRestoresUsedWallJump" />
+    </UnitTest>
+    <UnitTest name="SlopArena.Shared.Tests.WallJumpTests.AwayParallelOrNeutralStickUsesOrdinaryAirJump(x: 0, z: 1)" storage="/home/binoui/documents/projects/sloparena/tests/shared.tests/bin/debug/net8.0/shared.tests.dll" id="fad893bd-33c0-408c-749e-f7276050cfaf">
+      <Execution id="9b8eccc3-a654-445c-b125-62c4d5a08996" />
+      <TestMethod codeBase="/home/binoui/Documents/projects/SlopArena/tests/Shared.Tests/bin/Debug/net8.0/Shared.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="SlopArena.Shared.Tests.WallJumpTests" name="AwayParallelOrNeutralStickUsesOrdinaryAirJump" />
+    </UnitTest>
+    <UnitTest name="SlopArena.Shared.Tests.WallJumpTests.HitstunOrKnockbackBlocksWallJump(knockback: True)" storage="/home/binoui/documents/projects/sloparena/tests/shared.tests/bin/debug/net8.0/shared.tests.dll" id="0e35cd80-f3c3-dc72-04bb-149d6c73a814">
+      <Execution id="8148d90f-079a-4b7d-a06e-3926ad78edec" />
+      <TestMethod codeBase="/home/binoui/Documents/projects/SlopArena/tests/Shared.Tests/bin/Debug/net8.0/Shared.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="SlopArena.Shared.Tests.WallJumpTests" name="HitstunOrKnockbackBlocksWallJump" />
+    </UnitTest>
+    <UnitTest name="SlopArena.Shared.Tests.WallJumpTests.HitstunOrKnockbackBlocksWallJump(knockback: False)" storage="/home/binoui/documents/projects/sloparena/tests/shared.tests/bin/debug/net8.0/shared.tests.dll" id="ab01a278-e794-9b6a-548c-2763db1853a8">
+      <Execution id="8d94d284-2ee7-4d22-9467-1f5676d3844c" />
+      <TestMethod codeBase="/home/binoui/Documents/projects/SlopArena/tests/Shared.Tests/bin/Debug/net8.0/Shared.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="SlopArena.Shared.Tests.WallJumpTests" name="HitstunOrKnockbackBlocksWallJump" />
+    </UnitTest>
+    <UnitTest name="SlopArena.Shared.Tests.WorldSnapshotContractTests.CharacterStateCodecCoversEveryField" storage="/home/binoui/documents/projects/sloparena/tests/shared.tests/bin/debug/net8.0/shared.tests.dll" id="c73d892c-c97e-f10e-86a3-2dfc70114c08">
+      <Execution id="a837c923-80f6-4f92-a8b7-b427b53c8a95" />
+      <TestMethod codeBase="/home/binoui/Documents/projects/SlopArena/tests/Shared.Tests/bin/Debug/net8.0/Shared.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="SlopArena.Shared.Tests.WorldSnapshotContractTests" name="CharacterStateCodecCoversEveryField" />
+    </UnitTest>
+    <UnitTest name="SlopArena.Shared.Tests.LogOffArenaTests.UpperSplit_OneAirJumpRecoversOntoEitherShoulder(cls: Manki, direction: 1)" storage="/home/binoui/documents/projects/sloparena/tests/shared.tests/bin/debug/net8.0/shared.tests.dll" id="be003b02-52c0-9626-e8ab-c6b8f8e2241e">
+      <Execution id="b1c7554d-f742-45c6-bba5-d9b86a9c479d" />
+      <TestMethod codeBase="/home/binoui/Documents/projects/SlopArena/tests/Shared.Tests/bin/Debug/net8.0/Shared.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="SlopArena.Shared.Tests.LogOffArenaTests" name="UpperSplit_OneAirJumpRecoversOntoEitherShoulder" />
+    </UnitTest>
+    <UnitTest name="SlopArena.Shared.Tests.WallJumpTests.MashingJumpAgainstSingleWallEventuallyFallsToDeathPlane" storage="/home/binoui/documents/projects/sloparena/tests/shared.tests/bin/debug/net8.0/shared.tests.dll" id="36c8ac92-81a6-5a1e-810d-2890188d5380">
+      <Execution id="3940c681-be5a-4cb6-9b92-4c92da0430b4" />
+      <TestMethod codeBase="/home/binoui/Documents/projects/SlopArena/tests/Shared.Tests/bin/Debug/net8.0/Shared.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="SlopArena.Shared.Tests.WallJumpTests" name="MashingJumpAgainstSingleWallEventuallyFallsToDeathPlane" />
+    </UnitTest>
+    <UnitTest name="SlopArena.Shared.Tests.WallJumpTests.AwayParallelOrNeutralStickUsesOrdinaryAirJump(x: 0, z: 0)" storage="/home/binoui/documents/projects/sloparena/tests/shared.tests/bin/debug/net8.0/shared.tests.dll" id="2ced12ca-008d-dc82-cdd2-382384b8efe1">
+      <Execution id="ed5a1793-ea83-4d53-a9e5-d7778a2467b1" />
+      <TestMethod codeBase="/home/binoui/Documents/projects/SlopArena/tests/Shared.Tests/bin/Debug/net8.0/Shared.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="SlopArena.Shared.Tests.WallJumpTests" name="AwayParallelOrNeutralStickUsesOrdinaryAirJump" />
+    </UnitTest>
+  </TestDefinitions>
+  <TestEntries>
+    <TestEntry testId="3dd47701-c307-6198-3fa0-5b6c586bf03b" executionId="21a65bbb-ade5-4979-9e18-c20ee2baace8" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="fad893bd-33c0-408c-749e-f7276050cfaf" executionId="9b8eccc3-a654-445c-b125-62c4d5a08996" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="9ceb5ed6-3edf-4588-9fd1-877bd5f75a73" executionId="dccc4b75-5678-4206-9060-99fdee098516" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="2ced12ca-008d-dc82-cdd2-382384b8efe1" executionId="ed5a1793-ea83-4d53-a9e5-d7778a2467b1" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="9ac96d2b-0c20-8422-393e-c51d86bf5996" executionId="d78df200-4175-4d49-b2ef-ac9f3f9551c2" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="6906c1a7-3589-cff8-a024-fc60142fb1a9" executionId="6e831697-0706-416b-97cf-8f6753ce5b61" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="2f91c640-99d9-b926-84d2-0918f28de678" executionId="26674b8f-b903-4e3a-82ab-37046525453e" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="c710d15a-143d-b875-d2d3-05467bb6f72a" executionId="70e30e77-238b-43f7-8e80-010df28ea993" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="38c6e3ba-d081-aa00-7a24-c41fc64fd792" executionId="e2ba3072-0f5a-43eb-ae01-13a225f7b864" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="ab01a278-e794-9b6a-548c-2763db1853a8" executionId="8d94d284-2ee7-4d22-9467-1f5676d3844c" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="40f39590-264a-3049-9f5f-04a12a0f4039" executionId="f50938ab-cdec-442d-81b8-acf35ccd77d9" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="4534e4d1-9f52-8dda-9940-bbe90e9c6261" executionId="09d2a7ac-10eb-434b-a8f1-a93085eee535" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="fcae287a-1116-395d-9de4-3816f98ed0e4" executionId="e1e3d2bb-5cc5-4ac7-a851-1c727c283270" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="36c8ac92-81a6-5a1e-810d-2890188d5380" executionId="3940c681-be5a-4cb6-9b92-4c92da0430b4" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="95580359-fc0d-1ab6-64cf-ae9c3a7425b8" executionId="b327cad4-90f8-48b5-8bc7-a0a02edd840b" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="346d73ec-75a5-4c24-95eb-9f0135352fa8" executionId="da6cf721-eaf5-474a-aba2-cf2836c46b81" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="b276a74b-e03e-3958-635b-8c513a0e03c2" executionId="22f24492-6ab0-4361-a5c6-a82c5ee1c789" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="5e0432ee-8d7b-b61f-cdfb-91fb564d925f" executionId="bfff1c0e-9749-46db-a971-090228d53988" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="c73d892c-c97e-f10e-86a3-2dfc70114c08" executionId="a837c923-80f6-4f92-a8b7-b427b53c8a95" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="43f93cd9-6193-341e-45c0-136313ab05e5" executionId="88a5b797-8a1e-46b3-8f09-e0eaaba741eb" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="0e35cd80-f3c3-dc72-04bb-149d6c73a814" executionId="8148d90f-079a-4b7d-a06e-3926ad78edec" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="be003b02-52c0-9626-e8ab-c6b8f8e2241e" executionId="b1c7554d-f742-45c6-bba5-d9b86a9c479d" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="804b52d1-ffc5-b71b-b5c8-d8d3488433b3" executionId="574c194a-1cc8-4ac4-bc10-74788c5e521b" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="18bd7b48-15eb-2256-efe9-415b00b78fc7" executionId="98dee201-b543-4eaa-99d3-144c0e901544" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="9ca8331c-2ada-6e33-2920-d1f50a078730" executionId="942d014b-44c5-48c8-9ec6-0fbd45af0850" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+  </TestEntries>
+  <TestLists>
+    <TestList name="Results Not in a List" id="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestList name="All Loaded Results" id="19431567-8539-422a-85d7-44ee4e166bda" />
+  </TestLists>
+  <ResultSummary outcome="Completed">
+    <Counters total="25" executed="25" passed="25" failed="0" error="0" timeout="0" aborted="0" inconclusive="0" passedButRunAborted="0" notRunnable="0" notExecuted="0" disconnected="0" warning="0" completed="0" inProgress="0" pending="0" />
+    <Output>
+      <StdOut>[xUnit.net 00:00:00.00] xUnit.net VSTest Adapter v4.0.1+0f7d528729 (64-bit .NET 8.0.32)
+[xUnit.net 00:00:00.07]   Discovering: Shared.Tests
+[ArenaCollision] Built spatial grid for 'training': 132 triangles, 1071 cells (17×9×7), avg 1.2 tri/cell
+[xUnit.net 00:00:01.12]   Discovered:  Shared.Tests
+[xUnit.net 00:00:01.15]   Starting:    Shared.Tests
+[ArenaCollision] Built spatial grid for 'log_off': 484 triangles, 640 cells (10×8×8), avg 3.7 tri/cell
+[ArenaCollision] Built spatial grid for 'slop_pit': 38 triangles, 576 cells (8×9×8), avg 1.3 tri/cell
+[ArenaCollision] Built spatial grid for 'slop_pit': 38 triangles, 576 cells (8×9×8), avg 1.3 tri/cell
+[ArenaCollision] Built spatial grid for 'slop_pit': 38 triangles, 576 cells (8×9×8), avg 1.3 tri/cell
+[ArenaCollision] Built spatial grid for 'slop_pit': 38 triangles, 576 cells (8×9×8), avg 1.3 tri/cell
+[ArenaCollision] Built spatial grid for 'slop_pit': 38 triangles, 576 cells (8×9×8), avg 1.3 tri/cell
+[ArenaCollision] Built spatial grid for 'slop_pit': 38 triangles, 576 cells (8×9×8), avg 1.3 tri/cell
+[ArenaCollision] Built spatial grid for 'slop_pit': 38 triangles, 576 cells (8×9×8), avg 1.3 tri/cell
+[ArenaCollision] Built spatial grid for 'slop_pit': 38 triangles, 576 cells (8×9×8), avg 1.3 tri/cell
+[ArenaCollision] Built spatial grid for 'slop_pit': 38 triangles, 576 cells (8×9×8), avg 1.3 tri/cell
+[ArenaCollision] Built spatial grid for 'slop_pit': 38 triangles, 576 cells (8×9×8), avg 1.3 tri/cell
+[ArenaCollision] Built spatial grid for 'slop_pit': 38 triangles, 576 cells (8×9×8), avg 1.3 tri/cell
+[ArenaCollision] Built spatial grid for 'slop_pit': 38 triangles, 576 cells (8×9×8), avg 1.3 tri/cell
+[ArenaCollision] Built spatial grid for 'slop_pit': 38 triangles, 576 cells (8×9×8), avg 1.3 tri/cell
+[ArenaCollision] Built spatial grid for 'slop_pit': 38 triangles, 576 cells (8×9×8), avg 1.3 tri/cell
+[ArenaCollision] Built spatial grid for 'slop_pit': 38 triangles, 576 cells (8×9×8), avg 1.3 tri/cell
+[ArenaCollision] Built spatial grid for 'slop_pit': 38 triangles, 576 cells (8×9×8), avg 1.3 tri/cell
+[ArenaCollision] Built spatial grid for 'slop_pit': 38 triangles, 576 cells (8×9×8), avg 1.3 tri/cell
+[ArenaCollision] Built spatial grid for 'log_off': 484 triangles, 640 cells (10×8×8), avg 3.7 tri/cell
+[ArenaCollision] Built spatial grid for 'log_off': 484 triangles, 640 cells (10×8×8), avg 3.7 tri/cell
+[ArenaCollision] Built spatial grid for 'log_off': 484 triangles, 640 cells (10×8×8), avg 3.7 tri/cell
+[ArenaCollision] Built spatial grid for 'log_off': 484 triangles, 640 cells (10×8×8), avg 3.7 tri/cell
+[ArenaCollision] Built spatial grid for 'log_off': 484 triangles, 640 cells (10×8×8), avg 3.7 tri/cell
+[ArenaCollision] Built spatial grid for 'log_off': 484 triangles, 640 cells (10×8×8), avg 3.7 tri/cell
+[ArenaCollision] Built spatial grid for 'log_off': 484 triangles, 640 cells (10×8×8), avg 3.7 tri/cell
+[xUnit.net 00:00:01.65]   Finished:    Shared.Tests
+</StdOut>
+    </Output>
+  </ResultSummary>
+</TestRun>

@@ -287,16 +287,23 @@ def t3_cli() -> str:
     return os.environ.get("T3_CLI") or os.environ.get("T3CODE_CLI_PATH") or "t3"
 
 
-def thread_title(thread: str | None) -> str | None:
-    if not thread:
-        return None
-    try:
-        result = subprocess.run([t3_cli(), "thread", "list", "--json"], check=True,
-                                capture_output=True, text=True, timeout=30)
-        threads = json.loads(result.stdout)
-        return next((t["title"] for t in threads if t.get("threadId") == thread), None)
-    except (OSError, subprocess.SubprocessError, ValueError, KeyError, TypeError):
-        return None
+def owner_thread(thread: str | None) -> tuple[str | None, str | None]:
+    """Return (id, title) of the thread the owner talks to: subagent threads resolve to their top parent."""
+    title = None
+    for _ in range(5):
+        if not thread:
+            break
+        try:
+            result = subprocess.run([t3_cli(), "thread", "show", thread, "--json", "--messages", "0"], check=True,
+                                    capture_output=True, text=True, timeout=30)
+            info = json.loads(result.stdout)["thread"]
+        except (OSError, subprocess.SubprocessError, ValueError, KeyError, TypeError):
+            break
+        title = info.get("title")
+        if not info.get("parentThreadId"):
+            break
+        thread = info["parentThreadId"]
+    return thread, title
 
 
 def attach_check(check_id: int, files: list[Path]) -> None:
@@ -325,19 +332,27 @@ thread or reports. You test and report; you never fix, judge taste, or decide th
    blocked, mark the affected lines NOT TESTED and say why.
 5. Never press verdict buttons on the live factory, change a check's status, or message real T3 threads. To test
    the factory itself, run a local server with a fake T3_CLI as the slop-factory doc describes.
-6. Report once, at the end:
+6. Do not stop or hand back while your own captures, builds or test runs are still going: wait for them, then
+   report. Stopping early reads as finished to whoever started you.
+7. Report once, at the end, and post it once (re-running the command adds a second note):
    `python3 tools/factory.py check qa {id} --result pass|partial|fail --report tmp/qa-{id}/report.md --clip <files>`
    pass: every line tested and held. partial: some lines need the owner or could not run. fail: a line broke.
    The report has one numbered entry per step: PASS, FAIL or NOT TESTED, the evidence (numbers, screenshot
    names), then one line on method, and anything in the check's wording that was ambiguous."""
 
 
+QA_RESULT_RULE = ("When its result comes back: on pass or partial, add nothing to the thread unless a line needs the "
+                  "owner. On fail, or a bug QA found outside the lines, make one fix pass, record it with `check note`, "
+                  "and do not re-run QA.")
+
+
 def create_check(title: str, steps: str, area: str | None, thread: str | None, clips: list[Path]) -> int:
     for path in clips:
         if not path.is_file() or path.suffix.lower() not in {".mp4", ".jpg", ".png"}:
             raise SystemExit(f"factory: check media must be an existing .mp4, .jpg or .png file: {path}")
+    thread, thread_name = owner_thread(thread)
     check = call("POST", "/api/checks", {"title": title, "steps": steps, "area": area,
-                                        "thread": thread, "thread_title": thread_title(thread)})
+                                        "thread": thread, "thread_title": thread_name})
     print(check["id"], flush=True)
     attach_check(check["id"], clips)
     return check["id"]
@@ -348,7 +363,7 @@ def check_command(args) -> None:
         steps = sys.stdin.read() if args.steps == "-" else Path(args.steps).read_text()
         check_id = create_check(args.title, steps, args.area, args.thread, args.clip)
         print("\nStart one fresh subagent in the background with this QA brief, unchanged "
-              "(reprint it with `check qa-brief`):\n\n" + QA_BRIEF.format(id=check_id, root=ROOT))
+              "(reprint it with `check qa-brief`). " + QA_RESULT_RULE + "\n\n" + QA_BRIEF.format(id=check_id, root=ROOT))
     elif args.check_command == "qa-brief":
         print(QA_BRIEF.format(id=args.id, root=ROOT))
     elif args.check_command == "list":
@@ -379,6 +394,10 @@ def check_command(args) -> None:
                          [Path(p) for p in item.get("clips", [])])
 
 
+STAY_ACTIVE = ("\n\nIf this thread is settled, unsettle it (t3_thread_organize, action unsettle) and leave it "
+               "active so the owner sees your reply; only a Good + commit settles it.")
+
+
 def relay_message(note: dict) -> str:
     body = note["body"]
     match = re.fullmatch(r"Verdict: (TO-TRY|GOOD|REDO|DROPPED)( \+ COMMIT)?\.(?:\n\n(.*))?", body, re.DOTALL)
@@ -398,10 +417,10 @@ def relay_message(note: dict) -> str:
                         '--note "<what changed>"')
         elif verdict == "TO-TRY":
             message += "\n\nThe owner reopened this check for another try."
-        return message
+        return message if commit else message + STAY_ACTIVE
     return (f'Owner left a note on "{note["title"]}" (factory check #{note["check_id"]}, '
             f'{note["status"]}):\n\n{body}\n\n'
-            f'Read the check: python3 tools/factory.py check get {note["check_id"]}')
+            f'Read the check: python3 tools/factory.py check get {note["check_id"]}' + STAY_ACTIVE)
 
 
 def relay(once: bool, interval: float) -> None:
@@ -409,7 +428,7 @@ def relay(once: bool, interval: float) -> None:
         try:
             for note in call("GET", "/api/outbox"):
                 try:
-                    subprocess.run([t3_cli(), "thread", "send", note["thread"], "-"],
+                    subprocess.run([t3_cli(), "thread", "send", owner_thread(note["thread"])[0], "-"],
                                    input=relay_message(note), text=True, capture_output=True, check=True, timeout=60)
                 except (OSError, subprocess.SubprocessError) as error:
                     detail = error.stderr.strip() if isinstance(error, subprocess.CalledProcessError) else str(error)

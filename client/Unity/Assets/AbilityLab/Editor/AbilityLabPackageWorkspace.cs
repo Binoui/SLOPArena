@@ -962,6 +962,10 @@ public sealed partial class AbilityLabPackageWorkspace
             return Fail("edit.slot.unresolved", canonicalSlotId, "Canonical slot does not resolve to an explicit source slot.");
         if (stageIndex < 0 || stageIndex >= sourceSlot.Timeline.Stages.Count)
             return Fail("edit.index.out-of-range", $"character.slots[{slotIndex}].timeline.stages[{stageIndex}]", "Stage index is out of range.");
+        if (stageIndex != 0 || sourceSlot.Timeline.Stages.Count != 1 ||
+            sourceSlot.Timeline.Stages[0].Operations.Any(operation => operation is not EmitPresentationOperationSource))
+            return Fail("edit.targeted-leap.stage", canonicalSlotId,
+                "Targeted leap needs one stage with only presentation operations.");
         if (sourceSlot.Timeline.Stages.SelectMany(stage => stage.Operations)
             .OfType<StartCapabilityOperationSource>()
             .Any(operation => operation.CapabilityId == CharacterPackageCompiler.TargetedLeapCapabilityId))
@@ -984,9 +988,21 @@ public sealed partial class AbilityLabPackageWorkspace
             "bone.hips", null,
             1f, 45f, 5f, 80f, 8, (ushort)Math.Min(6, (int)recoveryTicks), true, 0);
         var parameters = new TargetedLeapCapabilityParameters(
-            0, 120, 1f, 12f, 10f, 0, recoveryTicks, hitbox);
+            20, 4f, 20, 12, 12f, 4f, 120, recoveryTicks, recoveryTicks, hitbox);
+        var slots = SelectedSlots.ToArray();
+        slots[slotIndex] = sourceSlot with
+        {
+            Behavior = AuthoringAbilityBehavior.MeleeCombo,
+            AimMode = AuthoringAimMode.None,
+            AllowSlideCarry = false,
+            ChargePool = null,
+            Timeline = new CharacterTimelineSource(new[]
+            {
+                sourceSlot.Timeline.Stages[0] with { IasaTicks = 0 },
+            }),
+        };
         var source = new CharacterPackageSource(Manifest,
-            GridSource().Character with { CapabilityRequirements = requirements });
+            GridSource().Character with { CapabilityRequirements = requirements, Slots = slots });
         return ApplyGridEdit(CharacterPackageSourceCodec.AddOperation(source, slotIndex, stageIndex,
             new StartCapabilityOperationSource(0, AuthoringUnit.Ticks,
                 CharacterPackageCompiler.TargetedLeapCapabilityId,

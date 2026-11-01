@@ -1,0 +1,213 @@
+{
+  "name": "manki-a3-double-fist-slam",
+  "purpose": "attack",
+  "rigpack": "artifacts/genra-rigpacks/manki-unity-a3",
+  "character": "Manki v5 'pyro' (58 joints: a Humanoid body with Mixamo names, a big head with goggles and a tall spiky mane, big ears, an open vest and ragged shorts; a two-can spray-can jetpack built into the body mesh and pinned rigidly to Spine2, so it sits on his upper back and turns with the chest; a TORCH-can holster on his left thigh; thumb, index, middle and ring fingers on each hand; arm stretch, forearm offset and fist deform helper joints that carry the arm skin; a five-joint tail Tail1..5 that a spring drives in the game). He is small: hips to head 0.38 m, thigh 0.25 m, shin 0.19 m, upper arm 0.14 m, forearm 0.14 m, so a hand reaches about 0.28 m from its shoulder joint.",
+  "references": {
+    "fall": "references/fall.usda",
+    "jump": "references/jump.usda",
+    "idle": "references/idle.usda"
+  },
+  "entry": {
+    "reference": "fall",
+    "tick": 0
+  },
+  "exit": {
+    "reference": "fall",
+    "tick": 0,
+    "from_tick": 96
+  },
+  "views": [
+    "gameplay",
+    "three-quarter-right",
+    "profile"
+  ],
+  "images": [
+    "images/fall-entry.png"
+  ],
+  "image_notes": "1: his fall pose on this rig (profile, front, three-quarter rear), the entry and exit pose of this clip. His hands there are relaxed and half curled.",
+  "notes": "Manki air.3 (anim.manki.a3, Double Fist Slam), redo 2026-11-01. The bound clip (manki_air3_double_fist.anim, 62 ticks at 1x, hit at tick 23) dates from the 2026-10-15/16 Codex aerial lineage. Measured on this pack (reference a3, not shown to the model): fist deform helpers scaled 1.2-2.2x over ticks 17-40, so the fingers swell into half-open sausages; fists inside the mane at ticks 10-22 and buried in the belly and thigh holster at ticks 23-36; both hands roll 71-73 deg in the contact tick; wrists folded to 78 deg; right fist 13.9 cm right of centre and 0.8 cm ahead of the chest at contact; 6.06 stops per joint per second, 80% of joints stopping together, 28% frozen joint-ticks. This brief authors at 96 ticks, twice the proposed 48-tick game stage (genra-animation-workflow.md section 1). Take A, the literal brief. The hit window opens on clip tick 32, the tick after the loaded pose (genra-animation-workflow.md: the fast part of the swing inside the window).",
+  "description": "Manki's air.3, Double Fist Slam: his forward aerial. In the air he swings both arms back over his head, arches his whole body like a drawn bow, then whips forward and brings both fists down together like a hammer, the two fists meeting on his centre line well in front of him. The right fist carries the hitbox (a sphere about 0.5 m across), so where the right fist travels during the hit is the move. It launches the opponent up and away.\n\nWho he is. Manki is a small, wiry pyromaniac monkey: big head, goggles, a tall spiky mane, a two-can spray jetpack on his back, a cocky grin. He moves like a scrappy cartoon brawler: fast, springy, everything thrown with his whole little body. Read him from behind: big clear silhouettes, the fists clearly above his head on the load and clearly in front of him on the hit.\n\nHow the game plays it. The match camera sits straight behind him, so the action must read from behind: the fists go up behind his head and come down through the middle, in front of his face, not off to one side. The game plays this 96-tick clip at about double speed. The fighter does not travel in the clip; the game moves him. Only the hips joint may translate, so turn the body about its middle (around the belly), not about the hips joint. The game crossfades in and out over about 0.1 s.\n\nIn the air. Tick 0 and tick 96 are his fall pose exactly (image 1). There is no floor contact.\n\nHands. From the gather (tick 10) to the end of the follow-through (tick 58) both hands are tight closed fists: all four fingers curled into the palm, the thumb closed outside across the index and middle fingers, never tucked inside the fingers and never sticking out. Use fist(). Keep the wrists close to the forearm line (under about 35 degrees): a hammer fist is a straight forearm with the little-finger side of the fist leading. Before tick 10 and after tick 58 the hands blend from and to the fall pose's relaxed half curl. Leave the fist deform, forearm offset and arm stretch helper joints at rest: no swelling, no stretch. The fists must stay visible: outside the mane and the head on the load, outside the belly, shorts and thigh holster on the hit. His head is big: the crown of the spiky mane is about 0.28 m above the Head joint, and the two jetpack cans stand behind his shoulders up to about 0.19 m above the Head joint. Fists pushed back behind his head land inside the mane or the cans, so on the load the fists go up over the crown, not back behind the head. The old version of this move buried both fists in the mane during the load and in his belly and thigh holster during the hit, with swollen fingers and wrists folded about 78 degrees; avoid all of that.\n\nThe move (96 ticks, played once):\n- Tick 0: the fall pose.\n- Tick 10, the gather: a small compression before the reach. The knees come up a little, the chest curls slightly over them, the chin tucks, both fists close and start to rise in front of his chest.\n- Tick 22, the load builds: both arms swing up, fists together rising past his face to above his head, elbows bent and pointing out. The chest opens and starts arching back; the legs start swinging back behind him as a counterweight.\n- Tick 31, full load (the tick before the hit): the drawn bow. His whole body is a backward C: chest arched back about 25-35 degrees; the arms nearly straight overhead (elbows only slightly bent), both fists close together just above and slightly behind the crown of his mane; the head pitched a little forward on the neck (chin down, eyes on the target) so the mane stays out of the fists' way; the knees bent with the shins and feet swung well behind him. The hips have just started to tip forward again, ahead of the chest: the whip starts at the hips.\n- Tick 35, over the top (the hit is already live): the hips have snapped forward, the chest is coming over, the arms are whipping forward over the head, fists together straight above his forehead on the centre line. The legs start swinging forward under him.\n- Tick 39, the strike: both fists meet on his centre line well in front of his face and chest, about at chest height, arms nearly straight, the right fist directly in front of his belly button's line (not beside his right shoulder). The body has folded forward into a forward C, the head tracks the fists, the knees swing forward under the chest as a counterweight to the arms.\n- Tick 45, follow-through: the fists keep travelling down and slightly back toward him, now in front of and below his chest, still together and still clear of his knees and the holster; the body is folded forward the most.\n- Tick 58, recovery begins: the fists open toward the fall pose's half curl, the body unfolds, the arms take the shortest calm path back toward the fall pose.\n- Tick 72: nearly back in the fall pose, still settling.\n- Tick 84: balanced and close to the fall pose; from here the player can act.\n- Tick 96: the fall pose, matching tick 0.\n\nFlow. The hips lead every change of direction; the chest trails 1-3 ticks, the head and arms trail more, so the load and the strike are a wave travelling from the hips out to the fists. The big poses are moving holds, never frozen: across ticks 22-31 the fists keep drifting back 3-6 cm while the chest keeps arching, and across ticks 39-45 the fists keep moving down. The head settles 1-2 ticks after the chest at the strike. The fists close a little tighter on the strike (about 5-10 degrees more curl at the knuckles between ticks 35 and 39). The legs counter the arms: back when the arms go back, forward when the arms come down.\n\nTail: do not animate Tail1..5. The game's spring drives it from the body's motion, so the arch and the whip are what make it swing.\n\nAfter the hit, the recovery is plain: the body rebalances and the arms take the shortest calm path back to the fall pose. No gesture, no flourish in the ending.",
+  "clock": {
+    "duration_ticks": 96,
+    "contact_tick": 32,
+    "active": [
+      32,
+      45
+    ],
+    "iasa_tick": 84,
+    "game_duration_ticks": 48
+  },
+  "timing": {
+    "fixed": [
+      "an aerial normal played once: tick 0 and tick 96 are his fall pose exactly, and the game crossfades into the fall loop after it",
+      "the fighter does not travel in the clip; the game moves him"
+    ],
+    "adjustable": [
+      "everything else: the owner said the frame data may change. Proposed game stage 48 ticks (this clip plays at 2x), hitbox live about game ticks 16-22 (clip ticks 32-45), act from about game tick 42 (clip tick 84), landing lag kept at 12",
+      "the exact ticks of the gather, load, strike and follow-through, as long as the fists are loaded high on the tick before the hit and the fast part of the swing lands inside the hit window"
+    ]
+  },
+  "fast_windows": [
+    [
+      31,
+      46
+    ]
+  ],
+  "strike": [
+    "RightHand",
+    "LeftHand"
+  ],
+  "keys": [
+    0,
+    10,
+    22,
+    31,
+    35,
+    39,
+    45,
+    58,
+    72,
+    84,
+    96
+  ],
+  "review_ticks": [
+    0,
+    6,
+    10,
+    16,
+    22,
+    27,
+    31,
+    33,
+    35,
+    37,
+    39,
+    42,
+    45,
+    50,
+    58,
+    65,
+    72,
+    84,
+    96
+  ],
+  "targets": [
+    {
+      "name": "load: right fist above the head at tick 31 (m)",
+      "kind": "below",
+      "a": "Head",
+      "b": "RightHand",
+      "tick": 31,
+      "min": 0.22
+    },
+    {
+      "name": "load: left fist above the head at tick 31 (m)",
+      "kind": "below",
+      "a": "Head",
+      "b": "LeftHand",
+      "tick": 31,
+      "min": 0.22
+    },
+    {
+      "name": "load: right fist at or slightly behind the crown, not ahead of the head, at tick 31 (m)",
+      "kind": "ahead",
+      "a": "RightHand",
+      "b": "Head",
+      "tick": 31,
+      "max": 0.0,
+      "min": -0.12
+    },
+    {
+      "name": "load: chest arched back, not ahead of the hips at tick 31 (m)",
+      "kind": "ahead",
+      "a": "Spine2",
+      "b": "Hips",
+      "tick": 31,
+      "max": 0.0
+    },
+    {
+      "name": "load: fists together at tick 31 (m)",
+      "kind": "distance",
+      "a": "LeftHand",
+      "b": "RightHand",
+      "tick": 31,
+      "max": 0.14
+    },
+    {
+      "name": "over the top: right fist on the centre line at tick 35 (char right, m)",
+      "kind": "char",
+      "a": "RightHand",
+      "axis": "right",
+      "tick": 35,
+      "min": -0.06,
+      "max": 0.06
+    },
+    {
+      "name": "strike: right fist on the centre line at tick 39 (char right, m)",
+      "kind": "char",
+      "a": "RightHand",
+      "axis": "right",
+      "tick": 39,
+      "min": -0.04,
+      "max": 0.04
+    },
+    {
+      "name": "strike: right fist well ahead of the chest at tick 39 (m)",
+      "kind": "ahead",
+      "a": "RightHand",
+      "b": "Spine2",
+      "tick": 39,
+      "min": 0.2
+    },
+    {
+      "name": "strike: fists together at tick 39 (m)",
+      "kind": "distance",
+      "a": "LeftHand",
+      "b": "RightHand",
+      "tick": 39,
+      "max": 0.11
+    },
+    {
+      "name": "strike: chest folded forward, ahead of the hips at tick 39 (m)",
+      "kind": "ahead",
+      "a": "Spine2",
+      "b": "Hips",
+      "tick": 39,
+      "min": 0.08
+    },
+    {
+      "name": "follow-through: right fist below the chest at tick 45 (m)",
+      "kind": "below",
+      "a": "RightHand",
+      "b": "Spine2",
+      "tick": 45,
+      "min": 0.1
+    },
+    {
+      "name": "follow-through: right fist still ahead of the hips at tick 45 (m)",
+      "kind": "ahead",
+      "a": "RightHand",
+      "b": "Hips",
+      "tick": 45,
+      "min": 0.12
+    },
+    {
+      "kind": "arc",
+      "name": "arc: FightGuy positions the right fist touches, ticks 32-45 (current move: 19 over its window)",
+      "window": [
+        32,
+        45
+      ],
+      "radius": 0.5,
+      "joints": [
+        "RightHand",
+        "RightHandMiddle1"
+      ],
+      "report": "artifacts/hit-reliability/manki.json",
+      "defender": "FightGuy",
+      "side": "all",
+      "min": 19
+    }
+  ]
+}

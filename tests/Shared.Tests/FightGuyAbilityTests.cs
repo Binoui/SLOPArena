@@ -87,6 +87,57 @@ public class FightGuyAbilityTests
         Assert.Equal((byte)5, t0.AttackSlot);
     }
 
+    [Theory]
+    [InlineData(false, 0)]
+    [InlineData(true, 0)]
+    [InlineData(false, 2)]
+    public void FightGuyCycloneKick_TravelsTowardTheStick(bool airborne, int stickTick)
+    {
+        var sim = TestHelpers.MakeSim();
+        var state = TestHelpers.PlayerState();
+        state.PY = airborne ? GroundPY + 6f : GroundPY;
+        state.IsGrounded = !airborne;
+        state.FacingYaw = 0f;
+        TestHelpers.RegisterPlayer(sim, TestHelpers.FightGuyDef, state);
+        for (int i = 0; i < 20; i++)
+            sim.Tick(new() { { 1, TestHelpers.Input(activeSlot: i == 0 ? AbilitySlots.R : (byte)0,
+                moveX: i == stickTick ? 1f : 0f) } });
+        var after = sim.GetState(1);
+        Assert.Equal(MathF.PI / 2f, after.FacingYaw, 3);
+        Assert.True(after.PX > 2f && MathF.Abs(after.PZ) < 1f, $"expected travel along +X, got ({after.PX}, {after.PZ})");
+    }
+
+    [Fact]
+    public void FightGuyCycloneKick_StickLateAfterWindowKeepsFacing()
+    {
+        var sim = TestHelpers.MakeSim();
+        var state = TestHelpers.PlayerState();
+        state.PY = GroundPY;
+        state.FacingYaw = 0f;
+        TestHelpers.RegisterPlayer(sim, TestHelpers.FightGuyDef, state);
+        for (int i = 0; i < 20; i++)
+            sim.Tick(new() { { 1, TestHelpers.Input(activeSlot: i == 0 ? AbilitySlots.R : (byte)0,
+                moveX: i >= SlopArena.Shared.Abilities.RecoveryTurn.WindowTicks ? 1f : 0f) } });
+        var after = sim.GetState(1);
+        Assert.Equal(0f, after.FacingYaw, 3);
+        Assert.True(after.PZ > 2f, $"expected travel along +Z, got ({after.PX}, {after.PZ})");
+    }
+
+    [Fact]
+    public void FightGuyCycloneKick_HeldStickOverridesTargetAssist()
+    {
+        var (sim, _) = CycloneVersusDummy(2f);
+        for (int i = 0; i < 20; i++)
+            sim.Tick(new()
+            {
+                { 1, TestHelpers.Input(activeSlot: i == 0 ? AbilitySlots.R : (byte)0, moveX: i == 0 ? -1f : 0f) },
+                { 100, default },
+            });
+        var after = sim.GetState(1);
+        Assert.Equal(-MathF.PI / 2f, after.FacingYaw, 3);
+        Assert.Equal(0, sim.GetState(100).DamagePercent);
+    }
+
     [Fact]
     public void FightGuyCycloneKick_InterruptionClearsDynamicHitboxes()
     {

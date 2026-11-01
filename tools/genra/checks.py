@@ -36,6 +36,25 @@ DEFAULT_SPEC = {
 }
 
 
+AMBIGUOUS_DEGREES = 170.0   # a joint turning more than this between neighbouring keys has no clear direction
+
+
+def half_turns(clip: Clip, ticks) -> list[dict]:
+    """Joints whose local rotation turns nearly half a turn between neighbouring keys. Between such keys no
+    interpolation can tell which way to turn, and flow() refuses them; a breakdown key that states the turn fixes it."""
+    digits = set(clip.rig.humanoid_digits)
+    found = []
+    for a, b in zip(ticks, ticks[1:]):
+        dots = np.abs(np.einsum('jk,jk->j', clip.q[a], clip.q[b]))
+        for j in np.flatnonzero(np.degrees(2 * np.arccos(np.clip(dots, 0, 1))) > AMBIGUOUS_DEGREES):
+            if j not in digits:
+                angle = np.degrees(2 * np.arccos(min(1.0, dots[j])))
+                found.append({'check': 'half-turn', 'ticks': [int(a), int(b)],
+                              'message': f'{clip.rig.names[j]} turns {angle:.0f} degrees between keys {a} and {b}: '
+                                         'too close to half a turn to tell which way; add a breakdown key between them'})
+    return found
+
+
 def check_clip(clip: Clip, spec: dict | None = None, skin=None, *, mode: str = 'full') -> dict:
     if mode not in ('full', 'fast'):
         raise ValueError(f'check mode must be full or fast, not {mode!r}')
@@ -50,6 +69,7 @@ def check_clip(clip: Clip, spec: dict | None = None, skin=None, *, mode: str = '
                      'targets': [t for t in s.get('targets', []) if t.get('tick') in ticks]}
         report = check_clip(clip, poses, skin, mode=mode)
         report.update(stage='keys', keyTicks=ticks, transitionRisks=risks['failures'])
+        report['warnings'] += half_turns(clip, ticks)
         return report
     skipped = []
     if mode == 'fast':

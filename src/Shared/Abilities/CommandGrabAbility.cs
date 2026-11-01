@@ -11,7 +11,7 @@ namespace SlopArena.Shared.Abilities;
 /// Phases: Lunge, Capture, then Hold after a catch, Whiff for a hold stage's miss, Spent once the timeline plays on alone;
 /// Done ends it.
 /// </summary>
-public sealed class CommandGrabAbility : ServerAbility
+public sealed class CommandGrabAbility : ServerAbility, ICommandHold
 {
     private enum Phase : byte { Lunge, Capture, Hold, Whiff, Spent, Done }
 
@@ -29,7 +29,20 @@ public sealed class CommandGrabAbility : ServerAbility
     public CommandGrabAbility(CookedCommandGrabCapabilityParameters parameters)
         => _p = parameters ?? throw new ArgumentNullException(nameof(parameters));
 
-    public override CommandGrabAbility? CommandGrab => this;
+    public override ICommandHold? CommandHold => this;
+    public HoldCatch CatchKind => HoldCatch.Capture;
+    public float? AnchorDistance => _p.AnchorDistance;
+    public float AnchorHeight => 0f;
+    public CookedGrabLaunch? Launch => _p.Launch;
+    public ushort ReleaseLockTicks => _p.ReleaseLockTicks;
+    public bool ReleaseRequested { get; private set; }
+    public void OnPlaced(ref CharacterState owner, bool blocked) { }
+    public void OnReleased(ref CharacterState owner)
+    {
+        ReleaseRequested = false;
+        Emit(ref owner, _p.ReleasePresentationId);
+        _phase = Phase.Spent;
+    }
     public override bool OwnsVerticalMotion => _phase == Phase.Hold || _p.Level && _phase is Phase.Lunge or Phase.Capture;
     public override float GravityMultiplier => OwnsVerticalMotion ? 0f : 1f;
     // A hold stage's whiff owns the move's end; a finished grab leaves no stage to start.
@@ -37,9 +50,9 @@ public sealed class CommandGrabAbility : ServerAbility
 
     internal CookedCommandGrabCapabilityParameters Parameters => _p;
     /// <summary>The capture is open and its contacts catch.</summary>
-    internal bool Catches => _phase == Phase.Capture;
+    public bool Catches => _phase == Phase.Capture;
     /// <summary>A grabbed fighter is held: this activation's hits on it deal damage and hitstop only.</summary>
-    internal bool Holding => _phase == Phase.Hold;
+    public bool Holding => _phase == Phase.Hold;
 
     public override void OnStart(ref CharacterState s, CharacterDefinition def)
     {
@@ -88,16 +101,14 @@ public sealed class CommandGrabAbility : ServerAbility
                 break;
             case Phase.Hold:
                 Plant(ref s);
-                if (!OwnerSimulation!.HoldCommandGrab(ref s, _p))
+                if (!OwnerSimulation!.HasCommandHold(in s))
                 {
                     if (_p.HasHoldStage) Finish(ref s);
                     else _phase = Phase.Spent;
                 }
                 else if (_ticks >= _p.ReleaseTick)
                 {
-                    OwnerSimulation.ReleaseCommandGrab(ref s, _p);
-                    Emit(ref s, _p.ReleasePresentationId);
-                    _phase = Phase.Spent;
+                    ReleaseRequested = true;
                 }
                 break;
             case Phase.Whiff:
@@ -145,7 +156,7 @@ public sealed class CommandGrabAbility : ServerAbility
     }
 
     /// <summary>Called by the simulation in the tick its capture takes a fighter: the hold starts.</summary>
-    internal void OnCaught(ref CharacterState s)
+    public void OnCaught(ref CharacterState s)
     {
         _phase = Phase.Hold;
         _lunging = false;
@@ -154,7 +165,7 @@ public sealed class CommandGrabAbility : ServerAbility
     }
 
     /// <summary>Called by the simulation when the catch met a grab on the same tick: both grabs miss.</summary>
-    internal void OnClashed(ref CharacterState s)
+    public void OnClashed(ref CharacterState s)
     {
         _lunging = false;
         ClearVelocityOwnership(ref s);
@@ -216,6 +227,7 @@ public sealed class CommandGrabAbility : ServerAbility
     {
         base.WriteSnapshot(w);
         w.WriteByte((byte)_phase);
+        w.WriteBool(ReleaseRequested);
         w.WriteUShort(_ticks);
         w.WriteUShort(_whiffTicks);
         w.WriteULong(_targetId);
@@ -230,6 +242,7 @@ public sealed class CommandGrabAbility : ServerAbility
     {
         base.ReadSnapshot(r);
         _phase = (Phase)r.ReadByte();
+        ReleaseRequested = r.ReadBool();
         if (_phase > Phase.Done) throw SnapshotReader.Malformed("command grab phase");
         _ticks = r.ReadUShort();
         _whiffTicks = r.ReadUShort();

@@ -1,0 +1,164 @@
+{
+ "stage": "splash_deck",
+ "notes": "36a Nyx Hex Crow: crow climbs over Wibou, caws, dives and perches; Grasp starts (combo-1 choreography)",
+ "capture": {
+  "from": 1,
+  "to": 125,
+  "step": 1,
+  "width": 1920,
+  "height": 1080,
+  "quality": 92
+ },
+ "fighters": [
+  {
+   "id": 1,
+   "package": "nyx",
+   "feet": [
+    2,
+    0,
+    5
+   ],
+   "yaw": 90,
+   "target": 2,
+   "input": [
+    {
+     "at": 2,
+     "press": "A"
+    },
+    {
+     "at": 80,
+     "press": "R"
+    },
+    {
+     "at": 84,
+     "press": "R"
+    },
+    {
+     "at": 88,
+     "press": "R"
+    },
+    {
+     "at": 92,
+     "press": "R"
+    },
+    {
+     "at": 96,
+     "press": "R"
+    },
+    {
+     "at": 100,
+     "press": "R"
+    },
+    {
+     "at": 126,
+     "press": "F"
+    },
+    {
+     "at": 128,
+     "press": "F"
+    },
+    {
+     "at": 130,
+     "press": "F"
+    },
+    {
+     "at": 132,
+     "press": "F"
+    },
+    {
+     "at": 134,
+     "press": "F"
+    },
+    {
+     "at": 136,
+     "press": "F"
+    },
+    {
+     "at": 138,
+     "press": "F"
+    },
+    {
+     "at": 140,
+     "press": "F"
+    },
+    {
+     "at": 150,
+     "press": "1"
+    },
+    {
+     "at": 152,
+     "press": "1"
+    },
+    {
+     "at": 154,
+     "press": "1"
+    },
+    {
+     "at": 156,
+     "press": "1"
+    },
+    {
+     "at": 158,
+     "press": "1"
+    },
+    {
+     "at": 160,
+     "press": "1"
+    },
+    {
+     "at": 162,
+     "press": "1"
+    },
+    {
+     "at": 164,
+     "press": "1"
+    },
+    {
+     "at": 166,
+     "press": "1"
+    },
+    {
+     "at": 168,
+     "press": "1"
+    },
+    {
+     "at": 170,
+     "press": "1"
+    },
+    {
+     "at": 172,
+     "press": "1"
+    }
+   ]
+  },
+  {
+   "id": 2,
+   "package": "wibou",
+   "feet": [
+    8,
+    0,
+    5
+   ],
+   "yaw": 270,
+   "damage": 30,
+   "target": 1
+  }
+ ],
+ "cameras": [
+  {
+   "name": "m",
+   "pos": [
+    -3,
+    2.2,
+    1.5
+   ],
+   "look": [
+    5.1,
+    2.2,
+    5.5
+   ],
+   "fov": 42,
+   "far": 4000
+  }
+ ]
+}

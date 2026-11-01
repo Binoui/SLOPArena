@@ -841,7 +841,11 @@ namespace SlopArena.Client.World
             CaptureSimulationTickCompleted?.Invoke(_tick);
         }
 
-        private void LateUpdate() => _mayhem?.UpdateView();
+        protected override void LateUpdate()
+        {
+            base.LateUpdate();
+            _mayhem?.UpdateView();
+        }
 
         // Leaving keeps the Mayhem format, so Fighter Select reopens on the same show's seats.
         protected override Action PauseRetry => Mayhem ? RestartMayhem : null;

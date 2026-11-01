@@ -20,18 +20,19 @@ namespace SlopArena.Shared
 
         /// <summary>
         /// A capture contact on a fighter, after invincibility and mode-target rules and before the shield. A fighter
-        /// already paired, frozen by a held cut or damaged in this batch, or one a grab anchor cannot reach, is ignored and
+        /// already a passenger, frozen by a held cut or damaged in this batch, or one a grab anchor cannot reach, is ignored and
         /// the capture stays open. Otherwise the catch supersedes the victim's move, flight and any reaction in progress
         /// and pairs both fighters. A capture with damage deals it with no launch or hitstop and credits it.
         /// </summary>
-        private void CatchOnCommandGrab(in SpellResolver.HitResult hit, CommandGrabAbility grab,
+        private void CatchOnCommandGrab(in SpellResolver.HitResult hit, ICommandHold grab,
             ref CharacterState grabber, ref CharacterState victim, Dictionary<ulong, InputState> inputs, int operationIndex)
         {
             ulong grabberId = hit.OwnerEntityId, victimId = hit.TargetEntityId;
-            if (!grab.Catches || grabber.InteractionId != 0 || victim.InteractionId != 0
+            if (!grab.Catches || grabber.InteractionId != 0
+                || victim.InteractionId != 0 && !(grab.CatchKind == HoldCatch.Capture && CanGrabPairedHolder(in victim))
                 || victim.State == ActionState.CutHeld || _damagedThisTick.Contains(victimId) || IsEliminated(victim))
                 return;
-            if (UniversalGrabWouldTake(victimId, in victim, grabberId))
+            if (grab.CatchKind == HoldCatch.Capture && UniversalGrabWouldTake(victimId, in victim, grabberId))
             {
                 victim.StateTicks = DefenseConfig.GrabClashRecoveryTicks;
                 victim.InteractionId = 0;
@@ -41,7 +42,7 @@ namespace SlopArena.Shared
                 grab.OnClashed(ref grabber);
                 return;
             }
-            var p = grab.Parameters;
+            var p = grab;
             float x = 0f, y = 0f, z = 0f;
             if (p.AnchorDistance == null)
             {
@@ -49,6 +50,7 @@ namespace SlopArena.Shared
                 if (!CanPlaceVictim(in grabber, in victim, Def(grabberId), Def(victimId), out x, out y, out z))
                     return;
             }
+            if (victim.InteractionId != 0) InterruptInteraction(ref victim);
             RetireAbility(victimId, ref victim, AbilityExit.Superseded);
             Flying.End(ref victim, Def(victimId), victimId != NoCooldownsEntityId);
             ClearReaction(ref victim);
@@ -150,13 +152,7 @@ namespace SlopArena.Shared
             EmitHitPresentation(in hit, damage, in grabber, attackerExists: true, operationIndex);
         }
 
-        /// <summary>
-        /// One hold step, called by the grabber's grab once per ability tick (its freeze pauses it): the pair must still
-        /// hold. With an anchor distance the victim moves to that anchor in front of the grabber's feet through the body
-        /// mover, so walls stop it, floats there in the air as on the ground and faces the grabber. Without, it is placed
-        /// at the grabber's grab anchor, facing its way; a placement a wall refuses keeps it where it was.
-        /// </summary>
-        internal bool HoldCommandGrab(ref CharacterState grabber, CookedCommandGrabCapabilityParameters p)
+        private bool PlaceCommandHold(ref CharacterState grabber, ICommandHold p)
         {
             ulong victimId = grabber.InteractionPartnerId;
             if (grabber.InteractionId == 0 || grabber.InteractionPhase != (byte)DefenseInteractionPhase.CommandHold
@@ -167,7 +163,7 @@ namespace SlopArena.Shared
             if (p.AnchorDistance is { } distance)
             {
                 var anchor = TetherAnchor(in grabber, Def(grabber.EntityId), victimDef, distance);
-                float dy = anchor.Y - victim.PY;
+                float dy = anchor.Y + p.AnchorHeight - victim.PY;
                 victim.VX = (anchor.X - victim.PX) / Simulation.TickDt;
                 victim.VY = (victim.IsGrounded && dy < 0f ? 0f : dy) / Simulation.TickDt;
                 victim.VZ = (anchor.Z - victim.PZ) / Simulation.TickDt;
@@ -188,6 +184,8 @@ namespace SlopArena.Shared
                 victim.FacingYaw = victim.AimYaw = grabber.FacingYaw;
             }
             _states[victimId] = victim;
+            p.OnPlaced(ref grabber, p.AnchorDistance is { } d &&
+                DistanceFromAnchor(in grabber, in victim, victimDef, d, p.AnchorHeight) > .15f);
             return true;
         }
 
@@ -197,7 +195,7 @@ namespace SlopArena.Shared
         /// CommandGrabbed, unpaired, for the release lock with ordinary gravity, as a tether's arrival does, so the
         /// grabber's next authored hit meets it as an ordinary hit.
         /// </summary>
-        internal void ReleaseCommandGrab(ref CharacterState grabber, CookedCommandGrabCapabilityParameters p)
+        internal void ReleaseCommandGrab(ref CharacterState grabber, ICommandHold p)
         {
             ulong victimId = grabber.InteractionPartnerId, interactionId = grabber.InteractionId;
             if (p.Launch is not { } launch)
@@ -232,6 +230,7 @@ namespace SlopArena.Shared
                 Damage = launch.Damage,
                 KnockbackAngle = (sbyte)launch.Angle,
                 KnockbackDirection = AuthoringKnockbackDirection.AwayFromOwner,
+                DirX = MathF.Sin(grabber.FacingYaw), DirZ = MathF.Cos(grabber.FacingYaw),
                 BaseKnockback = launch.BaseKnockback,
                 KnockbackGrowth = launch.KnockbackGrowth,
                 StunTicks = launch.StunTicks,
@@ -263,8 +262,47 @@ namespace SlopArena.Shared
                 && victim.InteractionPhase == (byte)DefenseInteractionPhase.CommandHold
                 && !IsEliminated(grabber) && !IsEliminated(victim)
                 && Unlaunched(in grabber) && Unlaunched(in victim)
-                && _activeAbilities.TryGetValue(grabberId, out var ability) && ability.CommandGrab is { Holding: true };
+                && _activeAbilities.TryGetValue(grabberId, out var ability) && ability.CommandHold is { Holding: true };
         }
+
+        internal bool HasCommandHold(in CharacterState owner) => CommandHolds(owner.EntityId, in owner);
+
+        private float DistanceFromAnchor(in CharacterState owner, in CharacterState victim,
+            CharacterDefinition victimDef, float distance, float height)
+        {
+            var a = TetherAnchor(in owner, Def(owner.EntityId), victimDef, distance);
+            float x = a.X - victim.PX, y = a.Y + height - victim.PY, z = a.Z - victim.PZ;
+            return MathF.Sqrt(x * x + y * y + z * z);
+        }
+
+        private void PlaceCommandHolds()
+        {
+            int count = CopyInteractionIds();
+            for (int i = 0; i < count; i++)
+            {
+                ulong id = _interactionScratch[i];
+                var owner = _states[id];
+                if (owner.State != ActionState.Attacking || owner.InteractionId == 0
+                    || !_activeAbilities.TryGetValue(id, out var ability)
+                    || ability.CommandHold is not { Holding: true } hold || !CommandHolds(id, in owner)) continue;
+                if (owner.HitstopTicks == 0 && !_hitstopFrozenThisTick.Contains(id))
+                {
+                    PlaceCommandHold(ref owner, hold);
+                    if (hold.ReleaseRequested)
+                    {
+                        ReleaseCommandGrab(ref owner, hold);
+                        hold.OnReleased(ref owner);
+                    }
+                }
+                _states[id] = owner;
+            }
+        }
+
+        private bool CanGrabPairedHolder(in CharacterState state)
+            => state.InteractionPhase == (byte)DefenseInteractionPhase.CommandHold
+                && state.State == ActionState.Attacking
+                && _activeAbilities.TryGetValue(state.EntityId, out var ability)
+                && ability.CommandHold is { Holding: true, CatchKind: HoldCatch.LandedHit };
 
         private static bool Unlaunched(in CharacterState s) => s.HitstunTicks == 0 && !Simulation.HasKnockback(s);
     }

@@ -147,6 +147,20 @@ both on the centre line (a `char` `right` target within a few centimetres of 0)
 and well ahead of the chest or head (an `ahead` target). Say it in the move text
 too, because the model reads the prose before the numbers.
 
+When a weapon or limb is the hitbox, put the fast part of the swing inside the
+active window, not before it. Sir Bonk's October normals keyed the "contact" pose
+on the first active tick, so the plank arrived there: the chop happened in the
+ticks before the window and the window covered a plank that had nearly stopped.
+Only 6–19% of the plank's turn fell inside the window of four of his six normals
+(Air BONK's whole 250° chop landed in the 4 ticks before it), and the Air BONK brief's
+prose ("at 28 it is already sweeping") did not prevent it (2026-11-01). Key the
+pose just before the swing (overhead, loaded) on the tick before the window, keep
+the plank crossing the target through the window, and end the window when it stops.
+The [hit-reliability report](../systems/move-data-report.md#hit-reliability)'s
+Swing columns measure this on the cooked move. A clip that already has the
+problem can be fixed without new motion: `unity_clip.py write --retime` spreads
+the swing over the window and the move data's window moves onto it.
+
 Keep a normal's ending lag plain. After the hit, the body regains its balance
 and the arms take the shortest calm path back to the stance. Don't add a
 gesture, flourish or "cocky beat": the owner called the salamander's brim push,
@@ -284,22 +298,13 @@ revisions that spent their time solving transitions.
 
 ### Flow pass
 
-Build flow into the first take. The default route is approved keys, first take, owner look,
-then an owner-directed revision only when requested. Do not budget a paid flow pass for every move.
-Flow measurements stay warnings. Stiffness can be intentional, and the owner judges the result at game speed.
-
-1. Run `run.py BRIEF --stage keys` and get the poses approved.
-2. Run `run.py BRIEF --keys <keys run>` and show the first take.
-3. If the owner requests a change, run `run.py BRIEF --revise <take run> --owner-file direction.md`.
-   Inline `--owner "text"` also works. Keep `--keys <keys run>` when using approved keys.
-
-Copy the [owner direction template](../../tools/genra/briefs/OWNER-DIRECTION.md).
-Name what to keep, the key tolerance in centimetres, targets, body parts, tick ranges, amounts, and lags.
-State prohibitions such as no new gestures or flourishes. Treat numerical flow targets as advisory.
-FightGuy Flip Kick's successful revision used this kind of concrete direction.
-
-Normals default to a plain, short recovery. The move itself can carry personality, as Nyx's moves do.
-Specials can carry more acting. Avoid a cocky settle or an extra pose in a normal's recovery.
+The first take is seeded with `clip, report = flow(b)` through the approved keys.
+The animator reads its report, adjusts the move's dials if needed, then solves contacts.
+Show that first take to the owner. An owner-directed flow pass is the fallback when the owner wants more.
+Use `run.py BRIEF --revise <take run> --owner-file direction.md --keys <keys run>`.
+Copy the [owner direction template](../../tools/genra/briefs/OWNER-DIRECTION.md) to name what to keep and what to change.
+Flow numbers are advisory. Keep intentional stiffness and judge the motion at game speed.
+Normals default to a plain, short recovery. Put personality in the move. Specials can carry more acting.
 
 `run.py` prints advisory brief lint before any model call, including with `--dry-run`.
 Set optional `purpose` to `attack`, `special`, `idle`, `locomotion`, `loop`, or `other`.

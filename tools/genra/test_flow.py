@@ -77,7 +77,7 @@ class FlowTests(unittest.TestCase):
     def test_keys_land_exactly_on_their_ticks(self):
         keys = self.swing_keys()
         brief = self.brief(keys, 'exact', 40, exit={'from_tick': 40}, purpose='special')
-        clip, report = flow(brief, accents=[Accent('spine', tick=15, degrees=6, axis=(1, 0, 0))])
+        clip, report = flow(brief, lag=1, accents=[Accent('spine', tick=15, degrees=6, axis=(1, 0, 0))])
         drift = key_drift(clip, keys)
         self.assertEqual(sorted(report.approved), sorted(keys))
         self.assertLess(max(d.metres for d in drift.values()), 1e-6)
@@ -124,6 +124,9 @@ class FlowTests(unittest.TestCase):
         brief = self.brief(keys, 'half', 24, purpose='special')
         with self.assertRaisesRegex(ValueError, r'Hips turns 18\d degrees between keys 0 and 12'):
             flow(brief)
+        warned = check_clip(Clip.from_keys(keys, 25), {'stage': 'keys', 'key_ticks': sorted(keys)}, mode='fast')
+        self.assertEqual([w['ticks'] for w in warned['warnings'] if w['check'] == 'half-turn'], [[0, 12], [12, 24]],
+                         'the keys check warns at approval time, before flow refuses the keys')
 
     def test_loop_seam_closes(self):
         keys = {0: self.entry.copy(), 14: self.entry.copy(), 28: self.entry.copy()}

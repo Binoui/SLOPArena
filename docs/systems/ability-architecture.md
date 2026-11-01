@@ -77,14 +77,14 @@ Legacy stage targeting fields remain reserved in source and cooked content:
 non-default values. Current target lock, startup aim correction, and authored
 lunge/dash/leap movement use their own supported mechanisms.
 
-`slop.ability.targeted-leap.v1` is a public, bounded stateful lifecycle:
-policy-controlled aim/release, clamped target-relative ballistic flight, no-landing
-timeout, and a landing-triggered pose seek, ordinary typed hitbox and recovery.
-The package authors its movement/landing/hitbox values; Shared owns every
-transition and interruption. At most one targeted leap may own a slot, its
-seek plus recovery fits the authored stage, and its hitbox lifetime fits
-recovery. Ability Lab edits the same typed source contract, not a separate
-simulation or a Bonk-specific ability.
+`slop.ability.targeted-leap.v2` requires runtime API `1.22.0` and replaces the retired cursor leap.
+One tick-zero lifecycle in a meleeCombo stage with no aim runs Rise, Hang, Drop, Fall and Landing.
+Rise eases upward, Hang tracks the press-selected target's feet, and Drop locks the spot and uses swept body movement.
+Only a real touchdown spawns the landing hitbox. Fall has a bounded timeout without a phantom slam.
+Miss and shield recovery use `missRecoveryTicks`; an unshielded fighter hit shortens remaining recovery to
+`hitRecoveryTicks` and seeks the landing clip to `hitLandingSeekTick`. `ActiveMoveView.Spot` is present during Hang
+and Drop, so the client light follows restored state. Shared owns timing, collision and outcomes.
+See [Sir Bonk](../characters/bonk.md) and [ADR-0059](../adr/0059-sir-bonk-scoop-joust-and-leap-of-faith.md).
 
 `slop.ability.aimed-recovery.v1` requires runtime API `1.9.0` (Bashie's retired Ring Bounce; kept as a public
 capability with a test fixture).
@@ -187,19 +187,24 @@ Bounds: fire 1–120 ticks, recovery 1–240, cylinder 1–24 rounds, reload 1�
 both air speeds 0–30 m/s; projectile parameters use the existing projectile spec
 with positive speed/radius/lifetime and no return. Package wiring is separate.
 
-`slop.ability.steered-charge.v1` requires runtime API `1.8.0` (Sir Bonk's Joust). It
-gallops at a fixed speed whose heading the stick turns at a capped rate (at most
-1440°/s), with a lance hitbox that follows the fighter and optional armour while it
-gallops. The first fighter the lance hits ends it with the hit ending; a shield, a
-terrain stop (under 60% of a tick's forward travel, as the directional dash) or the
-end of the gallop ends it with the miss ending, a skid that can turn the fighter round.
-With no ground under it (started in the air, or more than four ticks off a ledge) it
-strides level on thin air with gravity off, hangs for the look-down and ends, so the
-fighter falls and can act. It owns the end of its move. Its slot has one stage with
-IASA zero and one lifecycle; motion, hitbox, projectile, aim, other capability and
-completion operations are rejected, and startup aim correction, gravity and armour
-windows must end by its start tick. Phase clips (gallop loop, hit, miss, air ending)
-must be listed in the stage after the startup clip. Ability Lab does not edit it yet.
+`slop.ability.steered-charge.v2` requires runtime API `1.22.0` and replaces charge v1.
+One tick-zero lifecycle owns the stage's rear, target choice, gallop, scoop, carry and fling.
+Challenge is stored on the challenger with target ID, target death count and expiry tick. The press consumes it.
+Neutral ground steering tracks at the normal or challenged cap; the stick overrides it. Tracking gives up after
+90 degrees, and air strides use only the stick. Lance and chest share one contact history.
+A landed, unshielded, unarmoured contact can enter the existing command hold. Invalid scoop victims take an ordinary hit.
+A second same-slot press, terrain stop, blocked anchor, ground ledge, carry clock or stride end requests release.
+The post-movement pair pass places the victim, then queues the credited fling through ordinary launch rules.
+A ground carry stops on the edge. Phase clips include the gallop, hit, miss, air ending and authored fling.
+
+The common `ICommandHold` seam has `HoldCatch.Capture` for shield-bypassing grabs and `HoldCatch.LandedHit`
+for scoops. Title Match and Selfie Grab keep their catch and release contracts. All holders place their victims
+once after movement and before hurtboxes. Release requests are capability snapshot state, not a persistent queue.
+
+A projectile may add `challengeTicks` and optional `return.hit` with damage, angle, knockback, stun and fixed Hitstun.
+Turning clears outbound homing and swaps return values. A missing return override preserves both legs' values.
+A return that landed on a fighter is caught while its owner is busy. Empty returns keep their self-hit rule.
+These fields require runtime API `1.22.0`. World Snapshot v25 stores them and the owner-local Challenge.
 
 `slop.ability.thrust.v1` requires runtime API `1.12.0` ([ADR-0045](../adr/0045-bashie-shell-state.md)).
 `slop.ability.shell-stance.v2`, `slop.ability.cannonball.v1` and `shellPolicy: ride` require runtime API `1.14.0`
@@ -319,7 +324,7 @@ hits each fighter once; the return leg's knockback pulls toward the owner. The o
 catches it when free (idle, running, crouching, sliding or in jump squat, with no
 hitstop, blockstun or landing lag), shielding, held or already being hit. The reserved
 `LedgeHang` state also takes the catch branch; automatic ledge grabs remain disabled.
-Otherwise it hits him for
+A return that landed on a fighter is also caught while the owner is busy. An empty return outside those catch states hits him for
 `selfHitDamage` with `selfHitStunTicks` of fixed hitstun (1–240) and no launch; armour
 takes the stun. The two outcomes emit `ProjectileCatch` and `ProjectileSelfHit`
 presentation events. A slot throws at most one returning projectile, and refuses its

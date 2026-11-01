@@ -337,10 +337,14 @@ out of a candidate, which a single-clip render cannot show. Each row of the spec
 sequence of clip events, as `PlayerRenderer` drives them: a tick, a clip (an `Assets/...`
 `.anim` or a bound semantic id), a crossfade in seconds, a start time, and a speed or
 `ticks` to stretch the clip like an ability. Rows can also travel (`moves`: first tick, last
-tick, metres per tick forward), and the cameras follow. Phase labels name the ticks. It
+tick, metres per tick forward, and optionally metres per tick up), and the cameras follow. A
+spec's `floor` (rig-pack height in metres) draws the ground, so a leap's landing or a weapon
+stuck in the floor reads. Phase labels name the ticks. It
 writes `timeline.mp4` and `timeline-sheet.png`. Wibou's R review was idle, then the held
 charge loop, then the release into the dash at its 6.4 m travel; it showed a 3-tick spring
-up into the dash clip's upright first frame.
+up into the dash clip's upright first frame. Sir Bonk's E drop review (2026-11-01) rises
+6 m, hangs, and drops onto the floor along the game's path: before that, a timeline could
+only move forward and had no ground.
 
 `promote SOURCE --over Assets/CharacterPackages/<pkg>/Animations/<name>.anim` makes an accepted clip live:
 
@@ -470,42 +474,42 @@ that was really a single 28° hump, and a review asked to fix it.
 Three approved clips fail the wrist check, which nobody had measured before: the whirlwind's right wrist at 123°, the
 blade-storm spin's left at 115°, and Sir Bonk's idle plank hand at 137°, which the plank hides in game.
 
-## Flow: lively without a reference
+## Flow
 
-Sir Bonk's first GenRA Squire's Cut (2026-10-21) passed every check, and the director accepted it, but the owner found
-the hand-made clip it replaced "much smoother". It was not jerkier: its joint accelerations were lower than the
-hand-made clips'. It moved pose to pose. At every key the joints that turned back stopped on the key's tick, 55% of
-the body within the same three ticks, and its holds were dead: 22% of the joint-ticks barely moved, against 3-12%
-for hand-made attacks. `genra.curves.flow` measures that, and `speed_map` draws it (one row per joint, one column
-per tick, dark red where a joint has stopped).
+Start the motion between approved keys with the toolkit:
 
-The bar does not depend on a reference for the move. `flow_corpus.py` builds a corpus of 40 hand-made attacks from
-the repo's packs (Grruzam great sword and katana combos, skills, upper and jump attacks; Kevin Iglesias 1H, 2H,
-polearm, punch and kick), retargeted onto Sir Bonk, and measures them; `benchmarks/flow-corpus.json` keeps the clip
-list and the numbers (44 clips with the old Bonk's four attacks):
+```python
+from genra.brief import Brief
+from genra.flow import flow, Accent
+b = Brief('brief.json')
+clip, report = flow(b)
+print(report)
+clip.save('result.json')
+```
 
-| Hand-made attacks | Median | 9 in 10 under | Max | First Squire's Cut |
-| --- | ---: | ---: | ---: | ---: |
-| Stops per joint per second | 0.32 | 0.62 | 1.16 | 1.71 |
-| Most of the body stopping within three ticks | 15% | 27% | 50% | 55% |
-| Frozen joint-ticks | 6% | 11% | 12% | 22% |
+The runner seeds the first take this way when approved keys exist.
+Purpose presets supply tangents, hinge turnover, reversal arcs, ordered settle, and finger curl.
+Lag and drag are opt-in. Use `Accent` for directed gestures and `holds` for intentional stiffness.
+Run contacts after flow and audit approved-key drift again. Flow numbers are advisory.
+Normals default to a plain, short recovery. Put personality in the move. Specials can carry more.
+See [the toolkit guide](GUIDE.md#flow-for-one-shots) for dials and report fields.
 
-`check_clip` warns (`flow`) on one-shot clips of 30 ticks or more, between a matched entry and the exit hold, above
-1.0 stops, 35% together or 14% frozen. The review shows the speed map with the style reference below it, and
-REVIEW.md lists pose-to-pose motion as a failure mode.
+Replay retained takes without model calls:
 
-What fixes it, measured on the Squire's Cut:
+```bash
+PYTHONPATH=tools $PY -m genra.replay_flow
+```
 
-- **Not the interpolation.** A modified-Akima spline that keeps joints moving through keys left the stops where they
-  were (1.71 to 1.88), because they come from holds and from the whole body arriving on one tick. It was not kept.
-- **Moving holds and staggered arrivals.** Drift in the lunge and the settle plus overlap on the joints that carry no
-  contact took the clip to 30% together and 12% frozen. A hold that sways out and back stops at its turn, so holds
-  drift one way.
-- **The approved-key check allows overlap.** Body joints may meet their key pose up to `keys_ticks` (2) ticks early or
-  late; the weapon keeps its tick, since the hit's timing is the weapon's. Overlap on the spine moves the weapon with
-  it (54 cm on the Squire's Cut), so the spine's stagger is keyed, not overlapped.
+The board lands at `artifacts/genra-replays/flow-<toolkit hash>/board.html` by default.
+`--out DIR` selects another directory. The board compares saved takes at game speed and records owner verdicts.
 
-The GUIDE's "Flow" section gives the animator the recipe.
+### Continuity before retries
+
+When a grip or contact check fails, save and run `./genra continuity result.json` in the run's scratch directory.
+Inspect the implicated interval's landing, roll, limit, and reach diagnostics.
+Use `./genra continuity result.json --keys a,b --replay-carry` for one bounded solver replay on a copy.
+Replace `a,b` with the interval's ticks. Large key turns indicate risks, not confirmed flips.
+Save after each verified fix. If the runner plateaus, continue from the summary's `nextTask`.
 
 ## Contacts, flips and key poses
 

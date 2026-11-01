@@ -83,6 +83,7 @@ namespace SlopArena.Shared
         /// <summary>Captured crouch brace state for a deferred ordinary launch.</summary>
         public bool QueuedCrouchBrace;
 
+        public Challenge Challenge;
         public byte Deaths;              // match death counter, server authority
 
         /// <summary>Air-dodge direction captured from the stick, or facing when neutral.
@@ -96,6 +97,7 @@ namespace SlopArena.Shared
         public ushort HomingDashCooldownTicks;
         /// <summary>The airborne homing dash is spent until the fighter lands.</summary>
         public bool HomingDashAirUsed;
+        public bool WallJumpUsed;
 
         /// <summary>Remaining respawn, ledge, or air-dodge invulnerability ticks.</summary>
         public ushort InvincibilityTicks;
