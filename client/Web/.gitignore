@@ -3,3 +3,7 @@ sim/obj/
 publish/
 dist/
 assets/
+# Generated from Unity by scripts/refresh-assets.sh (and CI on every deploy)
+app/vfx/effects.json
+app/vfx/export-coverage.json
+app/vfx/unity-references.json

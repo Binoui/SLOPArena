@@ -58,7 +58,9 @@ $PY client/Web/tools/fighter_glb.py all fightguy manki   # snapshot (own gateway
 $PY client/Web/tools/fighter_glb.py build nyx            # rebuild from the latest snapshot
 ```
 
-Re-export a fighter after its model, rig or clips change. `app/viewer.html`
+Re-export a fighter after its model, rig or clips change. `scripts/refresh-assets.sh` does it for you: it
+re-exports every fighter whose Unity sources changed since its glb was built, then the effects, uploads the
+bundle and rewrites the locks. `scripts/asset-sources.py check` lists stale fighters, and CI warns about them. `app/viewer.html`
 lines every exported fighter up at one clip frame for look checks, for example
 `viewer.html?anim=idle&frame=30`. `?puppets` on the game page forces puppets.
 
@@ -78,9 +80,19 @@ The `web demo` workflow builds, smoke-tests and packages on every change to the
 demo, the Shared sim, cooked content or arenas. On `main` it deploys `dist/` to
 the Cloudflare Pages project `sloparena-play`, which playsloparena.com/demo
 serves. `assets/` is not tracked: CI downloads the bundle pinned by
-`client/Web/assets.lock` from the `web-assets` release. After re-exporting
-anything in `assets/`, run `client/Web/scripts/assets.sh upload` and commit the
-new `assets.lock`.
+`client/Web/assets.lock` from the `web-assets` release.
+
+What stays current by itself and what doesn't:
+
+- The sim, cooked content, arenas and effects. CI re-exports `app/vfx/effects.json` from the Unity prefabs
+  on every build, because that export needs no Editor.
+- Fighter models and animations need the running Editor, so they ship in the pinned bundle.
+  `client/Web/assets.sources.json` records the Unity sources each glb was built from, and CI warns when one is
+  stale. After new clips or model changes land on main, run `client/Web/scripts/refresh-assets.sh` and
+  commit `assets.lock` and `assets.sources.json`. It skips fighters with uncommitted Unity changes unless
+  you pass `--dirty`.
+- Stage art, UI and audio are exported by hand (`export-stages.py`, `export-ui.py`, `export-audio.py`). Follow
+  each with `scripts/assets.sh upload` and commit `assets.lock`.
 
 ## Layout
 

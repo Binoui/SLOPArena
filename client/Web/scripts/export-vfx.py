@@ -80,8 +80,14 @@ def texture(ref):
         return None
     path = INDEX.get(guid)
     if path is None:
-        skip(f'unresolved texture {guid}')
-        return None
+        # Gitignored sources (some imported prop textures) are missing from CI's checkout; reuse the copy
+        # an earlier export left in the pinned asset bundle.
+        cached = sorted(TEXTURES.glob(f'*-{guid[:10]}.png'))
+        if not cached:
+            skip(f'unresolved texture {guid}')
+            return None
+        TEXTURE_INFO.setdefault(guid, {'file': cached[0].name, 'source': 'asset bundle', 'bytes': cached[0].stat().st_size})
+        return cached[0].name
     if guid not in TEXTURE_INFO:
         if path.suffix.lower() not in ('.png', '.jpg', '.jpeg', '.tga'):
             skip(f'non-PNG texture {path.relative_to(ROOT)}')
@@ -136,6 +142,12 @@ def material(ref):
     return guid
 
 
+def hex_field(path, key):
+    # Read hex blobs from the raw text: YAML types an all-digit blob as a number and drops its leading zeros.
+    match = re.search(rf'^\s+{key}: ([0-9a-fA-F]*)$', path.read_text(errors='replace'), re.M)
+    return bytes.fromhex(match[1]) if match else b''
+
+
 def mesh(ref):
     guid = ref.get('guid')
     if not guid:
@@ -156,7 +168,7 @@ def mesh(ref):
         skip(f'mesh vertex encoding {path.relative_to(ROOT)}')
         return None
     stride = max(c['offset'] + c['dimension'] * (4 if c['format'] == 0 else 1) for c in channels)
-    raw = bytes.fromhex(str(v['_typelessdata']))
+    raw = hex_field(path, '_typelessdata')
     result = {}
     for name, idx in [('position', 0), ('normal', 1), ('color', 3), ('uv', 4)]:
         c = channels[idx]
@@ -165,7 +177,7 @@ def mesh(ref):
         fmt = '<' + ('f' if c['format'] == 0 else 'B') * c['dimension']
         values = [n for i in range(v['m_VertexCount']) for n in struct.unpack_from(fmt, raw, stride * i + c['offset'])]
         result[name] = [round(n / 255 if c['format'] == 2 else n, 7) for n in values]
-    raw = bytes.fromhex(str(mesh_data['m_IndexBuffer']))
+    raw = hex_field(path, 'm_IndexBuffer')
     step, fmt = (2, '<H') if mesh_data.get('m_IndexFormat', 0) == 0 else (4, '<I')
     result['index'] = [struct.unpack_from(fmt, raw, i)[0] for i in range(0, len(raw), step)]
     if any(s['topology'] for s in mesh_data['m_SubMeshes']):
@@ -337,7 +349,8 @@ def effect(path):
                                for field in ('position', 'normal', 'uv') if part[field]}
                 MESHES[key]['index'] = part['index']
                 mat_key = part['material']
-                if not any(k == 21 for k, _, _ in docs(INDEX[mat_key])):
+                # The snapshot carries the material's colour and texture for materials Git doesn't have.
+                if mat_key not in INDEX or not any(k == 21 for k, _, _ in docs(INDEX[mat_key])):
                     mat = part['materialData']
                     MATERIALS[mat_key] = dict(name=mat['name'], texture=texture({'guid': mat['texture']}), blend='alpha',
                                              baseColor=mat['color'], colorMode=0, surface=0, uvScale=[1, 1], uvOffset=[0, 0], queue=2000,
@@ -392,7 +405,7 @@ def main():
     (OUT / 'export-coverage.json').write_text(json.dumps(report, indent=2) + '\n')
     print(json.dumps({k: v for k, v in report.items() if k not in ('skipped', 'textures')}, indent=2))
     for t in report['textures']:
-        if t['original'] != t['size']:
+        if t.get('original') != t.get('size'):
             print(f"DOWNSCALED {t['source']} {t['original']} -> {t['size']}")
     for prefab, features in report['skipped'].items():
         for feature in features:
