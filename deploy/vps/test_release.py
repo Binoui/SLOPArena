@@ -287,3 +287,20 @@ class LogPrivacyTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class ReplayVolumeTests(unittest.TestCase):
+    def test_installed_compose_and_named_volume_survive_release(self):
+        compose = Path(release.COMPOSE).read_text()
+        game = compose.split('\n  game:\n', 1)[1].split('\nsecrets:', 1)[0]
+        self.assertIn('    read_only: true', game)
+        self.assertIn('      - game_replays:/replays', game)
+        self.assertIn('      SLOPARENA_REPLAY_DIR: /replays', game)
+        self.assertIn('\n  game_replays:\n', compose.split('\nvolumes:', 1)[1])
+        dockerfile = Path(release.COMPOSE).parents[1].parent / 'Dockerfile.gameserver'
+        image = dockerfile.read_text()
+        self.assertLess(image.index('RUN mkdir /replays && chown 1654:1654 /replays'), image.index('USER 1654:1654'))
+        command = release.compose_argv(Path('/var/lib/sloparena'), Path('/private/release.env'), None,
+                                       ['up', '-d', 'game'])
+        self.assertEqual(command[command.index('-f') + 1], str(release.COMPOSE))
+        self.assertNotIn('down', command)

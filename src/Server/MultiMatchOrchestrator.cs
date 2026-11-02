@@ -19,6 +19,7 @@ namespace SlopArena.Server
         private readonly SteamGameServerHost? _steamHost;
         private readonly object _admissionGate = new();
         private bool _stopping;
+        private readonly MatchReplayStore? _replays;
         private string? _catalogHash;
 
         public bool ContentReady { get; }
@@ -29,6 +30,7 @@ namespace SlopArena.Server
         public MultiMatchOrchestrator(ServerConfig config, SteamGameServerHost? steamHost = null)
         {
             _config = config;
+            _replays = MatchReplayStore.FromEnvironment();
             _steamHost = steamHost;
             try
             {
@@ -139,7 +141,7 @@ namespace SlopArena.Server
                         match = new MatchInstance(0, matchId, selectedArena, roster, catalog,
                             _ => { }, maxStocks, ReportMatchResult, OnSteamMatchEnd, ReportMatchCancellation,
                             admissionDeadlineUtc, contentHash, _steamHost!.SendToMatchEntity,
-                            contentHandleMap: content, steamFlush: _steamHost.SignalOutbound, format: format, friendlyFire: friendlyFire, ballOnly: ballOnly);
+                            contentHandleMap: content, steamFlush: _steamHost.SignalOutbound, format: format, friendlyFire: friendlyFire, ballOnly: ballOnly, replays: _replays);
                     }
                     catch (Exception ex) { error = ex.Message; return false; }
                     if (!_steamMatches.TryAdd(matchGuid, match))
@@ -163,7 +165,7 @@ namespace SlopArena.Server
                     {
                         match = new MatchInstance(candidate, matchId, selectedArena, roster, catalog,
                             OnMatchEnd, maxStocks, ReportMatchResult, onMatchCancelled: ReportMatchCancellation,
-                            admissionDeadlineUtc: admissionDeadlineUtc, contentHash: contentHash, contentHandleMap: content, format: format, friendlyFire: friendlyFire, ballOnly: ballOnly);
+                            admissionDeadlineUtc: admissionDeadlineUtc, contentHash: contentHash, contentHandleMap: content, format: format, friendlyFire: friendlyFire, ballOnly: ballOnly, replays: _replays);
                     }
                     catch (Exception ex) { error = ex.Message; return false; }
                     if (_activeMatches.TryAdd(candidate, match))
@@ -259,7 +261,8 @@ namespace SlopArena.Server
         {
             StopAcceptingMatches();
             Console.WriteLine("[Orchestrator] Shutting down...");
-            foreach (var kv in _activeMatches) kv.Value.Stop();
+            var stoppingMatches = _activeMatches.Values.Concat(_steamMatches.Values).ToArray();
+            foreach (var kv in _activeMatches) kv.Value.Stop(cancellationReason, notifyMaster: false);
             foreach (var kv in _steamMatches)
             {
                 _steamHost?.CloseMatch(kv.Key);
@@ -275,6 +278,11 @@ namespace SlopArena.Server
                 foreach (var kv in _steamMatches)
                     if (!kv.Value.IsRunning) _steamMatches.TryRemove(kv.Key, out _);
             }
+            var loopDeadline = DateTime.UtcNow.AddSeconds(2);
+            foreach (var match in stoppingMatches)
+                match.WaitForStop(TimeSpan.FromMilliseconds(Math.Max(0, (loopDeadline - DateTime.UtcNow).TotalMilliseconds)));
+            if (_replays?.WaitForWriters(TimeSpan.FromSeconds(5)) == false)
+                Console.WriteLine("[Replay] Shutdown drain timed out; readable .part prefixes retained.");
             Console.WriteLine("[Orchestrator] Shutdown complete.");
         }
 

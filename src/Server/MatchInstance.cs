@@ -7,6 +7,7 @@ using System.Net.Sockets;
 using System.Buffers.Binary;
 using SlopArena.Shared;
 using SlopArena.Shared.Rollback;
+using SlopArena.Shared.Replays;
 namespace SlopArena.Server
 {
 	/// <summary>
@@ -21,7 +22,14 @@ namespace SlopArena.Server
 	/// </summary>
 	public class MatchInstance
 	{
-		private readonly int _port;
+		private readonly MatchReplayStore? _replays;
+        private MatchReplayRecording? _recording;
+        private bool _replayAttempted;
+        private string _stopReason = "stopped";
+        private readonly ReplayRules? _replayRules;
+        private readonly IReadOnlyList<MatchPlayer>? _replayRoster;
+        public long ReplayCaptureCalls => _recording?.CaptureCalls ?? 0;
+        private readonly int _port;
 		private readonly string _matchId;
 		private readonly MatchContentCatalog _contentCatalog;
 		private readonly List<PlayerSlot> _slots;
@@ -98,9 +106,15 @@ namespace SlopArena.Server
 			DateTimeOffset? admissionDeadlineUtc = null, string? contentHash = null,
 			Action<Guid, ulong, byte[], bool>? steamSend = null, TimeProvider? clock = null,
 			MatchContentHandleMap? contentHandleMap = null, Action? steamFlush = null,
-			MatchFormat format = MatchFormat.Stock, FriendlyFireMode friendlyFire = FriendlyFireMode.Off, bool ballOnly = false, uint? mayhemSeed = null)
+			MatchFormat format = MatchFormat.Stock, FriendlyFireMode friendlyFire = FriendlyFireMode.Off, bool ballOnly = false, uint? mayhemSeed = null, MatchReplayStore? replays = null)
 		{
-			_mayhemSeed = mayhemSeed;
+			_replays = replays;
+            if (replays != null)
+            {
+                _replayRules = new(format.ToWire(), friendlyFire switch { FriendlyFireMode.Off => "off", FriendlyFireMode.Shoves => "shoves", _ => "on" }, maxStocks, ballOnly);
+                _replayRoster = roster.ToArray();
+            }
+            _mayhemSeed = mayhemSeed;
 			_steamFlush = steamFlush;
 			_format = format;
 			_port = port;
@@ -161,13 +175,17 @@ namespace SlopArena.Server
 				Interlocked.Exchange(ref _cancelNotified, 1) == 0 &&
 				Guid.TryParse(_matchId, out var matchGuid))
 				_onMatchCancelled?.Invoke(matchGuid, cancellationReason);
-			_running = false;
+			_stopReason = cancellationReason ?? "stopped";
+            if (_matchState != MatchState.Ended) _recording?.Complete(new(ReplayEndReason.Cancelled, _stopReason, null));
+            _running = false;
 			Diagnostics.Log(_serverTick, cancellationReason is null ? "Stop requested." : $"Canceled: {cancellationReason}");
 			Diagnostics.Complete();
 			try { _udpServer?.Close(); } catch { }
 		}
 
-		internal void StopAndWait()
+		internal bool WaitForStop(TimeSpan timeout) => _thread == null || _thread == Thread.CurrentThread || _thread.Join(timeout);
+
+        internal void StopAndWait()
 		{
 			Stop();
 			var thread = _thread;
@@ -295,10 +313,8 @@ namespace SlopArena.Server
 			}
 			return false;
 		}
-		private void Run()
-		{
-			Log($"Starting on port {_port} ({_slots.Count} players)");
-
+        internal void InitializeSimulation()
+        {
 			_sim = new ServerSimulation(_arena, _rule);
 			for (int i = 0; i < _slots.Count; i++)
 			{
@@ -320,6 +336,14 @@ namespace SlopArena.Server
             if (_format.IsCourse()) _sim.BeginOnlineCourse();
             if (_format == MatchFormat.MankiMayhem)
                 _sim.BeginMankiMayhem(_mayhemSeed ?? (uint)System.Security.Cryptography.RandomNumberGenerator.GetInt32(1, int.MaxValue));
+
+        }
+
+		private void Run()
+		{
+			Log($"Starting on port {_port} ({_slots.Count} players)");
+
+            InitializeSimulation();
 
 			if (_steamSend is null)
 			{
@@ -433,7 +457,8 @@ namespace SlopArena.Server
 				}
 			}
 
-			try { _udpServer?.Close(); } catch { }
+			_recording?.Complete(new(ReplayEndReason.Cancelled, _stopReason, null));
+            try { _udpServer?.Close(); } catch { }
 			Log("Stopped.");
 			Diagnostics.Complete();
 			_onMatchEnd(_port);
@@ -702,7 +727,7 @@ namespace SlopArena.Server
 			return null;
 		}
 
-		private void Tick()
+		internal void Tick()
 		{
 			if (_matchState == MatchState.Waiting)
 			{
@@ -835,7 +860,7 @@ namespace SlopArena.Server
 
 		private void SendState()
 		{
-			if (_udpServer == null && _steamSend is null) return;
+			if (_udpServer == null && _steamSend is null && _replays == null) return;
 
 			// One World Frame per tick, the same bytes for every peer (ADR-0039).
 			byte[] frame = BuildWorldFrame();
@@ -912,10 +937,61 @@ namespace SlopArena.Server
 			}
 			_relayedInputs.Sort(static (a, b) => a.EntityId.CompareTo(b.EntityId));
 			var snapshot = _sim.CaptureSnapshot();
-			return new WorldFramePacket(_matchState, snapshot, _relayedInputs,
+			var packet = new WorldFramePacket(_matchState, snapshot, _relayedInputs,
 				_frameHistory.EventsForFrame(snapshot.Tick), _frameHistory.HitsForFrame(snapshot.Tick),
-				_frameHistory.SlopballEventsForFrame(snapshot.Tick), _frameHistory.CourseEventsForFrame(snapshot.Tick), _frameHistory.MayhemEventsForFrame(snapshot.Tick)).Serialize();
+				_frameHistory.SlopballEventsForFrame(snapshot.Tick), _frameHistory.CourseEventsForFrame(snapshot.Tick), _frameHistory.MayhemEventsForFrame(snapshot.Tick));
+            if (_replays != null) CaptureReplay(packet);
+            return packet.Serialize();
 		}
+
+        private void CaptureReplay(WorldFramePacket packet)
+        {
+            if (_recording?.Conclusion != null) return;
+            try
+            {
+                if (!_replayAttempted && packet.MatchState == MatchState.Playing)
+                {
+                    _replayAttempted = true;
+                    var roster = _slots.OrderBy(s => s.EntityId).Select(s => new ReplayParticipant(s.EntityId,
+                        "steam", s.SteamId.ToString(System.Globalization.CultureInfo.InvariantCulture), s.Content.Identity,
+                        s.Form == 0 ? "base" : "alternate", CampId(_replayRoster!.Single(p => (ulong)p.EntityId == s.EntityId).Camp),
+                        _replayRoster!.Single(p => (ulong)p.EntityId == s.EntityId).Colour.ToString(System.Globalization.CultureInfo.InvariantCulture))).ToArray();
+                    var header = new ReplayHeader(_matchId, _arena.Name, _replayRules!, packet.Tick, roster,
+                        ReplayBuildIdentity.Current(Environment.GetEnvironmentVariable("SLOPARENA_RELEASE_ID") ??
+                            typeof(MatchInstance).Assembly.GetName().Version?.ToString() ?? "unknown",
+                            _contentHash ?? SteamMatchDescriptor.HashContent(_contentHandleMap!)),
+                        _contentHandleMap?.Arena?.Digest ?? "");
+                    _recording = _replays!.Start(header, _contentCatalog, _arena, Diagnostics, _clock.GetUtcNow());
+                }
+                _recording?.Capture(_sim, packet, packet.MatchState == MatchState.Ended ? ReplayResult() : null);
+            }
+            catch (Exception e)
+            {
+                _recording?.Complete(new(ReplayEndReason.Cancelled, "capture-failed: " + e.Message, null));
+                Diagnostics.Log(_serverTick, "Replay failed: " + e.Message, "error");
+            }
+        }
+        private static string CampId(SlopballCamp camp) => camp switch
+        { SlopballCamp.Teal => "teal", SlopballCamp.Clay => "clay", _ => "" };
+        private ReplayMatchResult? ReplayResult()
+        {
+            if (_matchResultPacket is not { } p) return null;
+            var standings = p.Entries.Select(e =>
+            {
+                var course = p.Course?.Players.FirstOrDefault(x => x.EntityId == e.EntityId);
+                var mayhem = p.Mayhem?.Players.FirstOrDefault(x => x.EntityId == e.EntityId);
+                return new ReplayStanding(e.EntityId, e.Falls, e.KOs, mayhem?.Score ?? course?.Points ?? 0,
+                    e.Placement, mayhem?.Withdrawn ?? course?.Withdrawn ?? false, course?.FinishTicks ?? 0);
+            }).ToArray();
+            // Ranked mode results can have several first-place fighters and lower-ranked
+            // participants even when MatchOutcome reports a shared victory.
+            var winners = p.Entries.Where(e => p.Course != null || p.Mayhem != null || p.Versus.HasValue
+                    ? e.Placement == 1 : p.SharedVictory || e.EntityId == _winnerEntityId).Select(e => e.EntityId).ToArray();
+            return new(winners,
+                p.Versus.HasValue ? CampId(p.Versus.Value.Winner) : "",
+                p.SharedVictory && _format is not (MatchFormat.SlopballCoop or MatchFormat.CourseCoop),
+                standings, p.Run?.TotalReturns ?? 0, p.Versus?.TealScore ?? 0, p.Versus?.ClayScore ?? 0, "ended");
+        }
 
 		private void SendNetplayControl(PlayerSlot slot, NetplayControlKind kind)
 		{

@@ -8,6 +8,9 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <InternalsVisibleTo Include="Server.Tests" />
+  </ItemGroup>
+  <ItemGroup>
     <ProjectReference Include="..\Shared\SlopArena.Shared.csproj" />
   </ItemGroup>
   <ItemGroup>
