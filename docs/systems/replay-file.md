@@ -24,6 +24,23 @@ pending ticks and never invents a result. Header roster collections are copied a
 boundaries. `ReplayReader` borrows a readable seekable stream and owns a small chunk index and
 at most two cached lanes. Each object has one caller at a time.
 
+## GameHost recording
+
+`MatchInstance.BuildWorldFrame` captures the packet before peer serialization,
+including ticks without connected peers. The first Playing (GO) frame starts the
+recording; the Ended frame seals it without joining the recorded range. A host-owned
+`MatchReplayStore` runs one file-owning worker per recording with a bounded 600-tick
+queue. The Match thread only projects and tries to enqueue; it never waits for IO,
+compression, retention, or worker completion. Backlog seals `limit/backlog` and drains
+the queued prefix. Stop/host cancellation/loop failure seal Cancelled with the stop
+reason. Finished results project the same `MatchResultPacket` used for peers.
+
+The worker completes, flushes, closes and renames `.slopreplay.part` to `.slopreplay`.
+Writer/IO failures leave a readable committed prefix and diagnostics rather than
+ending the Match. Shutdown bounds writer draining; reporting results to Master
+never waits for it. See [VPS Replay configuration and installation](../../deploy/vps/README.md#durable-gamehost-replays)
+for environment-only enablement, retention defaults and the durable named volume.
+
 ## Container v1 bytes
 
 All integers are little-endian, floats finite IEEE754 binary32. Strings use strict UTF-8.

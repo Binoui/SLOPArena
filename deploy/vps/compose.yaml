@@ -106,12 +106,14 @@ services:
     restart: unless-stopped
     stop_grace_period: 15s
     volumes:
+      - game_replays:/replays
       - ${GAME_CONFIG_FILE:?set the private GameServer config file}:/run/config/server.json:ro
       - ${STEAMCLIENT_FILE:-/etc/sloparena/private/steamclient.so}:/app/steamclient.so:ro
     command: ["/run/config/server.json"]
     environment:
       SteamAppId: "5325920"
       LD_LIBRARY_PATH: /app
+      SLOPARENA_REPLAY_DIR: /replays
     networks:
       - control
     healthcheck:
@@ -138,3 +140,4 @@ volumes:
   postgres_data:
   caddy_data:
   caddy_config:
+  game_replays:

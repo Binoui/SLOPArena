@@ -81,6 +81,44 @@ only disposable application-image fixtures have that explicit exemption.
 
 A prior raw-UDP release record may remain readable for preflight, but it must not be restored through a Steam-only deployment as an insecure public fallback. If migration or compatibility checks fail, pause new matches and repair/roll forward.
 
+## Durable GameHost Replays
+
+Before the next release, install the reviewed `compose.yaml` from this checkout
+on the VPS, just like the helpers. From the workstation repository root:
+
+```bash
+scp deploy/vps/compose.yaml sloparena:/tmp/sloparena-compose.yaml
+ssh -t sloparena 'sudo install -o root -g root -m 0644 /tmp/sloparena-compose.yaml /opt/sloparena/deploy/vps/compose.yaml && rm /tmp/sloparena-compose.yaml'
+```
+
+`release.py` sets `COMPOSE` to the file beside the installed script and passes it
+with `-f`; neither it nor `ci_release.py` installs the repository's Compose file.
+The next normal release's `up -d` creates/mounts `game_replays` automatically.
+No change to either release helper is needed. The image creates `/replays` owned
+by uid/gid 1654; Docker populates a new named volume with that ownership.
+
+Recordings live at `/replays/yyyy-MM-dd/<matchId>.slopreplay` in `game`, backed by
+`sloparena-vps-<target-path-hash>_game_replays` on the Docker host (the
+release helper derives the Compose project name from the target directory). An interrupted recording retains
+its readable `.slopreplay.part` prefix. Never use `docker compose down -v`: it
+deletes recordings as well as the database and other named volumes. Replacement
+and rollback use stop/up and preserve volumes.
+
+Configuration uses environment variables only (no server.json replay settings):
+`SLOPARENA_REPLAY_DIR=/replays` enables recording when writable; unset disables
+all capture/queue work. An invalid/unwritable setting logs a disabled message.
+`SLOPARENA_REPLAY_RETENTION_DAYS` defaults to 30 and
+`SLOPARENA_REPLAY_RETENTION_BYTES` to 5,000,000,000 decimal bytes; both must be
+positive integers. Startup and recording completion prune oldest modification
+times first, including abandoned `.part` files, excluding active recordings.
+Age and total-byte limits both apply; active files can temporarily exceed the
+retention budget. Each recording also has the Shared 64,000,000-byte hard cap.
+The queue holds 600 ticks (10 seconds); backlog seals a Partial Replay with
+reason `limit`, detail `backlog`. IO failure leaves the readable committed prefix
+and never stops the Match. Replay start/end events appear in Match diagnostics
+and process logs with ticks, bytes and path. Shutdown waits a bounded time for
+writers; result reporting to Master never waits for them.
+
 ## Restricted CI release account
 
 This is **one-time privileged operator setup**, not something the workflow

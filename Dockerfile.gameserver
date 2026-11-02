@@ -24,6 +24,8 @@ LABEL org.opencontainers.image.source="https://github.com/Binoui/SlopArena" \
 WORKDIR /app
 COPY --from=build /publish/ ./
 COPY data/arenas/ ./data/arenas/
+RUN mkdir /replays && chown 1654:1654 /replays
+ENV SLOPARENA_RELEASE_ID=${RELEASE_ID}
 USER 1654:1654
 # Supply an absolute config path at runtime. No dev defaults or source mounts.
 ENTRYPOINT ["dotnet", "SlopArena.Server.dll"]

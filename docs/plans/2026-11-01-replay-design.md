@@ -1,6 +1,6 @@
 # Replay plan: GameHost recording with an Exact Track and a View Track
 
-**Status:** Accepted by the owner, 2026-11-01. Step 0 is done; step 1 is next.
+**Status:** Accepted by the owner, 2026-11-01. Steps 0–2 implemented; step 3 is next.
 **Decision:** [ADR-0060](../adr/0060-gamehost-replays-world-frames-and-view-track.md). It replaces
 the recording and playback parts of the [Replay v1 design](2026-10-13-replay-v1-design.md).
 
@@ -71,7 +71,7 @@ Rerun `tools/ReplayBudget` with `--ticks` and `--seed` to check these after a la
 
 ## Step 2. Record on the GameHost
 
-- Tap `BuildWorldFrame` in `MatchInstance` and pass the bytes to a background writer.
+- Tap `BuildWorldFrame` in `MatchInstance` and pass owned capture records to a background writer.
 - Finish the file on Ended, `Stop`, cancellation and limits.
 - Add a durable recordings volume to the VPS deployment with the step 0 limits. This is a
   deployment change and needs the owner's go.
