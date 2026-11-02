@@ -233,6 +233,8 @@ namespace SlopArena.Client.Entities
             _active = active;
         }
 
+        public int SampleCount => _samples.Count;
+
         public void Clear()
         {
             _samples.Clear();

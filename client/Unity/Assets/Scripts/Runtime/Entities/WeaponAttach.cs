@@ -19,6 +19,18 @@ namespace SlopArena.Client.Entities
         private Transform[] _tips;
         private GameObject[] _instances;
         private SwordSweepTrail[] _sweepTrails;
+
+        /// <summary>Blade trail samples held now, summed over trails, for Replay seek checks.</summary>
+        public int TrailSampleCount
+        {
+            get
+            {
+                int count = 0;
+                if (_sweepTrails != null)
+                    foreach (var trail in _sweepTrails) count += trail?.SampleCount ?? 0;
+                return count;
+            }
+        }
         private WeaponEntry[] _entries;
         private WeaponAttachConfig _config;
         private bool _hitboxTrailActive;
@@ -288,6 +300,16 @@ namespace SlopArena.Client.Entities
             return lifetime;
         }
 
+
+        /// <summary>A Replay seek: the next captured states rebuild the blade trail from nothing.</summary>
+        public void ResetForSeek()
+        {
+            if (_sweepTrails != null) ClearTrails();
+            _hasAttackIdentity = false;
+            _hasCapturedPosition = false;
+            _runtimeClock = 0f;
+            _lastHitstopTicks = 0;
+        }
 
         private void ClearTrails()
         {

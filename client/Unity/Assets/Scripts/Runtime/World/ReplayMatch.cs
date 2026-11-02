@@ -41,6 +41,7 @@ namespace SlopArena.Client.World
         private bool _cameraModeStale = true;
         private CinemachineBrain? _brain;
         private string? _banner;
+        private readonly ReplayEffects _effects = new();
         private readonly List<ulong> _cast = new();
         private readonly Dictionary<ulong, byte> _deaths = new();
         private readonly Dictionary<ulong, (ActionState State, int Ticks)> _poseTicks = new();
@@ -49,6 +50,9 @@ namespace SlopArena.Client.World
         public ReplayWorld? Replay => _replay;
         public ReplayTransport Transport => _transport;
         public ulong Focus => _focus;
+        /// <summary>What a viewer sees now, for the history-independent seek check.</summary>
+        public IReadOnlyList<string> Census() => _effects.Census(Fighters.Values);
+
         public PlayerRenderer? RendererOf(ulong entityId) => Fighters.TryGetValue(entityId, out var renderer) ? renderer : null;
         /// <summary>Ticks presented since the scene opened, for checks.</summary>
         public int PresentedTicks { get; private set; }
@@ -142,6 +146,7 @@ namespace SlopArena.Client.World
                     Leave = LeaveMatch, Seek = RequestSeek,
                 }, ReplayText.Track(replay.Track, replay.ExactRefusal), replay.Range.First, replay.Range.Last);
 
+            _effects.Begin(gameObject.scene);
             var failure = replay.Seek(_request.StartTick ?? replay.Range.First, this);
             if (failure != null)
             {
@@ -221,9 +226,14 @@ namespace SlopArena.Client.World
         void IReplayPresenter.Reset(uint targetTick)
         {
             foreach (var renderer in Fighters.Values)
-                if (renderer != null) renderer.ResetForFreshSimulation();
+            {
+                if (renderer == null) continue;
+                renderer.ResetForFreshSimulation();
+                if (renderer.TryGetComponent<WeaponAttach>(out var weapon)) weapon.ResetForSeek();
+            }
             ResetSimulationPresentation();
             _projectiles.SetPredictedSimulation(_replay!.World);
+            _effects.Sweep();
             _deaths.Clear();
             _poseTicks.Clear();
             _banner = null;
@@ -234,7 +244,9 @@ namespace SlopArena.Client.World
         {
             if (frame.Delivery == ReplayDelivery.Warmup)
             {
+                _effects.Mark();
                 using (SilenceOutput()) PresentWorld(frame);
+                _effects.AgeSinceMark(frame.TicksBeforeTarget / (float)ReplayHeader.TickRate);
             }
             else PresentWorld(frame);
         }

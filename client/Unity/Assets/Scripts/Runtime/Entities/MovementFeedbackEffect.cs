@@ -30,6 +30,15 @@ namespace SlopArena.Client.Entities
     {
         private const int PrewarmCount = 3;
         private static readonly Dictionary<MovementFeedbackKind, Stack<MovementFeedbackEffect>> Pools = new();
+        private static readonly HashSet<MovementFeedbackEffect> OneShots = new();
+
+        /// <summary>A Replay seek returns every shown one-shot to its pool; trails and auras end with their owners.</summary>
+        public static void RecallOneShots()
+        {
+            foreach (var effect in new List<MovementFeedbackEffect>(OneShots))
+                if (effect != null && effect._active && !effect._continuous) effect.Release();
+            OneShots.Clear();
+        }
         private static readonly Dictionary<MovementFeedbackKind, GameObject> Prefabs = new();
         private static bool _prewarmed;
 
@@ -330,6 +339,7 @@ namespace SlopArena.Client.Entities
 
             _active = true;
             _releaseAt = Clock + LifetimeFor(_kind);
+            OneShots.Add(this);
         }
         private void ShowContinuousInvincibility(Vector3 position, Color tint)
         {
@@ -443,8 +453,13 @@ namespace SlopArena.Client.Entities
             if (!_active || _continuous || Clock < _releaseAt)
                 return;
 
-            StopParticles(true);
+            Release();
+        }
 
+        private void Release()
+        {
+            StopParticles(true);
+            OneShots.Remove(this);
             _active = false;
             gameObject.SetActive(false);
             PoolFor(_kind).Push(this);

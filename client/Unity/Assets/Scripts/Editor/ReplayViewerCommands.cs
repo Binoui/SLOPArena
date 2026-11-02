@@ -129,14 +129,15 @@ namespace SlopArena.EditorTools
         [CliCommand("sloparena.replays.check", "Check the open Replay viewer. play: every tick at 2x, ten step-backs and step-forwards, every fighter focused, no console errors.",
             MainThreadRequired = true, Tags = new[] { "replays", "testing" })]
         public static async Task<object> Check(
-            [CliArg("script", "play; pose: a sword move's weapon tip follows the recorded pose clock; orbit: the camera orbits and zooms while paused.", Required = true)] string script,
+            [CliArg("script", "play; pose: a sword move's weapon tip follows the recorded pose clock; orbit: the camera orbits and zooms while paused; seek-hygiene: what Seek(B) shows does not depend on what came before.", Required = true)] string script,
             [CliArg("screenshot-tick", "Tick offset from the first tick to leave the viewer paused on afterwards.")] int screenshotTick = 120)
         {
             RequirePlayMode();
             var match = ActiveReplay() ?? throw new InvalidOperationException("Open a Replay first (sloparena.replays.open).");
             if (script == "pose") return PoseCheck(match);
             if (script == "orbit") return await OrbitCheck(match);
-            if (script != "play") throw new ArgumentException("script must be play, pose or orbit.");
+            if (script == "seek-hygiene") return SeekHygiene(match);
+            if (script != "play") throw new ArgumentException("script must be play, pose, orbit or seek-hygiene.");
             var errors = new List<string>();
             void Log(string message, string stack, LogType type)
             {
@@ -207,6 +208,68 @@ namespace SlopArena.EditorTools
             {
                 Application.logMessageReceived -= Log;
             }
+        }
+
+        /// <summary>
+        /// Over 20 seeded (A, B) pairs, a seek to B straight from the first tick and a seek to B after seeking A and
+        /// playing 60 live ticks must show the same census, play no sound during either seek, and play the same
+        /// sounds on the next live tick. Reports seek milliseconds.
+        /// </summary>
+        private static object SeekHygiene(ReplayMatch match)
+        {
+            var replay = match.Replay!;
+            if (match.Transport.State == ReplayTransportState.Playing) match.TogglePlay();
+            var range = replay.Range;
+            uint lo = range.First + 1, hi = range.Last - 62;
+            if (hi <= lo) throw new InvalidOperationException("The Replay is too short for seek pairs.");
+            var rng = new System.Random(7);
+            var seekMs = new List<double>();
+            var failures = new List<object>();
+            int warmupPlayed = 0, warmupSuppressed = 0, nextTickSounds = 0;
+            var watch = new System.Diagnostics.Stopwatch();
+            bool Timed(uint tick)
+            {
+                watch.Restart();
+                bool ok = match.Seek(tick);
+                seekMs.Add(watch.Elapsed.TotalMilliseconds);
+                return ok;
+            }
+            (IReadOnlyList<string> Census, int Played, int Suppressed, int Next) SeekB(uint b)
+            {
+                int played = PresentationOutput.Played, suppressed = PresentationOutput.Suppressed;
+                if (!Timed(b)) throw new InvalidOperationException($"Seek to {b} failed.");
+                var census = match.Census();
+                int seekPlayed = PresentationOutput.Played - played, seekSuppressed = PresentationOutput.Suppressed - suppressed;
+                int before = PresentationOutput.Played;
+                match.StepForward();
+                return (census, seekPlayed, seekSuppressed, PresentationOutput.Played - before);
+            }
+            for (int pair = 0; pair < 20; pair++)
+            {
+                uint a = (uint)rng.Next((int)lo, (int)hi), b = (uint)rng.Next((int)lo, (int)hi);
+                if (!match.Seek(range.First)) throw new InvalidOperationException("Seek to the first tick failed.");
+                var fresh = SeekB(b);
+                if (!Timed(a)) throw new InvalidOperationException($"Seek to {a} failed.");
+                for (int i = 0; i < 60; i++) match.StepForward();
+                var after = SeekB(b);
+                warmupPlayed += fresh.Played + after.Played;
+                warmupSuppressed += fresh.Suppressed + after.Suppressed;
+                nextTickSounds += after.Next;
+                var onlyFresh = fresh.Census.Except(after.Census).ToArray();
+                var onlyAfter = after.Census.Except(fresh.Census).ToArray();
+                if (onlyFresh.Length > 0 || onlyAfter.Length > 0 || fresh.Played != 0 || after.Played != 0 || fresh.Next != after.Next)
+                    failures.Add(new { a, b, onlyFresh = onlyFresh.Take(8).ToArray(), onlyAfter = onlyAfter.Take(8).ToArray(),
+                        seekSounds = new[] { fresh.Played, after.Played }, nextTickSounds = new[] { fresh.Next, after.Next }, censusLines = fresh.Census.Count });
+            }
+            var sorted = seekMs.OrderBy(x => x).ToList();
+            double Percentile(double p) => sorted[Math.Min(sorted.Count - 1, (int)Math.Ceiling(p * sorted.Count) - 1)];
+            return new
+            {
+                success = failures.Count == 0, pairs = 20, failures = failures.Take(6).ToArray(), failureCount = failures.Count,
+                warmupSoundsPlayed = warmupPlayed, warmupSoundsSuppressed = warmupSuppressed, nextTickSoundsAfterHistory = nextTickSounds,
+                seeks = sorted.Count, seekMedianMs = Math.Round(Percentile(0.5), 2), seekP95Ms = Math.Round(Percentile(0.95), 2),
+                seekMaxMs = Math.Round(sorted[sorted.Count - 1], 2),
+            };
         }
 
         /// <summary>Paused (timeScale 0), orbit mode must still turn and zoom the render camera.</summary>

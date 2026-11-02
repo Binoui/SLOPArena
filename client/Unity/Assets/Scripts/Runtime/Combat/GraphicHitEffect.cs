@@ -22,6 +22,23 @@ namespace SlopArena.Client.Combat
     /// </summary>
     public sealed class GraphicHitEffect : MonoBehaviour
     {
+        private static readonly HashSet<GraphicHitEffect> Shown = new();
+
+        /// <summary>A Replay seek returns every shown effect to the pool before it re-presents the target.</summary>
+        public static void RecallAll()
+        {
+            foreach (var effect in new List<GraphicHitEffect>(Shown))
+                if (effect != null) effect.Recycle();
+            Shown.Clear();
+        }
+
+        public static IReadOnlyCollection<GraphicHitEffect> Active => Shown;
+
+        public float Age => _age;
+
+        /// <summary>Starts a Replay warmup effect at the age it had at the target tick.</summary>
+        public void AgeBy(float seconds) => _age += seconds;
+
         private const int InitialPoolSize = 16;
         private static readonly Stack<GraphicHitEffect> Pool = new();
         private static Material _sharedMaterial;
@@ -168,6 +185,7 @@ namespace SlopArena.Client.Combat
             _properties.SetColor("_Color", new Color(1f, 1f, 1f, _flashOpacity));
             _renderer.SetPropertyBlock(_properties);
             gameObject.SetActive(true);
+            Shown.Add(this);
         }
 
         private static Vector3 ResolveLaunch(in SpellResolver.HitResult hit)
@@ -317,12 +335,14 @@ namespace SlopArena.Client.Combat
 
         private void Recycle()
         {
+            Shown.Remove(this);
             gameObject.SetActive(false);
             Pool.Push(this);
         }
 
         private void OnDestroy()
         {
+            Shown.Remove(this);
             if (_mesh != null)
                 Destroy(_mesh);
         }

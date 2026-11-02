@@ -699,6 +699,34 @@ after changing that scene. Editor commands, all through the gateway:
 
 Commands time out after 30 s, so check files of up to about 2,000 ticks with `play`.
 
+### Seek hygiene
+
+A seek must show the same thing whatever was on screen before it. `ReplayMatch.Reset` lets owners reset
+themselves first: each renderer, its blade trail (`WeaponAttach.ResetForSeek`), the timeline, Bonk,
+tether and sword owners, and the projectile visuals. `ReplayEffects.Sweep` then recalls the pools
+(`GraphicHitEffect.RecallAll`, `MovementFeedbackEffect.RecallOneShots`), stops the scene's playing
+sounds, and removes roots spawned since the Replay began, except UI and pools. It logs each removal:
+every logged name is an effect whose owner does not reset itself yet. The timeline dispatcher and the
+projectile manager deactivate what they destroy, because `Destroy` waits for the frame's end and a seek
+re-presents within the frame.
+
+Warmup ticks run the ordinary present code inside `SilenceOutput()`. What a warmup tick spawns starts at
+its distance from the target: particle systems are simulated to that age with a seed taken from their
+place in the scene, animators are updated, trails cleared, and hit effects aged. Script timers that read
+`Time.time` (hit feel, tether retract, queued mode sounds) do not age; they show at their start age.
+
+`sloparena.replays.check --script seek-hygiene` takes 20 seeded (A, B) pairs. For each, a seek to B
+straight after the first tick must equal a seek to A, 60 live ticks, then a seek to B. It compares a
+census of transient roots, alive particle systems with ages and counts, hit effects, trail lengths,
+blade samples, playing sounds and fighter bone positions, requires no sound during either seek, and
+the same sounds on the next live tick. Measured in the Editor on 2026-11-02 (60 seeks each):
+
+| Replay | Track | Seek median | Seek p95 |
+|---|---|---|---|
+| FightGuy and Nyx, 900 ticks | Exact | 9.97 ms | 17.65 ms |
+| Released golden, 180 ticks | View | 8.27 ms | 13.50 ms |
+| Bonk, Manki, Nyx, Bashie, 900 ticks | View | 15.70 ms | 25.69 ms |
+
 ## Goldens and release policy
 
 Every release that records Replays adds a short immutable `.slopreplay` under

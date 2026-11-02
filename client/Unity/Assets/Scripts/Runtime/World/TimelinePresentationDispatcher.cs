@@ -211,7 +211,11 @@ namespace SlopArena.Client.World
         private static void DestroyInstance(GameObject instance)
         {
             if (Application.isPlaying)
+            {
+                // Destroy waits for the frame's end; a Replay seek re-presents within the same frame.
+                instance.SetActive(false);
                 Object.Destroy(instance);
+            }
             else
                 Object.DestroyImmediate(instance);
         }
