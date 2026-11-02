@@ -641,9 +641,21 @@ new(s.CurrentTick,1,0,"test",1,PresentationEventSource.Timeline,0,0,0,0)};
         BinaryPrimitives.WriteUInt32LittleEndian(bytes.AsSpan(4), 42);
         var frame = new WorldFramePacket(MatchState.Playing, new WorldSnapshot(bytes), Array.Empty<RelayedInput>(), new[] { new TimelinePresentationEvent(42, 1, 3, "presentation.golden", 2, PresentationEventSource.Timeline, 1, 2, 3, .5f) }, Array.Empty<SpellResolver.HitResult>());
         var expected = File.ReadAllBytes(Path.Combine(Root, "tests/Shared.Tests/Golden/Replays/world-frame-2bece1f0.bin"));
-        // Header byte 5 is SimulationProtocol.Version, which releases bump; every other byte is the codec's.
+        var actual = frame.Serialize();
+        // Header byte 5 is SimulationProtocol.Version, which releases bump. DEFLATE output differs
+        // between zlib builds (CI vs workstation), so the body is compared after inflating.
         expected[5] = SimulationProtocol.Version;
-        Assert.Equal(expected, frame.Serialize());
+        Assert.Equal(expected.AsSpan(0, WorldFramePacket.HeaderSize).ToArray(), actual.AsSpan(0, WorldFramePacket.HeaderSize).ToArray());
+        Assert.Equal(WireBody(expected), WireBody(actual));
+    }
+    static byte[] WireBody(byte[] frame)
+    {
+        var body = frame.AsSpan(WorldFramePacket.HeaderSize).ToArray();
+        if ((frame[6] & 1) == 0) return body;
+        using var inflate = new System.IO.Compression.DeflateStream(new MemoryStream(body), System.IO.Compression.CompressionMode.Decompress);
+        using var output = new MemoryStream();
+        inflate.CopyTo(output);
+        return output.ToArray();
     }
     [Theory]
     [InlineData(false)]
