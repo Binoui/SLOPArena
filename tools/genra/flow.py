@@ -20,7 +20,7 @@ import numpy as np
 from scipy.spatial.transform import Rotation
 
 from .brief import Brief, brief_purpose
-from .checks import DEFAULT_SPEC
+from .checks import AMBIGUOUS_DEGREES, DEFAULT_SPEC
 from .clip import CharFrame, Clip, Pose, _continuous_rotvecs
 from .rig import Rig, rotation_part
 
@@ -30,22 +30,22 @@ Range = tuple[int, int]            # inclusive tick range
 Ranges = tuple[Range, ...]
 
 # ----------------------------------------------------------------------------- policy tables (the only copies)
-# Starting values from the Flip Kick flow pass (owner "really good", 2026-11-01); replay_flow calibrates them. Arcs and
-# drag stay off until the owner's replay board shows they help (synthesis 2026-11-01).
+# Calibrated by replay_flow on 2026-11-01 (artifacts/genra-replays/flow-a7a3e7ae): arcs lowered stops on all 10 one-shot
+# moves; key-exact lag raised them (it makes each joint linger at its key to land on time), so lag is opt-in. Drag cuts
+# frozen joints but adds stops on some moves: opt-in.
 PRESETS: dict[str, dict[str, float]] = {
-    'attack':     dict(tangents=0.9, turnover=0.5, lag=0.8, drag=0.0, arcs=0.0, settle=0.5, fingers=1.0),
-    'special':    dict(tangents=0.9, turnover=0.5, lag=1.0, drag=0.0, arcs=0.0, settle=1.0, fingers=1.0),
-    'other':      dict(tangents=0.9, turnover=0.5, lag=1.0, drag=0.0, arcs=0.0, settle=1.0, fingers=1.0),
-    'idle':       dict(tangents=1.0, turnover=0.3, lag=1.0, drag=0.0, arcs=0.0, settle=0.0, fingers=0.5),
-    'locomotion': dict(tangents=1.0, turnover=0.5, lag=1.0, drag=0.0, arcs=0.0, settle=0.0, fingers=0.5),
-    'loop':       dict(tangents=1.0, turnover=0.5, lag=1.0, drag=0.0, arcs=0.0, settle=0.0, fingers=0.5),
+    'attack':     dict(tangents=0.9, turnover=0.5, lag=0.0, drag=0.0, arcs=1.0, settle=0.5, fingers=1.0),
+    'special':    dict(tangents=0.9, turnover=0.5, lag=0.0, drag=0.0, arcs=1.0, settle=1.0, fingers=1.0),
+    'other':      dict(tangents=0.9, turnover=0.5, lag=0.0, drag=0.0, arcs=1.0, settle=1.0, fingers=1.0),
+    'idle':       dict(tangents=1.0, turnover=0.3, lag=0.0, drag=0.0, arcs=0.5, settle=0.0, fingers=0.5),
+    'locomotion': dict(tangents=1.0, turnover=0.5, lag=0.0, drag=0.0, arcs=0.5, settle=0.0, fingers=0.5),
+    'loop':       dict(tangents=1.0, turnover=0.5, lag=0.0, drag=0.0, arcs=0.5, settle=0.0, fingers=0.5),
 }
 DIALS = tuple(PRESETS['special'])
 # Keys identical for a joint (an exit hold, a copied pose) hold it: zero slopes at both ends of the segment. Nearly equal
 # keys keep their tangents, a moving hold: a 0.5 degree rule stopped 70% of the Flip Kick's body on tick 80.
 FLAT_DEGREES = 0.01
 FLAT_METRES = 1e-5
-AMBIGUOUS_DEGREES = 170.0   # a free joint turning more than this between neighbouring keys has no clear direction
 # Peak lag in ticks at lag=1, keyed by the joint name without its Left/Right prefix; drag uses half of it as inertia
 # (ticks of world orientation kept). Joints not listed get neither.
 LAG_PEAKS: dict[str, float] = {'Spine': 0.5, 'Spine1': 1.0, 'Spine2': 1.0, 'Neck': 1.3, 'Head': 1.5,

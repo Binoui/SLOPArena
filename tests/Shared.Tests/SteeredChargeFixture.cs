@@ -8,13 +8,15 @@ internal static class SteeredChargeFixture
 {
     internal static readonly string[] Clips = { "anim.fix.r", "anim.fix.r-air", "anim.fix.r-gallop", "anim.fix.r-hit", "anim.fix.r-miss" };
 
-    internal static JsonObject Operation(ushort tick = 10) => JsonNode.Parse("""
-        {"kind":"startCapability","tick":TICK,"unit":"ticks","capabilityId":"slop.ability.steered-charge.v1","capabilityVersion":"1",
+    internal static JsonObject Operation(ushort tick = 0) => JsonNode.Parse("""
+        {"kind":"startCapability","tick":TICK,"unit":"ticks","capabilityId":"slop.ability.steered-charge.v2","capabilityVersion":"2",
          "parameters":{"gallopSpeed":12,"turnDegreesPerSecond":180,"maxGallopTicks":60,"armored":true,
            "lanceHitbox":{"shape":"sphere","radius":0.6,"offsetX":0,"offsetY":0,"offsetZ":1,"endOffsetX":0,"endOffsetY":0,"endOffsetZ":0,
-             "startBoneId":null,"endBoneId":null,"damage":10,"angle":40,"baseKnockback":8,"knockbackGrowth":30,"stunTicks":20,
+             "startBoneId":null,"endBoneId":null,"damage":3,"angle":40,"baseKnockback":8,"knockbackGrowth":30,"stunTicks":20,
              "durationTicks":1,"interruptible":true,"hitGroup":0,"knockbackDirection":"awayFromOwner"},
-           "hitEndingTicks":20,"missEndingTicks":30,"skidTicks":12,"turnAroundOnMiss":true,"airStrideTicks":15,"lookDownTicks":10,
+           "hitEndingTicks":20,"missEndingTicks":30,"skidTicks":12,"turnAroundOnMiss":true,"airStrideTicks":15,"lookDownTicks":10,"challengedRearTicks":9,"trackDegreesPerSecond":240,"challengedTrackDegreesPerSecond":420,
+           "chestHitbox":{"shape":"sphere","radius":0.65,"offsetX":0,"offsetY":0,"offsetZ":0.5,"endOffsetX":0,"endOffsetY":0,"endOffsetZ":0,"startBoneId":null,"endBoneId":null,"damage":3,"angle":40,"baseKnockback":8,"knockbackGrowth":30,"stunTicks":20,"durationTicks":1,"interruptible":true,"hitGroup":0},
+           "carry":{"anchorDistance":1.1,"anchorHeight":0.4,"maxCarryTicks":36,"fling":{"damage":12,"angle":40,"baseKnockback":12,"knockbackGrowth":36,"stunTicks":20},"flingTicks":18},
            "gallopAnimationId":"anim.fix.r-gallop","gallopLoopTicks":24,"hitEndingAnimationId":"anim.fix.r-hit",
            "missEndingAnimationId":"anim.fix.r-miss","airEndingAnimationId":"anim.fix.r-air"}}
         """.Replace("TICK", tick.ToString()))!.AsObject();

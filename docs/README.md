@@ -22,8 +22,9 @@ Read these in order:
 | [Ability Architecture](systems/ability-architecture.md) | Cooked timelines, typed operations, capabilities, and interruption |
 | [Animation System](systems/animation-system.md) | Animancer playback, semantic bindings, and timing |
 | [Netcode Architecture](systems/netcode-architecture.md) | GameServer, prediction, reconciliation, and transport |
-| [Replay v1 design](plans/2026-10-13-replay-v1-design.md) | Personal-review/bug-report scope, playback and delivery contract, parity gate and spectator extension |
-| [Replay v1 implementation spec](spec-replay-v1/spec-replay-v1.md) | Draft recording/API contracts, parallel ownership and verification gates; proposed storage revision |
+| [Replay plan](plans/2026-11-01-replay-design.md) | GameHost recording with an Exact Track and a View Track, step by step with checks |
+| [Replay v1 design](plans/2026-10-13-replay-v1-design.md) | Superseded for recording and playback by ADR-0060; its retention, sharing and delivery sections remain |
+| [Replay v1 implementation spec](spec-replay-v1/spec-replay-v1.md) | Superseded draft; kept for its delivery and access notes |
 | [Release Pipeline](systems/release-pipeline.md) | Isolated client build, coordinated CI/VPS release and manual Steam activation |
 | [Hosted owner console](systems/owner-console.md) | Independent console deployment, owner password login and private Master access |
 | [Content factory](systems/content-factory.md) | The owner's social clip board on alfred: using it, agent runs, data locations and deploy |
@@ -140,7 +141,8 @@ Accepted records for current gameplay, runtime and content decisions include:
 - [ADR-0029: Character authoring and cooking](adr/0029-character-authoring-and-cooking.md)
 - [ADR-0030: Ability Lab canonical slot projection](adr/0030-ability-lab-canonical-slot-projection.md)
 - [ADR-0031: Character asset dependency classification](adr/0031-character-asset-dependency-classification.md)
-- [ADR-0033: GameHost input Replays with compatible Shared playback](adr/0033-gamehost-input-replays-with-shared-playback.md)
+- [ADR-0033: GameHost input Replays with compatible Shared playback](adr/0033-gamehost-input-replays-with-shared-playback.md) (superseded by ADR-0060)
+- [ADR-0060: GameHost Replays record World Frames and a stable View Track](adr/0060-gamehost-replays-world-frames-and-view-track.md)
 - [ADR-0036: Arcade PvP kit parity and legal fall resets](adr/0036-arcade-pvp-kit-parity-and-legal-fall-resets.md)
 - [ADR-0037: Arcade Shared objects and unified stage artifact](adr/0037-arcade-shared-objects-and-unified-stage-artifact.md)
 - [ADR-0038: Editor play without installed animation clips](adr/0038-editor-play-without-installed-clips.md)

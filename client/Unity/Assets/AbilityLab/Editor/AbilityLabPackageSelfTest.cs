@@ -76,9 +76,9 @@ public static class AbilityLabPackageSelfTest
             var leap = (StartCapabilityOperationSource)leapSlot.Timeline.Stages[0].Operations[leapIndex];
             float baselineLaunch = SampleLeapLaunch();
             if (!workspace.ReplaceOperation(leapSlotIndex, 0, leapIndex,
-                    leap with { Parameters = ((TargetedLeapCapabilityParameters)leap.Parameters) with { LaunchVerticalSpeed = 14f } }) ||
+                    leap with { Parameters = ((TargetedLeapCapabilityParameters)leap.Parameters) with { RiseHeight = 8f } }) ||
                 workspace.LiveDraftInvalid || SampleLeapLaunch() <= baselineLaunch + 1f)
-                throw new InvalidOperationException("Editing the authored launch speed did not change the Shared scenario.");
+                throw new InvalidOperationException("Editing the authored rise height did not change the Shared scenario.");
             workspace.Undo();
             if (Math.Abs(SampleLeapLaunch() - baselineLaunch) > 0.01f)
                 throw new InvalidOperationException("Undo did not restore the previous Shared leap.");
@@ -307,9 +307,9 @@ public static class AbilityLabPackageSelfTest
         {
             float original = LaunchSpeed();
             if (!workspace.ReplaceOperation(slotIndex, 0, operationIndex,
-                    operation with { Parameters = parameters with { LaunchVerticalSpeed = parameters.LaunchVerticalSpeed + 2f } }) ||
+                    operation with { Parameters = parameters with { RiseHeight = parameters.RiseHeight + 2f } }) ||
                 LaunchSpeed() <= original + 1f)
-                throw new InvalidOperationException("Edited vertical launch speed did not change the recorded Shared flight.");
+                throw new InvalidOperationException("Edited rise height did not change the recorded Shared flight.");
             workspace.Undo();
             if (Math.Abs(LaunchSpeed() - original) > 0.01f)
                 throw new InvalidOperationException("Undo did not restore the original recorded flight.");

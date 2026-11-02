@@ -28,7 +28,8 @@ namespace SlopArena.Shared
         // 20: perching projectiles and their queued pops (ADR-0051).
         // 23: Kamikaze's vulnerable startup/travel phase.
         // 24: a perch's dive lifecycle and pecks, and the tether's unmarked branch (ADR-0051 sections 9 and 10).
-        public const uint SnapshotFormatVersion = 24;
+        // 26: one wall jump per airtime in CharacterState.
+        public const uint SnapshotFormatVersion = 26;
 
         private readonly List<ulong> _abilityOrder = new();
 

@@ -1,0 +1,429 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TestRun id="343ec73d-33cd-4ae4-8c59-63e49f4a87a7" name="@Robofix 2026-11-01 18:19:03" xmlns="http://microsoft.com/schemas/VisualStudio/TeamTest/2010">
+  <Times creation="2026-11-01T18:19:03.8747010+01:00" queuing="2026-11-01T18:19:03.8747010+01:00" start="2026-11-01T18:19:02.0908571+01:00" finish="2026-11-01T18:20:30.7823927+01:00" />
+  <TestSettings name="default" id="e2b96840-6a56-4d80-8703-6daab3331cd0">
+    <Deployment runDeploymentRoot="_Robofix_2026-11-01_18_19_03" />
+  </TestSettings>
+  <Results>
+    <UnitTestResult executionId="f6d2cd58-eb78-423e-8bb5-e23889ab75dc" testId="236911ee-3f87-db2d-afa7-7b7fc0018195" testName="SlopArena.Shared.Tests.TrainingArenaTests.TrainingRigTrenchAndShelfTeachTheirJumpHeights(fighter: Manki)" computerName="Robofix" duration="00:00:01.4433932" startTime="2026-11-01T18:20:25.5180226+01:00" endTime="2026-11-01T18:20:26.9613581+01:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="f6d2cd58-eb78-423e-8bb5-e23889ab75dc">
+      <Output>
+        <StdOut>Manki block single=False, apex=2.17, miss maxX=-28.00, apex=2.17, second=-1, recovery=-1, final=-28.00/0.75/12.30</StdOut>
+      </Output>
+    </UnitTestResult>
+    <UnitTestResult executionId="dec3e81c-52cd-493b-a6d4-fcdab286582a" testId="610170e9-0ba6-3bde-f7e2-818a6a907993" testName="SlopArena.Shared.Tests.TrainingArenaTests.TrainingRigTrenchAndShelfTeachTheirJumpHeights(fighter: Nyx)" computerName="Robofix" duration="00:00:01.5810689" startTime="2026-11-01T18:20:19.3860198+01:00" endTime="2026-11-01T18:20:20.9670285+01:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="dec3e81c-52cd-493b-a6d4-fcdab286582a">
+      <Output>
+        <StdOut>Nyx block single=False, apex=2.13, miss maxX=-28.00, apex=2.13, second=-1, recovery=-1, final=-28.00/0.85/12.35</StdOut>
+      </Output>
+    </UnitTestResult>
+    <UnitTestResult executionId="8fbcc4b0-bd62-4d47-9f44-7065c06108a8" testId="38c515e0-2107-3b54-3676-da7ca43d509f" testName="SlopArena.Shared.Tests.TrainingArenaTests.KnockbackKillsThroughNorthAndSouth(fighter: Bashie)" computerName="Robofix" duration="00:00:00.0859591" startTime="2026-11-01T18:20:17.3903607+01:00" endTime="2026-11-01T18:20:17.4759407+01:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="8fbcc4b0-bd62-4d47-9f44-7065c06108a8" />
+    <UnitTestResult executionId="4498ed27-65f7-4c03-8e64-c78e54550d6b" testId="6a9dc50a-f94e-6031-666d-f6b393f9588d" testName="SlopArena.Shared.Tests.TrainingArenaTests.KnockbackKillsThroughNorthAndSouth(fighter: Wibou)" computerName="Robofix" duration="00:00:00.0844386" startTime="2026-11-01T18:20:17.8884343+01:00" endTime="2026-11-01T18:20:17.9728733+01:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="4498ed27-65f7-4c03-8e64-c78e54550d6b" />
+    <UnitTestResult executionId="91e63db6-c19f-4148-8d2f-1150e7c9816f" testId="f4052c79-3ffe-224d-48c6-9602f8a3e88f" testName="SlopArena.Shared.Tests.TrainingArenaTests.KnockbackKillsThroughNorthAndSouth(fighter: Nyx)" computerName="Robofix" duration="00:00:00.0790209" startTime="2026-11-01T18:20:17.7421778+01:00" endTime="2026-11-01T18:20:17.8210892+01:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="91e63db6-c19f-4148-8d2f-1150e7c9816f" />
+    <UnitTestResult executionId="563c2543-d77c-42bf-a859-1708147d5d90" testId="aefd7004-d559-d1b8-cea2-07f11d462b01" testName="SlopArena.Shared.Tests.TrainingArenaTests.EverySpawnIsGroundedOnItsNamedSurface(fighter: Bonk, index: 2)" computerName="Robofix" duration="00:00:00.1012743" startTime="2026-11-01T18:19:05.0728662+01:00" endTime="2026-11-01T18:19:05.1741306+01:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="563c2543-d77c-42bf-a859-1708147d5d90" />
+    <UnitTestResult executionId="18446e66-c5c0-4641-aa78-2bb87dc50704" testId="3d3e9d43-c939-d8d0-6820-caddd50bf115" testName="SlopArena.Shared.Tests.TrainingArenaTests.KnockbackKillsThroughNorthAndSouth(fighter: Manki)" computerName="Robofix" duration="00:00:00.0671638" startTime="2026-11-01T18:20:17.8212307+01:00" endTime="2026-11-01T18:20:17.8883276+01:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="18446e66-c5c0-4641-aa78-2bb87dc50704" />
+    <UnitTestResult executionId="53e292e3-54ab-4e84-b260-ec32f9ff498e" testId="a35aa7c3-cbb0-e22d-4a70-a047d999c0f1" testName="SlopArena.Shared.Tests.TrainingArenaTests.EverySpawnIsGroundedOnItsNamedSurface(fighter: Nyx, index: 2)" computerName="Robofix" duration="00:00:00.0852548" startTime="2026-11-01T18:19:05.1742742+01:00" endTime="2026-11-01T18:19:05.2595000+01:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="53e292e3-54ab-4e84-b260-ec32f9ff498e" />
+    <UnitTestResult executionId="2e21e3c4-b465-4fde-a206-9879bee65afc" testId="9d5372da-db13-aa08-23ea-bc94796327c9" testName="SlopArena.Shared.Tests.TrainingArenaTests.EverySpawnIsGroundedOnItsNamedSurface(fighter: Nyx, index: 3)" computerName="Robofix" duration="00:00:00.1036030" startTime="2026-11-01T18:19:05.2597060+01:00" endTime="2026-11-01T18:19:05.3632377+01:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="2e21e3c4-b465-4fde-a206-9879bee65afc" />
+    <UnitTestResult executionId="7dbdf977-7ffb-4f0b-84c3-b628922383dd" testId="008ed548-0fd8-4f25-53e5-108543ac4cd7" testName="SlopArena.Shared.Tests.TrainingArenaTests.TrainingRigTrenchAndShelfTeachTheirJumpHeights(fighter: Bashie)" computerName="Robofix" duration="00:00:01.4156253" startTime="2026-11-01T18:20:24.1023494+01:00" endTime="2026-11-01T18:20:25.5178934+01:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="7dbdf977-7ffb-4f0b-84c3-b628922383dd">
+      <Output>
+        <StdOut>Bashie block single=False, apex=2.17, miss maxX=-28.00, apex=2.17, second=-1, recovery=-1, final=-28.00/0.75/12.30</StdOut>
+      </Output>
+    </UnitTestResult>
+    <UnitTestResult executionId="66b3ba3d-50b3-4b53-a25f-fc7043bdb034" testId="d5ae9ed9-4924-bd2b-1831-46a9f39eaab5" testName="SlopArena.Shared.Tests.TrainingArenaTests.EverySpawnIsGroundedOnItsNamedSurface(fighter: Manki, index: 2)" computerName="Robofix" duration="00:00:00.1143225" startTime="2026-11-01T18:19:03.9279644+01:00" endTime="2026-11-01T18:19:04.0412487+01:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="66b3ba3d-50b3-4b53-a25f-fc7043bdb034" />
+    <UnitTestResult executionId="a0443f65-e383-4469-a58d-a57da3a8c1e2" testId="f2f5d2d5-ca92-e410-1e71-94d97258eaf7" testName="SlopArena.Shared.Tests.TrainingArenaTests.IslandLadderMeasuresSingleDoubleAndRecovery(fighter: Bonk)" computerName="Robofix" duration="00:00:33.4857967" startTime="2026-11-01T18:19:22.5375786+01:00" endTime="2026-11-01T18:19:56.0230425+01:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="a0443f65-e383-4469-a58d-a57da3a8c1e2">
+      <Output>
+        <StdOut>ISLAND Bonk NearIsland gap=4 single=True double=True recovery=True; land t=64, second=-1, recovery=-1, charge=-1, apex=3.14; land t=59, second=8, recovery=-1, charge=-1, apex=2.60; land t=72, second=8, recovery=12, charge=1, apex=7.23
+ISLAND Bonk MidIsland gap=8 single=False double=True recovery=True; miss maxX=21.65, apex=3.14, second=-1, recovery=-1, final=0.00/0.85/-4.00; land t=79, second=20, recovery=-1, charge=-1, apex=4.38; land t=92, second=8, recovery=32, charge=1, apex=8.60
+ISLAND Bonk FarIsland gap=13.5 single=False double=False recovery=True; miss maxX=25.41, apex=3.14, second=-1, recovery=-1, final=0.00/0.85/-4.00; miss maxX=27.15, apex=3.14, second=80, recovery=-1, final=0.00/0.85/-4.00; land t=134, second=26, recovery=74, charge=1, apex=8.71</StdOut>
+      </Output>
+    </UnitTestResult>
+    <UnitTestResult executionId="e42b5195-e82d-4362-99cb-af4e4b9a2dfc" testId="cf007f1f-2986-fa80-b445-e3d6adb39c78" testName="SlopArena.Shared.Tests.TrainingArenaTests.KnockbackKillsThroughNorthAndSouth(fighter: Bonk)" computerName="Robofix" duration="00:00:00.0954513" startTime="2026-11-01T18:20:17.4761036+01:00" endTime="2026-11-01T18:20:17.5714964+01:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="e42b5195-e82d-4362-99cb-af4e4b9a2dfc" />
+    <UnitTestResult executionId="dc402907-837c-44d4-9f81-59f874543e97" testId="64fd1c66-987e-e290-970b-e3365d6fd00f" testName="SlopArena.Shared.Tests.TrainingArenaTests.TrainingRigTrenchAndShelfTeachTheirJumpHeights(fighter: Wibou)" computerName="Robofix" duration="00:00:01.4128981" startTime="2026-11-01T18:20:17.9730445+01:00" endTime="2026-11-01T18:20:19.3858788+01:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="dc402907-837c-44d4-9f81-59f874543e97">
+      <Output>
+        <StdOut>Wibou block single=False, apex=2.15, miss maxX=-28.00, apex=2.15, second=-1, recovery=-1, final=-28.00/0.85/12.35</StdOut>
+      </Output>
+    </UnitTestResult>
+    <UnitTestResult executionId="ed7e4a4b-4a79-4bc9-bf33-392e6974f903" testId="853b8df3-031f-5f3d-3b1f-4f2c6ef37ad9" testName="SlopArena.Shared.Tests.TrainingArenaTests.BakeDerivesBlastLinesFromEverySolid" computerName="Robofix" duration="00:00:00.0020211" startTime="2026-11-01T18:20:30.6936884+01:00" endTime="2026-11-01T18:20:30.6957178+01:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="ed7e4a4b-4a79-4bc9-bf33-392e6974f903" />
+    <UnitTestResult executionId="e31dbb38-30bc-497d-bfb1-572b8f267dd6" testId="a0938f1a-c731-fd64-61cc-1d5cf4e40f85" testName="SlopArena.Shared.Tests.TrainingArenaTests.EverySpawnIsGroundedOnItsNamedSurface(fighter: Bonk, index: 1)" computerName="Robofix" duration="00:00:00.0738140" startTime="2026-11-01T18:19:05.4614626+01:00" endTime="2026-11-01T18:19:05.5353279+01:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="e31dbb38-30bc-497d-bfb1-572b8f267dd6" />
+    <UnitTestResult executionId="b9674eaa-8433-4351-9f24-b260a9533ef5" testId="e4d76589-c021-e446-57ec-70b4ca6ec203" testName="SlopArena.Shared.Tests.TrainingArenaTests.EverySpawnIsGroundedOnItsNamedSurface(fighter: Salamander, index: 0)" computerName="Robofix" duration="00:00:00.1165209" startTime="2026-11-01T18:19:04.0415129+01:00" endTime="2026-11-01T18:19:04.1578327+01:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="b9674eaa-8433-4351-9f24-b260a9533ef5" />
+    <UnitTestResult executionId="c576598b-150e-499b-afa8-157391203f12" testId="14024f0b-2c11-74df-e86d-690c9d7d3fa5" testName="SlopArena.Shared.Tests.TrainingArenaTests.EverySpawnIsGroundedOnItsNamedSurface(fighter: Wibou, index: 1)" computerName="Robofix" duration="00:00:00.1157182" startTime="2026-11-01T18:19:04.2699111+01:00" endTime="2026-11-01T18:19:04.3856598+01:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="c576598b-150e-499b-afa8-157391203f12" />
+    <UnitTestResult executionId="949ffc97-6b63-46b7-8e81-46408ae6d72c" testId="736354b9-968d-97d6-de35-f5cb8af309be" testName="SlopArena.Shared.Tests.TrainingArenaTests.EverySpawnIsGroundedOnItsNamedSurface(fighter: Bashie, index: 1)" computerName="Robofix" duration="00:00:00.2133757" startTime="2026-11-01T18:19:03.5932398+01:00" endTime="2026-11-01T18:19:03.8104172+01:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="949ffc97-6b63-46b7-8e81-46408ae6d72c" />
+    <UnitTestResult executionId="b1586fa2-bf10-4bcb-b7ac-67a0de50a410" testId="eff38f7e-f03e-cf06-8eff-33942d821d57" testName="SlopArena.Shared.Tests.TrainingArenaTests.TrenchFallKillsAndEveryFighterRecoversOutOfIt(fighter: Bonk)" computerName="Robofix" duration="00:00:01.0709133" startTime="2026-11-01T18:20:28.4385367+01:00" endTime="2026-11-01T18:20:29.5094048+01:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="b1586fa2-bf10-4bcb-b7ac-67a0de50a410" />
+    <UnitTestResult executionId="868caab9-abd0-4e7f-87d2-1c57451c9425" testId="14f0e636-e6e9-83d3-3e9b-07d602f40466" testName="SlopArena.Shared.Tests.TrainingArenaTests.EverySpawnIsGroundedOnItsNamedSurface(fighter: Wibou, index: 3)" computerName="Robofix" duration="00:00:00.1206830" startTime="2026-11-01T18:19:04.4931231+01:00" endTime="2026-11-01T18:19:04.6138029+01:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="868caab9-abd0-4e7f-87d2-1c57451c9425" />
+    <UnitTestResult executionId="8c9460d7-07d2-47b1-8937-99462794789d" testId="4b4b763e-82be-9159-4fef-aee6fb9ebc2d" testName="SlopArena.Shared.Tests.TrainingArenaTests.IslandLadderMeasuresSingleDoubleAndRecovery(fighter: FightGuy)" computerName="Robofix" duration="00:00:08.4618817" startTime="2026-11-01T18:19:10.1666063+01:00" endTime="2026-11-01T18:19:18.6273444+01:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="8c9460d7-07d2-47b1-8937-99462794789d">
+      <Output>
+        <StdOut>ISLAND FightGuy NearIsland gap=4 single=True double=True recovery=True; land t=51, second=-1, recovery=-1, charge=-1, apex=1.99; land t=48, second=8, recovery=-1, charge=-1, apex=1.76; land t=115, second=8, recovery=20, charge=-1, apex=7.53
+ISLAND FightGuy MidIsland gap=8 single=False double=True recovery=True; miss maxX=21.65, apex=1.99, second=-1, recovery=-1, final=0.00/0.85/-4.00; land t=70, second=23, recovery=-1, charge=-1, apex=3.17; land t=104, second=8, recovery=12, charge=-1, apex=6.91
+ISLAND FightGuy FarIsland gap=13.5 single=False double=False recovery=True; miss maxX=26.32, apex=1.99, second=-1, recovery=-1, final=0.00/0.85/-4.00; miss maxX=27.15, apex=1.99, second=80, recovery=-1, final=0.00/0.85/-4.00; land t=104, second=8, recovery=12, charge=-1, apex=6.91</StdOut>
+      </Output>
+    </UnitTestResult>
+    <UnitTestResult executionId="6d754a56-cb2c-456e-94cb-d3700592dd14" testId="647854e5-e327-1787-71eb-d6c81cd7718b" testName="SlopArena.Shared.Tests.TrainingArenaTests.IslandLadderMeasuresSingleDoubleAndRecovery(fighter: Manki)" computerName="Robofix" duration="00:00:03.6952792" startTime="2026-11-01T18:20:13.6948387+01:00" endTime="2026-11-01T18:20:17.3898164+01:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="6d754a56-cb2c-456e-94cb-d3700592dd14">
+      <Output>
+        <StdOut>ISLAND Manki NearIsland gap=4 single=True double=True recovery=True; land t=56, second=-1, recovery=-1, charge=-1, apex=2.17; land t=52, second=8, recovery=-1, charge=-1, apex=1.85; land t=173, second=8, recovery=12, charge=-1, apex=2.90
+ISLAND Manki MidIsland gap=8 single=False double=True recovery=True; miss maxX=21.70, apex=2.17, second=-1, recovery=-1, final=0.00/0.85/-4.00; land t=56, second=10, recovery=-1, charge=-1, apex=2.14; land t=173, second=8, recovery=12, charge=-1, apex=2.90
+ISLAND Manki FarIsland gap=13.5 single=False double=True recovery=True; miss maxX=27.20, apex=2.17, second=-1, recovery=-1, final=0.00/0.85/-4.00; land t=91, second=38, recovery=-1, charge=-1, apex=3.35; land t=173, second=8, recovery=12, charge=-1, apex=2.90</StdOut>
+      </Output>
+    </UnitTestResult>
+    <UnitTestResult executionId="47b27183-018d-4796-8af8-751b445edbbe" testId="db80c80b-a567-7e59-162f-2dd88f60283b" testName="SlopArena.Shared.Tests.TrainingArenaTests.EverySpawnIsGroundedOnItsNamedSurface(fighter: FightGuy, index: 0)" computerName="Robofix" duration="00:00:00.1111583" startTime="2026-11-01T18:19:04.7465131+01:00" endTime="2026-11-01T18:19:04.8575529+01:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="47b27183-018d-4796-8af8-751b445edbbe" />
+    <UnitTestResult executionId="a5346a45-3b83-4e50-a7b9-d35c34d3c37d" testId="34538b43-cc50-ae82-828b-bc7e764fab7e" testName="SlopArena.Shared.Tests.TrainingArenaTests.EverySpawnIsGroundedOnItsNamedSurface(fighter: Wibou, index: 0)" computerName="Robofix" duration="00:00:00.1323489" startTime="2026-11-01T18:19:04.6140700+01:00" endTime="2026-11-01T18:19:04.7462649+01:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="a5346a45-3b83-4e50-a7b9-d35c34d3c37d" />
+    <UnitTestResult executionId="9e1a3248-7da5-4d4d-8704-fdb114df5eda" testId="4d8ba7f8-98a9-ac36-03a8-4afe972d859f" testName="SlopArena.Shared.Tests.TrainingArenaTests.TrainingRigTrenchAndShelfTeachTheirJumpHeights(fighter: Bonk)" computerName="Robofix" duration="00:00:01.0660857" startTime="2026-11-01T18:20:26.9615139+01:00" endTime="2026-11-01T18:20:28.0275054+01:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="9e1a3248-7da5-4d4d-8704-fdb114df5eda">
+      <Output>
+        <StdOut>Bonk block single=True, apex=3.14, land t=41, second=-1, recovery=-1, charge=-1, apex=3.14</StdOut>
+      </Output>
+    </UnitTestResult>
+    <UnitTestResult executionId="d3ade7b2-f7af-4cbd-8b8e-080b9291a142" testId="be39ef08-165e-00bc-95c2-565b7553f6a6" testName="SlopArena.Shared.Tests.TrainingArenaTests.EverySpawnIsGroundedOnItsNamedSurface(fighter: Salamander, index: 3)" computerName="Robofix" duration="00:00:00.0768677" startTime="2026-11-01T18:19:06.2058782+01:00" endTime="2026-11-01T18:19:06.2826469+01:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="d3ade7b2-f7af-4cbd-8b8e-080b9291a142" />
+    <UnitTestResult executionId="5da5bd93-bd20-44de-ac2f-ee689f524553" testId="573e7d05-57fc-6c3a-74c9-f079ff75516c" testName="SlopArena.Shared.Tests.TrainingArenaTests.EverySpawnIsGroundedOnItsNamedSurface(fighter: FightGuy, index: 3)" computerName="Robofix" duration="00:00:00.0774075" startTime="2026-11-01T18:19:06.0366488+01:00" endTime="2026-11-01T18:19:06.1139863+01:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="5da5bd93-bd20-44de-ac2f-ee689f524553" />
+    <UnitTestResult executionId="fff5c866-dd32-47e2-b9a6-1abf61c893dd" testId="5490caa0-fb94-5b5e-338d-14359396f3a9" testName="SlopArena.Shared.Tests.TrainingArenaTests.EverySpawnIsGroundedOnItsNamedSurface(fighter: Bashie, index: 0)" computerName="Robofix" duration="00:00:00.0856676" startTime="2026-11-01T18:19:06.2827517+01:00" endTime="2026-11-01T18:19:06.3684655+01:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="fff5c866-dd32-47e2-b9a6-1abf61c893dd" />
+    <UnitTestResult executionId="7706b5c5-0342-44e3-b584-28afaa2855ed" testId="24481ea6-a9cd-e4da-70d8-01214f2a9bd8" testName="SlopArena.Shared.Tests.TrainingArenaTests.EverySpawnIsGroundedOnItsNamedSurface(fighter: Salamander, index: 1)" computerName="Robofix" duration="00:00:00.0955778" startTime="2026-11-01T18:19:05.5360018+01:00" endTime="2026-11-01T18:19:05.6310049+01:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="7706b5c5-0342-44e3-b584-28afaa2855ed" />
+    <UnitTestResult executionId="b0f09a13-b515-49da-96c7-a449ae6aeb84" testId="93794bda-0b32-7388-4836-f43427a683c5" testName="SlopArena.Shared.Tests.TrainingArenaTests.EverySpawnIsGroundedOnItsNamedSurface(fighter: Bonk, index: 3)" computerName="Robofix" duration="00:00:00.1166516" startTime="2026-11-01T18:19:03.8219832+01:00" endTime="2026-11-01T18:19:03.9268165+01:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="b0f09a13-b515-49da-96c7-a449ae6aeb84" />
+    <UnitTestResult executionId="f83f6157-f98a-41cc-866b-bdd9607181bb" testId="caa3413e-6852-75a3-26c7-63915d322c20" testName="SlopArena.Shared.Tests.TrainingArenaTests.TrenchFallKillsAndEveryFighterRecoversOutOfIt(fighter: Salamander)" computerName="Robofix" duration="00:00:00.1261017" startTime="2026-11-01T18:20:30.5675514+01:00" endTime="2026-11-01T18:20:30.6935850+01:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="f83f6157-f98a-41cc-866b-bdd9607181bb" />
+    <UnitTestResult executionId="942c114f-de2a-48de-bee1-ff69141c7c9e" testId="4c260574-0aa4-53cc-fb32-0b06ed7c2f65" testName="SlopArena.Shared.Tests.TrainingArenaTests.EverySpawnIsGroundedOnItsNamedSurface(fighter: Bashie, index: 2)" computerName="Robofix" duration="00:00:00.0912565" startTime="2026-11-01T18:19:05.9472860+01:00" endTime="2026-11-01T18:19:06.0364588+01:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="942c114f-de2a-48de-bee1-ff69141c7c9e" />
+    <UnitTestResult executionId="123548ee-8e4c-4b12-9bc3-fb5ef13de302" testId="f12d12f4-9be5-f3c8-9a21-6a0424bbfa4e" testName="SlopArena.Shared.Tests.TrainingArenaTests.EverySpawnIsGroundedOnItsNamedSurface(fighter: Manki, index: 1)" computerName="Robofix" duration="00:00:00.0787700" startTime="2026-11-01T18:19:05.8663430+01:00" endTime="2026-11-01T18:19:05.9470997+01:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="123548ee-8e4c-4b12-9bc3-fb5ef13de302" />
+    <UnitTestResult executionId="210cfda3-7916-4d97-8f6e-272b982bce04" testId="ae186a51-1f35-6f7e-ea6d-c1351deb5f71" testName="SlopArena.Shared.Tests.TrainingArenaTests.EverySpawnIsGroundedOnItsNamedSurface(fighter: Nyx, index: 0)" computerName="Robofix" duration="00:00:00.1118148" startTime="2026-11-01T18:19:04.1580319+01:00" endTime="2026-11-01T18:19:04.2697428+01:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="210cfda3-7916-4d97-8f6e-272b982bce04" />
+    <UnitTestResult executionId="ba2232d1-a980-4e0a-a639-3666f746580b" testId="5e87ad23-7d13-f3c2-898c-e2d968a0ef92" testName="SlopArena.Shared.Tests.TrainingArenaTests.TrainingRigTrenchAndShelfTeachTheirJumpHeights(fighter: Salamander)" computerName="Robofix" duration="00:00:01.3770982" startTime="2026-11-01T18:20:20.9671762+01:00" endTime="2026-11-01T18:20:22.3442558+01:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="ba2232d1-a980-4e0a-a639-3666f746580b">
+      <Output>
+        <StdOut>Salamander block single=False, apex=2.17, miss maxX=-28.00, apex=2.17, second=-1, recovery=-1, final=-28.00/0.85/12.35</StdOut>
+      </Output>
+    </UnitTestResult>
+    <UnitTestResult executionId="1016da22-04d8-4460-b2f3-5b9f79c8c405" testId="0e2f1b59-ed02-9516-dbc6-1e2e68364895" testName="SlopArena.Shared.Tests.TrainingArenaTests.TrenchFallKillsAndEveryFighterRecoversOutOfIt(fighter: FightGuy)" computerName="Robofix" duration="00:00:00.1448029" startTime="2026-11-01T18:20:30.2945007+01:00" endTime="2026-11-01T18:20:30.4393401+01:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="1016da22-04d8-4460-b2f3-5b9f79c8c405" />
+    <UnitTestResult executionId="06133821-f59a-4e8b-a960-15b2281eefc9" testId="3c8ea8fc-aa81-bd26-98a0-ba0ccce41634" testName="SlopArena.Shared.Tests.TrainingArenaTests.TrenchFallKillsAndEveryFighterRecoversOutOfIt(fighter: Wibou)" computerName="Robofix" duration="00:00:00.4108036" startTime="2026-11-01T18:20:28.0276726+01:00" endTime="2026-11-01T18:20:28.4384014+01:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="06133821-f59a-4e8b-a960-15b2281eefc9" />
+    <UnitTestResult executionId="922e5920-f314-4492-bf0f-d6595b798545" testId="c80cf01c-c842-4293-b304-9a8cf5c4fc96" testName="SlopArena.Shared.Tests.TrainingArenaTests.EverySpawnIsGroundedOnItsNamedSurface(fighter: Wibou, index: 2)" computerName="Robofix" duration="00:00:00.0980063" startTime="2026-11-01T18:19:05.3634482+01:00" endTime="2026-11-01T18:19:05.4613439+01:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="922e5920-f314-4492-bf0f-d6595b798545" />
+    <UnitTestResult executionId="5551c8f2-a988-4b5c-812d-3aae9ce432ed" testId="71c23d96-fa76-ebb2-bf84-6e52afa5cdf8" testName="SlopArena.Shared.Tests.TrainingArenaTests.TrenchFallKillsAndEveryFighterRecoversOutOfIt(fighter: Bashie)" computerName="Robofix" duration="00:00:00.3453889" startTime="2026-11-01T18:20:29.5094962+01:00" endTime="2026-11-01T18:20:29.8549227+01:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="5551c8f2-a988-4b5c-812d-3aae9ce432ed" />
+    <UnitTestResult executionId="3c0a7ea1-1705-451f-8e35-b96ced862f88" testId="1cb91bf5-9513-d611-4788-bd80294a9979" testName="SlopArena.Shared.Tests.TrainingArenaTests.IslandLadderMeasuresSingleDoubleAndRecovery(fighter: Wibou)" computerName="Robofix" duration="00:00:17.6711623" startTime="2026-11-01T18:19:56.0235343+01:00" endTime="2026-11-01T18:20:13.6943330+01:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="3c0a7ea1-1705-451f-8e35-b96ced862f88">
+      <Output>
+        <StdOut>ISLAND Wibou NearIsland gap=4 single=True double=True recovery=True; land t=49, second=-1, recovery=-1, charge=-1, apex=2.15; land t=47, second=8, recovery=-1, charge=-1, apex=1.91; land t=47, second=8, recovery=56, charge=-1, apex=1.91
+ISLAND Wibou MidIsland gap=8 single=False double=True recovery=True; miss maxX=21.65, apex=2.15, second=-1, recovery=-1, final=0.00/0.85/-4.00; land t=70, second=24, recovery=-1, charge=-1, apex=3.47; land t=70, second=24, recovery=72, charge=-1, apex=3.47
+ISLAND Wibou FarIsland gap=13.5 single=False double=False recovery=True; miss maxX=25.18, apex=2.15, second=-1, recovery=-1, final=0.00/0.85/-4.00; miss maxX=27.15, apex=2.15, second=80, recovery=-1, final=0.00/0.85/-4.00; land t=107, second=8, recovery=12, charge=-1, apex=5.23</StdOut>
+      </Output>
+    </UnitTestResult>
+    <UnitTestResult executionId="c133812e-5530-4ec9-8c86-683f6a18e962" testId="e312eeb6-a789-36ef-3133-611f1a7158af" testName="SlopArena.Shared.Tests.TrainingArenaTests.EverySpawnIsGroundedOnItsNamedSurface(fighter: Manki, index: 3)" computerName="Robofix" duration="00:00:00.1071927" startTime="2026-11-01T18:19:04.3859463+01:00" endTime="2026-11-01T18:19:04.4929525+01:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="c133812e-5530-4ec9-8c86-683f6a18e962" />
+    <UnitTestResult executionId="b2b53ab4-1583-47a0-8b07-c69799fafffc" testId="d814140e-f444-5d00-161e-58a6ddd5373d" testName="SlopArena.Shared.Tests.TrainingArenaTests.KnockbackKillsThroughNorthAndSouth(fighter: Salamander)" computerName="Robofix" duration="00:00:00.0887006" startTime="2026-11-01T18:20:17.5716219+01:00" endTime="2026-11-01T18:20:17.6603367+01:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="b2b53ab4-1583-47a0-8b07-c69799fafffc" />
+    <UnitTestResult executionId="d1beb75c-5690-43ad-b4de-95d92cdfd3a6" testId="9b8a99ff-da5f-5e7f-be73-9101fc27abcf" testName="SlopArena.Shared.Tests.TrainingArenaTests.TrenchFallKillsAndEveryFighterRecoversOutOfIt(fighter: Manki)" computerName="Robofix" duration="00:00:00.1279886" startTime="2026-11-01T18:20:30.4394221+01:00" endTime="2026-11-01T18:20:30.5674163+01:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="d1beb75c-5690-43ad-b4de-95d92cdfd3a6" />
+    <UnitTestResult executionId="d94925d5-d3b8-450e-b869-c806dd5b9a79" testId="34fa2627-7059-8415-a985-3fcc761a00c8" testName="SlopArena.Shared.Tests.TrainingArenaTests.TrenchFallKillsAndEveryFighterRecoversOutOfIt(fighter: Nyx)" computerName="Robofix" duration="00:00:00.4394239" startTime="2026-11-01T18:20:29.8550691+01:00" endTime="2026-11-01T18:20:30.2944131+01:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="d94925d5-d3b8-450e-b869-c806dd5b9a79" />
+    <UnitTestResult executionId="a027644c-98a6-4ba6-a8f4-19e271f7d315" testId="cde3787e-575d-5880-54bb-a9f62bbf4b0e" testName="SlopArena.Shared.Tests.TrainingArenaTests.EverySpawnIsGroundedOnItsNamedSurface(fighter: Nyx, index: 1)" computerName="Robofix" duration="00:00:00.0761069" startTime="2026-11-01T18:19:05.7049787+01:00" endTime="2026-11-01T18:19:05.7807653+01:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="a027644c-98a6-4ba6-a8f4-19e271f7d315" />
+    <UnitTestResult executionId="cad310cb-7a99-457e-829d-c46fdde26dd6" testId="d823203f-c28e-fd32-abab-0336c605be68" testName="SlopArena.Shared.Tests.TrainingArenaTests.EverySpawnIsGroundedOnItsNamedSurface(fighter: Bashie, index: 3)" computerName="Robofix" duration="00:00:00.1011218" startTime="2026-11-01T18:19:04.9717134+01:00" endTime="2026-11-01T18:19:05.0726520+01:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="cad310cb-7a99-457e-829d-c46fdde26dd6" />
+    <UnitTestResult executionId="b6f4be66-d78d-4219-af03-0e649a4c5d19" testId="00a3a70b-42df-f928-03bc-9fc84bbfbb41" testName="SlopArena.Shared.Tests.TrainingArenaTests.EverySpawnIsGroundedOnItsNamedSurface(fighter: Salamander, index: 2)" computerName="Robofix" duration="00:00:00.1137373" startTime="2026-11-01T18:19:04.8584512+01:00" endTime="2026-11-01T18:19:04.9714382+01:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="b6f4be66-d78d-4219-af03-0e649a4c5d19" />
+    <UnitTestResult executionId="394c0f45-5909-49f0-8dba-757d5822588d" testId="27031185-6cc0-1a48-bbbc-786472c6ac42" testName="SlopArena.Shared.Tests.TrainingArenaTests.EverySpawnIsGroundedOnItsNamedSurface(fighter: FightGuy, index: 1)" computerName="Robofix" duration="00:00:00.0915634" startTime="2026-11-01T18:19:06.1140974+01:00" endTime="2026-11-01T18:19:06.2056919+01:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="394c0f45-5909-49f0-8dba-757d5822588d" />
+    <UnitTestResult executionId="84cc1866-9bb7-4988-95a6-56f64a22c45f" testId="dfc650ed-c230-4cae-5061-022d6c532026" testName="SlopArena.Shared.Tests.TrainingArenaTests.IslandLadderMeasuresSingleDoubleAndRecovery(fighter: Salamander)" computerName="Robofix" duration="00:00:03.7156678" startTime="2026-11-01T18:19:06.4516922+01:00" endTime="2026-11-01T18:19:10.1652655+01:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="84cc1866-9bb7-4988-95a6-56f64a22c45f">
+      <Output>
+        <StdOut>ISLAND Salamander NearIsland gap=4 single=True double=True recovery=True; land t=56, second=-1, recovery=-1, charge=-1, apex=2.17; land t=52, second=8, recovery=-1, charge=-1, apex=1.85; land t=98, second=8, recovery=12, charge=-1, apex=4.38
+ISLAND Salamander MidIsland gap=8 single=False double=True recovery=True; miss maxX=21.65, apex=2.17, second=-1, recovery=-1, final=0.00/0.85/-4.00; land t=56, second=10, recovery=-1, charge=-1, apex=2.14; land t=98, second=8, recovery=12, charge=-1, apex=4.38
+ISLAND Salamander FarIsland gap=13.5 single=False double=True recovery=True; miss maxX=27.15, apex=2.17, second=-1, recovery=-1, final=0.00/0.85/-4.00; land t=91, second=38, recovery=-1, charge=-1, apex=3.35; land t=123, second=8, recovery=32, charge=-1, apex=5.22</StdOut>
+      </Output>
+    </UnitTestResult>
+    <UnitTestResult executionId="7c44830b-2ee8-49f9-a6e2-7f79b87334b7" testId="f72d99cc-6b1e-b177-1951-bec96f6eb7b4" testName="SlopArena.Shared.Tests.TrainingArenaTests.TrainingRigTrenchAndShelfTeachTheirJumpHeights(fighter: FightGuy)" computerName="Robofix" duration="00:00:01.7578750" startTime="2026-11-01T18:20:22.3443862+01:00" endTime="2026-11-01T18:20:24.1021848+01:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="7c44830b-2ee8-49f9-a6e2-7f79b87334b7">
+      <Output>
+        <StdOut>FightGuy block single=False, apex=1.99, miss maxX=-28.00, apex=1.99, second=-1, recovery=-1, final=-28.00/0.85/12.35</StdOut>
+      </Output>
+    </UnitTestResult>
+    <UnitTestResult executionId="5d81fa5d-08b5-4c79-93b8-7a76050f1165" testId="e828cc98-c577-95d4-a706-31279a6bd1aa" testName="SlopArena.Shared.Tests.TrainingArenaTests.IslandLadderMeasuresSingleDoubleAndRecovery(fighter: Bashie)" computerName="Robofix" duration="00:00:03.9097063" startTime="2026-11-01T18:19:18.6277825+01:00" endTime="2026-11-01T18:19:22.5372055+01:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="5d81fa5d-08b5-4c79-93b8-7a76050f1165">
+      <Output>
+        <StdOut>ISLAND Bashie NearIsland gap=4 single=True double=True recovery=True; land t=56, second=-1, recovery=-1, charge=-1, apex=2.17; land t=52, second=8, recovery=-1, charge=-1, apex=1.85; land t=173, second=8, recovery=44, charge=-1, apex=10.60
+ISLAND Bashie MidIsland gap=8 single=False double=True recovery=True; miss maxX=21.70, apex=2.17, second=-1, recovery=-1, final=0.00/0.85/-4.00; land t=56, second=10, recovery=-1, charge=-1, apex=2.14; land t=83, second=8, recovery=12, charge=-1, apex=3.87
+ISLAND Bashie FarIsland gap=13.5 single=False double=True recovery=True; miss maxX=27.20, apex=2.17, second=-1, recovery=-1, final=0.00/0.85/-4.00; land t=91, second=38, recovery=-1, charge=-1, apex=3.35; land t=94, second=8, recovery=20, charge=-1, apex=4.52</StdOut>
+      </Output>
+    </UnitTestResult>
+    <UnitTestResult executionId="8f30b6ea-35f6-4241-bc10-b7e40ec62444" testId="7fd96159-70ff-3381-486b-71f8ad2619b9" testName="SlopArena.Shared.Tests.TrainingArenaTests.EverySpawnIsGroundedOnItsNamedSurface(fighter: Manki, index: 0)" computerName="Robofix" duration="00:00:00.0733178" startTime="2026-11-01T18:19:05.6311500+01:00" endTime="2026-11-01T18:19:05.7045235+01:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="8f30b6ea-35f6-4241-bc10-b7e40ec62444" />
+    <UnitTestResult executionId="87a5762d-c2b9-470b-a53d-409826a9a13a" testId="63510950-b4d7-0066-651a-49345b816c18" testName="SlopArena.Shared.Tests.TrainingArenaTests.EverySpawnIsGroundedOnItsNamedSurface(fighter: FightGuy, index: 2)" computerName="Robofix" duration="00:00:00.0852941" startTime="2026-11-01T18:19:05.7809384+01:00" endTime="2026-11-01T18:19:05.8661696+01:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="87a5762d-c2b9-470b-a53d-409826a9a13a" />
+    <UnitTestResult executionId="685892e9-d26e-49ae-abc5-7f6fc7bfccd4" testId="d93d0a8f-93de-61ee-7773-54b44f28c67f" testName="SlopArena.Shared.Tests.TrainingArenaTests.EverySpawnIsGroundedOnItsNamedSurface(fighter: Bonk, index: 0)" computerName="Robofix" duration="00:00:00.0805542" startTime="2026-11-01T18:19:06.3686447+01:00" endTime="2026-11-01T18:19:06.4491224+01:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="685892e9-d26e-49ae-abc5-7f6fc7bfccd4" />
+    <UnitTestResult executionId="a8a7985b-87c3-41ca-813b-14ff01b3b05f" testId="21f06abf-325c-9d3c-0d6a-6cc3c2231183" testName="SlopArena.Shared.Tests.TrainingArenaTests.KnockbackKillsThroughNorthAndSouth(fighter: FightGuy)" computerName="Robofix" duration="00:00:00.0815538" startTime="2026-11-01T18:20:17.6604920+01:00" endTime="2026-11-01T18:20:17.7420160+01:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="a8a7985b-87c3-41ca-813b-14ff01b3b05f" />
+  </Results>
+  <TestDefinitions>
+    <UnitTest name="SlopArena.Shared.Tests.TrainingArenaTests.TrainingRigTrenchAndShelfTeachTheirJumpHeights(fighter: FightGuy)" storage="/home/binoui/documents/projects/sloparena/tests/shared.tests/bin/debug/net8.0/shared.tests.dll" id="f72d99cc-6b1e-b177-1951-bec96f6eb7b4">
+      <Execution id="7c44830b-2ee8-49f9-a6e2-7f79b87334b7" />
+      <TestMethod codeBase="/home/binoui/Documents/projects/SlopArena/tests/Shared.Tests/bin/Debug/net8.0/Shared.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="SlopArena.Shared.Tests.TrainingArenaTests" name="TrainingRigTrenchAndShelfTeachTheirJumpHeights" />
+    </UnitTest>
+    <UnitTest name="SlopArena.Shared.Tests.TrainingArenaTests.EverySpawnIsGroundedOnItsNamedSurface(fighter: Nyx, index: 1)" storage="/home/binoui/documents/projects/sloparena/tests/shared.tests/bin/debug/net8.0/shared.tests.dll" id="cde3787e-575d-5880-54bb-a9f62bbf4b0e">
+      <Execution id="a027644c-98a6-4ba6-a8f4-19e271f7d315" />
+      <TestMethod codeBase="/home/binoui/Documents/projects/SlopArena/tests/Shared.Tests/bin/Debug/net8.0/Shared.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="SlopArena.Shared.Tests.TrainingArenaTests" name="EverySpawnIsGroundedOnItsNamedSurface" />
+    </UnitTest>
+    <UnitTest name="SlopArena.Shared.Tests.TrainingArenaTests.EverySpawnIsGroundedOnItsNamedSurface(fighter: Wibou, index: 1)" storage="/home/binoui/documents/projects/sloparena/tests/shared.tests/bin/debug/net8.0/shared.tests.dll" id="14024f0b-2c11-74df-e86d-690c9d7d3fa5">
+      <Execution id="c576598b-150e-499b-afa8-157391203f12" />
+      <TestMethod codeBase="/home/binoui/Documents/projects/SlopArena/tests/Shared.Tests/bin/Debug/net8.0/Shared.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="SlopArena.Shared.Tests.TrainingArenaTests" name="EverySpawnIsGroundedOnItsNamedSurface" />
+    </UnitTest>
+    <UnitTest name="SlopArena.Shared.Tests.TrainingArenaTests.TrainingRigTrenchAndShelfTeachTheirJumpHeights(fighter: Wibou)" storage="/home/binoui/documents/projects/sloparena/tests/shared.tests/bin/debug/net8.0/shared.tests.dll" id="64fd1c66-987e-e290-970b-e3365d6fd00f">
+      <Execution id="dc402907-837c-44d4-9f81-59f874543e97" />
+      <TestMethod codeBase="/home/binoui/Documents/projects/SlopArena/tests/Shared.Tests/bin/Debug/net8.0/Shared.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="SlopArena.Shared.Tests.TrainingArenaTests" name="TrainingRigTrenchAndShelfTeachTheirJumpHeights" />
+    </UnitTest>
+    <UnitTest name="SlopArena.Shared.Tests.TrainingArenaTests.EverySpawnIsGroundedOnItsNamedSurface(fighter: FightGuy, index: 1)" storage="/home/binoui/documents/projects/sloparena/tests/shared.tests/bin/debug/net8.0/shared.tests.dll" id="27031185-6cc0-1a48-bbbc-786472c6ac42">
+      <Execution id="394c0f45-5909-49f0-8dba-757d5822588d" />
+      <TestMethod codeBase="/home/binoui/Documents/projects/SlopArena/tests/Shared.Tests/bin/Debug/net8.0/Shared.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="SlopArena.Shared.Tests.TrainingArenaTests" name="EverySpawnIsGroundedOnItsNamedSurface" />
+    </UnitTest>
+    <UnitTest name="SlopArena.Shared.Tests.TrainingArenaTests.EverySpawnIsGroundedOnItsNamedSurface(fighter: Wibou, index: 3)" storage="/home/binoui/documents/projects/sloparena/tests/shared.tests/bin/debug/net8.0/shared.tests.dll" id="14f0e636-e6e9-83d3-3e9b-07d602f40466">
+      <Execution id="868caab9-abd0-4e7f-87d2-1c57451c9425" />
+      <TestMethod codeBase="/home/binoui/Documents/projects/SlopArena/tests/Shared.Tests/bin/Debug/net8.0/Shared.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="SlopArena.Shared.Tests.TrainingArenaTests" name="EverySpawnIsGroundedOnItsNamedSurface" />
+    </UnitTest>
+    <UnitTest name="SlopArena.Shared.Tests.TrainingArenaTests.TrenchFallKillsAndEveryFighterRecoversOutOfIt(fighter: Salamander)" storage="/home/binoui/documents/projects/sloparena/tests/shared.tests/bin/debug/net8.0/shared.tests.dll" id="caa3413e-6852-75a3-26c7-63915d322c20">
+      <Execution id="f83f6157-f98a-41cc-866b-bdd9607181bb" />
+      <TestMethod codeBase="/home/binoui/Documents/projects/SlopArena/tests/Shared.Tests/bin/Debug/net8.0/Shared.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="SlopArena.Shared.Tests.TrainingArenaTests" name="TrenchFallKillsAndEveryFighterRecoversOutOfIt" />
+    </UnitTest>
+    <UnitTest name="SlopArena.Shared.Tests.TrainingArenaTests.EverySpawnIsGroundedOnItsNamedSurface(fighter: FightGuy, index: 3)" storage="/home/binoui/documents/projects/sloparena/tests/shared.tests/bin/debug/net8.0/shared.tests.dll" id="573e7d05-57fc-6c3a-74c9-f079ff75516c">
+      <Execution id="5da5bd93-bd20-44de-ac2f-ee689f524553" />
+      <TestMethod codeBase="/home/binoui/Documents/projects/SlopArena/tests/Shared.Tests/bin/Debug/net8.0/Shared.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="SlopArena.Shared.Tests.TrainingArenaTests" name="EverySpawnIsGroundedOnItsNamedSurface" />
+    </UnitTest>
+    <UnitTest name="SlopArena.Shared.Tests.TrainingArenaTests.KnockbackKillsThroughNorthAndSouth(fighter: Manki)" storage="/home/binoui/documents/projects/sloparena/tests/shared.tests/bin/debug/net8.0/shared.tests.dll" id="3d3e9d43-c939-d8d0-6820-caddd50bf115">
+      <Execution id="18446e66-c5c0-4641-aa78-2bb87dc50704" />
+      <TestMethod codeBase="/home/binoui/Documents/projects/SlopArena/tests/Shared.Tests/bin/Debug/net8.0/Shared.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="SlopArena.Shared.Tests.TrainingArenaTests" name="KnockbackKillsThroughNorthAndSouth" />
+    </UnitTest>
+    <UnitTest name="SlopArena.Shared.Tests.TrainingArenaTests.IslandLadderMeasuresSingleDoubleAndRecovery(fighter: Salamander)" storage="/home/binoui/documents/projects/sloparena/tests/shared.tests/bin/debug/net8.0/shared.tests.dll" id="dfc650ed-c230-4cae-5061-022d6c532026">
+      <Execution id="84cc1866-9bb7-4988-95a6-56f64a22c45f" />
+      <TestMethod codeBase="/home/binoui/Documents/projects/SlopArena/tests/Shared.Tests/bin/Debug/net8.0/Shared.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="SlopArena.Shared.Tests.TrainingArenaTests" name="IslandLadderMeasuresSingleDoubleAndRecovery" />
+    </UnitTest>
+    <UnitTest name="SlopArena.Shared.Tests.TrainingArenaTests.TrenchFallKillsAndEveryFighterRecoversOutOfIt(fighter: FightGuy)" storage="/home/binoui/documents/projects/sloparena/tests/shared.tests/bin/debug/net8.0/shared.tests.dll" id="0e2f1b59-ed02-9516-dbc6-1e2e68364895">
+      <Execution id="1016da22-04d8-4460-b2f3-5b9f79c8c405" />
+      <TestMethod codeBase="/home/binoui/Documents/projects/SlopArena/tests/Shared.Tests/bin/Debug/net8.0/Shared.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="SlopArena.Shared.Tests.TrainingArenaTests" name="TrenchFallKillsAndEveryFighterRecoversOutOfIt" />
+    </UnitTest>
+    <UnitTest name="SlopArena.Shared.Tests.TrainingArenaTests.EverySpawnIsGroundedOnItsNamedSurface(fighter: Manki, index: 0)" storage="/home/binoui/documents/projects/sloparena/tests/shared.tests/bin/debug/net8.0/shared.tests.dll" id="7fd96159-70ff-3381-486b-71f8ad2619b9">
+      <Execution id="8f30b6ea-35f6-4241-bc10-b7e40ec62444" />
+      <TestMethod codeBase="/home/binoui/Documents/projects/SlopArena/tests/Shared.Tests/bin/Debug/net8.0/Shared.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="SlopArena.Shared.Tests.TrainingArenaTests" name="EverySpawnIsGroundedOnItsNamedSurface" />
+    </UnitTest>
+    <UnitTest name="SlopArena.Shared.Tests.TrainingArenaTests.TrenchFallKillsAndEveryFighterRecoversOutOfIt(fighter: Bonk)" storage="/home/binoui/documents/projects/sloparena/tests/shared.tests/bin/debug/net8.0/shared.tests.dll" id="eff38f7e-f03e-cf06-8eff-33942d821d57">
+      <Execution id="b1586fa2-bf10-4bcb-b7ac-67a0de50a410" />
+      <TestMethod codeBase="/home/binoui/Documents/projects/SlopArena/tests/Shared.Tests/bin/Debug/net8.0/Shared.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="SlopArena.Shared.Tests.TrainingArenaTests" name="TrenchFallKillsAndEveryFighterRecoversOutOfIt" />
+    </UnitTest>
+    <UnitTest name="SlopArena.Shared.Tests.TrainingArenaTests.TrainingRigTrenchAndShelfTeachTheirJumpHeights(fighter: Nyx)" storage="/home/binoui/documents/projects/sloparena/tests/shared.tests/bin/debug/net8.0/shared.tests.dll" id="610170e9-0ba6-3bde-f7e2-818a6a907993">
+      <Execution id="dec3e81c-52cd-493b-a6d4-fcdab286582a" />
+      <TestMethod codeBase="/home/binoui/Documents/projects/SlopArena/tests/Shared.Tests/bin/Debug/net8.0/Shared.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="SlopArena.Shared.Tests.TrainingArenaTests" name="TrainingRigTrenchAndShelfTeachTheirJumpHeights" />
+    </UnitTest>
+    <UnitTest name="SlopArena.Shared.Tests.TrainingArenaTests.KnockbackKillsThroughNorthAndSouth(fighter: Wibou)" storage="/home/binoui/documents/projects/sloparena/tests/shared.tests/bin/debug/net8.0/shared.tests.dll" id="6a9dc50a-f94e-6031-666d-f6b393f9588d">
+      <Execution id="4498ed27-65f7-4c03-8e64-c78e54550d6b" />
+      <TestMethod codeBase="/home/binoui/Documents/projects/SlopArena/tests/Shared.Tests/bin/Debug/net8.0/Shared.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="SlopArena.Shared.Tests.TrainingArenaTests" name="KnockbackKillsThroughNorthAndSouth" />
+    </UnitTest>
+    <UnitTest name="SlopArena.Shared.Tests.TrainingArenaTests.EverySpawnIsGroundedOnItsNamedSurface(fighter: Salamander, index: 2)" storage="/home/binoui/documents/projects/sloparena/tests/shared.tests/bin/debug/net8.0/shared.tests.dll" id="00a3a70b-42df-f928-03bc-9fc84bbfbb41">
+      <Execution id="b6f4be66-d78d-4219-af03-0e649a4c5d19" />
+      <TestMethod codeBase="/home/binoui/Documents/projects/SlopArena/tests/Shared.Tests/bin/Debug/net8.0/Shared.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="SlopArena.Shared.Tests.TrainingArenaTests" name="EverySpawnIsGroundedOnItsNamedSurface" />
+    </UnitTest>
+    <UnitTest name="SlopArena.Shared.Tests.TrainingArenaTests.TrenchFallKillsAndEveryFighterRecoversOutOfIt(fighter: Bashie)" storage="/home/binoui/documents/projects/sloparena/tests/shared.tests/bin/debug/net8.0/shared.tests.dll" id="71c23d96-fa76-ebb2-bf84-6e52afa5cdf8">
+      <Execution id="5551c8f2-a988-4b5c-812d-3aae9ce432ed" />
+      <TestMethod codeBase="/home/binoui/Documents/projects/SlopArena/tests/Shared.Tests/bin/Debug/net8.0/Shared.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="SlopArena.Shared.Tests.TrainingArenaTests" name="TrenchFallKillsAndEveryFighterRecoversOutOfIt" />
+    </UnitTest>
+    <UnitTest name="SlopArena.Shared.Tests.TrainingArenaTests.KnockbackKillsThroughNorthAndSouth(fighter: Bonk)" storage="/home/binoui/documents/projects/sloparena/tests/shared.tests/bin/debug/net8.0/shared.tests.dll" id="cf007f1f-2986-fa80-b445-e3d6adb39c78">
+      <Execution id="e42b5195-e82d-4362-99cb-af4e4b9a2dfc" />
+      <TestMethod codeBase="/home/binoui/Documents/projects/SlopArena/tests/Shared.Tests/bin/Debug/net8.0/Shared.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="SlopArena.Shared.Tests.TrainingArenaTests" name="KnockbackKillsThroughNorthAndSouth" />
+    </UnitTest>
+    <UnitTest name="SlopArena.Shared.Tests.TrainingArenaTests.EverySpawnIsGroundedOnItsNamedSurface(fighter: Bashie, index: 1)" storage="/home/binoui/documents/projects/sloparena/tests/shared.tests/bin/debug/net8.0/shared.tests.dll" id="736354b9-968d-97d6-de35-f5cb8af309be">
+      <Execution id="949ffc97-6b63-46b7-8e81-46408ae6d72c" />
+      <TestMethod codeBase="/home/binoui/Documents/projects/SlopArena/tests/Shared.Tests/bin/Debug/net8.0/Shared.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="SlopArena.Shared.Tests.TrainingArenaTests" name="EverySpawnIsGroundedOnItsNamedSurface" />
+    </UnitTest>
+    <UnitTest name="SlopArena.Shared.Tests.TrainingArenaTests.KnockbackKillsThroughNorthAndSouth(fighter: FightGuy)" storage="/home/binoui/documents/projects/sloparena/tests/shared.tests/bin/debug/net8.0/shared.tests.dll" id="21f06abf-325c-9d3c-0d6a-6cc3c2231183">
+      <Execution id="a8a7985b-87c3-41ca-813b-14ff01b3b05f" />
+      <TestMethod codeBase="/home/binoui/Documents/projects/SlopArena/tests/Shared.Tests/bin/Debug/net8.0/Shared.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="SlopArena.Shared.Tests.TrainingArenaTests" name="KnockbackKillsThroughNorthAndSouth" />
+    </UnitTest>
+    <UnitTest name="SlopArena.Shared.Tests.TrainingArenaTests.TrainingRigTrenchAndShelfTeachTheirJumpHeights(fighter: Manki)" storage="/home/binoui/documents/projects/sloparena/tests/shared.tests/bin/debug/net8.0/shared.tests.dll" id="236911ee-3f87-db2d-afa7-7b7fc0018195">
+      <Execution id="f6d2cd58-eb78-423e-8bb5-e23889ab75dc" />
+      <TestMethod codeBase="/home/binoui/Documents/projects/SlopArena/tests/Shared.Tests/bin/Debug/net8.0/Shared.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="SlopArena.Shared.Tests.TrainingArenaTests" name="TrainingRigTrenchAndShelfTeachTheirJumpHeights" />
+    </UnitTest>
+    <UnitTest name="SlopArena.Shared.Tests.TrainingArenaTests.TrainingRigTrenchAndShelfTeachTheirJumpHeights(fighter: Bashie)" storage="/home/binoui/documents/projects/sloparena/tests/shared.tests/bin/debug/net8.0/shared.tests.dll" id="008ed548-0fd8-4f25-53e5-108543ac4cd7">
+      <Execution id="7dbdf977-7ffb-4f0b-84c3-b628922383dd" />
+      <TestMethod codeBase="/home/binoui/Documents/projects/SlopArena/tests/Shared.Tests/bin/Debug/net8.0/Shared.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="SlopArena.Shared.Tests.TrainingArenaTests" name="TrainingRigTrenchAndShelfTeachTheirJumpHeights" />
+    </UnitTest>
+    <UnitTest name="SlopArena.Shared.Tests.TrainingArenaTests.EverySpawnIsGroundedOnItsNamedSurface(fighter: Manki, index: 2)" storage="/home/binoui/documents/projects/sloparena/tests/shared.tests/bin/debug/net8.0/shared.tests.dll" id="d5ae9ed9-4924-bd2b-1831-46a9f39eaab5">
+      <Execution id="66b3ba3d-50b3-4b53-a25f-fc7043bdb034" />
+      <TestMethod codeBase="/home/binoui/Documents/projects/SlopArena/tests/Shared.Tests/bin/Debug/net8.0/Shared.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="SlopArena.Shared.Tests.TrainingArenaTests" name="EverySpawnIsGroundedOnItsNamedSurface" />
+    </UnitTest>
+    <UnitTest name="SlopArena.Shared.Tests.TrainingArenaTests.KnockbackKillsThroughNorthAndSouth(fighter: Bashie)" storage="/home/binoui/documents/projects/sloparena/tests/shared.tests/bin/debug/net8.0/shared.tests.dll" id="38c515e0-2107-3b54-3676-da7ca43d509f">
+      <Execution id="8fbcc4b0-bd62-4d47-9f44-7065c06108a8" />
+      <TestMethod codeBase="/home/binoui/Documents/projects/SlopArena/tests/Shared.Tests/bin/Debug/net8.0/Shared.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="SlopArena.Shared.Tests.TrainingArenaTests" name="KnockbackKillsThroughNorthAndSouth" />
+    </UnitTest>
+    <UnitTest name="SlopArena.Shared.Tests.TrainingArenaTests.EverySpawnIsGroundedOnItsNamedSurface(fighter: FightGuy, index: 2)" storage="/home/binoui/documents/projects/sloparena/tests/shared.tests/bin/debug/net8.0/shared.tests.dll" id="63510950-b4d7-0066-651a-49345b816c18">
+      <Execution id="87a5762d-c2b9-470b-a53d-409826a9a13a" />
+      <TestMethod codeBase="/home/binoui/Documents/projects/SlopArena/tests/Shared.Tests/bin/Debug/net8.0/Shared.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="SlopArena.Shared.Tests.TrainingArenaTests" name="EverySpawnIsGroundedOnItsNamedSurface" />
+    </UnitTest>
+    <UnitTest name="SlopArena.Shared.Tests.TrainingArenaTests.BakeDerivesBlastLinesFromEverySolid" storage="/home/binoui/documents/projects/sloparena/tests/shared.tests/bin/debug/net8.0/shared.tests.dll" id="853b8df3-031f-5f3d-3b1f-4f2c6ef37ad9">
+      <Execution id="ed7e4a4b-4a79-4bc9-bf33-392e6974f903" />
+      <TestMethod codeBase="/home/binoui/Documents/projects/SlopArena/tests/Shared.Tests/bin/Debug/net8.0/Shared.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="SlopArena.Shared.Tests.TrainingArenaTests" name="BakeDerivesBlastLinesFromEverySolid" />
+    </UnitTest>
+    <UnitTest name="SlopArena.Shared.Tests.TrainingArenaTests.TrainingRigTrenchAndShelfTeachTheirJumpHeights(fighter: Salamander)" storage="/home/binoui/documents/projects/sloparena/tests/shared.tests/bin/debug/net8.0/shared.tests.dll" id="5e87ad23-7d13-f3c2-898c-e2d968a0ef92">
+      <Execution id="ba2232d1-a980-4e0a-a639-3666f746580b" />
+      <TestMethod codeBase="/home/binoui/Documents/projects/SlopArena/tests/Shared.Tests/bin/Debug/net8.0/Shared.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="SlopArena.Shared.Tests.TrainingArenaTests" name="TrainingRigTrenchAndShelfTeachTheirJumpHeights" />
+    </UnitTest>
+    <UnitTest name="SlopArena.Shared.Tests.TrainingArenaTests.EverySpawnIsGroundedOnItsNamedSurface(fighter: Nyx, index: 2)" storage="/home/binoui/documents/projects/sloparena/tests/shared.tests/bin/debug/net8.0/shared.tests.dll" id="a35aa7c3-cbb0-e22d-4a70-a047d999c0f1">
+      <Execution id="53e292e3-54ab-4e84-b260-ec32f9ff498e" />
+      <TestMethod codeBase="/home/binoui/Documents/projects/SlopArena/tests/Shared.Tests/bin/Debug/net8.0/Shared.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="SlopArena.Shared.Tests.TrainingArenaTests" name="EverySpawnIsGroundedOnItsNamedSurface" />
+    </UnitTest>
+    <UnitTest name="SlopArena.Shared.Tests.TrainingArenaTests.EverySpawnIsGroundedOnItsNamedSurface(fighter: Bashie, index: 3)" storage="/home/binoui/documents/projects/sloparena/tests/shared.tests/bin/debug/net8.0/shared.tests.dll" id="d823203f-c28e-fd32-abab-0336c605be68">
+      <Execution id="cad310cb-7a99-457e-829d-c46fdde26dd6" />
+      <TestMethod codeBase="/home/binoui/Documents/projects/SlopArena/tests/Shared.Tests/bin/Debug/net8.0/Shared.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="SlopArena.Shared.Tests.TrainingArenaTests" name="EverySpawnIsGroundedOnItsNamedSurface" />
+    </UnitTest>
+    <UnitTest name="SlopArena.Shared.Tests.TrainingArenaTests.EverySpawnIsGroundedOnItsNamedSurface(fighter: Nyx, index: 3)" storage="/home/binoui/documents/projects/sloparena/tests/shared.tests/bin/debug/net8.0/shared.tests.dll" id="9d5372da-db13-aa08-23ea-bc94796327c9">
+      <Execution id="2e21e3c4-b465-4fde-a206-9879bee65afc" />
+      <TestMethod codeBase="/home/binoui/Documents/projects/SlopArena/tests/Shared.Tests/bin/Debug/net8.0/Shared.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="SlopArena.Shared.Tests.TrainingArenaTests" name="EverySpawnIsGroundedOnItsNamedSurface" />
+    </UnitTest>
+    <UnitTest name="SlopArena.Shared.Tests.TrainingArenaTests.EverySpawnIsGroundedOnItsNamedSurface(fighter: Salamander, index: 3)" storage="/home/binoui/documents/projects/sloparena/tests/shared.tests/bin/debug/net8.0/shared.tests.dll" id="be39ef08-165e-00bc-95c2-565b7553f6a6">
+      <Execution id="d3ade7b2-f7af-4cbd-8b8e-080b9291a142" />
+      <TestMethod codeBase="/home/binoui/Documents/projects/SlopArena/tests/Shared.Tests/bin/Debug/net8.0/Shared.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="SlopArena.Shared.Tests.TrainingArenaTests" name="EverySpawnIsGroundedOnItsNamedSurface" />
+    </UnitTest>
+    <UnitTest name="SlopArena.Shared.Tests.TrainingArenaTests.EverySpawnIsGroundedOnItsNamedSurface(fighter: Wibou, index: 0)" storage="/home/binoui/documents/projects/sloparena/tests/shared.tests/bin/debug/net8.0/shared.tests.dll" id="34538b43-cc50-ae82-828b-bc7e764fab7e">
+      <Execution id="a5346a45-3b83-4e50-a7b9-d35c34d3c37d" />
+      <TestMethod codeBase="/home/binoui/Documents/projects/SlopArena/tests/Shared.Tests/bin/Debug/net8.0/Shared.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="SlopArena.Shared.Tests.TrainingArenaTests" name="EverySpawnIsGroundedOnItsNamedSurface" />
+    </UnitTest>
+    <UnitTest name="SlopArena.Shared.Tests.TrainingArenaTests.KnockbackKillsThroughNorthAndSouth(fighter: Nyx)" storage="/home/binoui/documents/projects/sloparena/tests/shared.tests/bin/debug/net8.0/shared.tests.dll" id="f4052c79-3ffe-224d-48c6-9602f8a3e88f">
+      <Execution id="91e63db6-c19f-4148-8d2f-1150e7c9816f" />
+      <TestMethod codeBase="/home/binoui/Documents/projects/SlopArena/tests/Shared.Tests/bin/Debug/net8.0/Shared.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="SlopArena.Shared.Tests.TrainingArenaTests" name="KnockbackKillsThroughNorthAndSouth" />
+    </UnitTest>
+    <UnitTest name="SlopArena.Shared.Tests.TrainingArenaTests.EverySpawnIsGroundedOnItsNamedSurface(fighter: Bonk, index: 1)" storage="/home/binoui/documents/projects/sloparena/tests/shared.tests/bin/debug/net8.0/shared.tests.dll" id="a0938f1a-c731-fd64-61cc-1d5cf4e40f85">
+      <Execution id="e31dbb38-30bc-497d-bfb1-572b8f267dd6" />
+      <TestMethod codeBase="/home/binoui/Documents/projects/SlopArena/tests/Shared.Tests/bin/Debug/net8.0/Shared.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="SlopArena.Shared.Tests.TrainingArenaTests" name="EverySpawnIsGroundedOnItsNamedSurface" />
+    </UnitTest>
+    <UnitTest name="SlopArena.Shared.Tests.TrainingArenaTests.TrenchFallKillsAndEveryFighterRecoversOutOfIt(fighter: Wibou)" storage="/home/binoui/documents/projects/sloparena/tests/shared.tests/bin/debug/net8.0/shared.tests.dll" id="3c8ea8fc-aa81-bd26-98a0-ba0ccce41634">
+      <Execution id="06133821-f59a-4e8b-a960-15b2281eefc9" />
+      <TestMethod codeBase="/home/binoui/Documents/projects/SlopArena/tests/Shared.Tests/bin/Debug/net8.0/Shared.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="SlopArena.Shared.Tests.TrainingArenaTests" name="TrenchFallKillsAndEveryFighterRecoversOutOfIt" />
+    </UnitTest>
+    <UnitTest name="SlopArena.Shared.Tests.TrainingArenaTests.IslandLadderMeasuresSingleDoubleAndRecovery(fighter: Manki)" storage="/home/binoui/documents/projects/sloparena/tests/shared.tests/bin/debug/net8.0/shared.tests.dll" id="647854e5-e327-1787-71eb-d6c81cd7718b">
+      <Execution id="6d754a56-cb2c-456e-94cb-d3700592dd14" />
+      <TestMethod codeBase="/home/binoui/Documents/projects/SlopArena/tests/Shared.Tests/bin/Debug/net8.0/Shared.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="SlopArena.Shared.Tests.TrainingArenaTests" name="IslandLadderMeasuresSingleDoubleAndRecovery" />
+    </UnitTest>
+    <UnitTest name="SlopArena.Shared.Tests.TrainingArenaTests.EverySpawnIsGroundedOnItsNamedSurface(fighter: Salamander, index: 0)" storage="/home/binoui/documents/projects/sloparena/tests/shared.tests/bin/debug/net8.0/shared.tests.dll" id="e4d76589-c021-e446-57ec-70b4ca6ec203">
+      <Execution id="b9674eaa-8433-4351-9f24-b260a9533ef5" />
+      <TestMethod codeBase="/home/binoui/Documents/projects/SlopArena/tests/Shared.Tests/bin/Debug/net8.0/Shared.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="SlopArena.Shared.Tests.TrainingArenaTests" name="EverySpawnIsGroundedOnItsNamedSurface" />
+    </UnitTest>
+    <UnitTest name="SlopArena.Shared.Tests.TrainingArenaTests.TrenchFallKillsAndEveryFighterRecoversOutOfIt(fighter: Manki)" storage="/home/binoui/documents/projects/sloparena/tests/shared.tests/bin/debug/net8.0/shared.tests.dll" id="9b8a99ff-da5f-5e7f-be73-9101fc27abcf">
+      <Execution id="d1beb75c-5690-43ad-b4de-95d92cdfd3a6" />
+      <TestMethod codeBase="/home/binoui/Documents/projects/SlopArena/tests/Shared.Tests/bin/Debug/net8.0/Shared.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="SlopArena.Shared.Tests.TrainingArenaTests" name="TrenchFallKillsAndEveryFighterRecoversOutOfIt" />
+    </UnitTest>
+    <UnitTest name="SlopArena.Shared.Tests.TrainingArenaTests.EverySpawnIsGroundedOnItsNamedSurface(fighter: Wibou, index: 2)" storage="/home/binoui/documents/projects/sloparena/tests/shared.tests/bin/debug/net8.0/shared.tests.dll" id="c80cf01c-c842-4293-b304-9a8cf5c4fc96">
+      <Execution id="922e5920-f314-4492-bf0f-d6595b798545" />
+      <TestMethod codeBase="/home/binoui/Documents/projects/SlopArena/tests/Shared.Tests/bin/Debug/net8.0/Shared.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="SlopArena.Shared.Tests.TrainingArenaTests" name="EverySpawnIsGroundedOnItsNamedSurface" />
+    </UnitTest>
+    <UnitTest name="SlopArena.Shared.Tests.TrainingArenaTests.IslandLadderMeasuresSingleDoubleAndRecovery(fighter: Bonk)" storage="/home/binoui/documents/projects/sloparena/tests/shared.tests/bin/debug/net8.0/shared.tests.dll" id="f2f5d2d5-ca92-e410-1e71-94d97258eaf7">
+      <Execution id="a0443f65-e383-4469-a58d-a57da3a8c1e2" />
+      <TestMethod codeBase="/home/binoui/Documents/projects/SlopArena/tests/Shared.Tests/bin/Debug/net8.0/Shared.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="SlopArena.Shared.Tests.TrainingArenaTests" name="IslandLadderMeasuresSingleDoubleAndRecovery" />
+    </UnitTest>
+    <UnitTest name="SlopArena.Shared.Tests.TrainingArenaTests.KnockbackKillsThroughNorthAndSouth(fighter: Salamander)" storage="/home/binoui/documents/projects/sloparena/tests/shared.tests/bin/debug/net8.0/shared.tests.dll" id="d814140e-f444-5d00-161e-58a6ddd5373d">
+      <Execution id="b2b53ab4-1583-47a0-8b07-c69799fafffc" />
+      <TestMethod codeBase="/home/binoui/Documents/projects/SlopArena/tests/Shared.Tests/bin/Debug/net8.0/Shared.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="SlopArena.Shared.Tests.TrainingArenaTests" name="KnockbackKillsThroughNorthAndSouth" />
+    </UnitTest>
+    <UnitTest name="SlopArena.Shared.Tests.TrainingArenaTests.EverySpawnIsGroundedOnItsNamedSurface(fighter: Bonk, index: 0)" storage="/home/binoui/documents/projects/sloparena/tests/shared.tests/bin/debug/net8.0/shared.tests.dll" id="d93d0a8f-93de-61ee-7773-54b44f28c67f">
+      <Execution id="685892e9-d26e-49ae-abc5-7f6fc7bfccd4" />
+      <TestMethod codeBase="/home/binoui/Documents/projects/SlopArena/tests/Shared.Tests/bin/Debug/net8.0/Shared.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="SlopArena.Shared.Tests.TrainingArenaTests" name="EverySpawnIsGroundedOnItsNamedSurface" />
+    </UnitTest>
+    <UnitTest name="SlopArena.Shared.Tests.TrainingArenaTests.EverySpawnIsGroundedOnItsNamedSurface(fighter: Bonk, index: 2)" storage="/home/binoui/documents/projects/sloparena/tests/shared.tests/bin/debug/net8.0/shared.tests.dll" id="aefd7004-d559-d1b8-cea2-07f11d462b01">
+      <Execution id="563c2543-d77c-42bf-a859-1708147d5d90" />
+      <TestMethod codeBase="/home/binoui/Documents/projects/SlopArena/tests/Shared.Tests/bin/Debug/net8.0/Shared.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="SlopArena.Shared.Tests.TrainingArenaTests" name="EverySpawnIsGroundedOnItsNamedSurface" />
+    </UnitTest>
+    <UnitTest name="SlopArena.Shared.Tests.TrainingArenaTests.EverySpawnIsGroundedOnItsNamedSurface(fighter: Bonk, index: 3)" storage="/home/binoui/documents/projects/sloparena/tests/shared.tests/bin/debug/net8.0/shared.tests.dll" id="93794bda-0b32-7388-4836-f43427a683c5">
+      <Execution id="b0f09a13-b515-49da-96c7-a449ae6aeb84" />
+      <TestMethod codeBase="/home/binoui/Documents/projects/SlopArena/tests/Shared.Tests/bin/Debug/net8.0/Shared.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="SlopArena.Shared.Tests.TrainingArenaTests" name="EverySpawnIsGroundedOnItsNamedSurface" />
+    </UnitTest>
+    <UnitTest name="SlopArena.Shared.Tests.TrainingArenaTests.IslandLadderMeasuresSingleDoubleAndRecovery(fighter: Wibou)" storage="/home/binoui/documents/projects/sloparena/tests/shared.tests/bin/debug/net8.0/shared.tests.dll" id="1cb91bf5-9513-d611-4788-bd80294a9979">
+      <Execution id="3c0a7ea1-1705-451f-8e35-b96ced862f88" />
+      <TestMethod codeBase="/home/binoui/Documents/projects/SlopArena/tests/Shared.Tests/bin/Debug/net8.0/Shared.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="SlopArena.Shared.Tests.TrainingArenaTests" name="IslandLadderMeasuresSingleDoubleAndRecovery" />
+    </UnitTest>
+    <UnitTest name="SlopArena.Shared.Tests.TrainingArenaTests.EverySpawnIsGroundedOnItsNamedSurface(fighter: Nyx, index: 0)" storage="/home/binoui/documents/projects/sloparena/tests/shared.tests/bin/debug/net8.0/shared.tests.dll" id="ae186a51-1f35-6f7e-ea6d-c1351deb5f71">
+      <Execution id="210cfda3-7916-4d97-8f6e-272b982bce04" />
+      <TestMethod codeBase="/home/binoui/Documents/projects/SlopArena/tests/Shared.Tests/bin/Debug/net8.0/Shared.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="SlopArena.Shared.Tests.TrainingArenaTests" name="EverySpawnIsGroundedOnItsNamedSurface" />
+    </UnitTest>
+    <UnitTest name="SlopArena.Shared.Tests.TrainingArenaTests.EverySpawnIsGroundedOnItsNamedSurface(fighter: FightGuy, index: 0)" storage="/home/binoui/documents/projects/sloparena/tests/shared.tests/bin/debug/net8.0/shared.tests.dll" id="db80c80b-a567-7e59-162f-2dd88f60283b">
+      <Execution id="47b27183-018d-4796-8af8-751b445edbbe" />
+      <TestMethod codeBase="/home/binoui/Documents/projects/SlopArena/tests/Shared.Tests/bin/Debug/net8.0/Shared.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="SlopArena.Shared.Tests.TrainingArenaTests" name="EverySpawnIsGroundedOnItsNamedSurface" />
+    </UnitTest>
+    <UnitTest name="SlopArena.Shared.Tests.TrainingArenaTests.EverySpawnIsGroundedOnItsNamedSurface(fighter: Bashie, index: 0)" storage="/home/binoui/documents/projects/sloparena/tests/shared.tests/bin/debug/net8.0/shared.tests.dll" id="5490caa0-fb94-5b5e-338d-14359396f3a9">
+      <Execution id="fff5c866-dd32-47e2-b9a6-1abf61c893dd" />
+      <TestMethod codeBase="/home/binoui/Documents/projects/SlopArena/tests/Shared.Tests/bin/Debug/net8.0/Shared.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="SlopArena.Shared.Tests.TrainingArenaTests" name="EverySpawnIsGroundedOnItsNamedSurface" />
+    </UnitTest>
+    <UnitTest name="SlopArena.Shared.Tests.TrainingArenaTests.EverySpawnIsGroundedOnItsNamedSurface(fighter: Bashie, index: 2)" storage="/home/binoui/documents/projects/sloparena/tests/shared.tests/bin/debug/net8.0/shared.tests.dll" id="4c260574-0aa4-53cc-fb32-0b06ed7c2f65">
+      <Execution id="942c114f-de2a-48de-bee1-ff69141c7c9e" />
+      <TestMethod codeBase="/home/binoui/Documents/projects/SlopArena/tests/Shared.Tests/bin/Debug/net8.0/Shared.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="SlopArena.Shared.Tests.TrainingArenaTests" name="EverySpawnIsGroundedOnItsNamedSurface" />
+    </UnitTest>
+    <UnitTest name="SlopArena.Shared.Tests.TrainingArenaTests.TrenchFallKillsAndEveryFighterRecoversOutOfIt(fighter: Nyx)" storage="/home/binoui/documents/projects/sloparena/tests/shared.tests/bin/debug/net8.0/shared.tests.dll" id="34fa2627-7059-8415-a985-3fcc761a00c8">
+      <Execution id="d94925d5-d3b8-450e-b869-c806dd5b9a79" />
+      <TestMethod codeBase="/home/binoui/Documents/projects/SlopArena/tests/Shared.Tests/bin/Debug/net8.0/Shared.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="SlopArena.Shared.Tests.TrainingArenaTests" name="TrenchFallKillsAndEveryFighterRecoversOutOfIt" />
+    </UnitTest>
+    <UnitTest name="SlopArena.Shared.Tests.TrainingArenaTests.IslandLadderMeasuresSingleDoubleAndRecovery(fighter: Bashie)" storage="/home/binoui/documents/projects/sloparena/tests/shared.tests/bin/debug/net8.0/shared.tests.dll" id="e828cc98-c577-95d4-a706-31279a6bd1aa">
+      <Execution id="5d81fa5d-08b5-4c79-93b8-7a76050f1165" />
+      <TestMethod codeBase="/home/binoui/Documents/projects/SlopArena/tests/Shared.Tests/bin/Debug/net8.0/Shared.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="SlopArena.Shared.Tests.TrainingArenaTests" name="IslandLadderMeasuresSingleDoubleAndRecovery" />
+    </UnitTest>
+    <UnitTest name="SlopArena.Shared.Tests.TrainingArenaTests.EverySpawnIsGroundedOnItsNamedSurface(fighter: Salamander, index: 1)" storage="/home/binoui/documents/projects/sloparena/tests/shared.tests/bin/debug/net8.0/shared.tests.dll" id="24481ea6-a9cd-e4da-70d8-01214f2a9bd8">
+      <Execution id="7706b5c5-0342-44e3-b584-28afaa2855ed" />
+      <TestMethod codeBase="/home/binoui/Documents/projects/SlopArena/tests/Shared.Tests/bin/Debug/net8.0/Shared.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="SlopArena.Shared.Tests.TrainingArenaTests" name="EverySpawnIsGroundedOnItsNamedSurface" />
+    </UnitTest>
+    <UnitTest name="SlopArena.Shared.Tests.TrainingArenaTests.EverySpawnIsGroundedOnItsNamedSurface(fighter: Manki, index: 3)" storage="/home/binoui/documents/projects/sloparena/tests/shared.tests/bin/debug/net8.0/shared.tests.dll" id="e312eeb6-a789-36ef-3133-611f1a7158af">
+      <Execution id="c133812e-5530-4ec9-8c86-683f6a18e962" />
+      <TestMethod codeBase="/home/binoui/Documents/projects/SlopArena/tests/Shared.Tests/bin/Debug/net8.0/Shared.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="SlopArena.Shared.Tests.TrainingArenaTests" name="EverySpawnIsGroundedOnItsNamedSurface" />
+    </UnitTest>
+    <UnitTest name="SlopArena.Shared.Tests.TrainingArenaTests.IslandLadderMeasuresSingleDoubleAndRecovery(fighter: FightGuy)" storage="/home/binoui/documents/projects/sloparena/tests/shared.tests/bin/debug/net8.0/shared.tests.dll" id="4b4b763e-82be-9159-4fef-aee6fb9ebc2d">
+      <Execution id="8c9460d7-07d2-47b1-8937-99462794789d" />
+      <TestMethod codeBase="/home/binoui/Documents/projects/SlopArena/tests/Shared.Tests/bin/Debug/net8.0/Shared.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="SlopArena.Shared.Tests.TrainingArenaTests" name="IslandLadderMeasuresSingleDoubleAndRecovery" />
+    </UnitTest>
+    <UnitTest name="SlopArena.Shared.Tests.TrainingArenaTests.EverySpawnIsGroundedOnItsNamedSurface(fighter: Manki, index: 1)" storage="/home/binoui/documents/projects/sloparena/tests/shared.tests/bin/debug/net8.0/shared.tests.dll" id="f12d12f4-9be5-f3c8-9a21-6a0424bbfa4e">
+      <Execution id="123548ee-8e4c-4b12-9bc3-fb5ef13de302" />
+      <TestMethod codeBase="/home/binoui/Documents/projects/SlopArena/tests/Shared.Tests/bin/Debug/net8.0/Shared.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="SlopArena.Shared.Tests.TrainingArenaTests" name="EverySpawnIsGroundedOnItsNamedSurface" />
+    </UnitTest>
+    <UnitTest name="SlopArena.Shared.Tests.TrainingArenaTests.TrainingRigTrenchAndShelfTeachTheirJumpHeights(fighter: Bonk)" storage="/home/binoui/documents/projects/sloparena/tests/shared.tests/bin/debug/net8.0/shared.tests.dll" id="4d8ba7f8-98a9-ac36-03a8-4afe972d859f">
+      <Execution id="9e1a3248-7da5-4d4d-8704-fdb114df5eda" />
+      <TestMethod codeBase="/home/binoui/Documents/projects/SlopArena/tests/Shared.Tests/bin/Debug/net8.0/Shared.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="SlopArena.Shared.Tests.TrainingArenaTests" name="TrainingRigTrenchAndShelfTeachTheirJumpHeights" />
+    </UnitTest>
+  </TestDefinitions>
+  <TestEntries>
+    <TestEntry testId="236911ee-3f87-db2d-afa7-7b7fc0018195" executionId="f6d2cd58-eb78-423e-8bb5-e23889ab75dc" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="610170e9-0ba6-3bde-f7e2-818a6a907993" executionId="dec3e81c-52cd-493b-a6d4-fcdab286582a" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="38c515e0-2107-3b54-3676-da7ca43d509f" executionId="8fbcc4b0-bd62-4d47-9f44-7065c06108a8" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="6a9dc50a-f94e-6031-666d-f6b393f9588d" executionId="4498ed27-65f7-4c03-8e64-c78e54550d6b" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="f4052c79-3ffe-224d-48c6-9602f8a3e88f" executionId="91e63db6-c19f-4148-8d2f-1150e7c9816f" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="aefd7004-d559-d1b8-cea2-07f11d462b01" executionId="563c2543-d77c-42bf-a859-1708147d5d90" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="3d3e9d43-c939-d8d0-6820-caddd50bf115" executionId="18446e66-c5c0-4641-aa78-2bb87dc50704" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="a35aa7c3-cbb0-e22d-4a70-a047d999c0f1" executionId="53e292e3-54ab-4e84-b260-ec32f9ff498e" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="9d5372da-db13-aa08-23ea-bc94796327c9" executionId="2e21e3c4-b465-4fde-a206-9879bee65afc" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="008ed548-0fd8-4f25-53e5-108543ac4cd7" executionId="7dbdf977-7ffb-4f0b-84c3-b628922383dd" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="d5ae9ed9-4924-bd2b-1831-46a9f39eaab5" executionId="66b3ba3d-50b3-4b53-a25f-fc7043bdb034" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="f2f5d2d5-ca92-e410-1e71-94d97258eaf7" executionId="a0443f65-e383-4469-a58d-a57da3a8c1e2" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="cf007f1f-2986-fa80-b445-e3d6adb39c78" executionId="e42b5195-e82d-4362-99cb-af4e4b9a2dfc" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="64fd1c66-987e-e290-970b-e3365d6fd00f" executionId="dc402907-837c-44d4-9f81-59f874543e97" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="853b8df3-031f-5f3d-3b1f-4f2c6ef37ad9" executionId="ed7e4a4b-4a79-4bc9-bf33-392e6974f903" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="a0938f1a-c731-fd64-61cc-1d5cf4e40f85" executionId="e31dbb38-30bc-497d-bfb1-572b8f267dd6" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="e4d76589-c021-e446-57ec-70b4ca6ec203" executionId="b9674eaa-8433-4351-9f24-b260a9533ef5" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="14024f0b-2c11-74df-e86d-690c9d7d3fa5" executionId="c576598b-150e-499b-afa8-157391203f12" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="736354b9-968d-97d6-de35-f5cb8af309be" executionId="949ffc97-6b63-46b7-8e81-46408ae6d72c" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="eff38f7e-f03e-cf06-8eff-33942d821d57" executionId="b1586fa2-bf10-4bcb-b7ac-67a0de50a410" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="14f0e636-e6e9-83d3-3e9b-07d602f40466" executionId="868caab9-abd0-4e7f-87d2-1c57451c9425" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="4b4b763e-82be-9159-4fef-aee6fb9ebc2d" executionId="8c9460d7-07d2-47b1-8937-99462794789d" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="647854e5-e327-1787-71eb-d6c81cd7718b" executionId="6d754a56-cb2c-456e-94cb-d3700592dd14" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="db80c80b-a567-7e59-162f-2dd88f60283b" executionId="47b27183-018d-4796-8af8-751b445edbbe" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="34538b43-cc50-ae82-828b-bc7e764fab7e" executionId="a5346a45-3b83-4e50-a7b9-d35c34d3c37d" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="4d8ba7f8-98a9-ac36-03a8-4afe972d859f" executionId="9e1a3248-7da5-4d4d-8704-fdb114df5eda" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="be39ef08-165e-00bc-95c2-565b7553f6a6" executionId="d3ade7b2-f7af-4cbd-8b8e-080b9291a142" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="573e7d05-57fc-6c3a-74c9-f079ff75516c" executionId="5da5bd93-bd20-44de-ac2f-ee689f524553" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="5490caa0-fb94-5b5e-338d-14359396f3a9" executionId="fff5c866-dd32-47e2-b9a6-1abf61c893dd" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="24481ea6-a9cd-e4da-70d8-01214f2a9bd8" executionId="7706b5c5-0342-44e3-b584-28afaa2855ed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="93794bda-0b32-7388-4836-f43427a683c5" executionId="b0f09a13-b515-49da-96c7-a449ae6aeb84" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="caa3413e-6852-75a3-26c7-63915d322c20" executionId="f83f6157-f98a-41cc-866b-bdd9607181bb" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="4c260574-0aa4-53cc-fb32-0b06ed7c2f65" executionId="942c114f-de2a-48de-bee1-ff69141c7c9e" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="f12d12f4-9be5-f3c8-9a21-6a0424bbfa4e" executionId="123548ee-8e4c-4b12-9bc3-fb5ef13de302" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="ae186a51-1f35-6f7e-ea6d-c1351deb5f71" executionId="210cfda3-7916-4d97-8f6e-272b982bce04" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="5e87ad23-7d13-f3c2-898c-e2d968a0ef92" executionId="ba2232d1-a980-4e0a-a639-3666f746580b" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="0e2f1b59-ed02-9516-dbc6-1e2e68364895" executionId="1016da22-04d8-4460-b2f3-5b9f79c8c405" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="3c8ea8fc-aa81-bd26-98a0-ba0ccce41634" executionId="06133821-f59a-4e8b-a960-15b2281eefc9" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="c80cf01c-c842-4293-b304-9a8cf5c4fc96" executionId="922e5920-f314-4492-bf0f-d6595b798545" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="71c23d96-fa76-ebb2-bf84-6e52afa5cdf8" executionId="5551c8f2-a988-4b5c-812d-3aae9ce432ed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="1cb91bf5-9513-d611-4788-bd80294a9979" executionId="3c0a7ea1-1705-451f-8e35-b96ced862f88" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="e312eeb6-a789-36ef-3133-611f1a7158af" executionId="c133812e-5530-4ec9-8c86-683f6a18e962" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="d814140e-f444-5d00-161e-58a6ddd5373d" executionId="b2b53ab4-1583-47a0-8b07-c69799fafffc" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="9b8a99ff-da5f-5e7f-be73-9101fc27abcf" executionId="d1beb75c-5690-43ad-b4de-95d92cdfd3a6" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="34fa2627-7059-8415-a985-3fcc761a00c8" executionId="d94925d5-d3b8-450e-b869-c806dd5b9a79" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="cde3787e-575d-5880-54bb-a9f62bbf4b0e" executionId="a027644c-98a6-4ba6-a8f4-19e271f7d315" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="d823203f-c28e-fd32-abab-0336c605be68" executionId="cad310cb-7a99-457e-829d-c46fdde26dd6" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="00a3a70b-42df-f928-03bc-9fc84bbfbb41" executionId="b6f4be66-d78d-4219-af03-0e649a4c5d19" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="27031185-6cc0-1a48-bbbc-786472c6ac42" executionId="394c0f45-5909-49f0-8dba-757d5822588d" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="dfc650ed-c230-4cae-5061-022d6c532026" executionId="84cc1866-9bb7-4988-95a6-56f64a22c45f" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="f72d99cc-6b1e-b177-1951-bec96f6eb7b4" executionId="7c44830b-2ee8-49f9-a6e2-7f79b87334b7" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="e828cc98-c577-95d4-a706-31279a6bd1aa" executionId="5d81fa5d-08b5-4c79-93b8-7a76050f1165" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="7fd96159-70ff-3381-486b-71f8ad2619b9" executionId="8f30b6ea-35f6-4241-bc10-b7e40ec62444" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="63510950-b4d7-0066-651a-49345b816c18" executionId="87a5762d-c2b9-470b-a53d-409826a9a13a" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="d93d0a8f-93de-61ee-7773-54b44f28c67f" executionId="685892e9-d26e-49ae-abc5-7f6fc7bfccd4" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="21f06abf-325c-9d3c-0d6a-6cc3c2231183" executionId="a8a7985b-87c3-41ca-813b-14ff01b3b05f" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+  </TestEntries>
+  <TestLists>
+    <TestList name="Results Not in a List" id="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestList name="All Loaded Results" id="19431567-8539-422a-85d7-44ee4e166bda" />
+  </TestLists>
+  <ResultSummary outcome="Completed">
+    <Counters total="56" executed="56" passed="56" failed="0" error="0" timeout="0" aborted="0" inconclusive="0" passedButRunAborted="0" notRunnable="0" notExecuted="0" disconnected="0" warning="0" completed="0" inProgress="0" pending="0" />
+    <Output>
+      <StdOut>[xUnit.net 00:00:00.00] xUnit.net VSTest Adapter v4.0.1+0f7d528729 (64-bit .NET 8.0.32)
+[xUnit.net 00:00:00.09]   Discovering: Shared.Tests
+[ArenaCollision] Built spatial grid for 'training': 132 triangles, 1071 cells (17×9×7), avg 1.2 tri/cell
+[xUnit.net 00:00:01.15]   Discovered:  Shared.Tests
+[xUnit.net 00:00:01.18]   Starting:    Shared.Tests
+[xUnit.net 00:01:28.31]   Finished:    Shared.Tests
+</StdOut>
+    </Output>
+  </ResultSummary>
+</TestRun>

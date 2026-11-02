@@ -1,0 +1,34 @@
+{
+  "schema_version": 1,
+  "move": "manki-a3-somersault-v3",
+  "target": "Assets/CharacterPackages/manki/Animations/manki_air3_double_fist.anim",
+  "source_asset": "Assets/Art/Experiments/GenRA/manki/manki-a3-somersault-v3.anim",
+  "source_run": null,
+  "revise_parent": null,
+  "keys_run": null,
+  "transforms": {
+    "ticks": null,
+    "retime": null,
+    "alignOrigin": true,
+    "loopTime": false,
+    "grounding": null
+  },
+  "final_check": {
+    "status": "UNKNOWN",
+    "scope": "source run",
+    "flow_metrics": {},
+    "report": {}
+  },
+  "clip_sha256": "5ac3c0f0d30837ebc116e272b636a2f8902eb8edef28bf84474a2ce5e36246e7",
+  "runs": [],
+  "cost": {
+    "known_usd": null,
+    "total_usd": null,
+    "completeness": "UNKNOWN",
+    "missing_runs": []
+  },
+  "promoted_at": "2026-11-01T23:19:48.053994+00:00",
+  "owner_verdict": null,
+  "owner_date": null,
+  "owner_note": null
+}

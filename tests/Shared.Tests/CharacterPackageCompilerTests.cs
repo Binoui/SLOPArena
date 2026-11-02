@@ -10,6 +10,19 @@ namespace SlopArena.Shared.Tests;
 
 public sealed class CharacterPackageCompilerTests
 {
+    [Fact]
+    public void WallJump_CooksAndAdaptsWithTheOptionalRoleValidation()
+    {
+        var result = CompileCharacter(c => c["presentation"]!["wallJump"] = "anim.fightguy.wall-jump");
+        Assert.NotNull(result.CookedPackage);
+        Assert.DoesNotContain(result.Diagnostics, x => x.Severity == CharacterDiagnosticSeverity.Error);
+        Assert.Equal("anim.fightguy.wall-jump", result.CookedPackage!.Definition.Presentation.WallJump);
+        Assert.Contains("\"wallJump\":\"anim.fightguy.wall-jump\"", System.Text.Encoding.UTF8.GetString(result.CookedPackage.CanonicalBytes));
+        Assert.Equal("anim.fightguy.wall-jump", CookedCharacterRuntimeAdapter.ToCharacterDefinition(result.CookedPackage).WallJumpAnim);
+        Assert.Equal(CompileCharacter().CookedPackage!.Metadata.RuntimeApiMin, result.CookedPackage.Metadata.RuntimeApiMin);
+        AssertError(CompileCharacter(c => c["presentation"]!["wallJump"] = "Bad ID"), "id.invalid");
+    }
+
     [Theory]
     [InlineData("startupTicks", 0)]
     [InlineData("startupTicks", 18)]
@@ -555,7 +568,7 @@ public sealed class CharacterPackageCompilerTests
             .Single(slot => (string?)slot["id"] == "ground.R");
 
     [Fact]
-    public void SteeredCharge_IsPublicCooksRuntimeApi18AndValidatesBounds()
+    public void SteeredCharge_IsPublicCooksRuntimeApi122AndValidatesBounds()
     {
         string manifest = Fixture("package.json");
         var character = JsonNode.Parse(Fixture("character.json"))!.AsObject();
@@ -563,14 +576,14 @@ public sealed class CharacterPackageCompilerTests
         var compiled = CharacterPackageCompiler.Compile(manifest, character.ToJsonString(), CharacterCookProfile.Workshop);
         Assert.True(compiled.CookedPackage != null,
             string.Join("; ", compiled.Diagnostics.Select(d => $"{d.Code}: {d.Message} ({d.Path})")));
-        Assert.Equal("1.8.0", compiled.CookedPackage!.Metadata.RuntimeApiMin);
+        Assert.Equal("1.22.0", compiled.CookedPackage!.Metadata.RuntimeApiMin);
         var charge = Assert.IsType<CookedSteeredChargeCapabilityParameters>(compiled.CookedPackage.Definition.Slots
             .Single(x => x.Id == "ground.R").Timeline.Stages.Single().Operations
             .OfType<CookedStartCapabilityOperation>().Single().Parameters);
         Assert.Equal((12f, 180f, (ushort)60, true), (charge.GallopSpeed, charge.TurnDegreesPerSecond, charge.MaxGallopTicks, charge.Armored));
         Assert.Equal(("anim.fix.r-gallop", (ushort)24, "anim.fix.r-air"),
             (charge.GallopAnimationId, charge.GallopLoopTicks, charge.AirEndingAnimationId));
-        Assert.Equal(10f, charge.LanceHitbox.Damage);
+        Assert.Equal(3f, charge.LanceHitbox.Damage);
 
         var loadedSource = CharacterPackageSourceCodec.Load(manifest, character.ToJsonString());
         Assert.True(loadedSource.IsValid, string.Join("; ", loadedSource.Diagnostics.Select(x => x.Message)));
@@ -596,7 +609,7 @@ public sealed class CharacterPackageCompilerTests
         AssertError(Mutated(c => SteeredChargeFixture.ChargeOperation(c)["parameters"]!["unknownField"] = 1), "operation.parameter-unknown");
         AssertError(Mutated(c => SteeredChargeFixture.ChargeOperation(c)["parameters"]!.AsObject().Remove("lookDownTicks")),
             "operation.parameter-missing");
-        AssertError(Mutated(c => SteeredChargeFixture.ChargeOperation(c)["capabilityVersion"] = "2"), "capability.version-mismatch");
+        AssertError(Mutated(c => SteeredChargeFixture.ChargeOperation(c)["capabilityVersion"] = "1"), "capability.version-mismatch");
         AssertError(Mutated(c => SteeredChargeFixture.Slot(c, "ground.R")["timeline"]!["stages"]![0]!["iasaTicks"] = 1),
             "capability.ambiguous");
         AssertError(Mutated(c => ((JsonArray)SteeredChargeFixture.Slot(c, "ground.R")["timeline"]!["stages"]![0]!["operations"]!)

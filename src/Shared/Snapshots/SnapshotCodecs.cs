@@ -47,12 +47,14 @@ namespace SlopArena.Shared
             w.WriteBool(s.CrouchSettled);
             w.WriteBool(s.QueuedCrouchBrace);
             w.WriteByte(s.Deaths);
+            w.WriteULong(s.Challenge.TargetId); w.WriteByte(s.Challenge.TargetDeaths); w.WriteUInt(s.Challenge.UntilTick);
             w.WriteFloat(s.DashDirX);
             w.WriteFloat(s.DashDirZ);
             w.WriteFloat(s.DashDirY);
             w.WriteULong(s.HomingDashTargetId);
             w.WriteUShort(s.HomingDashCooldownTicks);
             w.WriteBool(s.HomingDashAirUsed);
+            w.WriteBool(s.WallJumpUsed);
             w.WriteUShort(s.InvincibilityTicks);
             w.WriteUShort(s.AttackElapsedTicks);
             w.WriteByte(s.AttackSlot);
@@ -174,12 +176,14 @@ namespace SlopArena.Shared
             s.CrouchSettled = r.ReadBool();
             s.QueuedCrouchBrace = r.ReadBool();
             s.Deaths = r.ReadByte();
+            s.Challenge = new Challenge(r.ReadULong(), r.ReadByte(), r.ReadUInt());
             s.DashDirX = r.ReadFloat();
             s.DashDirZ = r.ReadFloat();
             s.DashDirY = r.ReadFloat();
             s.HomingDashTargetId = r.ReadULong();
             s.HomingDashCooldownTicks = r.ReadUShort();
             s.HomingDashAirUsed = r.ReadBool();
+            s.WallJumpUsed = r.ReadBool();
             s.InvincibilityTicks = r.ReadUShort();
             s.AttackElapsedTicks = r.ReadUShort();
             s.AttackSlot = r.ReadByte();
@@ -430,6 +434,12 @@ namespace SlopArena.Shared
         public static void Write(SnapshotWriter w, in ProjectileReturn projectileReturn)
         {
             w.WriteUShort(projectileReturn.OutboundTicks);
+            w.WriteBool(projectileReturn.Hit != null);
+            if (projectileReturn.Hit is { } h)
+            {
+                w.WriteFloat(h.Damage); w.WriteFloat(h.Angle); w.WriteFloat(h.BaseKnockback); w.WriteFloat(h.KnockbackGrowth);
+                w.WriteUShort(h.StunTicks); w.WriteUShort(h.FixedHitstunTicks);
+            }
             w.WriteFloat(projectileReturn.ReturnSpeed);
             w.WriteFloat(projectileReturn.ReturnAcceleration);
             w.WriteFloat(projectileReturn.SelfHitDamage);
@@ -442,6 +452,7 @@ namespace SlopArena.Shared
         {
             var projectileReturn = new ProjectileReturn();
             projectileReturn.OutboundTicks = r.ReadUShort();
+            if (r.ReadBool()) projectileReturn.Hit = new ProjectileLegHit(r.ReadFloat(), r.ReadFloat(), r.ReadFloat(), r.ReadFloat(), r.ReadUShort(), r.ReadUShort());
             projectileReturn.ReturnSpeed = r.ReadFloat();
             projectileReturn.ReturnAcceleration = r.ReadFloat();
             projectileReturn.SelfHitDamage = r.ReadFloat();
@@ -573,6 +584,7 @@ namespace SlopArena.Shared
             if (hb.Return.HasValue)
                 Write(w, hb.Return.Value);
             w.WriteBool(hb.ReturnLeg);
+            w.WriteBool(hb.ReturnHit); w.WriteUShort(hb.ChallengeTicks);
             w.WriteUShort(hb.LegTicks);
             w.WriteBool(hb.CanHitOwner);
             w.WriteBool(hb.FreezesOwner);
@@ -678,6 +690,7 @@ namespace SlopArena.Shared
             if (r.ReadBool())
                 hb.Return = ReadProjectileReturn(r);
             hb.ReturnLeg = r.ReadBool();
+            hb.ReturnHit = r.ReadBool(); hb.ChallengeTicks = r.ReadUShort();
             hb.LegTicks = r.ReadUShort();
             hb.CanHitOwner = r.ReadBool();
             hb.FreezesOwner = r.ReadBool();

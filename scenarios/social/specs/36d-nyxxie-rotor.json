@@ -1,0 +1,91 @@
+{
+ "stage": "splash_deck",
+ "notes": "36d Going Live off screen, Wibou jumps beside her and Ring Light Rise's rotor chops and pops him on the way up",
+ "capture": {
+  "from": 30,
+  "to": 150,
+  "step": 1,
+  "width": 1920,
+  "height": 1080,
+  "quality": 92
+ },
+ "fighters": [
+  {
+   "id": 1,
+   "package": "nyx",
+   "feet": [
+    2,
+    0,
+    5
+   ],
+   "yaw": 90,
+   "target": 2,
+   "input": [
+    {
+     "at": 2,
+     "press": "F"
+    },
+    {
+     "at": 44,
+     "press": "E"
+    },
+    {
+     "at": 46,
+     "press": "E"
+    },
+    {
+     "at": 48,
+     "press": "E"
+    },
+    {
+     "at": 50,
+     "press": "E"
+    }
+   ]
+  },
+  {
+   "id": 2,
+   "package": "wibou",
+   "feet": [
+    3.2,
+    0,
+    5
+   ],
+   "yaw": 270,
+   "damage": 30,
+   "target": 1,
+   "input": [
+    {
+     "from": 58,
+     "to": 72,
+     "jump": true
+    }
+   ]
+  }
+ ],
+ "cameras": [
+  {
+   "name": "m",
+   "pos": [
+    2.5,
+    3.5,
+    -4.5
+   ],
+   "look": [
+    2.5,
+    2.8,
+    5
+   ],
+   "follow": 1,
+   "lookOffset": [
+    0.4,
+    1.2,
+    0
+   ],
+   "ease": 0.2,
+   "move": true,
+   "fov": 44,
+   "far": 4000
+  }
+ ]
+}

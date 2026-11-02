@@ -2450,7 +2450,7 @@ public sealed partial class AbilityLabWindow : EditorWindow
         {
             text = "Add targeted leap"
         };
-        addTargetedLeap.tooltip = "Hold to aim, leap toward the target, then trigger a landing hitbox and recovery.";
+        addTargetedLeap.tooltip = "Tap to rise, hang above a tracked spot, then drop into landing recovery.";
         addTargetedLeap.SetEnabled(!slot.Timeline.Stages
             .SelectMany(phase => phase.Operations)
             .OfType<StartCapabilityOperationSource>()
@@ -2832,23 +2832,31 @@ public sealed partial class AbilityLabWindow : EditorWindow
     private void AddTargetedLeapInspector(
         Foldout group, AbilityLabOperationProjection operation, TargetedLeapCapabilityParameters leap)
     {
-        group.Add(new Label("Hold to aim; release launches toward the selected distance. The impact occurs on landing, not at a fixed timeline tick."));
+        group.Add(new Label("Tap to rise, hang over the tracked spot, then commit to the drop. Shared owns landing and impact."));
         AddDelayedInteger(group, "Start tick", operation.Source.Tick,
             value => CommitCapabilityStart(operation, value));
-        AddDelayedInteger(group, "Aim limit ticks (0 = unlimited)", leap.MaxAimTicks,
-            value => CommitTargetedLeap(p => p with { MaxAimTicks = (ushort)Mathf.Clamp(value, 0, ushort.MaxValue) }));
-        AddDelayedInteger(group, "Flight limit ticks", leap.MaxFlightTicks,
-            value => CommitTargetedLeap(p => p with { MaxFlightTicks = (ushort)Mathf.Clamp(value, 1, ushort.MaxValue) }));
-        AddDelayedFloat(group, "Minimum target range (m)", leap.MinRange,
-            value => CommitTargetedLeap(p => p with { MinRange = Mathf.Max(0f, value) }));
+        AddDelayedInteger(group, "Rise ticks", leap.RiseTicks,
+            value => CommitTargetedLeap(p => p with { RiseTicks = (ushort)Mathf.Clamp(value, 1, 240) }));
+        AddDelayedInteger(group, "Hang ticks", leap.HangTicks,
+            value => CommitTargetedLeap(p => p with { HangTicks = (ushort)Mathf.Clamp(value, 1, 240) }));
+        AddDelayedInteger(group, "Drop ticks", leap.DropTicks,
+            value => CommitTargetedLeap(p => p with { DropTicks = (ushort)Mathf.Clamp(value, 1, 240) }));
+        AddDelayedInteger(group, "Fall limit ticks", leap.MaxFallTicks,
+            value => CommitTargetedLeap(p => p with { MaxFallTicks = (ushort)Mathf.Clamp(value, 1, 600) }));
+        AddDelayedInteger(group, "Held animation tick", leap.HangPoseTick,
+            value => CommitTargetedLeap(p => p with { HangPoseTick = (ushort)Mathf.Clamp(value, 0, 65535) }));
+        AddDelayedInteger(group, "Hit landing seek tick", leap.HitLandingSeekTick,
+            value => CommitTargetedLeap(p => p with { HitLandingSeekTick = (ushort)Mathf.Clamp(value, 0, 65535) }));
+        AddDelayedInteger(group, "Hit recovery ticks", leap.HitRecoveryTicks,
+            value => CommitTargetedLeap(p => p with { HitRecoveryTicks = (ushort)Mathf.Clamp(value, 1, 600) }));
+        AddDelayedInteger(group, "Miss recovery ticks", leap.MissRecoveryTicks,
+            value => CommitTargetedLeap(p => p with { MissRecoveryTicks = (ushort)Mathf.Clamp(value, 1, 600) }));
+        AddDelayedFloat(group, "Rise height (m)", leap.RiseHeight,
+            value => CommitTargetedLeap(p => p with { RiseHeight = Mathf.Max(0.01f, value) }));
         AddDelayedFloat(group, "Maximum target range (m)", leap.MaxRange,
-            value => CommitTargetedLeap(p => p with { MaxRange = Mathf.Max(0f, value) }));
-        AddDelayedFloat(group, "Vertical launch speed (m/s)", leap.LaunchVerticalSpeed,
-            value => CommitTargetedLeap(p => p with { LaunchVerticalSpeed = Mathf.Max(0.01f, value) }));
-        AddDelayedInteger(group, "Landing animation seek tick", leap.LandingSeekTick,
-            value => CommitTargetedLeap(p => p with { LandingSeekTick = (ushort)Mathf.Clamp(value, 0, ushort.MaxValue) }));
-        AddDelayedInteger(group, "Landing recovery ticks", leap.RecoveryTicks,
-            value => CommitTargetedLeap(p => p with { RecoveryTicks = (ushort)Mathf.Clamp(value, 1, ushort.MaxValue) }));
+            value => CommitTargetedLeap(p => p with { MaxRange = Mathf.Max(0.01f, value) }));
+        AddDelayedFloat(group, "No target distance (m)", leap.NoTargetDistance,
+            value => CommitTargetedLeap(p => p with { NoTargetDistance = Mathf.Max(0f, value) }));
 
         var landing = new Foldout { text = "On landing · hitbox", value = false };
         AddDelayedInteger(landing, "Hitstun gate (0 = off)", leap.Hitbox.StunTicks,

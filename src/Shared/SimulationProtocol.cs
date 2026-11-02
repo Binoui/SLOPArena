@@ -83,11 +83,24 @@ namespace SlopArena.Shared
         // - Nyxxie's Ring Light Overhead (fake air.2) hits with its pole chop: the capsule opens at tick 10 instead of
         //   15 and runs along the pole's swing, from (-0.15, 1.3, -0.1) to (-0.05, 0.6, 1.0), radius 0.45. Damage,
         //   knockback, its 14 active ticks and the 55-tick move are unchanged. Package data only.
-        //
-        // Bump once per deploy, never per change: release prepare refuses a release whose src/Shared
-        // changed since the previous release tag while this value (and the Master's Protocol) did not.
-        // Note simulation changes below; the release bump folds them into one numbered line.
-        // Unreleased:
+        // 34: the 0.2.0-playtest.42 release:
+        // - Manki air.2 Double Fist Slam uses the approved somersault hammer pose track: duration 48, IASA 42,
+        //   aim through tick 15, seven active ticks and heavy cue from 16, autocancel before 4 / after 36.
+        //   Landing lag stays 12; hitbox damage and geometry are unchanged.
+        // - Manki ground.3 Head Slam uses the approved ram pose track: duration 44, IASA 41, aim correction through
+        //   tick 16, five active ticks from 16 and the heavy cue at 12. Hitbox damage and geometry are unchanged.
+        // - FightGuy R (Cyclone Kick) travels toward the stick held in the RecoveryTurn window (press tick + 2),
+        //   on the ground and in the air; a held stick drops the startup target assist. Snapshot layout unchanged.
+        // - One wall jump per airtime, refreshed on landing without spending JumpsLeft; World Snapshot v26.
+        // - Sir Bonk R adds optional close-cone route assist and a 150-tick gallop; carry timing stays unchanged.
+        //   F adds two turns and six hold hits, a tick-99 finisher, stage end 146 (dizzy tail retimed) and mobile aim scale 0.7.
+        //   Assist is derived each tick from immutable content and world state; snapshot layout is unchanged.
+        // - Sir Bonk's lid bends out, tugs home and records owner-local Challenge. A return that hit is caught while busy.
+        //   steered-charge.v2 reuses the command hold for scoop/carry/fling, with post-movement victim placement for all holders.
+        //   targeted-leap.v2 replaces cursor flight with Rise/Hang/Drop/Fall/Landing and an ActiveMoveView spot (ADR-0059);
+        //   the drop ignores fighter pushboxes and the landing holds his position.
+        //   Both v1 capabilities are retired. Runtime API 1.22.0; World Snapshot v25 stores Challenge, return hit values,
+        //   return-hit catch history and complete carry/leap phase state.
         // - Nyx real jump uses 9.4 force and 0.8 air-jump multiplier; Nyxxie Ring Light Rise adds three light rotor
         //   hits and an upward finisher. Aimed recovery admits timeline hitboxes; snapshot layout unchanged.
         // - Nyx round 2 (ADR-0051 sections 9 to 11): a perch's optional dive lifecycle (Rising, Marking, Diving, Perched),
@@ -96,6 +109,14 @@ namespace SlopArena.Shared
         //   Grasp drags only a crowed target, Ring Light has a 24-tick wind-up, no lunge, a 4.9 m flash and a 60-tick dazzle.
         // - The normals are numbered 1, 2 and 3 (ADR-0042, 2026-11-01): canonical slot ids, clip ids, authoring
         //   schema 4 and cooked schema 5. Wire slot values and the snapshot layout are unchanged.
-        public const byte Version = 33;
+        // - Wibou's flash is a counter: a fighter's damaging hit during the stance is caught (no damage, no reaction) and
+        //   starts the lock; a stance that catches nothing whiffs. The fighter a leg dashes at cannot hit him out of it.
+        //   Snapshot layout unchanged.
+        //
+        // Bump once per deploy, never per change: release prepare refuses a release whose src/Shared
+        // changed since the previous release tag while this value (and the Master's Protocol) did not.
+        // Note simulation changes below; the release bump folds them into one numbered line.
+        // Unreleased:
+        public const byte Version = 34;
     }
 }

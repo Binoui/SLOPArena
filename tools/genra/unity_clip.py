@@ -435,10 +435,11 @@ def timeline(spec_path: Path, brief_path: Path, result: Path | None = None, view
     """Play clip sequences on the actual prefab as PlayerRenderer drives them, a row per variant: the handoffs a
     single-clip `render` cannot show (idle -> aim loop -> release into the attack, an attack's exit into idle).
     The spec is JSON: {"name", "ticks", "phases": [[tick, label]], "review_ticks": [...], "rows": [{"label", "title",
-    "moves": [[first tick, last tick, metres per tick forward]], "events": [{"tick", "clip" (an Assets/... .anim or a
-    bound semantic id), "fade" (seconds), "time" (seconds), "speed", or "ticks" to stretch the clip over that many
-    stage ticks as an ability does}], "props_shown": {"Weapon<k>": [[first tick, last tick]]}}]}. The brief and toolkit
-    result frame the views; the cameras follow the travel."""
+    "moves": [[first tick, last tick, metres per tick forward, optional metres per tick up]], "events": [{"tick", "clip"
+    (an Assets/... .anim or a bound semantic id), "fade" (seconds), "time" (seconds), "speed", or "ticks" to stretch the
+    clip over that many stage ticks as an ability does}], "props_shown": {"Weapon<k>": [[first tick, last tick]]}}],
+    "floor": optional floor height in rig-pack metres (up), drawn as a slab so a landing or a stuck weapon reads}. The
+    brief and toolkit result frame the views; the cameras follow the travel, up and down too."""
     from PIL import Image, ImageDraw
     from genra.brief import Brief
     from genra.render import BACKGROUND, _font, encode_video
@@ -452,7 +453,7 @@ def timeline(spec_path: Path, brief_path: Path, result: Path | None = None, view
     run_dir = OUT / f'{time.strftime("%Y%m%d-%H%M%S")}-timeline-{name}'
     job = {'package': mapping['package'], 'prefab': pack_prefab(mapping), 'meshes': pack_meshes(mapping), 'rows': rows, 'ticks': ticks, 'size': size * 2, 'frames': str(run_dir / 'frames'),
            'background': [c / 255 for c in BACKGROUND], 'views': review_cameras(brief, result, views, margin),
-           'weapons': weapon_attachments(mapping), 'springs': springs}
+           'weapons': weapon_attachments(mapping), 'springs': springs, 'floor': spec.get('floor')}
     data = run_unity(job, run_dir, 'render_clip')
     header, font, small = 28, _font(16), _font(13)
     def cell(label, view, tick):

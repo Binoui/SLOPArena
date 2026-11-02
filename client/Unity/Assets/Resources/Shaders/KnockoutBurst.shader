@@ -1,13 +1,12 @@
 Shader "SLOPArena/Knockout Burst"
 {
     // Procedural print shapes for the KO flyer burst (KnockoutBurst builds the quads at the
-    // blast-line crossing). Each camera places the burst itself: a crossing behind it is reflected
-    // in front, the burst keeps a minimum on-screen size and is pinned inside the screen edge, and
-    // the trail points at the middle of the screen, where the camera frames the fight. Quads turn
-    // in the screen plane. Kind 0 is the starburst: an ink shadow, an out-of-register yellow copy,
-    // the Orange star with an ink rim and a Paper core. Kind 1 is the halftone trail, kind 2 a
-    // paper scrap with an ink rim and shadow. Shadows fall toward the bottom right of the screen.
-    // Drawn over the world so a KO reads past stage geometry.
+    // blast-line crossing). The burst is a camera-facing card at the crossing, sized in metres
+    // and depth-tested, so stage geometry in front of it hides it. The trail points at the
+    // middle of the screen, where the camera frames the fight. Quads turn in the screen plane.
+    // Kind 0 is the starburst: an ink shadow, an out-of-register yellow copy, the Orange star
+    // with an ink rim and a Paper core. Kind 1 is the halftone trail, kind 2 a paper scrap with
+    // an ink rim and shadow. Shadows fall toward the bottom right of the screen.
     Properties
     {
     }
@@ -19,7 +18,6 @@ Shader "SLOPArena/Knockout Burst"
             Tags { "LightMode" = "SRPDefaultUnlit" }
             Blend SrcAlpha OneMinusSrcAlpha
             ZWrite Off
-            ZTest Always
             Cull Off
 
             HLSLPROGRAM
@@ -31,11 +29,6 @@ Shader "SLOPArena/Knockout Burst"
             static const half3 Yellow = half3(1.0, 0.8, 0.133);
             static const half3 Paper = half3(0.871, 0.847, 0.788);
             static const int StarPoints = 11;
-            // KnockoutBurst.BurstRadius (m), its on-screen radius limits as fractions of the screen
-            // height, and its reach over that radius (peak pop 1.15 × longest spike 1.28).
-            static const float BurstRadius = 1.5;
-            static const float MinScreenRadius = 0.08, MaxScreenRadius = 0.13;
-            static const float EdgeReach = 1.15 * 1.28;
 
             struct Attributes
             {
@@ -60,19 +53,6 @@ Shader "SLOPArena/Knockout Burst"
             {
                 Varyings output;
                 float3 origin = TransformWorldToView(TransformObjectToWorld(input.positionOS.xyz));
-                // View space looks down -z. Reflect a crossing behind the camera to the front.
-                if (-origin.z < _ProjectionParams.y + 1.0)
-                    origin.z = -max(abs(origin.z), 6.0);
-                origin *= min(1.0, _ProjectionParams.z * 0.5 / -origin.z);
-                float depth = -origin.z;
-                // Render-texture projections may flip y; sizes use the magnitudes.
-                float2 focal = abs(float2(UNITY_MATRIX_P[0][0], UNITY_MATRIX_P[1][1]));
-                float screenHeight = 2.0 * depth / focal.y;
-                float radius = clamp(BurstRadius, MinScreenRadius * screenHeight, MaxScreenRadius * screenHeight);
-                float scale = radius / BurstRadius;
-                float2 halfView = max(depth / focal - EdgeReach * radius, 0.0);
-                origin.xy = clamp(origin.xy, -halfView, halfView);
-
                 float2 offset = input.offset;
                 float rotation = input.shape.z;
                 if (abs(input.shape.w - 1.0) < 0.5)
@@ -85,7 +65,7 @@ Shader "SLOPArena/Knockout Burst"
                 float s, c;
                 sincos(rotation, s, c);
                 float2 screen = offset + float2(local.x * c - local.y * s, local.x * s + local.y * c);
-                output.positionCS = TransformWViewToHClip(origin + float3(screen * scale, 0.0));
+                output.positionCS = TransformWViewToHClip(origin + float3(screen, 0.0));
                 output.color = input.color;
                 output.local = local;
                 output.shape = float4(input.shape.xy, rotation, input.shape.w);

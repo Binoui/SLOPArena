@@ -172,7 +172,8 @@ public sealed record CookedPresentation(
     string AirDodge = "",
     string Shell = "",
     string Flying = "",
-    string MayhemLaugh = "");
+    string MayhemLaugh = "",
+    string WallJump = "");
 
 /// <summary>
 /// Form 1 of a two-form fighter (slop.ability.forms.v1, ADR-0051): its own movement, presentation roles and fourteen
@@ -272,7 +273,8 @@ public sealed class CookedSlotDefinition
             var stage = Timeline.Stages[stageIndex];
             if (index < stage.AnimationIds.Count)
             {
-                bool phase = index > 0;
+                bool phase = index > 0 || stage.Operations.Any(op => op is CookedStartCapabilityOperation
+                    { Parameters: CookedTargetedLeapCapabilityParameters or CookedSteeredChargeCapabilityParameters });
                 return new MoveClip(stage.AnimationIds[index], stageIndex,
                     (ushort)(phase ? 0 : startTick), stage.DurationTicks, phase);
             }
@@ -570,7 +572,9 @@ public sealed record CookedProjectile(
     [property: System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
     CookedProjectileHoming? Homing = null,
     [property: System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
-    CookedProjectilePerch? Perch = null);
+    CookedProjectilePerch? Perch = null,
+    [property: System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingDefault)]
+    ushort ChallengeTicks = 0);
 
 public sealed record CookedProjectileReturn(
     ushort OutboundTicks,
@@ -579,7 +583,9 @@ public sealed record CookedProjectileReturn(
     float SelfHitDamage,
     ushort SelfHitStunTicks,
     string CatchPresentationId = "",
-    string SelfHitPresentationId = "");
+    string SelfHitPresentationId = "",
+    [property: System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+    ProjectileLegHit? Hit = null);
 
 public sealed record CookedChargedProjectileCapabilityParameters(
     ushort MaxChargeTicks,
@@ -803,6 +809,12 @@ public sealed record CookedSteeredChargeCapabilityParameters(
     bool TurnAroundOnMiss,
     ushort AirStrideTicks,
     ushort LookDownTicks,
+    ushort ChallengedRearTicks,
+    float TrackDegreesPerSecond,
+    float ChallengedTrackDegreesPerSecond,
+    CookedHitbox ChestHitbox,
+    CookedSteeredChargeCarry Carry,
+    string ChallengePresentationId = "",
     string GallopAnimationId = "",
     ushort GallopLoopTicks = 0,
     string HitEndingAnimationId = "",
@@ -811,17 +823,28 @@ public sealed record CookedSteeredChargeCapabilityParameters(
     string GallopPresentationId = "",
     string HitEndingPresentationId = "",
     string MissEndingPresentationId = "",
-    string AirEndingPresentationId = "") : CookedCapabilityParameters;
+    string AirEndingPresentationId = "",
+    ChargeAssistParameters? Assist = null) : CookedCapabilityParameters;
 public sealed record CookedTargetedLeapCapabilityParameters(
-    ushort MaxAimTicks,
-    ushort MaxFlightTicks,
-    float MinRange,
+    ushort RiseTicks,
+    float RiseHeight,
+    ushort HangTicks,
+    ushort DropTicks,
     float MaxRange,
-    float LaunchVerticalSpeed,
-    ushort LandingSeekTick,
-    ushort RecoveryTicks,
+    float NoTargetDistance,
+    ushort MaxFallTicks,
+    ushort HitRecoveryTicks,
+    ushort MissRecoveryTicks,
     CookedHitbox Hitbox,
-    string LaunchPresentationId = "",
+    string RiseAnimationId = "",
+    string HangAnimationId = "",
+    ushort HangPoseTick = 0,
+    string DropAnimationId = "",
+    string LandingAnimationId = "",
+    ushort HitLandingSeekTick = 0,
+    string RisePresentationId = "",
+    string HangPresentationId = "",
+    string LockPresentationId = "",
     string LandingPresentationId = "") : CookedCapabilityParameters;
 public sealed record CookedMankiRoundBombCapabilityParameters(
     ushort ArmTicks,

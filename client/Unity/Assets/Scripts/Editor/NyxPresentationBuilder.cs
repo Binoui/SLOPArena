@@ -1174,7 +1174,7 @@ namespace SlopArena.EditorTools
 
         /// <summary>
         /// Nyx's cast effect (owner's pick "C + A"): on the casting hand, three ink flame tongues inside a broken sigil;
-        /// at her feet, an ink pool with five short tendrils; in the air, a flat three-armed ink swirl under her boots.
+        /// at her feet, an ink pool with three short tendrils; in the air, a flat three-armed ink swirl under her boots.
         /// The concept's compact pool hugs her hem; sized up from it to read at match distance, and the flame tops her
         /// hand by a forearm. Three thin tendrils stay apart so the pool never reads as a wall round her legs.
         /// </summary>

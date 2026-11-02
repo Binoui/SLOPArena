@@ -1,0 +1,80 @@
+{
+ "stage": "splash_deck",
+ "notes": "31a: Manki fires the homing Bazooka at FightGuy (60%) from 13 m (press t12, arrives t76); FightGuy shields t28-100, the rocket bursts on the bubble, he drops it and walks out toward Manki",
+ "capture": {
+  "from": 20,
+  "to": 145,
+  "step": 1,
+  "width": 1080,
+  "height": 1920,
+  "quality": 92
+ },
+ "fighters": [
+  {
+   "id": 1,
+   "package": "manki",
+   "feet": [
+    -6,
+    0,
+    4
+   ],
+   "yaw": 90,
+   "target": 2,
+   "input": [
+    {
+     "at": 12,
+     "press": "R"
+    }
+   ]
+  },
+  {
+   "id": 2,
+   "package": "fightguy",
+   "feet": [
+    7,
+    0,
+    4
+   ],
+   "yaw": 270,
+   "damage": 60,
+   "target": 1,
+   "input": [
+    {
+     "from": 28,
+     "to": 100,
+     "shield": true
+    },
+    {
+     "from": 106,
+     "to": 150,
+     "move": 270
+    }
+   ]
+  }
+ ],
+ "cameras": [
+  {
+   "name": "s",
+   "pos": [
+    2.6,
+    2.1,
+    0.2
+   ],
+   "look": [
+    7,
+    1.2,
+    4
+   ],
+   "follow": 2,
+   "lookOffset": [
+    -1.0,
+    0.7,
+    0
+   ],
+   "move": true,
+   "ease": 0.15,
+   "fov": 46,
+   "far": 4000
+  }
+ ]
+}

@@ -120,6 +120,8 @@ namespace SlopArena.Shared
         public ProjectileReturn? Return;
         /// <summary>True once a returning projectile has turned back toward its owner.</summary>
         public bool ReturnLeg;
+        public bool ReturnHit;
+        public ushort ChallengeTicks;
         /// <summary>Ticks a returning projectile has spent on its current leg.</summary>
         public ushort LegTicks;
 

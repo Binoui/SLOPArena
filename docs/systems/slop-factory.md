@@ -12,7 +12,8 @@ for. Merge overlapping requests. Keep automated evidence and capture logs in tas
 or PR reports. Attach only useful `.mp4`, `.jpg`, or `.png` previews.
 
 In T3, call `t3_thread_configuration` without arguments to get your `threadId`.
-Pass that id explicitly. The CLI looks up its title with `t3 thread list --json`.
+Pass that id explicitly. The CLI resolves it with `t3 thread show --json`; a
+subagent's id becomes its top parent, the thread the owner talks to.
 Outside T3, choose a known thread or explicitly use `--no-thread`.
 
 ```sh
@@ -43,7 +44,13 @@ result per run: `pass` when every step it could test held, `partial` when some
 steps need the owner's judgment or could not run, `fail` when a step broke. The
 report lists each step with its outcome and evidence. The board shows the latest
 result as a chip on the card. QA notes never reach the thread and never change the
-check's status; the owner still decides.
+check's status; the owner still decides. The QA agent waits for its own captures and
+runs before it stops, and posts its report once.
+
+When the result comes back to the filing agent: on `pass` or `partial`, it adds
+nothing to the thread unless a step needs the owner. On `fail`, or a bug QA found
+outside the steps, it makes one fix pass, records it with `check note`, and does
+not re-run QA.
 
 ```sh
 python3 tools/factory.py check qa 32 --result pass --report tmp/qa-32.md \
@@ -56,13 +63,16 @@ The owner marks Good, Redo, or Dropped on the board. Redo requires a note. Verdi
 on linked checks queue a message to the thread, except **Good only**, which stays on
 the board. **Good + commit** authorizes the thread to commit only its own files
 (no push), reply with the sha, and settle itself; if the commit cannot be made
-cleanly, the thread says why and stays active. Plain owner notes have a **Send
+cleanly, the thread says why and stays active. Every other message asks the
+thread to unsettle itself and stay active so the owner sees the reply. Plain owner notes have a **Send
 note to thread** checkbox, enabled by default when linked. The note shows
 **Waiting for desk**, **Sent to thread**, or the delivery error. Agent notes stay
 on the board. The owner can reopen Good and Dropped checks.
 
 Run one relay on the desk where T3 is available. The server on alfred only holds
-the outbox. Busy T3 threads receive the message as their next turn.
+the outbox. Busy T3 threads receive the message as their next turn. The relay
+also resolves subagent threads to their parent, so older child-linked checks
+reach the owner's thread.
 
 ```sh
 python3 tools/factory.py relay
@@ -96,7 +106,10 @@ in the body so later moves cannot change an outcome waiting for the relay.
 `tools/content_factory/deploy.sh` copies the app to `~/content-factory` on alfred
 and starts four containers. `front` is Caddy and owns the only published port,
 `100.68.254.9:8765` on the tailnet. It sends `/console/` to the Master console and
-everything else to `factory`. `console` runs the `SlopArena-console` image in hosted
+everything else to `factory`. Owner devices use
+`https://alfred.tail026bc8.ts.net/`: Tailscale Serve on alfred proxies 443 to
+`front` (set once with `sudo tailscale serve --bg http://100.68.254.9:8765`; it
+survives reboots and redeploys; `sudo tailscale serve reset` removes it). `console` runs the `SlopArena-console` image in hosted
 mode, built on alfred from that checkout's committed `HEAD` (`CONSOLE_REPO`
 overrides the path). `tunnel` holds an SSH forward to Master's private address on
 the VPS under the network alias `master`, so the console's fixed

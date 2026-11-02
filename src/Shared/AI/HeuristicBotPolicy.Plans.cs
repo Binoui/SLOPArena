@@ -149,6 +149,8 @@ public sealed partial class HeuristicBotPolicy
                 if (f.Target.Timing.AttackEpisode != plan.Threat || f.Target.Timing.Phase == CpuAttackPhase.Recovery
                     || !Threatens(f.Self, f.Target))
                 { memory.EndCombat(CpuPlanEnd.Completed); return input; }
+                if (canAct && !plan.DodgeIssued && TryCounter(f, out var counter))
+                { plan.Dodge(); return counter; }
                 if (f.Self.IsGrounded)
                 {
                     if (canAct || f.Self.State == ActionState.Shielding || f.Self.BlockStunTicks > 0)
@@ -313,6 +315,26 @@ public sealed partial class HeuristicBotPolicy
         var candidate = (f.Self.IsGrounded ? _profile : _airProfile)[Array.IndexOf(Slots, choice.WireSlot)];
         return choice.Point.DistanceFrom(f.Self) * SlotReachTolerance <= (candidate.Reach + VictimRadiusMargin) * rangeScale
             && HasSafeAttackTravel(f.Self, candidate, f.Arena);
+    }
+
+    /// <summary>
+    /// A ready counter (Wibou's flash) in this stance's kit, pressed instead of shielding a threat from inside its lock
+    /// range: a catch from further out locks nobody and whiffs.
+    /// </summary>
+    private bool TryCounter(in CpuFacts f, out InputState input)
+    {
+        input = default;
+        bool air = !f.Self.IsGrounded;
+        float dx = f.Target.PX - f.Self.PX, dy = f.Target.PY - f.Self.PY, dz = f.Target.PZ - f.Self.PZ;
+        float distanceSquared = dx * dx + dy * dy + dz * dz;
+        foreach (var candidate in air ? _airProfile : _profile)
+            if (candidate.Flash is { } flash && distanceSquared <= flash.LockRange * flash.LockRange
+                && IsCandidateAvailable(f.Self, candidate, air, true, f.Arena, f.ActiveMove))
+            {
+                input = new InputState { ActiveSlot = candidate.Slot, FaceToCamera = true };
+                return true;
+            }
+        return false;
     }
 
     private void Issue(in CpuMoveChoice move, in CpuFacts f, BotMemory memory, ref InputState input)

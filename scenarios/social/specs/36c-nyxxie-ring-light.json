@@ -1,0 +1,127 @@
+{
+ "stage": "splash_deck",
+ "notes": "36c Going Live off screen, Ring Light dazzles Wibou facing her, dash in, Phone Slaps",
+ "capture": {
+  "from": 28,
+  "to": 170,
+  "step": 1,
+  "width": 1920,
+  "height": 1080,
+  "quality": 92
+ },
+ "fighters": [
+  {
+   "id": 1,
+   "package": "nyx",
+   "feet": [
+    2,
+    0,
+    5
+   ],
+   "yaw": 90,
+   "target": 2,
+   "input": [
+    {
+     "at": 2,
+     "press": "F"
+    },
+    {
+     "at": 30,
+     "press": "A"
+    },
+    {
+     "at": 80,
+     "dash": true
+    },
+    {
+     "at": 82,
+     "dash": true
+    },
+    {
+     "at": 84,
+     "dash": true
+    },
+    {
+     "at": 94,
+     "press": "1"
+    },
+    {
+     "at": 96,
+     "press": "1"
+    },
+    {
+     "at": 98,
+     "press": "1"
+    },
+    {
+     "at": 100,
+     "press": "1"
+    },
+    {
+     "at": 102,
+     "press": "1"
+    },
+    {
+     "at": 104,
+     "press": "1"
+    },
+    {
+     "at": 106,
+     "press": "1"
+    },
+    {
+     "at": 108,
+     "press": "1"
+    },
+    {
+     "at": 110,
+     "press": "1"
+    },
+    {
+     "at": 112,
+     "press": "1"
+    }
+   ]
+  },
+  {
+   "id": 2,
+   "package": "wibou",
+   "feet": [
+    6.5,
+    0,
+    5
+   ],
+   "yaw": 270,
+   "damage": 30,
+   "target": 1
+  }
+ ],
+ "cameras": [
+  {
+   "name": "m",
+   "pos": [
+    -1,
+    1.8,
+    -4
+   ],
+   "look": [
+    4.25,
+    1.4,
+    5
+   ],
+   "follow": [
+    1,
+    2
+   ],
+   "lookOffset": [
+    0,
+    0.6,
+    0
+   ],
+   "ease": 0.15,
+   "move": true,
+   "fov": 42,
+   "far": 4000
+  }
+ ]
+}

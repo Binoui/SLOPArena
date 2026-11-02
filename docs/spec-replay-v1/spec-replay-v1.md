@@ -1,6 +1,6 @@
 ---
 id: SPEC-replay-v1
-status: draft
+status: superseded
 companions:
   - ../plans/2026-10-13-replay-v1-design.md
   - ../adr/0033-gamehost-input-replays-with-shared-playback.md
@@ -11,6 +11,10 @@ sources: []
 ---
 
 # Replay v1 implementation spec
+
+**Superseded by [ADR-0060](../adr/0060-gamehost-replays-world-frames-and-view-track.md) and the
+[Replay plan](../plans/2026-11-01-replay-design.md), 2026-11-01.** Kept for its delivery and
+access notes.
 
 Drafted 2026-10-13 from the accepted design and subsequent storage/parallel-work
 discussion. Read the listed companions as part of the contract. Accepted product

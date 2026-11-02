@@ -78,7 +78,7 @@ public static class AbilityLabScenarioSelfTest
         ExpectInvalid(new AbilityLabScenarioOptions("grab", AbilityLabScenarioOptions.MaxFrame + 1));
         ExpectInvalid(new AbilityLabScenarioOptions("unknown"));
         ExpectInvalid(new AbilityLabScenarioOptions("grab", distance: float.NaN));
-        Debug.Log("[AbilityLabScenarioSelfTest] Passed cooked hit/miss/block, grab capture/shield/whiff/release, targeted-leap aim/release/landing, deterministic replay, pose clocks and invalid requests.");
+        Debug.Log("[AbilityLabScenarioSelfTest] Passed cooked hit/miss/block, grab capture/shield/whiff/release, targeted-leap rise/drop/landing, deterministic replay, pose clocks and invalid requests.");
     }
 
     private static void VerifyTargetedLeapScenario()
@@ -89,7 +89,7 @@ public static class AbilityLabScenarioSelfTest
         var controller = new AbilityLabSimulationController();
         AbilityLabScenarioResult Run(string action, float distance) =>
             controller.RunScenario(def, package.BakedAnimation,
-                new AbilityLabScenarioOptions(action, 170, distance, chargeTicks: 10), origin, 0f);
+                new AbilityLabScenarioOptions(action, 170, distance, chargeTicks: 0), origin, 0f);
         CookedTargetedLeapCapabilityParameters Parameters(bool airborne) =>
             def.GetCookedSlotAbility(AbilitySlots.E, airborne).Timeline.Stages
                 .SelectMany(stage => stage.Operations).OfType<CookedStartCapabilityOperation>()
@@ -97,30 +97,17 @@ public static class AbilityLabScenarioSelfTest
         var groundParameters = Parameters(false);
         var airParameters = Parameters(true);
 
-        var near = Run("ground.E", 1f);
-        var far = Run("ground.E", 4f);
-        float LaunchSpeed(AbilityLabScenarioResult result) =>
-            result.Frames.First(frame => frame.Actor.State == ActionState.Attacking &&
-                !frame.Actor.IsGrounded).Actor.VZ;
-        Require(LaunchSpeed(far) > LaunchSpeed(near) * 2f,
-            "Targeted leap ignored the recorded aim distance and flew to minimum range.");
-        Require(far.Frames.SkipWhile(frame => frame.Actor.IsGrounded).Any(frame => frame.Actor.IsGrounded &&
-                frame.Actor.State == ActionState.Attacking && frame.Actor.AttackElapsedTicks == groundParameters.LandingSeekTick),
-            "Landing did not seek the authored impact pose in the recorded scenario.");
-        Require(far.Contacts.Any(contact => contact.Hit.Damage == groundParameters.Hitbox.Damage && !contact.Hit.Blocked),
-            "Ground targeted leap missed an opponent at its selected distance.");
-
-        var airNear = Run("air.E", 1f);
-        var airFar = Run("air.E", 4f);
-        Require(LaunchSpeed(airFar) > LaunchSpeed(airNear) * 2f,
-            "Air targeted leap ignored the selected target distance.");
-        Require(airFar.Frames.SkipWhile(frame => frame.Actor.IsGrounded).Any(frame => frame.Actor.IsGrounded &&
-                frame.Actor.State == ActionState.Attacking && frame.Actor.AttackElapsedTicks == airParameters.LandingSeekTick),
-            "Air targeted leap did not synchronize the landing impact pose.");
-        Require(airFar.Contacts.Any(contact => contact.Hit.Damage == airParameters.Hitbox.Damage && !contact.Hit.Blocked),
-            "Air targeted leap missed an opponent at its selected distance.");
-        Require(airFar.Frames.Any(frame => frame.Actor.IsGrounded && frame.Actor.State == ActionState.Idle),
-            "Air targeted leap did not finish landing recovery.");
+        foreach (var action in new[] { "ground.E", "air.E" })
+        {
+            var parameters = action == "ground.E" ? groundParameters : airParameters;
+            var result = Run(action, 4f);
+            Require(result.Frames.Any(frame => !frame.Actor.IsGrounded && frame.Actor.State == ActionState.Attacking),
+                "Tap leap did not rise.");
+            Require(result.Contacts.Any(contact => contact.Hit.Damage == parameters.Hitbox.Damage && !contact.Hit.Blocked),
+                "Tap leap missed the tracked opponent.");
+            Require(result.Frames.Any(frame => frame.Actor.IsGrounded && frame.Actor.State == ActionState.Idle),
+                "Tap leap did not complete recovery.");
+        }
     }
 
     private static CharacterDefinition Fixture()

@@ -32,7 +32,7 @@ namespace SlopArena.Client.World
         {
             if (_owner == null) return;
             float age = Mathf.Max(0, _owner.CurrentAttackElapsedTicks - _spawnTick);
-            var feet = _owner.transform.position - Vector3.up * _owner.ModelYOffset;
+            var feet = _owner.transform.position - Vector3.up * (_owner.ModelYOffset + _owner.CapsuleHeight * .5f);
             var yaw = Quaternion.Euler(0f, _owner.transform.eulerAngles.y, 0f);
             transform.SetPositionAndRotation(feet, yaw);
             // Full size on the first tick, then a slow ink breath.

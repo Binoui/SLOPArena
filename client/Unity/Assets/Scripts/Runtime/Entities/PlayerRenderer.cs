@@ -791,6 +791,7 @@ namespace SlopArena.Client.Entities
                 _forms = _modelInstance.GetComponentInChildren<FormPresentation>(true);
             }
             LoadSharedAnimations();
+            if (Application.isPlaying && GetComponent<FighterXRay>() == null) gameObject.AddComponent<FighterXRay>();
             _sfxSource = gameObject.AddComponent<AudioSource>();
             _sfxSource.outputAudioMixerGroup = ClientSettingsService.Instance.FindBus("SFX");
             _sfxSource.playOnAwake = false;
@@ -1233,6 +1234,7 @@ namespace SlopArena.Client.Entities
         public void ApplyServerState(CharacterState state, CookedSlotDefinition? activeMove)
         {
             _activeMove = activeMove;
+            bool wallJumped = !state.IsGrounded && state.WallJumpUsed && !_lastState.WallJumpUsed;
             ShowForm(in state);
             if (_charDef != null && Flying.Parameters(_charDef) is { } flight)
             {
@@ -1251,7 +1253,8 @@ namespace SlopArena.Client.Entities
                 _hasPresentedDeaths = true;
             }
             if (_hasAppliedState
-                && state.JumpsLeft < _lastState.JumpsLeft
+                && (state.JumpsLeft < _lastState.JumpsLeft
+                    || wallJumped)
                 && _jumpSfx != null)
                 _sfxSource.PlayOneShot(_jumpSfx);
             EmitSwordHitboxSfx(state);
@@ -1285,7 +1288,7 @@ namespace SlopArena.Client.Entities
             if (Application.isPlaying)
             {
                 if (!stockTransition)
-                    EmitMovementFeedback(state, targetPos);
+                    EmitMovementFeedback(state, targetPos, wallJumped);
                 UpdateRespawnInvincibility(state, targetPos);
             }
 
@@ -1305,7 +1308,7 @@ namespace SlopArena.Client.Entities
             }
 
 
-            UpdateAnimationState(state);
+            UpdateAnimationState(state, wallJumped);
             MaintainTumbleLoop();
             ApplyAttackPoseModel(state);
 
@@ -1383,7 +1386,7 @@ namespace SlopArena.Client.Entities
         private Color RespawnColor()
             => _animationCatalog?.PresentationProfile?.RespawnTint ?? new Color(1f, 1f, 1f, .95f);
 
-        private void EmitMovementFeedback(CharacterState state, Vector3 position)
+        private void EmitMovementFeedback(CharacterState state, Vector3 position, bool wallJumped)
         {
             if (!_hasAppliedState)
             {
@@ -1396,7 +1399,8 @@ namespace SlopArena.Client.Entities
             bool tookOff = _lastState.IsGrounded && !state.IsGrounded;
             bool doubleJumped = !_lastState.IsGrounded
                 && !state.IsGrounded
-                && state.JumpsLeft < _lastState.JumpsLeft;
+                && (state.JumpsLeft < _lastState.JumpsLeft
+                    || wallJumped);
             if (doubleJumped)
             {
                 MovementFeedbackEffect.Spawn(position, Vector3.down, MovementFeedbackKind.DoubleJump);
@@ -1706,7 +1710,7 @@ namespace SlopArena.Client.Entities
             return true;
         }
 
-        private void UpdateAnimationState(CharacterState state)
+        private void UpdateAnimationState(CharacterState state, bool wallJumped)
         {
             if (_animancer == null || _charDef == null)
                 return;
@@ -1856,7 +1860,8 @@ namespace SlopArena.Client.Entities
                 bool actionStarted = (state.State != ActionState.Hitstun
                         && state.State != ActionState.Idle
                         && state.State != ActionState.Run)
-                    || state.JumpsLeft < _lastState.JumpsLeft
+                    || (state.JumpsLeft < _lastState.JumpsLeft
+                        || wallJumped)
                     || (_lastState.IsGrounded && !state.IsGrounded);
                 bool airborneLaunch = !actionStarted && IsStrongAirborneLaunch(state);
                 if (elapsed < _hitstunAnimLength
@@ -1874,7 +1879,8 @@ namespace SlopArena.Client.Entities
             // acts (the action's clip cuts in at once) or lands (locomotion blends in).
             if (_tumbleActive)
             {
-                bool jumpStarted = state.JumpsLeft < _lastState.JumpsLeft
+                bool jumpStarted = (state.JumpsLeft < _lastState.JumpsLeft
+                        || wallJumped)
                     || (_lastState.IsGrounded && !state.IsGrounded);
                 bool explicitAction = state.State != ActionState.Idle
                     && state.State != ActionState.Run;
@@ -2025,18 +2031,20 @@ namespace SlopArena.Client.Entities
                     bool isAscending = state.VY > 0f;
                     bool wasAscending = _lastState.VY > 0f;
 
-                    // Detect double jump: JumpsLeft decreased this tick
-                    bool doubleJumped = state.JumpsLeft < _lastState.JumpsLeft;
+                    bool doubleJumped = (state.JumpsLeft < _lastState.JumpsLeft
+                        || wallJumped);
 
                     if (isAscending)
                     {
                         // New ascent: initial jump, or double jump from descent
-                        if (!wasAscending)
+                        if (!wasAscending || wallJumped)
                         {
                             // Only play jump_up if it's a fresh jump (not recovery from attack hitstun)
                             if (_jumpArcActive || doubleJumped)
                             {
-                                if (TryGetAnimation(_charDef.JumpAnim, out var clip, out _))
+                                if ((wallJumped && !string.IsNullOrEmpty(_charDef.WallJumpAnim)
+                                        && TryGetAnimation(_charDef.WallJumpAnim, out var clip, out _))
+                                    || TryGetAnimation(_charDef.JumpAnim, out clip, out _))
                                 {
                                     _animancer.Play(clip, 0.05f);
                                     _jumpArcActive = true;

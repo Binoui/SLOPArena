@@ -25,6 +25,23 @@ public sealed class CharacterPackageSourceCodecTests
         throw new FileNotFoundException(relative);
     }
 
+    [Theory]
+    [InlineData("")]
+    [InlineData("anim.fightguy.wall-jump")]
+    public void WallJump_RoundTripsAsOptionalPresentation(string animationId)
+    {
+        var character = JsonNode.Parse(Fixture("character.json"))!.AsObject();
+        character["presentation"]!.AsObject().Remove("wallJump");
+        if (animationId.Length > 0) character["presentation"]!["wallJump"] = animationId;
+        var parsed = CharacterPackageSourceCodec.Load(Fixture("package.json"), character.ToJsonString());
+        Assert.True(parsed.IsValid, string.Join("\n", parsed.Diagnostics));
+        string serialized = CharacterPackageSourceCodec.SerializeCharacter(parsed.Source!.Character);
+        var roundTrip = CharacterPackageSourceCodec.Load(Fixture("package.json"), serialized);
+        Assert.True(roundTrip.IsValid, string.Join("\n", roundTrip.Diagnostics));
+        Assert.Equal(animationId, roundTrip.Source!.Character.Presentation.WallJump);
+        Assert.Equal(animationId.Length > 0, JsonNode.Parse(serialized)!["presentation"]!.AsObject().ContainsKey("wallJump"));
+    }
+
     [Fact]
     public void HitPresentationId_RoundTripsThroughSourceEditAndRejectsNonString()
     {

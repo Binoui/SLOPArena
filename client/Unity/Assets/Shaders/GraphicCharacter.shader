@@ -21,7 +21,7 @@ Shader "SLOPArena/GraphicCharacter"
         {
             "RenderType" = "Opaque"
             "RenderPipeline" = "UniversalPipeline"
-            "Queue" = "Geometry"
+            "Queue" = "Geometry+50" // after the stage, so FighterXRay (Geometry+40) sees stage depth only
         }
 
         Cull [_Cull]

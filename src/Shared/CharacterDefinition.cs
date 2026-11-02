@@ -165,6 +165,7 @@ namespace SlopArena.Shared
         /// <summary>Optional static low-posture semantic bindings; absent content remains upright.</summary>
         public string CrouchAnim { get; init; } = "";
         public string SlideAnim { get; init; } = "";
+        public string WallJumpAnim { get; init; } = "";
         /// <summary>Optional package-owned semantic defense animation bindings.</summary>
         public string ShieldAnim { get; init; } = "";
         public string GrabAnim { get; init; } = "";

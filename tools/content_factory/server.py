@@ -53,6 +53,16 @@ VERDICTS = {
 CHECK_MOVES = {"to-try": {"good", "redo", "dropped"}, "redo": {"to-try", "good", "dropped"},
                "good": {"to-try"}, "dropped": {"to-try"}}
 CHECK_FIELDS = {"title", "steps", "area", "thread", "thread_title"}
+ICONS = {"favicon-32.png", "apple-touch-icon.png", "icon-192.png", "icon-512.png", "icon-maskable-512.png"}
+MANIFEST = {
+    "name": "Slop Factory", "short_name": "Slop Factory", "start_url": "/", "scope": "/", "display": "standalone",
+    "background_color": "#f0eee8", "theme_color": "#ffcc22",
+    "icons": [
+        {"src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png"},
+        {"src": "/icons/icon-512.png", "sizes": "512x512", "type": "image/png"},
+        {"src": "/icons/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable"},
+    ],
+}
 CHECK_MEDIA = {".mp4": "video/mp4", ".jpg": "image/jpeg", ".png": "image/png"}
 QA_RESULT = re.compile(r"QA: (PASS|PARTIAL|FAIL)\.")
 TAKE_FROM = {"proposed", "approved", "rendered"}
@@ -515,6 +525,12 @@ class Handler(BaseHTTPRequestHandler):
             return self.send(200, (HERE / "index.html").read_bytes(), "text/html; charset=utf-8")
         if method == "GET" and path == "/font.ttf":
             return self.file(HERE / "ArchivoBlack-Regular.ttf", "font/ttf")
+        if method == "GET" and path == "/manifest.webmanifest":
+            return self.send(200, json.dumps(MANIFEST).encode(), "application/manifest+json")
+        if method == "GET" and path in ("/favicon.ico", "/apple-touch-icon.png"):
+            parts = ["icons", "favicon-32.png" if path == "/favicon.ico" else "apple-touch-icon.png"]
+        if method == "GET" and parts[0] == "icons" and len(parts) == 2 and parts[1] in ICONS:
+            return self.file(HERE / "icons" / parts[1], "image/png")
         if method == "GET" and parts[0] == "media" and len(parts) == 3:
             target = (DATA / "media" / parts[1] / parts[2]).resolve()
             if not target.is_relative_to((DATA / "media").resolve()) or not target.is_file():

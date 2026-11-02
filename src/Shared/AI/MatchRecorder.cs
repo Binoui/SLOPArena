@@ -381,7 +381,8 @@ public sealed class MatchRecorder
                     if (operation is CookedSpawnProjectileOperation projectile)
                         end += projectile.Projectile.MaxFlightTicks;
                     else if (operation is CookedStartCapabilityOperation capability)
-                        end += CapabilityWindowTicks(capability.Parameters);
+                        end += CapabilityWindowTicks(capability.Parameters)
+                            + (capability.Parameters is CookedSteeredChargeCapabilityParameters ? stage.DurationTicks : 0);
                     effectEnd = Math.Max(effectEnd, total + end);
                 }
                 total += stage.DurationTicks;
@@ -399,7 +400,7 @@ public sealed class MatchRecorder
             CookedDashStrikeCapabilityParameters x => x.TravelTicks + x.TipHitbox.DurationTicks + x.RecoveryTicks,
             CookedWibouRisingSlashCapabilityParameters x => x.RiseTicks,
             CookedFlashCutCapabilityParameters x => x.LongestTicks,
-            CookedTargetedLeapCapabilityParameters x => x.MaxAimTicks + x.MaxFlightTicks + x.RecoveryTicks,
+            CookedTargetedLeapCapabilityParameters x => x.RiseTicks + x.HangTicks + x.DropTicks + x.MaxFallTicks + x.MissRecoveryTicks,
             CookedThrustCapabilityParameters x => x.ThrustTicks,
             CookedCannonballCapabilityParameters x => x.TakeoffTick + x.MaxFlightTicks,
             CookedCommandGrabCapabilityParameters x => x.CaptureTick + x.Capture.DurationTicks + x.WhiffRecoveryTicks,
@@ -408,7 +409,7 @@ public sealed class MatchRecorder
             CookedTetherCapabilityParameters { Projectile: { } ring } x => x.ThrowTick + ring.MaxFlightTicks
                 + Math.Max(x.MaxReelTicks, (int)MathF.Ceiling(ring.Speed / x.RetractSpeed * ring.MaxFlightTicks)
                     + x.MissRecoveryTicks),
-            CookedSteeredChargeCapabilityParameters x => x.MaxGallopTicks + x.AirStrideTicks + x.LookDownTicks
+            CookedSteeredChargeCapabilityParameters x => x.MaxGallopTicks + x.AirStrideTicks + x.LookDownTicks + x.Carry.MaxCarryTicks + x.Carry.FlingTicks
                 + Math.Max(x.HitEndingTicks, x.MissEndingTicks),
             CookedMankiRoundBombCapabilityParameters x => x.MaxFlightTicks + x.LifetimeTicks + x.WarningTicks + x.ExplosionDurationTicks,
             CookedMankiJetpackBoostCapabilityParameters x => x.StartupTicks + x.FuelTicks + x.ExplosionDurationTicks,

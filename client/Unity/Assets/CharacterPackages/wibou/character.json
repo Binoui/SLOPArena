@@ -1223,7 +1223,7 @@
     {
       "id": "ground.F",
       "name": "Omae wa mou shindeiru",
-      "description": "Lock every opponent in range, cut through each in turn and sheathe. Then they all pop.",
+      "description": "Counter stance. If someone hits him, he locks every opponent in range, cuts through each in turn and sheathes. Then they all pop.",
       "iconId": "icon.f",
       "behavior": "meleeCombo",
       "aimMode": "none",

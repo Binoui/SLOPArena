@@ -1,0 +1,585 @@
+{
+  "schema_version": 1,
+  "move": "bonk-sir-g4-the-bonk",
+  "target": "Assets/CharacterPackages/bonk/Animations/bonk_sir_g4_the_bonk.anim",
+  "source_asset": "Assets/Art/Experiments/GenRA/bonk/bonk_sir_g4_the_bonk_retime_20261101.anim",
+  "source_run": "artifacts/genra-runs/20261022-182822-bonk-sir-g4-the-bonk-loop182821-r0",
+  "revise_parent": null,
+  "keys_run": "artifacts/genra-runs/20261022-175336-bonk-sir-g4-the-bonk-keys",
+  "transforms": {
+    "ticks": null,
+    "retime": [
+      [
+        0,
+        0
+      ],
+      [
+        46,
+        46
+      ],
+      [
+        48,
+        50
+      ],
+      [
+        53,
+        54
+      ],
+      [
+        118,
+        118
+      ]
+    ],
+    "alignOrigin": true,
+    "loopTime": false,
+    "grounding": null
+  },
+  "final_check": {
+    "status": "PASS",
+    "scope": "export phase",
+    "flow_metrics": {},
+    "report": {
+      "passed": true,
+      "fastWindows": [
+        [
+          42,
+          54
+        ]
+      ],
+      "failures": [],
+      "maxDegreesPerTick": 46.1
+    }
+  },
+  "clip_sha256": "bbdaecb3a2109d61d139a9c6e7f716650c881f2f2b7f97cfa036939fd2db8e9f",
+  "runs": [
+    {
+      "run": "artifacts/genra-runs/20261022-175336-bonk-sir-g4-the-bonk-keys",
+      "stage": "keys",
+      "cost_usd": 0.8039982,
+      "config_recorded": true,
+      "flow_clean": false,
+      "check": {
+        "mode": "full",
+        "skipped": [],
+        "passed": false,
+        "failures": [
+          {
+            "check": "humanoid",
+            "message": "1 joints turn past what Unity's Humanoid plays, worst LeftArm 41 deg past Left Arm Twist In-Out at tick 8 (ticks 7..44); solve() and two_hand_grip() keep to the limits, rotate() does not",
+            "joints": [
+              "LeftArm"
+            ],
+            "tick": 8
+          },
+          {
+            "check": "flip",
+            "message": "a limb bone rolls about its own length by more than 60 deg in a tick or 120 in three (RightHand 120 deg over the 3 ticks to 48): an IK flip between keys solved separately, not speed, and slowing it down only shows the roll longer. Solve each key from its neighbour (solve(..., seed=previous_key)) and keep contacts between keys with track()/pin()/hold_grip()",
+            "joints": [
+              "RightHand"
+            ],
+            "ticks": [
+              48
+            ]
+          },
+          {
+            "check": "target",
+            "message": "arc: FightGuy positions the plank touches, ticks 48-63 = 78.000; wanted >= 90",
+            "target": "arc: FightGuy positions the plank touches, ticks 48-63"
+          },
+          {
+            "check": "target",
+            "message": "arc: Manki positions the plank touches, ticks 48-63 = 80.000; wanted >= 90",
+            "target": "arc: Manki positions the plank touches, ticks 48-63"
+          }
+        ],
+        "warnings": [
+          {
+            "check": "clearance",
+            "message": "LeftHand-Head within 0.2 cm at tick 52 (touching or intersecting)",
+            "pair": "LeftHand-Head",
+            "tick": 52
+          },
+          {
+            "check": "clearance",
+            "message": "RightHand-Head within 0.2 cm at tick 52 (touching or intersecting)",
+            "pair": "RightHand-Head",
+            "tick": 52
+          },
+          {
+            "check": "clearance",
+            "message": "LeftForeArm-Head within 0.1 cm at tick 48 (touching or intersecting)",
+            "pair": "LeftForeArm-Head",
+            "tick": 48
+          },
+          {
+            "check": "clearance",
+            "message": "RightForeArm-Head within 0.3 cm at tick 66 (touching or intersecting)",
+            "pair": "RightForeArm-Head",
+            "tick": 66
+          },
+          {
+            "check": "clearance",
+            "message": "LeftHand-Torso within 0.2 cm at tick 52 (touching or intersecting)",
+            "pair": "LeftHand-Torso",
+            "tick": 52
+          },
+          {
+            "check": "clearance",
+            "message": "LeftHand-RightHand within 0.1 cm at tick 66 (touching or intersecting)",
+            "pair": "LeftHand-RightHand",
+            "tick": 66
+          },
+          {
+            "check": "clearance",
+            "message": "LeftHand-RightLeg within 0.3 cm at tick 52 (touching or intersecting)",
+            "pair": "LeftHand-RightLeg",
+            "tick": 52
+          },
+          {
+            "check": "clearance",
+            "message": "RightHand-LeftLeg within 0.4 cm at tick 63 (touching or intersecting)",
+            "pair": "RightHand-LeftLeg",
+            "tick": 63
+          },
+          {
+            "check": "clearance",
+            "message": "RightHand-RightLeg within 0.6 cm at tick 63 (touching or intersecting)",
+            "pair": "RightHand-RightLeg",
+            "tick": 63
+          },
+          {
+            "check": "clearance",
+            "message": "LeftFoot-Torso within 0.9 cm at tick 26 (touching or intersecting)",
+            "pair": "LeftFoot-Torso",
+            "tick": 26
+          },
+          {
+            "check": "clearance",
+            "message": "Weapon-LeftLeg within 0.1 cm at tick 58 (touching or intersecting)",
+            "pair": "Weapon-LeftLeg",
+            "tick": 58
+          },
+          {
+            "check": "clearance",
+            "message": "Weapon-RightLeg within 0.2 cm at tick 58 (touching or intersecting)",
+            "pair": "Weapon-RightLeg",
+            "tick": 58
+          },
+          {
+            "check": "clearance",
+            "message": "Weapon-LeftHand within 0.0 cm at tick 6 (touching or intersecting)",
+            "pair": "Weapon-LeftHand",
+            "tick": 6
+          },
+          {
+            "check": "flow",
+            "message": "pose-to-pose stops: joints halt 2.69 times a second each (hand-made attacks 0.05-1.16, nine in ten under 0.62); stagger the arrivals (each body part reaches a big pose 1-3 ticks apart) and key holds as moving holds",
+            "window": [
+              3,
+              79
+            ]
+          },
+          {
+            "check": "flow",
+            "message": "the body stops together: 70% of the joints halt within the same three ticks (hand-made attacks at most 27% in nine clips out of ten); the hips arrive first, the chest a tick later, the arms and head trail (key them at their own ticks or Clip.overlap the joints that carry no contact)",
+            "window": [
+              3,
+              79
+            ]
+          },
+          {
+            "check": "flow",
+            "message": "frozen body: 27% of the joint-ticks barely move (hand-made attacks at most 12%); make holds moving holds (key the end of a hold 2-5 degrees on from its start, never the same pose twice) and let the settle give",
+            "window": [
+              3,
+              79
+            ]
+          }
+        ],
+        "metrics": {
+          "entryErrorMetres": 5.99624149298581e-07,
+          "exitErrorMetres": 5.99624149298581e-07,
+          "hipTravelMetres": 0.43382010841519175,
+          "humanoid digit off-axis (deg)": 1.2969368310817433e-05,
+          "humanoid limits exceeded by (deg)": 41.174635278063036,
+          "maxDegreesPerTick": 56.47657082011479,
+          "max roll about a limb bone (deg/tick)": 55.32497436837826,
+          "closestMetres": {
+            "LeftHand-Head": [
+              0.0025,
+              52
+            ],
+            "RightHand-Head": [
+              0.0016,
+              52
+            ],
+            "LeftForeArm-Head": [
+              0.0005,
+              48
+            ],
+            "RightForeArm-Head": [
+              0.003,
+              66
+            ],
+            "LeftHand-Torso": [
+              0.0018,
+              52
+            ],
+            "RightHand-Torso": [
+              0.0013,
+              66
+            ],
+            "LeftHand-RightHand": [
+              0.0012,
+              66
+            ],
+            "LeftHand-LeftLeg": [
+              0.0016,
+              52
+            ],
+            "LeftHand-RightLeg": [
+              0.0033,
+              52
+            ],
+            "RightHand-LeftLeg": [
+              0.0045,
+              63
+            ],
+            "RightHand-RightLeg": [
+              0.0059,
+              63
+            ],
+            "LeftLeg-RightLeg": [
+              0.0109,
+              10
+            ],
+            "LeftFoot-RightFoot": [
+              0.5181,
+              14
+            ],
+            "LeftFoot-Torso": [
+              0.009,
+              26
+            ],
+            "RightFoot-Torso": [
+              0.2056,
+              48
+            ],
+            "LeftHand-LeftFoot": [
+              0.5219,
+              52
+            ],
+            "RightHand-RightFoot": [
+              0.6356,
+              63
+            ],
+            "Weapon-Head": [
+              0.0006,
+              14
+            ],
+            "Weapon-Torso": [
+              0.0006,
+              66
+            ],
+            "Weapon-LeftLeg": [
+              0.0008,
+              58
+            ],
+            "Weapon-RightLeg": [
+              0.0022,
+              58
+            ],
+            "Weapon-LeftHand": [
+              0.0002,
+              6
+            ]
+          },
+          "left hand off the handle (m)": 0.3407,
+          "left hand tilt on the handle (deg)": 58.0,
+          "left wrist bend max (deg)": 48.49043038771251,
+          "right wrist bend max (deg)": 69.39097966310146,
+          "flow: stops per joint per second": 2.688311688311688,
+          "flow: most of the body stopping together (share)": 0.7,
+          "flow: frozen joint-ticks (share)": 0.2675324675324675,
+          "flow: child trails parent (ticks)": 0.0,
+          "tell: left knee high at tick 14 (m)": -0.4699997719559903,
+          "tell: left knee high at tick 38 (m)": -0.36999985218164744,
+          "tell: plank tip behind him at tick 26 (m)": -1.206131726931379,
+          "tell: plank pointing down-back at tick 26 (m)": 1.0930251521275505,
+          "tell: hands above the shoulders at tick 26 (m)": 1.0909482448302743,
+          "tell: weight back, hips behind the idle at tick 38 (m)": -0.09999996031387072,
+          "over: plank straight up at tick 46 (m)": 1.414714482825382,
+          "over: hands overhead at tick 46 (m)": 0.8608304291318377,
+          "contact: plank pointing forward-down at tick 48 (m)": 1.0072652010552936,
+          "contact: plank tip below its hilt at tick 48 (m)": 1.0070091379747406,
+          "contact: left foot stamped ahead at tick 48 (m)": 0.5497190727079593,
+          "slam: plank tip on the floor ahead at tick 52 (m)": -0.9297736720569785,
+          "slam: plank tip far ahead at tick 52 (m)": 2.007944167240494,
+          "slam: deep lunge, hips down at tick 52 (m)": -0.23999994731010665,
+          "impact: plank tip still on the floor at tick 60 (m)": -0.9468650527232294,
+          "impact: plank tip still ahead at tick 60 (m)": 1.9296462742791174,
+          "heave: plank straight up at tick 66 (m)": 1.4154824987147216,
+          "shoulder: tip behind the hips at tick 71 (m)": -1.0700454612105073,
+          "shoulder: tip above the hilt at tick 71 (m)": 0.9507767372111983,
+          "shoulder: left foot back near its idle place at tick 71 (m)": 0.14971898246623438,
+          "arc: FightGuy positions the plank touches, ticks 48-63": 78.0,
+          "arc: Manki positions the plank touches, ticks 48-63": 80.0,
+          "right ball of the foot stays put, front to back (m)": 0.03570382279166756,
+          "right ball of the foot stays put, side to side (m)": 0.025884119695621766,
+          "left foot planted from tick 50 to 66, front to back (m)": 0.04528556764600644,
+          "left foot planted from tick 50 to 66, side to side (m)": 0.007926873915461652
+        }
+      }
+    },
+    {
+      "run": "artifacts/genra-runs/20261022-182822-bonk-sir-g4-the-bonk-loop182821-r0",
+      "stage": "full",
+      "cost_usd": null,
+      "config_recorded": true,
+      "flow_clean": true,
+      "check": {
+        "mode": "full",
+        "skipped": [],
+        "passed": true,
+        "failures": [],
+        "warnings": [
+          {
+            "check": "clearance",
+            "message": "LeftHand-Head within 0.2 cm at tick 52 (touching or intersecting)",
+            "pair": "LeftHand-Head",
+            "tick": 52
+          },
+          {
+            "check": "clearance",
+            "message": "RightHand-Head within 0.2 cm at tick 52 (touching or intersecting)",
+            "pair": "RightHand-Head",
+            "tick": 52
+          },
+          {
+            "check": "clearance",
+            "message": "LeftForeArm-Head within 0.1 cm at tick 48 (touching or intersecting)",
+            "pair": "LeftForeArm-Head",
+            "tick": 48
+          },
+          {
+            "check": "clearance",
+            "message": "RightForeArm-Head within 0.3 cm at tick 66 (touching or intersecting)",
+            "pair": "RightForeArm-Head",
+            "tick": 66
+          },
+          {
+            "check": "clearance",
+            "message": "LeftHand-Torso within 0.0 cm at tick 56 (touching or intersecting)",
+            "pair": "LeftHand-Torso",
+            "tick": 56
+          },
+          {
+            "check": "clearance",
+            "message": "LeftHand-RightHand within 0.1 cm at tick 66 (touching or intersecting)",
+            "pair": "LeftHand-RightHand",
+            "tick": 66
+          },
+          {
+            "check": "clearance",
+            "message": "LeftHand-RightLeg within 0.2 cm at tick 64 (touching or intersecting)",
+            "pair": "LeftHand-RightLeg",
+            "tick": 64
+          },
+          {
+            "check": "clearance",
+            "message": "RightHand-LeftLeg within 0.3 cm at tick 62 (touching or intersecting)",
+            "pair": "RightHand-LeftLeg",
+            "tick": 62
+          },
+          {
+            "check": "clearance",
+            "message": "RightHand-RightLeg within 0.5 cm at tick 62 (touching or intersecting)",
+            "pair": "RightHand-RightLeg",
+            "tick": 62
+          },
+          {
+            "check": "clearance",
+            "message": "LeftFoot-Torso within 0.2 cm at tick 18 (touching or intersecting)",
+            "pair": "LeftFoot-Torso",
+            "tick": 18
+          },
+          {
+            "check": "clearance",
+            "message": "Weapon-LeftLeg within 0.1 cm at tick 58 (touching or intersecting)",
+            "pair": "Weapon-LeftLeg",
+            "tick": 58
+          },
+          {
+            "check": "clearance",
+            "message": "Weapon-RightLeg within 0.1 cm at tick 64 (touching or intersecting)",
+            "pair": "Weapon-RightLeg",
+            "tick": 64
+          },
+          {
+            "check": "clearance",
+            "message": "Weapon-LeftHand within 0.0 cm at tick 6 (touching or intersecting)",
+            "pair": "Weapon-LeftHand",
+            "tick": 6
+          },
+          {
+            "check": "face",
+            "message": "arms or weapon hide the face from the front at ticks 12..47 (as little as 5% visible)",
+            "ticks": [
+              12,
+              47
+            ]
+          }
+        ],
+        "metrics": {
+          "entryErrorMetres": 5.996253365446567e-07,
+          "exitErrorMetres": 5.996253365446567e-07,
+          "hipTravelMetres": 0.43382010841519175,
+          "humanoid digit off-axis (deg)": 1.2969368310817433e-05,
+          "humanoid limits exceeded by (deg)": 2.31686385264223,
+          "maxDegreesPerTick": 60.53804828492558,
+          "max roll about a limb bone (deg/tick)": 49.55288341514537,
+          "closestMetres": {
+            "LeftHand-Head": [
+              0.0025,
+              52
+            ],
+            "RightHand-Head": [
+              0.0016,
+              52
+            ],
+            "LeftForeArm-Head": [
+              0.0005,
+              48
+            ],
+            "RightForeArm-Head": [
+              0.003,
+              66
+            ],
+            "LeftHand-Torso": [
+              0.0004,
+              56
+            ],
+            "RightHand-Torso": [
+              0.0007,
+              68
+            ],
+            "LeftHand-RightHand": [
+              0.0012,
+              66
+            ],
+            "LeftHand-LeftLeg": [
+              0.0015,
+              70
+            ],
+            "LeftHand-RightLeg": [
+              0.0016,
+              64
+            ],
+            "RightHand-LeftLeg": [
+              0.0026,
+              62
+            ],
+            "RightHand-RightLeg": [
+              0.0046,
+              62
+            ],
+            "LeftLeg-RightLeg": [
+              0.0109,
+              12
+            ],
+            "LeftFoot-RightFoot": [
+              0.5039,
+              12
+            ],
+            "LeftFoot-Torso": [
+              0.0023,
+              18
+            ],
+            "RightFoot-Torso": [
+              0.2056,
+              48
+            ],
+            "LeftHand-LeftFoot": [
+              0.5132,
+              54
+            ],
+            "RightHand-RightFoot": [
+              0.6175,
+              62
+            ],
+            "Weapon-Head": [
+              0.0004,
+              30
+            ],
+            "Weapon-Torso": [
+              0.0006,
+              66
+            ],
+            "Weapon-LeftLeg": [
+              0.0008,
+              58
+            ],
+            "Weapon-RightLeg": [
+              0.0009,
+              64
+            ],
+            "Weapon-LeftHand": [
+              0.0002,
+              6
+            ]
+          },
+          "left hand off the handle (m)": 0.0301,
+          "left hand tilt on the handle (deg)": 45.1,
+          "approved keys moved (m)": 1.1670989651117296e-09,
+          "face visible from the front (min)": 0.04984423676012461,
+          "left wrist bend max (deg)": 45.114060105978645,
+          "right wrist bend max (deg)": 85.41006745218901,
+          "life: torso swing (deg)": 76.01451481756567,
+          "life: head bob against the hips / hips bob": 2.5786385725240137,
+          "flow: stops per joint per second": 0.8571428571428571,
+          "flow: most of the body stopping together (share)": 0.2,
+          "flow: frozen joint-ticks (share)": 0.03441558441558441,
+          "flow: child trails parent (ticks)": -0.07692307692307693,
+          "tell: left knee high at tick 14 (m)": -0.46999977209033084,
+          "tell: left knee high at tick 38 (m)": -0.36999985218164744,
+          "tell: plank tip behind him at tick 26 (m)": -1.206131726931379,
+          "tell: plank pointing down-back at tick 26 (m)": 1.0930251521275505,
+          "tell: hands above the shoulders at tick 26 (m)": 1.0909482448302743,
+          "tell: weight back, hips behind the idle at tick 38 (m)": -0.09999996031387072,
+          "over: plank straight up at tick 46 (m)": 1.414714482825382,
+          "over: hands overhead at tick 46 (m)": 0.8608304291318377,
+          "contact: plank pointing forward-down at tick 48 (m)": 1.0072652010552936,
+          "contact: plank tip below its hilt at tick 48 (m)": 1.0070091379747406,
+          "contact: left foot stamped ahead at tick 48 (m)": 0.5497190727079593,
+          "slam: plank tip on the floor ahead at tick 52 (m)": -0.9297736720569785,
+          "slam: plank tip far ahead at tick 52 (m)": 2.007944167240494,
+          "slam: deep lunge, hips down at tick 52 (m)": -0.23999994731010665,
+          "impact: plank tip still on the floor at tick 60 (m)": -0.9792007317426696,
+          "impact: plank tip still ahead at tick 60 (m)": 1.9223112046338324,
+          "heave: plank straight up at tick 66 (m)": 1.4154824987147216,
+          "shoulder: tip behind the hips at tick 71 (m)": -1.0700454612105073,
+          "shoulder: tip above the hilt at tick 71 (m)": 0.9507767372111983,
+          "shoulder: left foot back near its idle place at tick 71 (m)": 0.14971898246623438,
+          "arc: FightGuy positions the plank touches, ticks 48-63": 76.0,
+          "arc: Manki positions the plank touches, ticks 48-63": 80.0,
+          "right ball of the foot stays put, front to back (m)": 0.03430375827111354,
+          "right ball of the foot stays put, side to side (m)": 0.02385943299244242,
+          "left foot planted from tick 50 to 66, front to back (m)": 0.0035479319268776344,
+          "left foot planted from tick 50 to 66, side to side (m)": 0.010109330346775303
+        }
+      }
+    }
+  ],
+  "cost": {
+    "known_usd": 0.8039982,
+    "total_usd": null,
+    "completeness": "partial",
+    "missing_runs": [
+      "artifacts/genra-runs/20261022-182822-bonk-sir-g4-the-bonk-loop182821-r0"
+    ]
+  },
+  "promoted_at": "2026-11-01T15:20:28.563398+00:00",
+  "owner_verdict": null,
+  "owner_date": null,
+  "owner_note": null
+}

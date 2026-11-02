@@ -92,6 +92,7 @@ namespace SlopArena.Shared
             public byte Form;
             /// <summary>Returning projectile leg: 0 none, 1 flying out, 2 coming back to its owner.</summary>
             public byte ReturnPhase;
+            public ushort ChallengeTicks;
             public float Damage;
             public float DirX;
             /// <summary>Launch angle in degrees (-90 to 90).</summary>
@@ -409,9 +410,27 @@ namespace SlopArena.Shared
             }
         }
 
+        internal void RecordReturnHit(ulong ownerId, ulong activationId)
+        {
+            for (int i = 0; i < _hitboxes.Count; i++)
+            {
+                var hb = _hitboxes[i];
+                if (hb.OwnerId != ownerId || hb.ActivationId != activationId || !hb.ReturnLeg) continue;
+                hb.ReturnHit = true;
+                _hitboxes[i] = hb;
+            }
+        }
+
         private static void Turn(ref Hitbox hb)
         {
             hb.ReturnLeg = true;
+            hb.HomingTargetEntityId = 0;
+            if (hb.Return?.Hit is { } hit)
+            {
+                hb.Damage = hit.Damage; hb.KnockbackAngle = (sbyte)hit.Angle;
+                hb.BaseKnockback = hit.BaseKnockback; hb.KnockbackGrowth = hit.KnockbackGrowth;
+                hb.StunTicks = hit.StunTicks; hb.FixedHitstunTicks = hit.FixedHitstunTicks;
+            }
             hb.LegTicks = 0;
             hb.HitEntities = new HashSet<ulong>();
             hb.KnockbackDirection = AuthoringKnockbackDirection.TowardOwner;
@@ -629,6 +648,13 @@ namespace SlopArena.Shared
         /// advancing the resolver or changing the arena. The caller supplies scratch
         /// space for every arena triangle, as with the other ArenaCollision queries.
         /// </summary>
+        internal bool TryProjectStraightDrop(in ArenaDefinition arena, float x, float y, float z, float radius, out float landingY)
+        {
+            int triangles = arena.CollisionTriangles?.Length ?? 0;
+            if (_returnSweepTriangles.Length < triangles) _returnSweepTriangles = new int[triangles];
+            return TryProjectStraightDrop(in arena, x, y, z, radius, _returnSweepTriangles, out landingY);
+        }
+
         public static bool TryProjectStraightDrop(in ArenaDefinition arena, float x, float y, float z,
             float radius, int[] triangleCandidates, out float landingY)
         {
@@ -956,6 +982,7 @@ namespace SlopArena.Shared
                         ActivationId = hb.ActivationId,
                         Airborne = hb.ActivationAirborne,
                         Form = hb.Form,
+                        ChallengeTicks = hb.ChallengeTicks,
                         ReturnPhase = hb.Return.HasValue ? (hb.ReturnLeg ? (byte)2 : (byte)1) : (byte)0,
                         Damage = entity.Id == hb.OwnerId ? hb.OwnerDamage ?? hb.Damage : hb.Damage,
                         AttackSequence = hb.AttackSequence,

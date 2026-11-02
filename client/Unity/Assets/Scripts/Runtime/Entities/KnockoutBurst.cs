@@ -10,8 +10,7 @@ namespace SlopArena.Client.Entities
     /// presentation-only: an Orange cut-paper starburst with an ink rim, a hard ink shadow and an
     /// out-of-register Action Yellow copy, a halftone trail in the fighter's seat colour pointing
     /// back at the fight, and paper scraps. This builds the shapes as a function of the burst's
-    /// age; KnockoutBurst.shader places them for each camera, pinned inside the screen and at a
-    /// minimum on-screen size, so a crossing far away or out of view still reads.
+    /// age; KnockoutBurst.shader draws them as a depth-tested card facing each camera.
     /// </summary>
     internal sealed class KnockoutBurst : MonoBehaviour
     {
@@ -21,7 +20,6 @@ namespace SlopArena.Client.Entities
         private static readonly Color Paper = new(0.871f, 0.847f, 0.788f, 1f);
 
         private const float Lifetime = 0.8f;
-        // Metres before the shader's screen-size scale; BurstRadius matches the shader's.
         private const float BurstRadius = 1.5f, PeakPop = 1.15f;
         private const float TrailLength = 4.2f, TrailHalfWidth = 0.75f;
         // The burst and scrap quads are padded so the print shadow fits inside them.
@@ -146,8 +144,8 @@ namespace SlopArena.Client.Entities
             _mesh.SetUVs(2, _data);
             _mesh.SetUVs(3, _offsets);
             _mesh.SetTriangles(_indices, 0, false);
-            // The shader may pin the burst anywhere on screen; never cull it.
-            _mesh.bounds = new Bounds(_origin, Vector3.one * 1000f);
+            // The shader lays the quads out in the screen plane, so the vertices all sit at the origin.
+            _mesh.bounds = new Bounds(_origin, Vector3.one * 20f);
         }
 
         /// <summary>One quad at an offset from the burst centre; the shader draws its kind's shape.</summary>

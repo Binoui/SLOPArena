@@ -42,7 +42,7 @@ namespace SlopArena.Shared
             for (int i = 0; i < hits.Count; i++)
                 if (ContactAbility(hits[i]) is { } ability && _states.TryGetValue(hits[i].TargetEntityId, out var target)
                     && (ability.Tether is { Catches: true } && target.State != ActionState.Shielding
-                        || ability.CommandGrab is { Catches: true }))
+                        || ability.CommandHold is { Catches: true, CatchKind: HoldCatch.Capture }))
                     (rings ??= new List<int>()).Add(i);
             if (rings == null || rings.Count < 2) return;
             var clashed = new SortedSet<int>();

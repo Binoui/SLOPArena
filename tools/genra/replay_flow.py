@@ -36,9 +36,8 @@ OUT_ROOT = REPO / 'artifacts' / 'genra-replays'
 VARIANTS: dict[str, dict | None] = {   # None: today's Clip.from_keys through the same keys
     'pose-to-pose': None,
     'tangents': dict(lag=0, drag=0, arcs=0, settle=0, fingers=0),
-    '+lag': dict(settle=0, fingers=0),
     'flow': {},
-    '+arcs': dict(arcs=1),
+    '+lag': dict(lag=1),
     '+drag': dict(drag=1),
 }
 VIDEO = ('pose-to-pose', 'tangents', 'flow', 'take', 'accepted')

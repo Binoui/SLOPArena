@@ -1,0 +1,96 @@
+{
+ "stage": "splash_deck",
+ "notes": "36e Going Live off screen, Selfie Grab lunge, pose, flash blasts Wibou away",
+ "capture": {
+  "from": 28,
+  "to": 150,
+  "step": 1,
+  "width": 1920,
+  "height": 1080,
+  "quality": 92
+ },
+ "fighters": [
+  {
+   "id": 1,
+   "package": "nyx",
+   "feet": [
+    2,
+    0,
+    5
+   ],
+   "yaw": 90,
+   "target": 2,
+   "input": [
+    {
+     "at": 2,
+     "press": "F"
+    },
+    {
+     "at": 34,
+     "press": "R"
+    },
+    {
+     "at": 36,
+     "press": "R"
+    },
+    {
+     "at": 38,
+     "press": "R"
+    },
+    {
+     "at": 40,
+     "press": "R"
+    },
+    {
+     "at": 42,
+     "press": "R"
+    },
+    {
+     "at": 44,
+     "press": "R"
+    },
+    {
+     "at": 46,
+     "press": "R"
+    },
+    {
+     "at": 48,
+     "press": "R"
+    },
+    {
+     "at": 50,
+     "press": "R"
+    }
+   ]
+  },
+  {
+   "id": 2,
+   "package": "wibou",
+   "feet": [
+    4.6,
+    0,
+    5
+   ],
+   "yaw": 270,
+   "damage": 60,
+   "target": 1
+  }
+ ],
+ "cameras": [
+  {
+   "name": "m",
+   "pos": [
+    4.5,
+    1.6,
+    -1.8
+   ],
+   "look": [
+    3.6,
+    1.4,
+    5
+   ],
+   "fov": 42,
+   "far": 4000
+  }
+ ]
+}

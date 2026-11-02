@@ -1,0 +1,205 @@
+{
+  "name": "bonk-sir-e-drop",
+  "purpose": "special",
+  "notes": "Sir Bonk v2 E (Leap of Faith, ADR-0059) Drop phase clip, 2026-11-01. Owner after playing the new E: 'E is fun like this. i think the going down part is wrong animation wise though. it would be better if he came sword first into the ground then got stuck'. Today Drop replays anim.bonk.ge ticks 40-58 (the old flight's plank-behind-the-head descent hold) and the landing clip cuts in with the plank already in the floor. This clip replaces only the Drop: entry = ge tick 40 (the hang pose the game holds), exit = ge-land tick 0 (the impact the landing clip starts on). Rig pack bonk-unity-sirv2edrop = the live SirBonkV2Rig with the bound ge (hang) and ge-land (land) clips as references. Authored at 2x: 36 ticks for the game's 18-tick Drop (unity_clip.py write --retime 0:0,36:18). Clip frame f plays on drop tick f; the actor descends in a straight line and reaches the ground at the end of drop tick 17 (authored tick 34), so tick 34 is already the grounded impact pose and ticks 34-36 hold it (the cook never shows the last key). Floor in this frame: up -1.05 (the land pose's toes at -1.03, the idle's at -1.026 with the same hip height as the hang). The hang pose's left hand is 12 cm off the handle line (grip check limit about 7 cm), so two_hands starts at tick 4; the land pose's is 2.2 cm off and passes. Take r0 (artifacts/genra-runs/20261101-161902-bonk-sir-e-drop, Opus 5.5 medium, stopped on a plateau) hit every target but rolled LeftArm 170 deg in one tick (11->12): the hang and land arms sit on different solutions. Repaired locally without a model call (tmp/bonk-e-drop/repair/: fix_flip.py slerps the left arm over ticks 3-12 and re-seats the hand per tick from that pose; secondary.py adds a dive leg flutter and leg/head overlap); full check PASS. Clock correction found in the in-game timeline: the game shows drop frame f with the actor already lowered for that tick, so he is grounded on frame 18, not 17. The clip was therefore written with --ticks 0-36 --retime 0:0,12:6,30:16,34:18,36:19 (tip strike on frame 16, the landing pose on frame 18, held to 19): Assets/Art/Experiments/GenRA/bonk/bonk_sir_e_drop_v2.anim. A rerun should brief the height as 6 x (36 - t) / 36.",
+  "rigpack": "artifacts/genra-rigpacks/bonk-unity-sirv2edrop",
+  "character": "Sir Bonk v2 (a Humanoid body with Mixamo names, index-finger chains only besides the thumbs; a 3x4 cape chain Cape_L/C/R1..4 under Spine2 that a spring drives in the game, so leave it at rest; a 1.42 m plank greatsword fixed to the right hand as joint Weapon0, with bladeHilt at the crossguard and bladeEnd at the tip; a pot-lid pauldron fixed to the left upper arm as joint Weapon1). The right pauldron, a big round pot lid, is part of the body mesh and sits out over the right shoulder joint: keep the right forearm and hand out of it.",
+  "description": "Sir Bonk's E, the Leap of Faith, the DROP. He has risen 6 m and hung in a gold ring of holy light with the plank raised over his head while the ring found his target. Now he drops on the target in a straight line, sword first: he whips the plank over his head so it points down at the target, dives behind it like a lance, and drives it into the ground. It sticks, and his body crunches down onto it into the stuck-plank crouch the landing clip starts from (the landing clip then flips him into a handstand on the planted plank).\n\nWho he is. Sir Bonk is a goofy, good-hearted wannabe knight who read one book about knights and dubbed himself (image 1): a blue mop bucket worn as a helm with a broom-head crest, two pot lids as pauldrons, a barrel-stave chest plate, a tabard with a crown he painted himself, a cape, big boots, and a wooden plank greatsword. He takes himself completely seriously: this is his heroic, divinely guided strike, all commitment, no doubt.\n\nHow the game plays it (60 Hz; this clip is authored at twice the game's length, 36 ticks for 18):\n- Before tick 0 the game holds this clip's tick 0, the hang pose (reference 'hang', tick 40): crouched in the air, knees tucked, both hands on the handle above his head, the plank cocked behind his back with its tip down behind his right side. Tick 0 is that pose exactly.\n- Ticks 0-34 the game carries him in a straight line from 6 m up down onto the target, at a constant speed (often also forward, up to 12 m). His height above the landing at tick t is about 6 x (34 - t) / 34 m: 1.0 m at tick 28, 0.7 m at tick 30, 0.35 m at tick 32, 0 at tick 34.\n- Tick 34 he is on the ground: ticks 34-36 are the landing clip's first pose exactly (reference 'land', tick 0). The game cuts straight into the landing clip there, so the last ticks must arrive on that pose, not near it.\n\nThe beats (authored ticks):\n- Ticks 0-3, the load: a tiny extra wind-up, the plank goes a little further back and the chest arches, the knees tuck. Short. The hang pose's left hand floats about 12 cm off the handle (an old flaw of the bound clip): during the load it closes onto the handle beside the right hand, by tick 4, and stays on it to the end.\n- Ticks 3-12, the whip over: the plank swings up and over his head and forward, both hands on the handle, arms going from overhead to straight out in front and down, and the whole body pitches forward over it into a dive. The plank passes over his head (tip well above the head around tick 6) and ends pointing steeply down and ahead at the target. This is the fast, snappy part.\n- Ticks 12-28, the dive: sword first. The plank points down at the target, about 50-65 degrees below level, tip leading: the tip is the lowest point of his body, well below his boots. Both arms are extended down along the handle, both hands on it near the crossguard, the chest pitched forward over his hands, the bucket helm forward and looking down the plank at the target. The legs trail behind and above him: knees bent, boots behind the hips and toes pointed, like a diver or a lance. A moving hold: the body keeps settling, the legs trail and flutter a little behind the body, the plank stays aimed.\n- Ticks 28-34, the impact: the tip strikes the floor at about tick 30 and STAYS in it. The body keeps coming: the arms bend, the hips drop down behind the plank and the legs swing down under him, the boots slam onto the floor, and he crunches into the landing clip's crouch with the plank stuck diagonally in front of him. To keep the tip still in the floor while the game is still lowering him, the tip rises in this clip's frame as he drops: about up -1.72 at tick 30, -1.43 at tick 32 and the landing pose's -1.15 at tick 34. The plank's angle flattens from steep to the landing pose's 45 degrees as the body comes down.\n- Ticks 34-36: the landing pose exactly.\n\nSecondary motion and flow (the owner's main note on every GenRA move). Nothing arrives at once: the chest leads the whip, the arms and plank follow 1-2 ticks late; the legs lag the body as it pitches into the dive and keep trailing; at the impact the hips and legs arrive 1-2 ticks after the arms take the shock, and the head dips with it. The cape is driven by a spring in the game: leave the cape joints at rest.\n\nThe floor is at up = -1.05 m in this character frame. The game moves him through the air, so during ticks 0-28 nothing touches the floor in the clip. The match camera sits behind and above him: from behind, the plank must read pointing down ahead of him during the dive, not hidden behind his back. Keep the plank on his centre line or a little to his right, never across his face. No props other than the plank. Keep each hand in line with its forearm (wrists under 45 degrees) and both hands on the handle throughout.",
+  "references": {
+    "hang": "references/hang.usda",
+    "land": "references/land.usda",
+    "idle": "references/idle.usda",
+    "fall": "references/fall.usda"
+  },
+  "entry": {
+    "reference": "hang",
+    "tick": 40
+  },
+  "exit": {
+    "from_tick": 34,
+    "reference": "land",
+    "tick": 0
+  },
+  "clock": {
+    "duration_ticks": 36,
+    "game_duration_ticks": 18,
+    "contact_tick": 30
+  },
+  "timing": {
+    "fixed": [
+      "tick 0 is the hang pose the game holds before the drop (reference 'hang', tick 40)",
+      "the game plays this clip at double speed over its 18-tick Drop, carrying him in a straight line from about 6 m up onto the target at constant speed; he is on the ground at authored tick 34",
+      "ticks 34-36 are the landing clip's first pose exactly (reference 'land', tick 0): the game cuts straight into the landing clip there"
+    ],
+    "adjustable": [
+      "the ticks of the beats inside 0-34 (the whip over, the dive, the impact), as long as the tip strikes the floor late (about tick 30) and stays in it"
+    ]
+  },
+  "fast_windows": [
+    [
+      0,
+      14
+    ],
+    [
+      28,
+      36
+    ]
+  ],
+  "two_hands": [
+    4,
+    36
+  ],
+  "two_hands_hold": "loose",
+  "strike": [
+    "bladeEnd"
+  ],
+  "views": [
+    "profile",
+    "gameplay",
+    "three-quarter-right",
+    "front"
+  ],
+  "images": [
+    "../../sir-bonk-idle-v2-20261028/sir-bonk-v2-run-carry.png"
+  ],
+  "image_notes": "1: the Sir Bonk v2 model in his run pose (front, and three-quarter from his right), for his look and proportions. The entry and exit poses come from the 'hang' and 'land' references.",
+  "review_ticks": [
+    0,
+    3,
+    6,
+    9,
+    12,
+    16,
+    20,
+    24,
+    28,
+    30,
+    32,
+    34,
+    36
+  ],
+  "review": {
+    "reference": "land",
+    "travel": 0.0
+  },
+  "targets": [
+    {
+      "name": "whip over: plank tip well above the head at tick 6 (m)",
+      "kind": "below",
+      "a": "Head",
+      "b": "bladeEnd",
+      "tick": 6,
+      "min": 0.6
+    },
+    {
+      "name": "dive: plank tip ahead of the hips at tick 12 (m)",
+      "kind": "ahead",
+      "a": "bladeEnd",
+      "b": "Hips",
+      "tick": 12,
+      "min": 0.6
+    },
+    {
+      "name": "dive: plank pointing down, tip low at tick 12 (m)",
+      "kind": "char",
+      "a": "bladeEnd",
+      "axis": "up",
+      "tick": 12,
+      "max": -1.2
+    },
+    {
+      "name": "dive: plank tip low under him at tick 20 (m)",
+      "kind": "char",
+      "a": "bladeEnd",
+      "axis": "up",
+      "tick": 20,
+      "min": -2.3,
+      "max": -1.6
+    },
+    {
+      "name": "dive: plank tip ahead of the hips at tick 20 (m)",
+      "kind": "ahead",
+      "a": "bladeEnd",
+      "b": "Hips",
+      "tick": 20,
+      "min": 0.7,
+      "max": 1.8
+    },
+    {
+      "name": "dive: plank tip on the centre line or a little right at tick 20 (m)",
+      "kind": "char",
+      "a": "bladeEnd",
+      "axis": "right",
+      "tick": 20,
+      "min": -0.1,
+      "max": 0.6
+    },
+    {
+      "name": "dive: tip leads, well below the left boot at tick 20 (m)",
+      "kind": "below",
+      "a": "bladeEnd",
+      "b": "LeftToeBase",
+      "tick": 20,
+      "min": 0.6
+    },
+    {
+      "name": "dive: tip leads, well below the right boot at tick 20 (m)",
+      "kind": "below",
+      "a": "bladeEnd",
+      "b": "RightToeBase",
+      "tick": 20,
+      "min": 0.6
+    },
+    {
+      "name": "dive: legs trail, left boot behind the hips at tick 20 (m)",
+      "kind": "ahead",
+      "a": "LeftToeBase",
+      "b": "Hips",
+      "tick": 20,
+      "max": -0.15
+    },
+    {
+      "name": "dive: legs trail, right boot behind the hips at tick 20 (m)",
+      "kind": "ahead",
+      "a": "RightToeBase",
+      "b": "Hips",
+      "tick": 20,
+      "max": -0.15
+    },
+    {
+      "name": "dive: head forward over the plank at tick 20 (m)",
+      "kind": "ahead",
+      "a": "Head",
+      "b": "Hips",
+      "tick": 20,
+      "min": 0.15
+    },
+    {
+      "name": "impact: tip at the floor as he arrives at tick 30 (m)",
+      "kind": "char",
+      "a": "bladeEnd",
+      "axis": "up",
+      "tick": 30,
+      "min": -1.85,
+      "max": -1.6
+    },
+    {
+      "name": "impact: tip ahead, where it will stick, at tick 30 (m)",
+      "kind": "char",
+      "a": "bladeEnd",
+      "axis": "front",
+      "tick": 30,
+      "min": 1.2,
+      "max": 1.65
+    },
+    {
+      "name": "impact: tip stays in the floor while he comes down at tick 32 (m)",
+      "kind": "char",
+      "a": "bladeEnd",
+      "axis": "up",
+      "tick": 32,
+      "min": -1.55,
+      "max": -1.3
+    }
+  ]
+}

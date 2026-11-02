@@ -7,7 +7,8 @@
 // BakeMesh copies so the preview never shows a stale GPU skinning cache.
 // job["rows"] (timeline) instead plays clip sequences the way PlayerRenderer drives them: each event crossfades to a
 // clip at a tick (fade seconds, start time, speed or `ticks` to stretch it like an ability), the clock advances one
-// 60 Hz tick per frame, and `moves` carry the fighter forward so a dash travels; the cameras follow it.
+// 60 Hz tick per frame, and `moves` carry the fighter forward (and up or down) so a dash or a leap travels; the cameras
+// follow it. job["floor"] draws a floor slab at that height, so a landing reads against the ground.
 var job = Newtonsoft.Json.Linq.JObject.Parse(System.IO.File.ReadAllText("{{JOB}}"));
 var output = "{{OUTPUT}}";
 if (UnityEditor.EditorApplication.isPlaying) throw new System.Exception("genra render requires Edit Mode");
@@ -188,6 +189,18 @@ try {
   var fill = Add(new UnityEngine.GameObject("genra_render_fill")).AddComponent<UnityEngine.Light>();
   fill.type = UnityEngine.LightType.Directional; fill.intensity = 0.55f; fill.shadows = UnityEngine.LightShadows.None;
 
+  if (job["floor"] != null && job["floor"].Type != Newtonsoft.Json.Linq.JTokenType.Null) {
+    var floor = Add(UnityEngine.GameObject.CreatePrimitive(UnityEngine.PrimitiveType.Cube));
+    floor.transform.position = new UnityEngine.Vector3(basePosition.x, (float)job["floor"] - 0.05f, basePosition.z);
+    floor.transform.localScale = new UnityEngine.Vector3(4f, 0.1f, 60f);  // a 4 m runway: a side view sees its edge, not a 60 m deck
+    var floorRenderer = floor.GetComponent<UnityEngine.MeshRenderer>();
+    var floorMaterial = new UnityEngine.Material(floorRenderer.sharedMaterial); temporary.Add(floorMaterial);
+    var floorColor = new UnityEngine.Color(0.42f, 0.45f, 0.5f);
+    floorMaterial.color = floorColor;
+    if (floorMaterial.HasProperty("_BaseColor")) floorMaterial.SetColor("_BaseColor", floorColor);
+    floorRenderer.sharedMaterial = floorMaterial;
+  }
+
   var views = new System.Collections.Generic.List<(string name, UnityEngine.Vector3 position, UnityEngine.Quaternion rotation, float size)>();
   foreach (var v in job["views"]) {
     var p = v["position"].ToObject<float[]>(); var f = v["forward"].ToObject<float[]>(); var u = v["up"].ToObject<float[]>();
@@ -232,7 +245,7 @@ try {
     string label = (string)row["label"];
     var events = new System.Collections.Generic.Dictionary<int, Newtonsoft.Json.Linq.JToken>();
     foreach (var e in row["events"]) events[(int)e["tick"]] = e;
-    var moves = row["moves"]?.ToObject<float[][]>() ?? new float[0][];  // [first tick, last tick, metres per tick forward]
+    var moves = row["moves"]?.ToObject<float[][]>() ?? new float[0][];  // [first tick, last tick, metres per tick forward, up]
     foreach (var view in views) System.IO.Directory.CreateDirectory(frames + "/" + label + "/" + view.name);
     Rest();
     actor.transform.position = basePosition;
@@ -252,7 +265,7 @@ try {
       }
       if (tick > 0) {
         animancer.Evaluate(1f / 60f);
-        foreach (var m in moves) if (tick >= m[0] && tick <= m[1]) actor.transform.position += new UnityEngine.Vector3(0f, 0f, m[2]);
+        foreach (var m in moves) if (tick >= m[0] && tick <= m[1]) actor.transform.position += new UnityEngine.Vector3(0f, m.Length > 3 ? m[3] : 0f, m[2]);
       } else animancer.Evaluate(0f);
       StepSprings();
       Settle();

@@ -487,6 +487,99 @@
           "at": "cue:presentation.manki.kamikaze.explosion+18"
         }
       ]
+    },
+    {
+      "id": "ground.3",
+      "slot": "ground.3",
+      "label": "Head Slam",
+      "dummy": {
+        "distance": 1
+      },
+      "input": [
+        {
+          "ticks": 8
+        },
+        {
+          "ticks": 1,
+          "slot": "4"
+        },
+        {
+          "ticks": 71
+        }
+      ],
+      "phases": [
+        {
+          "name": "wind-up",
+          "at": "start+12"
+        },
+        {
+          "name": "ram",
+          "at": "hit"
+        },
+        {
+          "name": "fold",
+          "at": "start+19"
+        },
+        {
+          "name": "recovery",
+          "at": "start+40"
+        },
+        {
+          "name": "idle",
+          "at": "end"
+        }
+      ]
+    },
+    {
+      "id": "air.2",
+      "slot": "air.2",
+      "label": "Double Fist Slam",
+      "dummy": {
+        "distance": 1
+      },
+      "input": [
+        {
+          "ticks": 8
+        },
+        {
+          "ticks": 1,
+          "jumpPressed": true,
+          "jumpHeld": true
+        },
+        {
+          "ticks": 4,
+          "jumpHeld": true
+        },
+        {
+          "ticks": 1,
+          "slot": "3"
+        },
+        {
+          "ticks": 106
+        }
+      ],
+      "phases": [
+        {
+          "name": "gather",
+          "at": "start+8"
+        },
+        {
+          "name": "hammer hit",
+          "at": "hit"
+        },
+        {
+          "name": "underfoot",
+          "at": "hit+11"
+        },
+        {
+          "name": "ground return",
+          "at": "start+38"
+        },
+        {
+          "name": "landed",
+          "at": "end"
+        }
+      ]
     }
   ],
   "size": "1280x720"

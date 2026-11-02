@@ -198,6 +198,18 @@ internal static class Program
                 }
         }
 
+        md.AppendLine("## Swing").AppendLine();
+        md.AppendLine("One row per anchored hitbox. Inside share counts rotation after the first active tick through the last, "
+            + "relative to ticks 1 through the earlier of move duration and last active + 15. The step into the first active tick is unswept. "
+            + "Parked ticks turn less than 5° and move the tip less than 0.15 m; the denominator includes all active ticks.").AppendLine();
+        md.AppendLine("| Move | Active ticks | Inside share | Pre-peak | In-window peak | Parked ticks | Flags |");
+        md.AppendLine("|---|---|---:|---|---|---:|---|");
+        foreach (var move in moves)
+            foreach (var row in move.Swing)
+                md.AppendLine(FormattableString.Invariant(
+                    $"| {move.Slot} hit {row.Event} `{row.Anchor}` | {row.FirstTick}–{row.LastTick} | {row.InsideShare * 100:F1}% | t{row.PrePeakTick}, {row.PrePeakDegrees:0.#}°/tick | t{row.InPeakTick}, {row.InPeakDegrees:0.#}°/tick | {row.ParkedTicks}/{row.ActiveTicks} | {string.Join("; ", row.Flags)} |"));
+        md.AppendLine();
+
         md.AppendLine("## Bone and weapon sampling").AppendLine();
         md.AppendLine("Grid positions (0.5–3 m ahead, ±40°) where a standing FightGuy-sized target lies in the swing's path "
             + "between ticks but no tested pose touches it. Tested poses are each tick's pose plus the swept poses the "

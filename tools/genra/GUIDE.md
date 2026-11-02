@@ -1,316 +1,213 @@
 # genra toolkit guide
 
-Author the animation in Python with `genra`: rig-aware poses, anatomical IK, checks and
-renders for the actual character. Units are metres and 60 Hz ticks. Positions and
-directions use the **character frame** `[right, front, up]`, in metres from the entry
-pose's hips; front is the fighter's facing (where it moves, attacks and finds its opponent)
-and up is world up. A fighting stance turns the hips and chest away from front, by up to 90°,
-so read where the chest points from the pose, not from front. The fighter itself never moves;
-the hips can (crouch, lunge, weight shift), and Unity keeps that motion in the pose.
+Author with the supplied `author.py` and toolkit. Units are metres and 60 Hz ticks.
+Positions and directions use the character frame `[right, front, up]`, measured from the entry hips.
+Front is the fighter's facing. Read the chest's direction from the pose because a stance can turn it away from front.
+Keep the actor fixed. Only the hips may translate for crouches, lunges, and weight shifts.
 
-## Run
+## Run and save
 
-- `./py script.py` runs Python with `genra` importable (numpy, scipy available).
-- `./genra check result.json --fast` checks numerical constraints during iteration,
-  without mesh checks or automatic renders. Use full checks at pose checkpoints and delivery.
-- `./genra check result.json` checks a saved clip against the brief and writes `sheet.png`
-  (poses) and `motion.png` (paths). `./genra motion result.json --range 0-12` shows one stretch.
-  `./genra sheet result.json --ticks 12,23 --views front,three-quarter-right --out look.png` renders
-  chosen ticks; `reference:fall` renders a reference; `--every 2 --cols 8` makes a filmstrip of the whole clip.
-  `./genra closeup result.json --ticks 0,11,22,33` frames each hand from the front, its outer side and above (held
-  weapons hidden). `./genra curves result.json --reference reference:run` plots knee, thigh, elbow, arm, wrist, foot,
-  pelvis and height curves over a reference's in grey. `./genra contacts result.json` lists the ticks each foot
-  lands on. View PNGs with the Read tool.
-- Work only in the current directory. The rig is already summarised below; do not explore
-  the toolkit source unless something fails.
-- Start from the supplied `author.py` and `result.json`. `API.md` is readable with the Read tool
-  and has the actual signatures and return shapes. `Pose` lives in `genra.clip`, not `genra.pose`.
-  Use `Pose.copy()` or load a clip again; do not deepcopy/pickle the rig's USD stage.
-- `Clip.save('result.json')` is atomic. Save before checks, even with unresolved failures. The runner
-  archives changed, loadable checkpoints and stops after 20 minutes without one (unless the caller sets
-  another checkpoint timeout), or at the overall limit. A starting checkpoint is not a finished animation.
-- A keys job reports **KEY POSES PASS/FAIL** and lists interpolated motion risks separately.
-  Fix invalid story poses here; do not spend the blocking job polishing transitions. `--stage full`
-  explicitly checks the complete motion. A blocking pass cannot qualify as final motion.
+- `./py author.py` runs Python with genra, numpy, and scipy available.
+- Read `API.md` for live signatures. `Pose` lives in `genra.clip`. Use `Pose.copy()` rather than deepcopy on a USD rig.
+- Work in the current directory. Use the measured rig summary. Read toolkit source only if something fails.
+- Save `clip.save('result.json')` before checks, even with unresolved failures. Saves are atomic.
+  The runner archives changed, loadable checkpoints. An unchanged starting checkpoint is not a finished take.
+- A keys job authors only story poses. Its check separates key-pose failures from provisional transition risks.
+  Do not polish transitions during blocking. A blocking pass cannot qualify as final motion.
 
-## Visual direction
-
-The brief's attached pose sheet may be image-generated or extracted from a video. Read
-`image_notes` and map its labelled beats to the brief's ticks. Keep the measured rig,
-entry/exit poses and timing contract. Carry the reference's foot contacts, weight shifts,
-leading body part and limb/weapon arcs into the blocking; keep grips and proportions
-consistent. Add breakdowns to explain the travel between poses. Inspect paths and timed
-playback as soon as transitions exist: matching the stills does not establish timing,
-weight or continuity. Repair the responsible poses and curves within the brief.
-
-## Load
+## Load and pose
 
 ```python
 from genra.brief import Brief
-from genra.clip import Clip
-from genra.solve import two_bone, solve, fist, two_hand_grip, hold_grip, track, pin
+from genra.clip import Clip, Pose
+from genra.flow import flow, Accent
+from genra.solve import solve, two_bone, fist
 from genra.checks import check_clip, format_report
-from genra.render import contact_sheet
-b = Brief('brief.json'); rig = b.rig
-entry = b.entry_pose          # tick-0 Pose and the exit pose; a free entry only sets the frame
-end = b.exit_pose             # the exit pose: the entry, or a brief's exit.reference (the clip played next)
-fall = b.reference('fall')    # reference Clip on the same skeleton
+b = Brief('brief.json')
+rig = b.rig
+clip = Clip.load(rig, 'result.json', frame=b.entry_frame)
+p = b.entry_pose.copy()
+pose, report = solve(p, ['RightArm', 'RightForeArm'],
+                     [{'pos': 'RightHand', 'at': [0.3, 0.4, 0.5]}])
 ```
 
-## Poses (edits happen in place; copy first)
+`b.exit_pose` is the required exit. `b.reference('fall')` loads a same-rig reference when the brief defines it.
+`clip.pose(tick)` returns a pose. Install an edited copy with `clip.set_pose(tick, pose)`.
 
-- `p = entry.copy()`. `p.pos('LeftHand')` gives the char-frame position, `p.describe()` key joints.
-- `p.rotate(joint, [r, f, u], degrees)` rotates a joint and its subtree about a char-frame
-  axis through the joint (`frame='local'` uses the joint's own axes).
-- `p.aim(joint, child, [r, f, u])` points the joint-to-child segment along a direction.
-- `p.set_hinge(name, degrees)` sets anatomical flexion from the straight bind pose for
-  `LeftKnee`, `RightElbow`, `LeftIndexKnuckle`, `RightLittleMiddle` and so on. It always
-  bends the correct way.
-- `miss = two_bone(p, 'Left', 'Arm'|'Leg', target=[r, f, u], pole=[r, f, u])` places the
-  hand or foot on the target. The elbow or knee bends only on its hinge and points toward
-  `pole`. A non-zero `miss` (metres) means out of reach: move the shoulder, spine or target.
-- `p2, report = solve(p, joints, targets)` is least-squares IK over the listed joints.
-  Hinge joints keep one degree of freedom. Targets:
-  `{'pos': 'RightHand', 'at': [r, f, u]}`, `{'dir': ['RightHand', 'RightHandMiddle1'], 'along': [...]}`,
-  `{'palm': 'Right', 'along': [...]}`, `{'axis': joint, 'local': [x, y, z], 'along': [...]}`;
-  each target takes an optional `'weight'`. `wrists=45` makes a hand among the joints cost past 45 degrees off its
-  forearm, so the solver turns the forearm, elbow and shoulder instead: use it rather than searching poses for
-  straight wrists. `seed=K[previous_key]` starts from the neighbouring key's solution, so both keys stay on one
-  elbow and roll solution; keys solved separately from one start can flip between them.
-- `p.move_hips([r, f, u])` shifts the hips by an offset in metres. The whole body above the
-  feet moves with them: re-solve planted feet with `two_bone`.
-- `fist(p, 'Left', amount=1.0, thumb=1.0)` closes a hand toward its palm.
-- `p2, report = two_hand_grip(p, blade=[r, f, u], hilt=[r, f, u])` holds the weapon with both
-  hands the way the character's own clips do. The left hand lands exactly on the measured grip,
-  the blade points along `blade` (hilt to tip), and the hilt goes as close to `hilt` as both
-  arms can hold it (`report['hiltFromRequestMetres']`). Use it for every two-handed key; after
-  `Clip.from_keys`, `hold_grip(clip, first, last)` keeps the left hand on the grip between keys. Both keep the
-  wrists under about 45 degrees; `roll=True` also lets the left hand turn about the handle.
-- `two_hand_grip(..., hold='loose', elbows=True)`, for a brief with `"two_hands_hold": "loose"`: the left fist only
-  has to sit on the handle beside the right hand (within 3 cm of its line, up to 40 degrees of tilt, any turn about
-  it, 8-16 cm along it from the right hand on Sir Bonk's plank), and both elbows hang below the shoulders and the
-  hands (`elbows_down`, started from `drop_elbows`). The report then gives `leftHandOffHandleMetres` and
-  `leftHandTiltDegrees`. The exact grip leaves the arms one way to reach it, which can wing an elbow up over the
-  shoulder (Sir Bonk's Barn Door, 2026-10-22); the loose hold lets them take their natural path. `hold_grip`,
-  `carry` and the check take the same `hold`.
-- The game plays the spine, neck, head, collarbones, upper arms and thighs only through their Humanoid
-  muscles: up to about 2.5 times Unity's default ranges, no twist past 85 degrees, and a collarbone never
-  rolls about its own length. `solve`, `two_hand_grip` and `hold_grip` keep to these limits; `rotate` does
-  not, and the check fails a pose past them. If `two_hand_grip` reports the left hand off the grip, that hold
-  is out of reach within them: bring the hilt closer to the chest or turn the chest toward it.
-- The game plays fingers, thumbs and toes only as rotations about their own joint axes.
-  `set_hinge` and `fist` stay on them; after any other edit of a digit (`rotate`, `solve`),
-  call `p.snap_to_humanoid()`.
-- `p.palm_normal('Left')` gives the char-frame direction the palm faces.
+- `p.pos('LeftHand')` returns its character-frame position.
+- `p.rotate(joint, [r, f, u], degrees)` rotates the subtree about a character-frame axis.
+  `frame='local'` uses the joint's own axes. `p.aim(joint, child, direction)` aims a segment.
+- `p.set_hinge('RightKnee', degrees)` sets anatomical flexion from straight. Elbows and finger hinges work too.
+- `miss = two_bone(p, 'Left', 'Arm', target=position, pole=direction)` edits the pose.
+  Use `'Leg'` for a foot. A nonzero miss in metres means the target is out of reach.
+- `pose, report = solve(p, joints, targets, wrists=45, seed=previous_pose)` returns a pose and a list of diagnostic dicts.
+  Targets include `{'pos': 'RightHand', 'at': position}`, `{'palm': 'Right', 'along': direction}`,
+  and `{'dir': ['RightHand', 'RightHandMiddle1'], 'along': direction}`.
+  Seed from the neighbouring key to keep the elbow and roll solution continuous.
+- `p.move_hips([r, f, u])` offsets the hips. Re-solve any planted feet afterwards.
+- `fist(p, 'Left', amount=1.0, thumb=1.0)` closes the hand. `p.palm_normal('Left')` returns its facing.
 
-Block poses top-down: spine and head, then arms with `two_bone`/`solve`, then hands, then
-legs. Re-check positions after each step; spine changes move every limb.
+Pose the spine and head, then arms, hands, and legs. Re-check limb positions after spine edits.
+The game plays the spine, neck, head, collarbones, upper arms, and thighs through Humanoid muscles.
+A collarbone can lift or raise the shoulder but never rolls about its own length.
+`solve` respects those limits. `rotate` can exceed them. Flow composes in muscle coordinates, so it cannot add collarbone roll.
+Fingers, thumbs, and toes rotate only about their own axes. `set_hinge` and `fist` respect those axes.
+After another digit edit, call `p.snap_to_humanoid()`.
 
-## Contacts
+## Block the path
 
-Interpolating keys lets hands slide off a handle and planted points drift. Hold contacts between keys per tick:
+Map the attached reference beats to the brief's ticks. Preserve the clock, entry, exit, and approved intent.
+Match weight, silhouette, and the leading body part. Check timed playback as soon as transitions exist.
 
-- `track(clip, first, last, joints, targets)` re-solves the joints on every tick. Each tick starts from and stays
-  near the previous tick's solution, so the elbow and roll stay continuous; `targets` can be a function
-  `(tick, pose) -> list`. It takes a few seconds for 30 ticks.
-- `pin(clip, first, last, 'bladeEnd', grip='roll')` keeps a point where it is at `first` while the keyed body moves.
-  The arm that carries it follows, and `grip` keeps the other hand on the weapon too. `extra(tick, pose)` adds
-  targets, such as a soft hand position that steers how far the handle rocks.
-- Pin what is physically fixed. A weapon sits rigidly in its hand, so a stuck weapon pins its tip, not the hand:
-  pinning the hand freezes its orientation, and the wrists fold as the body moves around it. A tip pin lets the
-  handle rock with the body and the yanks.
-- Key the first and last tick with the same contact (`two_hand_grip`, or the pin's target), so the tracked
-  stretch starts and ends where the keys are.
-- `hold_grip(clip, first, last)` is `track` for the left hand on the grip.
-- **Two-handed swings: the body turns the weapon.** In a big two-handed swing the arms and weapon move almost as
-  one piece with the chest; most of the sweep comes from the hips and chest turning. Key it that way (the weapon's
-  direction relative to the chest changes far less than its direction in the world), solve the two-handed keys in
-  order with `two_hand_grip(..., seed=K[previous])`, then `carry(clip, keys)`: it interpolates the weapon in the
-  chest's frame and solves both arms on every tick between the keys. Its `landing` report gives, per key, how far the
-  arms arrive from that key's own pose; tens of degrees means the keys hold the arms on different solutions, so
-  re-solve that key from its neighbour instead of searching. Interpolating each arm joint on its own rolls the off
-  hand round the handle (Sir Bonk's Barn Door: 163 degrees in three ticks).
-  `carry(clip, keys, hold='loose', elbows=True, both_ways=True)` also solves each stretch backward from the next key
-  and blends the two passes, so every tick answers to the key after it too: on Barn Door's keys, forward-only arms
-  reached the next key up to 126 degrees off, both ways at most 33 (the fast load-to-swing tick). The weapon's
-  direction and roll are the swing and stay firm; `path` (default 3 per metre) weights its interpolated hilt, and 1
-  lets the hilt give way to the arms (Barn Door: the same arms, the hilt up to 11 cm off its path, so 3 stayed).
+For blocking, `Clip.from_keys(keys, n_ticks)` uses monotone cubic interpolation.
+Identical poses at two keys create a hold. A joint that reverses at a key stops there.
+Add breakdown keys to explain the path. Shortest-path joint interpolation can cross the face or pass behind the body.
+For spins, key every quarter turn or closer. Hips turn right with `p.rotate('Hips', [0, 0, 1], -90)`
+and pitch forward with `p.rotate('Hips', [1, 0, 0], -90)`.
+A fast window permits speed, not an elbow or limb rolling onto a different solution.
 
-## Timeline
+## Flow for one-shots
+<!-- guide: one-shot -->
 
-- `clip = Clip.from_keys({0: entry, 12: load, 18: load, 23: hit, ..., 57: entry, 62: entry}, n_ticks=63)`
-  uses monotone cubic interpolation per joint (smooth, no overshoot). Keying the same pose
-  at both ends holds it. `method='slerp', ease={tick: 'in'|'out'|'inout'}` eases one segment.
-- Add breakdown keys for arcs and overlap (lead with the torso, then let the arms follow).
-- Key the path, not just the ends. Between two distant keys, interpolation takes the shortest
-  joint rotation, which can swing an arm across the face or behind the body. Put breakdown keys
-  where the hands and elbows should pass: a support hand meets the grip in front of the chest,
-  then both hands lift together.
-- Spins and flips turn the hips: `p.rotate('Hips', [0, 0, 1], -90)` turns the body a quarter to
-  its right and `p.rotate('Hips', [1, 0, 0], -90)` pitches it a quarter forward (positive degrees
-  turn left and lean back). Between two keys a joint turns the shorter way, so key every quarter
-  turn or closer; the spline keeps the turn smooth across keys, any number of turns.
-- Loops: `Clip.from_keys(keys, n_ticks, cycle=(first, last))` makes ticks `first`..`last` a seamless
-  cycle. Key the same pose at both ends; the keys between follow a periodic spline, so the motion keeps its
-  speed when the game wraps from `last` back to `first` (it can overshoot a little between keys, which reads
-  as follow-through). Keys before `first` form a build-up that arrives with the loop's velocity. Offset the
-  torso, head, arm and leg keys in time so they don't all peak on the same tick, and keep full turns out of
-  a loop. The check fails a seam that doesn't close or that jerks harder than the loop itself.
-- Two-handed holds read best where the arms frame the head rather than cross the face. The check
-  warns when arms or a weapon hide the face from the front for several ticks; a character whose
-  head sits below its shoulders hides it in any overhead hold, so judge that from the renders.
-- Snaps fail the check: more than 35 degrees per tick in one joint outside the brief's fast
-  windows, or more than 90 inside them (a one-frame jump, not speed). Spread a fast strike over
-  its window with breakdown keys, and ease out of the entry pose instead of jumping to the first key.
-- Flips fail too: an arm or leg bone rolling about its own length by more than 60 degrees in one tick or 120 in
-  three, even in a fast window. A flip is not speed: two neighbouring keys landed on different elbow or roll
-  solutions. Solve the key from its neighbour (`seed=`), or hold the stretch with `track`/`pin`; slowing the motion
-  only shows the roll for longer.
-- `clip.positions('LeftHand')` gives a (ticks, 3) path; `clip.pose(t)` gives a Pose;
-  `clip.angular_speed()` gives degrees per tick.
+<a id="flow-one-shot-moves"></a>
 
-## Life (secondary motion)
-
-A loop or big move reads robotic when the limbs work but the body around them stays rigid or rides the hips in one
-piece. The check warns about that (`life`). Use those warnings to inspect visible mechanics; they do not require
-polish when the intended personality and motion already read. Motion can travel through the body:
-
-- **Pelvis:** in steps it turns 5-10 degrees toward the forward leg, tilts 3-6 degrees down on the swing-leg side
-  and shifts 2-5 cm over the stance foot.
-- **Chest:** counter-rotates against the pelvis (5-12 degrees). It folds a few degrees forward into each landing to
-  absorb the drop and straightens on the push-off.
-- **Head:** steadier than the body. It partly counters the chest's turn and trails the chest by 2-3 ticks. Its bob
-  is smaller and later than the hips'.
-- **Collarbones:** lift and roll 3-8 degrees with an arm that swings or carries.
-- **Arms:**
-  - Swing in arcs: the elbow leads, then the forearm and hand trail.
-  - A carrying arm still bounces, and what it holds settles a few ticks after the body.
-  - On a big character, keep the elbows and hands clear of the torso; a swing that hugs the belly reads stiff.
-- **Feet:** the heel lands, the foot rolls flat, and the toes bend 20-40 degrees at push-off. The ankle flexes
-  through the stance.
-- **Asymmetry:** the two sides need not mirror exactly. Small differences read alive.
-
-Key the big beats first. Then add follow-through with
-`clip = clip.overlap({'LeftForeArm': 1.5, 'LeftHand': 3, 'Neck': 1, 'Head': 2.5}, cycle=(0, 44))`. Each listed
-joint's local rotation plays that many ticks late; delays add up along a chain, and in a loop they wrap inside the
-cycle. Re-check planted feet, held weapons and clearances afterwards.
-
-## Flow (one-shot moves)
-
-Hand-made attacks never stop much of the body at once and never park it. Keying a pose for the whole body on one
-tick, interpolating, and repeating a pose to hold it does both: every joint that turns back halts on the key's tick,
-and holds go dead. The check measures it against 44 hand-made attacks (`flow` warnings; `./genra` reports the
-numbers) and the review shows a speed map. Scores are advisory: judge the visible motion and the intended vibe.
-Do not add arbitrary sway to reduce counted stops, chase imperceptible offsets, or smooth away an intentional hold
-or strike. A `chatter` warning names a short burst of repeated knee, elbow, wrist or foot reversals; inspect it for
-solver jitter at game speed. A fast window can permit a spin while its legs still jitter. Intentional shaking is
-allowed. If the motion needs a repair, useful approaches include:
-
-- **Stagger the arrivals.** At a big pose (the end of a strike, a landing), the hips arrive first, the chest a tick
-  later, the arms one to two ticks after it and the head last. Key those parts at their own ticks, or `Clip.overlap`
-  the joints that carry no contact (neck, head, the free arm, 1-2.5 ticks). The approved-key check lets the body meet
-  its key pose up to two ticks early or late; a weapon keeps its tick.
-- **Moving holds.** When a hold should keep breathing, key the
-  hold's end a few degrees on from its start (the chest still sinking and twisting, the head settling, the free arm
-  drifting), so the body moves slowly through the hold instead of stopping in it. A hold that goes out and back
-  stops at its turn: drift one way.
-- **Recover in waves.** Leaving a pose, the hips lead, the chest and arms follow, and the head comes last.
-- **A settle that gives.** Before the exit hold, ease into the final pose with a small overshoot in the chest and the
-  weapon, not by sliding into it.
+Start with `clip, report = flow(b)`, then `print(report)` and `clip.save('result.json')`.
+With approved keys, the runner already seeds this result and writes `flow.txt`.
+Use the toolkit instead of rebuilding interpolation, hinge curves, or settling in scratch helpers.
+Normals default to a plain, short recovery. Put personality in the move. Specials can carry more acting.
 
 ### Passing through keys
 
-Most counted stops come from interpolation, not from the keys. `Clip.from_keys` uses a monotone spline, so its
-slope is zero wherever a joint turns back at a key: that joint stops on every such key, and so does every other
-joint that turns back there. FightGuy's Flip Kick flow pass (owner: "really good", 2026-11-01) cut stops from 1.52 to
-0.39 a second and kept every approved key within 1.4 cm. It worked like this:
+`flow(b)` lands every approved key exactly on its tick. It uses Catmull-Rom tangents, knee and elbow turnover,
+arcs at reversal keys, ordered settle, and speed-driven finger curl. The entry and exit contract still applies.
+Without approved keys, pass your authored poses as `flow(b, keys=keys)`.
+Flow refuses an ambiguous turn near 180 degrees between keys and asks for a breakdown key.
+Add a pose that states the intended turn. Do not force a winding direction by changing quaternion signs.
 
-- **Tangents through the keys.** Interpolate each body joint with Catmull-Rom tangents (slope from the key before
-  to the key after), so the joint is still moving when it lands on its key. Arrive at the exit pose with a little
-  of the next clip's own motion instead of a dead stop.
-- **Hinges on their own curves.** Drive each knee and elbow by its bend angle through its own keys. Where a hinge
-  reverses, give it a small slope in and out (about 0.5 degrees per tick) so it turns over crisply instead of
-  parking. A hinge that must hold (a locked kicking leg) can give a degree or two without visibly bending.
-- **A wave up the spine.** Between keys, the spine arches ahead of a turn and curls into a tuck. Spine, Spine1,
-  Spine2, Neck and Head each run about a tick behind the one below.
-- **Drift in arcs.** Add a small drift to the free arms, collarbones, hands and feet between keys (3-8 degrees). Add
-  a second curve on another axis that is zero on the keys and steepest between them, so each out-and-back becomes a
-  small loop that never stops at its peak.
-- **Lag between keys, not on them.** A delay that peaks halfway between two keys and returns to zero on each
-  (shoulder 0.6, upper arm 1, forearm 1.8 and hand 2.6 ticks; spine 0.5 to head 1.5) lets the chain trail while every
-  key still lands. Use less lag in a fast swing.
-- **An ordered settle.** The hips over-rotate a few degrees past the recovered pose first. The chest, head and hands
-  follow 1-6 ticks later, then everything eases into the exit pose.
-- **Fingers follow the arms.** Fingers curl a few degrees with the arm's speed, about two ticks late.
+First inspect the default take. Then change only the dials needed for the move.
+Defaults come from `PRESETS` by brief purpose. `tangents` scales through-key slopes.
+`turnover` is hinge speed in degrees per tick at reversals. `arcs` scales the pass-around at reversal keys.
+`settle` scales ordered recovery, and `fingers` scales curl with arm speed.
+`lag` and `drag` are opt-in. The replay found that key-exact lag can add stops.
 
-`examples/fightguy-flip-kick-flow/` has that run's script, with each technique as a small function.
+```python
+clip, report = flow(b, arcs=0.5, settle=0.25)
+print(report)
+clip.save('result.json')
+```
 
-## Form
+For owner-directed gestures, use `Accent`. Its motion returns to zero on the surrounding keys.
+For example, `Accent('spine', tick=20, degrees=3, axis=(1, 0, 0), wave=1)` adds an arch between keys.
+Choose the tick and amount from this move's direction, then pass `accents=[accent]` to `flow`.
+Stiffness is a valid choice. `holds={'*': [(12, 18)]}` preserves a whole-body hold.
+Use a joint name instead of `'*'` for a local hold. Holds suppress layers and stop on their keys.
+Do not add sway to clear a score or smooth away an impact.
 
-The check measures anatomy and gait the way the roster's approved clips do:
+Read `report.flow_before` and `report.flow_after` as advisory measurements.
+`report.approved` gives drift at each approved tick. `report.clamped` and `report.lost` identify motion limited by Humanoid axes.
+`report.holds`, `report.layers`, and `report.notes` explain what flow retained or changed.
+Inspect the motion at game speed. Flow numbers do not establish quality.
+Run contacts after flow with `carry`, `pin`, `track`, or `hold_grip` as appropriate, then audit keys again with `key_drift`.
 
-- **Wrists:** a hand stays near the line of its forearm. Approved clips bend it under 45 degrees in loops and under 95
-  anywhere; past 105 fails. Aim a fist or a grip by turning the forearm and elbow, never by folding the wrist:
-  `solve(..., wrists=45)` and the grip and contact helpers do that.
-- **Two hands:** on a brief's `two_hands` ticks the other hand closes around the handle beyond the hilt. A hand
-  floating beside the handle fails, even when the two hands are close together. With `"two_hands_hold": "loose"` the
-  check measures the loose hold instead: the fist within its slack and tilt (plus 2 cm and 15 degrees), on the
-  grip's side of the weapon hand.
-- **Gaits** (looping clips whose feet step in turn):
-  - the knees straighten to 6-36 degrees at push-off;
-  - the two steps differ (the roster's legs differ by 4-8 degrees half a cycle apart);
-  - the knee, thigh, elbow, arm, pelvis and chest curves are not plain sine waves;
-  - a forearm keeps a gap from the torso on most of the cycle.
+The retained [Flip Kick example](examples/fightguy-flip-kick-flow/) records the earlier hand-authored pass.
+It is background for the toolkit's mechanics, not a recipe to copy into a new move.
 
-`./genra curves` shows all of these against a reference.
+## Life in loops and idles
+<!-- guide: loop idle locomotion -->
+
+Use `clip, report = flow(b)` with approved keys, or pass your own `keys`.
+The purpose preset keeps settle off for loops. Inspect `print(report)` before changing dials.
+A calm idle needs a slow speed budget and at most one slow gesture.
+Keep deliberate stiffness with `holds`, and treat life and flow numbers as advisory.
+
+For a keyed loop, `Clip.from_keys(keys, n_ticks, cycle=(first, last))` closes the seam with periodic tangents.
+The endpoints must match. Keys before `first` form the build-up.
+For secondary motion, use `clip = clip.overlap({'Neck': 1, 'Head': 2.5}, cycle=(first, last), preserve_ticks=keys)`.
+Delays add along a chain and wrap in the cycle. Preserve approved ticks and re-check contacts and the seam afterwards.
+Collarbones can lift or raise with the arms. Flow uses muscle coordinates and cannot roll them about their length.
+Do not add a gesture merely to reduce frozen-joint counts.
+
+## Gaits
+<!-- guide: locomotion loop -->
+
+For stepping cycles, shift weight over the stance foot. Counter-turn the chest against the pelvis.
+The head can remain steadier. Let the heel land, roll the foot flat, and bend the toes at push-off.
+Keep the elbows and hands clear of the torso. Use purposeful asymmetry rather than plain sine waves.
+The gait checks inspect knee extension at push-off, differences between steps, curves, and forearm clearance.
+Compare `./genra curves result.json --reference reference:run` against a same-rig reference.
+
+## Planted feet
+<!-- guide: planted -->
+
+Save the required foot positions before editing the hips or spine.
+After flow, re-solve planted legs with `two_bone` on each contact tick.
+Keep the pole direction consistent. A reach miss needs a torso or target adjustment.
+Use `track` for a contact target that must remain fixed through an interval.
+Check foot drift after overlap or any later body edit.
+
+## Contacts and continuity
+<!-- guide: contact -->
+
+Run contacts after flow. `report = track(clip, first, last, joints, targets)` edits the clip and returns a dict.
+Targets can be a function `(tick, pose) -> list`. It seeds each tick from its neighbour.
+`pin(clip, first, last, 'bladeEnd', grip='roll')` keeps that point where it was at `first`.
+Pin the physically fixed point. A stuck weapon pins its tip so the handle can rock.
+Pinning the carrying hand freezes its orientation and can fold the wrists as the body moves.
+Key both ends with the same contact. Re-check approved-key drift after solving.
+
+When a grip or contact check fails, save and run `./genra continuity result.json` before retrying. Inspect the implicated interval's landing, roll, limit and reach diagnostics. Use `--keys a,b --replay-carry` for one bounded solver replay. Large key turns indicate risks, not confirmed flips. Save after each verified fix. If the runner plateaus, continue from the summary's nextTask.
+
+## Two-hand grips
+<!-- guide: two_hands -->
+
+Import `two_hand_grip`, `carry`, and `hold_grip` from `genra.solve`.
+`pose, report = two_hand_grip(p, blade=direction, hilt=position, seed=previous_pose)` solves a key.
+For `two_hands_hold: loose`, pass `hold='loose'` and `elbows=True`.
+The left fist may slide along the handle within the loose hold's tilt and distance bounds.
+An exact grip places it on the measured grip. A nearby hand floating beside the handle fails.
+
+Let the chest turn the weapon in a two-handed swing. Solve keys in order from their neighbours.
+After flow, `report = carry(clip, keys, both_ways=True)` interpolates the weapon in the chest frame and solves both arms.
+For loose holds, also pass `hold='loose', elbows=True`. Inspect its `landing` report before another solve.
+`report = hold_grip(clip, first, last)` maintains the off-hand contact alone.
+These functions edit the clip. They return reports, not replacement clips.
+
+## Weapon paths
+<!-- guide: weapon -->
+
+Read the weapon direction from hilt to tip. Keep wrists near the forearm line by turning the chest, shoulders, and elbows.
+Do not fold the wrist to aim the weapon. Inspect the face and both hands when the weapon crosses the body.
+Re-check held weapons and clearances after secondary motion.
 
 ## Weapon arcs
+<!-- guide: arc -->
 
-- For a weapon normal the weapon is the hitbox, so its arc over the active ticks is the move (owner, 2026-10-22). A
-  brief's `arc` targets count the defender positions (the hit report's grid: 2.5 m behind to 3.5 m ahead, feet 0-3 m
-  up) the weapon's capsule touches over the window, against the game's own hurtboxes; `./genra check` reports them.
-  Sweep the weapon through the whole window: a weapon parked still for half of it covers a narrow column and fails
-  them (Sunrise's first keys: the plank held up overhead touched 151 positions against the old rising slash's 266).
-  `hitarc.py --out arc.png` draws where it hits.
+For a weapon normal, its swept capsule during the active window determines who it hits.
+The brief's `arc` targets count defender positions touched against game hurtboxes.
+Sweep through the whole window. A parked weapon covers a narrow column.
+`./genra check result.json` reports coverage. `hitarc.py --out arc.png` draws the hit region.
 
 ## Check and look
 
-- While solving numerical problems, use `./genra check result.json --fast`, or
-  `check_clip(clip, b.check_spec(), mode='fast')`. This keeps clock, entry/exit, planted
-  feet, anatomy, Humanoid limits, grip, approved keys, snaps, flips and numeric targets.
-  It skips mesh clearances, face visibility and the gait's forearm-to-torso mesh gap;
-  the CLI also skips automatic sheet/motion renders. `FAST PASS` is iteration evidence
-  only. Run `./genra check result.json` and inspect the renders at a meaningful pose
-  checkpoint and before delivery. Do not rerun full geometry checks after every
-  numerical adjustment; do rerun them after changes to poses or contacts are ready to judge.
-- `print(format_report(check_clip(clip, b.check_spec())))` checks the clock, the exact
-  entry and exit poses, fixed bone lengths and scales (only the hips translate), every knee,
-  elbow and finger bend direction, joint and finger rotations the game can play, snaps and flips, region clearances,
-  a face hidden behind the arms, a second hand off the handle, approved key poses, and the brief's numeric targets.
-- `contact_sheet(clip, ticks, views=b.review_views, path='sheet.png')` renders flat-shaded
-  frames. `b.review_views` is profile, front and the three-quarter view from the striking
-  side: behind that shoulder, 35 degrees to the side and 20 degrees up. Other views:
-  `three-quarter-left`/`-right`, `back`, `top`, and `gameplay` (the match camera, straight
-  behind). Colours: left upper arm, forearm and hand are blue, dark blue and yellow; right
-  ones are red, dark red and orange; legs are green and purple; weapons are pale grey.
-- Report details: `report['failures']` and `report['warnings']` are dicts with `check`,
-  `message` and fields such as `joint`, `ticks`, `pair` and `tick`.
-  `report['metrics']['closestMetres']` maps every region pair (`'LeftHand-Head'`, ...) to
-  `[metres, tick]`. For one pose: `skin = Skin(rig)` (from `genra.skin`), then
-  `skin.clearances(pose.world())`. Pass `skin=skin` to `check_clip` to reuse it. Regions
-  are Head, Torso, Left/Right UpperArm, ForeArm, Hand, Leg and Foot.
-- `motion.png` has two rows (entry to contact, contact to the end) of ghosted poses with the
-  paths of the hands (yellow left, orange right), elbows (blue left, red right) and blade tip
-  (white), one dot per tick; right-hand ticks are numbered. Spacing is speed: a lone long
-  segment is a snap. Paths should be clean arcs that suit the action, with hands travelling in
-  front of the body and never crossing the face, unless the brief asks for it.
-- Fix every failure. Before saving, look at the contact pose and the hands up close:
-  `./genra sheet result.json --ticks 23 --views front,profile --size 400 --span 0.8 --center 0,0.2,-0.1 --out close.png`
-  (`--center` is the char-frame point at the middle of the image; without `--span`/`--center` the
-  framing fits the shown poses).
+Use `./genra check result.json --fast` during numerical iteration.
+It keeps timing, entry and exit, anatomy, contacts, approved keys, snaps, flips, and targets.
+It skips mesh checks and automatic renders. Run full `./genra check result.json` at pose checkpoints and delivery.
+The full command writes `sheet.png` and `motion.png`. View PNGs with the Read tool.
+
+- `./genra sheet result.json --ticks 12,23 --views front,profile --out look.png` shows selected poses.
+- `./genra closeup result.json --ticks 12,23` frames the hands with held weapons hidden.
+- `./genra motion result.json --range 0-12` shows a bounded path.
+- `./genra curves result.json` plots joint curves. `./genra contacts result.json` lists foot landings.
+- `clip.positions('LeftHand')` returns a path. `clip.angular_speed()` returns degrees per tick.
+
+The check's `report['failures']` and `report['warnings']` contain dicts with `check`, `message`, and implicated joints or ticks.
+A fast pass is iteration evidence only. Inspect timed playback and full renders before delivery.
+Wrists must stay near the forearm line. Humanoid limits and digit axes must remain playable.
+Repair snaps in the responsible interval. A large key turn alone does not prove a flip.
+Save each verified fix. Keep the best take and report unresolved constraints if the runner stops.
 
 ## Output contract
 
-Save the final clip with `clip.save('result.json')` and run `./genra check result.json`.
-Reply in at most 8 lines: the approach, the check result, and any remaining weakness.
+Save `clip.save('result.json')` and run `./genra check result.json`.
+Reply in at most 8 lines with the approach, check result, and remaining weakness.
 Do not paste animation data or code into the reply.

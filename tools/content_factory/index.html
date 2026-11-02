@@ -4,6 +4,11 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Slop Factory</title>
+<link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32.png">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<link rel="manifest" href="/manifest.webmanifest">
+<meta name="theme-color" content="#ffcc22">
+<meta name="apple-mobile-web-app-title" content="Slop Factory">
 <style>
 @font-face{font-family:"Archivo Black";src:url(/font.ttf) format("truetype");font-display:block}
 *{box-sizing:border-box;margin:0;padding:0}
@@ -68,7 +73,7 @@ table.list input{width:80px;border:2px solid #1b1a18;padding:2px 4px}
 .tabrun{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:14px}.tabrun span{font-size:13px}
 .check-card{align-self:start}
 .check-card img,.check-card .noimg{aspect-ratio:16/9}
-.check-card .t{font-size:16px}.check-card .meta{display:flex;gap:6px;flex-wrap:wrap;align-items:center;padding:4px 8px 8px}
+.check-card .t{font-size:16px}.check-id{color:#8a8578;font-weight:800}.check-card .meta{display:flex;gap:6px;flex-wrap:wrap;align-items:center;padding:4px 8px 8px}
 .check-card .chip{margin:0}.chip.qa-pass{background:#2f9e44;color:#fff}.chip.qa-partial{background:#ffcc22;color:#1b1a18}.chip.qa-fail{background:#b22;color:#fff}
 .notes div.qa{border-left-color:#2f9e44}.age{font-size:12px;color:#625f58}
 .thread{display:flex;align-items:center;gap:6px;background:#f0eee8;border:2px solid #1b1a18;padding:4px 6px;font-size:12px;min-width:0;max-width:100%;margin:0 0 8px}
@@ -305,7 +310,7 @@ function checkCard(d) {
   const poster = img ? `<img src="${img}" alt="" loading="lazy">` : d.media.length ? `<div class="noimg">▶ Video attached</div>` : "";
   return `<div class="card check-card ${open === d.id ? "sel" : ""}" role="button" tabindex="0" onclick="showCheck(${d.id})"
     onkeydown="if(event.target===this && ['Enter',' '].includes(event.key)){event.preventDefault();showCheck(${d.id})}">${poster}
-    <div class="t">${esc(d.title)}</div><div class="meta">${d.area ? `<span class="chip">${esc(d.area)}</span>` : ""}
+    <div class="t"><span class="check-id">#${d.id}</span> ${esc(d.title)}</div><div class="meta">${d.area ? `<span class="chip">${esc(d.area)}</span>` : ""}
     ${d.thread ? `<span class="chip" title="${esc(d.thread_title || d.thread)}">Thread</span>` : ""}
     ${d.qa ? `<span class="chip qa-${esc(d.qa)}">QA ${esc(d.qa)}</span>` : ""}
     <time class="age" datetime="${esc(d.created)}" title="${esc(d.created)}">${age(d.created)}</time></div></div>`;

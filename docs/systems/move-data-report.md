@@ -129,6 +129,9 @@ Each character gets `<char>.md` and `<char>.json`:
   compressed to fit the move timing and the swing crosses the front in very few ticks.
 - **Active ticks / touch at 1 m** — active ticks, and how many of them touch a target
   standing 1 m ahead. A long window with few touching ticks spends its time behind or above.
+- **Swing** — per anchored hitbox, rotation inside the swept active window as a share of
+  the surrounding move, pre-window and in-window peaks, and parked ticks. Flags expose
+  swings that peak before the hitbox opens or barely move while it is active.
 - **Reach** (ground normals) — real-simulation starting distances, 0.30–4.50 m in 5 cm
   steps, that connect, at 0° and 30° bearing; "same" at 30° means startup aim correction
   removes that sideways error.

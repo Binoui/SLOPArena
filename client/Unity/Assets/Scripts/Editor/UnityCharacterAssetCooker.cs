@@ -631,6 +631,7 @@ public static class UnityCharacterAssetCooker
         Add(p.Fall, "character.presentation.fall");
         Add(p.Crouch, "character.presentation.crouch");
         Add(p.Slide, "character.presentation.slide");
+        Add(p.WallJump, "character.presentation.wallJump");
         Add(p.Shell, "character.presentation.shell");
         Add(p.Flying, "character.presentation.flying");
         Add(p.MayhemLaugh, "character.presentation.mayhemLaugh");

@@ -36,7 +36,16 @@ namespace SlopArena.Shared.Abilities
             s.AttackElapsedTicks = 0;
             s.IsFastFalling = false;
             ClearVelocityOwnership(ref s);
+            TurnWithStick(ref s, ActivationInput);
             SetVelocityInFacing(ref s, _parameters.ForwardSpeed);
+        }
+
+        private static void TurnWithStick(ref CharacterState s, in InputState input)
+        {
+            if (!RecoveryTurn.TryStickYaw(input, out float yaw))
+                return;
+            s.FacingYaw = yaw;
+            s.AttackCorrectionActive = false;
         }
 
         public override void Tick(ref CharacterState s, ref InputState input, CharacterDefinition def)
@@ -46,6 +55,9 @@ namespace SlopArena.Shared.Abilities
             _ticks++;
             if (_ticks > _parameters.DurationTicks)
                 return;
+            // Tick 1 is the press tick itself; ticks 2 and 3 are the two after it.
+            if (_ticks <= RecoveryTurn.WindowTicks)
+                TurnWithStick(ref s, input);
             // Movement integrates before ability ticks: brake after the last travel step.
             // Recovery must leave gravity and externally applied velocity alone.
             if (_ticks == _parameters.DurationTicks)

@@ -524,5 +524,80 @@ class RunnerAndChatterTests(unittest.TestCase):
         self.assertEqual(code, 130)
 
 
+class GuideRoutingTests(unittest.TestCase):
+    def guide(self, **facts):
+        from genra.run import guide_for_brief
+        return guide_for_brief({'name': 'routing-test', **facts})
+
+    def test_all_purposes_keep_authoring_and_delivery_constraints(self):
+        for purpose in ('attack', 'special', 'other', 'idle', 'locomotion', 'loop'):
+            with self.subTest(purpose=purpose):
+                guide = self.guide(purpose=purpose)
+                for heading in ('Run and save', 'Load and pose', 'Block the path', 'Check and look', 'Output contract'):
+                    self.assertIn('## ' + heading, guide)
+                self.assertNotIn('<!-- guide:', guide)
+
+    def test_one_shots_get_flow_without_unrelated_recipes(self):
+        for purpose in ('attack', 'special', 'other'):
+            with self.subTest(purpose=purpose):
+                guide = self.guide(purpose=purpose)
+                self.assertIn('clip, report = flow(b)', guide)
+                self.assertIn('### Passing through keys', guide)
+                for heading in ('Life in loops', 'Gaits', 'Contacts and continuity', 'Two-hand grips', 'Weapon paths', 'Weapon arcs'):
+                    self.assertNotIn('## ' + heading, guide)
+
+    def test_idle_and_cycle_purposes_get_overlap_with_preserved_keys(self):
+        for purpose in ('idle', 'locomotion', 'loop'):
+            with self.subTest(purpose=purpose):
+                guide = self.guide(purpose=purpose)
+                self.assertIn('preserve_ticks=keys', guide)
+                self.assertNotIn('## Flow for one-shots', guide)
+                self.assertEqual('## Gaits' in guide, purpose != 'idle')
+
+    def test_loop_fact_overrides_one_shot_special_direction(self):
+        guide = self.guide(purpose='special', loop={'from_tick': 12})
+        self.assertIn('## Life in loops', guide)
+        self.assertNotIn('## Flow for one-shots', guide)
+
+    def test_purpose_inference_and_explicit_override_use_the_same_routes(self):
+        inferred = self.guide(name='fighter-g1-punch')
+        self.assertIn('## Flow for one-shots', inferred)
+        self.assertIn('## Life in loops', self.guide(name='fighter-idle'))
+        self.assertNotIn('## Life in loops', self.guide(name='fighter-idle', purpose='attack'))
+
+    def test_planted_feet_get_contacts_without_weapon_recipes(self):
+        guide = self.guide(purpose='attack', planted=['LeftFoot'])
+        self.assertIn('## Planted feet', guide)
+        self.assertIn('./genra continuity result.json', guide)
+        self.assertNotIn('## Two-hand grips', guide)
+        self.assertNotIn('## Weapon paths', guide)
+
+    def test_two_hands_get_carry_and_continuity_without_arc_targets(self):
+        guide = self.guide(purpose='attack', two_hands=[0, 20])
+        self.assertIn('## Two-hand grips', guide)
+        self.assertIn('## Contacts and continuity', guide)
+        self.assertIn('## Weapon paths', guide)
+        self.assertNotIn('## Weapon arcs', guide)
+
+    def test_weapon_facts_and_arc_targets_select_only_needed_recipes(self):
+        for facts in ({'weapon': 'sword'}, {'strike': ['bladeEnd']},
+                      {'targets': [{'kind': 'distance', 'a': 'bladeHilt'}]}):
+            with self.subTest(facts=facts):
+                guide = self.guide(purpose='attack', **facts)
+                self.assertIn('## Weapon paths', guide)
+                self.assertNotIn('## Weapon arcs', guide)
+                self.assertNotIn('## Two-hand grips', guide)
+        guide = self.guide(purpose='attack', targets=[{'kind': 'arc'}])
+        self.assertIn('## Weapon arcs', guide)
+        self.assertIn('## Weapon paths', guide)
+        self.assertIn('## Contacts and continuity', self.guide(contacts=[{'joint': 'LeftHand'}]))
+
+    def test_scratch_api_names_flow_and_continuity(self):
+        from genra.run import api_reference
+        reference = api_reference()
+        for signature in ('## flow(', '## Accent(', '## continuity_report('):
+            self.assertIn(signature, reference)
+
+
 if __name__ == '__main__':
     unittest.main()

@@ -1,4 +1,6 @@
+using System;
 using System.Collections.Generic;
+using System.Text.Json;
 using System.Linq;
 using Xunit;
 
@@ -110,5 +112,86 @@ public sealed class HitReliabilityReportTests
         HitReliability.Flag(move);
 
         Assert.Equal("misses Manki closer than 0.75 m", Assert.Single(move.Flags));
+    }
+
+    [Fact]
+    public void Swing_FlagsTheUnsweptTurnIntoTheFirstActiveTick()
+    {
+        var (move, _) = SwingMove(t => t < 10 ? 0 : 90 + (t - 10) * 10);
+        var swing = Assert.Single(move.Swing);
+        Assert.Equal(10, swing.PrePeakTick);
+        Assert.InRange(swing.PrePeakDegrees, 89.9f, 90.1f);
+        Assert.InRange(swing.InPeakDegrees, 9.9f, 10.1f);
+        Assert.InRange(swing.InsideShare, 0.076, 0.078); // 20 degrees inside / 260 degrees through tick 27.
+        Assert.Contains(move.Flags, x => x.StartsWith("swing peaks before the hitbox (t10,"));
+        Assert.Equal(0, swing.ParkedTicks);
+    }
+
+    [Fact]
+    public void Swing_EvenTurnThroughTheWindowHasNoSwingFlagsAndSerializesNamedFields()
+    {
+        var (move, identity) = SwingMove(t => t * 10);
+        var swing = Assert.Single(move.Swing);
+        Assert.InRange(swing.InsideShare, 2.0 / 27 - 0.001, 2.0 / 27 + 0.001);
+        Assert.Empty(swing.Flags);
+        Assert.DoesNotContain(move.Flags, x => x.Contains("parked") || x.StartsWith("swing peaks"));
+        using var json = JsonDocument.Parse(new HitReliabilityDocument(identity, new[] { move },
+            HitReliabilityTargets.Load(), DateTime.UnixEpoch).ToJson());
+        var row = json.RootElement.GetProperty("moves")[0].GetProperty("Swing")[0];
+        Assert.InRange(row.GetProperty("InPeakDegrees").GetSingle(), 9.9f, 10.1f);
+        Assert.True(row.TryGetProperty("InsideShare", out _));
+    }
+
+    [Fact]
+    public void Swing_StillPlankReportsParkedTicksExcludingTheFirstActiveTick()
+    {
+        var (move, _) = SwingMove(_ => 0);
+        var swing = Assert.Single(move.Swing);
+        Assert.Equal(2, swing.ParkedTicks);
+        Assert.Equal(0, swing.InsideShare);
+        Assert.Contains("2 of 3 active ticks parked", move.Flags);
+    }
+
+    [Fact]
+    public void Swing_TranslatingSingleBoneCapsuleUsesTipTravelToAvoidParkedFlag()
+    {
+        var (move, _) = SwingMove(_ => 0, singleBone: true);
+        var swing = Assert.Single(move.Swing);
+        Assert.Equal("_hilt", swing.Anchor);
+        Assert.Equal(0, swing.ParkedTicks);
+        Assert.Empty(swing.Flags);
+    }
+
+    private static (MoveReliability Move, MatchContentIdentity Identity) SwingMove(Func<int, float> angle, bool singleBone = false)
+    {
+        var entry = BuiltInContentResolver.Resolve(CharacterClass.FightGuy);
+        var slots = entry.Definition.CookedSlots!.ToArray();
+        slots[7] = new CookedSlotDefinition(7, "air.1", true, "Synthetic swing", "", "",
+            AuthoringAbilityBehavior.MeleeCombo, AuthoringAimMode.None, 0, false, false,
+            new CookedTimeline(new[]
+            {
+                new CookedStage(40, 0, 0, 0, 0, new[] { "swing" }, new CookedTimelineOperation[]
+                {
+                    new CookedSpawnHitboxOperation(10, AuthoringUnit.Meters,
+                        new CookedHitbox(AuthoringHitboxShape.Capsule, .1f, 0, 0, 0, 0, 0, singleBone ? 1 : 0,
+                            "_hilt", singleBone ? null : "_tip", 1, 0, 0, 0, 0, 3, true, 0)),
+                }),
+            }));
+        var poses = new BakedAnimationData
+        {
+            BoneNames = new[] { "_hilt", "_tip" },
+            Animations = new[] { new BakedAnimationData.BakedAnim
+            {
+                Name = "swing", Frames = Enumerable.Range(0, 40).Select(t =>
+                {
+                    float radians = angle(t) * MathF.PI / 180;
+                    float x = singleBone ? t * 0.2f : 0;
+                    return (IReadOnlyList<float>)new[] { x, 0, 0, x + MathF.Sin(radians), 0, MathF.Cos(radians) };
+                }).ToArray(),
+            } },
+        };
+        CanonicalSlotProjection.TryGet(true, "1", out var slot);
+        return (HitReliability.Measure(entry.Definition with { CookedSlots = slots }, poses, slot,
+            HitReliabilityTargets.Load())!, entry.Identity);
     }
 }

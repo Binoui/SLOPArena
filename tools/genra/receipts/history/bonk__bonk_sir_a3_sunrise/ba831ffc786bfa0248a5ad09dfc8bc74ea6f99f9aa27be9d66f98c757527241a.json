@@ -1,0 +1,654 @@
+{
+  "schema_version": 1,
+  "move": "bonk-sir-a3-sunrise",
+  "target": "Assets/CharacterPackages/bonk/Animations/bonk_sir_a3_sunrise.anim",
+  "source_asset": "Assets/Art/Experiments/GenRA/bonk/bonk_sir_a3_sunrise_retime_20261101.anim",
+  "source_run": "artifacts/genra-runs/20261022-222003-bonk-sir-a3-sunrise-motion-t3-r0",
+  "revise_parent": null,
+  "keys_run": "artifacts/genra-runs/20261022-213247-bonk-sir-a3-sunrise-t3-r1-repair-keys",
+  "transforms": {
+    "ticks": null,
+    "retime": [
+      [
+        0,
+        0
+      ],
+      [
+        6,
+        6
+      ],
+      [
+        12,
+        14
+      ],
+      [
+        18,
+        16
+      ],
+      [
+        54,
+        54
+      ]
+    ],
+    "alignOrigin": true,
+    "loopTime": false,
+    "grounding": null
+  },
+  "final_check": {
+    "status": "PASS",
+    "scope": "export phase",
+    "flow_metrics": {},
+    "report": {
+      "passed": true,
+      "fastWindows": [
+        [
+          15,
+          34
+        ]
+      ],
+      "failures": [],
+      "maxDegreesPerTick": 38.7
+    }
+  },
+  "clip_sha256": "9e731963a16fcc5826f51949418b50e17f30b62cd316d13a089d805cfe6a5d72",
+  "runs": [
+    {
+      "run": "artifacts/genra-runs/20261022-211651-bonk-sir-a3-sunrise-t3-r0-keys",
+      "stage": "keys",
+      "cost_usd": null,
+      "config_recorded": true,
+      "flow_clean": null,
+      "check": {
+        "mode": "full",
+        "skipped": [],
+        "passed": true,
+        "failures": [],
+        "warnings": [
+          {
+            "check": "clearance",
+            "message": "LeftHand-Head within 0.4 cm at tick 26 (touching or intersecting)",
+            "pair": "LeftHand-Head",
+            "tick": 26
+          },
+          {
+            "check": "clearance",
+            "message": "LeftForeArm-Head within 0.6 cm at tick 26 (touching or intersecting)",
+            "pair": "LeftForeArm-Head",
+            "tick": 26
+          },
+          {
+            "check": "clearance",
+            "message": "RightForeArm-Head within 0.8 cm at tick 33 (touching or intersecting)",
+            "pair": "RightForeArm-Head",
+            "tick": 33
+          },
+          {
+            "check": "clearance",
+            "message": "LeftHand-Torso within 0.3 cm at tick 26 (touching or intersecting)",
+            "pair": "LeftHand-Torso",
+            "tick": 26
+          },
+          {
+            "check": "clearance",
+            "message": "LeftHand-RightHand within 0.1 cm at tick 39 (touching or intersecting)",
+            "pair": "LeftHand-RightHand",
+            "tick": 39
+          },
+          {
+            "check": "clearance",
+            "message": "LeftLeg-RightLeg within 0.7 cm at tick 26 (touching or intersecting)",
+            "pair": "LeftLeg-RightLeg",
+            "tick": 26
+          },
+          {
+            "check": "clearance",
+            "message": "Weapon-Head within 0.3 cm at tick 26 (touching or intersecting)",
+            "pair": "Weapon-Head",
+            "tick": 26
+          },
+          {
+            "check": "clearance",
+            "message": "Weapon-Torso within 0.1 cm at tick 18 (touching or intersecting)",
+            "pair": "Weapon-Torso",
+            "tick": 18
+          },
+          {
+            "check": "clearance",
+            "message": "Weapon-RightLeg within 0.3 cm at tick 12 (touching or intersecting)",
+            "pair": "Weapon-RightLeg",
+            "tick": 12
+          },
+          {
+            "check": "clearance",
+            "message": "Weapon-LeftHand within 0.0 cm at tick 33 (touching or intersecting)",
+            "pair": "Weapon-LeftHand",
+            "tick": 33
+          }
+        ],
+        "metrics": {
+          "entryErrorMetres": 5.595307235682818e-07,
+          "exitErrorMetres": 5.595307235682818e-07,
+          "hipTravelMetres": 0.0,
+          "humanoid digit off-axis (deg)": 2.4930501772303778e-05,
+          "humanoid limits exceeded by (deg)": 5.027486235927262e-05,
+          "maxDegreesPerTick": 0.0,
+          "max roll about a limb bone (deg/tick)": 0.0,
+          "closestMetres": {
+            "LeftHand-Head": [
+              0.0037,
+              26
+            ],
+            "RightHand-Head": [
+              0.076,
+              33
+            ],
+            "LeftForeArm-Head": [
+              0.0056,
+              26
+            ],
+            "RightForeArm-Head": [
+              0.0079,
+              33
+            ],
+            "LeftHand-Torso": [
+              0.0031,
+              26
+            ],
+            "RightHand-Torso": [
+              0.0574,
+              33
+            ],
+            "LeftHand-RightHand": [
+              0.0012,
+              39
+            ],
+            "LeftHand-LeftLeg": [
+              0.3374,
+              12
+            ],
+            "LeftHand-RightLeg": [
+              0.1102,
+              12
+            ],
+            "RightHand-LeftLeg": [
+              0.3432,
+              12
+            ],
+            "RightHand-RightLeg": [
+              0.1178,
+              12
+            ],
+            "LeftLeg-RightLeg": [
+              0.0072,
+              26
+            ],
+            "LeftFoot-RightFoot": [
+              0.2635,
+              26
+            ],
+            "LeftFoot-Torso": [
+              0.0897,
+              12
+            ],
+            "RightFoot-Torso": [
+              0.1122,
+              12
+            ],
+            "LeftHand-LeftFoot": [
+              1.0475,
+              12
+            ],
+            "RightHand-RightFoot": [
+              0.5724,
+              12
+            ],
+            "Weapon-Head": [
+              0.0026,
+              26
+            ],
+            "Weapon-Torso": [
+              0.0013,
+              18
+            ],
+            "Weapon-LeftLeg": [
+              0.2241,
+              5
+            ],
+            "Weapon-RightLeg": [
+              0.0033,
+              12
+            ],
+            "Weapon-LeftHand": [
+              0.0004,
+              33
+            ]
+          },
+          "left hand off the handle (m)": 0.03,
+          "left hand tilt on the handle (deg)": 40.0,
+          "left wrist bend max (deg)": 45.00145211738505,
+          "right wrist bend max (deg)": 45.00846943223942,
+          "load: tip below the hilt (m)": 0.8493077376714413,
+          "load: tip ahead of hips (m)": 1.6118003012156428,
+          "load: chest coiled right (m)": -0.256680022257592,
+          "contact: tip well ahead (m)": 2.4223867027817714,
+          "contact: blade near horizontal (m)": -0.07112078170118585,
+          "overhead: tip above head (m)": 1.9253828393914887,
+          "overhead: hilt outside bucket right (m)": 0.49959856094954047,
+          "overhead: hilt raised (m)": 1.1998887160824068,
+          "overhead: blade passes near vertical (m)": 0.2072512892201363,
+          "finish: tip carried past vertical behind (m)": -1.2868724368176576,
+          "finish: tip remains above head (m)": 1.1429457720380318,
+          "finish: tip still above hilt (m)": 0.7814387722926592,
+          "overhead: chest has unwound left (m)": 0.13979478159513675,
+          "contact: right arm reaching (m)": 0.5256139725737773,
+          "contact: left arm reaching (m)": 0.5757694892000363
+        },
+        "stage": "keys",
+        "keyTicks": [
+          0,
+          5,
+          12,
+          18,
+          20,
+          26,
+          33,
+          39,
+          46,
+          54
+        ],
+        "transitionRisks": [],
+        "checkpointOnly": false
+      }
+    },
+    {
+      "run": "artifacts/genra-runs/20261022-213247-bonk-sir-a3-sunrise-t3-r1-repair-keys",
+      "stage": "keys",
+      "cost_usd": null,
+      "config_recorded": true,
+      "flow_clean": null,
+      "check": {
+        "mode": "full",
+        "skipped": [],
+        "passed": true,
+        "failures": [],
+        "warnings": [
+          {
+            "check": "clearance",
+            "message": "LeftHand-RightHand within 0.1 cm at tick 39 (touching or intersecting)",
+            "pair": "LeftHand-RightHand",
+            "tick": 39
+          },
+          {
+            "check": "clearance",
+            "message": "LeftLeg-RightLeg within 0.7 cm at tick 20 (touching or intersecting)",
+            "pair": "LeftLeg-RightLeg",
+            "tick": 20
+          },
+          {
+            "check": "clearance",
+            "message": "Weapon-Torso within 0.1 cm at tick 18 (touching or intersecting)",
+            "pair": "Weapon-Torso",
+            "tick": 18
+          },
+          {
+            "check": "clearance",
+            "message": "Weapon-RightLeg within 0.5 cm at tick 5 (touching or intersecting)",
+            "pair": "Weapon-RightLeg",
+            "tick": 5
+          },
+          {
+            "check": "clearance",
+            "message": "Weapon-LeftHand within 0.0 cm at tick 20 (touching or intersecting)",
+            "pair": "Weapon-LeftHand",
+            "tick": 20
+          }
+        ],
+        "metrics": {
+          "entryErrorMetres": 5.595307235682818e-07,
+          "exitErrorMetres": 5.595307235682818e-07,
+          "hipTravelMetres": 0.0,
+          "humanoid digit off-axis (deg)": 2.4930501772303778e-05,
+          "humanoid limits exceeded by (deg)": 5.027486235927262e-05,
+          "maxDegreesPerTick": 0.0,
+          "max roll about a limb bone (deg/tick)": 0.0,
+          "closestMetres": {
+            "LeftHand-Head": [
+              0.2068,
+              26
+            ],
+            "RightHand-Head": [
+              0.1902,
+              5
+            ],
+            "LeftForeArm-Head": [
+              0.023,
+              26
+            ],
+            "RightForeArm-Head": [
+              0.1024,
+              20
+            ],
+            "LeftHand-Torso": [
+              0.0575,
+              12
+            ],
+            "RightHand-Torso": [
+              0.1057,
+              12
+            ],
+            "LeftHand-RightHand": [
+              0.001,
+              39
+            ],
+            "LeftHand-LeftLeg": [
+              0.3292,
+              12
+            ],
+            "LeftHand-RightLeg": [
+              0.1308,
+              12
+            ],
+            "RightHand-LeftLeg": [
+              0.3357,
+              12
+            ],
+            "RightHand-RightLeg": [
+              0.1499,
+              12
+            ],
+            "LeftLeg-RightLeg": [
+              0.0074,
+              20
+            ],
+            "LeftFoot-RightFoot": [
+              0.0446,
+              20
+            ],
+            "LeftFoot-Torso": [
+              0.035,
+              12
+            ],
+            "RightFoot-Torso": [
+              0.0266,
+              12
+            ],
+            "LeftHand-LeftFoot": [
+              0.8514,
+              12
+            ],
+            "RightHand-RightFoot": [
+              0.531,
+              12
+            ],
+            "Weapon-Head": [
+              0.0616,
+              0
+            ],
+            "Weapon-Torso": [
+              0.0013,
+              18
+            ],
+            "Weapon-LeftLeg": [
+              0.2241,
+              5
+            ],
+            "Weapon-RightLeg": [
+              0.005,
+              5
+            ],
+            "Weapon-LeftHand": [
+              0.0004,
+              20
+            ]
+          },
+          "left hand off the handle (m)": 0.0322,
+          "left hand tilt on the handle (deg)": 40.0,
+          "left wrist bend max (deg)": 45.00145211738505,
+          "right wrist bend max (deg)": 45.16484395840941,
+          "load: tip below the hilt (m)": 0.8493077376714413,
+          "load: tip ahead of hips (m)": 1.6118003012156428,
+          "load: chest coiled right (m)": -0.256680022257592,
+          "contact: tip well ahead (m)": 2.4223867027817714,
+          "contact: blade near horizontal (m)": -0.07112078170118585,
+          "overhead: tip above head (m)": 1.7972013784347936,
+          "overhead: hilt outside bucket right (m)": 0.6330665640521174,
+          "overhead: hilt raised (m)": 1.1116639080313757,
+          "overhead: blade passes near vertical (m)": 0.33717453813696074,
+          "finish: tip carried past vertical behind (m)": -1.2742401542863127,
+          "finish: tip remains above head (m)": 1.1111013474389217,
+          "finish: tip still above hilt (m)": 0.6381593163228438,
+          "overhead: chest has unwound left (m)": 0.1583285765086495,
+          "contact: right arm reaching (m)": 0.5256139725737773,
+          "contact: left arm reaching (m)": 0.5757694892000363
+        },
+        "stage": "keys",
+        "keyTicks": [
+          0,
+          5,
+          12,
+          18,
+          20,
+          26,
+          33,
+          39,
+          46,
+          54
+        ],
+        "transitionRisks": [
+          {
+            "check": "grip",
+            "message": "the left hand leaves the handle on 4 of ticks 5..39, worst at tick 30 (6.6 cm off its line, tilted 24 deg, 55 cm past the hilt, 17 cm along it from the right hand); place it with two_hand_grip(..., hold='loose') and keep it with carry(..., hold='loose') or hold_grip(..., hold='loose')",
+            "ticks": [
+              28,
+              29,
+              30,
+              31
+            ]
+          }
+        ],
+        "checkpointOnly": false
+      }
+    },
+    {
+      "run": "artifacts/genra-runs/20261022-222003-bonk-sir-a3-sunrise-motion-t3-r0",
+      "stage": "full",
+      "cost_usd": null,
+      "config_recorded": true,
+      "flow_clean": false,
+      "check": {
+        "mode": "full",
+        "skipped": [],
+        "passed": true,
+        "failures": [],
+        "warnings": [
+          {
+            "check": "clearance",
+            "message": "LeftHand-RightHand within 0.1 cm at tick 10 (touching or intersecting)",
+            "pair": "LeftHand-RightHand",
+            "tick": 10
+          },
+          {
+            "check": "clearance",
+            "message": "LeftLeg-RightLeg within 0.7 cm at tick 20 (touching or intersecting)",
+            "pair": "LeftLeg-RightLeg",
+            "tick": 20
+          },
+          {
+            "check": "clearance",
+            "message": "Weapon-Torso within 0.1 cm at tick 6 (touching or intersecting)",
+            "pair": "Weapon-Torso",
+            "tick": 6
+          },
+          {
+            "check": "clearance",
+            "message": "Weapon-RightLeg within 0.2 cm at tick 4 (touching or intersecting)",
+            "pair": "Weapon-RightLeg",
+            "tick": 4
+          },
+          {
+            "check": "clearance",
+            "message": "Weapon-LeftHand within 0.0 cm at tick 14 (touching or intersecting)",
+            "pair": "Weapon-LeftHand",
+            "tick": 14
+          },
+          {
+            "check": "flow",
+            "message": "pose-to-pose stops: joints halt 1.05 times a second each (hand-made attacks 0.05-1.16, nine in ten under 0.62); stagger the arrivals (each body part reaches a big pose 1-3 ticks apart) and key holds as moving holds",
+            "window": [
+              3,
+              45
+            ]
+          },
+          {
+            "check": "flow",
+            "message": "frozen body: 22% of the joint-ticks barely move (hand-made attacks at most 12%); make holds moving holds (key the end of a hold 2-5 degrees on from its start, never the same pose twice) and let the settle give",
+            "window": [
+              3,
+              45
+            ]
+          }
+        ],
+        "metrics": {
+          "entryErrorMetres": 5.597296521029771e-07,
+          "exitErrorMetres": 5.597296521029771e-07,
+          "hipTravelMetres": 0.0,
+          "humanoid digit off-axis (deg)": 2.4930501772303778e-05,
+          "humanoid limits exceeded by (deg)": 0.9026198129779917,
+          "maxDegreesPerTick": 42.801726112165305,
+          "max roll about a limb bone (deg/tick)": 31.46898978335577,
+          "closestMetres": {
+            "LeftHand-Head": [
+              0.1675,
+              24
+            ],
+            "RightHand-Head": [
+              0.1854,
+              4
+            ],
+            "LeftForeArm-Head": [
+              0.0204,
+              28
+            ],
+            "RightForeArm-Head": [
+              0.0642,
+              24
+            ],
+            "LeftHand-Torso": [
+              0.0104,
+              10
+            ],
+            "RightHand-Torso": [
+              0.0435,
+              10
+            ],
+            "LeftHand-RightHand": [
+              0.0013,
+              10
+            ],
+            "LeftHand-LeftLeg": [
+              0.3192,
+              2
+            ],
+            "LeftHand-RightLeg": [
+              0.0862,
+              10
+            ],
+            "RightHand-LeftLeg": [
+              0.3357,
+              12
+            ],
+            "RightHand-RightLeg": [
+              0.0941,
+              10
+            ],
+            "LeftLeg-RightLeg": [
+              0.0074,
+              20
+            ],
+            "LeftFoot-RightFoot": [
+              0.0446,
+              20
+            ],
+            "LeftFoot-Torso": [
+              0.035,
+              12
+            ],
+            "RightFoot-Torso": [
+              0.0219,
+              14
+            ],
+            "LeftHand-LeftFoot": [
+              0.7831,
+              10
+            ],
+            "RightHand-RightFoot": [
+              0.3462,
+              10
+            ],
+            "Weapon-Head": [
+              0.0347,
+              2
+            ],
+            "Weapon-Torso": [
+              0.0006,
+              6
+            ],
+            "Weapon-LeftLeg": [
+              0.2322,
+              4
+            ],
+            "Weapon-RightLeg": [
+              0.0018,
+              4
+            ],
+            "Weapon-LeftHand": [
+              0.0002,
+              14
+            ]
+          },
+          "left hand off the handle (m)": 0.0371,
+          "left hand tilt on the handle (deg)": 40.0,
+          "approved keys moved (m)": 2.338494731302263e-09,
+          "face visible from the front (min)": 0.2744186046511628,
+          "left wrist bend max (deg)": 45.133868009622915,
+          "right wrist bend max (deg)": 68.13373378506203,
+          "life: torso swing (deg)": 10.886223664504811,
+          "flow: stops per joint per second": 1.0465116279069768,
+          "flow: most of the body stopping together (share)": 0.15,
+          "flow: frozen joint-ticks (share)": 0.21976744186046512,
+          "flow: child trails parent (ticks)": 0.45454545454545453,
+          "load: tip below the hilt (m)": 0.8493077376714413,
+          "load: tip ahead of hips (m)": 1.6118003012156428,
+          "load: chest coiled right (m)": -0.256680022257592,
+          "contact: tip well ahead (m)": 2.4223867027817714,
+          "contact: blade near horizontal (m)": -0.07112078170118585,
+          "overhead: tip above head (m)": 1.7972013784347936,
+          "overhead: hilt outside bucket right (m)": 0.6330665640521174,
+          "overhead: hilt raised (m)": 1.1116639080313757,
+          "overhead: blade passes near vertical (m)": 0.33717453813696074,
+          "finish: tip carried past vertical behind (m)": -1.2742401542863127,
+          "finish: tip remains above head (m)": 1.1111013474389217,
+          "finish: tip still above hilt (m)": 0.6381593163228438,
+          "overhead: chest has unwound left (m)": 0.1583285765086495,
+          "contact: right arm reaching (m)": 0.5256139725737773,
+          "contact: left arm reaching (m)": 0.5757694892000363
+        },
+        "checkpointOnly": false
+      }
+    }
+  ],
+  "cost": {
+    "known_usd": 0,
+    "total_usd": null,
+    "completeness": "UNKNOWN",
+    "missing_runs": [
+      "artifacts/genra-runs/20261022-211651-bonk-sir-a3-sunrise-t3-r0-keys",
+      "artifacts/genra-runs/20261022-213247-bonk-sir-a3-sunrise-t3-r1-repair-keys",
+      "artifacts/genra-runs/20261022-222003-bonk-sir-a3-sunrise-motion-t3-r0"
+    ]
+  },
+  "promoted_at": "2026-11-01T15:20:31.991100+00:00",
+  "owner_verdict": null,
+  "owner_date": null,
+  "owner_note": null
+}

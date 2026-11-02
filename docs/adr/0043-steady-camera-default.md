@@ -54,6 +54,14 @@ The owner tuned the prototype live against the CPU and in Slopball, and accepted
    copy with the same holes. When the sight line to the player has been blocked for 0.5 s, Steady
    and Arena drift at 12°/s toward the nearest clear angle within 90° that keeps the target in
    view. Player camera input cancels the drift. The aim camera still pulls in.
+   **Revised 2026-11-01 (owner found the round hole small and confusing; picked take D):** a
+   fighter's hole opens only while stage geometry blocks it (eased in and out). It is an upright oval of
+   the same width all along the sight line. Within 2.5 m in front of the fighter (measured horizontally)
+   the geometry stays as a 35% ghost with a light seat tint and a seat-colour edge; foreground nearer the
+   camera opens fully. Upward faces up to 4 m above
+   the fighter's feet stay solid, so the stage players walk on never vanishes. `FighterXRay` draws a
+   seat-colour silhouette wherever the stage still covers a fighter (fighters render at Geometry+50,
+   after the stage).
 
 ## Consequences
 

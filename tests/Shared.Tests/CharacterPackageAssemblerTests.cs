@@ -12,6 +12,35 @@ namespace SlopArena.Shared.Tests;
 
 public sealed class CharacterPackageAssemblerTests
 {
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void WallJump_LoadsOptionalRoleAndRequiresItsBinding(bool hasWallJump)
+    {
+        string root = FindRepoFile("client/Unity/Assets/CharacterPackages/fightguy");
+        var source = CharacterPackageSourceCodec.Load(File.ReadAllText(Path.Combine(root, "package.json")),
+            File.ReadAllText(Path.Combine(root, "character.json"))).Source!;
+        string animationId = hasWallJump ? "anim.fightguy.wall-jump" : "";
+        source = source with { Character = source.Character with { Presentation = source.Character.Presentation with { WallJump = animationId } } };
+        var compiled = CharacterPackageCompiler.Compile(source, CharacterCookProfile.TrustedBuiltIn).CookedPackage!;
+        var input = BuildInput(compiled, Array.Empty<PackageDependencySource>(), compiled.Definition.CapabilityRequirements, Array.Empty<CharacterDiagnostic>());
+        var loaded = CookedCharacterPackageLoader.LoadAssembly(CharacterPackageAssembler.Assemble(input));
+        Assert.True(loaded.IsValid, string.Join("\n", loaded.Diagnostics));
+        Assert.Equal(animationId, loaded.ToCharacterDefinition().WallJumpAnim);
+        if (!hasWallJump) return;
+        var binding = JsonNode.Parse(input.BindingBytes)!.AsObject();
+        var animations = binding["animations"]!.AsArray();
+        animations.Remove(animations.Single(x => x!["semanticId"]!.GetValue<string>() == animationId));
+        var broken = new CharacterPackageAssemblyInput(
+            input.PackageId, input.Version, input.Creator, input.License, input.Attribution,
+            input.AuthoringSchemaVersion, input.CookedSchemaVersion, input.RuntimeApiMin, input.RuntimeApiMax,
+            input.SourceHash, input.Dependencies, input.CapabilityRequirements, input.CookerVersion, input.UnityVersion,
+            input.BindingSchemaVersion, input.PoseFormat, input.PoseVersion, input.SampleRate, input.Warnings,
+            input.RuntimeBytes, input.PoseBytes, Encoding.UTF8.GetBytes(binding.ToJsonString()), input.CookedPackage);
+        Assert.Contains(CharacterPackageAssembler.Assemble(broken).Diagnostics,
+            x => x.Code == "package.binding.missing" && x.Path == animationId);
+    }
+
     [Fact]
     public void CapsuleEndpointsSurviveCookedAdmissionAndRuntimeAdaptation()
     {
@@ -1330,7 +1359,7 @@ public sealed class CharacterPackageAssemblerTests
     [Theory]
     [InlineData("wibou", "1.15.0", "1.14.0")]
     [InlineData("fightguy", "1.20.0", "1.19.0")]
-    [InlineData("bonk", "1.8.0", "1.7.0")]
+    [InlineData("bonk", "1.22.0", "1.21.0")]
     public void CookedLoaderRestoresParametersAndEnforcesApiFloor(string id, string api, string incompatibleApi)
     {
         string root = FindRepoFile("client/Unity/Assets/CharacterPackages/" + id);
@@ -1415,6 +1444,7 @@ public sealed class CharacterPackageAssemblerTests
             package.Definition.Presentation.AirDodge,
             package.Definition.Presentation.Flying,
             package.Definition.Presentation.MayhemLaugh,
+            package.Definition.Presentation.WallJump,
         })
             if (!string.IsNullOrEmpty(role))
                 names.Add(role);

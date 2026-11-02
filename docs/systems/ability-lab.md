@@ -422,15 +422,14 @@ control identity. Root and timeline focus support Left/Right tick stepping, `Ctr
 `Ctrl+Z`, `Ctrl+Shift+Z`, and Escape drag cancellation; text fields keep their normal editor
 shortcuts.
 
-`Add targeted leap` creates one public `slop.ability.targeted-leap.v1` operation
-and its package capability requirement in the same Undo step. Its Moves inspector
-edits aim/flight limits, range, vertical launch, landing animation seek, recovery,
-and the nested landing hitbox; changes compile into the live draft without saving.
-The seek plus recovery must fit the authored stage, and the hitbox duration must
-fit recovery. Ordinary timeline scrubbing cannot predict the landing frame of a
-variable-length flight: use a recorded Shared scenario to inspect the actual
-landing and impact. `SAVE + COOK` persists the source/cooked package and automatically
-refreshes an existing roster pin. New admission remains a separate accepted-content step.
+`Add targeted leap` creates a public `slop.ability.targeted-leap.v2` operation
+and its package capability requirement in one Undo step. The inspector edits
+Rise/Hang/Drop timing, rise height, tracking range, fallback distance, fall limit,
+held pose, hit landing seek, hit/miss recovery and the landing hitbox.
+The move starts from a tap with no aim hold. Shared tracks the spot during Hang,
+locks it for Drop, and decides landing or Fall. Use a recorded Shared scenario
+for the actual landing and impact. `SAVE + COOK` persists the source/cooked
+package and refreshes an existing roster pin.
 
 `Add charged directional dash` creates public
 `slop.ability.charged-directional-dash.v1`, raises the runtime API minimum to
@@ -444,8 +443,7 @@ stays held until release. Recorded charge previews show tier-coloured endpoint
 rings. Native `capture` without `--charge-ticks` retains a matching recorded
 scenario; explicit `--charge-ticks 0` requests a tap rather than reusing a hold.
 Zero means no held input for every action, including targeted leaps; it never
-silently adds a hold. Use an explicit charge duration (for example 10 ticks) when
-a leap scenario needs to acquire a target before release. Changing the opponent
+silently adds a hold. Targeted leap v2 starts from a tap and tracks its target during Hang. Changing the opponent
 control invalidates the previous run; the next receipt reports the recorded
 distance, opponent behavior and starting damage.
 

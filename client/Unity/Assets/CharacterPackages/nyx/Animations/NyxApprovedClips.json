@@ -222,8 +222,8 @@
       "durationTicks": 720,
       "speed": 1.0,
       "remap": [],
-      "candidateSha256": "7bee5df55371790f156a3ff00827700e334c8f27462a545bd580abe440900407",
-      "approval": "Owner approved 2026-10-29 including real-a2, real-a3, real-e and fake-run check exceptions."
+      "candidateSha256": "1f4eb2b584ba6f09cceb31dd0a5d40ece5617d3916b13ee73886a6b839e01789",
+      "approval": "Owner approved 2026-11-01 GenRA round 1 Nyxxie idle-check. Authoring run artifacts/genra-runs/20261101-005836-nyx-fake-idle-check; previous bound source preserved at Assets/CharacterPackages/nyx/Animations/Source/nyx-fake-idle-pre-20261101.anim. Keep existing gameplay clock and runSpeed."
     },
     {
       "move": "fake-run",
@@ -237,8 +237,8 @@
       "durationTicks": 26,
       "speed": 1,
       "remap": [],
-      "candidateSha256": "7eab9148c774d3883f0c178b76e79b6a26d4df2e7f3081dce4bc4c82509fd53c",
-      "approval": "Owner approved 2026-10-29 including real-a2, real-a3, real-e and fake-run check exceptions."
+      "candidateSha256": "50a72bc4bbad49a40f4053ecc3262eeab0c05aa58d4c221c4e3d3b4b68c855d0",
+      "approval": "Owner approved 2026-11-01 GenRA round 1 Nyxxie run-athlete. Authoring run artifacts/genra-runs/20261101-005836-nyx-fake-run-athlete; previous bound source preserved at Assets/CharacterPackages/nyx/Animations/Source/nyx-fake-run-pre-20261101.anim. Keep existing gameplay clock and runSpeed."
     },
     {
       "move": "fake-g1",

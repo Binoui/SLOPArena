@@ -1,8 +1,12 @@
 ---
-status: accepted
+status: superseded
 ---
 
 # GameHost input Replays with compatible Shared playback
+
+**Superseded (recording and playback) by [ADR-0060](0060-gamehost-replays-world-frames-and-view-track.md), 2026-11-01.**
+Input re-simulation cannot reproduce a Match across runtimes. The delivery parts below are
+deferred to a later decision.
 
 For personal PvP review and bug reports, the GameHost records the exact initial
 Match setup and selected per-tick inputs before simulation consumes them. Shared

@@ -129,7 +129,7 @@ Shader "SLOPArena/StageVertexLit"
 
             half4 Frag(Varyings input, FRONT_FACE_TYPE face : FRONT_FACE_SEMANTIC) : SV_Target
             {
-                StageCutawayClip(input.positionWS, input.positionCS);
+                half4 sightRim = StageCutawayClipRim(input.positionWS, input.positionCS);
                 half3 normalWS = normalize(input.normalWS);
                 normalWS = IS_FRONT_VFACE(face, normalWS, -normalWS);
 
@@ -172,7 +172,7 @@ Shader "SLOPArena/StageVertexLit"
                 }
                 color += albedo * _Emission;
                 color = MixFog(color, input.fogFactor);
-                return half4(color, 1.0h);
+                return half4(StageCutawayApplyRim(color, sightRim), 1.0h);
             }
             ENDHLSL
         }

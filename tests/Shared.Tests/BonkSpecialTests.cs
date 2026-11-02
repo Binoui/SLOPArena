@@ -16,136 +16,6 @@ public sealed class BonkSpecialTests
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
-    public void BonkR_JoustRearsThenGallopsAndUnhorsesTheFirstFighterItMeets(bool airborne)
-    {
-        var bonk = CompileBonk();
-        var baked = LoadBonkPoses();
-        var victimDef = CompileBonk();
-        var sim = TestHelpers.MakeSim();
-        if (airborne)
-            sim.NoGravityEntityId = VictimId;
-        var attacker = TestHelpers.PlayerState(100f, 100f);
-        attacker.PY = airborne ? 50f : TestHelpers.GroundPY(bonk);
-        attacker.IsGrounded = !airborne;
-        attacker.FacingYaw = 0f;
-        var victim = TestHelpers.NpcState(100f, airborne ? 104f : 106f);
-        victim.PY = airborne ? 50f : TestHelpers.GroundPY(victimDef);   // he holds his height through the air mount
-        victim.IsGrounded = !airborne;
-        sim.RegisterEntity(BonkId, bonk, attacker, baked);
-        sim.RegisterEntity(VictimId, victimDef, victim, baked);
-
-        var contacts = new List<(int Tick, SpellResolver.HitResult Hit)>();
-        var z = new List<float>();
-        var stage = new List<byte>();
-        int ended = -1;
-        for (int tick = 0; tick < 300 && ended < 0; tick++)
-        {
-            sim.Tick(new Dictionary<ulong, InputState>
-            {
-                [BonkId] = tick == 0 ? new InputState { ActiveSlot = AbilitySlots.R } : default,
-            });
-            contacts.AddRange(sim.LastTickHits.Where(hit => hit.OwnerEntityId == BonkId && hit.TargetEntityId == VictimId)
-                .Select(hit => (tick, hit)));
-            z.Add(sim.GetState(BonkId).PZ);
-            stage.Add(sim.GetState(BonkId).ComboStage);
-            if (sim.GetActiveAbility(BonkId) == null)
-                ended = tick;
-        }
-
-        var (hitTick, lance) = Assert.Single(contacts);
-        Assert.True(hitTick >= 30, $"the rear is the tell: no lance before the charge (hit at tick {hitTick})");
-        Assert.False(lance.Blocked);
-        Assert.Equal(11f, lance.Damage);
-        Assert.True(sim.GetState(VictimId).DamagePercent > 0);
-        Assert.InRange(z[29] - z[0], -0.05f, 0.05f);        // he rears where he stands
-        Assert.InRange(z[32] - z[30], 0.35f, 0.45f);        // 12 m/s once the charge starts
-        // On the ground the hit ending (the proud rear) plays; on thin air he looks down and drops instead. The
-        // stage's sorted clips: R, gallop, hit, look-down, stop.
-        Assert.Equal(airborne ? (byte)3 : (byte)2, stage[ended - 1]);
-        Assert.True(ended >= hitTick + (airborne ? 20 : 36), $"the ending plays out ({hitTick} -> {ended})");
-        Assert.InRange(z[ended] - z[hitTick + 1], -0.05f, 0.05f);   // stopped dead at the hit
-    }
-
-    [Fact]
-    public void BonkR_ShieldStopsTheJoustShortAndAWhiffGallopsOnThenSkidsWithoutTurning()
-    {
-        var bonk = CompileBonk();
-        var baked = LoadBonkPoses();
-        var victimDef = CompileBonk();
-
-        var shielded = RunJoust(bonk, baked, victimDef, 106f, shield: true);
-        Assert.Equal(0, shielded.FinalDamage);
-        Assert.NotEmpty(shielded.BlockedContacts);
-        Assert.Empty(shielded.DamagingContacts);
-        Assert.True(shielded.EndZ < 106f, $"the shield stops him short (at {shielded.EndZ})");
-
-        var charge = Assert.IsType<CookedSteeredChargeCapabilityParameters>(bonk
-            .GetCookedSlotAbility(AbilitySlots.R, airborne: false)!.Timeline.Stages.Single().Operations
-            .OfType<CookedStartCapabilityOperation>().Single().Parameters);
-        float gallopDistance = charge.GallopSpeed * charge.MaxGallopTicks * Simulation.TickDt;
-        var missed = RunJoust(bonk, baked, victimDef, 100f + gallopDistance + 10f, shield: false);
-        Assert.Equal(0, missed.FinalDamage);
-        Assert.Empty(missed.BlockedContacts);
-        Assert.Empty(missed.DamagingContacts);
-        // The full authored gallop, then an even 18-tick skid from 12 m/s: about 1.9 m more.
-        Assert.InRange(missed.EndZ - 100f, gallopDistance + 0.5f, gallopDistance + 3f);
-        Assert.InRange(missed.EndYaw, -0.01f, 0.01f);       // the owner dropped the turn-round
-    }
-
-    private static (int FinalDamage, SpellResolver.HitResult[] BlockedContacts,
-        SpellResolver.HitResult[] DamagingContacts, float EndZ, float EndYaw) RunJoust(
-        CharacterDefinition bonk, BakedAnimationData baked, CharacterDefinition victimDef,
-        float victimZ, bool shield)
-    {
-        var sim = TestHelpers.MakeSim();
-        var attacker = TestHelpers.PlayerState(100f, 100f);
-        attacker.PY = TestHelpers.GroundPY(bonk);
-        attacker.FacingYaw = 0f;
-        sim.RegisterEntity(BonkId, bonk, attacker, baked);
-        var victim = TestHelpers.NpcState(100f, victimZ);
-        victim.PY = TestHelpers.GroundPY(victimDef);
-        sim.RegisterEntity(VictimId, victimDef, victim);
-
-        var blocked = new List<SpellResolver.HitResult>();
-        var damaging = new List<SpellResolver.HitResult>();
-        for (int tick = 0; tick < 600 && (tick == 0 || sim.GetActiveAbility(BonkId) != null); tick++)
-        {
-            sim.Tick(new Dictionary<ulong, InputState>
-            {
-                [BonkId] = tick == 0 ? new InputState { ActiveSlot = AbilitySlots.R } : default,
-                [VictimId] = shield ? new InputState { ShieldHeld = true } : default,
-            });
-            blocked.AddRange(sim.LastTickHits.Where(hit =>
-                hit.OwnerEntityId == BonkId && hit.TargetEntityId == VictimId && hit.Blocked));
-            damaging.AddRange(sim.LastTickHits.Where(hit =>
-                hit.OwnerEntityId == BonkId && hit.TargetEntityId == VictimId && !hit.Blocked));
-        }
-        Assert.Null(sim.GetActiveAbility(BonkId));
-        var end = sim.GetState(BonkId);
-        return ((int)sim.GetState(VictimId).DamagePercent, blocked.ToArray(), damaging.ToArray(), end.PZ, end.FacingYaw);
-    }
-
-    [Theory]
-    [InlineData(false)]
-    [InlineData(true)]
-    public void BonkR_ArmourCoversTheGallopButNotTheRear(bool airborne)
-    {
-        var bonk = CompileBonk();
-        var baked = LoadBonkPoses();
-        foreach (var (challengeTick, armoured) in new[] { (12, false), (29, false), (33, true), (50, true) })
-        {
-            var result = RunArmorContact(bonk, baked, AbilitySlots.R, airborne, challengeTick);
-            Assert.Equal(3, result.Damage);
-            Assert.Equal(armoured, result.ArmorActive);
-            Assert.Equal(armoured, result.AbilityContinues);
-            Assert.Equal(armoured, result.RemainsAttacking);
-            Assert.Equal(armoured, result.NoLaunch);
-        }
-    }
-
-    [Theory]
-    [InlineData(false)]
-    [InlineData(true)]
     public void BonkQ_ThrowsOneReturningLidAtTheReleaseOnGroundAndAir(bool airborne)
     {
         var bonk = CompileBonk();
@@ -200,6 +70,54 @@ public sealed class BonkSpecialTests
         Assert.Equal((byte)0, recovered.AttackSlot);
         Assert.Equal(ActionState.Idle, recovered.State);
         Assert.Equal((ushort)0, recovered.DamagePercent);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void BonkE_HoldsTheNewDropAtItsEntryAndRestartsItWhenCommitting(bool airborne)
+    {
+        var content = BuiltInContentResolver.Resolve(CharacterClass.Bonk);
+        var bonk = content.Definition;
+        Assert.NotNull(content.BakedAnimation);
+        var stage = bonk.CookedSlots!.Single(s => s.Id == (airborne ? "air.E" : "ground.E")).Timeline.Stages[0];
+        var phases = (CookedTargetedLeapCapabilityParameters)stage.Operations
+            .OfType<CookedStartCapabilityOperation>().Single().Parameters;
+        Assert.Equal(new[] { "anim.bonk.ge", "anim.bonk.ge-drop", "anim.bonk.ge-land", "anim.bonk.ge-rise" }, stage.AnimationIds);
+        var sim = TestHelpers.MakeSim();
+        sim.RegisterEntity(BonkId, bonk, TestHelpers.PlayerState(100, 100) with
+        {
+            PY = airborne ? 20f : TestHelpers.GroundPY(bonk),
+            IsGrounded = !airborne,
+            AirTimeTicks = airborne ? (ushort)100 : (ushort)0,
+        }, content.BakedAnimation);
+        bool hanging = false, dropping = false;
+        for (int tick = 0; tick < phases.RiseTicks + phases.HangTicks + 3; tick++)
+        {
+            sim.Tick(new Dictionary<ulong, InputState>
+            {
+                [BonkId] = tick == 0 ? new InputState { ActiveSlot = AbilitySlots.E } : default,
+            });
+            var events = sim.GetPresentationEvents(clear: true);
+            hanging |= events.Any(e => e.PresentationId == phases.HangPresentationId);
+            bool committed = events.Any(e => e.PresentationId == phases.LockPresentationId);
+            var state = sim.GetState(BonkId);
+            if (!hanging)
+                Assert.Equal("anim.bonk.ge-rise", stage.AnimationIds[state.ComboStage]);
+            if (hanging && !dropping)
+            {
+                Assert.Equal("anim.bonk.ge-drop", stage.AnimationIds[state.ComboStage]);
+                Assert.Equal((ushort)0, state.AttackElapsedTicks);
+            }
+            if (dropping)
+            {
+                Assert.Equal("anim.bonk.ge-drop", stage.AnimationIds[state.ComboStage]);
+                Assert.True(state.AttackElapsedTicks > 0, "The committed drop must advance from its entry pose.");
+            }
+            dropping |= committed;
+        }
+        Assert.True(hanging);
+        Assert.True(dropping);
     }
 
     private static (int Damage, float HitDamage, bool AbilityContinues,

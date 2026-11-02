@@ -89,7 +89,10 @@ internal static class KnockbackAuditReport
             case CookedSpawnHitboxOperation h:
                 yield return new($"hitbox at frame {h.Tick}", Hit(h.Hitbox)); break;
             case CookedSpawnProjectileOperation p:
-                yield return new($"projectile at frame {p.Tick}", Hit(p.Projectile)); break;
+                yield return new($"projectile at frame {p.Tick}", Hit(p.Projectile));
+                if (p.Projectile.Return?.Hit is { } back)
+                    yield return new("return leg", Hit(back.Damage, back.Angle, back.BaseKnockback, back.KnockbackGrowth, back.StunTicks));
+                break;
             case CookedStartCapabilityOperation capability:
                 switch (capability.Parameters)
                 {
@@ -98,6 +101,11 @@ internal static class KnockbackAuditReport
                     case CookedDashStrikeCapabilityParameters d:
                         yield return new("light cut", Hit(d.LightHitbox));
                         yield return new("endpoint tip (alternative)", Hit(d.TipHitbox));
+                        break;
+                    case CookedSteeredChargeCapabilityParameters charge:
+                        yield return new("scoop contact", Hit(charge.LanceHitbox));
+                        var fling = charge.Carry.Fling;
+                        yield return new("carry fling", Hit(fling.Damage, fling.Angle, fling.BaseKnockback, fling.KnockbackGrowth, fling.StunTicks));
                         break;
                     case CookedTargetedLeapCapabilityParameters leap:
                         yield return new("landing hit", Hit(leap.Hitbox)); break;

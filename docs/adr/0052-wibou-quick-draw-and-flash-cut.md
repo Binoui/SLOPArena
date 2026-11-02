@@ -109,6 +109,16 @@ as for earlier package changes. Simulation changes go under Unreleased in `Simul
 minor and the snapshot format take the next free values when the code lands (ADR-0049 and ADR-0050 hold the current
 ones).
 
+**Amended 2026-11-01: the flash is a counter.** The maintainer found it too sure a hit as a move that started on
+its own. The stance is now a counter window. A fighter's damaging hit on him during the stance is caught whole (no
+damage, hitstop, reaction or hit contact), and on the next tick he locks as above, so the lock no longer waits for
+the stance to end. A stance that catches nothing ends in the whiff sheathe, his punish window, and so does a catch
+with nobody eligible in range (a projectile from beyond `lockRange`). While a leg runs, its own victim's hits are
+caught too, so a countered multi-hit move cannot interrupt the cut it earned; anyone else's hit still lands. Grabs,
+command grabs and tether rings resolve before the catch and beat it. The CPU never opens with the flash; its Defend
+plan presses it instead of shielding against a threat from inside `lockRange`. `ServerAbility.CatchesHit` is the engine seam, and the
+capability's contract, parameters and snapshot layout are unchanged.
+
 ## Prototype defaults
 
 - **Quick Draw:** 3.5 m at 28 m/s, 16 recovery ticks, 90 cooldown ticks. Light cut 3 damage, zero base and growth,

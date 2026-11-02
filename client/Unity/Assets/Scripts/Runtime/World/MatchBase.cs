@@ -48,6 +48,12 @@ namespace SlopArena.Client.World
         protected CharacterDefinition _playerDef = null!;
         protected UnityEngine.Camera _mainCamera;
         private readonly TimelinePresentationDispatcher _timelinePresentations = new();
+        private readonly BonkSpecialPresenter _bonkSpecials = new();
+
+        protected virtual void LateUpdate()
+        {
+            if (Bridge != null) _bonkSpecials.Present(Bridge, _fighters);
+        }
         private TetherRopePresenter? _tetherRopes;
         private TetherRopePresenter TetherRopes => _tetherRopes ??= gameObject.AddComponent<TetherRopePresenter>();
         private readonly Dictionary<ulong, WeaponAttach> _weapons = new();
@@ -144,6 +150,7 @@ namespace SlopArena.Client.World
             PresentationFloor.Clear();
             _aimHandler?.ResetPresentation();
             _timelinePresentations.Clear();
+            _bonkSpecials.Clear();
             foreach (var weapon in _weapons.Values)
                 if (weapon != null) weapon.SetHitboxTrailActive(false);
             _weapons.Clear();
@@ -229,7 +236,8 @@ namespace SlopArena.Client.World
         }
         protected void PresentTimelineEvents()
         {
-            _timelinePresentations.Tick(Bridge.LastTickPresentationEvents);
+            _bonkSpecials.Present(Bridge, _fighters);
+            _timelinePresentations.Tick(Bridge.LastTickPresentationEvents, Bridge.GetActiveMove);
             TetherRopes.Present(Bridge, Bridge.LastTickPresentationEvents);
         }
 
@@ -244,6 +252,7 @@ namespace SlopArena.Client.World
         protected void ResetSimulationPresentation()
         {
             _timelinePresentations.ResetForFreshSimulation();
+            _bonkSpecials.Clear();
             _tetherRopes?.Clear();
             _activeSwordOwners.Clear();
             ApplySwordTrailOwners();

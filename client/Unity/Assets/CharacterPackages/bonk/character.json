@@ -297,16 +297,22 @@
     "presentation.bonk.lid.throw",
     "presentation.bonk.lid.hit",
     "presentation.bonk.lid.catch",
-    "presentation.bonk.lid.selfhit"
+    "presentation.bonk.lid.selfhit",
+    "presentation.bonk.joust.challenge",
+    "presentation.bonk.joust.scoop",
+    "presentation.bonk.joust.bonk",
+    "presentation.bonk.challenge.marker",
+    "presentation.bonk.faith.halo",
+    "presentation.bonk.faith.lock"
   ],
   "capabilityRequirements": [
     {
-      "capabilityId": "slop.ability.targeted-leap.v1",
-      "capabilityVersion": "1"
+      "capabilityId": "slop.ability.targeted-leap.v2",
+      "capabilityVersion": "2"
     },
     {
-      "capabilityId": "slop.ability.steered-charge.v1",
-      "capabilityVersion": "1"
+      "capabilityId": "slop.ability.steered-charge.v2",
+      "capabilityVersion": "2"
     }
   ],
   "slots": [
@@ -340,7 +346,7 @@
                 "kind": "startupAimCorrection",
                 "tick": 0,
                 "unit": "ticks",
-                "endTick": 11,
+                "endTick": 10,
                 "acquisitionRange": 4,
                 "acquisitionHalfAngleDegrees": 180,
                 "maxYawDegrees": 90,
@@ -384,7 +390,7 @@
               },
               {
                 "kind": "spawnHitbox",
-                "tick": 11,
+                "tick": 10,
                 "unit": "meters",
                 "hitbox": {
                   "shape": "capsule",
@@ -402,7 +408,7 @@
                   "baseKnockback": 4,
                   "knockbackGrowth": 20,
                   "stunTicks": 12,
-                  "durationTicks": 13,
+                  "durationTicks": 7,
                   "interruptible": true,
                   "hitGroup": 0,
                   "knockbackDirection": "awayFromOwner"
@@ -410,7 +416,7 @@
               },
               {
                 "kind": "emitPresentation",
-                "tick": 11,
+                "tick": 10,
                 "unit": "ticks",
                 "presentationId": "presentation.bonk.slash.cut",
                 "placement": {
@@ -433,8 +439,8 @@
     },
     {
       "id": "ground.2",
-      "name": "Sunrise",
-      "description": "Two-handed upward slice that catches airborne targets",
+      "name": "Rising Cut",
+      "description": "One-handed rising cut from his left hip up across his front",
       "iconId": "icon.2",
       "behavior": "meleeCombo",
       "aimMode": "none",
@@ -446,8 +452,8 @@
       "timeline": {
         "stages": [
           {
-            "durationTicks": 125,
-            "iasaTicks": 44,
+            "durationTicks": 60,
+            "iasaTicks": 38,
             "landingLagTicks": 0,
             "autoCancelBeforeTicks": 0,
             "autoCancelAfterTicks": 0,
@@ -461,7 +467,7 @@
                 "kind": "startupAimCorrection",
                 "tick": 0,
                 "unit": "ticks",
-                "endTick": 21,
+                "endTick": 15,
                 "acquisitionRange": 4,
                 "acquisitionHalfAngleDegrees": 180,
                 "maxYawDegrees": 90,
@@ -471,7 +477,7 @@
               },
               {
                 "kind": "emitPresentation",
-                "tick": 13,
+                "tick": 6,
                 "unit": "ticks",
                 "presentationId": "presentation.bonk.normal.glint",
                 "placement": {
@@ -488,7 +494,7 @@
               },
               {
                 "kind": "emitPresentation",
-                "tick": 17,
+                "tick": 11,
                 "unit": "ticks",
                 "presentationId": "presentation.bonk.normal.plant",
                 "placement": {
@@ -505,16 +511,16 @@
               },
               {
                 "kind": "spawnHitbox",
-                "tick": 21,
+                "tick": 15,
                 "unit": "meters",
                 "hitbox": {
                   "shape": "capsule",
-                  "radius": 0.65,
+                  "radius": 0.5,
                   "offsetX": 0,
-                  "offsetY": -0.35,
+                  "offsetY": 0,
                   "offsetZ": 0,
                   "endOffsetX": 0,
-                  "endOffsetY": -0.35,
+                  "endOffsetY": 0,
                   "endOffsetZ": 0,
                   "startBoneId": "_weapon_hilt",
                   "endBoneId": "_weapon_tip",
@@ -523,7 +529,7 @@
                   "baseKnockback": 7,
                   "knockbackGrowth": 30,
                   "stunTicks": 16,
-                  "durationTicks": 20,
+                  "durationTicks": 5,
                   "interruptible": true,
                   "hitGroup": 0,
                   "knockbackDirection": "awayFromOwner"
@@ -531,7 +537,7 @@
               },
               {
                 "kind": "emitPresentation",
-                "tick": 21,
+                "tick": 15,
                 "unit": "ticks",
                 "presentationId": "presentation.bonk.slash.cut",
                 "placement": {
@@ -582,7 +588,7 @@
                 "kind": "startupAimCorrection",
                 "tick": 0,
                 "unit": "ticks",
-                "endTick": 48,
+                "endTick": 47,
                 "acquisitionRange": 4,
                 "acquisitionHalfAngleDegrees": 180,
                 "maxYawDegrees": 90,
@@ -626,7 +632,7 @@
               },
               {
                 "kind": "spawnHitbox",
-                "tick": 48,
+                "tick": 47,
                 "unit": "meters",
                 "hitbox": {
                   "shape": "capsule",
@@ -644,7 +650,7 @@
                   "baseKnockback": 10,
                   "knockbackGrowth": 42,
                   "stunTicks": 22,
-                  "durationTicks": 16,
+                  "durationTicks": 8,
                   "interruptible": true,
                   "hitGroup": 0,
                   "knockbackDirection": "awayFromOwner"
@@ -652,7 +658,7 @@
               },
               {
                 "kind": "emitPresentation",
-                "tick": 48,
+                "tick": 47,
                 "unit": "ticks",
                 "presentationId": "presentation.bonk.slash.heavy",
                 "placement": {
@@ -724,7 +730,7 @@
                   "launchOffsetZ": 0.97,
                   "speed": 15,
                   "gravity": 0,
-                  "radius": 0.45,
+                  "radius": 0.75,
                   "damage": 5,
                   "angle": 35,
                   "baseKnockback": 4,
@@ -739,8 +745,20 @@
                     "selfHitDamage": 0,
                     "selfHitStunTicks": 30,
                     "catchPresentationId": "presentation.bonk.lid.catch",
-                    "selfHitPresentationId": "presentation.bonk.lid.selfhit"
-                  }
+                    "selfHitPresentationId": "presentation.bonk.lid.selfhit",
+                    "hit": {
+                      "damage": 5,
+                      "angle": 0,
+                      "baseKnockback": 20,
+                      "knockbackGrowth": 0,
+                      "stunTicks": 1,
+                      "fixedHitstunTicks": 48
+                    }
+                  },
+                  "homing": {
+                    "turnDegreesPerTick": 1.25
+                  },
+                  "challengeTicks": 120
                 }
               },
               {
@@ -768,13 +786,12 @@
     },
     {
       "id": "ground.E",
-      "name": "Targeted Jump Slam",
-      "description": "Hold the GroundCursor ring, then release to jump to the clamped ground target and slam on landing.",
+      "name": "Leap of Faith",
+      "description": "Rise, hang above a tracked light, then commit to a straight drop. A landed hit recovers quickly. A miss leaves the plank stuck.",
       "iconId": "icon.e",
-      "behavior": "aimedProjectile",
-      "aimMode": "groundCursor",
+      "behavior": "meleeCombo",
+      "aimMode": "none",
       "aimMovement": "fixed",
-      "aimAnimationId": "anim.bonk.ge-aim",
       "cooldownTicks": 240,
       "isRecoveryMove": true,
       "preserveMomentumOnStart": false,
@@ -782,7 +799,7 @@
       "timeline": {
         "stages": [
           {
-            "durationTicks": 74,
+            "durationTicks": 128,
             "iasaTicks": 0,
             "landingLagTicks": 0,
             "autoCancelBeforeTicks": 0,
@@ -794,23 +811,27 @@
             "trackingStrength": 0,
             "animationIds": [
               "anim.bonk.ge",
-              "anim.bonk.ge-land"
+              "anim.bonk.ge-drop",
+              "anim.bonk.ge-land",
+              "anim.bonk.ge-rise"
             ],
             "operations": [
               {
                 "kind": "startCapability",
                 "tick": 0,
                 "unit": "ticks",
-                "capabilityId": "slop.ability.targeted-leap.v1",
-                "capabilityVersion": "1",
+                "capabilityId": "slop.ability.targeted-leap.v2",
+                "capabilityVersion": "2",
                 "parameters": {
-                  "maxAimTicks": 0,
-                  "maxFlightTicks": 96,
-                  "minRange": 1,
+                  "riseTicks": 18,
+                  "riseHeight": 6,
+                  "hangTicks": 24,
+                  "dropTicks": 18,
                   "maxRange": 12,
-                  "launchVerticalSpeed": 16,
-                  "landingSeekTick": 0,
-                  "recoveryTicks": 68,
+                  "noTargetDistance": 6,
+                  "maxFallTicks": 60,
+                  "hitRecoveryTicks": 18,
+                  "missRecoveryTicks": 68,
                   "hitbox": {
                     "shape": "sphere",
                     "radius": 2,
@@ -832,7 +853,15 @@
                     "hitGroup": 0,
                     "knockbackDirection": "awayFromOwner"
                   },
-                  "launchPresentationId": "presentation.bonk.slam.launch",
+                  "riseAnimationId": "anim.bonk.ge-rise",
+                  "hangAnimationId": "anim.bonk.ge-drop",
+                  "hangPoseTick": 0,
+                  "dropAnimationId": "anim.bonk.ge-drop",
+                  "landingAnimationId": "anim.bonk.ge-land",
+                  "hitLandingSeekTick": 40,
+                  "risePresentationId": "presentation.bonk.slam.launch",
+                  "hangPresentationId": "presentation.bonk.faith.halo",
+                  "lockPresentationId": "presentation.bonk.faith.lock",
                   "landingPresentationId": "presentation.bonk.slam.landing"
                 }
               }
@@ -845,7 +874,7 @@
     {
       "id": "ground.R",
       "name": "The Joust",
-      "description": "Rear your hobby horse, then gallop a long way with your plank couched as a lance, armoured and steered with the stick. The first fighter you meet is unhorsed; a miss skids to a stop. Off a ledge you gallop on thin air, look down and drop.",
+      "description": "Rear, track the chosen fighter, scoop them onto the lance and carry. Press again to fling. Shields block the scoop. A ground carry stops at the ledge.",
       "iconId": "icon.r",
       "behavior": "meleeCombo",
       "aimMode": "none",
@@ -857,7 +886,7 @@
       "timeline": {
         "stages": [
           {
-            "durationTicks": 31,
+            "durationTicks": 18,
             "iasaTicks": 0,
             "landingLagTicks": 0,
             "autoCancelBeforeTicks": 0,
@@ -872,21 +901,10 @@
               "anim.bonk.gr-gallop",
               "anim.bonk.gr-hit",
               "anim.bonk.gr-lookdown",
-              "anim.bonk.gr-stop"
+              "anim.bonk.gr-stop",
+              "anim.bonk.gr-fling"
             ],
             "operations": [
-              {
-                "kind": "startupAimCorrection",
-                "tick": 0,
-                "unit": "ticks",
-                "endTick": 12,
-                "acquisitionRange": 4,
-                "acquisitionHalfAngleDegrees": 180,
-                "maxYawDegrees": 90,
-                "maxPitchDegrees": 0,
-                "yawDegreesPerSecond": 720,
-                "pitchDegreesPerSecond": 0
-              },
               {
                 "kind": "emitPresentation",
                 "tick": 0,
@@ -940,18 +958,18 @@
               },
               {
                 "kind": "startCapability",
-                "tick": 30,
+                "tick": 0,
                 "unit": "ticks",
-                "capabilityId": "slop.ability.steered-charge.v1",
-                "capabilityVersion": "1",
+                "capabilityId": "slop.ability.steered-charge.v2",
+                "capabilityVersion": "2",
                 "parameters": {
-                  "gallopSpeed": 12,
-                  "turnDegreesPerSecond": 180,
-                  "maxGallopTicks": 240,
+                  "gallopSpeed": 18,
+                  "turnDegreesPerSecond": 240,
+                  "maxGallopTicks": 150,
                   "armored": true,
                   "lanceHitbox": {
                     "shape": "capsule",
-                    "radius": 0.5,
+                    "radius": 0.6,
                     "offsetX": 0,
                     "offsetY": 0,
                     "offsetZ": 0,
@@ -960,7 +978,7 @@
                     "endOffsetZ": 0,
                     "startBoneId": "_weapon_hilt",
                     "endBoneId": "_weapon_tip",
-                    "damage": 11,
+                    "damage": 3,
                     "angle": 40,
                     "baseKnockback": 8,
                     "knockbackGrowth": 30,
@@ -970,11 +988,11 @@
                     "hitGroup": 0,
                     "knockbackDirection": "awayFromOwner"
                   },
-                  "hitEndingTicks": 36,
-                  "missEndingTicks": 36,
-                  "skidTicks": 18,
+                  "hitEndingTicks": 18,
+                  "missEndingTicks": 30,
+                  "skidTicks": 12,
                   "turnAroundOnMiss": false,
-                  "airStrideTicks": 120,
+                  "airStrideTicks": 45,
                   "lookDownTicks": 20,
                   "gallopAnimationId": "anim.bonk.gr-gallop",
                   "gallopLoopTicks": 24,
@@ -983,7 +1001,53 @@
                   "airEndingAnimationId": "anim.bonk.gr-lookdown",
                   "gallopPresentationId": "presentation.bonk.joust.gallop",
                   "missEndingPresentationId": "presentation.bonk.joust.skid",
-                  "airEndingPresentationId": "presentation.bonk.joust.lookdown"
+                  "airEndingPresentationId": "presentation.bonk.joust.lookdown",
+                  "challengedRearTicks": 9,
+                  "trackDegreesPerSecond": 240,
+                  "challengedTrackDegreesPerSecond": 420,
+                  "challengePresentationId": "presentation.bonk.joust.challenge",
+                  "chestHitbox": {
+                    "shape": "capsule",
+                    "radius": 0.65,
+                    "offsetX": 0,
+                    "offsetY": -0.25,
+                    "offsetZ": 0.5,
+                    "endOffsetX": 0,
+                    "endOffsetY": 0.65,
+                    "endOffsetZ": 0,
+                    "startBoneId": null,
+                    "endBoneId": null,
+                    "damage": 3,
+                    "angle": 40,
+                    "baseKnockback": 8,
+                    "knockbackGrowth": 30,
+                    "stunTicks": 18,
+                    "durationTicks": 1,
+                    "interruptible": false,
+                    "hitGroup": 0,
+                    "knockbackDirection": "awayFromOwner"
+                  },
+                  "carry": {
+                    "anchorDistance": 1.1,
+                    "anchorHeight": 0.4,
+                    "maxCarryTicks": 36,
+                    "fling": {
+                      "damage": 12,
+                      "angle": 40,
+                      "baseKnockback": 12,
+                      "knockbackGrowth": 36,
+                      "stunTicks": 20
+                    },
+                    "flingTicks": 18,
+                    "flingAnimationId": "anim.bonk.gr-fling",
+                    "scoopPresentationId": "presentation.bonk.joust.scoop",
+                    "flingPresentationId": "presentation.bonk.joust.bonk"
+                  },
+                  "assist": {
+                    "assistRange": 3.5,
+                    "assistHalfAngleDegrees": 70,
+                    "assistDegreesPerSecond": 900
+                  }
                 }
               }
             ]
@@ -1000,7 +1064,7 @@
       "behavior": "meleeCombo",
       "aimMode": "none",
       "aimMovement": "mobile",
-      "aimMovementSpeedScale": 0.35,
+      "aimMovementSpeedScale": 0.7,
       "aimAnimationId": "anim.bonk.gf",
       "cooldownTicks": 900,
       "isRecoveryMove": false,
@@ -1009,7 +1073,7 @@
       "timeline": {
         "stages": [
           {
-            "durationTicks": 142,
+            "durationTicks": 146,
             "iasaTicks": 0,
             "landingLagTicks": 0,
             "autoCancelBeforeTicks": 0,
@@ -1043,7 +1107,7 @@
                   "localScaleX": 1,
                   "localScaleY": 1,
                   "localScaleZ": 1,
-                  "durationTicks": 88
+                  "durationTicks": 116
                 }
               },
               {
@@ -1060,7 +1124,7 @@
                   "localScaleX": 1,
                   "localScaleY": 1,
                   "localScaleZ": 1,
-                  "durationTicks": 80
+                  "durationTicks": 108
                 }
               },
               {
@@ -1177,6 +1241,60 @@
                 "unit": "meters",
                 "hitbox": {
                   "shape": "capsule",
+                  "radius": 0.35,
+                  "offsetX": 0,
+                  "offsetY": 0,
+                  "offsetZ": 0,
+                  "endOffsetX": 0,
+                  "endOffsetY": 0,
+                  "endOffsetZ": 0,
+                  "startBoneId": "_weapon_hilt",
+                  "endBoneId": "_weapon_tip",
+                  "damage": 2.5,
+                  "angle": 0,
+                  "baseKnockback": 20,
+                  "knockbackGrowth": 0,
+                  "stunTicks": 8,
+                  "durationTicks": 14,
+                  "interruptible": true,
+                  "hitGroup": 0,
+                  "knockbackDirection": "towardOwner",
+                  "fixedHitstunTicks": 24
+                }
+              },
+              {
+                "kind": "spawnHitbox",
+                "tick": 85,
+                "unit": "meters",
+                "hitbox": {
+                  "shape": "capsule",
+                  "radius": 0.35,
+                  "offsetX": 0,
+                  "offsetY": 0,
+                  "offsetZ": 0,
+                  "endOffsetX": 0,
+                  "endOffsetY": 0,
+                  "endOffsetZ": 0,
+                  "startBoneId": "_weapon_hilt",
+                  "endBoneId": "_weapon_tip",
+                  "damage": 2.5,
+                  "angle": 0,
+                  "baseKnockback": 20,
+                  "knockbackGrowth": 0,
+                  "stunTicks": 8,
+                  "durationTicks": 14,
+                  "interruptible": true,
+                  "hitGroup": 0,
+                  "knockbackDirection": "towardOwner",
+                  "fixedHitstunTicks": 24
+                }
+              },
+              {
+                "kind": "spawnHitbox",
+                "tick": 99,
+                "unit": "meters",
+                "hitbox": {
+                  "shape": "capsule",
                   "radius": 0.42,
                   "offsetX": 0,
                   "offsetY": 0,
@@ -1199,7 +1317,7 @@
               },
               {
                 "kind": "emitPresentation",
-                "tick": 72,
+                "tick": 100,
                 "unit": "ticks",
                 "presentationId": "presentation.bonk.slash.heavy",
                 "placement": {
@@ -1216,7 +1334,7 @@
               },
               {
                 "kind": "emitPresentation",
-                "tick": 88,
+                "tick": 116,
                 "unit": "ticks",
                 "presentationId": "presentation.bonk.storm.dizzy",
                 "placement": {
@@ -1228,12 +1346,12 @@
                   "localScaleX": 1,
                   "localScaleY": 1,
                   "localScaleZ": 1,
-                  "durationTicks": 54
+                  "durationTicks": 30
                 }
               },
               {
                 "kind": "setAimState",
-                "tick": 94,
+                "tick": 122,
                 "unit": "ticks",
                 "aimState": "none"
               }
@@ -1262,7 +1380,7 @@
             "iasaTicks": 40,
             "landingLagTicks": 12,
             "autoCancelBeforeTicks": 3,
-            "autoCancelAfterTicks": 34,
+            "autoCancelAfterTicks": 28,
             "attackRange": 0,
             "warpRange": 0,
             "animationIds": [
@@ -1273,7 +1391,7 @@
                 "kind": "startupAimCorrection",
                 "tick": 0,
                 "unit": "ticks",
-                "endTick": 12,
+                "endTick": 11,
                 "acquisitionRange": 4,
                 "acquisitionHalfAngleDegrees": 180,
                 "maxYawDegrees": 90,
@@ -1300,7 +1418,7 @@
               },
               {
                 "kind": "spawnHitbox",
-                "tick": 12,
+                "tick": 11,
                 "unit": "meters",
                 "hitbox": {
                   "shape": "capsule",
@@ -1318,7 +1436,7 @@
                   "baseKnockback": 5,
                   "knockbackGrowth": 24,
                   "stunTicks": 14,
-                  "durationTicks": 10,
+                  "durationTicks": 11,
                   "interruptible": true,
                   "hitGroup": 0,
                   "knockbackDirection": "awayFromOwner"
@@ -1326,7 +1444,7 @@
               },
               {
                 "kind": "emitPresentation",
-                "tick": 12,
+                "tick": 11,
                 "unit": "ticks",
                 "presentationId": "presentation.bonk.slash.cut",
                 "placement": {
@@ -1349,8 +1467,8 @@
     },
     {
       "id": "air.2",
-      "name": "Sunrise",
-      "description": "Two-handed rising scoop through the front and overhead in the air",
+      "name": "Rising Cut",
+      "description": "One-handed rising cut from below his left boot up across his front",
       "iconId": "icon.2",
       "behavior": "meleeCombo",
       "aimMode": "none",
@@ -1362,11 +1480,11 @@
       "timeline": {
         "stages": [
           {
-            "durationTicks": 54,
-            "iasaTicks": 54,
+            "durationTicks": 48,
+            "iasaTicks": 48,
             "landingLagTicks": 18,
             "autoCancelBeforeTicks": 3,
-            "autoCancelAfterTicks": 46,
+            "autoCancelAfterTicks": 24,
             "attackRange": 0,
             "warpRange": 0,
             "animationIds": [
@@ -1377,7 +1495,7 @@
                 "kind": "startupAimCorrection",
                 "tick": 0,
                 "unit": "ticks",
-                "endTick": 20,
+                "endTick": 13,
                 "acquisitionRange": 4,
                 "acquisitionHalfAngleDegrees": 180,
                 "maxYawDegrees": 90,
@@ -1387,7 +1505,7 @@
               },
               {
                 "kind": "emitPresentation",
-                "tick": 12,
+                "tick": 8,
                 "unit": "ticks",
                 "presentationId": "presentation.bonk.normal.glint",
                 "placement": {
@@ -1404,7 +1522,7 @@
               },
               {
                 "kind": "spawnHitbox",
-                "tick": 20,
+                "tick": 13,
                 "unit": "meters",
                 "hitbox": {
                   "shape": "capsule",
@@ -1418,11 +1536,11 @@
                   "startBoneId": "_weapon_hilt",
                   "endBoneId": "_weapon_tip",
                   "damage": 11,
-                  "angle": -45,
+                  "angle": 75,
                   "baseKnockback": 7,
                   "knockbackGrowth": 30,
                   "stunTicks": 20,
-                  "durationTicks": 14,
+                  "durationTicks": 11,
                   "interruptible": true,
                   "hitGroup": 0,
                   "knockbackDirection": "awayFromOwner"
@@ -1430,7 +1548,7 @@
               },
               {
                 "kind": "emitPresentation",
-                "tick": 20,
+                "tick": 13,
                 "unit": "ticks",
                 "presentationId": "presentation.bonk.slash.cut",
                 "placement": {
@@ -1522,11 +1640,11 @@
                   "startBoneId": "_weapon_hilt",
                   "endBoneId": "_weapon_tip",
                   "damage": 14,
-                  "angle": 25,
+                  "angle": -70,
                   "baseKnockback": 9,
                   "knockbackGrowth": 40,
                   "stunTicks": 22,
-                  "durationTicks": 10,
+                  "durationTicks": 6,
                   "interruptible": true,
                   "hitGroup": 0,
                   "knockbackDirection": "awayFromOwner"
@@ -1613,7 +1731,7 @@
                   "launchOffsetZ": 0.97,
                   "speed": 15,
                   "gravity": 0,
-                  "radius": 0.45,
+                  "radius": 0.75,
                   "damage": 5,
                   "angle": 35,
                   "baseKnockback": 4,
@@ -1628,8 +1746,20 @@
                     "selfHitDamage": 0,
                     "selfHitStunTicks": 30,
                     "catchPresentationId": "presentation.bonk.lid.catch",
-                    "selfHitPresentationId": "presentation.bonk.lid.selfhit"
-                  }
+                    "selfHitPresentationId": "presentation.bonk.lid.selfhit",
+                    "hit": {
+                      "damage": 5,
+                      "angle": 0,
+                      "baseKnockback": 20,
+                      "knockbackGrowth": 0,
+                      "stunTicks": 1,
+                      "fixedHitstunTicks": 48
+                    }
+                  },
+                  "homing": {
+                    "turnDegreesPerTick": 1.25
+                  },
+                  "challengeTicks": 120
                 }
               },
               {
@@ -1657,11 +1787,11 @@
     },
     {
       "id": "air.E",
-      "name": "Targeted Jump Slam",
-      "description": "Hold the GroundCursor ring, then release to jump to the clamped ground target and slam on landing.",
+      "name": "Leap of Faith",
+      "description": "Rise, hang above a tracked light, then commit to a straight drop. A landed hit recovers quickly. A miss leaves the plank stuck.",
       "iconId": "icon.e",
-      "behavior": "aimedProjectile",
-      "aimMode": "groundCursor",
+      "behavior": "meleeCombo",
+      "aimMode": "none",
       "aimMovement": "fixed",
       "cooldownTicks": 240,
       "isRecoveryMove": true,
@@ -1670,7 +1800,7 @@
       "timeline": {
         "stages": [
           {
-            "durationTicks": 74,
+            "durationTicks": 128,
             "iasaTicks": 0,
             "landingLagTicks": 0,
             "autoCancelBeforeTicks": 0,
@@ -1682,23 +1812,27 @@
             "trackingStrength": 0,
             "animationIds": [
               "anim.bonk.ge",
-              "anim.bonk.ge-land"
+              "anim.bonk.ge-drop",
+              "anim.bonk.ge-land",
+              "anim.bonk.ge-rise"
             ],
             "operations": [
               {
                 "kind": "startCapability",
                 "tick": 0,
                 "unit": "ticks",
-                "capabilityId": "slop.ability.targeted-leap.v1",
-                "capabilityVersion": "1",
+                "capabilityId": "slop.ability.targeted-leap.v2",
+                "capabilityVersion": "2",
                 "parameters": {
-                  "maxAimTicks": 0,
-                  "maxFlightTicks": 96,
-                  "minRange": 1,
+                  "riseTicks": 18,
+                  "riseHeight": 6,
+                  "hangTicks": 24,
+                  "dropTicks": 18,
                   "maxRange": 12,
-                  "launchVerticalSpeed": 16,
-                  "landingSeekTick": 0,
-                  "recoveryTicks": 68,
+                  "noTargetDistance": 6,
+                  "maxFallTicks": 60,
+                  "hitRecoveryTicks": 18,
+                  "missRecoveryTicks": 68,
                   "hitbox": {
                     "shape": "sphere",
                     "radius": 2,
@@ -1720,7 +1854,15 @@
                     "hitGroup": 0,
                     "knockbackDirection": "awayFromOwner"
                   },
-                  "launchPresentationId": "presentation.bonk.slam.air-launch",
+                  "riseAnimationId": "anim.bonk.ge-rise",
+                  "hangAnimationId": "anim.bonk.ge-drop",
+                  "hangPoseTick": 0,
+                  "dropAnimationId": "anim.bonk.ge-drop",
+                  "landingAnimationId": "anim.bonk.ge-land",
+                  "hitLandingSeekTick": 40,
+                  "risePresentationId": "presentation.bonk.slam.air-launch",
+                  "hangPresentationId": "presentation.bonk.faith.halo",
+                  "lockPresentationId": "presentation.bonk.faith.lock",
                   "landingPresentationId": "presentation.bonk.slam.landing"
                 }
               }
@@ -1733,7 +1875,7 @@
     {
       "id": "air.R",
       "name": "The Joust",
-      "description": "Rear your hobby horse, then gallop a long way with your plank couched as a lance, armoured and steered with the stick. The first fighter you meet is unhorsed; a miss skids to a stop. Off a ledge you gallop on thin air, look down and drop.",
+      "description": "Rear, track the chosen fighter, scoop them onto the lance and carry. Press again to fling. Shields block the scoop. A ground carry stops at the ledge.",
       "iconId": "icon.r",
       "behavior": "meleeCombo",
       "aimMode": "none",
@@ -1745,7 +1887,7 @@
       "timeline": {
         "stages": [
           {
-            "durationTicks": 31,
+            "durationTicks": 18,
             "iasaTicks": 0,
             "landingLagTicks": 0,
             "autoCancelBeforeTicks": 0,
@@ -1760,28 +1902,10 @@
               "anim.bonk.gr-gallop",
               "anim.bonk.gr-hit",
               "anim.bonk.gr-lookdown",
-              "anim.bonk.gr-stop"
+              "anim.bonk.gr-stop",
+              "anim.bonk.ar-fling"
             ],
             "operations": [
-              {
-                "kind": "startupAimCorrection",
-                "tick": 0,
-                "unit": "ticks",
-                "endTick": 12,
-                "acquisitionRange": 4,
-                "acquisitionHalfAngleDegrees": 180,
-                "maxYawDegrees": 90,
-                "maxPitchDegrees": 0,
-                "yawDegreesPerSecond": 720,
-                "pitchDegreesPerSecond": 0
-              },
-              {
-                "kind": "gravityWindow",
-                "tick": 0,
-                "unit": "normalized",
-                "gravityScale": 0.5,
-                "durationTicks": 30
-              },
               {
                 "kind": "emitPresentation",
                 "tick": 0,
@@ -1835,18 +1959,18 @@
               },
               {
                 "kind": "startCapability",
-                "tick": 30,
+                "tick": 0,
                 "unit": "ticks",
-                "capabilityId": "slop.ability.steered-charge.v1",
-                "capabilityVersion": "1",
+                "capabilityId": "slop.ability.steered-charge.v2",
+                "capabilityVersion": "2",
                 "parameters": {
-                  "gallopSpeed": 12,
-                  "turnDegreesPerSecond": 180,
-                  "maxGallopTicks": 240,
+                  "gallopSpeed": 18,
+                  "turnDegreesPerSecond": 240,
+                  "maxGallopTicks": 150,
                   "armored": true,
                   "lanceHitbox": {
                     "shape": "capsule",
-                    "radius": 0.5,
+                    "radius": 0.6,
                     "offsetX": 0,
                     "offsetY": 0,
                     "offsetZ": 0,
@@ -1855,7 +1979,7 @@
                     "endOffsetZ": 0,
                     "startBoneId": "_weapon_hilt",
                     "endBoneId": "_weapon_tip",
-                    "damage": 11,
+                    "damage": 3,
                     "angle": 40,
                     "baseKnockback": 8,
                     "knockbackGrowth": 30,
@@ -1865,11 +1989,11 @@
                     "hitGroup": 0,
                     "knockbackDirection": "awayFromOwner"
                   },
-                  "hitEndingTicks": 36,
-                  "missEndingTicks": 36,
-                  "skidTicks": 18,
+                  "hitEndingTicks": 18,
+                  "missEndingTicks": 30,
+                  "skidTicks": 12,
                   "turnAroundOnMiss": false,
-                  "airStrideTicks": 120,
+                  "airStrideTicks": 45,
                   "lookDownTicks": 20,
                   "gallopAnimationId": "anim.bonk.gr-gallop",
                   "gallopLoopTicks": 24,
@@ -1878,7 +2002,53 @@
                   "airEndingAnimationId": "anim.bonk.gr-lookdown",
                   "gallopPresentationId": "presentation.bonk.joust.gallop",
                   "missEndingPresentationId": "presentation.bonk.joust.skid",
-                  "airEndingPresentationId": "presentation.bonk.joust.lookdown"
+                  "airEndingPresentationId": "presentation.bonk.joust.lookdown",
+                  "challengedRearTicks": 9,
+                  "trackDegreesPerSecond": 240,
+                  "challengedTrackDegreesPerSecond": 420,
+                  "challengePresentationId": "presentation.bonk.joust.challenge",
+                  "chestHitbox": {
+                    "shape": "capsule",
+                    "radius": 0.65,
+                    "offsetX": 0,
+                    "offsetY": -0.25,
+                    "offsetZ": 0.5,
+                    "endOffsetX": 0,
+                    "endOffsetY": 0.65,
+                    "endOffsetZ": 0,
+                    "startBoneId": null,
+                    "endBoneId": null,
+                    "damage": 3,
+                    "angle": 40,
+                    "baseKnockback": 8,
+                    "knockbackGrowth": 30,
+                    "stunTicks": 18,
+                    "durationTicks": 1,
+                    "interruptible": false,
+                    "hitGroup": 0,
+                    "knockbackDirection": "awayFromOwner"
+                  },
+                  "carry": {
+                    "anchorDistance": 1.1,
+                    "anchorHeight": 0.4,
+                    "maxCarryTicks": 36,
+                    "fling": {
+                      "damage": 12,
+                      "angle": 40,
+                      "baseKnockback": 12,
+                      "knockbackGrowth": 36,
+                      "stunTicks": 20
+                    },
+                    "flingTicks": 18,
+                    "flingAnimationId": "anim.bonk.ar-fling",
+                    "scoopPresentationId": "presentation.bonk.joust.scoop",
+                    "flingPresentationId": "presentation.bonk.joust.bonk"
+                  },
+                  "assist": {
+                    "assistRange": 3.5,
+                    "assistHalfAngleDegrees": 70,
+                    "assistDegreesPerSecond": 900
+                  }
                 }
               }
             ]
@@ -1895,7 +2065,7 @@
       "behavior": "meleeCombo",
       "aimMode": "none",
       "aimMovement": "mobile",
-      "aimMovementSpeedScale": 0.35,
+      "aimMovementSpeedScale": 0.7,
       "aimAnimationId": "anim.bonk.gf",
       "cooldownTicks": 900,
       "isRecoveryMove": false,
@@ -1904,7 +2074,7 @@
       "timeline": {
         "stages": [
           {
-            "durationTicks": 142,
+            "durationTicks": 146,
             "iasaTicks": 0,
             "landingLagTicks": 0,
             "autoCancelBeforeTicks": 0,
@@ -1938,7 +2108,7 @@
                   "localScaleX": 1,
                   "localScaleY": 1,
                   "localScaleZ": 1,
-                  "durationTicks": 80
+                  "durationTicks": 108
                 }
               },
               {
@@ -2055,6 +2225,60 @@
                 "unit": "meters",
                 "hitbox": {
                   "shape": "capsule",
+                  "radius": 0.35,
+                  "offsetX": 0,
+                  "offsetY": 0,
+                  "offsetZ": 0,
+                  "endOffsetX": 0,
+                  "endOffsetY": 0,
+                  "endOffsetZ": 0,
+                  "startBoneId": "_weapon_hilt",
+                  "endBoneId": "_weapon_tip",
+                  "damage": 2.5,
+                  "angle": 0,
+                  "baseKnockback": 20,
+                  "knockbackGrowth": 0,
+                  "stunTicks": 8,
+                  "durationTicks": 14,
+                  "interruptible": true,
+                  "hitGroup": 0,
+                  "knockbackDirection": "towardOwner",
+                  "fixedHitstunTicks": 24
+                }
+              },
+              {
+                "kind": "spawnHitbox",
+                "tick": 85,
+                "unit": "meters",
+                "hitbox": {
+                  "shape": "capsule",
+                  "radius": 0.35,
+                  "offsetX": 0,
+                  "offsetY": 0,
+                  "offsetZ": 0,
+                  "endOffsetX": 0,
+                  "endOffsetY": 0,
+                  "endOffsetZ": 0,
+                  "startBoneId": "_weapon_hilt",
+                  "endBoneId": "_weapon_tip",
+                  "damage": 2.5,
+                  "angle": 0,
+                  "baseKnockback": 20,
+                  "knockbackGrowth": 0,
+                  "stunTicks": 8,
+                  "durationTicks": 14,
+                  "interruptible": true,
+                  "hitGroup": 0,
+                  "knockbackDirection": "towardOwner",
+                  "fixedHitstunTicks": 24
+                }
+              },
+              {
+                "kind": "spawnHitbox",
+                "tick": 99,
+                "unit": "meters",
+                "hitbox": {
+                  "shape": "capsule",
                   "radius": 0.42,
                   "offsetX": 0,
                   "offsetY": 0,
@@ -2077,7 +2301,7 @@
               },
               {
                 "kind": "emitPresentation",
-                "tick": 72,
+                "tick": 100,
                 "unit": "ticks",
                 "presentationId": "presentation.bonk.slash.heavy",
                 "placement": {
@@ -2094,7 +2318,7 @@
               },
               {
                 "kind": "emitPresentation",
-                "tick": 88,
+                "tick": 116,
                 "unit": "ticks",
                 "presentationId": "presentation.bonk.storm.dizzy",
                 "placement": {
@@ -2106,12 +2330,12 @@
                   "localScaleX": 1,
                   "localScaleY": 1,
                   "localScaleZ": 1,
-                  "durationTicks": 54
+                  "durationTicks": 30
                 }
               },
               {
                 "kind": "setAimState",
-                "tick": 94,
+                "tick": 122,
                 "unit": "ticks",
                 "aimState": "none"
               }

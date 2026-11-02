@@ -61,6 +61,7 @@ public static class HitReliability
         for (int i = 0; i < samples.Count; i++)
             foreach (var h in samples[i])
                 move.ActiveHitboxes.Add(new[] { firstActive + i, h.X - Origin, h.Y, h.Z - Origin, h.EndX - Origin, h.EndY, h.EndZ - Origin, h.Radius });
+        move.Swing.AddRange(MeasureSwing(attacker, poses, spec, wire, air));
         Flag(move);
         return move;
     }
@@ -90,6 +91,8 @@ public static class HitReliability
     internal static void Flag(MoveReliability move)
     {
         string F(FormattableString text) => FormattableString.Invariant(text);
+        foreach (var swing in move.Swing)
+            move.Flags.AddRange(swing.Flags);
         if (move.PlaybackSpeed > FastPlayback)
             move.Flags.Add(F($"clip plays {move.PlaybackSpeed:F2}× authored speed"));
         foreach (var band in move.Reach.Where(x => x.BearingDegrees == 0f && x.Nearest > PointBlankMeters))
@@ -110,6 +113,64 @@ public static class HitReliability
             if (never.Count > 0)
                 move.Flags.Add(F($"{never.Count} of {move.Hits.Count} hits ({string.Join(", ", never.Select(h => $"t{h.FirstTick}"))}) never touch a standing {target} {CoverageMeters[0]:0.#}–{CoverageMeters[^1]:0.#} m away"));
         }
+    }
+
+    internal static List<SwingRow> MeasureSwing(CharacterDefinition attacker, BakedAnimationData? poses,
+        CookedSlotDefinition spec, byte wire, bool air)
+    {
+        var rows = new List<SwingRow>();
+        var stage = spec.Timeline.Stages[0];
+        if (poses == null || spec.ClipCount == 0 || poses.FrameCountFor(spec.Clip(0).AnimationId) == 0) return rows;
+        var events = stage.ReadHitboxes() ?? Array.Empty<HitboxEvent>();
+        for (int e = 0; e < events.Length; e++)
+        {
+            var evt = events[e];
+            if (evt.Damage <= 0f || evt.BoneName == null ||
+                (evt.EndBoneName == null && evt.Shape != HitboxShape.Capsule) ||
+                poses.FindBoneIndex(evt.BoneName) < 0 ||
+                (evt.EndBoneName != null && poses.FindBoneIndex(evt.EndBoneName) < 0)) continue;
+            int first = evt.TriggerTick;
+            int last = first + Math.Max((ushort)1, evt.DurationTicks) - 1;
+            int end = Math.Min(stage.DurationTicks, last + 15);
+            var row = new SwingRow
+            {
+                Event = e, Anchor = evt.EndBoneName == null ? evt.BoneName : $"{evt.BoneName}→{evt.EndBoneName}",
+                FirstTick = first, LastTick = last, SampledThroughTick = end,
+                PrePeakTick = Math.Max(1, first - 7), InPeakTick = first + 1,
+            };
+            double total = 0, inside = 0;
+            var previous = Resolve(attacker, poses, spec, wire, air, evt, 0);
+            // A point has no segment direction. Do not diagnose a sphere or zero-length capsule as a parked swing.
+            if (Distance(previous.X, previous.Y, previous.Z, previous.EndX, previous.EndY, previous.EndZ) < 1e-6f) continue;
+            for (int t = 1; t <= end; t++)
+            {
+                var current = Resolve(attacker, poses, spec, wire, air, evt, t);
+                float ax = previous.EndX - previous.X, ay = previous.EndY - previous.Y, az = previous.EndZ - previous.Z;
+                float bx = current.EndX - current.X, by = current.EndY - current.Y, bz = current.EndZ - current.Z;
+                float length = MathF.Sqrt((ax * ax + ay * ay + az * az) * (bx * bx + by * by + bz * bz));
+                if (length < 1e-12f) { row = null; break; }
+                float rotation = MathF.Acos(Math.Clamp((ax * bx + ay * by + az * bz) / length, -1f, 1f)) * 180f / MathF.PI;
+                float tipStep = Distance(previous.EndX, previous.EndY, previous.EndZ, current.EndX, current.EndY, current.EndZ);
+                total += rotation;
+                if (t >= first - 7 && t <= first && rotation > row.PrePeakDegrees)
+                { row.PrePeakTick = t; row.PrePeakDegrees = rotation; }
+                if (t > first && t <= last)
+                {
+                    inside += rotation;
+                    if (rotation > row.InPeakDegrees) { row.InPeakTick = t; row.InPeakDegrees = rotation; }
+                    if (rotation < 5f && tipStep < 0.15f) row.ParkedTicks++;
+                }
+                previous = current;
+            }
+            if (row == null) continue;
+            row.InsideShare = total > 0 ? inside / total : 0;
+            if (row.PrePeakDegrees > 1.5f * row.InPeakDegrees && row.PrePeakDegrees >= 20f)
+                row.Flags.Add(FormattableString.Invariant($"swing peaks before the hitbox (t{row.PrePeakTick}, {row.PrePeakDegrees:0.#}°/tick)"));
+            if (row.ParkedTicks >= (row.ActiveTicks + 2) / 3)
+                row.Flags.Add($"{row.ParkedTicks} of {row.ActiveTicks} active ticks parked");
+            rows.Add(row);
+        }
+        return rows;
     }
 
     /// <summary>Real-sim starting distances (0.30–4.50 m, 5 cm) that connect against an idle target.</summary>

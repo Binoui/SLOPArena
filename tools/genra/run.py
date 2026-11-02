@@ -36,7 +36,7 @@ REPO = TOOLS.parent
 sys.path.insert(0, str(TOOLS))
 
 from genra import claude_runner  # noqa: E402
-from genra.brief import print_preflight, Brief  # noqa: E402
+from genra.brief import print_preflight, Brief, brief_purpose  # noqa: E402
 from genra.rigpack import verify_rigpack  # noqa: E402
 
 PROMPT = """You are the animator for one bounded SlopArena animation job. Author the requested move on the actual \
@@ -83,6 +83,36 @@ def wrappers(scratch: Path, python: str):
         path.chmod(0o755)
 
 
+def guide_for_brief(data: dict) -> str:
+    """Select tagged H2 sections. Tags on a section are alternatives; untagged text is shared."""
+    purpose, _ = brief_purpose(data)
+    tags = {purpose}
+    looping = 'loop' in data or purpose in {'idle', 'locomotion', 'loop'}
+    if not looping:
+        tags.add('one-shot')
+    elif purpose != 'idle':
+        tags.add('loop')
+    if data.get('planted'):
+        tags.update({'planted', 'contact'})
+    if data.get('two_hands'):
+        tags.update({'two_hands', 'weapon', 'contact'})
+    targets = data.get('targets', [])
+    if any(t.get('kind') == 'arc' for t in targets):
+        tags.update({'arc', 'weapon'})
+    if data.get('weapon') or re.search(r'weapon|blade|hilt', json.dumps([data.get('strike', []), targets]), re.I):
+        tags.add('weapon')
+    if data.get('contacts'):
+        tags.add('contact')
+    text = (HERE / 'GUIDE.md').read_text().split('\n', 2)[2]
+    sections = re.split(r'(?=^## )', text, flags=re.MULTILINE)
+    selected = []
+    for section in sections:
+        route = re.search(r'^<!-- guide: ([a-z_ -]+) -->\n', section, re.MULTILINE)
+        if route is None or tags.intersection(route[1].split()):
+            selected.append(section if route is None else section[:route.start()] + section[route.end():])
+    return ''.join(selected)
+
+
 def build_prompt(brief: Brief) -> str:
     from genra.summary import rig_summary
     c = brief['clock']
@@ -91,7 +121,7 @@ def build_prompt(brief: Brief) -> str:
     windows = ', '.join(f'{a}-{b}' for a, b in brief.get('fast_windows', []))
     fast = (f'Fast motion is expected in ticks {windows} (up to 90 degrees per tick in a joint). Elsewhere, more than '
             '35 degrees per tick fails as a snap.' if windows else 'More than 35 degrees per tick in a joint fails as a snap.')
-    guide = (HERE / 'GUIDE.md').read_text().split('\n', 2)[2]  # drop the title line
+    guide = guide_for_brief(brief.data)
     duration = c['duration_ticks']
     timing = ''
     if 'contact_tick' in c:
@@ -187,8 +217,11 @@ APPROVED_KEYS = """
 
 The owner approved the key poses at ticks {ticks} in `keys/result.json`: load it with
 `keys = Clip.load(rig, 'keys/result.json', frame=b.entry_frame)` and start each key from `keys.pose(t)`. Keep them:
-the check fails a clip whose joints move more than 2 cm from them at those ticks (fingers may still close). Build the
-motion between them: breakdowns, arcs, contacts (track, pin, hold_grip), overlap and polish.
+the check fails a clip whose joints move more than 2 cm from them at those ticks (fingers may still close). The
+runner's `result.json` is already `flow(b)` through these keys (its report is in `flow.txt`): look at it at game speed
+first, then direct it with dials, `Accent` and `holds`, add breakdown keys where a path needs them, run contacts after
+flow (carry, pin, track, hold_grip) and audit the keys with `key_drift`. If `flow.txt` says flow was not used, fix that
+first (usually a breakdown key for a near half turn).
 
 The runner has already saved a recoverable `result.json`. Start there or from `author.py`; `API.md` has working
 imports and live signatures. Save progress before checking, including versions with unresolved failures. The runner
@@ -333,7 +366,7 @@ def api_reference() -> str:
     from genra import flow, solve
     symbols = [Clip.load, Clip.save, Clip.from_keys, Clip.pose, Clip.set_pose, Clip.overlap,
                Pose.copy, Pose.pos, Pose.rotate, Pose.axis, Pose.set_hinge, flow.flow, flow.Accent, flow.key_drift,
-               solve.solve, solve.two_bone, solve.two_hand_grip, solve.track, solve.carry, solve.hold_grip]
+               solve.solve, solve.continuity_report, solve.two_bone, solve.two_hand_grip, solve.track, solve.carry, solve.hold_grip]
     lines = ['# Authoring API', '', 'Pose and Clip live in genra.clip; there is no genra.pose module.',
              'Use Pose.copy(), or load a Clip again. Do not deepcopy/pickle a USD stage.',
              'solve() returns (Pose, list[dict]); two_bone() edits a Pose and returns a float miss.',
@@ -365,6 +398,7 @@ def seed_candidate(brief: Brief, scratch: Path, run_dir: Path) -> dict:
         except Exception as error:  # the plain keys still make a valid start; say why flow was not used
             text = f'flow(b) not used, starting from the plain keys: {type(error).__name__}: {error}'
             seeded['flowError'] = text
+            print(f'WARNING: {text}', file=sys.stderr)
         (scratch / 'flow.txt').write_text(text + '\n')
     if clip is None or len(clip) != n:
         source = None  # a changed clock needs fresh authoring, never an implicit retime
