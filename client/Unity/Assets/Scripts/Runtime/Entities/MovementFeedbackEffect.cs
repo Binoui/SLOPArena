@@ -239,7 +239,11 @@ namespace SlopArena.Client.Entities
                 if (effect == null)
                     continue;
                 if (effect.HasLiveParticles)
+                {
+                    // Keep reused roots in the same persistent scene as new pool entries.
+                    DontDestroyOnLoad(effect.gameObject);
                     return effect;
+                }
                 Destroy(effect.gameObject);
             }
             return null;
