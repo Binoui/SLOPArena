@@ -81,6 +81,11 @@ namespace SlopArena.Client.UI
             IReadOnlyList<ReplayListing> listings;
             try { listings = await ReplayLibrary.ScanAsync(_directory, token); }
             catch (OperationCanceledException) { return; }
+            catch (Exception e) when (e is System.IO.IOException or UnauthorizedAccessException)
+            {
+                if (!token.IsCancellationRequested && IsOpen) _status.text = $"Cannot read {_directory}: {e.Message}";
+                return;
+            }
             if (token.IsCancellationRequested || !IsOpen) return;
             _status.text = $"{listings.Count} in {_directory}" + (failure != null ? $" · Last Replay closed: {failure}" : "");
             for (int i = 0; i < listings.Count; i++) _rows.Add(Row(listings[i], i));

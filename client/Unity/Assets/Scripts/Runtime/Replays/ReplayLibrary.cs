@@ -50,43 +50,62 @@ namespace SlopArena.Client.Replays
         public static IReadOnlyList<ReplayListing> Scan(string root, CancellationToken cancellation)
         {
             if (!Directory.Exists(root)) return Array.Empty<ReplayListing>();
-            var files = new List<FileInfo>();
+            var rows = new List<ReplayListing>();
+            var files = new List<(FileInfo File, DateTime Modified)>();
             try
             {
                 foreach (var path in Directory.EnumerateFiles(root, "*.slopreplay*", SearchOption.AllDirectories))
-                    if (ReplayDirectory.IsReplayFile(path)) files.Add(new FileInfo(path));
+                {
+                    cancellation.ThrowIfCancellationRequested();
+                    if (!ReplayDirectory.IsReplayFile(path)) continue;
+                    try
+                    {
+                        var file = new FileInfo(path);
+                        files.Add((file, file.LastWriteTimeUtc));
+                    }
+                    catch (Exception e) when (e is IOException or UnauthorizedAccessException)
+                    {
+                        rows.Add(Failure(path, DateTime.MinValue, 0, e));
+                    }
+                }
             }
-            catch (Exception e) when (e is IOException or UnauthorizedAccessException) { }
-            var rows = new List<ReplayListing>();
-            foreach (var file in files.OrderByDescending(f => f.LastWriteTimeUtc).Take(MaxFiles))
+            catch (Exception e) when (e is IOException or UnauthorizedAccessException)
+            {
+                rows.Add(Failure(root, DateTime.MinValue, 0, e));
+            }
+            foreach (var entry in files.OrderByDescending(f => f.Modified).Take(MaxFiles))
             {
                 cancellation.ThrowIfCancellationRequested();
-                var key = (file.FullName, file.Length, file.LastWriteTimeUtc);
-                ReplayListing? row;
-                lock (CacheLock) Cache.TryGetValue(key, out row);
-                if (row == null)
-                {
-                    row = Read(file);
-                    lock (CacheLock) Cache[key] = row;
-                }
-                rows.Add(row);
+                rows.Add(Read(entry.File));
             }
-            return rows;
+            return rows.OrderByDescending(r => r.Downloaded).ToArray();
         }
 
         private static ReplayListing Read(FileInfo file)
         {
+            string path = file.FullName;
+            DateTime modified = DateTime.MinValue;
+            long size = 0;
             try
             {
+                size = file.Length;
+                modified = file.LastWriteTimeUtc;
+                var key = (path, size, modified);
+                lock (CacheLock)
+                    if (Cache.TryGetValue(key, out var cached)) return cached;
                 using var stream = file.OpenRead();
                 var read = ReplaySummaries.Read(stream);
-                return new ReplayListing(file.FullName, file.LastWriteTime, file.Length, read.Summary, read.Failure);
+                var row = new ReplayListing(path, modified.ToLocalTime(), size, read.Summary, read.Failure);
+                lock (CacheLock) Cache[key] = row;
+                return row;
             }
             catch (Exception e) when (e is IOException or UnauthorizedAccessException)
             {
-                return new ReplayListing(file.FullName, file.LastWriteTime, file.Length, null,
-                    new ReplayFailure(ReplayFailureCode.IoFailure, e.Message, "", ""));
+                return Failure(path, modified, size, e);
             }
         }
+
+        private static ReplayListing Failure(string path, DateTime modified, long size, Exception error)
+            => new(path, modified, size, null, new ReplayFailure(ReplayFailureCode.IoFailure, error.Message, "", ""));
     }
 }

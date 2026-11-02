@@ -150,6 +150,13 @@ namespace SlopArena.EditorTools
             File.WriteAllBytes(Path.Combine(root, "garbage.slopreplay"), garbage);
             Environment.SetEnvironmentVariable(ReplayDirectory.OverrideVariable, root);
             string resolved = ReplayDirectory.Resolve(ReplayDirectoryProbe.Current());
+            var vanished = new FileInfo(Path.Combine(root, "vanished.slopreplay.part"));
+            File.WriteAllBytes(vanished.FullName, bytes);
+            File.Delete(vanished.FullName);
+            var failedRow = (ReplayListing)typeof(ReplayLibrary).GetMethod("Read", BindingFlags.Static | BindingFlags.NonPublic)!
+                .Invoke(null, new object[] { vanished });
+            if (failedRow.Failure?.Code != ReplayFailureCode.IoFailure || failedRow.CanOpen)
+                throw new InvalidOperationException("A deleted enumerated file must become an IO failure row.");
             var rows = await ReplayLibrary.ScanAsync(resolved, System.Threading.CancellationToken.None);
             var overlay = new ReplayListOverlay(new UnityEngine.UIElements.VisualElement());
             overlay.Close();
