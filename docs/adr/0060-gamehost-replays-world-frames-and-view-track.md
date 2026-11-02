@@ -1,13 +1,33 @@
 # ADR-0060: GameHost Replays record World Frames and a stable View Track
 
-**Status:** Accepted by the owner in chat, 2026-11-01. Implementation pending; the
-[Replay plan](../plans/2026-11-01-replay-design.md) lists the steps, starting with the
-`tools/ReplayBudget` measurement.
+**Status:** Accepted by the owner in chat, 2026-11-01. Steps 0 to 3 are live, and the stock viewer
+of step 4 is #333. The [Replay plan](../plans/2026-11-01-replay-design.md) lists the steps.
 **Supersedes:** the recording and playback decision of
 [ADR-0033](0033-gamehost-input-replays-with-shared-playback.md). Its delivery parts (durable
 publication queue, Master storage, Replay Share Links, 30-day backend retention) are deferred
 to a later decision rather than accepted or rejected here.
 **Builds on:** [ADR-0039](0039-full-world-rollback.md) (World Snapshots and World Frames).
+
+> **2026-11-02 viewer amendment (owner-approved, #333):** Decision 4's adapter is a second decoder
+> into the simulation's own restore seam. Both tracks restore one never-ticked `ServerSimulation`:
+>
+> - Exact through the existing World Snapshot restore.
+> - View through `ReplayViewDecoder`, which builds today's `PreparedSnapshot` from View records and
+>   today's content.
+>
+> The existing `ApplySnapshot` writes either one, and `ApplyTickOutputs` writes that tick's recorded
+> hits, deaths and events. The display world's `Tick` throws. Presenters read it as `PvPMatch` reads its
+> predicted world, so no live presenter changes its input type.
+>
+> Where the View Track records an observation, a small optional override on that presenter wins over
+> today's tuning. The overrides cover pose clocks, cooldown durations, charge, flight fuel and hit
+> presentation. Live play passes none. View data the simulation needs but the track does not record
+> takes a default and is listed in [Replay file](../systems/replay-file.md).
+>
+> The cost is coupling. The decoder follows the internal snapshot types, so an internal rename fails
+> its compile, and the field-typed round-trip test catches semantic drift. The rejected alternative
+> was one new presentation frame shared by live play and replay. It would have migrated every live
+> presenter, and that code changes every day.
 
 ## Context
 
@@ -86,8 +106,9 @@ that recorded it would stop playing within days, often because of a single damag
   that recorded it. Most bug review does not need that.
 - The GameHost needs a durable volume, which is a deployment change that needs the owner's
   approval.
-- `MatchPlayer` carries a Steam ID but no display name. Names are resolved outside the file
-  from the participant identity unless Master starts sending them.
+- `MatchPlayer` carries a Steam ID but no display name. The owner chose Steam display names
+  (2026-11-02). Master sends them at Match start, and the header records them. Files without a name
+  show the fighter and a short Steam ID.
 
 ## Considered alternatives
 
