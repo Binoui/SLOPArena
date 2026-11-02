@@ -217,6 +217,33 @@ namespace SlopArena.Server
                     new JsonSerializerOptions(JsonSerializerDefaults.Web)));
                 return;
             }
+            const string replayPrefix = "/match/replays";
+            if (ctx.Request.HttpMethod == "GET" && (path == replayPrefix ||
+                path?.StartsWith(replayPrefix + "/", StringComparison.Ordinal) == true))
+            {
+                ctx.Response.Headers["Cache-Control"] = "no-store";
+                if (_controlKey is null || !IsAuthorized(ctx.Request.Headers["Authorization"], _controlKey))
+                { ctx.Response.StatusCode = 401; return; }
+                if (path == replayPrefix)
+                {
+                    ctx.Response.ContentType = "application/json";
+                    await ctx.Response.OutputStream.WriteAsync(JsonSerializer.SerializeToUtf8Bytes(
+                        new { replays = _orchestrator.Replays?.List() ?? Array.Empty<MatchReplayStore.ReplayFile>() },
+                        new JsonSerializerOptions(JsonSerializerDefaults.Web)));
+                    return;
+                }
+                var download = _orchestrator.Replays?.OpenDownload(path![(replayPrefix.Length + 1)..]) ?? (404, null);
+                ctx.Response.StatusCode = download.Item1;
+                using var stream = download.Item2;
+                if (stream != null)
+                {
+                    ctx.Response.ContentType = "application/octet-stream";
+                    ctx.Response.ContentLength64 = stream.Length;
+                    using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(120));
+                    await stream.CopyToAsync(ctx.Response.OutputStream, timeout.Token);
+                }
+                return;
+            }
             bool abort = path == "/match/abort";
             if (ctx.Request.HttpMethod != "POST" || path != "/match/start" && !abort)
             {

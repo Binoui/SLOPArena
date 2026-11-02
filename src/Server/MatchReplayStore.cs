@@ -76,7 +76,7 @@ public sealed class MatchReplayStore
                 if (!result.Stopped)
                 {
                     var completedPath = path[..^5];
-                    File.Move(path, completedPath);
+                    lock (retentionGate) File.Move(path, completedPath);
                     finalPath = completedPath;
                 }
                 detail = result.Conclusion.Reason + ":" + result.Conclusion.Detail;
@@ -103,6 +103,53 @@ public sealed class MatchReplayStore
         workers[path] = task;
         _ = task.ContinueWith(_ => workers.TryRemove(path, out var ignored), TaskScheduler.Default);
         return recording;
+    }
+    public sealed record ReplayFile(string MatchId, long Bytes, bool Complete, DateTime ModifiedAtUtc);
+    const long DownloadLimit = 64_000_000;
+    static bool Canonical(string id) => Guid.TryParseExact(id, "D", out var guid) && guid.ToString("D") == id;
+    IEnumerable<FileInfo> Files() => Directory.EnumerateFiles(directory, "*", new EnumerationOptions
+        { RecurseSubdirectories = true, AttributesToSkip = FileAttributes.ReparsePoint })
+        .Where(p => p.EndsWith(".slopreplay", StringComparison.Ordinal) || p.EndsWith(".slopreplay.part", StringComparison.Ordinal))
+        .Select(p => new FileInfo(p));
+    static string Id(FileInfo file)
+    {
+        string name = file.Name.EndsWith(".part", StringComparison.Ordinal) ? file.Name[..^5] : file.Name;
+        return name[..^11]; // ".slopreplay"
+    }
+    bool IsActive(string id) => active.Keys.Any(p => Path.GetFileName(p) == id + ".slopreplay.part");
+    public IReadOnlyList<ReplayFile> List()
+    {
+        lock (retentionGate)
+        {
+            return Files().Where(f => Canonical(Id(f)) && !IsActive(Id(f)))
+                .GroupBy(Id).Select(g => g.OrderBy(f => f.Name.EndsWith(".part", StringComparison.Ordinal))
+                    .ThenByDescending(f => f.LastWriteTimeUtc).First())
+                .OrderByDescending(f => f.LastWriteTimeUtc).ThenBy(f => f.Name, StringComparer.Ordinal)
+                .Take(2000).Select(f => new ReplayFile(Id(f), f.Length,
+                    !f.Name.EndsWith(".part", StringComparison.Ordinal), f.LastWriteTimeUtc)).ToArray();
+        }
+    }
+    // Return an owned handle so retention cannot replace the selected bytes between lookup and streaming.
+    public (int Status, FileStream? Stream) OpenDownload(string id)
+    {
+        if (!Canonical(id)) return (404, null);
+        lock (retentionGate)
+        {
+            if (IsActive(id)) return (409, null);
+            var file = Files().Where(f => Id(f) == id)
+                .OrderBy(f => f.Name.EndsWith(".part", StringComparison.Ordinal))
+                .ThenByDescending(f => f.LastWriteTimeUtc).FirstOrDefault();
+            if (file == null) return (404, null);
+            try
+            {
+                var stream = new FileStream(file.FullName, FileMode.Open, FileAccess.Read, FileShare.Read | FileShare.Delete,
+                    65536, FileOptions.Asynchronous | FileOptions.SequentialScan);
+                if (stream.Length > DownloadLimit) { stream.Dispose(); return (413, null); }
+                return (200, stream);
+            }
+            catch (FileNotFoundException) { return (404, null); }
+            catch (DirectoryNotFoundException) { return (404, null); }
+        }
     }
     public bool WaitForWriters(TimeSpan timeout) => Task.WaitAll(workers.Values.ToArray(), timeout);
     public void Retain()

@@ -20,6 +20,7 @@ namespace SlopArena.Server
         private readonly object _admissionGate = new();
         private bool _stopping;
         private readonly MatchReplayStore? _replays;
+        public MatchReplayStore? Replays => _replays;
         private string? _catalogHash;
 
         public bool ContentReady { get; }
@@ -27,10 +28,10 @@ namespace SlopArena.Server
         public MatchDiagnosticsStore Diagnostics { get; } = new();
         public string? CatalogHash => Volatile.Read(ref _catalogHash);
 
-        public MultiMatchOrchestrator(ServerConfig config, SteamGameServerHost? steamHost = null)
+        public MultiMatchOrchestrator(ServerConfig config, SteamGameServerHost? steamHost = null, MatchReplayStore? replays = null)
         {
             _config = config;
-            _replays = MatchReplayStore.FromEnvironment();
+            _replays = replays ?? MatchReplayStore.FromEnvironment();
             _steamHost = steamHost;
             try
             {
