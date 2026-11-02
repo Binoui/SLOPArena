@@ -12,7 +12,7 @@ static class Scoring
         var mine = r.Hits.Where(h => h.Owner == A && !h.Blocked).ToList();
         // One entry per attacker move that connected, in order: (first hit tick, last hit tick, slot, grounded, damage).
         var landed = mine.GroupBy(h => h.Move).Select(g => (first: g.Min(h => h.Tick), last: g.Max(h => h.Tick), slot: g.First().Slot,
-            ground: g.Key >= 0 && g.Key < r.Moves.Count && r.Moves[g.Key].ground, dmg: g.Sum(h => h.Damage))).OrderBy(x => x.first).ToList();
+            ground: g.Key >= 0 && g.Key < r.Moves.Count && r.Moves[g.Key].ground, dmg: g.Sum(h => h.Damage), tier: g.Max(h => h.Tier))).OrderBy(x => x.first).ToList();
         double dmg = mine.Sum(h => h.Damage);
         s += 10 * landed.Count + 0.5 * dmg;
         // No normal links into another in today's frame data, so a string is pressure: each landed move follows the
@@ -37,6 +37,8 @@ static class Scoring
         int normals = kinds.Count(k => normalWires.Contains(k.slot)), misplaced = 0, setups = 0;
         for (int i = 0; i < kinds.Count; i++)
         {
+            // A light special reads as a miss on screen (owner, 2026-11-02: Wibou's weak R), wherever it sits.
+            if (!normalWires.Contains(kinds[i].slot) && str[i].tier == 0) { misplaced++; continue; }
             if (normalWires.Contains(kinds[i].slot) || i == 0 || (i == kinds.Count - 1 && koFollows)) continue;
             bool setup = i + 2 < kinds.Count && normalWires.Contains(kinds[i + 1].slot) && normalWires.Contains(kinds[i + 2].slot);
             if (setup && setups++ == 0) continue;

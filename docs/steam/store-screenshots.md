@@ -95,6 +95,8 @@ at tick 0. Photo mode deserializes and plays those records verbatim. After the t
 ends, input is neutral with the last facing and aim yaw. Empty or partial records
 are rejected. Tape takes precedence over `input` and target/aim adapters.
 `states.jsonl` includes each fighter's `deaths`, so a recorder can verify the KO tick.
+`"respawn": [x, z]` moves where a fighter returns after a KO (on the floor below that
+point). A kill shot uses it to keep the respawned victim out of view while the KO burst plays.
 
 `python3 tools/combo_clip.py record <idea|combo.json>` records each camera angle in
 its own gateway pass and verifies landed moves and the KO against the combo timeline.

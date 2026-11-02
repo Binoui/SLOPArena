@@ -619,7 +619,7 @@ namespace SlopArena.EditorTools
             foreach (var token in root["fighters"] as JArray ?? new JArray())
             {
                 var item = token as JObject ?? throw new ArgumentException("Every fighter must be an object.");
-                Only(item, "fighter", "id", "package", "feet", "grounded", "yaw", "damage", "deaths", "target", "aimDistance", "pitch", "input", "tape");
+                Only(item, "fighter", "id", "package", "feet", "grounded", "yaw", "damage", "deaths", "target", "aimDistance", "pitch", "input", "tape", "respawn");
                 var fighter = new PhotoFighter
                 {
                     Id = (ulong)Int(item, "id", 0, 1, 4),
@@ -637,6 +637,10 @@ namespace SlopArena.EditorTools
                     fighter.Inputs.Add(ParseInput(stepToken as JObject ?? throw new ArgumentException("Every input must be an object.")));
                 if ((string?)item["tape"] is { } tape)
                     fighter.Tape = ParseTape(tape);
+                if (item["respawn"] is JArray { Count: 2 } respawn)
+                    fighter.Respawn = new Vector2((float)respawn[0], (float)respawn[1]);
+                else if (item["respawn"] != null)
+                    throw new ArgumentException("respawn must be [x, z].");
                 fighters.Add(fighter);
             }
             if (fighters.Count > 4 || fighters.Select(f => f.Id).Distinct().Count() != fighters.Count

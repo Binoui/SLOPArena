@@ -225,6 +225,7 @@ def cmd_record(args) -> None:
         if plan['combo'] != combo['id'] or plan['orientation'] != orientation:
             raise ValueError('camera plan combo/orientation does not match')
         wanted = args.angles.split(',') if args.angles else [a['name'] for a in plan['angles']]
+        victim_id = next(f['id'] for f in combo['fighters'] if f['role'] == 'victim')
         angles = {a['name']: a for a in plan['angles']}
         if len(set(wanted)) != len(wanted) or not set(wanted) <= angles.keys():
             raise ValueError(f'angles must be unique names in {list(angles)}')
@@ -234,9 +235,12 @@ def cmd_record(args) -> None:
         for name in wanted:
             safe_name(name)
             angle = angles[name]
-            spec = {'stage': combo['stage'], 'fighters': [
-                {k: v for k, v in f.items() if k in ('id', 'package', 'feet', 'yaw', 'damage', 'tape')}
-                for f in combo['fighters']], 'cameras': [dict(angle['camera'], name=name)],
+            fighters = [{k: v for k, v in f.items() if k in ('id', 'package', 'feet', 'yaw', 'damage', 'tape')}
+                        for f in combo['fighters']]
+            if angle.get('victimRespawn'):
+                # Out of this angle's view, so the frames after the KO show the burst and no respawned victim.
+                next(f for f in fighters if f['id'] == victim_id)['respawn'] = angle['victimRespawn']
+            spec = {'stage': combo['stage'], 'fighters': fighters, 'cameras': [dict(angle['camera'], name=name)],
                 'capture': {'from': angle['from'], 'to': angle['to'], 'step': 1,
                             'width': plan['width'], 'height': plan['height'], 'quality': 92}}
             if angle['to'] < combo['timeline']['ko']:

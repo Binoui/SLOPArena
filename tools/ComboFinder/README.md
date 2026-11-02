@@ -32,7 +32,15 @@ the pressure string. Gaps over 70 ticks break a free-search string. Repeated
 hits from one activation count as one landed move. Export requires no hit taken,
 a majority of normals in the string, specials in the approved positions, and a
 KO within 120 ticks of its last hit. A special can open or finish the string,
-or appear once mid-string followed by two normals.
+or appear once mid-string followed by two normals, and it must hit at least
+Medium in the game's impact tiers (`CombatFeedback.Classify`): a light special
+reads as a miss on screen. Each landed move records its `tier`.
+
+`cameras` plans side, far-side, behind and wide angles that follow both fighters
+and pull back with their distance, and a fixed `kill` angle behind the last hit,
+aimed between the hit and where the victim leaves the stage. The kill angle names
+an out-of-view `victimRespawn`, and `edit.end` then runs 24 ticks past the KO so
+the burst shows; with no such floor point it ends just before the KO.
 
 Candidate ordering is descending score then ordinal plan string. Equivalent
 outcomes retain the plan with the fewest non-idle actions, then the ordinally

@@ -134,7 +134,7 @@ sealed class Runner
                     }
                     instances[h.ActivationId] = moveIndex;
                 }
-                r.Hits.Add(new Hit(tick, h.OwnerEntityId, h.AttackSlot, h.Damage, h.Blocked, moveIndex));
+                r.Hits.Add(new Hit(tick, h.OwnerEntityId, h.AttackSlot, h.Damage, h.Blocked, moveIndex, h.ImpactForce));
             }
             bool victimFree = v2.HitstunTicks == 0 && !v2.InPostHitstunFlight && v2.State != ActionState.Hitstun && v2.State != ActionState.Grabbed;
             r.VictimFree.Add(victimFree);

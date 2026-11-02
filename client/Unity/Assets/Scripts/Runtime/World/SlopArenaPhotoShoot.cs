@@ -52,6 +52,8 @@ namespace SlopArena.EditorTools
         public List<PhotoInput> Inputs = new();
         /// <summary>Exact per-tick inputs from tick 0 (tools/ComboFinder); replaces Inputs while it lasts, neutral after.</summary>
         public InputState[]? Tape;
+        /// <summary>Where the fighter returns after a KO (feet x, z on the floor); null keeps the start.</summary>
+        public Vector2? Respawn;
     }
 
     public sealed class PhotoCamera
@@ -232,7 +234,15 @@ namespace SlopArena.EditorTools
                 DamagePercent = fighter.Damage, Deaths = fighter.Deaths, MatchState = MatchState.Playing
             };
             _bridge.RegisterEntity(fighter.Id, entry.Definition, state, entry.BakedAnimation);
-            _bridge.SetRespawnPosition(fighter.Id, state.PX, state.PY, state.PZ, yaw);
+            if (fighter.Respawn is { } respawn)
+            {
+                float floor = Arena.Heightmap.Sample(respawn.x, respawn.y);
+                if (floor == float.MinValue)
+                    throw new InvalidOperationException($"Fighter {fighter.Id} respawn has no floor below ({respawn.x}, {respawn.y}).");
+                _bridge.SetRespawnPosition(fighter.Id, respawn.x, floor + entry.Definition.CapsuleHeight * 0.5f, respawn.y, yaw);
+            }
+            else
+                _bridge.SetRespawnPosition(fighter.Id, state.PX, state.PY, state.PZ, yaw);
             renderer.ApplyServerState(_bridge.GetState(fighter.Id), _bridge.GetActiveMove(fighter.Id)?.Slot);
             return renderer;
         }

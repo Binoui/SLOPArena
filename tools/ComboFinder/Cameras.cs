@@ -51,12 +51,52 @@ static class Cameras
         PhotoCamera Camera(float x, float y, float z, float lx, float ly, float lz, object follow, float ease = 0.08f, float? lens = null, bool pull = true) =>
             new(new[] { x, y, z }, new[] { lx, ly, lz }, follow, new[] { 0f, 0.3f, 0f }, true, ease, lens ?? fov, 4000f, pull ? spread : null);
         var both = new[] { 1, 2 };
-        return new(combo.Id, orientation, portrait ? 1080 : 1920, portrait ? 1920 : 1080, new(from, cut, ko - 1, ko), new[] {
+        var (kill, end, respawn) = KillCamera(content, pv, s1, ko, ax, az, sideSign, portrait);
+        return new(combo.Id, orientation, portrait ? 1080 : 1920, portrait ? 1920 : 1080, new(from, cut, end, ko), new[] {
         new CameraAngle("side", from,to, Camera(camX,cy+Up,camZ,cx,cy+0.3f,cz,both)),
         new CameraAngle("far-side", from,to, Camera(cx-az*sideSign*Dist,cy+Up,cz+ax*sideSign*Dist,cx,cy+0.3f,cz,both)),
         new CameraAngle("behind", from,to, Camera(cx-ax*7f,cy+2f,cz-az*7f,cx,cy+0.3f,cz,both)),
         new CameraAngle("wide", from,to, Camera(cx+az*sideSign*12f,cy+8f,cz-ax*sideSign*12f,cx,cy,cz,both)),
-        new CameraAngle("kill", Math.Max(1,cut-30),to, Camera(kx+az*sideSign*8f,ky+2.5f,kz-ax*sideSign*8f,kx,ky,kz,2,0.18f,portrait?65.2f:45f,pull:false))
+        new CameraAngle("kill", Math.Max(1,cut-30),to, kill, respawn)
     });
+    }
+
+    /// <summary>
+    /// A fixed camera behind the last hit, aimed between the hit and the point where the victim leaves the stage, so
+    /// the victim flies away from it and the KO burst shows. The victim respawns on floor out of view so the cut can
+    /// run past the KO; without such a point the cut ends just before it.
+    /// </summary>
+    static (PhotoCamera camera, int end, float[]? respawn) KillCamera(Content content, List<Position> pv, int s1, int ko,
+        float ax, float az, float sideSign, bool portrait)
+    {
+        var hit = pv[s1 - 1]; var gone = pv[ko - 2];
+        float dx = gone.x - hit.x, dz = gone.z - hit.z, dlen = MathF.Sqrt(dx * dx + dz * dz);
+        if (dlen < 0.5f) { dx = ax; dz = az; dlen = 1f; }
+        dx /= dlen; dz /= dlen;
+        float[] cam = { hit.x - dx * 7f + dz * sideSign * 2f, hit.y + 3f, hit.z - dz * 7f - dx * sideSign * 2f };
+        float[] Unit(float x, float y, float z) { float l = MathF.Sqrt(x * x + y * y + z * z); return new[] { x / l, y / l, z / l }; }
+        var toHit = Unit(hit.x - cam[0], hit.y - cam[1], hit.z - cam[2]);
+        var toGone = Unit(gone.x - cam[0], gone.y - cam[1], gone.z - cam[2]);
+        var forward = Unit(toHit[0] + toGone[0], toHit[1] + toGone[1], toHit[2] + toGone[2]);
+        float Angle(float[] a, float[] b) => MathF.Acos(Math.Clamp(a[0] * b[0] + a[1] * b[1] + a[2] * b[2], -1f, 1f)) * 180f / MathF.PI;
+        // Both points must fit across the narrower side of the frame, with a margin.
+        float aspect = portrait ? 9f / 16f : 16f / 9f;
+        float across = Angle(toHit, toGone) * 1.3f + 12f;
+        float Vertical(float horizontal) => 2f * MathF.Atan(MathF.Tan(horizontal * MathF.PI / 360f) / aspect) * 180f / MathF.PI;
+        float fov = Math.Clamp(Math.Max(portrait ? Vertical(across) : across, portrait ? 50f : 38f), 35f, 95f);
+        float[] look = { cam[0] + forward[0] * 10f, cam[1] + forward[1] * 10f, cam[2] + forward[2] * 10f };
+        float half = Math.Min(fov, portrait ? 2f * MathF.Atan(MathF.Tan(fov * MathF.PI / 360f) * aspect) * 180f / MathF.PI : fov) / 2f;
+        var arena = content.Arena;
+        float[]? respawn = null; float widest = half * 1.3f;
+        for (float x = arena.MinX; x <= arena.MaxX; x += 1f)
+            for (float z = arena.MinZ; z <= arena.MaxZ; z += 1f)
+            {
+                float floor = arena.Heightmap.Sample(x, z);
+                if (floor == float.MinValue) continue;
+                float off = Angle(forward, Unit(x - cam[0], floor + 1f - cam[1], z - cam[2]));
+                if (off > widest) { widest = off; respawn = new[] { x, z }; }
+            }
+        int end = respawn != null ? ko + 24 : ko - 1;
+        return (new PhotoCamera(cam, look, null, new[] { 0f, 0f, 0f }, false, 1f, fov), end, respawn);
     }
 }

@@ -63,8 +63,11 @@ static class Search
         }
         fighters[0] = fighters[0] with { Tape = Replay.Tape(trace.TapeA) };
         fighters[1] = fighters[1] with { Tape = Replay.Tape(trace.TapeV) };
-        // Factory idea ids allow only [a-z0-9-], and the footage folder is named after the idea.
-        string id = $"{o.Attacker}-{o.Victim}-{o.Stage.Replace('_', '-')}-{o.Damage}-{o.Layout}-s{o.Seed}";
+        // Factory idea ids allow only [a-z0-9-], and the footage folder is named after the idea. The tape hash keeps
+        // a fight found after a content change from reusing an earlier fight's id.
+        string tapes = Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(
+            System.Text.Encoding.ASCII.GetBytes(fighters[0].Tape + fighters[1].Tape)))[..6].ToLowerInvariant();
+        string id = $"{o.Attacker}-{o.Victim}-{o.Stage.Replace('_', '-')}-{o.Damage}-{o.Layout}-{tapes}";
         var combo = new ComboFile(1, id, o.Stage, content.Stamp(fighters), new(o.Seed, o.Beam, "Hard", best.Score, route.Length == 0 ? null : route), fighters, timeline, summary);
         Directory.CreateDirectory(output);
         File.WriteAllText(Path.Combine(output, id + ".json"), Json.Write(combo));
@@ -74,6 +77,7 @@ static class Search
     {
         var str = t.Moves.Where(m => m.Tick >= t.String.From && m.LastTick <= t.String.To).ToArray();
         bool Normal(LandedMove m) => m.Label.Length == 2 && m.Label[0] is 'a' or 'g';
+        if (str.Any(m => !Normal(m) && m.Tier == 0)) return false;
         if (t.Taken != 0 || t.Ko < 0 || str.Length == 0 || t.Moves.Any(m => m.Label.StartsWith("slot")) || t.String.To != t.Moves[^1].LastTick || t.Ko - str[^1].LastTick >= 120 || str.Count(Normal) * 2 <= str.Length) return false;
         int setups = 0;
         for (int i = 1; i < str.Length - 1; i++)

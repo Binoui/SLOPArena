@@ -16,7 +16,7 @@ static class Replay
         {
             bool ground = g.Key >= 0 && g.Key < r.Moves.Count && r.Moves[g.Key].ground;
             return new LandedMove(g.Min(h => h.Tick), g.Max(h => h.Tick), Label(g.First().Slot, ground), !ground,
-                g.Sum(h => h.Damage), g.Any(h => h.Tick >= 2 && r.VictimAir[h.Tick - 2]));
+                g.Sum(h => h.Damage), g.Any(h => h.Tick >= 2 && r.VictimAir[h.Tick - 2]), g.Max(h => h.Tier));
         }).OrderBy(m => m.Tick).ToArray();
         int start = 0, bestStart = 0, bestLen = 0;
         for (int i = 0; i < moves.Length; i++)
