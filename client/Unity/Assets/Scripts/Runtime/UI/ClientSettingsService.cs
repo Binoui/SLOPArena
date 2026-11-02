@@ -190,7 +190,8 @@ namespace SlopArena.Client.UI
         public void PlayConfirmedImpact()
         {
             if (!isActiveAndEnabled || !_settings.vibration || !Application.isFocused ||
-                SettingsOverlay.Active is { IsOpen: true } || MatchPauseMenu.Active is { IsPaused: true })
+                SettingsOverlay.Active is { IsOpen: true } || MatchPauseMenu.Active is { IsPaused: true }
+                || World.MatchBase.Active is { DrivesControllerFeedback: false } || !World.PresentationOutput.TryPlay())
                 return;
             _rumbleStopAttempts = 0;
             foreach (var pad in Gamepad.all)

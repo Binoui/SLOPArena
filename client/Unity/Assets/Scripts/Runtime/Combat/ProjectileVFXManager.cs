@@ -430,7 +430,12 @@ namespace SlopArena.Client.Combat
             // Trails marked to linger (smoke behind a rocket) detach and fade instead of vanishing.
             foreach (var linger in visual.GetComponentsInChildren<SlopArena.Client.World.LingerAfterProjectile>(true))
                 if (Application.isPlaying) linger.Release();
-            if (Application.isPlaying) UnityEngine.Object.Destroy(visual);
+            if (Application.isPlaying)
+            {
+                // Destroy waits for the frame's end; a Replay seek re-presents within the same frame.
+                visual.SetActive(false);
+                UnityEngine.Object.Destroy(visual);
+            }
             else UnityEngine.Object.DestroyImmediate(visual);
         }
 

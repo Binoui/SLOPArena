@@ -22,6 +22,7 @@ public sealed class ReplayPlayer
     readonly ServerSimulation? shell;
     ReplayFailure? failed;
     public uint? CurrentTick { get; private set; }
+    internal ServerSimulation? Shell => shell;
     internal ReplayPlayer(ReplayReader reader, ServerSimulation? shell)
     {
         this.reader = reader;
@@ -140,7 +141,7 @@ internal static class ReplayExact
     internal static ServerSimulation CreateShell(ReplayHeader h, ReplayEnvironment e)
     {
         var arena = e.Arenas[h.ArenaId];
-        var s = new ServerSimulation(arena, Rule(h, arena));
+        var s = new ServerSimulation(arena, Rule(h, arena)) { ReplayDisplay = true };
         foreach (var p in h.Roster)
         {
             var c = e.Catalog.ResolvePackage(p.Package.PackageId)!;

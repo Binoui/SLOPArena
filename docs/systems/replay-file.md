@@ -597,6 +597,163 @@ visuals by recorded ticks. Step presents the next tick once as Live. EOF has no 
 seek starts a new presentation epoch. Decode failure latches until a successful seek; the cursor
 never skips a failed tick. Borrowed ExactSimulation is read-only to sinks and must never be Tick'ed.
 
+## Viewer: the display world (step 4)
+
+`ReplayWorld` (Shared) is the viewer's only way into a Replay. `Open(stream, content, choice)` takes
+today's `ReplayContent` (catalog, arena loader, stand-in package), builds the cast and picks the track:
+Exact when `choice` is Best and the gate passes, else View with the gate's refusal in `ExactRefusal`.
+Both tracks restore one never-ticked `ServerSimulation`, the display world, for every presented tick.
+Exact uses the World Snapshot restore. View runs `ReplayViewDecoder`, which builds the simulation's own
+`PreparedSnapshot` from the View record, and the existing `ApplySnapshot` writes it. Each tick's hits,
+deaths and presentation events come from the View record on both tracks (`ApplyTickOutputs`).
+Presenters implement `IReplayPresenter` and read `ReplayFrame.World` as they read a live simulation.
+
+- **Tick guard.** Every Replay shell sets `ReplayDisplay`, and `Tick` throws on it. This is defense in
+  depth, not a read-only world: Replay code must never call `SetState`, `ActivateAbility` or
+  `TickAbilities`.
+- **Exact gate content hash.** The GameHost hashes the whole roster handle map with the Match arena
+  (`MultiMatchOrchestrator`). `ReplayExactEnvironment` rebuilds it from today's catalog and arena digest,
+  so a build with the same roster and arena reproduces it.
+- **Cast.** A recorded package today's build has is `Recorded` (same identity) or `Today` (other
+  version). A missing package plays today's stand-in fighter, `StandIn`, whose moves are all Missing.
+  A recorded alternate form the fighter no longer has plays its base form.
+- **Moves.** (package, form, name) first, preferring the recorded slot address and then the recorded
+  air variant among same-named moves; then (package, form, slot address); else Missing. A Missing
+  active move becomes Idle with its attack fields cleared, keeping position and facing. `ReplayFrame.Moves`
+  carries each fighter's recorded name and match for labels.
+- **Pose clock.** The display world returns the recorded `PoseAnimationId`, `PoseElapsedTicks`,
+  `PoseDurationTicks` and `PhaseClip` from `GetActiveMove`, never today's clip timing.
+- **Round trip.** On a same-build recording, projecting the display world back through `ReplayCapture`
+  gives the recorded View on every field of every tick, on both tracks, for two and four fighters
+  (`ReplayWorldTests`). `FuseProgress` and `LaunchDirection` are inverted arithmetically and compared
+  within 1e-4. Fields lost only when content changed: a Missing move's slot, clip and charge clock.
+
+- **Summaries.** `ReplaySummaries.Read` gives a list row's header, range, conclusion and prefix reason. It
+  runs the reader's own validation but hops each chunk's lanes instead of inflating and CRC-checking
+  them, so lane corruption shows only when the file is opened. `Forecast` runs the Exact gate on the
+  header and today's content and returns the track `Open` would choose with its reason.
+
+### What the View cannot restore (decoder fallbacks)
+
+| Lost observation | Fallback until View v2 |
+|---|---|
+| Perch phase and spot | A perching shape rests at its recorded position: `Perched` when attached, else `Marking` |
+| Capsule end bone | Today's move supplies the end bone of the hitbox event with the same start bone |
+| Applied hit stun | A hit stuns when it did damage, froze anyone, or left its target reacting that tick |
+| Bonk's `MoveSpot` and challenge target | Not shown |
+| Mode state (ball, course, Mayhem) | Not decoded yet; a non-stock Match shows its fighters on a no-elimination rule |
+
+### Live seams the viewer uses
+
+Every seam is additive, and its live default is the behaviour before it existed.
+
+- `ISimulationBridge.World` gives presenters the simulation they read (local, predicted, or a Replay's
+  display world). Bonk's rings and the aim target read it instead of downcasting the bridge.
+- `MatchBase` virtuals: `FocusEntityId` (camera framing and the quick-draw bracket), `FramingMaxStocks`,
+  `CampOf`, `MusicArenaName`, `FreezesOnPause`, `DrivesControllerFeedback`, `CameraUsesUnscaledTime`,
+  plus `Fighters` and a `SetupHUD(players, maxStocks, focus)` overload. The pause menu writes
+  `Time.timeScale` only when it freezes the Match.
+- `PresentationOutput.TryPlay()` is the one gate for sound and rumble. A `MatchBase.SilenceOutput()`
+  scope makes it refuse, and counts what it skipped. The sites: `CombatSFX`, `UISFX` (click, countdown,
+  finish), `PlayerRenderer` (its one-shots, which `AirDodgePresentation` and `HomingDashPresentation`
+  use too), `MankiBombVisual`, `ChargeTierCues` and the controller rumble. No camera impulse or screen
+  shake exists in runtime code today, so nothing else needs the gate.
+
+### Recorded observations over today's tuning
+
+Each override is optional and null in live play. A new recorded observation belongs in this table.
+
+| Presenter | Override | Recorded source | Live default |
+|---|---|---|---|
+| `PlayerRenderer.ApplyServerState` | `RecordedFighterClocks.Pose` | `PoseAnimationId`, `PoseElapsedTicks`, `PoseDurationTicks` | today's `clip.At(AttackElapsedTicks)` and clip duration |
+| `PlayerRenderer` weapon pose (sword trail sampling in `WeaponAttach`) | the same pose | the same fields | today's clip |
+| `PlayerRenderer` flying loop | `FlightElapsedTicks` | `FlightElapsedTicks` | today's fuel capacity minus fuel left |
+| `MankiFlightPresentation` fuel gauge | `FlightFuelFraction` | `FlightFuelFraction` | fuel left over today's capacity |
+| `ChargeTierCues`, `ChargePropFeedback`, `ChargeScale` | `ChargeTier`, `ChargeProgress` | `ChargeTier`, `ChargeProgress` | `ChargeTiers.Of` and `Progress` on today's move |
+| `HUDManager.Recorded` | cooldown run length, charge pips | `ReplayCooldown.DurationTicks`, `ChargeStepsReached` | today's `CooldownTicks`, `ChargeTiers.StepsReached` |
+| `CombatFeedback.RecordedOwnPresentation` | whether a hit showed its own presentation | the hit's `PresentationId` and the tick's `hit-contact` events | today's slot `HitPresentationId` |
+
+### The viewer in Unity
+
+`ReplayLaunch.Open(path, returnTo, track, tick, focus)` loads the generated `Replay` scene, whose
+`ReplayMatch` (a `MatchBase`) opens the file with `ReplayContentSource.TryToday` (the local catalog
+Training uses and the baked arenas with their digests). It presents each tick in PvP's present order,
+one tick per `FixedUpdate`, and `Time.timeScale` is the speed (0.25×, 0.5×, 1×, 2×). Warmup ticks run
+inside `SilenceOutput()`. Pause keeps orbit and zoom (hold the right mouse button, or a controller)
+through `CameraUsesUnscaledTime` and the Cinemachine brain's `IgnoreTimeScale`. Paused steps sample
+still poses with `PlayScrubbedState`. The bar shows play, steps, speed, a timeline that seeks once per
+rendered frame, the followed fighter (Tab, LB/RB), the track with its reason, move names (M) and Leave.
+Labels over fighters name a stand-in and a Missing move. The end of the file shows the conclusion, or
+the partial reason. Fight cards show the fighter's name and the last four digits of a Steam ID.
+
+`Scenes/Replay.unity` is generated from `Arena_Offline` by `sloparena.replays.build-scene`; rebuild it
+after changing that scene. Editor commands, all through the gateway:
+
+| Command | What it does |
+|---|---|
+| `sloparena.replays.record-bots --output <path> [--fighters fightguy,nyx:alternate] [--ticks 1800]` | Records a same-build CPU fight with this Editor's content, so it plays Exact |
+| `sloparena.replays.open --file <path> [--tick N] [--focus id] [--track best\|view]` | Opens a Replay in Play Mode at a tick |
+| `sloparena.replays.check --script play` | Every tick at 2×, ten step-backs and step-forwards, every fighter focused, Nyx crows drawn, no console errors |
+| `sloparena.replays.check --script pose` | A blade move's weapon tip follows the recorded pose clock, not today's clip time |
+| `sloparena.replays.check --script orbit` | The paused camera still orbits and zooms |
+
+Commands time out after 30 s, so check files of up to about 2,000 ticks with `play`.
+
+### Seek hygiene
+
+A seek must show the same thing whatever was on screen before it. `ReplayMatch.Reset` lets owners reset
+themselves first: each renderer, its blade trail (`WeaponAttach.ResetForSeek`), the timeline, Bonk,
+tether and sword owners, and the projectile visuals. `ReplayEffects.Sweep` then recalls the pools
+(`GraphicHitEffect.RecallAll`, `MovementFeedbackEffect.RecallOneShots`), stops the scene's playing
+sounds, and removes roots spawned since the Replay began, except UI and pools. It logs each removal:
+every logged name is an effect whose owner does not reset itself yet. The timeline dispatcher and the
+projectile manager deactivate what they destroy, because `Destroy` waits for the frame's end and a seek
+re-presents within the frame.
+
+Warmup ticks run the ordinary present code inside `SilenceOutput()`. What a warmup tick spawns starts at
+its distance from the target: particle systems are simulated to that age with a seed taken from their
+place in the scene, animators are updated, trails cleared, and hit effects aged. Script timers that read
+`Time.time` (hit feel, tether retract, queued mode sounds) do not age; they show at their start age.
+
+`sloparena.replays.check --script seek-hygiene` takes 20 seeded (A, B) pairs. For each, a seek to B
+straight after the first tick must equal a seek to A, 60 live ticks, then a seek to B. It compares a
+census of transient roots, alive particle systems with ages and counts, hit effects, trail lengths,
+blade samples, playing sounds and fighter bone positions, requires no sound during either seek, and
+the same sounds on the next live tick. Measured in the Editor on 2026-11-02 (60 seeks each):
+
+| Replay | Track | Seek median | Seek p95 |
+|---|---|---|---|
+| FightGuy and Nyx, 900 ticks | Exact | 9.97 ms | 17.65 ms |
+| Released golden, 180 ticks | View | 8.27 ms | 13.50 ms |
+| Bonk, Manki, Nyx, Bashie, 900 ticks | View | 15.70 ms | 25.69 ms |
+
+### Where Replays live, and the list
+
+One folder rule, in `ReplayDirectory.Resolve` and in `tools/replay_pull.py`, both checked against
+`tools/tests/replay_directory_vectors.json`:
+
+1. `SLOPARENA_REPLAY_DIR` wins. Under Wine or Proton an absolute Unix value is reached through `Z:`.
+2. Linux: `${XDG_DATA_HOME:-~/.local/share}/sloparena/replays`. Wine or Proton: the same host folder
+   through `Z:` when Wine passes `XDG_DATA_HOME` or `HOME` through (best effort), else
+   `%LOCALAPPDATA%\sloparena\replays`. Windows: `%LOCALAPPDATA%\sloparena\replays`. macOS:
+   `~/Library/Application Support/sloparena/replays`.
+
+The pull tool prints the folder it resolved and the Steam launch option that points the Proton build at
+the same folder: `SLOPARENA_REPLAY_DIR="$HOME/.local/share/sloparena/replays" %command%`.
+
+Home shows **Replays** only when that folder holds a `.slopreplay` or `.slopreplay.part` file. The list
+opens over Home. It shows the folder it read and a Refresh button, and has one row per file, newest
+first. Each row gives the mode, arena, fighters and length, then
+"Downloaded" with the file's modification time, Complete, Partial or Empty, and Exact or View with its
+reason. A file from a newer build says "Made by a newer build. Update SLOPArena." `ReplayLibrary` reads
+summaries on a worker, at most 500 files, cancellable, cached by path, size and modification time; the
+forecast runs on the main thread. Watching is refused while a live match runs or an online room is
+open. Leaving a Replay started from the list returns to Home with the list open.
+
+`sloparena.replays.directory-selftest` runs the vectors in the Editor. `sloparena.replays.list-check
+--directory tmp/<dir> --source <complete file>` writes complete, partial, newer-build and garbage files,
+points this Editor process at them, and checks the four rows.
+
 ## Goldens and release policy
 
 Every release that records Replays adds a short immutable `.slopreplay` under
@@ -656,6 +813,7 @@ dotnet run --project tools/ReplayReport -p:SkipUnityPluginCopy=true -- \
 ```
 
 The pull defaults to `http://127.0.0.1:4173`; `--base-url` also accepts the alfred console URL.
+Its default destination is today's UTC date folder under the Replay folder above.
 It sends the key privately as `X-Console-Key`, validates the eight magic bytes and advertised size,
 and atomically renames downloads in the destination. `--dest <dir>` overrides the default UTC
 date directory. Complete and partial filenames track completeness; a completed recording replaces

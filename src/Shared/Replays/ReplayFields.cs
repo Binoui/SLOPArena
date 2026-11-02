@@ -30,8 +30,8 @@ internal static class ReplayFields
             EndSize(w, start);
         }
     }, b => ReplayBinary.List(b, codec.Read, max));
-    internal sealed record FieldEntry<T>(ushort Tag, string Name, Action<BinaryWriter, T> Write, Func<T, byte[], T> Read);
-    internal static FieldEntry<T> Field<T,V>(ushort tag, Codec<V> codec, Func<T,V> get, Func<T,V,T> set, string name) => new(tag, name, (w, x) => codec.Write(w, get(x)), (x,b) => set(x, codec.Read(b)));
+    internal sealed record FieldEntry<T>(ushort Tag, string Name, Type ValueType, Action<BinaryWriter, T> Write, Func<T, byte[], T> Read);
+    internal static FieldEntry<T> Field<T,V>(ushort tag, Codec<V> codec, Func<T,V> get, Func<T,V,T> set, string name) => new(tag, name, typeof(V), (w, x) => codec.Write(w, get(x)), (x,b) => set(x, codec.Read(b)));
     internal sealed class Table<T>
     {
         internal readonly FieldEntry<T>[] Fields;

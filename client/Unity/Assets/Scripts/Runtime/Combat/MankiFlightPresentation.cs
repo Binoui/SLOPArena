@@ -15,9 +15,9 @@ namespace SlopArena.Client.Combat
         private TextMesh _label;
         private Material _ink, _amber;
 
-        public void Apply(PlayerRenderer owner, CharacterState state, ushort capacity)
+        public void Apply(PlayerRenderer owner, CharacterState state, ushort capacity, float? recordedFraction = null)
         {
-            _fuel = state.Flight.FuelTicksLeft / (float)capacity;
+            _fuel = recordedFraction ?? state.Flight.FuelTicksLeft / (float)capacity;
             _flying = state.Flight.Active;
             if (_readout == null) CreateReadout();
             _fill.localScale = new Vector3(.94f * Mathf.Clamp01(_fuel), .065f, .035f);

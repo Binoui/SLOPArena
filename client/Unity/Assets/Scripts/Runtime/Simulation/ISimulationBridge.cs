@@ -14,5 +14,7 @@ namespace SlopArena.Client.Simulation
         SpellResolver? Resolver { get; }
         IReadOnlyList<SpellResolver.HitResult> LastTickHits { get; }
         IReadOnlyList<TimelinePresentationEvent> LastTickPresentationEvents { get; }
+        /// <summary>The simulation presenters read (local, predicted or a Replay's display world); never tick it here.</summary>
+        ServerSimulation? World { get; }
     }
 }
