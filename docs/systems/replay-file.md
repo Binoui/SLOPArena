@@ -673,6 +673,32 @@ Each override is optional and null in live play. A new recorded observation belo
 | `HUDManager.Recorded` | cooldown run length, charge pips | `ReplayCooldown.DurationTicks`, `ChargeStepsReached` | today's `CooldownTicks`, `ChargeTiers.StepsReached` |
 | `CombatFeedback.RecordedOwnPresentation` | whether a hit showed its own presentation | the hit's `PresentationId` and the tick's `hit-contact` events | today's slot `HitPresentationId` |
 
+### The viewer in Unity
+
+`ReplayLaunch.Open(path, returnTo, track, tick, focus)` loads the generated `Replay` scene, whose
+`ReplayMatch` (a `MatchBase`) opens the file with `ReplayContentSource.TryToday` (the local catalog
+Training uses and the baked arenas with their digests). It presents each tick in PvP's present order,
+one tick per `FixedUpdate`, and `Time.timeScale` is the speed (0.25×, 0.5×, 1×, 2×). Warmup ticks run
+inside `SilenceOutput()`. Pause keeps orbit and zoom (hold the right mouse button, or a controller)
+through `CameraUsesUnscaledTime` and the Cinemachine brain's `IgnoreTimeScale`. Paused steps sample
+still poses with `PlayScrubbedState`. The bar shows play, steps, speed, a timeline that seeks once per
+rendered frame, the followed fighter (Tab, LB/RB), the track with its reason, move names (M) and Leave.
+Labels over fighters name a stand-in and a Missing move. The end of the file shows the conclusion, or
+the partial reason. Fight cards show the fighter's name and the last four digits of a Steam ID.
+
+`Scenes/Replay.unity` is generated from `Arena_Offline` by `sloparena.replays.build-scene`; rebuild it
+after changing that scene. Editor commands, all through the gateway:
+
+| Command | What it does |
+|---|---|
+| `sloparena.replays.record-bots --output <path> [--fighters fightguy,nyx:alternate] [--ticks 1800]` | Records a same-build CPU fight with this Editor's content, so it plays Exact |
+| `sloparena.replays.open --file <path> [--tick N] [--focus id] [--track best\|view]` | Opens a Replay in Play Mode at a tick |
+| `sloparena.replays.check --script play` | Every tick at 2×, ten step-backs and step-forwards, every fighter focused, Nyx crows drawn, no console errors |
+| `sloparena.replays.check --script pose` | A blade move's weapon tip follows the recorded pose clock, not today's clip time |
+| `sloparena.replays.check --script orbit` | The paused camera still orbits and zooms |
+
+Commands time out after 30 s, so check files of up to about 2,000 ticks with `play`.
+
 ## Goldens and release policy
 
 Every release that records Replays adds a short immutable `.slopreplay` under
