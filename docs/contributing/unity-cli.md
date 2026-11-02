@@ -771,6 +771,15 @@ expression. Pass it an absolute path; a repository-relative path is not found. F
 task-specific assertions temporary; promote repeated setup/control operations into
 the existing typed command seam rather than rewriting them in each session.
 
+Two pitfalls when writing Unity C#, including typed commands:
+
+- `Assembly-CSharp` has no `System.Runtime.CompilerServices.IsExternalInit`, so C# records and
+  `init` accessors do not compile there (CS0518). Use classes or readonly structs with constructors;
+  records stay in `src/Shared`, which carries its own polyfill.
+- An async command that waits on Play Mode must yield whole frames with `await Task.Delay(1)`. A
+  `while (...) await Task.Yield();` loop starved Play Mode frames: the Replay play check ran at a
+  fraction of real speed and hit the CLI's 30 s timeout (2026-11-02).
+
 Two Unity behaviours have broken eval probes silently:
 
 - `GetComponent<T>() ?? AddComponent<T>()` never adds: a missing component is a
