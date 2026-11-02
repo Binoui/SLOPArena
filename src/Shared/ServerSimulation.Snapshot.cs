@@ -226,6 +226,7 @@ namespace SlopArena.Shared
                 SetOrRemove(_animFrames, id, fighter.AnimFrame);
                 SetOrRemove(_prevAnimIndex, id, fighter.PreviousAnim);
                 SetOrRemove(_respawnPositions, id, fighter.Respawn);
+                SetOrRemove(_observedPoses, id, fighter.ObservedPose);
                 if (fighter.Ability != null)
                     _activeAbilities[id] = fighter.Ability;
             }
@@ -361,6 +362,8 @@ namespace SlopArena.Shared
             public int? PreviousAnim;
             public (float x, float y, float z, float yaw)? Respawn;
             public CookedTimelineAbility? Ability;
+            /// <summary>A Replay's recorded pose clock; World Snapshots never carry one.</summary>
+            public AttackPose? ObservedPose;
         }
     }
 }

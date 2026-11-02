@@ -403,7 +403,10 @@ namespace SlopArena.Shared
                 || !_states.TryGetValue(entityId, out var state))
                 return null;
             if (ability is CookedTimelineAbility timeline)
-                return timeline.GetMoveView(in state);
+            {
+                var view = timeline.GetMoveView(in state);
+                return ReplayDisplay && _observedPoses.TryGetValue(entityId, out var recorded) ? view with { Pose = recorded } : view;
+            }
             var slot = ability.Move;
             if (slot == null) return null;
             var pose = ActiveMoveView.ResolvePose(slot, ability.AnimIndex, state.AttackElapsedTicks);
@@ -2996,6 +2999,7 @@ namespace SlopArena.Shared
 
 		public void Tick(Dictionary<ulong, InputState> inputs)
 		{
+			if (ReplayDisplay) throw new InvalidOperationException("A Replay display world is never ticked.");
 			_abilityTickPhaseComplete = false;
 			try
 			{

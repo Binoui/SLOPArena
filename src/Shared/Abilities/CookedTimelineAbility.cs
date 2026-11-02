@@ -173,6 +173,15 @@ public sealed class CookedTimelineAbility : ServerAbility
         => new(_slot, _stageIndex, _stageTick, AirborneAtStart, AnimIndex,
             ActiveMoveView.ResolvePose(_slot, AnimIndex, owner.AttackElapsedTicks), Spot);
 
+    /// <summary>Positions a never-ticked activation at a recorded point for a Replay display world.</summary>
+    internal void Observe(int stageIndex, ushort stageTick, byte clipIndex, bool airborneAtStart)
+    {
+        _stageIndex = Math.Clamp(stageIndex, 0, _slot.Timeline.Stages.Count - 1);
+        _stageTick = stageTick;
+        AnimIndex = clipIndex;
+        AirborneAtStart = airborneAtStart;
+    }
+
     internal bool IsHoldingAim => _unlimitedAimHold;
     internal bool ContinuesThroughLanding
     {

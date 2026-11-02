@@ -597,6 +597,47 @@ visuals by recorded ticks. Step presents the next tick once as Live. EOF has no 
 seek starts a new presentation epoch. Decode failure latches until a successful seek; the cursor
 never skips a failed tick. Borrowed ExactSimulation is read-only to sinks and must never be Tick'ed.
 
+## Viewer: the display world (step 4)
+
+`ReplayWorld` (Shared) is the viewer's only way into a Replay. `Open(stream, content, choice)` takes
+today's `ReplayContent` (catalog, arena loader, stand-in package), builds the cast and picks the track:
+Exact when `choice` is Best and the gate passes, else View with the gate's refusal in `ExactRefusal`.
+Both tracks restore one never-ticked `ServerSimulation`, the display world, for every presented tick.
+Exact uses the World Snapshot restore. View runs `ReplayViewDecoder`, which builds the simulation's own
+`PreparedSnapshot` from the View record, and the existing `ApplySnapshot` writes it. Each tick's hits,
+deaths and presentation events come from the View record on both tracks (`ApplyTickOutputs`).
+Presenters implement `IReplayPresenter` and read `ReplayFrame.World` as they read a live simulation.
+
+- **Tick guard.** Every Replay shell sets `ReplayDisplay`, and `Tick` throws on it. This is defense in
+  depth, not a read-only world: Replay code must never call `SetState`, `ActivateAbility` or
+  `TickAbilities`.
+- **Exact gate content hash.** The GameHost hashes the whole roster handle map with the Match arena
+  (`MultiMatchOrchestrator`). `ReplayExactEnvironment` rebuilds it from today's catalog and arena digest,
+  so a build with the same roster and arena reproduces it.
+- **Cast.** A recorded package today's build has is `Recorded` (same identity) or `Today` (other
+  version). A missing package plays today's stand-in fighter, `StandIn`, whose moves are all Missing.
+  A recorded alternate form the fighter no longer has plays its base form.
+- **Moves.** (package, form, name) first, preferring the recorded slot address and then the recorded
+  air variant among same-named moves; then (package, form, slot address); else Missing. A Missing
+  active move becomes Idle with its attack fields cleared, keeping position and facing. `ReplayFrame.Moves`
+  carries each fighter's recorded name and match for labels.
+- **Pose clock.** The display world returns the recorded `PoseAnimationId`, `PoseElapsedTicks`,
+  `PoseDurationTicks` and `PhaseClip` from `GetActiveMove`, never today's clip timing.
+- **Round trip.** On a same-build recording, projecting the display world back through `ReplayCapture`
+  gives the recorded View on every field of every tick, on both tracks, for two and four fighters
+  (`ReplayWorldTests`). `FuseProgress` and `LaunchDirection` are inverted arithmetically and compared
+  within 1e-4. Fields lost only when content changed: a Missing move's slot, clip and charge clock.
+
+### What the View cannot restore (decoder fallbacks)
+
+| Lost observation | Fallback until View v2 |
+|---|---|
+| Perch phase and spot | A perching shape rests at its recorded position: `Perched` when attached, else `Marking` |
+| Capsule end bone | Today's move supplies the end bone of the hitbox event with the same start bone |
+| Applied hit stun | A hit stuns when it did damage, froze anyone, or left its target reacting that tick |
+| Bonk's `MoveSpot` and challenge target | Not shown |
+| Mode state (ball, course, Mayhem) | Not decoded yet; a non-stock Match shows its fighters on a no-elimination rule |
+
 ## Goldens and release policy
 
 Every release that records Replays adds a short immutable `.slopreplay` under
