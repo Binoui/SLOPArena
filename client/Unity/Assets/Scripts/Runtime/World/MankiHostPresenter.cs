@@ -158,6 +158,9 @@ namespace SlopArena.Client.World
             _held.transform.position = Hand.position;
         }
 
+        /// <summary>A Replay seek: reactions older than its warmup are not known, so none carry over.</summary>
+        public void Reset() => _reactions.Clear();
+
         public void Dispose()
         {
             Object.Destroy(_held);

@@ -24,11 +24,15 @@ namespace SlopArena.Client.World
         private readonly Material _plainMaterial;
         private readonly List<SlopballEvent> _events = new();
         private readonly bool _versus;
+        private readonly Func<ulong> _perspective;
 
+        /// <param name="format">The Match format; live play reads MatchConfig.</param>
+        /// <param name="perspective">Whose camp the versus panel speaks for; live play is the local fighter, a Replay the followed one.</param>
         public OnlineSlopball(Transform parent, Transform stage, in ArenaDefinition arena, HUDManager hud,
-            Func<UnityEngine.Camera> camera)
+            Func<UnityEngine.Camera> camera, MatchFormat? format = null, Func<ulong> perspective = null)
         {
-            _versus = MatchConfig.Format == MatchFormat.SlopballVersus;
+            _versus = (format ?? MatchConfig.Format) == MatchFormat.SlopballVersus;
+            _perspective = perspective ?? (() => MatchConfig.LocalEntityId);
             var launcher = stage != null ? stage.Find("Ball Sender") : null;
             if (_versus && launcher != null) launcher.gameObject.SetActive(false);
             _launcher = _versus ? null : launcher;
@@ -93,7 +97,10 @@ namespace SlopArena.Client.World
             }
             _presentation?.Present(simulation, hits, simulation.LastTickArcadeBallContacts, _events);
             if (simulation.SlopballVersus is { } versus)
-                _view.PresentVersus(versus, ball, MatchConfig.LocalEntityId, simulation.CampOf(MatchConfig.LocalEntityId));
+            {
+                ulong self = _perspective();
+                _view.PresentVersus(versus, ball, self, simulation.CampOf(self));
+            }
             else
             {
                 _view.Present(run, ball, 0, null);
@@ -107,6 +114,14 @@ namespace SlopArena.Client.World
             _view.Tick(Time.unscaledDeltaTime, camera);
             _court?.Tick(Time.unscaledDeltaTime);
             _presentation?.Update(deltaTime, simulation);
+        }
+
+        /// <summary>A Replay seek: the court shows nothing from before it.</summary>
+        public void Reset()
+        {
+            _events.Clear();
+            _presentation?.Reset();
+            _view.Reset();
         }
 
         public void Dispose()

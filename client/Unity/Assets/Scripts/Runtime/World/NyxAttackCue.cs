@@ -82,6 +82,9 @@ namespace SlopArena.Client.World
 
         private void LateUpdate() => Apply();
 
+        // The trails live under the fighter, so they end when the cue is switched off, not at the frame's end.
+        private void OnDisable() => DisposeTrails();
+
         private void OnDestroy() => DisposeTrails();
 
         private void DisposeTrails()

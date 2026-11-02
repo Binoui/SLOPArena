@@ -32,7 +32,10 @@ namespace SlopArena.Client.Entities
         private static readonly Dictionary<MovementFeedbackKind, Stack<MovementFeedbackEffect>> Pools = new();
         private static readonly HashSet<MovementFeedbackEffect> OneShots = new();
 
-        /// <summary>A Replay seek returns every shown one-shot to its pool; trails and auras end with their owners.</summary>
+        /// <summary>
+        /// A Replay seek returns every shown one-shot to its pool, including trails and auras their owners have ended,
+        /// which fade on game time and would otherwise outlive a paused seek. Live trails and auras end with their owners.
+        /// </summary>
         public static void RecallOneShots()
         {
             foreach (var effect in new List<MovementFeedbackEffect>(OneShots))
@@ -131,6 +134,7 @@ namespace SlopArena.Client.Entities
             _continuous = false;
             StopParticles(false);
             _releaseAt = Clock + 0.55f;
+            OneShots.Add(this);
         }
         public static MovementFeedbackEffect BeginInvincibility(
             Vector3 position, Color tint)
@@ -160,6 +164,7 @@ namespace SlopArena.Client.Entities
             _continuous = false;
             StopParticles(false);
             _releaseAt = Clock + 0.35f;
+            OneShots.Add(this);
         }
 
         /// <summary>Smoke puffs that follow a launched fighter; density and size track the launch.</summary>
@@ -215,6 +220,7 @@ namespace SlopArena.Client.Entities
             _continuous = false;
             StopParticles(false);
             _releaseAt = Clock + 0.8f;
+            OneShots.Add(this);
         }
 
 

@@ -19,7 +19,10 @@ namespace SlopArena.Shared
         internal sealed record TickOutputs(
             IReadOnlyList<SpellResolver.HitResult> Hits,
             IReadOnlyList<DeathEvent> Deaths,
-            IReadOnlyList<TimelinePresentationEvent> PresentationEvents);
+            IReadOnlyList<TimelinePresentationEvent> PresentationEvents,
+            IReadOnlyList<SlopballEvent> SlopballEvents,
+            IReadOnlyList<CourseTickEvent> CourseEvents,
+            IReadOnlyList<MankiMayhemEvent> MayhemEvents);
 
         /// <summary>Restore clears the outputs of the tick that produced the state; this writes the recorded ones back.</summary>
         internal void ApplyTickOutputs(TickOutputs outputs)
@@ -31,6 +34,10 @@ namespace SlopArena.Shared
             LastTickDeaths.AddRange(outputs.Deaths);
             _presentationEvents.Clear();
             _presentationEvents.AddRange(outputs.PresentationEvents);
+            _slopball?.RestoreEvents(outputs.SlopballEvents);
+            _volley?.RestoreEvents(outputs.SlopballEvents);
+            _onlineCourse?.RestoreEvents(outputs.CourseEvents);
+            _mayhem?.RestoreEvents(outputs.MayhemEvents);
         }
 
         /// <summary>A timeline runtime wired like a restored one and positioned at a recorded point, for GetActiveMove.</summary>

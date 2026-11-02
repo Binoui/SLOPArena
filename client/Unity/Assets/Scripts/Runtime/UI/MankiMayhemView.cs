@@ -69,6 +69,12 @@ namespace SlopArena.Client.UI
                 }
         }
 
+        /// <summary>A Replay seek: no score stamp from before it.</summary>
+        public void Reset()
+        {
+            _scoreKeys.Clear(); _scoreUntil.Clear(); _scoreText.Clear();
+        }
+
         public void Present(ServerSimulation sim, Func<ulong, Vector3> position, UnityEngine.Camera camera)
         {
             if (sim.MankiMayhem is not MankiMayhemState state) return;

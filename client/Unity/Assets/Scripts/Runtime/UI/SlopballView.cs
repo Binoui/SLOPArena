@@ -235,6 +235,15 @@ namespace SlopArena.Client.UI
             }
         }
 
+        /// <summary>A Replay seek: no pop or toast from before it.</summary>
+        public void Reset()
+        {
+            foreach (var pop in _pops) pop.label.RemoveFromHierarchy();
+            _pops.Clear();
+            _toastAge = -1f;
+            _toast.style.display = DisplayStyle.None;
+        }
+
         private void AnimateToast()
         {
             float enter = Mathf.Clamp01(_toastAge / .14f), exit = Mathf.Clamp01((_toastAge - (ToastSeconds - .4f)) / .4f);

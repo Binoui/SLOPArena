@@ -80,6 +80,8 @@ internal sealed class SlopballVersusSimulation
     private bool _attacked;
     public SlopballVersusState State => _state;
     public IReadOnlyList<SlopballEvent> Events => _events;
+    /// <summary>A Replay display world shows the recorded events of the tick it restored.</summary>
+    internal void RestoreEvents(IEnumerable<SlopballEvent> events) { _events.Clear(); _events.AddRange(events); }
 
     public SlopballVersusSimulation(SlopballDefinition court, SlopballVersusMatchRule rule, ArcadeBallSimulation ball)
     { _court = court; _rule = rule; ball.Retire(); }

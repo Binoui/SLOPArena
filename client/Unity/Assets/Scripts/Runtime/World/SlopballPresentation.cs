@@ -522,12 +522,12 @@ namespace SlopArena.Client.World
 
         private void Queue(AudioClip clip, float delay, float volume, float pitch = 1f)
         {
-            if (clip != null) _queued.Add((Time.time + delay, clip, volume, pitch));
+            if (clip != null && !PresentationOutput.Silent) _queued.Add((Time.time + delay, clip, volume, pitch));
         }
 
         private void Play(AudioClip clip, float volume, float pitch = 1f)
         {
-            if (clip == null) return;
+            if (clip == null || !PresentationOutput.TryPlay()) return;
             AudioSource voice = null;
             foreach (var candidate in _voices) if (!candidate.isPlaying) { voice = candidate; break; }
             if (voice == null)
@@ -539,6 +539,26 @@ namespace SlopArena.Client.World
             voice.Play();
             _played.TryGetValue(clip.name, out int count);
             _played[clip.name] = count + 1;
+        }
+
+        /// <summary>A Replay seek: no ball, effect, queued sound, sender light or trick count from before it.</summary>
+        public void Reset()
+        {
+            _queued.Clear();
+            foreach (var effect in _effects)
+                if (effect != null) { effect.SetActive(false); Object.Destroy(effect); }
+            _effects.Clear();
+            foreach (var voice in _voices) voice.Stop();
+            _ball.Hide();
+            _ball.SetTrailColor(Heat[0]);
+            _marker.gameObject.SetActive(false);
+            if (_dropLine != null) _dropLine.enabled = false;
+            Array.Clear(_surfaceReady, 0, _surfaceReady.Length);
+            _senderPlaced = false;
+            _hits = 0; _bankSince = _skySince = _netSince = false;
+            _beat = 0; _lampFlash = _recoil = _recoilSpeed = 0f;
+            _combo = 0; _newBestShown = false;
+            ShowLamps(0, 0f);
         }
 
         public void Dispose()

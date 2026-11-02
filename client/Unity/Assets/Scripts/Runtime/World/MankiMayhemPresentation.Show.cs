@@ -120,7 +120,7 @@ namespace SlopArena.Client.World
                 AudioClip clip = e.Kind == MankiMayhemEventKind.Call ? _callSting
                     : e.Kind == MankiMayhemEventKind.Slam ? _slamSting
                     : e.Kind == MankiMayhemEventKind.End || e.Kind == MankiMayhemEventKind.Score && e.Points > MankiMayhemTuning.SurvivalPoints ? _bonusSting : null;
-                if (clip == null || _showSounds.ContainsKey(e.Key)) continue;
+                if (clip == null || _showSounds.ContainsKey(e.Key) || !PresentationOutput.TryPlay()) continue;
                 var sound = new GameObject("Mayhem show sting"); sound.transform.SetParent(_root, false);
                 var audio = sound.AddComponent<AudioSource>(); audio.clip = clip; audio.volume = .32f; audio.spatialBlend = 0;
                 audio.outputAudioMixerGroup = ClientSettingsService.Instance.FindBus("SFX");

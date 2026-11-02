@@ -14,6 +14,9 @@ namespace SlopArena.Client.World
         /// <summary>Outputs a silent scope skipped, for seek checks.</summary>
         public static int Suppressed { get; private set; }
 
+        /// <summary>True while a Replay warmup runs; delayed-sound queues drop what they would add.</summary>
+        public static bool Silent => MatchBase.Active is { OutputSilent: true };
+
         /// <summary>Call where a sound or rumble would start; play only when it returns true.</summary>
         public static bool TryPlay()
         {

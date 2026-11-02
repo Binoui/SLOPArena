@@ -220,7 +220,7 @@ namespace SlopArena.Client.World
                 var audio = root.gameObject.AddComponent<AudioSource>(); audio.spatialBlend = 0f; audio.volume = .18f;
                 audio.outputAudioMixerGroup = ClientSettingsService.Instance.FindBus("SFX");
                 audio.clip = e.Kind == MankiMayhemEventKind.WallBroken ? _wallBreak : _wallHit;
-                if (audio.clip != null) audio.Play();
+                if (audio.clip != null && PresentationOutput.TryPlay()) audio.Play();
                 for (int i = 0; i < (e.Kind == MankiMayhemEventKind.WallBroken ? 8 : 3); i++)
                 {
                     var piece = GameObject.CreatePrimitive(PrimitiveType.Cube); Object.Destroy(piece.GetComponent<Collider>());
@@ -272,6 +272,24 @@ namespace SlopArena.Client.World
                 line.SetPosition(i, new Vector3(Mathf.Cos(angle), 0f, Mathf.Sin(angle)) * MankiMayhemTuning.BlastRadius);
             }
         }
+        /// <summary>A Replay seek: rings, waves, walls, wall debris, stings, score stamps and host reactions start over.</summary>
+        public void Reset()
+        {
+            static void Remove(Transform t) { if (t == null) return; t.gameObject.SetActive(false); Object.Destroy(t.gameObject); }
+            foreach (var ring in _rings) Remove(ring.Root);
+            _rings.Clear(); _round = ushort.MaxValue;
+            foreach (var wave in _waves.Values) Remove(wave);
+            _waves.Clear();
+            foreach (var wall in _walls.Values) Remove(wall);
+            _walls.Clear();
+            foreach (var effect in _wallEffects.Values) Remove(effect);
+            _wallEffects.Clear();
+            foreach (var sound in _showSounds.Values) if (sound != null) Remove(sound.transform);
+            _showSounds.Clear();
+            _view.Reset();
+            Host.Reset();
+        }
+
         public void Dispose()
         {
             _projectiles.UnregisterOwner(ServerSimulation.MayhemHostEntityId);

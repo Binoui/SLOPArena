@@ -19,10 +19,17 @@ namespace SlopArena.Client.World
         private readonly VisualElement _board;
         private readonly Dictionary<ulong, (Label label, VisualElement[] pips)> _rows = new();
         private readonly List<CharacterCourseEvent> _events = new();
+        private readonly IReadOnlyList<LobbyPlayerInfo> _roster;
+        private readonly Func<ulong> _perspective;
 
-        public OnlineCharacterCourse(Transform parent, in ArenaDefinition arena, HUDManager hud, Func<UnityEngine.Camera> camera)
+        /// <param name="roster">Rows of the online board; live play reads the Match roster.</param>
+        /// <param name="perspective">Whose targets and events show; live play is the local fighter, a Replay the followed one.</param>
+        public OnlineCharacterCourse(Transform parent, in ArenaDefinition arena, HUDManager hud, Func<UnityEngine.Camera> camera,
+            IReadOnlyList<LobbyPlayerInfo> roster = null, Func<ulong> perspective = null)
         {
             _camera = camera; _definition = arena.Arcade.Course;
+            _roster = roster ?? ClientSession.MatchRoster ?? Array.Empty<LobbyPlayerInfo>();
+            _perspective = perspective ?? (() => MatchConfig.LocalEntityId);
             var root = hud.Document.rootVisualElement;
             _view = new CharacterCourseView(root, CharacterCourseMatch.Course(arena.Name), () => { }, () => { }, online: true);
             _presentation = new CharacterCoursePresentation(Resources.Load<CoursePresentationSet>(
@@ -31,7 +38,7 @@ namespace SlopArena.Client.World
             _board.AddToClassList("course-online-roster");
             var style = Resources.Load<StyleSheet>("UI/Arcade");
             if (style != null) _board.styleSheets.Add(style);
-            foreach (var player in ClientSession.MatchRoster ?? Array.Empty<LobbyPlayerInfo>())
+            foreach (var player in _roster)
             {
                 var row = new VisualElement(); row.AddToClassList("course-online-player");
                 var label = new Label { enableRichText = false }; row.Add(label);
@@ -78,7 +85,7 @@ namespace SlopArena.Client.World
         public void AfterUpdate(ServerSimulation simulation, IReadOnlyList<CourseTickEvent> events,
             IReadOnlyList<CourseTickEvent> retracted, bool paused)
         {
-            ulong self = MatchConfig.LocalEntityId;
+            ulong self = _perspective();
             if (simulation.CourseFor(self) is not CharacterCourseState local || simulation.OnlineCourse is not OnlineCourseState run) return;
             if (retracted.Any(e => e.EntityId == 0 || e.EntityId == self))
             { _presentation.Reset(); _view.ResetForRetry(); }
@@ -103,7 +110,7 @@ namespace SlopArena.Client.World
             foreach (var player in simulation.CoursePlayers)
                 if (_rows.TryGetValue(player.EntityId, out var row))
                 {
-                    var name = ClientSession.MatchRoster?.FirstOrDefault(p => (ulong)p.EntityId == player.EntityId)?.Name ?? "P" + player.EntityId;
+                    var name = _roster.FirstOrDefault(p => (ulong)p.EntityId == player.EntityId)?.Name ?? "P" + player.EntityId;
                     string progress = player.Place != 0 ? $"#{player.Place} · {CharacterCourseView.FormatTime(player.Course.ElapsedTicks)}"
                         : player.Withdrawn ? "DISCONNECTED" : $"{player.Course.BrokenTargets}/{player.Course.TotalTargets}";
                     row.label.text = name + " · " + progress;
@@ -114,6 +121,9 @@ namespace SlopArena.Client.World
         }
         public void Update()
         { _presentation.Update(); _view.Tick(Time.unscaledDeltaTime, _camera(), false); }
+        /// <summary>A Replay seek or a new followed fighter: the course shows nothing from before it.</summary>
+        public void Reset()
+        { _presentation.Reset(); _view.ResetForRetry(); }
         public void Dispose()
         { _board.RemoveFromHierarchy(); _presentation.Dispose(); _view.Dispose(); }
     }

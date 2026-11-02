@@ -66,16 +66,53 @@ namespace SlopArena.Shared.Replays
                 default, default, default, false, null, null, null);
         }
 
-        internal static ServerSimulation.TickOutputs Outputs(ReplayViewTick view, ReplayCastIndex cast)
+        /// <summary>
+        /// The tick's recorded hits, deaths and events. A mode event of a kind this build lacks, or one naming a course
+        /// target or checkpoint today's arena lacks, is left out rather than guessed.
+        /// </summary>
+        internal static ServerSimulation.TickOutputs Outputs(ReplayViewTick view, ReplayCastIndex cast, ArenaDefinition arena)
         {
             var hits = new SpellResolver.HitResult[view.Hits.Count];
             for (int i = 0; i < hits.Length; i++) hits[i] = Hit(view.Hits[i], view, cast);
             var deaths = new ServerSimulation.DeathEvent[view.Deaths.Count];
             for (int i = 0; i < deaths.Length; i++) deaths[i] = Death(view.Deaths[i], view.Tick, cast);
             var events = new List<TimelinePresentationEvent>(view.Events.Count);
+            var slopball = new List<SlopballEvent>();
+            var course = new List<CourseTickEvent>();
+            var mayhem = new List<MankiMayhemEvent>();
             foreach (var e in view.Events)
-                if (e is ReplayPresentationEvent p) events.Add(Presentation(p, view.Tick));
-            return new ServerSimulation.TickOutputs(hits, deaths, events);
+                switch (e)
+                {
+                    case ReplayPresentationEvent p:
+                        events.Add(Presentation(p, view.Tick));
+                        break;
+                    case ReplaySlopballEvent s when SemanticParse.SlopballEvent(s.EventId) is { } kind:
+                        slopball.Add(new SlopballEvent(kind, s.BallId, s.Returns, s.ContactTime, SemanticParse.Camp(s.CampId) ?? SlopballCamp.None));
+                        break;
+                    case ReplayCourseEvent c when SemanticParse.CourseEvent(c.EventId) is { } kind
+                        && CourseObjectIndex(arena, kind, c.ObjectId) is { } index:
+                        course.Add(new CourseTickEvent(view.Tick, c.EntityId, new CharacterCourseEvent(kind, index, c.ElapsedTicks), c.Sequence));
+                        break;
+                    case ReplayMayhemEvent m when SemanticParse.MayhemEvent(m.EventId) is { } kind:
+                        mayhem.Add(new MankiMayhemEvent(view.Tick, m.RoundIndex, kind, m.EntityId, m.OperationIndex, m.Points));
+                        break;
+                }
+            return new ServerSimulation.TickOutputs(hits, deaths, events, slopball, course, mayhem);
+        }
+
+        /// <summary>Today's index of a recorded course target or checkpoint ID; -1 for none; null when today's arena lacks it.</summary>
+        internal static int? CourseObjectIndex(ArenaDefinition arena, CharacterCourseEventKind kind, string objectId)
+        {
+            if (objectId.Length == 0) return -1;
+            var course = arena.Arcade?.Course;
+            if (course == null) return null;
+            if (kind is CharacterCourseEventKind.CheckpointSaved or CharacterCourseEventKind.Respawned)
+            {
+                for (int i = 0; i < course.Checkpoints.Count; i++) if (course.Checkpoints[i].Id == objectId) return i;
+            }
+            else if (kind is CharacterCourseEventKind.TargetBroken or CharacterCourseEventKind.TargetHit)
+                for (int i = 0; i < course.Targets.Count; i++) if (course.Targets[i].Id == objectId) return i;
+            return null;
         }
 
         static CharacterState Fighter(ReplayFighter f, byte form)
@@ -351,6 +388,10 @@ namespace SlopArena.Shared.Replays
         static readonly Dictionary<string, HitboxShape> Shapes = Inverse<HitboxShape>(ReplaySemanticIds.Id);
         static readonly Dictionary<string, MinePhase> Mines = Inverse<MinePhase>(ReplaySemanticIds.Id);
         static readonly Dictionary<string, AuthoringPresentationAttachmentMode> Attachments = Inverse<AuthoringPresentationAttachmentMode>(ReplaySemanticIds.Id);
+        static readonly Dictionary<string, SlopballEventKind> SlopballEvents = Inverse<SlopballEventKind>(ReplaySemanticIds.Id);
+        static readonly Dictionary<string, SlopballCamp> Camps = Inverse<SlopballCamp>(ReplaySemanticIds.Id);
+        static readonly Dictionary<string, CharacterCourseEventKind> CourseEvents = Inverse<CharacterCourseEventKind>(ReplaySemanticIds.Id);
+        static readonly Dictionary<string, MankiMayhemEventKind> MayhemEvents = Inverse<MankiMayhemEventKind>(ReplaySemanticIds.Id);
 
         internal static ActionState? Action(string id) => Actions.TryGetValue(id, out var v) ? v : null;
         internal static PresentationEventSource? Source(string id) => Sources.TryGetValue(id, out var v) ? v : null;
@@ -358,5 +399,9 @@ namespace SlopArena.Shared.Replays
         internal static HitboxShape? Shape(string id) => Shapes.TryGetValue(id, out var v) ? v : null;
         internal static MinePhase? Mine(string id) => Mines.TryGetValue(id, out var v) ? v : null;
         internal static AuthoringPresentationAttachmentMode? Attachment(string id) => Attachments.TryGetValue(id, out var v) ? v : null;
+        internal static SlopballEventKind? SlopballEvent(string id) => SlopballEvents.TryGetValue(id, out var v) ? v : null;
+        internal static SlopballCamp? Camp(string id) => Camps.TryGetValue(id, out var v) ? v : null;
+        internal static CharacterCourseEventKind? CourseEvent(string id) => CourseEvents.TryGetValue(id, out var v) ? v : null;
+        internal static MankiMayhemEventKind? MayhemEvent(string id) => MayhemEvents.TryGetValue(id, out var v) ? v : null;
     }
 }
