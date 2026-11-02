@@ -248,7 +248,10 @@ public sealed class ReplayReader : IDisposable
     {
         this.input = input;
     }
-    public static ReplayOpenResult Open(Stream input)
+    public static ReplayOpenResult Open(Stream input) => Open(input, summary: false);
+
+    /// <summary>A summary hops each chunk's lanes instead of reading them, so lane corruption is found only by a full Open.</summary>
+    internal static ReplayOpenResult Open(Stream input, bool summary)
     {
         if (!input.CanRead || !input.CanSeek) throw new ArgumentException("Seekable input required");
         if (input.Length > ReplayStorage.MaxFileBytes) return new(null, new(ReplayFailureCode.FileTooLarge, "file", "64000000", input.Length.ToString()));
@@ -271,7 +274,7 @@ public sealed class ReplayReader : IDisposable
                 if (ReplayBinary.Crc(pre.Concat(meta).ToArray()) != crc) throw new InvalidDataException("Header CRC");
                 self.Header = ReplayMetadata.ReadReplayHeader(meta);
                 ReplayStorage.Validate(self.Header);
-                self.Scan(r);
+                self.Scan(r, summary);
                 return new(self, null);
         }
         catch (Exception e) when (ReplayStorage.ParseFailure(e))
@@ -279,7 +282,7 @@ public sealed class ReplayReader : IDisposable
             return new(null, ReplayStorage.Failure(e is IOException && e is not InvalidDataException && e is not EndOfStreamException ? ReplayFailureCode.IoFailure : ReplayFailureCode.InvalidHeader, e));
         }
     }
-    void Scan(BinaryReader r)
+    void Scan(BinaryReader r, bool summary)
     {
         bool shortChunk = false;
         while (input.Position < input.Length)
@@ -342,9 +345,14 @@ public sealed class ReplayReader : IDisposable
                     vo = checked(vo + idx[j + 3]);
                 }
                 if (eo != er || vo != vr) throw new InvalidDataException("Partition");
-                var ep = ReplayBinary.Read(r, es, ReplayStorage.MaxLane);
-                var vp = ReplayBinary.Read(r, vs, ReplayStorage.MaxLane);
-                if (ReplayBinary.Crc(ep) != ec || ReplayBinary.Crc(vp) != vc || r.ReadUInt32() != ReplayStorage.CommitMagic || r.ReadUInt32() != first || r.ReadInt32() != total) throw new InvalidDataException("Commit CRC");
+                if (summary) input.Position += es + vs;
+                else
+                {
+                    var ep = ReplayBinary.Read(r, es, ReplayStorage.MaxLane);
+                    var vp = ReplayBinary.Read(r, vs, ReplayStorage.MaxLane);
+                    if (ReplayBinary.Crc(ep) != ec || ReplayBinary.Crc(vp) != vc) throw new InvalidDataException("Lane CRC");
+                }
+                if (r.ReadUInt32() != ReplayStorage.CommitMagic || r.ReadUInt32() != first || r.ReadInt32() != total) throw new InvalidDataException("Commit");
                 chunks.Add(new(first, count, payload, total, ee, ve, er, es, vr, vs, idx));
                 shortChunk = count < 60;
             }

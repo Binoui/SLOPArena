@@ -628,6 +628,11 @@ Presenters implement `IReplayPresenter` and read `ReplayFrame.World` as they rea
   (`ReplayWorldTests`). `FuseProgress` and `LaunchDirection` are inverted arithmetically and compared
   within 1e-4. Fields lost only when content changed: a Missing move's slot, clip and charge clock.
 
+- **Summaries.** `ReplaySummaries.Read` gives a list row's header, range, conclusion and prefix reason. It
+  runs the reader's own validation but hops each chunk's lanes instead of inflating and CRC-checking
+  them, so lane corruption shows only when the file is opened. `Forecast` runs the Exact gate on the
+  header and today's content and returns the track `Open` would choose with its reason.
+
 ### What the View cannot restore (decoder fallbacks)
 
 | Lost observation | Fallback until View v2 |
