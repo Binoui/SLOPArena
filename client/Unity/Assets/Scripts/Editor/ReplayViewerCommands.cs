@@ -211,7 +211,7 @@ namespace SlopArena.EditorTools
             if (script == "pose") return PoseCheck(match);
             if (script == "orbit") return await OrbitCheck(match);
             if (script == "seek-hygiene") return SeekHygiene(match);
-            if (script != "play") throw new ArgumentException("script must be play, pose, orbit or seek-hygiene.");
+            if (script != "play") throw new ArgumentException("script must be play, pose, orbit, seek-hygiene, resume or scrub-clock.");
             var errors = new List<string>();
             void Log(string message, string stack, LogType type)
             {
@@ -432,8 +432,18 @@ namespace SlopArena.EditorTools
                 .Invoke(renderer, args);
             bool success = Math.Abs(animation.Time - 4.0 / 60) < 1e-5 && animation.Clip == (AnimationClip)args[1];
             if (!success) throw new InvalidOperationException($"Recorded phase clock sampled at {animation.Time}.");
+            double phaseTime = animation.Time;
+            var stretched = new AttackPose(moveClip.AnimationId, 4f, 99, false);
+            renderer.ApplyServerState(state, slot, new SlopArena.Client.Entities.RecordedFighterClocks(stretched, 0, 0, -1, 0));
+            renderer.PlayScrubbedState(state, slot.IsAir, 40);
+            double expected = 4.0 / 60;
+            int bakedIndex = renderer.BakedData?.FindAnimIndex(moveClip.AnimationId) ?? -1;
+            if (bakedIndex >= 0) expected *= renderer.BakedData.Animations[bakedIndex].FrameCount / 99.0;
+            double stretchedTime = animation.Time;
+            if (Math.Abs(stretchedTime - expected) > 1e-5)
+                throw new InvalidOperationException($"Recorded duration sampled at {stretchedTime}, expected {expected}.");
             match.Seek(replay.CurrentTick!.Value);
-            return new { success, sampledTime = animation.Time, recordedElapsed = 4, moveElapsed = 40 };
+            return new { success, phaseTime, stretchedTime, expected, recordedElapsed = 4, moveElapsed = 40 };
         }
 
         private static object PoseCheck(ReplayMatch match)
