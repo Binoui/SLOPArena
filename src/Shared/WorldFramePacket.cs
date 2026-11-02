@@ -101,6 +101,13 @@ namespace SlopArena.Shared
         /// </summary>
         public byte[] Serialize()
         {
+            return EncodeFrame(EncodeBody(), true);
+        }
+
+        internal byte[] SerializeUncompressedForReplay() => EncodeFrame(EncodeBody(), false);
+
+        private byte[] EncodeBody()
+        {
             var w = new SnapshotWriter(Snapshot.Data.Length + 256);
             w.WriteInt(Snapshot.Data.Length);
             foreach (byte b in Snapshot.Data)
@@ -169,8 +176,13 @@ namespace SlopArena.Shared
             byte[] body = w.ToArray();
             if (body.Length > MaxBodyBytes)
                 throw new InvalidOperationException($"World frame body of {body.Length} bytes exceeds {MaxBodyBytes}.");
-            byte[] compressed = Deflate(body);
-            bool useCompressed = compressed.Length < body.Length;
+            return body;
+        }
+
+        private byte[] EncodeFrame(byte[] body, bool compress)
+        {
+            byte[] compressed = compress ? Deflate(body) : body;
+            bool useCompressed = compress && compressed.Length < body.Length;
             byte[] payload = useCompressed ? compressed : body;
 
             var frame = new byte[HeaderSize + payload.Length];

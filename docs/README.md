@@ -22,6 +22,7 @@ Read these in order:
 | [Ability Architecture](systems/ability-architecture.md) | Cooked timelines, typed operations, capabilities, and interruption |
 | [Animation System](systems/animation-system.md) | Animancer playback, semantic bindings, and timing |
 | [Netcode Architecture](systems/netcode-architecture.md) | GameServer, prediction, reconciliation, and transport |
+| [Replay file contract](systems/replay-file.md) | Shared two-track byte layout, View fields, playback and release goldens |
 | [Replay plan](plans/2026-11-01-replay-design.md) | GameHost recording with an Exact Track and a View Track, step by step with checks |
 | [Replay v1 design](plans/2026-10-13-replay-v1-design.md) | Superseded for recording and playback by ADR-0060; its retention, sharing and delivery sections remain |
 | [Replay v1 implementation spec](spec-replay-v1/spec-replay-v1.md) | Superseded draft; kept for its delivery and access notes |
