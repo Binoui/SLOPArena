@@ -49,7 +49,6 @@ namespace SlopArena.Client.Replays
 
         public static IReadOnlyList<ReplayListing> Scan(string root, CancellationToken cancellation)
         {
-            if (!Directory.Exists(root)) return Array.Empty<ReplayListing>();
             var rows = new List<ReplayListing>();
             var files = new List<(FileInfo File, DateTime Modified)>();
             try
@@ -69,6 +68,7 @@ namespace SlopArena.Client.Replays
                     }
                 }
             }
+            catch (DirectoryNotFoundException) { return Array.Empty<ReplayListing>(); }
             catch (Exception e) when (e is IOException or UnauthorizedAccessException)
             {
                 rows.Add(Failure(root, DateTime.MinValue, 0, e));

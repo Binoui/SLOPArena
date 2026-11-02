@@ -157,6 +157,9 @@ namespace SlopArena.EditorTools
                 .Invoke(null, new object[] { vanished });
             if (failedRow.Failure?.Code != ReplayFailureCode.IoFailure || failedRow.CanOpen)
                 throw new InvalidOperationException("A deleted enumerated file must become an IO failure row.");
+            var scanFailure = ReplayLibrary.Scan(Path.Combine(root, "garbage.slopreplay"), System.Threading.CancellationToken.None);
+            if (scanFailure.Count != 1 || scanFailure[0].Failure?.Code != ReplayFailureCode.IoFailure)
+                throw new InvalidOperationException("A scan-level IO failure must become a row.");
             var rows = await ReplayLibrary.ScanAsync(resolved, System.Threading.CancellationToken.None);
             var overlay = new ReplayListOverlay(new UnityEngine.UIElements.VisualElement());
             overlay.Close();
