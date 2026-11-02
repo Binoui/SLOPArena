@@ -59,6 +59,23 @@ of command arguments, URLs, chat, artifacts and browser storage. The upstream
 route is private; a public `/owner/...` 404 is expected. See the runbook's
 [match diagnostic export](../../deploy/vps/README.md#match-diagnostics).
 
+## Pull Replays and report patterns
+
+Replay pulls are authorized read-only fetches through Master over the console, using the
+existing private key file. No SSH command or new credential is needed.
+
+```bash
+python3 tools/replay_pull.py
+dotnet run --project tools/ReplayReport -p:SkipUnityPluginCopy=true -- \
+  "${XDG_DATA_HOME:-$HOME/.local/share}/sloparena/replays" --out report.md
+```
+
+Use `--base-url <alfred-console-url>` when alfred is the selected console and
+`--dest <dir>` to choose local storage. The tool sends `X-Console-Key` from
+`~/.local/state/sloparena-console/console.key`; never put it in arguments or URLs.
+Active recordings are excluded; completed partials are fetched again automatically.
+See [Pull and report](../../docs/systems/replay-file.md#pull-and-report) for limits and report semantics.
+
 ## Bounded VPS process logs
 
 The current operator has passwordless sudo for only the following exact

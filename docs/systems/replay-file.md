@@ -638,3 +638,36 @@ introduced to reduce this result. The 64,000,000-byte limit still applies.
 The pre-freeze fix reduced codec implementation from 2,624 lines (View codec 1,613,
 validation 632, metadata 379) to 558 (View codec 385, shared field codecs 56,
 metadata 117). Counts include blank lines and exclude DTO declarations.
+
+## Pull and report
+
+The owner-approved read-only path is GameHost control → Master owner API → console.
+GameHost exposes authenticated `GET /match/replays` and `GET /match/replays/<canonical-guid>`.
+The list includes up to 2000 newest retained recordings, preferring complete files and excluding
+active writers. Download returns 409 while recording, 404 if absent, and 413 above 64,000,000 bytes.
+
+Run with the local console running and its key in
+`~/.local/state/sloparena-console/console.key`:
+
+```bash
+python3 tools/replay_pull.py
+dotnet run --project tools/ReplayReport -p:SkipUnityPluginCopy=true -- \
+  "${XDG_DATA_HOME:-$HOME/.local/share}/sloparena/replays" --out report.md --json report.json
+```
+
+The pull defaults to `http://127.0.0.1:4173`; `--base-url` also accepts the alfred console URL.
+It sends the key privately as `X-Console-Key`, validates the eight magic bytes and advertised size,
+and atomically renames downloads in the destination. `--dest <dir>` overrides the default UTC
+date directory. Complete and partial filenames track completeness; a completed recording replaces
+a previously pulled partial even when their sizes match. Failed transfers preserve existing files.
+
+ReplayReport reads `.slopreplay` and `.slopreplay.part` recursively using View Track only.
+`--since yyyy-MM-dd` selects files by UTC modification date (the format has no wall-clock start).
+Files counts include failures, with reasons; minutes and statistics include only readable files.
+Activations are unique per file, entity and ActivationId, including observed projectile shapes
+and contacts. Landed excludes blocked contacts; damage sums recorded applied damage.
+KO credit uses the recorded killer, while the move is the recorded last hit, or unknown.
+Win rates use participant provider/subject and package, with ordered opponent pairs. Only finished
+matches with results enter the denominator; draws count as zero wins. CPU subjects stay labeled CPU;
+Steam subjects are IDs, never invented player names. The CPU report regression records a seeded
+60-second fight; the checked-in golden remains the cross-build format fixture.

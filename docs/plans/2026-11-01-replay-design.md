@@ -81,10 +81,11 @@ matches the Match result. A slow writer ends the recording as a Partial Replay w
 
 ## Step 3. Pull Replays and report patterns
 
-- Write a pull tool that copies new recordings from the VPS to the owner's machine. The access path
-  needs the owner's approval, because `skills/sloparena-ops` permits only two read-only VPS commands.
-- Write a report tool that reads View Tracks across builds. Start with move usage and landed hits,
-  KO positions and causes, and how Matches end.
+- Pull new recordings with `tools/replay_pull.py` through Master over the console. The owner-approved
+  path reuses the private GameHost control key and console owner API; it needs no SSH or sudo grant.
+- Run `tools/ReplayReport` across builds using only View Tracks: ranked move usage, landed and blocked
+  hits, damage, credited KOs with pre-respawn positions, endings and participant win rates.
+- See [Pull and report](../systems/replay-file.md#pull-and-report) for commands.
 
 **Check.** After a real playtest, the pull tool fetches that day's Replays and the report runs on them.
 
@@ -107,8 +108,8 @@ matches the Match result. A slow writer ends the recording as a Partial Replay w
 
 - **Display names.** `MatchPlayer` has no name. Resolve names from the Steam ID in the tools and
   viewer, or have Master send them to the GameHost.
-- **VPS access for the pull tool.** The access path is undecided: SSH over Tailscale or a Master
-  download endpoint.
+- **VPS access for the pull tool (resolved).** Master owner endpoints over the console, using the
+  existing credentials and private GameHost control port.
 
 ## Deferred
 
