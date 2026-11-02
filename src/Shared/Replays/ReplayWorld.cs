@@ -152,6 +152,17 @@ namespace SlopArena.Shared.Replays
         public ArenaDefinition Arena { get; }
         /// <summary>Stable for the whole session, so presenters may keep it.</summary>
         public ServerSimulation World { get; }
+        /// <summary>Recorded duration for the slot resolved by the same cast policy as View restoration.</summary>
+        public ushort? CooldownDuration(ReplayFighter fighter, byte wireSlot)
+        {
+            ushort? duration = null;
+            foreach (var cooldown in fighter.Cooldowns)
+                if (cast.Move(fighter.EntityId, cooldown.PackageId, cooldown.FormId, cooldown.MoveName,
+                    cooldown.SlotId, false) is { Slot: not null } resolved && resolved.WireSlot == wireSlot)
+                    duration = cooldown.DurationTicks > 0 ? cooldown.DurationTicks : null;
+            return duration;
+        }
+
         public uint? CurrentTick => player.CurrentTick;
 
         public ReplayFailure? Seek(uint tick, IReplayPresenter presenter)

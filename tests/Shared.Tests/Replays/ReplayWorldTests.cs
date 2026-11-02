@@ -172,6 +172,34 @@ public class ReplayWorldTests
     }
 
     [Fact]
+    public void EqualRemainingCooldownsKeepTheirResolvedSlotDurations()
+    {
+        using var replay = Open(Duel.Value.Bytes, ReplayTrackChoice.ViewOnly);
+        var slots = replay.Cast[0].Content.Definition.CookedSlots!.Where(s => s != null && !s.IsAir).Take(2).ToArray();
+        Assert.Equal(2, slots.Length);
+        var fighter = new ReplayFighter
+        {
+            EntityId = replay.Cast[0].EntityId,
+            Cooldowns = slots.Select((s, i) => new ReplayCooldown
+            {
+                PackageId = replay.Cast[0].Recorded.Package.PackageId, FormId = "base",
+                MoveName = s.Name, SlotId = slots[1 - i].Id, TicksLeft = 30,
+                DurationTicks = (ushort)(60 + 60 * i)
+            }).ToArray()
+        };
+        var cast = ReplayCastIndex.Build(replay.Header, Content())!;
+        var restored = ReplayViewDecoder.Prepare(replay.World,
+            new ReplayViewTick { Fighters = new[] { fighter } }, cast);
+        replay.World.ApplySnapshot(restored);
+        for (int i = 0; i < slots.Length; i++)
+        {
+            byte wire = CanonicalSlotProjection.ToWire(CanonicalSlotProjection.All[slots[i].Ordinal]);
+            Assert.Equal(30, replay.World.GetState(fighter.EntityId).GetCooldown(wire));
+            Assert.Equal((ushort)(60 + 60 * i), replay.CooldownDuration(fighter, wire));
+        }
+    }
+
+    [Fact]
     public void ComparatorRejectsIntegerCorruption()
     {
         var fighter = new ReplayFighter { ChargeTier = 2 };

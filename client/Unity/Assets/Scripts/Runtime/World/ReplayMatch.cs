@@ -428,19 +428,11 @@ namespace SlopArena.Client.World
 
         // ── Recorded observations ───────────────────────────────────────────────────
 
-        /// <summary>
-        /// The recorded run length of the cooldown the display world restored into this slot. The decoder writes each
-        /// recorded cooldown's TicksLeft into the slot its move resolved to, so the matching record is found by it.
-        /// </summary>
         public ushort? CooldownDuration(ulong entityId, byte wireSlot)
         {
             if (_frame.View == null || _replay == null) return null;
-            ushort left = _replay.World.GetState(entityId).GetCooldown(wireSlot);
-            if (left == 0) return null;
             foreach (var fighter in _frame.View.Fighters)
-                if (fighter.EntityId == entityId)
-                    foreach (var cooldown in fighter.Cooldowns)
-                        if (cooldown.TicksLeft == left && cooldown.DurationTicks > 0) return cooldown.DurationTicks;
+                if (fighter.EntityId == entityId) return _replay.CooldownDuration(fighter, wireSlot);
             return null;
         }
 
