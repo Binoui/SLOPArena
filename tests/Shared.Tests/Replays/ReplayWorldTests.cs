@@ -146,7 +146,7 @@ public class ReplayWorldTests
             foreach (var field in table.Fields)
             {
                 byte[] a = Field(field, expected[i]), b = Field(field, actual[i]);
-                if (!a.SequenceEqual(b) && !Close(a, b)) diffs.Add($"{list}[{i}].{field.Name}");
+                if (!a.SequenceEqual(b) && !Close(list, field.Name, field.ValueType, a, b)) diffs.Add($"{list}[{i}].{field.Name}");
             }
     }
 
@@ -158,15 +158,31 @@ public class ReplayWorldTests
         return s.ToArray();
     }
 
-    static bool Close(byte[] a, byte[] b)
+    static bool Close(string list, string field, Type type, byte[] a, byte[] b)
     {
-        if (a.Length != b.Length || a.Length is not (4 or 12)) return false;
+        if ((list, field) is not (("Shapes", "FuseProgress") or ("Hits", "LaunchDirection"))) return false;
+        if (type != typeof(float) && type != typeof(ReplayVector)) return false;
+        if (a.Length != b.Length || a.Length != (type == typeof(float) ? 4 : 12)) return false;
         for (int i = 0; i < a.Length; i += 4)
         {
             float x = BitConverter.ToSingle(a, i), y = BitConverter.ToSingle(b, i);
-            if (MathF.Abs(x - y) > Tolerance * MathF.Max(1f, MathF.Abs(x))) return false;
+            if (!float.IsFinite(x) || !float.IsFinite(y) || MathF.Abs(x - y) > Tolerance * MathF.Max(1f, MathF.Abs(x))) return false;
         }
         return true;
+    }
+
+    [Fact]
+    public void ComparatorRejectsIntegerCorruption()
+    {
+        var fighter = new ReplayFighter { ChargeTier = 2 };
+        var altered = new ReplayFighter { ChargeTier = 0 };
+        var diffs = new List<string>();
+        Rows("Fighters", new[] { fighter }, new[] { altered }, ReplayViewCodec.ReplayFighterTable, diffs);
+        Assert.Contains("Fighters[0].ChargeTier", diffs);
+        diffs.Clear();
+        Rows("Shapes", new[] { new ReplayShape { VisualOperationIndex = 2 } },
+            new[] { new ReplayShape { VisualOperationIndex = 0 } }, ReplayViewCodec.ReplayShapeTable, diffs);
+        Assert.Contains("Shapes[0].VisualOperationIndex", diffs);
     }
 
     static ReplayWorld Open(byte[] bytes, ReplayTrackChoice choice, ReplayContent? content = null)
