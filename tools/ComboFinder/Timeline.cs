@@ -25,7 +25,8 @@ static class Replay
             if (i - start + 1 > bestLen) { bestStart = start; bestLen = i - start + 1; }
         }
         return new(r.Ticks, r.VictimKo, bestLen == 0 ? new(0, 0) : new(moves[bestStart].Tick, moves[bestStart + bestLen - 1].LastTick),
-            moves, r.VictimSwings.Select(w => new VictimSwing(w.tick, Label(w.slot).TrimStart('g'))).ToArray(), r.Hits.Count(h => h.Owner == 2 && !h.Blocked));
+            moves, r.VictimSwings.Select(w => new VictimSwing(w.tick, Label(w.slot).TrimStart('g'))).ToArray(), r.Hits.Count(h => h.Owner == 2 && !h.Blocked),
+            r.Hits.Select(h => new RawHit(h.Tick, (int)h.Owner, h.Slot, h.Damage, h.Blocked)).ToArray());
     }
     internal static string Tape(List<InputState> tape)
     {

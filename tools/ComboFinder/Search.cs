@@ -63,7 +63,7 @@ static class Search
         }
         fighters[0] = fighters[0] with { Tape = Replay.Tape(trace.TapeA) };
         fighters[1] = fighters[1] with { Tape = Replay.Tape(trace.TapeV) };
-        string id = $"{o.Attacker}-{o.Victim}-{o.Stage}-{o.Damage}-s{o.Seed}";
+        string id = $"{o.Attacker}-{o.Victim}-{o.Stage}-{o.Damage}-{o.Layout}-s{o.Seed}";
         var combo = new ComboFile(1, id, o.Stage, content.Stamp(fighters), new(o.Seed, o.Beam, "Hard", best.Score, route.Length == 0 ? null : route), fighters, timeline, summary);
         Directory.CreateDirectory(output);
         File.WriteAllText(Path.Combine(output, id + ".json"), Json.Write(combo));

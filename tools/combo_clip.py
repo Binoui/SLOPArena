@@ -1,8 +1,12 @@
 #!/usr/bin/env python3
-"""Propose combo ideas, record verified footage packs, and recut factory takes.
+"""Check, propose, record and recut combo clips (skills/social-clips/SKILL.md "Combo clips").
 
-record accepts a factory idea or a version-1 combo JSON. Until ComboFinder lands,
-pass --cameras <plan.json>. Local combo files also work with edit --no-upload.
+    python3 tools/combo_clip.py check <combo.json>...      # replay in Unity cheaply; every hit and the KO must match
+    python3 tools/combo_clip.py propose <combo.json>...    # check, then add passing combos as proposed ideas
+    python3 tools/combo_clip.py record <idea|combo.json>   # footage pack: one gateway pass per camera angle
+    python3 tools/combo_clip.py edit <idea> [--no-upload]  # cut the clip from the pack and upload a take
+
+record and edit accept a factory idea or a version-1 combo JSON; --cameras <plan.json> overrides the plan.
 All edit cut bounds are inclusive simulation ticks, never video frame numbers.
 """
 from __future__ import annotations
@@ -22,6 +26,7 @@ import social_clip
 
 ROOT = factory.ROOT
 FPS = 60
+DIVERGED = 'Unity diverges from the headless run, so this combo cannot be filmed'
 
 
 def read(path: Path) -> dict:
@@ -84,11 +89,45 @@ def require_current(combo: dict) -> None:
         raise ValueError(f"stale combo {combo['id']}: content differs; re-find. Expected {combo['content']}, current {current}")
 
 
+def check(combo: dict, out: Path) -> bool:
+    """Replay the tapes in Unity with one tiny camera; True when every hit and the KO tick match.
+
+    Content is checked first, so a mismatch here is a Mono/.NET runtime divergence (seen 2026-11-02 on a
+    Wibou run attack): the headless search found something Unity does not reproduce.
+    """
+    require_current(combo)
+    ko = combo['timeline']['ko']
+    folder = social_clip.fresh(out / 'check')
+    spec = {'stage': combo['stage'], 'fighters': [
+        {k: v for k, v in f.items() if k in ('id', 'package', 'feet', 'yaw', 'damage', 'tape')} for f in combo['fighters']],
+        'cameras': [{'name': 'c', 'pos': [0, 40, -1], 'look': [0, 0, 0], 'fov': 60, 'far': 4000}],
+        'capture': {'from': ko, 'to': ko, 'step': 1, 'width': 320, 'height': 180, 'quality': 60}}
+    write(folder / 'spec.json', spec)
+    try:
+        verify(combo, shoot(folder / 'spec.json', folder / 'run'), folder / 'run')
+        return True
+    except ValueError as error:
+        print(f"{combo['id']}: {error}", flush=True)
+        return False
+
+
+def cmd_check(args) -> None:
+    failed = 0
+    for source in args.combos:
+        _, combo, out = load_job(source)
+        failed += not check(combo, out)
+    if failed:
+        raise SystemExit(f'{failed} combo(s) do not reproduce in Unity')
+
+
 def cmd_propose(args) -> None:
     # Server body() reads Content-Length without a size cap; add_idea persists
     # arbitrary fields as SQLite JSON. No tape truncation or path fallback needed.
     for source in args.combos:
-        _, combo, _ = load_job(source)
+        _, combo, out = load_job(source)
+        if not args.no_check and not check(combo, out):
+            print(f"{combo['id']} skipped: not reproducible in Unity", flush=True)
+            continue
         idea_id = re.sub('[^a-z0-9-]', '-', combo['id'].lower())
         idea = {'id': idea_id, 'format': 'combo', 'status': 'proposed',
                 'title': combo['summary'], 'idea': combo['summary'], 'combo': combo}
@@ -125,10 +164,19 @@ def verify(combo: dict, shot: dict, run: Path) -> None:
     hits = [h for h in shot['hits'] if h['tick'] <= timeline['ticks'] and not h['blocked']]
     taken = sum(h['target'] == str(attacker['id']) for h in hits)
     if taken != timeline['taken']:
-        raise ValueError(f"first differing hit: attacker took {taken}, expected {timeline['taken']}; stale combo")
+        raise ValueError(f"first differing hit: attacker took {taken}, expected {timeline['taken']}; {DIVERGED}")
     mine = [h for h in hits if h['owner'] == str(attacker['id']) and h['target'] == str(victim['id'])]
-    # The contract merges multi-hit moves. Compare each move's first/last tick,
-    # wire slot and total damage, and reject every extra landed hit.
+    if 'hits' in timeline:
+        expected = [(h['tick'], h['owner'], h['slot'], round(h['damage'], 3), h['blocked']) for h in timeline['hits']]
+        actual = [(h['tick'], int(h['owner']), h['slot'], round(h['damage'], 3), h['blocked'])
+                  for h in shot['hits'] if h['tick'] <= timeline['ticks']]
+        for want, got in zip(expected, actual):
+            if want != got:
+                raise ValueError(f'first differing hit: expected {want}, got {got}; {DIVERGED}')
+        if len(expected) != len(actual):
+            raise ValueError(f'hit count differs: expected {len(expected)}, got {len(actual)}; {DIVERGED}')
+    # Merged moves (all a combo carried before raw hits): compare each move's first/last
+    # tick, wire slot and total damage, and reject every extra landed hit.
     index = 0
     for move in timeline['moves']:
         actual = []
@@ -139,9 +187,9 @@ def verify(combo: dict, shot: dict, run: Path) -> None:
         if (not actual or actual[0]['tick'] != move['tick'] or actual[-1]['tick'] != move['lastTick']
                 or any(h['slot'] != expected_slot for h in actual)
                 or abs(sum(h['damage'] for h in actual) - move['damage']) > 0.001):
-            raise ValueError(f'first differing hit: expected {move}, got {actual}; stale combo')
+            raise ValueError(f'first differing hit: expected {move}, got {actual}; {DIVERGED}')
     if index != len(mine):
-        raise ValueError(f'first differing hit: unexpected {mine[index]}; stale combo')
+        raise ValueError(f'first differing hit: unexpected {mine[index]}; {DIVERGED}')
     deaths = victim.get('deaths', 0)
     ko = None
     for line in (run / 'states.jsonl').read_text().splitlines():
@@ -151,7 +199,7 @@ def verify(combo: dict, shot: dict, run: Path) -> None:
             ko = row['tick']
             break
     if ko != timeline['ko']:
-        raise ValueError(f"KO tick differs: expected {timeline['ko']}, got {ko}; stale combo")
+        raise ValueError(f"KO tick differs: expected {timeline['ko']}, got {ko}; {DIVERGED}")
     print(f"verified {len(mine)} hits / {len(timeline['moves'])} moves, taken {taken}, KO {ko}", flush=True)
 
 
@@ -168,7 +216,9 @@ def cmd_record(args) -> None:
         if args.cameras:
             plan = read(Path(args.cameras))
         else:
-            result = subprocess.run(['dotnet', 'run', '--project', 'tools/ComboFinder', '-c', 'Release', '--',
+            # Never let this build copy the Shared plugin into the open Editor (that needs a lease).
+            result = subprocess.run(['dotnet', 'run', '--project', 'tools/ComboFinder', '-c', 'Release',
+                                     '-p:SkipUnityPluginCopy=true', '--',
                                      'cameras', str(combo_path), '--orientation', orientation], cwd=ROOT,
                                     capture_output=True, text=True, check=True)
             plan = json.loads(result.stdout)
@@ -262,7 +312,11 @@ def main() -> None:
     sub = parser.add_subparsers(dest='command', required=True)
     propose = sub.add_parser('propose')
     propose.add_argument('combos', nargs='+')
+    propose.add_argument('--no-check', action='store_true', help='skip the Unity reproduction check')
     propose.set_defaults(func=cmd_propose)
+    checker = sub.add_parser('check', help='replay combos in Unity at low cost and verify every hit and the KO')
+    checker.add_argument('combos', nargs='+')
+    checker.set_defaults(func=cmd_check)
     record = sub.add_parser('record')
     record.add_argument('source', help='factory idea id or combo.json')
     record.add_argument('--orientation', default='portrait', help='portrait, landscape, or comma-separated both')

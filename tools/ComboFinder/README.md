@@ -17,8 +17,12 @@ dotnet tools/ComboFinder/bin/Release/net8.0/ComboFinder.dll cameras \
 ```
 
 `search` defaults to seed 1, beam 30, maximum 660 ticks, patience 25 segments,
-and segment length 6 ticks. `--a x,z` and `--v x,z` override the first two spawn
-points with floor. `--route A,a1,g2` restricts the action vocabulary and scores
+and segment length 6 ticks. It searches every start layout of the stage: the
+first two spawn points with floor (`spawn`), and for each side of the floor
+(`east`, `west`, `north`, `south`) the victim 3 m inside the edge with the
+attacker 6 m further in. Kills happen near edges, so edge layouts find most
+combos; `--layouts spawn,east` narrows the set. `--a x,z` and `--v x,z` replace
+the layouts with one `custom` start. A combo's id names its layout. `--route A,a1,g2` restricts the action vocabulary and scores
 ordered progress. Route tokens are `g1` through `g3`, `a1` through `a3`,
 `1`, `2`, `3`, `A`, `E`, `R`, `F`, `beeline`, and `juggle`.
 

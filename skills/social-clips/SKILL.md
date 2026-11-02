@@ -105,15 +105,19 @@ A `combo` idea embeds a version-1 Finder result under `combo`. Its deterministic
 tapes let photo mode replay the fight from several angles without human players.
 The reveal rule above still applies.
 
-1. Find a fight with `tools/ComboFinder`, the headless C# finder. Keep its combo JSON,
-   content hashes and timeline together. Review the landed string and KO before proposing.
-2. `python3 tools/combo_clip.py propose <combo.json>...` adds proposed ideas. The summary
-   becomes the title and idea text; the owner approves on the board.
+1. Find fights with `tools/ComboFinder` (`search` for one matchup, `sweep` for a shelf; its
+   README lists the options). Every stage start layout is searched; edge layouts find most
+   KOs. Keep each combo JSON whole. Review the landed string and KO before proposing.
+2. `python3 tools/combo_clip.py propose <combo.json>...` first replays each combo in Unity
+   with one tiny camera (`check`, about 20 s) and skips any whose hits or KO differ: Unity's
+   Mono and the headless .NET run can part ways on some moves (a Wibou run attack turned
+   0.08° apart on 2026-11-02), and only Unity's version can be filmed. Passing combos become
+   proposed ideas; the summary is the title and idea text, and the owner approves on the board.
 3. For a render run, read the idea and newest owner comment. Record with
    `python3 tools/combo_clip.py record <idea>` if
    `tmp/content/<idea>/footage/portrait/pack.json` is missing, unverified, stale, or lacks
-   a requested angle. The tool asks ComboFinder for a camera plan and shoots one angle
-   per gateway pass. Until ComboFinder is available, pass `--cameras <plan.json>`.
+   a requested angle. The tool asks ComboFinder for a camera plan (side, far-side, behind,
+   wide, kill) and shoots one angle per gateway pass, about 3 minutes for all five.
    Any differing hit or KO fails the recording. Stop on a blocked gateway.
 4. `python3 tools/combo_clip.py edit <idea>` builds and uploads the take and contact sheet.
    Default cuts show side, then kill, ending before the KO respawn with a 0.6-second hold.

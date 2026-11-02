@@ -45,15 +45,18 @@ static class Cameras
         int cut = Math.Max(s0, s1 - 12), from = Math.Max(1, s0 - 50), to = ko + 30;
         bool portrait = orientation == "portrait";
         float fov = portrait ? 58f : 40f;
-        PhotoCamera Camera(float x, float y, float z, float lx, float ly, float lz, object follow, float ease = 0.08f, float? spread = 0.3f, float? lens = null) =>
-            new(new[] { x, y, z }, new[] { lx, ly, lz }, follow, new[] { 0f, 0.3f, 0f }, true, ease, lens ?? fov, 4000f, spread);
+        // Pull back per metre between the fighters so both fit across the frame: portrait shows about 0.62 m per
+        // metre of distance horizontally at fov 58, landscape about 1.3 m at fov 40, plus a metre of margin each side.
+        float spread = portrait ? 1.6f : 0.8f;
+        PhotoCamera Camera(float x, float y, float z, float lx, float ly, float lz, object follow, float ease = 0.08f, float? lens = null, bool pull = true) =>
+            new(new[] { x, y, z }, new[] { lx, ly, lz }, follow, new[] { 0f, 0.3f, 0f }, true, ease, lens ?? fov, 4000f, pull ? spread : null);
         var both = new[] { 1, 2 };
         return new(combo.Id, orientation, portrait ? 1080 : 1920, portrait ? 1920 : 1080, new(from, cut, ko - 1, ko), new[] {
         new CameraAngle("side", from,to, Camera(camX,cy+Up,camZ,cx,cy+0.3f,cz,both)),
         new CameraAngle("far-side", from,to, Camera(cx-az*sideSign*Dist,cy+Up,cz+ax*sideSign*Dist,cx,cy+0.3f,cz,both)),
         new CameraAngle("behind", from,to, Camera(cx-ax*7f,cy+2f,cz-az*7f,cx,cy+0.3f,cz,both)),
         new CameraAngle("wide", from,to, Camera(cx+az*sideSign*12f,cy+8f,cz-ax*sideSign*12f,cx,cy,cz,both)),
-        new CameraAngle("kill", Math.Max(1,cut-30),to, Camera(kx+az*sideSign*8f,ky+2.5f,kz-ax*sideSign*8f,kx,ky,kz,2,0.18f,null,portrait?65.2f:45f))
+        new CameraAngle("kill", Math.Max(1,cut-30),to, Camera(kx+az*sideSign*8f,ky+2.5f,kz-ax*sideSign*8f,kx,ky,kz,2,0.18f,portrait?65.2f:45f,pull:false))
     });
     }
 }

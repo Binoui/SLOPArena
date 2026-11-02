@@ -9,7 +9,10 @@ sealed record ComboFile(int Version, string Id, string Stage, ContentStamp Conte
 sealed record ContentStamp(int Protocol, string StageHash, Dictionary<string, string> Packages);
 sealed record SearchStamp(int Seed, int Beam, string Difficulty, double Score, [property: JsonIgnore(Condition = JsonIgnoreCondition.Never)] string[]? Route);
 sealed record FighterTape(int Id, string Role, string Package, float[] Feet, float Yaw, ushort Damage, string Tape);
-sealed record Timeline(int Ticks, int Ko, StringWindow String, LandedMove[] Moves, VictimSwing[] VictimSwings, int Taken);
+sealed record Timeline(int Ticks, int Ko, StringWindow String, LandedMove[] Moves, VictimSwing[] VictimSwings, int Taken, RawHit[] Hits);
+/// <summary>One hit exactly as photo mode logs it, so a recording can be compared hit for hit.</summary>
+sealed record RawHit(int Tick, int Owner, int Slot, float Damage, bool Blocked);
+sealed record StartLayout(string Name, float[] Attacker, float[] Victim);
 sealed record StringWindow(int From, int To);
 sealed record LandedMove(int Tick, int LastTick, string Label, bool Air, float Damage, bool Juggle);
 sealed record VictimSwing(int Tick, string Label);
@@ -39,7 +42,7 @@ sealed record RunTrace
 }
 sealed record SearchOptions(string Attacker, string Victim, string Stage, ushort Damage, int Seed = 1,
     int Beam = 30, int Max = 660, int Patience = 25, int Seg = 6, string[]? Route = null,
-    float[]? AttackerPosition = null, float[]? VictimPosition = null);
+    float[]? AttackerPosition = null, float[]? VictimPosition = null, string Layout = "spawn");
 static class Json
 {
     public static readonly JsonSerializerOptions Options = new()

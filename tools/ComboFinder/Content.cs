@@ -41,6 +41,37 @@ sealed class Content
     }
     internal ContentStamp Stamp(IEnumerable<FighterTape> fighters) => new(SimulationProtocol.Version, stageHash,
         fighters.Select(f => f.Package).Distinct().Order(StringComparer.Ordinal).ToDictionary(p => p, p => hashes[p]));
+    /// <summary>
+    /// Start pairs to search from: the stage's first two spawn points, then for each side of the floor a victim 3 m
+    /// inside the edge with the attacker 6 m further in, facing out. Kills happen near edges, so those find more.
+    /// </summary>
+    internal StartLayout[] Layouts()
+    {
+        var floor = Arena.Heightmap;
+        var layouts = new List<StartLayout>();
+        var spawns = Arena.SpawnPoints.Where(p => floor.Sample(p.X, p.Z) != float.MinValue).Take(2).ToArray();
+        if (spawns.Length == 2) layouts.Add(new("spawn", new[] { spawns[0].X, spawns[0].Z }, new[] { spawns[1].X, spawns[1].Z }));
+        float sx = 0, sz = 0; int n = 0;
+        for (float x = Arena.MinX; x <= Arena.MaxX; x += 0.5f)
+            for (float z = Arena.MinZ; z <= Arena.MaxZ; z += 0.5f)
+                if (floor.Sample(x, z) != float.MinValue) { sx += x; sz += z; n++; }
+        if (n == 0) return layouts.ToArray();
+        float cx = MathF.Round(sx / n * 2) / 2, cz = MathF.Round(sz / n * 2) / 2;
+        foreach (var (name, dx, dz) in new[] { ("east", 1f, 0f), ("west", -1f, 0f), ("north", 0f, 1f), ("south", 0f, -1f) })
+        {
+            float edge = 0;
+            for (float d = 0; d < 60f; d += 0.5f)
+            {
+                if (floor.Sample(cx + dx * d, cz + dz * d) == float.MinValue) break;
+                edge = d;
+            }
+            float[] v = { cx + dx * (edge - 3f), cz + dz * (edge - 3f) }, a = { cx + dx * (edge - 9f), cz + dz * (edge - 9f) };
+            if (edge >= 9f && floor.Sample(v[0], v[1]) != float.MinValue && floor.Sample(a[0], a[1]) != float.MinValue)
+                layouts.Add(new(name, a, v));
+        }
+        return layouts.ToArray();
+    }
+
     internal FighterTape[] Fighters(SearchOptions o)
     {
         var floor = Arena.Heightmap;
