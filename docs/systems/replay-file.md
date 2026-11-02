@@ -643,6 +643,36 @@ Presenters implement `IReplayPresenter` and read `ReplayFrame.World` as they rea
 | Bonk's `MoveSpot` and challenge target | Not shown |
 | Mode state (ball, course, Mayhem) | Not decoded yet; a non-stock Match shows its fighters on a no-elimination rule |
 
+### Live seams the viewer uses
+
+Every seam is additive, and its live default is the behaviour before it existed.
+
+- `ISimulationBridge.World` gives presenters the simulation they read (local, predicted, or a Replay's
+  display world). Bonk's rings and the aim target read it instead of downcasting the bridge.
+- `MatchBase` virtuals: `FocusEntityId` (camera framing and the quick-draw bracket), `FramingMaxStocks`,
+  `CampOf`, `MusicArenaName`, `FreezesOnPause`, `DrivesControllerFeedback`, `CameraUsesUnscaledTime`,
+  plus `Fighters` and a `SetupHUD(players, maxStocks, focus)` overload. The pause menu writes
+  `Time.timeScale` only when it freezes the Match.
+- `PresentationOutput.TryPlay()` is the one gate for sound and rumble. A `MatchBase.SilenceOutput()`
+  scope makes it refuse, and counts what it skipped. The sites: `CombatSFX`, `UISFX` (click, countdown,
+  finish), `PlayerRenderer` (its one-shots, which `AirDodgePresentation` and `HomingDashPresentation`
+  use too), `MankiBombVisual`, `ChargeTierCues` and the controller rumble. No camera impulse or screen
+  shake exists in runtime code today, so nothing else needs the gate.
+
+### Recorded observations over today's tuning
+
+Each override is optional and null in live play. A new recorded observation belongs in this table.
+
+| Presenter | Override | Recorded source | Live default |
+|---|---|---|---|
+| `PlayerRenderer.ApplyServerState` | `RecordedFighterClocks.Pose` | `PoseAnimationId`, `PoseElapsedTicks`, `PoseDurationTicks` | today's `clip.At(AttackElapsedTicks)` and clip duration |
+| `PlayerRenderer` weapon pose (sword trail sampling in `WeaponAttach`) | the same pose | the same fields | today's clip |
+| `PlayerRenderer` flying loop | `FlightElapsedTicks` | `FlightElapsedTicks` | today's fuel capacity minus fuel left |
+| `MankiFlightPresentation` fuel gauge | `FlightFuelFraction` | `FlightFuelFraction` | fuel left over today's capacity |
+| `ChargeTierCues`, `ChargePropFeedback`, `ChargeScale` | `ChargeTier`, `ChargeProgress` | `ChargeTier`, `ChargeProgress` | `ChargeTiers.Of` and `Progress` on today's move |
+| `HUDManager.Recorded` | cooldown run length, charge pips | `ReplayCooldown.DurationTicks`, `ChargeStepsReached` | today's `CooldownTicks`, `ChargeTiers.StepsReached` |
+| `CombatFeedback.RecordedOwnPresentation` | whether a hit showed its own presentation | the hit's `PresentationId` and the tick's `hit-contact` events | today's slot `HitPresentationId` |
+
 ## Goldens and release policy
 
 Every release that records Replays adds a short immutable `.slopreplay` under

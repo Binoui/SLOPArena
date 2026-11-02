@@ -14,7 +14,7 @@ namespace SlopArena.Client.Combat
         {
             if (_source == null || owner?.PresentationProfile == null) return;
             AudioClip clip = owner.PresentationProfile.SelectImpact(tier, ref _sequence);
-            if (clip != null) _source.PlayOneShot(clip);
+            if (clip != null && World.PresentationOutput.TryPlay()) _source.PlayOneShot(clip);
         }
 
         private void Awake()

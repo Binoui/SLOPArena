@@ -25,7 +25,7 @@ namespace SlopArena.Client.UI
                 return;
 
             AudioClip clip = _instance._clicks[Random.Range(0, _instance._clicks.Length)];
-            _instance._source.PlayOneShot(clip);
+            if (World.PresentationOutput.TryPlay()) _instance._source.PlayOneShot(clip);
         }
 
         public static void PlayCountdownBeat(string text)
@@ -38,7 +38,7 @@ namespace SlopArena.Client.UI
             {
                 "3" => 0.9f, "2" => 1.05f, "1" => 1.22f, "SLOP IT OUT" => 1f, _ => 0.72f
             };
-            _instance._countdownSource.PlayOneShot(clip, start ? 0.65f : 1f);
+            if (World.PresentationOutput.TryPlay()) _instance._countdownSource.PlayOneShot(clip, start ? 0.65f : 1f);
         }
 
         public static void PlaySoloFinish()
@@ -46,7 +46,7 @@ namespace SlopArena.Client.UI
             EnsureInstance();
             if (_instance._countdownStart == null) return;
             _instance._countdownSource.pitch = 0.82f;
-            _instance._countdownSource.PlayOneShot(_instance._countdownStart, 0.85f);
+            if (World.PresentationOutput.TryPlay()) _instance._countdownSource.PlayOneShot(_instance._countdownStart, 0.85f);
         }
 
         /// <summary>

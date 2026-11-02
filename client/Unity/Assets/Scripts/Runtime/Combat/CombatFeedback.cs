@@ -37,6 +37,12 @@ namespace SlopArena.Client.Combat
                 _definitions[renderer.EntityId] = renderer.CharacterDef;
         }
 
+        /// <summary>
+        /// A Replay decides from its recording whether a hit showed its own presentation in place of the generic
+        /// graphic; live play leaves this null and asks today's move.
+        /// </summary>
+        public System.Func<SpellResolver.HitResult, bool>? RecordedOwnPresentation { get; set; }
+
         public void SetSimulation(ISimulationBridge bridge)
         {
             _bridge = bridge;
@@ -58,7 +64,8 @@ namespace SlopArena.Client.Combat
                     ? definition?.ForForm(hit.Form).GetCookedSlotAbility(hit.AttackSlot, hit.Airborne)
                     : null;
                 // Overrides arrive through the authoritative semantic event dispatcher.
-                if (string.IsNullOrEmpty(slot?.HitPresentationId))
+                bool ownPresentation = RecordedOwnPresentation?.Invoke(hit) ?? !string.IsNullOrEmpty(slot?.HitPresentationId);
+                if (!ownPresentation)
                     GraphicHitEffect.Spawn(in hit, tier);
                 // A pure push (no damage, no stun: a drop of Bashie's Hose Down stream) shows only its own
                 // presentation. No flash, impact sound or rumble, at up to 20 drops a second.

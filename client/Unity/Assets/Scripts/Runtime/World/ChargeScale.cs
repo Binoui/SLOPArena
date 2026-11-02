@@ -23,7 +23,9 @@ namespace SlopArena.Client.World
         {
             if (owner == null) return;
             ushort charge = owner.LastFiredChargeSlot == Slot ? owner.LastFiredChargeTicks : owner.CurrentChargeTicks;
-            float progress = ChargeTiers.Progress(owner.LastFiredChargeSlot == Slot ? owner.LastFiredChargeMove : owner.CurrentMove, charge);
+            float progress = owner.LastFiredChargeSlot == Slot
+                ? owner.LastFiredRecordedProgress ?? ChargeTiers.Progress(owner.LastFiredChargeMove, charge)
+                : owner.Recorded?.ChargeProgress ?? ChargeTiers.Progress(owner.CurrentMove, charge);
             transform.localScale = Vector3.one * Mathf.Lerp(MinScale, MaxScale, progress);
             float count = Mathf.Lerp(1f, MaxCount, progress), speed = Mathf.Lerp(1f, MaxSpeed, progress);
             foreach (var system in GetComponentsInChildren<ParticleSystem>(true))

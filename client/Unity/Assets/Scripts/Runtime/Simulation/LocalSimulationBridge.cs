@@ -43,6 +43,7 @@ namespace SlopArena.Client.Simulation
         public IReadOnlyList<SpellResolver.HitResult> LastTickHits => _server.LastTickHits;
         public IReadOnlyList<TimelinePresentationEvent> LastTickPresentationEvents => _lastTickPresentationEvents;
         public ServerSimulation InternalSim => _server;
+        public ServerSimulation? World => _server;
         public void SetRespawnPosition(ulong id, float x, float y, float z, float yaw = 0f)
             => _server.SetRespawnPosition(id, x, y, z, yaw);
     }

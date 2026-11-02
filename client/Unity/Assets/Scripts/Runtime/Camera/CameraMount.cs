@@ -160,6 +160,10 @@ namespace SlopArena.Client.Camera
             SetMode(CameraMode.Normal);
         }
 
+        // A paused Replay keeps orbit and zoom working (MatchBase.CameraUsesUnscaledTime).
+        private static float InputDeltaTime
+            => World.MatchBase.Active is { CameraUsesUnscaledTime: true } ? Time.unscaledDeltaTime : Time.deltaTime;
+
         private void Update()
         {
             if (_orbital == null) return;
@@ -243,12 +247,12 @@ namespace SlopArena.Client.Camera
                 }
                 else
                 {
-                    _manualOrbitGraceRemaining = Mathf.Max(0f, _manualOrbitGraceRemaining - Time.deltaTime);
+                    _manualOrbitGraceRemaining = Mathf.Max(0f, _manualOrbitGraceRemaining - InputDeltaTime);
                     if (_manualOrbitGraceRemaining <= 0f && _style == CameraStyle.Manual)
-                        UpdateLockOrbit(Time.deltaTime, controller);
+                        UpdateLockOrbit(InputDeltaTime, controller);
                 }
                 var settings = ClientSettingsService.Instance;
-                Vector2 stickDegrees = StickDegrees(stickLook, settings.StickLookSpeed, Time.deltaTime);
+                Vector2 stickDegrees = StickDegrees(stickLook, settings.StickLookSpeed, InputDeltaTime);
                 Vector2 delta = mouseLook * settings.CameraInputGain + stickDegrees;
                 _sampleMouseDegrees += (Mathf.Abs(mouseLook.x) + Mathf.Abs(mouseLook.y)) * settings.CameraInputGain;
                 _sampleStickDegrees += Mathf.Abs(stickDegrees.x) + Mathf.Abs(stickDegrees.y);

@@ -523,6 +523,10 @@ namespace SlopArena.Client.Entities
         /// </summary>
         public ushort LastFiredChargeTicks { get; private set; }
         public CookedSlotDefinition? LastFiredChargeMove { get; private set; }
+        /// <summary>The recorded charge progress when the last charged move fired in a Replay; null in live play.</summary>
+        public float? LastFiredRecordedProgress { get; private set; }
+        /// <summary>The current tick's recorded clocks in a Replay; null in live play.</summary>
+        public RecordedFighterClocks? Recorded { get; private set; }
         public byte LastFiredChargeSlot => LastFiredChargeMove == null ? AbilitySlots.None
             : CanonicalSlotProjection.ToWire(CanonicalSlotProjection.All[LastFiredChargeMove.Ordinal]);
         /// <summary>Resolve the actual charge or release clip and its preview envelope.</summary>
@@ -660,7 +664,7 @@ namespace SlopArena.Client.Entities
             var spec = MoveFor(state.AttackSlot, airborne);
             if (spec?.Timeline.Stages is not { Count: > 0 } || spec.ClipCount == 0)
                 return false;
-            var movePose = spec.Clip(state.AnimIndex).At(state.AttackElapsedTicks);
+            var movePose = RecordedPose(spec.Clip(state.AnimIndex).AnimationId) ?? spec.Clip(state.AnimIndex).At(state.AttackElapsedTicks);
             animationName = movePose.AnimationId;
             int bakedIndex = _bakedData.FindAnimIndex(animationName);
             if (bakedIndex < 0)
@@ -818,7 +822,10 @@ namespace SlopArena.Client.Entities
         private HeldCutPresentation? _heldCut;
 
         /// <summary>Plays a one-shot on this fighter's SFX source (2D, SFX mixer bus).</summary>
-        internal void PlayOneShot(AudioClip clip, float volume) => _sfxSource?.PlayOneShot(clip, volume);
+        internal void PlayOneShot(AudioClip clip, float volume)
+        {
+            if (_sfxSource != null && World.PresentationOutput.TryPlay()) _sfxSource.PlayOneShot(clip, volume);
+        }
 
         /// <summary>Presentation-only hit feel; null outside Play Mode.</summary>
         public FighterHitFeel? HitFeel => _hitFeel;
@@ -1231,15 +1238,16 @@ namespace SlopArena.Client.Entities
         }
         private readonly SkinnedMeshRenderer[] _firstSkin = new SkinnedMeshRenderer[1];
 
-        public void ApplyServerState(CharacterState state, CookedSlotDefinition? activeMove)
+        public void ApplyServerState(CharacterState state, CookedSlotDefinition? activeMove, RecordedFighterClocks? recorded = null)
         {
             _activeMove = activeMove;
+            Recorded = recorded;
             bool wallJumped = !state.IsGrounded && state.WallJumpUsed && !_lastState.WallJumpUsed;
             ShowForm(in state);
             if (_charDef != null && Flying.Parameters(_charDef) is { } flight)
             {
                 if (_flightPresentation == null) _flightPresentation = gameObject.AddComponent<MankiFlightPresentation>();
-                _flightPresentation.Apply(this, state, flight.FuelTicks);
+                _flightPresentation.Apply(this, state, flight.FuelTicks, recorded?.FlightFuelFraction);
             }
             Vector3 targetPos = new Vector3(state.PX, state.PY + _modelYOffset, state.PZ);
 
@@ -1256,7 +1264,7 @@ namespace SlopArena.Client.Entities
                 && (state.JumpsLeft < _lastState.JumpsLeft
                     || wallJumped)
                 && _jumpSfx != null)
-                _sfxSource.PlayOneShot(_jumpSfx);
+                PlayOneShot(_jumpSfx, 1f);
             EmitSwordHitboxSfx(state);
 
             if (!_hasAppliedState || stockTransition)
@@ -1327,6 +1335,7 @@ namespace SlopArena.Client.Entities
             {
                 LastFiredChargeTicks = state.ChargeTicks;
                 LastFiredChargeMove = _activeMove;
+                LastFiredRecordedProgress = recorded?.ChargeProgress;
             }
             _lastState = state;
             _hasAppliedState = true;
@@ -1478,7 +1487,7 @@ namespace SlopArena.Client.Entities
             var loop = _animancer.Layers[0].CurrentState;
             if (loop?.Clip != clip) loop = _animancer.Layers[0].Play(clip, 0.1f);
             // Fuel is a restored simulation clock, and continues through Q/R without restarting the loop.
-            loop.Time = Mathf.Repeat(Math.Max(0, flight.FuelTicks - state.Flight.FuelTicksLeft) / 60f, clip.length);
+            loop.Time = Mathf.Repeat((Recorded?.FlightElapsedTicks ?? Math.Max(0, flight.FuelTicks - state.Flight.FuelTicksLeft)) / 60f, clip.length);
             loop.Speed = 1f;
             _currentAnimState = loop;
 
@@ -1537,8 +1546,12 @@ namespace SlopArena.Client.Entities
         private const int MaxClipStartSeekTicks = 8;
 
         /// <summary>Ticks into the current stage; AttackElapsedTicks counts from the activation.</summary>
-        private static int StageElapsedTicks(in CharacterState state, CookedSlotDefinition spec, int clipIndex)
-            => (int)spec.Clip(clipIndex).At(state.AttackElapsedTicks).ElapsedTicks;
+        private int StageElapsedTicks(in CharacterState state, CookedSlotDefinition spec, int clipIndex)
+            => (int)(RecordedPose(spec.Clip(clipIndex).AnimationId) ?? spec.Clip(clipIndex).At(state.AttackElapsedTicks)).ElapsedTicks;
+
+        /// <summary>A Replay's recorded pose clock for this clip; null in live play or for another clip.</summary>
+        private AttackPose? RecordedPose(string animationId)
+            => Recorded?.Pose is { } pose && pose.AnimationId == animationId ? pose : null;
 
         private static bool IsPhaseClip(CookedSlotDefinition spec, int clipIndex)
             => spec.Clip(clipIndex).IsPhaseClip;
@@ -1550,7 +1563,7 @@ namespace SlopArena.Client.Entities
             int bakedIndex = _bakedData.FindAnimIndex(animationName);
             if (bakedIndex < 0) return 1f;
             int frameCount = _bakedData.Animations[bakedIndex].FrameCount;
-            int duration = moveClip.DurationTicks;
+            int duration = RecordedPose(animationName)?.DurationTicks ?? moveClip.DurationTicks;
             if (clipIndex > 0 && duration > frameCount) duration = frameCount;
             return duration > 0 ? (float)frameCount / duration : 1f;
         }

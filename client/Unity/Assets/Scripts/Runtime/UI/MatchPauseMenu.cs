@@ -113,7 +113,7 @@ namespace SlopArena.Client.UI
             _pauseChangedFrame = Time.frameCount;
             // Local Training/Solo pauses stop simulation; online UI suppresses
             // local controls while transport and authoritative progress continue.
-            Time.timeScale = paused && _freezeSimulation ? 0f : 1f;
+            if (_freezeSimulation) Time.timeScale = paused ? 0f : 1f;
 
             // Discard buffered input so nothing fires on the first frame after resume.
             _inputController?.RequireReleaseBeforeHumanInput();

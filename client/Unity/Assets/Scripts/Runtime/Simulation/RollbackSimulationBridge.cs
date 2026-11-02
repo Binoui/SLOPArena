@@ -49,6 +49,7 @@ namespace SlopArena.Client.Simulation
         public uint PredictionTicks => _session.Predictor.PredictionTicks;
         /// <summary>The predicted world, for presentation reads (projectile visuals); never mutate it.</summary>
         public ServerSimulation Simulation => _session.Predictor.Simulation;
+        public ServerSimulation? World => Simulation;
         /// <summary>Presentation events a rollback ruled out during the latest update.</summary>
         public IReadOnlyList<TimelinePresentationEvent> RetractedPresentationEvents => _retractedEvents;
         /// <summary>Predicted hits the GameHost ruled out during the latest update.</summary>

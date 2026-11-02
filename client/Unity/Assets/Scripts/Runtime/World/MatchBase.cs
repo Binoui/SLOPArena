@@ -44,6 +44,39 @@ namespace SlopArena.Client.World
         // (issue #35); training leaves it at the default 1.
         protected static ulong PlayerEntityId => MatchConfig.LocalEntityId;
 
+        // Seams a Replay overrides; each live default is the behaviour before the seam existed.
+        /// <summary>The fighter the camera frames and the indicators centre on.</summary>
+        protected virtual ulong FocusEntityId => PlayerEntityId;
+        /// <summary>Stocks after which a fighter leaves the camera framing; null when the Match has no stock limit.</summary>
+        protected virtual int? FramingMaxStocks
+            => MatchConfig.Mode == GameMode.Solo && !MatchConfig.IsLocalMayhem
+                || MatchConfig.Mode == GameMode.PvP && MatchConfig.Format == MatchFormat.Stock
+                ? MatchConfig.MaxStocks : null;
+        protected virtual SlopballCamp CampOf(ulong id)
+            => MatchConfig.Format == MatchFormat.SlopballVersus && MatchConfig.Camps.TryGetValue(id, out var camp)
+                ? camp : SlopballCamp.None;
+        protected virtual string MusicArenaName => MatchConfig.ArenaName;
+        /// <summary>Whether the pause menu stops time; online play keeps simulating behind it.</summary>
+        protected virtual bool FreezesOnPause => this is not PvPMatch;
+        /// <summary>A Replay never rumbles the viewer's controller.</summary>
+        public virtual bool DrivesControllerFeedback => true;
+        /// <summary>A paused Replay still orbits and zooms its camera, so camera input reads unscaled time.</summary>
+        public virtual bool CameraUsesUnscaledTime => false;
+        protected IReadOnlyDictionary<ulong, PlayerRenderer> Fighters => _fighters;
+
+        private int _silentOutput;
+        /// <summary>True inside <see cref="SilenceOutput"/>; read through <see cref="PresentationOutput"/>.</summary>
+        public bool OutputSilent => _silentOutput > 0;
+        /// <summary>Presenters run as usual but no sound or rumble starts until the scope ends.</summary>
+        protected OutputSilence SilenceOutput() => new(this);
+
+        protected readonly struct OutputSilence : IDisposable
+        {
+            private readonly MatchBase _match;
+            internal OutputSilence(MatchBase match) { _match = match; match._silentOutput++; }
+            public void Dispose() => _match._silentOutput--;
+        }
+
         protected bool _showCrosshair;
         protected CharacterDefinition _playerDef = null!;
         protected UnityEngine.Camera _mainCamera;
@@ -72,11 +105,11 @@ namespace SlopArena.Client.World
 
         private void Start()
         {
-            UISFX.PlayMatchMusic(MatchConfig.ArenaName);
+            UISFX.PlayMatchMusic(MusicArenaName);
             _pauseMenu = gameObject.AddComponent<MatchPauseMenu>();
             _pauseMenu.Init(_cameraMount, _inputController, LeaveMatch,
                 _hudManager != null ? _hudManager.Document : null,
-                freezeSimulation: this is not PvPMatch, onRetry: PauseRetry);
+                freezeSimulation: FreezesOnPause, onRetry: PauseRetry);
             OnMatchStart();
             if (enabled) RebuildFighterIndicators();
             gameObject.AddComponent<MatchVisualStyle>().Apply();
@@ -108,18 +141,18 @@ namespace SlopArena.Client.World
             if (_cameraMount == null || _playerRenderer == null || Bridge == null) return;
 
             var states = Bridge.GetAllStates();
-            if (!states.TryGetValue(PlayerEntityId, out var player)) return;
+            ulong focus = FocusEntityId;
+            if (!states.TryGetValue(focus, out var player)) return;
             var playerPosition = new Vector3(player.PX, player.PY, player.PZ);
             var bounds = new Bounds(playerPosition, Vector3.zero);
             Vector3? target = null;
             _framingSubjects.Clear();
             float nearestDistance = float.PositiveInfinity;
             ulong nearestId = ulong.MaxValue;
-            bool stockMatch = MatchConfig.Mode == GameMode.Solo && !MatchConfig.IsLocalMayhem
-                || MatchConfig.Mode == GameMode.PvP && MatchConfig.Format == MatchFormat.Stock;
+            int? maxStocks = FramingMaxStocks;
             foreach (var pair in states)
             {
-                if (pair.Key == PlayerEntityId || stockMatch && pair.Value.Deaths >= MatchConfig.MaxStocks)
+                if (pair.Key == focus || maxStocks is { } stocks && pair.Value.Deaths >= stocks)
                     continue;
                 var state = pair.Value;
                 var position = new Vector3(state.PX, state.PY, state.PZ);
@@ -384,8 +417,14 @@ namespace SlopArena.Client.World
                 ? MatchConfig.MaxStocks
                 : 0;
             if (MatchConfig.Format.IsSlopball() || MatchConfig.Format.IsCourse() || MatchConfig.Format == MatchFormat.MankiMayhem) maxStocks = 0;
+            SetupHUD(players, maxStocks, def);
+        }
+
+        /// <summary>The HUD over given fight cards; <paramref name="focus"/> is the definition of the card marked local.</summary>
+        protected void SetupHUD(IReadOnlyList<HUDManager.HudPlayer> players, int maxStocks, CharacterDefinition focus)
+        {
             _hudManager?.Initialize(Bridge.GetState, players, maxStocks);
-            _hudManager?.SetCharacterDefinition(def);
+            _hudManager?.SetCharacterDefinition(focus);
             _hudManager?.SetCamera(_cameraMount?.RenderCamera ?? UnityEngine.Camera.main);
         }
 
@@ -419,16 +458,8 @@ namespace SlopArena.Client.World
         }
 
         private Vector3? ResolveAimTarget(ulong entityId)
-        {
-            var simulation = Bridge switch
-            {
-                LocalSimulationBridge local => local.InternalSim,
-                RollbackSimulationBridge online => online.Simulation,
-                _ => null,
-            };
-            return simulation != null && simulation.TryGetCombatTargetPosition(entityId, out var position)
+            => Bridge.World is { } simulation && simulation.TryGetCombatTargetPosition(entityId, out var position)
                 ? new Vector3(position.X, position.Y, position.Z) : null;
-        }
 
         /// <summary>Capture and review tools turn off the fighter indicators for clean shots.</summary>
         protected virtual bool ShowFighterIndicators => true;
@@ -449,9 +480,8 @@ namespace SlopArena.Client.World
             _fighterIndicator.transform.SetParent(transform, false);
             var indicator = _fighterIndicator.AddComponent<TargetIndicator>();
             indicator.Init(Bridge.GetState, renderers, _fighterArena, _cameraMount?.RenderCamera,
-                id => MatchConfig.Format == MatchFormat.SlopballVersus && MatchConfig.Camps.TryGetValue(id, out var camp)
-                    ? camp : SlopballCamp.None, CourseColours.ForEntity);
-            _fighterIndicator.AddComponent<QuickDrawBracket>().Init(Bridge.GetState, renderers, PlayerEntityId, _fighterArena);
+                CampOf, CourseColours.ForEntity);
+            _fighterIndicator.AddComponent<QuickDrawBracket>().Init(Bridge.GetState, renderers, FocusEntityId, _fighterArena);
             _fighterIndicator.AddComponent<HomingDashLockOn>().Init(Bridge.GetState, renderers, ResolveAimTarget, _cameraMount?.RenderCamera);
         }
 

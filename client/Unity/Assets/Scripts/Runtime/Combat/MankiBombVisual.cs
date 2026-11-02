@@ -39,7 +39,7 @@ namespace SlopArena.Client.Combat
         {
             _bomb.localScale = Vector3.one * (bomb.Radius / .35f);
             bool triggered = bomb.MinePhase == MinePhase.Triggered;
-            if (!_warned && triggered && _warningClip != null) _warningAudio.PlayOneShot(_warningClip);
+            if (!_warned && triggered && _warningClip != null && World.PresentationOutput.TryPlay()) _warningAudio.PlayOneShot(_warningClip);
             _warned = triggered;
             SetVisible(_quiet, bomb.MinePhase is MinePhase.Falling or MinePhase.Arming);
             SetVisible(_armed, bomb.MinePhase == MinePhase.Armed);

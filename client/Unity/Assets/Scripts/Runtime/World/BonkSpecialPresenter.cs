@@ -16,12 +16,7 @@ namespace SlopArena.Client.World
         public void Present(ISimulationBridge bridge, IReadOnlyDictionary<ulong, PlayerRenderer> fighters)
         {
             _visible.Clear();
-            var simulation = bridge switch
-            {
-                LocalSimulationBridge local => local.InternalSim,
-                RollbackSimulationBridge online => online.Simulation,
-                _ => null,
-            };
+            var simulation = bridge.World;
             foreach (var pair in fighters)
             {
                 if (pair.Value == null) continue;

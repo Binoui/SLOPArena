@@ -21,8 +21,20 @@ namespace SlopArena.Client.UI
     /// Fight cards, key presses/pops, and stock-loss broadcasts stay attached to
     /// their readouts rather than covering the fight.
     /// </summary>
+    /// <summary>Observations a Replay recorded, which the HUD shows in place of today's tuning; live play has none.</summary>
+    public interface IRecordedHudSource
+    {
+        /// <summary>The recorded run length of this slot's running cooldown, or null for today's tuning.</summary>
+        ushort? CooldownDuration(ulong entityId, byte wireSlot);
+        /// <summary>The recorded charge pips lit, or null for today's tuning.</summary>
+        int? ChargeStepsReached(ulong entityId);
+    }
+
     public class HUDManager : MonoBehaviour
     {
+        /// <summary>A Replay's recorded observations; null in live play.</summary>
+        public IRecordedHudSource? Recorded { get; set; }
+
         [SerializeField] private UIDocument _uiDocument;
 
         /// <summary>The HUD's UI document — the explicit host for match-surface
@@ -650,10 +662,10 @@ namespace SlopArena.Client.UI
             }
         }
 
-        private static void UpdateChargePips(ActionSlot slot, in CharacterState state, bool charging)
+        private static void UpdateChargePips(ActionSlot slot, in CharacterState state, bool charging, int? recordedSteps)
         {
             if (slot.ChargeMove == null) return;
-            int lit = charging ? World.ChargeTiers.StepsReached(slot.ChargeMove, state.ChargeTicks) : 0;
+            int lit = charging ? recordedSteps ?? World.ChargeTiers.StepsReached(slot.ChargeMove, state.ChargeTicks) : 0;
             if (lit == slot.ChargeLit) return;
             slot.ChargeLit = lit;
             int steps = slot.ChargePips.childCount;
@@ -874,15 +886,16 @@ namespace SlopArena.Client.UI
                         : state.AttackSlot == AbilitySlotDefs[i].SlotIndex + 1
                             || state.ReturningProjectileSlot == AbilitySlotDefs[i].SlotIndex + 1;
                     slot.Root.EnableInClassList("in-use", inUse);
-                    if (!dash) UpdateChargePips(slot, state, state.AttackSlot == AbilitySlotDefs[i].SlotIndex + 1);
+                    if (!dash) UpdateChargePips(slot, state, state.AttackSlot == AbilitySlotDefs[i].SlotIndex + 1, Recorded?.ChargeStepsReached(_localEntityId));
                     if (inUse && slot.PulseTimer > 0f)
                     {
                         slot.PulseTimer = 0f;
                         slot.Root.RemoveFromClassList("ready-pulse");
                     }
                     if (slot.Locked) continue;
-                    UpdateCooldownSlot(slot, dash ? state.HomingDashCooldownTicks
-                        : state.GetCooldown((byte)(AbilitySlotDefs[i].SlotIndex + 1)));
+                    byte wireSlot = (byte)(AbilitySlotDefs[i].SlotIndex + 1);
+                    UpdateCooldownSlot(slot, dash ? state.HomingDashCooldownTicks : state.GetCooldown(wireSlot),
+                        dash ? slot.MaxCooldown : Recorded?.CooldownDuration(_localEntityId, wireSlot) ?? slot.MaxCooldown);
                     if (dash) UpdateBeeline(slot, state);
                 }
             }
@@ -973,7 +986,7 @@ namespace SlopArena.Client.UI
             }
         }
 
-        private void UpdateCooldownSlot(ActionSlot s, ushort cooldown)
+        private void UpdateCooldownSlot(ActionSlot s, ushort cooldown, ushort maxCooldown)
         {
             bool onCooldown = cooldown > 0;
 
@@ -982,7 +995,7 @@ namespace SlopArena.Client.UI
             s.Root.EnableInClassList("on-cooldown", onCooldown);
             if (onCooldown)
             {
-                float remaining = s.MaxCooldown > 0 ? Mathf.Clamp01(cooldown / (float)s.MaxCooldown) : 1f;
+                float remaining = maxCooldown > 0 ? Mathf.Clamp01(cooldown / (float)maxCooldown) : 1f;
                 // The sunk key refills from the bottom as the cooldown elapses.
                 s.Cooldown.style.height = Length.Percent((1f - remaining) * 100f);
                 // Whole seconds from 3 s up, tenths below; text changes only with the shown value.
