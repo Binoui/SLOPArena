@@ -10,6 +10,15 @@ using UnityEngine.UIElements;
 
 namespace SlopArena.Client.UI
 {
+    /// <summary>Observations a Replay recorded, which the HUD shows in place of today's tuning; live play has none.</summary>
+    public interface IRecordedHudSource
+    {
+        /// <summary>The recorded run length of this slot's running cooldown, or null for today's tuning.</summary>
+        ushort? CooldownDuration(ulong entityId, byte wireSlot);
+        /// <summary>The recorded charge pips lit, or null for today's tuning.</summary>
+        int? ChargeStepsReached(ulong entityId);
+    }
+
     /// <summary>
     /// Combat HUD, rebuilt on UI Toolkit.
     ///
@@ -21,15 +30,6 @@ namespace SlopArena.Client.UI
     /// Fight cards, key presses/pops, and stock-loss broadcasts stay attached to
     /// their readouts rather than covering the fight.
     /// </summary>
-    /// <summary>Observations a Replay recorded, which the HUD shows in place of today's tuning; live play has none.</summary>
-    public interface IRecordedHudSource
-    {
-        /// <summary>The recorded run length of this slot's running cooldown, or null for today's tuning.</summary>
-        ushort? CooldownDuration(ulong entityId, byte wireSlot);
-        /// <summary>The recorded charge pips lit, or null for today's tuning.</summary>
-        int? ChargeStepsReached(ulong entityId);
-    }
-
     public class HUDManager : MonoBehaviour
     {
         /// <summary>A Replay's recorded observations; null in live play.</summary>
