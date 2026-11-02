@@ -206,6 +206,7 @@ namespace SlopArena.EditorTools
         {
             RequirePlayMode();
             var match = ActiveReplay() ?? throw new InvalidOperationException("Open a Replay first (sloparena.replays.open).");
+            if (script == "resume") return await ResumeCheck(match);
             if (script == "scrub-clock") return ScrubClockCheck(match);
             if (script == "pose") return PoseCheck(match);
             if (script == "orbit") return await OrbitCheck(match);
@@ -371,6 +372,45 @@ namespace SlopArena.EditorTools
         /// For each fighter with a blade move, the weapon sampled under a recorded pose at tick 9 must match today's
         /// pose at tick 9 and differ from today's pose at the state's own tick 2.
         /// </summary>
+        private static async Task<object> ResumeCheck(ReplayMatch match)
+        {
+            var replay = match.Replay!;
+            if (match.Transport.State == ReplayTransportState.Playing) match.TogglePlay();
+            uint target = 0;
+            ulong entity = 0;
+            for (uint tick = replay.Range.First; tick + 5 < replay.Range.Last; tick++)
+            {
+                match.Seek(tick);
+                foreach (var member in replay.Cast)
+                    if (replay.World.GetActiveMove(member.EntityId) is { } move && move.Slot.ClipCount > 1 && move.ClipIndex > 0 && move.Pose.ElapsedTicks > 2
+                        && move.Pose.ElapsedTicks + 6 < move.Pose.DurationTicks)
+                    { target = tick; entity = member.EntityId; break; }
+                if (entity != 0) break;
+            }
+            if (entity == 0) throw new InvalidOperationException("Fixture needs a multi-phase attack with six remaining ticks.");
+            var renderer = match.RendererOf(entity);
+            var field = typeof(SlopArena.Client.Entities.PlayerRenderer).GetField("_currentAnimState", BindingFlags.Instance | BindingFlags.NonPublic)!;
+            double TimeOfPose() => ((Animancer.AnimancerState)field.GetValue(renderer)).Time;
+            var results = new List<object>();
+            foreach (bool step in new[] { false, true })
+            {
+                match.Seek(target);
+                if (step) match.StepForward();
+                double before = TimeOfPose();
+                var activation = replay.World.GetState(entity).AttackSequence;
+                uint start = replay.CurrentTick!.Value;
+                match.TogglePlay();
+                var watch = System.Diagnostics.Stopwatch.StartNew();
+                while (replay.CurrentTick < start + 2 && watch.Elapsed.TotalSeconds < 3) await Task.Delay(1);
+                match.TogglePlay();
+                double after = TimeOfPose();
+                bool same = replay.World.GetState(entity).AttackSequence == activation;
+                if (!same || after <= before) throw new InvalidOperationException($"Resume froze or restarted attack. step={step}, {before} -> {after}");
+                results.Add(new { step, before, after, sameActivation = same });
+            }
+            return new { success = true, target, entity, results };
+        }
+
         private static object ScrubClockCheck(ReplayMatch match)
         {
             var replay = match.Replay!;

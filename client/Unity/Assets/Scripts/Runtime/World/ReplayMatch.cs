@@ -267,6 +267,8 @@ namespace SlopArena.Client.World
                 renderer.ApplyServerState(state, world.GetActiveMove(fighter.EntityId)?.Slot, Clocks(fighter));
                 _poseTicks[fighter.EntityId] = _poseTicks.TryGetValue(fighter.EntityId, out var pose) && pose.State == state.State
                     ? (state.State, pose.Ticks + 1) : (state.State, 0);
+                if (state.State is ActionState.Attacking or ActionState.Aiming)
+                    renderer.PlayScrubbedState(state, fighter.ActivationAirborne, _poseTicks[fighter.EntityId].Ticks);
             }
             UpdateSwordTrailsFromResolver(world.Resolver);
             PresentTimelineEvents();
