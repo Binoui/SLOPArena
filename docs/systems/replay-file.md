@@ -727,6 +727,33 @@ the same sounds on the next live tick. Measured in the Editor on 2026-11-02 (60 
 | Released golden, 180 ticks | View | 8.27 ms | 13.50 ms |
 | Bonk, Manki, Nyx, Bashie, 900 ticks | View | 15.70 ms | 25.69 ms |
 
+### Where Replays live, and the list
+
+One folder rule, in `ReplayDirectory.Resolve` and in `tools/replay_pull.py`, both checked against
+`tools/tests/replay_directory_vectors.json`:
+
+1. `SLOPARENA_REPLAY_DIR` wins. Under Wine or Proton an absolute Unix value is reached through `Z:`.
+2. Linux: `${XDG_DATA_HOME:-~/.local/share}/sloparena/replays`. Wine or Proton: the same host folder
+   through `Z:` when Wine passes `XDG_DATA_HOME` or `HOME` through (best effort), else
+   `%LOCALAPPDATA%\sloparena\replays`. Windows: `%LOCALAPPDATA%\sloparena\replays`. macOS:
+   `~/Library/Application Support/sloparena/replays`.
+
+The pull tool prints the folder it resolved and the Steam launch option that points the Proton build at
+the same folder: `SLOPARENA_REPLAY_DIR="$HOME/.local/share/sloparena/replays" %command%`.
+
+Home shows **Replays** only when that folder holds a `.slopreplay` or `.slopreplay.part` file. The list
+opens over Home. It shows the folder it read and a Refresh button, and has one row per file, newest
+first. Each row gives the mode, arena, fighters and length, then
+"Downloaded" with the file's modification time, Complete, Partial or Empty, and Exact or View with its
+reason. A file from a newer build says "Made by a newer build. Update SLOPArena." `ReplayLibrary` reads
+summaries on a worker, at most 500 files, cancellable, cached by path, size and modification time; the
+forecast runs on the main thread. Watching is refused while a live match runs or an online room is
+open. Leaving a Replay started from the list returns to Home with the list open.
+
+`sloparena.replays.directory-selftest` runs the vectors in the Editor. `sloparena.replays.list-check
+--directory tmp/<dir> --source <complete file>` writes complete, partial, newer-build and garbage files,
+points this Editor process at them, and checks the four rows.
+
 ## Goldens and release policy
 
 Every release that records Replays adds a short immutable `.slopreplay` under
@@ -786,6 +813,7 @@ dotnet run --project tools/ReplayReport -p:SkipUnityPluginCopy=true -- \
 ```
 
 The pull defaults to `http://127.0.0.1:4173`; `--base-url` also accepts the alfred console URL.
+Its default destination is today's UTC date folder under the Replay folder above.
 It sends the key privately as `X-Console-Key`, validates the eight magic bytes and advertised size,
 and atomically renames downloads in the destination. `--dest <dir>` overrides the default UTC
 date directory. Complete and partial filenames track completeness; a completed recording replaces

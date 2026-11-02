@@ -106,5 +106,13 @@ class PullTests(unittest.TestCase):
         self.assertEqual([final], list(self.dest.iterdir()))
 
 
+class ReplayRootTests(unittest.TestCase):
+    def test_root_matches_the_shared_vectors(self):
+        vectors = json.loads((Path(__file__).parent / "replay_directory_vectors.json").read_text())
+        for vector in vectors:
+            with self.subTest(vector["name"]):
+                self.assertEqual(vector["root"], puller.replay_root(vector["env"], vector["host"]))
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -14,6 +14,7 @@ using SlopArena.Client.World;
 using SlopArena.Shared;
 using SlopArena.Shared.AI;
 using SlopArena.Shared.Replays;
+using Newtonsoft.Json.Linq;
 using Unity.Pipeline.Commands;
 using UnityEditor;
 using UnityEngine;
@@ -98,6 +99,70 @@ namespace SlopArena.EditorTools
                 writer.Complete(new ReplayConclusion(ReplayEndReason.Cancelled, "editor bot fixture", null));
             }
             return new { success = true, path, ticks, fighters = roster.Select(r => r.Package.PackageId + ":" + r.FormId).ToArray(), perchingShapeTicks = perching, hits };
+        }
+
+        [CliCommand("sloparena.replays.directory-selftest", "Check the Replay folder rule against tools/tests/replay_directory_vectors.json, the vectors replay_pull.py also uses.",
+            MainThreadRequired = true, Tags = new[] { "replays", "testing" })]
+        public static object DirectorySelfTest()
+        {
+            var vectors = JArray.Parse(File.ReadAllText(Path.Combine(RepositoryRoot, "tools/tests/replay_directory_vectors.json")));
+            var results = new List<object>();
+            bool success = true;
+            foreach (var vector in vectors)
+            {
+                var host = (string)vector["host"]! switch
+                {
+                    "linux" => ReplayHostKind.Linux,
+                    "windows" => ReplayHostKind.Windows,
+                    "wine" => ReplayHostKind.WindowsUnderWine,
+                    "macos" => ReplayHostKind.MacOS,
+                    var other => throw new InvalidDataException("host " + other),
+                };
+                var env = ((JObject)vector["env"]!).Properties().ToDictionary(p => p.Name, p => (string?)p.Value);
+                string actual = ReplayDirectory.Resolve(new ReplayDirectoryProbe(host, name => env.TryGetValue(name, out var v) ? v : null));
+                bool pass = actual == (string)vector["root"]!;
+                success &= pass;
+                results.Add(new { name = (string)vector["name"]!, pass, actual });
+            }
+            return new { success, vectors = results, current = ReplayDirectory.Resolve(ReplayDirectoryProbe.Current()) };
+        }
+
+        [CliCommand("sloparena.replays.list-check", "Write complete, partial, newer-build and garbage files to a folder, point the Replay folder at it in this Editor process, and check the list's rows.",
+            MainThreadRequired = true, Tags = new[] { "replays", "testing" })]
+        public static async Task<object> ListCheck(
+            [CliArg("directory", "Repository-relative folder to (re)create for the check.", Required = true)] string directory,
+            [CliArg("source", "A complete .slopreplay to derive the files from.", Required = true)] string source)
+        {
+            string root = Path.GetFullPath(Path.Combine(RepositoryRoot, directory));
+            string from = Path.GetFullPath(Path.IsPathRooted(source) ? source : Path.Combine(RepositoryRoot, source));
+            if (!root.StartsWith(Path.Combine(RepositoryRoot, "tmp") + Path.DirectorySeparatorChar, StringComparison.Ordinal))
+                throw new ArgumentException("directory must be below tmp/.");
+            if (Directory.Exists(root)) Directory.Delete(root, true);
+            Directory.CreateDirectory(Path.Combine(root, "2026-11-02"));
+            var bytes = File.ReadAllBytes(from);
+            File.WriteAllBytes(Path.Combine(root, "2026-11-02", "complete.slopreplay"), bytes);
+            File.WriteAllBytes(Path.Combine(root, "2026-11-02", "partial.slopreplay.part"), bytes.Take(bytes.Length * 2 / 3).ToArray());
+            var newer = (byte[])bytes.Clone();
+            newer[8] = 2;
+            File.WriteAllBytes(Path.Combine(root, "newer.slopreplay"), newer);
+            var garbage = new byte[4096];
+            new System.Random(5).NextBytes(garbage);
+            File.WriteAllBytes(Path.Combine(root, "garbage.slopreplay"), garbage);
+            Environment.SetEnvironmentVariable(ReplayDirectory.OverrideVariable, root);
+            string resolved = ReplayDirectory.Resolve(ReplayDirectoryProbe.Current());
+            var rows = await ReplayLibrary.ScanAsync(resolved, System.Threading.CancellationToken.None);
+            var overlay = new ReplayListOverlay(new UnityEngine.UIElements.VisualElement());
+            overlay.Close();
+            var labels = rows.ToDictionary(r => Path.GetFileName(r.Path), r => overlay.Detail(r));
+            bool Has(string file, params string[] parts) => labels.TryGetValue(file, out var label) && parts.All(label.Contains);
+            bool success = resolved == root && rows.Count == 4
+                && Has("complete.slopreplay", "Downloaded", "Complete")
+                && Has("partial.slopreplay.part", "Downloaded", "Partial")
+                && Has("newer.slopreplay", "Made by a newer build. Update SLOPArena.")
+                && Has("garbage.slopreplay", "Not a readable Replay file.")
+                && rows.Single(r => r.Path.EndsWith("complete.slopreplay", StringComparison.Ordinal)).CanOpen
+                && !rows.Single(r => r.Path.EndsWith("garbage.slopreplay", StringComparison.Ordinal)).CanOpen;
+            return new { success, root = resolved, homeShowsReplays = ReplayDirectory.HasAnyReplay(resolved), rows = labels };
         }
 
         [CliCommand("sloparena.replays.open", "Open a .slopreplay in the Replay viewer (Play Mode), optionally at a tick, focused fighter and track.",

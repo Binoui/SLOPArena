@@ -1,0 +1,13 @@
+[
+  {"name": "linux with XDG_DATA_HOME", "host": "linux", "env": {"XDG_DATA_HOME": "/home/u/.data", "HOME": "/home/u"}, "root": "/home/u/.data/sloparena/replays"},
+  {"name": "linux without XDG_DATA_HOME", "host": "linux", "env": {"HOME": "/home/u"}, "root": "/home/u/.local/share/sloparena/replays"},
+  {"name": "linux override", "host": "linux", "env": {"SLOPARENA_REPLAY_DIR": "/mnt/replays", "HOME": "/home/u"}, "root": "/mnt/replays"},
+  {"name": "windows", "host": "windows", "env": {"LOCALAPPDATA": "C:\\Users\\u\\AppData\\Local"}, "root": "C:\\Users\\u\\AppData\\Local\\sloparena\\replays"},
+  {"name": "windows override", "host": "windows", "env": {"SLOPARENA_REPLAY_DIR": "D:\\replays", "LOCALAPPDATA": "C:\\Users\\u\\AppData\\Local"}, "root": "D:\\replays"},
+  {"name": "wine with HOME", "host": "wine", "env": {"HOME": "/home/u", "LOCALAPPDATA": "C:\\users\\steamuser\\AppData\\Local"}, "root": "Z:\\home\\u\\.local\\share\\sloparena\\replays"},
+  {"name": "wine with XDG_DATA_HOME", "host": "wine", "env": {"XDG_DATA_HOME": "/home/u/.data", "HOME": "/home/u"}, "root": "Z:\\home\\u\\.data\\sloparena\\replays"},
+  {"name": "wine with a Unix override", "host": "wine", "env": {"SLOPARENA_REPLAY_DIR": "/home/u/.local/share/sloparena/replays", "LOCALAPPDATA": "C:\\users\\steamuser\\AppData\\Local"}, "root": "Z:\\home\\u\\.local\\share\\sloparena\\replays"},
+  {"name": "wine with a Windows override", "host": "wine", "env": {"SLOPARENA_REPLAY_DIR": "C:\\replays"}, "root": "C:\\replays"},
+  {"name": "wine without host paths", "host": "wine", "env": {"LOCALAPPDATA": "C:\\users\\steamuser\\AppData\\Local"}, "root": "C:\\users\\steamuser\\AppData\\Local\\sloparena\\replays"},
+  {"name": "macos", "host": "macos", "env": {"HOME": "/Users/u"}, "root": "/Users/u/Library/Application Support/sloparena/replays"}
+]

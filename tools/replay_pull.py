@@ -6,11 +6,42 @@ import json
 import http.client
 import os
 from pathlib import Path
+import sys
 import tempfile
 import urllib.request
 import uuid
 
 MAX_BYTES = 64_000_000
+OVERRIDE = "SLOPARENA_REPLAY_DIR"
+PROTON_LAUNCH_OPTION = 'SLOPARENA_REPLAY_DIR="$HOME/.local/share/sloparena/replays" %command%'
+
+
+def replay_root(env, host):
+    """The game's Replay folder (ReplayDirectory.cs); both follow tools/tests/replay_directory_vectors.json."""
+    def value(name):
+        return env.get(name) or None
+
+    chosen = value(OVERRIDE)
+    if chosen:
+        return "Z:" + chosen.replace("/", "\\") if host == "wine" and chosen.startswith("/") else chosen
+    if host == "linux":
+        data = value("XDG_DATA_HOME") or (value("HOME") or "~").rstrip("/") + "/.local/share"
+        return data.rstrip("/") + "/sloparena/replays"
+    if host == "macos":
+        return (value("HOME") or "~").rstrip("/") + "/Library/Application Support/sloparena/replays"
+    if host == "wine":
+        data, home = value("XDG_DATA_HOME"), value("HOME")
+        if data and data.startswith("/"):
+            return "Z:" + (data.rstrip("/") + "/sloparena/replays").replace("/", "\\")
+        if home and home.startswith("/"):
+            return "Z:" + (home.rstrip("/") + "/.local/share/sloparena/replays").replace("/", "\\")
+    return (value("LOCALAPPDATA") or "C:") + "\\sloparena\\replays"
+
+
+def current_host():
+    if os.name == "nt":
+        return "windows"
+    return "macos" if sys.platform == "darwin" else "linux"
 # The format's eight bytes include the C string's terminating zero.
 MAGIC = b"SLOPREP\0"
 
@@ -78,10 +109,12 @@ def pull(base_url, key, dest):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--base-url", default="http://127.0.0.1:4173")
-    parser.add_argument("--dest", type=Path, default=Path(os.environ.get(
-        "XDG_DATA_HOME", str(Path.home() / ".local/share"))) / "sloparena/replays" /
+    root = Path(replay_root(dict(os.environ), current_host()))
+    parser.add_argument("--dest", type=Path, default=root /
         datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%d"))
     args = parser.parse_args()
+    print(f"Replay folder: {root} (set {OVERRIDE} to change it)")
+    print(f"Steam launch option for the Proton build to read it: {PROTON_LAUNCH_OPTION}")
     key = (Path.home() / ".local/state/sloparena-console/console.key").read_text().strip()
     if not key:
         raise ValueError("Console key is empty")

@@ -11,6 +11,7 @@ namespace SlopArena.Client.UI
         // mount time (issue #219).
         private FrontendPageContext _context = null!;
         private VisualElement? _artworkColumn;
+        private ReplayListOverlay? _replays;
         private VisualElement? _artwork;
 
 
@@ -40,9 +41,36 @@ namespace SlopArena.Client.UI
             discordButton.clicked += OpenDiscord;
             _context.AddReleaseAction(() => discordButton.clicked -= OpenDiscord);
             MenuNavigation.Configure(_context, tutorialDone ? _context.Q<Button>("menu-training") : tutorial, ReturnToMainMenu);
+            AddReplaysButton();
             _artworkColumn = _context.Q<VisualElement>("menu-artwork-column");
             _artwork = _context.Q<VisualElement>("menu-artwork");
             _artworkColumn?.RegisterCallback<GeometryChangedEvent>(FitArtwork);
+        }
+
+        /// <summary>Replays appear on Home only when the Replay folder holds a file, so players without any never see it.</summary>
+        private void AddReplaysButton()
+        {
+            var actions = _context.Q<Button>("menu-online")?.parent;
+            if (actions == null || !Replays.ReplayDirectory.HasAnyReplay(Replays.ReplayDirectory.Resolve(Replays.ReplayDirectoryProbe.Current())))
+                return;
+            var button = new Button(OpenReplays) { name = "menu-replays", text = "REPLAYS" };
+            button.AddToClassList("menu-action");
+            actions.Add(button);
+            _context.AddReleaseAction(() => { button.RemoveFromHierarchy(); _replays?.Close(); _replays = null; });
+            if (Replays.ReplayLaunch.ReopenListOnReturn)
+            {
+                Replays.ReplayLaunch.ReopenListOnReturn = false;
+                OpenReplays();
+            }
+        }
+
+        private void OpenReplays()
+        {
+            if (_replays is { IsOpen: true }) return;
+            // The frontend document's root, above the page fragment, so the list covers the shell.
+            VisualElement? host = _context.Q<Button>("menu-online");
+            while (host?.parent?.parent != null) host = host.parent;
+            if (host != null) _replays = new ReplayListOverlay(host);
         }
 
         private void FitArtwork(GeometryChangedEvent _)

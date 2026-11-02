@@ -36,9 +36,23 @@ namespace SlopArena.Client.Replays
         /// <summary>Why the last Replay closed early, for the page it returned to; null when it did not.</summary>
         public static string? LastFailure { get; private set; }
 
+        /// <summary>Home reopens the Replays list when the Replay was started from it.</summary>
+        public static bool ReopenListOnReturn { get; set; }
+
+        /// <summary>Why a Replay cannot start now, or null: never over a live match or an online room.</summary>
+        public static string? Refusal()
+        {
+            if (World.MatchBase.Active is { } match && match is not World.ReplayMatch)
+                return "Finish the current match before watching a Replay.";
+            if (FrontendController.IsFrontendActive && FrontendController.CurrentPage == FrontendPage.LobbyRoom)
+                return "Leave the online room before watching a Replay.";
+            return null;
+        }
+
         public static void Open(string path, FrontendPage returnTo, ReplayTrackChoice track = ReplayTrackChoice.Best,
             uint? startTick = null, ulong? focus = null)
         {
+            if (Refusal() is { } refusal) throw new System.InvalidOperationException(refusal);
             pending = new ReplayRequest(path, returnTo, track, startTick, focus);
             LastFailure = null;
             SceneManager.LoadScene(SceneName);
@@ -63,6 +77,7 @@ namespace SlopArena.Client.Replays
         {
             pending = null;
             LastFailure = null;
+            ReopenListOnReturn = false;
         }
     }
 }
