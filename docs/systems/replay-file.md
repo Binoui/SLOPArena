@@ -52,7 +52,7 @@ or DEFLATE (1), whichever is smaller. There is no alignment or interning table.
 |---|---:|---|
 | 0 | 8 | ASCII `SLOPREP` followed by zero |
 | 8 | 2 | container version 1 |
-| 10 | 2 | View version 1 |
+| 10 | 2 | View version 2 (reader accepts 1 and 2) |
 | 12 | 4 | metadata byte length, at most 65,536 |
 | 16 | 4 | CRC of preamble with this field zeroed plus metadata |
 | 20 | 4 | reserved zero |
@@ -67,7 +67,7 @@ strings are field bytes, booleans one byte. Missing required identities reject t
 | Header | MatchId string, ArenaId string, Rules object, StartTick u32, Roster list, Build object, ArenaDigest string (default empty), TickRate u16 (required 60) |
 | Build | Build label string, Protocol u32, FrameFormat u32, SnapshotFormat u32, ContentHash string |
 | Rules | FormatId string, FriendlyFireId string, MaxStocks u8, BallOnly bool |
-| Participant | EntityId u64, ParticipantProvider string, ParticipantSubject string, Package object, FormId string, CampId string, ColourId string |
+| Participant | EntityId u64, ParticipantProvider string, ParticipantSubject string, Package object, FormId string, CampId string, ColourId string, DisplayName string (default empty) |
 | Package | PackageId string, Version string, SourceHash string, CookedContentHash string, PackageHash string |
 | Conclusion | Reason string, Detail string, Result object (zero bytes means absent) |
 | Result | WinnerIds list of u64, WinningCampId string, Draw bool, Standings list, TeamReturns u64, TealScore u16, ClayScore u16, TerminalModePhaseId string |
@@ -128,7 +128,21 @@ strings: 4,096 UTF-8 bytes; lists: fighters 4, shapes 4,096, mode objects/events
 hits 128, deaths 4, cooldowns 14. The closed schema nests at most four objects, below the
 limit of eight; no arbitrary recursive values or CLR type names are admitted.
 
-## View v1 fields and evolution
+### ReplayParticipant display name
+
+| Tag | Field | Codec | Default |
+|---:|---|---|---|
+| 8 | DisplayName | Text | `""` |
+
+Missing tag 8 reads as an empty display name.
+GameHost copies the optional match-start `displayName` into this field after stripping
+Unicode control characters and limiting it to 24 Unicode scalars. It is presentation
+metadata; provider and subject remain the participant identity. Older files have no name.
+`ReplayLabels.ReplayParticipantLabel(participant, fighterName)` returns the recorded name,
+or the fighter name with the last six Steam ID digits. Non-Steam participants without a
+name use the fighter name. ReplayReport appends recorded names to participant identities.
+
+## View fields and evolution
 
 Each field is u16 tag, u32 byte length, value. Tags strictly increase; duplicates reject.
 Lists are u32 count followed by (u32 object length, object bytes) per element. Vectors are
@@ -140,7 +154,8 @@ strings, including unknown action/move names that a viewer can display neutrally
 Tags, meanings and defaults are permanent. Add fields only, increment the file-wide View version,
 and preserve every older decoder meaning. Never remove, reuse, rename or reinterpret a tag or
 semantic string. Newer unsupported container/View versions return PleaseUpdate. View version zero
-was never shipped. A new field must have a default and conformance coverage for both non-default
+was never shipped. View version 2 adds Participant header tag 8; View record fields remain
+unchanged. A new field must have a default and conformance coverage for both non-default
 roundtrip and absent-tag decoding. The field test compares every DTO property with its explicit
 AOT-safe field table exactly once, then exercises every field through the polymorphic read path.
 A single table drives bounded encoding, byte size and decoding; runtime code uses no reflection.

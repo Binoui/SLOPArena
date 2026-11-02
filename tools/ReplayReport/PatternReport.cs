@@ -51,7 +51,8 @@ public sealed class PatternReport
                 string Fighter(ulong id)
                 {
                     var p = reader.Header.Roster.FirstOrDefault(p => p.EntityId == id);
-                    return p == null ? "unknown" : p.ParticipantProvider + ":" + p.ParticipantSubject + " (" + p.Package.PackageId + ")";
+                    return p == null ? "unknown" : p.ParticipantProvider + ":" + p.ParticipantSubject + " (" + p.Package.PackageId + ")"
+                        + (p.DisplayName.Length == 0 ? "" : " [" + p.DisplayName + "]");
                 }
                 MoveCount Move(string package, string form, string name)
                 {

@@ -24,6 +24,29 @@ public class MatchStartRequestCodecTests
     """;
 
     [Theory]
+    [InlineData(null)]
+    [InlineData("Binoui 🐸")]
+    [InlineData("")]
+    public void OptionalDisplayNameReachesMatchPlayer(string? name)
+    {
+        string body = name == null ? TwoPlayerBody : TwoPlayerBody.Replace("\"entityId\":1", "\"entityId\":1,\"displayName\":" + JsonSerializer.Serialize(name));
+        var request = MatchStartRequestCodec.TryParse(Parse(body));
+        Assert.NotNull(request);
+        Assert.Equal(name, request.Players[0].DisplayName);
+        Assert.Null(request.Players[1].DisplayName);
+    }
+
+    [Theory]
+    [InlineData("null", true)]
+    [InlineData("12", false)]
+    [InlineData("{}", false)]
+    public void DisplayNameAcceptsNullAndRejectsOtherShapes(string value, bool valid)
+    {
+        string body = TwoPlayerBody.Replace("\"entityId\":1", "\"entityId\":1,\"displayName\":" + value);
+        Assert.Equal(valid, MatchStartRequestCodec.TryParse(Parse(body)) != null);
+    }
+
+    [Theory]
     [InlineData("stock", "off", true)]
     [InlineData("stock", "on", false)]
     [InlineData("slopball-coop", "off", true)]

@@ -24,7 +24,7 @@ internal static class ReplayStorage
         {
             w.Write(new byte[] { 83, 76, 79, 80, 82, 69, 80, 0 });
             w.Write((ushort)1);
-            w.Write((ushort)1);
+            w.Write((ushort)2);
             w.Write(meta.Length);
             w.Write(0u);
             w.Write(0u);
@@ -264,8 +264,8 @@ public sealed class ReplayReader : IDisposable
                 if (!pre.Take(8).SequenceEqual(new byte[] { 83, 76, 79, 80, 82, 69, 80, 0 })) throw new InvalidDataException("Magic");
                 ushort cv = System.Buffers.Binary.BinaryPrimitives.ReadUInt16LittleEndian(pre.AsSpan(8)),
      vv = System.Buffers.Binary.BinaryPrimitives.ReadUInt16LittleEndian(pre.AsSpan(10));
-                if (cv > 1 || vv > 1) return new(null, new(ReplayFailureCode.PleaseUpdate, "version", "1", $"{cv}/{vv}"));
-                if (cv != 1 || vv != 1) throw new InvalidDataException("Version zero");
+                if (cv > 1 || vv > 2) return new(null, new(ReplayFailureCode.PleaseUpdate, "version", "1/1..2", $"{cv}/{vv}"));
+                if (cv != 1 || vv < 1) throw new InvalidDataException("Version zero");
                 int n = System.Buffers.Binary.BinaryPrimitives.ReadInt32LittleEndian(pre.AsSpan(12));
                 uint crc = System.Buffers.Binary.BinaryPrimitives.ReadUInt32LittleEndian(pre.AsSpan(16));
                 Array.Clear(pre, 16, 4);
