@@ -206,6 +206,7 @@ namespace SlopArena.EditorTools
         {
             RequirePlayMode();
             var match = ActiveReplay() ?? throw new InvalidOperationException("Open a Replay first (sloparena.replays.open).");
+            if (script == "scrub-clock") return ScrubClockCheck(match);
             if (script == "pose") return PoseCheck(match);
             if (script == "orbit") return await OrbitCheck(match);
             if (script == "seek-hygiene") return SeekHygiene(match);
@@ -370,6 +371,31 @@ namespace SlopArena.EditorTools
         /// For each fighter with a blade move, the weapon sampled under a recorded pose at tick 9 must match today's
         /// pose at tick 9 and differ from today's pose at the state's own tick 2.
         /// </summary>
+        private static object ScrubClockCheck(ReplayMatch match)
+        {
+            var replay = match.Replay!;
+            var renderer = match.RendererOf(replay.Cast[0].EntityId);
+            var slot = renderer.CharacterDef.CookedSlots.First(s => s != null && s.ClipCount > 1);
+            var moveClip = slot.Clip(1);
+            var state = replay.World.GetState(replay.Cast[0].EntityId);
+            state.State = ActionState.Attacking;
+            state.AttackSlot = CanonicalSlotProjection.ToWire(CanonicalSlotProjection.All[slot.Ordinal]);
+            state.AttackElapsedTicks = 40;
+            state.AnimIndex = 0;
+            var pose = new AttackPose(moveClip.AnimationId, 4f, 99, true);
+            renderer.ApplyServerState(state, slot, new SlopArena.Client.Entities.RecordedFighterClocks(pose, 0, 0, -1, 0));
+            if (!renderer.PlayScrubbedState(state, slot.IsAir, 40)) throw new InvalidOperationException("Recorded clip missing.");
+            var animation = (Animancer.AnimancerState)typeof(SlopArena.Client.Entities.PlayerRenderer)
+                .GetField("_currentAnimState", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(renderer);
+            var args = new object[] { moveClip.AnimationId, null, null };
+            typeof(SlopArena.Client.Entities.PlayerRenderer).GetMethod("TryGetAnimation", BindingFlags.Instance | BindingFlags.NonPublic)!
+                .Invoke(renderer, args);
+            bool success = Math.Abs(animation.Time - 4.0 / 60) < 1e-5 && animation.Clip == (AnimationClip)args[1];
+            if (!success) throw new InvalidOperationException($"Recorded phase clock sampled at {animation.Time}.");
+            match.Seek(replay.CurrentTick!.Value);
+            return new { success, sampledTime = animation.Time, recordedElapsed = 4, moveElapsed = 40 };
+        }
+
         private static object PoseCheck(ReplayMatch match)
         {
             var replay = match.Replay!;

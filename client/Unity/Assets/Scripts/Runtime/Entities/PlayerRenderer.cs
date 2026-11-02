@@ -950,6 +950,18 @@ namespace SlopArena.Client.Entities
                 int elapsed = poseTicks;
                 if (snapshot.State is ActionState.Attacking or ActionState.Aiming && snapshot.AttackSlot > 0)
                 {
+                    if (Recorded?.Pose is { } recorded)
+                    {
+                        if (!TryGetAnimation(recorded.AnimationId, out clip, out _)) return false;
+                        float recordedSpeed = 1f;
+                        if (!recorded.IsPhaseClip && recorded.DurationTicks > 0 && _bakedData != null)
+                        {
+                            int index = _bakedData.FindAnimIndex(recorded.AnimationId);
+                            if (index >= 0) recordedSpeed = (float)_bakedData.Animations[index].FrameCount / recorded.DurationTicks;
+                        }
+                        time = recorded.ElapsedTicks / 60f * recordedSpeed;
+                        return true;
+                    }
                     var spec = MoveFor(snapshot.AttackSlot, airborne);
                     if (spec == null || spec.ClipCount == 0 || spec.Timeline.Stages is not { Count: > 0 })
                         return false;
