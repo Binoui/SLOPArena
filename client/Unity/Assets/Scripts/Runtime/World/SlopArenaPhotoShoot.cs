@@ -50,6 +50,8 @@ namespace SlopArena.EditorTools
         public float AimDistance = -1f;
         public float AimPitchDegrees;
         public List<PhotoInput> Inputs = new();
+        /// <summary>Exact per-tick inputs from tick 0 (tools/ComboFinder); replaces Inputs while it lasts, neutral after.</summary>
+        public InputState[]? Tape;
     }
 
     public sealed class PhotoCamera
@@ -349,6 +351,11 @@ namespace SlopArena.EditorTools
 
         private InputState BuildInput(PhotoFighter fighter, int tick)
         {
+            if (fighter.Tape is { Length: > 0 } tape)
+            {
+                if (tick < tape.Length) return tape[tick];
+                return new InputState { FacingYaw = tape[^1].FacingYaw, AimYaw = tape[^1].AimYaw };
+            }
             var self = _bridge.GetState(fighter.Id);
             float aimYaw = fighter.YawDegrees, distance = fighter.AimDistance;
             if (fighter.Target != 0 && _entries.ContainsKey(fighter.Target))
@@ -419,6 +426,7 @@ namespace SlopArena.EditorTools
                     .Append(",\"vy\":").Append(Num(s.VY))
                     .Append(",\"state\":\"").Append(s.State).Append("\",\"slot\":").Append(s.AttackSlot)
                     .Append(",\"grounded\":").Append(s.IsGrounded ? "true" : "false")
+                    .Append(",\"deaths\":").Append(s.Deaths)
                     .Append(",\"damage\":").Append(s.DamagePercent)
                     .Append(",\"hitstun\":").Append(s.HitstunTicks)
                     .Append(",\"facing\":").Append(Num(s.FacingYaw * Mathf.Rad2Deg)).Append('}');

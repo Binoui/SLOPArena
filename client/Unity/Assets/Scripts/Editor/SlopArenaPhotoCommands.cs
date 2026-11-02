@@ -619,7 +619,7 @@ namespace SlopArena.EditorTools
             foreach (var token in root["fighters"] as JArray ?? new JArray())
             {
                 var item = token as JObject ?? throw new ArgumentException("Every fighter must be an object.");
-                Only(item, "fighter", "id", "package", "feet", "grounded", "yaw", "damage", "deaths", "target", "aimDistance", "pitch", "input");
+                Only(item, "fighter", "id", "package", "feet", "grounded", "yaw", "damage", "deaths", "target", "aimDistance", "pitch", "input", "tape");
                 var fighter = new PhotoFighter
                 {
                     Id = (ulong)Int(item, "id", 0, 1, 4),
@@ -635,6 +635,8 @@ namespace SlopArena.EditorTools
                 };
                 foreach (var stepToken in item["input"] as JArray ?? new JArray())
                     fighter.Inputs.Add(ParseInput(stepToken as JObject ?? throw new ArgumentException("Every input must be an object.")));
+                if ((string?)item["tape"] is { } tape)
+                    fighter.Tape = ParseTape(tape);
                 fighters.Add(fighter);
             }
             if (fighters.Count > 4 || fighters.Select(f => f.Id).Distinct().Count() != fighters.Count
@@ -747,6 +749,17 @@ namespace SlopArena.EditorTools
             int value = token.Value<int>();
             if (value < min || value > max) throw new ArgumentException($"'{name}' must be between {min} and {max}.");
             return value;
+        }
+
+        private static InputState[] ParseTape(string base64)
+        {
+            byte[] bytes = Convert.FromBase64String(base64);
+            if (bytes.Length == 0 || bytes.Length % InputState.Size != 0)
+                throw new ArgumentException($"tape must hold whole {InputState.Size}-byte input records.");
+            var tape = new InputState[bytes.Length / InputState.Size];
+            for (int i = 0; i < tape.Length; i++)
+                tape[i] = InputState.Deserialize(bytes.AsSpan(i * InputState.Size, InputState.Size));
+            return tape;
         }
 
         private static float Float(JObject item, string name, float fallback, float min, float max)

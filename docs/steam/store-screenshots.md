@@ -89,6 +89,18 @@ Vertical social clips keep their tested specs under `scenarios/social/specs/`; t
 and the owner's verdicts live in the content factory on alfred. See `skills/social-clips/SKILL.md`,
 `tools/social_clip.py` and `tools/factory.py`.
 
+For exact simulation playback, a fighter can carry `"tape": "<base64>"` instead of
+scripted `input`. It contains one 22-byte `InputState.Write` record per tick, starting
+at tick 0. Photo mode deserializes and plays those records verbatim. After the tape
+ends, input is neutral with the last facing and aim yaw. Empty or partial records
+are rejected. Tape takes precedence over `input` and target/aim adapters.
+`states.jsonl` includes each fighter's `deaths`, so a recorder can verify the KO tick.
+
+`python3 tools/combo_clip.py record <idea|combo.json>` records each camera angle in
+its own gateway pass and verifies landed moves and the KO against the combo timeline.
+`edit <idea> --no-upload` recuts a local footage pack without touching the board.
+See the social-clips skill's Combo clips section for the factory workflow.
+
 - One move fills about 2.5 seconds, so script a short exchange: lead-in, hit, payoff.
 - A press lands only on the first tick of its input step. A press during another move is
   dropped, not buffered.

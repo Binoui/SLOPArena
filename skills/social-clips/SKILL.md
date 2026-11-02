@@ -19,7 +19,8 @@ docstring lists the commands); never keep idea state in the repo.
 [docs/systems/content-factory.md](../../docs/systems/content-factory.md) covers the board, data
 locations and deploy.
 
-- An idea has `id`, `status`, `format`: `moment` (one gameplay payoff, no explanation), `fighter`
+- An idea has `id`, `status`, `format`: `combo` (a Finder fight with input tapes and verified
+  camera footage), `moment` (one gameplay payoff, no explanation), `fighter`
   (one distinctive interaction of one fighter), `building` (a before/after or tool moment),
   `explainer` (a feature, teaser or design decision told in shots and text plates) or `shot` (a
   short clip made for an explainer, with `"for": "<explainer id>"`); `title`, `idea` (what happens
@@ -97,6 +98,36 @@ not ready to show.
 
 The gateway waits for the shared Editor by itself. Redirect its output to files (the tool does);
 if status is `blocked`, stop, mark the run failed and say why. Never recover or restart the Editor.
+
+## Combo clips
+
+A `combo` idea embeds a version-1 Finder result under `combo`. Its deterministic input
+tapes let photo mode replay the fight from several angles without human players.
+The reveal rule above still applies.
+
+1. Find a fight with `tools/ComboFinder`, the headless C# finder. Keep its combo JSON,
+   content hashes and timeline together. Review the landed string and KO before proposing.
+2. `python3 tools/combo_clip.py propose <combo.json>...` adds proposed ideas. The summary
+   becomes the title and idea text; the owner approves on the board.
+3. For a render run, read the idea and newest owner comment. Record with
+   `python3 tools/combo_clip.py record <idea>` if
+   `tmp/content/<idea>/footage/portrait/pack.json` is missing, unverified, stale, or lacks
+   a requested angle. The tool asks ComboFinder for a camera plan and shoots one angle
+   per gateway pass. Until ComboFinder is available, pass `--cameras <plan.json>`.
+   Any differing hit or KO fails the recording. Stop on a blocked gateway.
+4. `python3 tools/combo_clip.py edit <idea>` builds and uploads the take and contact sheet.
+   Default cuts show side, then kill, ending before the KO respawn with a 0.6-second hold.
+   Each cut uses its own pass's game audio, normalized in two passes to -14 LUFS / -2 dBTP.
+   Inspect the contact sheet and `ffprobe` result. Deliver the caption kit as above.
+5. A redo means recut first. Set the idea's `edit` to a cut list, or pass
+   `--cuts '[{"angle":"side","to":200},{"angle":"kill"}]'`.
+   Bounds are inclusive simulation ticks. Cuts continue from the previous cut's end.
+   Reuse the verified pack unless the note needs another camera or the content changed.
+
+Portrait is the default. Use `record --orientation portrait,landscape` for both packs,
+then `edit --orientation landscape` for a landscape take. A camera override file covers
+one orientation only. `edit --no-upload` keeps a test local. Stale combos need a fresh
+Finder search; recutting or relabeling their hashes cannot make them current.
 
 ## Explainers, teasers and design decisions
 
