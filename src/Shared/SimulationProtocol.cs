@@ -112,11 +112,13 @@ namespace SlopArena.Shared
         // - Wibou's flash is a counter: a fighter's damaging hit during the stance is caught (no damage, no reaction) and
         //   starts the lock; a stance that catches nothing whiffs. The fighter a leg dashes at cannot hit him out of it.
         //   Snapshot layout unchanged.
+        // 35: the 0.2.0-playtest.44 release: the Shared Replay file and GameHost recording (ADR-0060). The Replay
+        //   Exact Track shares WorldFramePacket's body encoder; wire bytes, simulation and World Snapshot layout unchanged.
         //
         // Bump once per deploy, never per change: release prepare refuses a release whose src/Shared
         // changed since the previous release tag while this value (and the Master's Protocol) did not.
         // Note simulation changes below; the release bump folds them into one numbered line.
         // Unreleased:
-        public const byte Version = 34;
+        public const byte Version = 35;
     }
 }
