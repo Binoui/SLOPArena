@@ -155,6 +155,9 @@ namespace SlopArena.Client.Camera
         /// The real Unity Camera that this mount drives.
         /// </summary>
         public UnityEngine.Camera RenderCamera => GetComponentInChildren<UnityEngine.Camera>();
+
+        /// <summary>The automatic styles' tracking target: a scene root created on the first switch to one, not an effect.</summary>
+        public Transform? FramingAnchor => _framingAnchor;
         private void Start()
         {
             SetMode(CameraMode.Normal);

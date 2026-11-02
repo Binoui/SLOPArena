@@ -705,7 +705,8 @@ A seek must show the same thing whatever was on screen before it. `ReplayMatch.R
 themselves first: each renderer, its blade trail (`WeaponAttach.ResetForSeek`), the timeline, Bonk,
 tether and sword owners, and the projectile visuals. `ReplayEffects.Sweep` then recalls the pools
 (`GraphicHitEffect.RecallAll`, `MovementFeedbackEffect.RecallOneShots`), stops the scene's playing
-sounds, and removes roots spawned since the Replay began, except UI and pools. It logs each removal:
+sounds, and removes roots spawned since the Replay began, except UI, pools and the camera's framing anchor
+(`CameraMount.FramingAnchor`, made on the camera's first switch to an automatic style). It logs each removal:
 every logged name is an effect whose owner does not reset itself yet. The timeline dispatcher and the
 projectile manager deactivate what they destroy, because `Destroy` waits for the frame's end and a seek
 re-presents within the frame.
