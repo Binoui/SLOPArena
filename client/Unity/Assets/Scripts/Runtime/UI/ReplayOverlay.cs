@@ -162,7 +162,7 @@ namespace SlopArena.Client.UI
 
         private static Label Text(string name, string text, float width)
         {
-            var label = new Label(text) { name = name };
+            var label = new Label(text) { name = name, enableRichText = false };
             label.style.color = Color.white;
             label.style.fontSize = 15;
             label.style.unityTextAlign = TextAnchor.MiddleCenter;

@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using SlopArena.Client.Camera;
 using SlopArena.Client.Combat;
 using SlopArena.Client.Entities;
 using UnityEngine;
@@ -30,17 +31,18 @@ namespace SlopArena.Client.Replays
         }
 
         /// <summary>
-        /// Returns pooled effects and removes roots spawned since Begin, except UI and pools. Each removal is logged:
-        /// it names an effect whose owner does not reset itself on a seek yet.
+        /// Returns pooled effects and removes roots spawned since Begin, except UI, pools and the camera's framing anchor.
+        /// Each removal is logged: it names an effect whose owner does not reset itself on a seek yet.
         /// </summary>
         public IReadOnlyList<string> Sweep()
         {
             GraphicHitEffect.RecallAll();
             MovementFeedbackEffect.RecallOneShots();
             var swept = new List<string>();
+            var anchor = CameraAnchor();
             foreach (var root in _scene.GetRootGameObjects())
             {
-                if (_baseline.Contains(root.GetInstanceID()) || !root.activeSelf || Kept(root)) continue;
+                if (_baseline.Contains(root.GetInstanceID()) || !root.activeSelf || Kept(root, anchor)) continue;
                 swept.Add(root.name);
                 root.SetActive(false);
                 Object.Destroy(root);
@@ -102,8 +104,9 @@ namespace SlopArena.Client.Replays
         public IReadOnlyList<string> Census(IEnumerable<PlayerRenderer> fighters)
         {
             var lines = new List<string>();
+            var anchor = CameraAnchor();
             foreach (var root in _scene.GetRootGameObjects())
-                if (!_baseline.Contains(root.GetInstanceID()) && root.activeInHierarchy && !Kept(root))
+                if (!_baseline.Contains(root.GetInstanceID()) && root.activeInHierarchy && !Kept(root, anchor))
                     lines.Add("root " + Clean(root.name));
             foreach (var system in Object.FindObjectsByType<ParticleSystem>(FindObjectsInactive.Exclude, FindObjectsSortMode.None))
                 if (system.IsAlive(false) && system.particleCount > 0)
@@ -134,9 +137,13 @@ namespace SlopArena.Client.Replays
             return lines;
         }
 
-        private static bool Kept(GameObject root)
+        // The camera makes its framing anchor when it first switches to an automatic style, which can be after Begin.
+        private static Transform? CameraAnchor() => Object.FindFirstObjectByType<CameraMount>()?.FramingAnchor;
+
+        private static bool Kept(GameObject root, Transform? cameraAnchor)
             => root.GetComponent<UIDocument>() != null || root.GetComponent<Canvas>() != null
-               || root.GetComponent<EventSystem>() != null || root.GetComponent<GraphicHitEffect>() != null;
+               || root.GetComponent<EventSystem>() != null || root.GetComponent<GraphicHitEffect>() != null
+               || (cameraAnchor != null && root.transform == cameraAnchor);
 
         private static string Path(Transform transform)
         {

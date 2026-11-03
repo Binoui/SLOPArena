@@ -455,6 +455,8 @@ namespace SlopArena.Client.Entities
         {
             if (Application.isPlaying)
             {
+                // Destroy waits for the frame's end, and a Replay seek re-presents within the same frame.
+                if (_visual != null) _visual.SetActive(false);
                 Object.Destroy(_visual);
                 Object.Destroy(_root.Mesh);
                 if (_background != null) Object.Destroy(_background.Mesh);

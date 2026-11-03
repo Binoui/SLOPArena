@@ -79,6 +79,8 @@ namespace SlopArena.Shared
         private int _cursor;
         private SlopballShot _shot;
         public IReadOnlyList<SlopballEvent> Events => _events;
+        /// <summary>A Replay display world shows the recorded events of the tick it restored.</summary>
+        internal void RestoreEvents(IEnumerable<SlopballEvent> events) { _events.Clear(); _events.AddRange(events); }
         public SlopballState State => new(_phase, _returns, _serveIn, _received, _armed, _shot,
             (float)Math.Min(_returns, _rules.RampReturns) / _rules.RampReturns, _countdown, _cleared, _bestStreak, _seed,
             _misses, _missBudget, _totalReturns);

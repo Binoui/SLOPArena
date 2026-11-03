@@ -28,11 +28,23 @@ namespace SlopArena.Client.Combat
                 if (_exhaust == null) _exhaust = Spawn(owner, "presentation.manki.jetpack-boost.exhaust");
                 if (_trail == null) _trail = Spawn(owner, "presentation.manki.jetpack-boost.trail");
             }
-            else
-            {
-                if (_exhaust != null) Destroy(_exhaust);
-                if (_trail != null) Destroy(_trail);
-            }
+            else Clear();
+        }
+
+        /// <summary>Ends the exhaust and trail now; a fresh simulation or a Replay seek starts without them.</summary>
+        public void Clear()
+        {
+            End(ref _exhaust);
+            End(ref _trail);
+        }
+
+        // Destroy waits for the frame's end, and a Replay seek re-presents within the same frame.
+        private static void End(ref GameObject effect)
+        {
+            if (effect == null) return;
+            effect.SetActive(false);
+            Destroy(effect);
+            effect = null;
         }
 
         private GameObject Spawn(PlayerRenderer owner, string id)

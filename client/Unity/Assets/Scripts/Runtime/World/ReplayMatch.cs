@@ -28,6 +28,8 @@ namespace SlopArena.Client.World
         [SerializeField] private CombatFeedback _combatFeedback = null!;
 
         private ReplayWorld? _replay;
+        private ReplayContent? _content;
+        private ReplayModes? _modes;
         private ReplayBridge? _bridge;
         private ReplayRequest? _request;
         private ReplayTransport _transport = new(ReplayTransportState.Paused, ReplaySpeed.One);
@@ -51,7 +53,33 @@ namespace SlopArena.Client.World
         public ReplayTransport Transport => _transport;
         public ulong Focus => _focus;
         /// <summary>What a viewer sees now, for the history-independent seek check.</summary>
-        public IReadOnlyList<string> Census() => _effects.Census(Fighters.Values);
+        public IReadOnlyList<string> Census()
+        {
+            var lines = _effects.Census(Fighters.Values).ToList();
+            if (StageVisual != null && StageVisual.Find("Ball Sender") is { } sender)
+                lines.Add($"sender {sender.position.x:0.000},{sender.position.y:0.000},{sender.position.z:0.000}");
+            if (StageVisual != null)
+            {
+                var block = new MaterialPropertyBlock();
+                foreach (var t in StageVisual.GetComponentsInChildren<Transform>(true))
+                    if (SlopballCourtShow.CardNames.Contains(t.name) || t.name is "Flood Panels" or "Flood Beams")
+                    {
+                        var scale = t.localScale;
+                        var rotation = t.localRotation;
+                        var position = t.localPosition;
+                        var renderer = t.GetComponent<Renderer>();
+                        block.Clear();
+                        if (renderer != null) renderer.GetPropertyBlock(block);
+                        var uv = block.GetVector("_BaseMap_ST");
+                        var colour = block.GetColor("_BaseColor");
+                        lines.Add($"court {t.name} scale={scale.ToString("F5")} rotation={rotation.ToString("F5")} position={position.ToString("F5")} uv={uv.ToString("F5")} colour={colour.ToString("F5")} glow={block.GetFloat("_Glow"):F5}");
+                    }
+                foreach (var light in StageVisual.GetComponentsInChildren<Light>(true))
+                    if (light.name == SlopballCourtShow.KeyLightName)
+                        lines.Add($"court light {light.intensity:F5} {light.color.ToString("F5")}");
+            }
+            return lines;
+        }
 
         public PlayerRenderer? RendererOf(ulong entityId) => Fighters.TryGetValue(entityId, out var renderer) ? renderer : null;
         /// <summary>Ticks presented since the scene opened, for checks.</summary>
@@ -98,6 +126,7 @@ namespace SlopArena.Client.World
                 return;
             }
             _replay = opened.World;
+            _content = content;
             _bridge = new ReplayBridge(_replay.World);
             enabled = true;
         }
@@ -134,6 +163,9 @@ namespace SlopArena.Client.World
             _hudManager!.Recorded = this;
             SetupCamera();
             _brain = FindFirstObjectByType<CinemachineBrain>();
+            _modes = ReplayModes.Create(replay, new ReplayModeScene(transform, StageVisual, _hudManager, _cameraMount,
+                () => _cameraMount?.RenderCamera ?? UnityEngine.Camera.main, _projectiles, Fighters, HudPlayers(), _content!.Catalog, () => _focus));
+            if (_modes?.MayhemHost is { } mayhemHost) RegisterHostPresentation(ServerSimulation.MayhemHostEntityId, mayhemHost.Root, mayhemHost.Catalog);
 
             var host = _hudManager.Document?.rootVisualElement;
             if (host != null)
@@ -173,6 +205,7 @@ namespace SlopArena.Client.World
         private void Update()
         {
             if (_replay == null) return;
+            _modes?.Update(_replay.World, _cameraMount?.RenderCamera ?? UnityEngine.Camera.main);
             // The Esc menu opens over the Replay; the Replay pauses itself under it and resumes after.
             if (IsPaused != _pausedForMenu)
             {
@@ -233,6 +266,7 @@ namespace SlopArena.Client.World
             }
             ResetSimulationPresentation();
             _projectiles.SetPredictedSimulation(_replay!.World);
+            _modes?.Reset(targetTick);
             _effects.Sweep();
             _deaths.Clear();
             _poseTicks.Clear();
@@ -272,7 +306,7 @@ namespace SlopArena.Client.World
             }
             UpdateSwordTrailsFromResolver(world.Resolver);
             PresentTimelineEvents();
-            UpdateLockCamera(world);
+            if (_modes?.Present(frame, _focus, _playerRenderer.transform, _cameraMount) != true) UpdateLockCamera(world);
             PresentStockLosses(frame);
             _overlay?.Show(frame.View.Tick, _replay!.Range.First, _transport.State == ReplayTransportState.Playing,
                 ReplayTransport.Label(_transport.Speed), FocusName());
@@ -301,7 +335,12 @@ namespace SlopArena.Client.World
                 bool known = _deaths.TryGetValue(fighter.EntityId, out var previous);
                 _deaths[fighter.EntityId] = fighter.Deaths;
                 if (known && fighter.Deaths > previous && frame.Delivery == ReplayDelivery.Live)
-                    _hudManager?.ShowStockToast(fighter.EntityId, $"P{fighter.EntityId} · −1 LIFE");
+                    _hudManager?.ShowStockToast(fighter.EntityId, _replay!.Header.Rules.FormatId switch
+                    {
+                        MatchFormats.MankiMayhemWire => $"P{fighter.EntityId} · OUT · BACK NEXT ROUND",
+                        MatchFormats.CourseRaceWire or MatchFormats.CourseCoopWire or MatchFormats.CourseScrambleWire => $"P{fighter.EntityId} · FALL · CHECKPOINT RESET",
+                        _ => $"P{fighter.EntityId} · −1 LIFE",
+                    });
             }
         }
 
@@ -365,6 +404,8 @@ namespace SlopArena.Client.World
             SetupCamera();
             _cameraMount?.Cut();
             RebuildFighterIndicators();
+            // Course targets, events and the versus panel follow the followed fighter: show this tick from their side.
+            if (_modes != null && _replay?.CurrentTick is { } now) Seek(now);
             _overlay?.Show(_frame.View?.Tick ?? _replay!.Range.First, _replay!.Range.First,
                 _transport.State == ReplayTransportState.Playing, ReplayTransport.Label(_transport.Speed), FocusName());
         }
@@ -398,13 +439,14 @@ namespace SlopArena.Client.World
             }
         }
 
+        private List<HUDManager.HudPlayer> HudPlayers()
+            => _replay!.Cast.Select((m, i) => new HUDManager.HudPlayer(m.EntityId, $"P{i + 1}",
+                m.Content.LegacySelector ?? CharacterClass.None, m.EntityId == _focus, ReplayText.Fighter(m), playerNumber: i + 1)).ToList();
+
         private void SetupFocusHud()
         {
-            var replay = _replay!;
-            var players = replay.Cast.Select((m, i) => new HUDManager.HudPlayer(m.EntityId, $"P{i + 1}",
-                m.Content.LegacySelector ?? CharacterClass.None, m.EntityId == _focus, ReplayText.Fighter(m), playerNumber: i + 1)).ToList();
-            var focus = replay.Cast.First(m => m.EntityId == _focus);
-            SetupHUD(players, StockLimit, focus.Content.Definition);
+            var focus = _replay!.Cast.First(m => m.EntityId == _focus);
+            SetupHUD(HudPlayers(), StockLimit, focus.Content.Definition);
         }
 
         private string FocusName()
@@ -419,13 +461,15 @@ namespace SlopArena.Client.World
                 var move = _frame.Moves[i];
                 if (!Fighters.TryGetValue(move.EntityId, out var renderer) || renderer == null) continue;
                 var member = _replay.Cast.First(m => m.EntityId == move.EntityId);
-                var parts = new List<string>(2);
+                var parts = new List<string>(3) { ReplayText.Fighter(member) };
                 if (member.Kind == ReplayCastKind.StandIn) parts.Add($"Stand-in for {member.Recorded.Package.PackageId}");
                 if (move.RecordedName.Length > 0 && (move.Match == ReplayMoveMatch.Missing || _overlay.NamesShown))
                     parts.Add(move.Match == ReplayMoveMatch.Missing ? $"{move.RecordedName} (missing)" : move.RecordedName);
                 float height = renderer.CharacterDef?.CapsuleHeight ?? 1.8f;
                 _overlay.Label(move.EntityId, string.Join(" · ", parts), renderer.transform.position + Vector3.up * (height + 0.4f), camera);
             }
+            if (_modes != null)
+                foreach (var (key, text, position) in _modes.Labels) _overlay.Label(key, text, position, camera);
         }
 
         // ── Recorded observations ───────────────────────────────────────────────────
@@ -477,6 +521,7 @@ namespace SlopArena.Client.World
             Time.timeScale = 1f;
             if (_brain != null) _brain.IgnoreTimeScale = false;
             _overlay?.Dispose();
+            _modes?.Dispose();
             if (_hudManager != null) _hudManager.Recorded = null;
             _replay?.Dispose();
             base.OnDestroy();

@@ -35,7 +35,7 @@ public sealed class ReplayReportTests(ITestOutputHelper output)
             var entries = new[] { BuiltInContentResolver.Resolve(CharacterClass.FightGuy), BuiltInContentResolver.Resolve(CharacterClass.Manki) };
             var catalog = new MatchContentCatalog(entries);
             var arena = ArenaBinaryFormat.LoadFromFile(Path.Combine(Root, "data/arenas/slop_pit.arena"))!.Value;
-            var roster = entries.Select((e,i) => new ReplayParticipant((ulong)i+1, "cpu", i.ToString(), e.Identity, "base", "", "")).ToArray();
+            var roster = entries.Select((e,i) => new ReplayParticipant((ulong)i+1, "cpu", i.ToString(), e.Identity, "base", "", "", i == 0 ? "Binoui" : "")).ToArray();
             var header = new ReplayHeader("combat", arena.Name, new("stock", "off", 250, false), 1, roster, ReplayBuildIdentity.Current("test", "test"));
             var sim = new ServerSimulation(arena, MatchFormat.Stock.CreateRule(250, FriendlyFireMode.Off));
             for (int i = 0; i < 2; i++)
@@ -83,6 +83,8 @@ public sealed class ReplayReportTests(ITestOutputHelper output)
             Assert.All(report.KOs, ko => { Assert.NotEqual(default, ko.Position); Assert.NotEmpty(ko.Victim); });
             Assert.Equal("finished", Assert.Single(report.Endings).Reason);
             Assert.Single(report.Endings[0].Winners);
+            Assert.Contains("[Binoui]", report.Endings[0].Participants[0]);
+            Assert.DoesNotContain("[", report.Endings[0].Participants[1]);
             Assert.Contains("1/1", report.Markdown());
             Assert.Contains("0/1", report.Markdown());
             // The .part suffix does not invent a trailer: a crash is reported as partial.

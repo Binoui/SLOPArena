@@ -54,16 +54,9 @@ namespace SlopArena.Client.Replays
             _ => formatId,
         };
 
-        /// <summary>The fighter's name and a short participant ID, since Replays carry no display names.</summary>
+        /// <summary>The recorded player name, or the fighter name with a short Steam ID.</summary>
         public static string Fighter(ReplayCastMember member)
-        {
-            string who = member.Recorded.ParticipantProvider == "steam"
-                ? "#" + (member.Recorded.ParticipantSubject.Length > 4
-                    ? member.Recorded.ParticipantSubject.Substring(member.Recorded.ParticipantSubject.Length - 4)
-                    : member.Recorded.ParticipantSubject)
-                : member.Recorded.ParticipantProvider.ToUpperInvariant();
-            return $"{member.Content.DisplayName} {who}";
-        }
+            => ReplayLabels.ReplayParticipantLabel(member.Recorded, member.Content.DisplayName);
 
         public static string Conclusion(ReplayConclusion? conclusion, ReplayPrefixReason prefix)
         {

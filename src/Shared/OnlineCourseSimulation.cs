@@ -53,6 +53,8 @@ internal sealed class OnlineCourseSimulation
     public ulong Breaker(int index) => _scramble?.Breaker(index) ?? 0;
     private ulong Winner => _scramble != null ? _courses.Keys.OrderByDescending(id => _scramble.Points(id)).ThenBy(id => id).FirstOrDefault() : _places.Where(x => x.Value == 1).Select(x => x.Key).DefaultIfEmpty().Min();
     public IReadOnlyList<CourseTickEvent> Events => _events;
+    /// <summary>A Replay display world shows the recorded events of the tick it restored.</summary>
+    internal void RestoreEvents(IEnumerable<CourseTickEvent> events) { _events.Clear(); _events.AddRange(events); }
     public IEnumerable<CoursePlayerProgress> Players => _courses.Select(x =>
         new CoursePlayerProgress(x.Key, x.Value.State, Place(x.Key), _withdrawn.Contains(x.Key), _scramble?.Points(x.Key) ?? 0, _scramble?.Leash(x.Key) ?? 0, _scramble?.Progress(x.Key) ?? 0));
     public CharacterCourseSimulation? For(ulong id) => _courses.TryGetValue(id, out var course) ? course : null;

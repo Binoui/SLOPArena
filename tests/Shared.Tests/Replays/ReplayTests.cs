@@ -170,7 +170,7 @@ a}
             MatchContentHash = "other"
         }).Failure!.Code);
         var b = r.Bytes.ToArray();
-        b[10] = 2;
+        b[10] = 3;
         using var newer = new MemoryStream(b);
         Assert.Equal(ReplayFailureCode.PleaseUpdate, ReplayReader.Open(newer).Failure!.Code);
         foreach (var pair in new[]{
@@ -292,6 +292,33 @@ e}
         Assert.Equal(21u, sink.Frames[^1].Display.View.Tick);
     }
     [Fact]
+    public void ParticipantDisplayNameRoundTripsInHeader()
+    {
+        var (header, _, _) = Setup();
+        header = header with { Roster = header.Roster.Select(p => p with { DisplayName = "Binoui 🐸" }).ToArray() };
+        using var stream = new MemoryStream();
+        using (var writer = new ReplayWriter(stream, header))
+            writer.Complete(new(ReplayEndReason.Cancelled, "test", null));
+        stream.Position = 0;
+        var opened = ReplayReader.Open(stream);
+        Assert.Null(opened.Failure);
+        using var reader = opened.Reader!;
+        Assert.All(reader.Header.Roster, p => Assert.Equal("Binoui 🐸", p.DisplayName));
+    }
+
+    [Theory]
+    [InlineData("Binoui", "steam", "76561198012345678", "Binoui")]
+    [InlineData("", "steam", "76561198012345678", "FightGuy (345678)")]
+    [InlineData("", "steam", "1001", "FightGuy (1001)")]
+    [InlineData("", "cpu", "0", "FightGuy")]
+    public void ParticipantLabelUsesOnlyRecordedNameOrIdentity(string name, string provider, string subject, string expected)
+    {
+        var (header, _, _) = Setup();
+        var participant = header.Roster[0] with { DisplayName = name, ParticipantProvider = provider, ParticipantSubject = subject };
+        Assert.Equal(expected, ReplayLabels.ReplayParticipantLabel(participant, "FightGuy"));
+    }
+
+    [Fact]
     public void EveryReleasedGoldenPlaysViewWithoutCurrentContent()
     {
         var files = Directory.GetFiles(Path.Combine(Root, "tests/Shared.Tests/Golden/Replays"), "*.slopreplay");
@@ -319,6 +346,7 @@ e}
     {
         using var stream = File.OpenRead(Path.Combine(Root, "tests/Shared.Tests/Golden/Replays/v1-stock-bots.slopreplay"));
         using var reader = ReplayReader.Open(stream).Reader!;
+        Assert.All(reader.Header.Roster, p => Assert.Equal("", p.DisplayName));
         // Released goldens are checked through the View Track only: their Exact frames belong to the
         // build that recorded them, and a later protocol rightly refuses to decode them.
         var record = typeof(ReplayReader).GetMethod("Record", BindingFlags.Instance | BindingFlags.NonPublic)!;

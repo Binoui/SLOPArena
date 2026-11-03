@@ -38,6 +38,8 @@ internal sealed class MankiMayhemSimulation
     public IReadOnlyList<MayhemPlayer> Players => _players.Values.ToArray();
     public IReadOnlyList<MayhemLandingRing> Rings => Array.AsReadOnly(_rings);
     public IReadOnlyList<MankiMayhemEvent> Events => _events;
+    /// <summary>A Replay display world shows the recorded events of the tick it restored.</summary>
+    internal void RestoreEvents(IEnumerable<MankiMayhemEvent> events) { _events.Clear(); _events.AddRange(events); }
     public bool Inactive(ulong id) => _players.TryGetValue(id, out var p) && (p.Benched || p.Withdrawn);
     public MatchOutcome Outcome
     {

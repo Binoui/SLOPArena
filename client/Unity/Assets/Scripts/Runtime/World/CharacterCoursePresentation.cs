@@ -44,6 +44,8 @@ namespace SlopArena.Client.World
         private readonly Dictionary<string, int> _played = new();
         private readonly Dictionary<(Material Source, Color Colour), Material> _seatMaterials = new();
         private CourseBeacon _shrine;
+        // Released beacons fade on scaled time, so a paused Replay keeps them until a seek ends them.
+        private readonly List<CourseBeacon> _fading = new();
         private Vector3? _lastPosition;
         private bool _insideFinish, _finishLocked, _cleared;
         private float _finishCueReady;
@@ -182,14 +184,18 @@ namespace SlopArena.Client.World
         {
             foreach (var target in _targets) target.gameObject.SetActive(true);
             foreach (var bonus in _bonus) if (bonus != null) bonus.ResetDamage();
+            // Destroy waits for the frame's end, and a Replay seek re-presents within the same frame.
+            static void End(GameObject gone) { if (gone == null) return; gone.SetActive(false); Object.Destroy(gone); }
             for (int i = 0; i < _beacons.Length; i++)
             {
-                if (_beacons[i] != null) Object.Destroy(_beacons[i].gameObject);
+                if (_beacons[i] != null) End(_beacons[i].gameObject);
                 _beacons[i] = null;
             }
-            if (_shrine != null) Object.Destroy(_shrine.gameObject);
+            if (_shrine != null) End(_shrine.gameObject);
             _shrine = null;
-            foreach (var effect in _effects) if (effect != null) Object.Destroy(effect);
+            foreach (var beacon in _fading) if (beacon != null) End(beacon.gameObject);
+            _fading.Clear();
+            foreach (var effect in _effects) End(effect);
             _effects.Clear(); _queued.Clear(); _played.Clear();
             foreach (var voice in _voices) voice.Stop();
             Array.Clear(_broken, 0, _broken.Length); Array.Clear(_flagged, 0, _flagged.Length);
@@ -309,7 +315,7 @@ namespace SlopArena.Client.World
         {
             Spawn(_set?.FinishBurst, position, 1f, 6f);
             Play(_finishGong, .8f);
-            _shrine?.Release();
+            Fade(_shrine);
             _shrine = null;
         }
 
@@ -366,8 +372,16 @@ namespace SlopArena.Client.World
 
         private void ReleaseBeacon(int index)
         {
-            _beacons[index]?.Release();
+            Fade(_beacons[index]);
             _beacons[index] = null;
+        }
+
+        private void Fade(CourseBeacon beacon)
+        {
+            if (beacon == null) return;
+            beacon.Release();
+            _fading.RemoveAll(b => b == null);
+            _fading.Add(beacon);
         }
 
         private void Present(CharacterCourseState? state = null)
@@ -438,12 +452,12 @@ namespace SlopArena.Client.World
 
         private void Queue(AudioClip clip, float delay, float volume, float pitch = 1f)
         {
-            if (clip != null) _queued.Add((Time.time + delay, clip, volume, pitch));
+            if (clip != null && !PresentationOutput.Silent) _queued.Add((Time.time + delay, clip, volume, pitch));
         }
 
         private void Play(AudioClip clip, float volume, float pitch = 1f)
         {
-            if (clip == null) return;
+            if (clip == null || !PresentationOutput.TryPlay()) return;
             AudioSource voice = null;
             foreach (var candidate in _voices) if (!candidate.isPlaying) { voice = candidate; break; }
             if (voice == null)

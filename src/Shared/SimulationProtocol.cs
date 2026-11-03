@@ -119,6 +119,7 @@ namespace SlopArena.Shared
         // changed since the previous release tag while this value (and the Master's Protocol) did not.
         // Note simulation changes below; the release bump folds them into one numbered line.
         // Unreleased:
+        // Replay participant display names in additive header tag 8; optional match-start displayName. No simulation/wire change.
         public const byte Version = 35;
     }
 }

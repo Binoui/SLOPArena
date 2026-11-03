@@ -13,13 +13,13 @@ namespace SlopArena.Shared.Replays
             => new(build, SimulationProtocol.Version, WorldFramePacket.FormatVersion, ServerSimulation.SnapshotFormatVersion, matchContentHash);
     }
     public sealed record ReplayParticipant(ulong EntityId, string ParticipantProvider,
-        string ParticipantSubject, MatchContentIdentity Package, string FormId, string CampId, string ColourId);
+        string ParticipantSubject, MatchContentIdentity Package, string FormId, string CampId, string ColourId, string DisplayName = "");
     public sealed record ReplayRules(string FormatId, string FriendlyFireId, byte MaxStocks, bool BallOnly);
 
     /// <summary>
     /// File's Match identity. Roster is sorted by entity ID, unique and 2..4 fighters.
     /// Build.ContentHash includes the admitted match content (including arena). Steam subject
-    /// is the invariant-culture decimal SteamId. No display name or numeric CharacterClass.
+    /// is the invariant-culture decimal SteamId. DisplayName is optional presentation metadata.
     /// </summary>
     public sealed record ReplayHeader(string MatchId, string ArenaId, ReplayRules Rules,
         uint StartTick, IReadOnlyList<ReplayParticipant> Roster, ReplayBuildIdentity Build, string ArenaDigest = "")

@@ -52,7 +52,7 @@ or DEFLATE (1), whichever is smaller. There is no alignment or interning table.
 |---|---:|---|
 | 0 | 8 | ASCII `SLOPREP` followed by zero |
 | 8 | 2 | container version 1 |
-| 10 | 2 | View version 1 |
+| 10 | 2 | View version 2 (reader accepts 1 and 2) |
 | 12 | 4 | metadata byte length, at most 65,536 |
 | 16 | 4 | CRC of preamble with this field zeroed plus metadata |
 | 20 | 4 | reserved zero |
@@ -67,7 +67,7 @@ strings are field bytes, booleans one byte. Missing required identities reject t
 | Header | MatchId string, ArenaId string, Rules object, StartTick u32, Roster list, Build object, ArenaDigest string (default empty), TickRate u16 (required 60) |
 | Build | Build label string, Protocol u32, FrameFormat u32, SnapshotFormat u32, ContentHash string |
 | Rules | FormatId string, FriendlyFireId string, MaxStocks u8, BallOnly bool |
-| Participant | EntityId u64, ParticipantProvider string, ParticipantSubject string, Package object, FormId string, CampId string, ColourId string |
+| Participant | EntityId u64, ParticipantProvider string, ParticipantSubject string, Package object, FormId string, CampId string, ColourId string, DisplayName string (default empty) |
 | Package | PackageId string, Version string, SourceHash string, CookedContentHash string, PackageHash string |
 | Conclusion | Reason string, Detail string, Result object (zero bytes means absent) |
 | Result | WinnerIds list of u64, WinningCampId string, Draw bool, Standings list, TeamReturns u64, TealScore u16, ClayScore u16, TerminalModePhaseId string |
@@ -128,7 +128,21 @@ strings: 4,096 UTF-8 bytes; lists: fighters 4, shapes 4,096, mode objects/events
 hits 128, deaths 4, cooldowns 14. The closed schema nests at most four objects, below the
 limit of eight; no arbitrary recursive values or CLR type names are admitted.
 
-## View v1 fields and evolution
+### ReplayParticipant display name
+
+| Tag | Field | Codec | Default |
+|---:|---|---|---|
+| 8 | DisplayName | Text | `""` |
+
+Missing tag 8 reads as an empty display name.
+GameHost copies the optional match-start `displayName` into this field after stripping
+Unicode control characters and limiting it to 24 Unicode scalars. It is presentation
+metadata; provider and subject remain the participant identity. Older files have no name.
+`ReplayLabels.ReplayParticipantLabel(participant, fighterName)` returns the recorded name,
+or the fighter name with the last six Steam ID digits. Non-Steam participants without a
+name use the fighter name. ReplayReport appends recorded names to participant identities.
+
+## View fields and evolution
 
 Each field is u16 tag, u32 byte length, value. Tags strictly increase; duplicates reject.
 Lists are u32 count followed by (u32 object length, object bytes) per element. Vectors are
@@ -140,7 +154,8 @@ strings, including unknown action/move names that a viewer can display neutrally
 Tags, meanings and defaults are permanent. Add fields only, increment the file-wide View version,
 and preserve every older decoder meaning. Never remove, reuse, rename or reinterpret a tag or
 semantic string. Newer unsupported container/View versions return PleaseUpdate. View version zero
-was never shipped. A new field must have a default and conformance coverage for both non-default
+was never shipped. View version 2 adds Participant header tag 8; View record fields remain
+unchanged. A new field must have a default and conformance coverage for both non-default
 roundtrip and absent-tag decoding. The field test compares every DTO property with its explicit
 AOT-safe field table exactly once, then exercises every field through the polymorphic read path.
 A single table drives bounded encoding, byte size and decoding; runtime code uses no reflection.
@@ -605,7 +620,7 @@ Exact when `choice` is Best and the gate passes, else View with the gate's refus
 Both tracks restore one never-ticked `ServerSimulation`, the display world, for every presented tick.
 Exact uses the World Snapshot restore. View runs `ReplayViewDecoder`, which builds the simulation's own
 `PreparedSnapshot` from the View record, and the existing `ApplySnapshot` writes it. Each tick's hits,
-deaths and presentation events come from the View record on both tracks (`ApplyTickOutputs`).
+deaths, presentation events and mode events come from the View record on both tracks (`ApplyTickOutputs`).
 Presenters implement `IReplayPresenter` and read `ReplayFrame.World` as they read a live simulation.
 
 - **Tick guard.** Every Replay shell sets `ReplayDisplay`, and `Tick` throws on it. This is defense in
@@ -641,7 +656,7 @@ Presenters implement `IReplayPresenter` and read `ReplayFrame.World` as they rea
 | Capsule end bone | Today's move supplies the end bone of the hitbox event with the same start bone |
 | Applied hit stun | A hit stuns when it did damage, froze anyone, or left its target reacting that tick |
 | Bonk's `MoveSpot` and challenge target | Not shown |
-| Mode state (ball, course, Mayhem) | Not decoded yet; a non-stock Match shows its fighters on a no-elimination rule |
+| Mode state (ball, course, Mayhem) | Decoded into each mode's restore snapshot; what it lacks is in [Online modes](#online-modes) |
 
 ### Live seams the viewer uses
 
@@ -656,8 +671,15 @@ Every seam is additive, and its live default is the behaviour before it existed.
 - `PresentationOutput.TryPlay()` is the one gate for sound and rumble. A `MatchBase.SilenceOutput()`
   scope makes it refuse, and counts what it skipped. The sites: `CombatSFX`, `UISFX` (click, countdown,
   finish), `PlayerRenderer` (its one-shots, which `AirDodgePresentation` and `HomingDashPresentation`
-  use too), `MankiBombVisual`, `ChargeTierCues` and the controller rumble. No camera impulse or screen
-  shake exists in runtime code today, so nothing else needs the gate.
+  use too), `MankiBombVisual`, `ChargeTierCues`, the controller rumble, and the mode presenters
+  (`SlopballPresentation`, `CharacterCoursePresentation`, Mayhem's wall hits and show stings). Their
+  delayed-sound queues drop entries while `PresentationOutput.Silent`. No camera impulse or screen shake
+  exists in runtime code today, so nothing else needs the gate.
+- `OnlineSlopball` and `OnlineCharacterCourse` take an optional perspective (whose camp, targets and events
+  show) and their format or roster; the live defaults read `MatchConfig.LocalEntityId`, `MatchConfig.Format`
+  and `ClientSession.MatchRoster`. Each mode presenter has a `Reset()` for a seek: `OnlineSlopball` (with
+  `SlopballPresentation`, `SlopballCourtShow` and `SlopballView`), `OnlineCharacterCourse` and `MankiMayhemPresentation` (with
+  `MankiMayhemView` and `MankiHostPresenter`).
 
 ### Recorded observations over today's tuning
 
@@ -672,6 +694,25 @@ Each override is optional and null in live play. A new recorded observation belo
 | `ChargeTierCues`, `ChargePropFeedback`, `ChargeScale` | `ChargeTier`, `ChargeProgress` | `ChargeTier`, `ChargeProgress` | `ChargeTiers.Of` and `Progress` on today's move |
 | `HUDManager.Recorded` | cooldown run length, charge pips | `ReplayCooldown.DurationTicks`, `ChargeStepsReached` | today's `CooldownTicks`, `ChargeTiers.StepsReached` |
 | `CombatFeedback.RecordedOwnPresentation` | whether a hit showed its own presentation | the hit's `PresentationId` and the tick's `hit-contact` events | today's slot `HitPresentationId` |
+| `SlopballPresentation.SenderFollowsBall` (View track) | where the ball sender stands | the ball's position on each serve tick | the shot's spawn |
+| `MankiMayhemPresentation.FixedTelegraphs` (View track) | landing ring size and countdown fill | each ring's `LaunchTick` and `LandingTick`; a fixed 2.5 m marker | today's blast radius and call plus flight time |
+| `MankiMayhemPresentation` walls with hit budget 0 (View track) | wall look, cracks, rise and sink | `HitsLeft` only: one neutral look, upright while it stands | material and cracks from the budget, today's rise and sink time |
+
+### Online modes
+
+`ReplayModes.Create` builds the live mode presenter for the file's format (`OnlineSlopball`,
+`OnlineCharacterCourse`, `MankiMayhemPresentation`), with the followed fighter as its perspective. It feeds
+it the display world after the fighters, in PvPMatch's order. A new followed fighter re-presents the tick
+from their side. On View, `ReplayViewDecoder.Modes` builds each mode's restore snapshot, and the shell runs
+the recorded format's own rule (fighters only when today's arena no longer hosts it). Mode events reach the
+display world from the View on both tracks. A seek resets every mode presenter before the pools are recalled.
+
+| Mode | Exact track | View track shows | View track falls back to | Both tracks lack |
+|---|---|---|---|---|
+| **Slopball co-op** | Everything below, with the real shot | Ball (position, velocity, damage, curve, hitstop, live); run phase, returns, streaks, serve and countdown clocks, receive, arm and net flags, misses, next serve kind; served, received, returned, missed, re-serve and stop events | The shot's spawn, velocity and flight are not recorded: the sender goes where the recorded ball is served and waits at its stage spot until the first serve. Seeking recovers the last serve before the warmup window. Court cards, tint and return flashes rebuild from recorded ticks at 60 Hz. Seed, shot index and miss budget are 0, since only ticking reads them | Ball contacts are per-tick scratch: no bounce sounds or squash and no bank, sky or net-cord callouts; a ball's path ends at its hit's contact time |
+| **Slopball versus** | Everything below | Scores, serving camp and server, serve clock, winner, phase; serve-ready, served and point events; the panel speaks for the followed fighter's camp | Serve-rotation counters are 0 (they pick the next server when ticking) | The same ball contacts |
+| **Course race, co-op, scramble** | Everything below | Course clock, finish window, ended and winner; each player's phase, clock, checkpoint, place, withdrawal, points, leash and progress; each perspective's targets (hits left, broken, breaker); scramble leader and safe ground; go, target, checkpoint, respawn and completion events for the followed fighter | Targets and checkpoints are today's arena matched by recorded ID, never by order. A recorded target the arena no longer has is labelled "not on today's course" where it stood; a target the Replay never recorded keeps all its hits and is labelled "not in this Replay"; events naming a missing ID are left out. Lock-on and homing references map through the recorded target ID for their perspective; an absent lock target is cleared and labelled. Recorded hits left survive a smaller current budget; an incompatible damage model is neutral and labelled with the recorded count and current budget. The first-finish tick, scramble ground history and other racers' safe ground are not recorded | |
+| **Manki Mayhem** | Everything below, with real wall budgets and today's ring styling | Round, card, phase and its clock, hazards launched; players' scores, rounds, bonuses, bench and withdrawal; landing rings, slams, walls (place, size, yaw, hits left, phase); call, wind-up, launch, bench, score, end, slam and wall events; host hazards as shapes | Walls have no hit budget: one neutral look while they stand, no cracks, no rise or sink. Landing rings draw at a fixed 2.5 m and fill from the recorded launch to the landing. The director seed is 0 | Host reactions older than the 30-tick warmup are gone after a seek until the next event; the host's throw and slam timing and the slam warning window are today's animation. The show camera frames the deck, as in live play, so orbit is off |
 
 ### The viewer in Unity
 
@@ -683,15 +724,17 @@ inside `SilenceOutput()`. Pause keeps orbit and zoom (hold the right mouse butto
 through `CameraUsesUnscaledTime` and the Cinemachine brain's `IgnoreTimeScale`. Paused steps sample
 still poses with `PlayScrubbedState`. The bar shows play, steps, speed, a timeline that seeks once per
 rendered frame, the followed fighter (Tab, LB/RB), the track with its reason, move names (M) and Leave.
-Labels over fighters name a stand-in and a Missing move. The end of the file shows the conclusion, or
-the partial reason. Fight cards show the fighter's name and the last four digits of a Steam ID.
+The list, focus bar, fight cards, mode scoreboards and labels over fighters use the recorded display
+name. Without one, they show the fighter's name and the last six digits of a Steam ID. Non-Steam
+participants without a name show the fighter's name. Fighter labels also name a stand-in and a Missing
+move. The end of the file shows the conclusion, or the partial reason.
 
 `Scenes/Replay.unity` is generated from `Arena_Offline` by `sloparena.replays.build-scene`; rebuild it
 after changing that scene. Editor commands, all through the gateway:
 
 | Command | What it does |
 |---|---|
-| `sloparena.replays.record-bots --output <path> [--fighters fightguy,nyx:alternate] [--ticks 1800]` | Records a same-build CPU fight with this Editor's content, so it plays Exact |
+| `sloparena.replays.record-bots --output <path> [--fighters fightguy,nyx:alternate] [--ticks 1800] [--match-format stock\|slopball-coop\|slopball-versus\|course-race\|course-coop\|course-scramble\|manki-mayhem]` | Records a same-build CPU Match with this Editor's content, so it plays Exact; each format takes its usual arena, starts and Begin call |
 | `sloparena.replays.open --file <path> [--tick N] [--focus id] [--track best\|view]` | Opens a Replay in Play Mode at a tick |
 | `sloparena.replays.check --script play` | Every tick at 2×, ten step-backs and step-forwards, every fighter focused, Nyx crows drawn, no console errors |
 | `sloparena.replays.check --script pose` | A blade move's weapon tip follows the recorded pose clock, not today's clip time |
@@ -702,12 +745,15 @@ Commands time out after 30 s, so check files of up to about 2,000 ticks with `pl
 ### Seek hygiene
 
 A seek must show the same thing whatever was on screen before it. `ReplayMatch.Reset` lets owners reset
-themselves first: each renderer, its blade trail (`WeaponAttach.ResetForSeek`), the timeline, Bonk,
-tether and sword owners, and the projectile visuals. `ReplayEffects.Sweep` then recalls the pools
+themselves first: each renderer (with its flight exhaust), its blade trail (`WeaponAttach.ResetForSeek`), the
+timeline, Bonk, tether and sword owners, the projectile visuals and the mode presenters. `ReplayEffects.Sweep` then recalls the pools
 (`GraphicHitEffect.RecallAll`, `MovementFeedbackEffect.RecallOneShots`), stops the scene's playing
-sounds, and removes roots spawned since the Replay began, except UI and pools. It logs each removal:
-every logged name is an effect whose owner does not reset itself yet. The timeline dispatcher and the
-projectile manager deactivate what they destroy, because `Destroy` waits for the frame's end and a seek
+sounds, and removes roots spawned since the Replay began, except UI, pools and the camera's framing anchor
+(`CameraMount.FramingAnchor`, made on the camera's first switch to an automatic style). It logs each removal:
+every logged name is an effect whose owner does not reset itself yet. The pool recall includes trails and
+auras whose owner has ended them, since they fade on game time and a paused seek would keep them. The
+timeline dispatcher, the projectile manager, the course presentation, Manki's flight exhaust and the sword
+sweep trails deactivate what they destroy, because `Destroy` waits for the frame's end and a seek
 re-presents within the frame.
 
 Warmup ticks run the ordinary present code inside `SilenceOutput()`. What a warmup tick spawns starts at
@@ -727,6 +773,17 @@ the same sounds on the next live tick. Measured in the Editor on 2026-11-02 (60 
 | Released golden, 180 ticks | View | 8.27 ms | 13.50 ms |
 | Bonk, Manki, Nyx, Bashie, 900 ticks | View | 15.70 ms | 25.69 ms |
 
+With the mode presenters, on same-build 1,200-tick fixtures (Exact, 2026-11-03):
+
+| Replay | Seek median | Seek p95 |
+|---|---|---|
+| Slopball co-op, 2 fighters | 15.2 ms | 23.9 ms |
+| Slopball versus, 2 fighters | 15.2 ms | 26.0 ms |
+| Course race, 2 fighters | 36.3 ms | 90.7 ms |
+| Course co-op, 2 fighters | 33.4 ms | 106.8 ms |
+| Course scramble, 3 fighters | 56.6 ms | 126.6 ms |
+| Manki Mayhem, 4 fighters | 29.7 ms | 56.2 ms |
+
 ### Where Replays live, and the list
 
 One folder rule, in `ReplayDirectory.Resolve` and in `tools/replay_pull.py`, both checked against
@@ -743,7 +800,7 @@ the same folder: `SLOPARENA_REPLAY_DIR="$HOME/.local/share/sloparena/replays" %c
 
 Home shows **Replays** only when that folder holds a `.slopreplay` or `.slopreplay.part` file. The list
 opens over Home. It shows the folder it read and a Refresh button, and has one row per file, newest
-first. Each row gives the mode, arena, fighters and length, then
+first. Each row gives the mode, arena, participant labels and length, then
 "Downloaded" with the file's modification time, Complete, Partial or Empty, and Exact or View with its
 reason. A file from a newer build says "Made by a newer build. Update SLOPArena." `ReplayLibrary` reads
 summaries on a worker, at most 500 files, cancellable, cached by path, size and modification time; the

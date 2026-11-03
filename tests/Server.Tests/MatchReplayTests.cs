@@ -30,8 +30,8 @@ public class MatchReplayTests(ITestOutputHelper output)
             Assert.True(provider.TryBuild(out var catalog, out var map, out var error), error);
             Catalog = catalog!; Map = map!.WithArena(identity!); Hash = SteamMatchDescriptor.HashContent(Map);
         }
-        public MatchInstance Match(MatchReplayStore? store, Action<Guid, ulong, byte[], bool>? send = null) => new(0,
-            Guid.NewGuid().ToString(), Arena, new[] { new MatchPlayer(1001, CharacterClass.FightGuy, 1, Colour: 2),
+        public MatchInstance Match(MatchReplayStore? store, Action<Guid, ulong, byte[], bool>? send = null, string? displayName = null) => new(0,
+            Guid.NewGuid().ToString(), Arena, new[] { new MatchPlayer(1001, CharacterClass.FightGuy, 1, Colour: 2, DisplayName: displayName),
                 new MatchPlayer(1002, CharacterClass.Manki, 2, Colour: 3) }, Catalog, _ => { },
             maxStocks: 1, contentHash: Hash, contentHandleMap: Map, clock: new Clock(),
             steamSend: send ?? ((_, _, _, _) => { }), replays: store);
@@ -58,6 +58,26 @@ public class MatchReplayTests(ITestOutputHelper output)
         public void Reset(uint tick) { }
         public void Present(ReplayDisplay display, ReplayDelivery delivery) { Count++; present(display); }
     }
+    [Theory]
+    [InlineData(null, "")]
+    [InlineData("", "")]
+    [InlineData("Bi\0n\noui\t\u007f\u0085", "Binoui")]
+    [InlineData("abcdefghijklmnopqrstuvwxy", "abcdefghijklmnopqrstuvwx")]
+    [InlineData("abcdefghijklmnopqrstuvw🐸x", "abcdefghijklmnopqrstuvw🐸")]
+    [InlineData("🐸🐸🐸🐸🐸🐸🐸🐸🐸🐸🐸🐸🐸🐸🐸🐸🐸🐸🐸🐸🐸🐸🐸🐸🐸", "🐸🐸🐸🐸🐸🐸🐸🐸🐸🐸🐸🐸🐸🐸🐸🐸🐸🐸🐸🐸🐸🐸🐸🐸")]
+    public void MatchCaptureBoundsDisplayNameAtTheHeaderBoundary(string? name, string expected)
+    {
+        using var rig = new Rig();
+        var store = new MatchReplayStore(rig.Dir);
+        var match = rig.Match(store, displayName: name);
+        Playing(match);
+        match.Stop();
+        Assert.True(store.WaitForWriters(TimeSpan.FromSeconds(5)));
+        using var reader = Read(Assert.Single(Directory.GetFiles(rig.Dir, "*.slopreplay", SearchOption.AllDirectories)));
+        Assert.Equal(expected, reader.Header.Roster[0].DisplayName);
+        Assert.Equal("", reader.Header.Roster[1].DisplayName);
+    }
+
     [Fact]
     public void MatchRecordsViewAndEveryExactTickWithTheWireResult()
     {

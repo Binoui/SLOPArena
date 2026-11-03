@@ -24,7 +24,8 @@ internal static class ReplayMetadata
         Field<ReplayParticipant, MatchContentIdentity>(4, Obj((w, x) => MatchContentIdentityTable.WriteTo(w, x), ReadMatchContentIdentity), x => x.Package, (x,v) => x with { Package = v }, "Package"),
         Field<ReplayParticipant, string>(5, Text, x => x.FormId, (x,v) => x with { FormId = v }, "FormId"),
         Field<ReplayParticipant, string>(6, Text, x => x.CampId, (x,v) => x with { CampId = v }, "CampId"),
-        Field<ReplayParticipant, string>(7, Text, x => x.ColourId, (x,v) => x with { ColourId = v }, "ColourId"));
+        Field<ReplayParticipant, string>(7, Text, x => x.ColourId, (x,v) => x with { ColourId = v }, "ColourId"),
+        Field<ReplayParticipant, string>(8, Text, x => x.DisplayName, (x,v) => x with { DisplayName = v }, "DisplayName"));
     internal static byte[] Write(ReplayParticipant x) => ReplayParticipantTable.Write(x);
     internal static ReplayParticipant ReadReplayParticipant(byte[] bytes)
     {

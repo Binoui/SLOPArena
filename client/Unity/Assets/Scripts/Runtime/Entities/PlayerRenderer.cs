@@ -1093,6 +1093,7 @@ namespace SlopArena.Client.Entities
             _airDodge?.Clear();
             _homingDash?.Clear();
             _heldCut?.Clear();
+            _flightPresentation?.Clear();
             if (_respawnInvincibilityEffect != null)
             {
                 _respawnInvincibilityEffect.EndInvincibility();

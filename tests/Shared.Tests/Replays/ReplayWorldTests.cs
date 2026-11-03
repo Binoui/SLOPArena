@@ -40,27 +40,46 @@ public class ReplayWorldTests
 
     internal sealed record Recording(byte[] Bytes, ReplayHeader Header, List<ReplayViewTick> Views);
 
-    /// <summary>A same-build CPU stock fight recorded through the real capture and writer, as the GameHost records it.</summary>
-    static Recording RecordBots(CharacterClass[] fighters, int ticks, int seed = 7, string? alternate = null)
+    static string ArenaFor(MatchFormat format) => format switch
     {
-        var arena = LoadArena("slop_pit")!;
+        MatchFormat.Stock => "slop_pit",
+        MatchFormat.SlopballCoop or MatchFormat.SlopballVersus => "slopball",
+        MatchFormat.MankiMayhem => "manki_mayhem",
+        _ => "fightguy_pier",
+    };
+
+    /// <summary>
+    /// A same-build CPU Match recorded through the real capture and writer, as the GameHost records it: arena, rule,
+    /// starts and the mode's Begin call per format (MatchInstance.InitializeSimulation), with the mode's events per frame.
+    /// </summary>
+    static Recording RecordBots(CharacterClass[] fighters, int ticks, int seed = 7, string? alternate = null,
+        MatchFormat format = MatchFormat.Stock)
+    {
+        var arena = LoadArena(ArenaFor(format))!;
         var entries = fighters.Select(Entry).ToArray();
+        var camps = entries.Select((_, i) => format == MatchFormat.SlopballVersus ? (i % 2 == 0 ? SlopballCamp.Teal : SlopballCamp.Clay) : SlopballCamp.None).ToArray();
         var roster = entries.Select((e, i) => new ReplayParticipant((ulong)i + 1, "cpu", i.ToString(), e.Identity,
-            e.Identity.PackageId == alternate ? "alternate" : "base", "", i.ToString())).ToArray();
+            e.Identity.PackageId == alternate ? "alternate" : "base", camps[i].ToWire(), i.ToString())).ToArray();
         var records = Roster.Value.Entries.Where(e => e.LegacySelector.HasValue)
             .Select(e => new MatchContentHandleRecord(e.Handle, e.LegacySelector!.Value, e.Identity, e.DisplayName)).ToList();
         string hash = SteamMatchDescriptor.HashContent(new MatchContentHandleMap(MatchContentHandleMap.CurrentSchemaVersion, records,
             new MatchArenaRecord(arena.Definition.Name, arena.Digest)));
-        var header = new ReplayHeader("bots", arena.Definition.Name, new("stock", "off", 250, false), 1, roster,
+        var header = new ReplayHeader("bots", arena.Definition.Name, new(format.ToWire(), "off", 250, false), 1, roster,
             ReplayBuildIdentity.Current("test", hash), arena.Digest);
-        var sim = new ServerSimulation(arena.Definition, MatchFormat.Stock.CreateRule(250, FriendlyFireMode.Off));
+        var sim = new ServerSimulation(arena.Definition, format.CreateRule(250, FriendlyFireMode.Off,
+            roster.ToDictionary(p => p.EntityId, p => camps[(int)p.EntityId - 1])));
+        bool stock = format == MatchFormat.Stock;
         for (int i = 0; i < entries.Length; i++)
         {
-            var spawn = arena.Definition.SpawnPoints[i % arena.Definition.SpawnPoints.Length];
-            var state = new CharacterState { EntityId = (ulong)i + 1, PX = spawn.X + i * .5f, PY = spawn.Y, PZ = spawn.Z, FacingYaw = spawn.Yaw, IsGrounded = true, JumpsLeft = entries[i].Definition.Movement.MaxJumps, AirDodgesLeft = 1, DamagePercent = 150 };
+            var spawn = stock ? arena.Definition.SpawnPoints[i % arena.Definition.SpawnPoints.Length] : format.StartFor(arena.Definition, i, entries.Length, camps);
+            var state = new CharacterState { EntityId = (ulong)i + 1, PX = spawn.X + (stock ? i * .5f : 0f), PY = spawn.Y, PZ = spawn.Z, FacingYaw = spawn.Yaw, IsGrounded = true, JumpsLeft = entries[i].Definition.Movement.MaxJumps, AirDodgesLeft = 1, DamagePercent = (ushort)(stock ? 150 : 0) };
             if (roster[i].FormId == "alternate") state.Form.Active = 1;
             sim.RegisterEntity(state.EntityId, entries[i].Definition, state, entries[i].BakedAnimation);
         }
+        if (format == MatchFormat.SlopballCoop) sim.BeginSlopballRun((uint)seed);
+        if (format == MatchFormat.SlopballVersus) sim.BeginVersusSlopball();
+        if (format.IsCourse()) sim.BeginOnlineCourse();
+        if (format == MatchFormat.MankiMayhem) sim.BeginMankiMayhem((uint)seed);
         var capture = new ReplayCapture(header, Roster.Value, arena.Definition);
         using var stream = new MemoryStream();
         using var writer = new ReplayWriter(stream, header);
@@ -77,10 +96,12 @@ public class ReplayWorldTests
                 if (other == id) other = (ulong)((i + 1) % entries.Length) + 1;
                 policy.ObserveOpponent(memories[i], sim.GetState(other), sim.GetDefinition(other), entries[(int)other - 1].BakedAnimation, sim.GetActiveMove(other)?.Slot);
                 memories[i].ChooseOpponent(sim.GetState(id));
-                inputs[id] = policy.Decide(sim.GetState(id), sim.GetDefinition(id), rng, memories[i], arena.Definition, entries[i].BakedAnimation, activeMove: sim.GetActiveMove(id)?.Slot);
+                inputs[id] = policy.Decide(sim.GetState(id), sim.GetDefinition(id), rng, memories[i], arena.Definition, entries[i].BakedAnimation, activeMove: sim.GetActiveMove(id)?.Slot,
+                    mayhemThreats: format == MatchFormat.MankiMayhem ? new MayhemThreats(sim) : null);
             }
             sim.Tick(inputs);
-            var frame = new WorldFramePacket(MatchState.Playing, sim.CaptureSnapshot(), Array.Empty<RelayedInput>(), sim.GetPresentationEvents(true).Where(e => WorldFramePacket.CanCarry(e)).ToArray(), sim.LastTickHits.ToArray());
+            var frame = new WorldFramePacket(MatchState.Playing, sim.CaptureSnapshot(), Array.Empty<RelayedInput>(), sim.GetPresentationEvents(true).Where(e => WorldFramePacket.CanCarry(e)).ToArray(), sim.LastTickHits.ToArray(),
+                sim.LastTickSlopballEvents.Select(e => new SlopballTickEvent(sim.CurrentTick, e)).ToArray(), sim.LastTickOnlineCourseEvents.ToArray(), sim.LastTickMayhemEvents.ToArray());
             var captured = capture.Capture(sim, frame);
             Assert.Equal(ReplayCaptureStatus.Accepted, captured.Status);
             views.Add(captured.Capture!.View);
@@ -113,7 +134,8 @@ public class ReplayWorldTests
         public Reprojector(ReplayHeader header, ArenaDefinition arena) => capture = new ReplayCapture(header, Roster.Value, arena);
         public ReplayViewTick Project(ServerSimulation world)
         {
-            var frame = new WorldFramePacket(MatchState.Playing, world.CaptureSnapshot(), Array.Empty<RelayedInput>(), world.GetPresentationEvents().ToArray(), world.LastTickHits.ToArray());
+            var frame = new WorldFramePacket(MatchState.Playing, world.CaptureSnapshot(), Array.Empty<RelayedInput>(), world.GetPresentationEvents().ToArray(), world.LastTickHits.ToArray(),
+                world.LastTickSlopballEvents.Select(e => new SlopballTickEvent(world.CurrentTick, e)).ToArray(), world.LastTickOnlineCourseEvents.ToArray(), world.LastTickMayhemEvents.ToArray());
             var result = capture.Capture(world, frame);
             Assert.True(result.Status == ReplayCaptureStatus.Accepted, result.Detail);
             return result.Capture!.View;
@@ -136,7 +158,31 @@ public class ReplayWorldTests
                 if (!ReplayViewCodec.ReplayEventKinds.Write(expected.Events[i]).SequenceEqual(ReplayViewCodec.ReplayEventKinds.Write(actual.Events[i])))
                     diffs.Add($"Events[{i}]");
         if (expected.MatchPhase != actual.MatchPhase) diffs.Add("MatchPhase");
+        if (expected.ModeObjects.Count != actual.ModeObjects.Count) diffs.Add($"ModeObjects.Count {expected.ModeObjects.Count} != {actual.ModeObjects.Count}");
+        else for (int i = 0; i < expected.ModeObjects.Count; i++) ModeObject(i, expected.ModeObjects[i], actual.ModeObjects[i], diffs);
         return diffs;
+    }
+
+    /// <summary>One mode object field by field through its kind's own table.</summary>
+    static void ModeObject(int i, ReplayModeObject expected, ReplayModeObject actual, List<string> diffs)
+    {
+        if (expected.GetType() != actual.GetType()) { diffs.Add($"ModeObjects[{i}].Kind {expected.Kind} != {actual.Kind}"); return; }
+        void Row<T>(T e, ReplayFields.Table<T> table) => Rows($"ModeObjects[{i}]:{expected.Kind}", new[] { e }, new[] { (T)(object)actual }, table, diffs);
+        switch (expected)
+        {
+            case ReplayBall x: Row(x, ReplayViewCodec.ReplayBallTable); break;
+            case ReplaySlopballRun x: Row(x, ReplayViewCodec.ReplaySlopballRunTable); break;
+            case ReplaySlopballVersus x: Row(x, ReplayViewCodec.ReplaySlopballVersusTable); break;
+            case ReplayCourse x: Row(x, ReplayViewCodec.ReplayCourseTable); break;
+            case ReplayCoursePlayer x: Row(x, ReplayViewCodec.ReplayCoursePlayerTable); break;
+            case ReplayCourseTarget x: Row(x, ReplayViewCodec.ReplayCourseTargetTable); break;
+            case ReplayMayhem x: Row(x, ReplayViewCodec.ReplayMayhemTable); break;
+            case ReplayMayhemPlayer x: Row(x, ReplayViewCodec.ReplayMayhemPlayerTable); break;
+            case ReplayMayhemRing x: Row(x, ReplayViewCodec.ReplayMayhemRingTable); break;
+            case ReplayMayhemSlam x: Row(x, ReplayViewCodec.ReplayMayhemSlamTable); break;
+            case ReplayMayhemWall x: Row(x, ReplayViewCodec.ReplayMayhemWallTable); break;
+            default: diffs.Add($"ModeObjects[{i}] unknown kind {expected.Kind}"); break;
+        }
     }
 
     static void Rows<T>(string list, IReadOnlyList<T> expected, IReadOnlyList<T> actual, ReplayFields.Table<T> table, List<string> diffs)
@@ -189,7 +235,7 @@ public class ReplayWorldTests
         };
         var cast = ReplayCastIndex.Build(replay.Header, Content())!;
         var restored = ReplayViewDecoder.Prepare(replay.World,
-            new ReplayViewTick { Fighters = new[] { fighter } }, cast);
+            new ReplayViewTick { Fighters = new[] { fighter } }, cast, replay.Arena);
         replay.World.ApplySnapshot(restored);
         for (int i = 0; i < slots.Length; i++)
         {
@@ -258,6 +304,223 @@ public class ReplayWorldTests
         Assert.True(moves > 0 && shapes > 0 && hits > 0 && events > 0, $"moves {moves} shapes {shapes} hits {hits} events {events}");
         if (fighters == 4) Assert.True(deaths > 0 && perches > 0, $"deaths {deaths} perches {perches}");
     }
+
+    static readonly Dictionary<MatchFormat, Lazy<Recording>> Modes = new()
+    {
+        [MatchFormat.SlopballCoop] = new(() => RecordBots(new[] { CharacterClass.FightGuy, CharacterClass.Bonk }, 1800, format: MatchFormat.SlopballCoop)),
+        [MatchFormat.SlopballVersus] = new(() => RecordBots(new[] { CharacterClass.FightGuy, CharacterClass.Manki }, 1800, format: MatchFormat.SlopballVersus)),
+        [MatchFormat.CourseRace] = new(() => RecordBots(new[] { CharacterClass.FightGuy, CharacterClass.Nyx }, 1800, format: MatchFormat.CourseRace)),
+        [MatchFormat.CourseCoop] = new(() => RecordBots(new[] { CharacterClass.Wibou, CharacterClass.Bashie }, 1800, format: MatchFormat.CourseCoop)),
+        [MatchFormat.CourseScramble] = new(() => RecordBots(new[] { CharacterClass.FightGuy, CharacterClass.Manki, CharacterClass.Bonk }, 1800, format: MatchFormat.CourseScramble)),
+        [MatchFormat.MankiMayhem] = new(() => RecordBots(new[] { CharacterClass.FightGuy, CharacterClass.Nyx, CharacterClass.Bashie, CharacterClass.Bonk }, 1800, seed: 11, format: MatchFormat.MankiMayhem)),
+    };
+
+    /// <summary>
+    /// Every mode object and mode event the GameHost recorded comes back out of the display world, compared field by field
+    /// through the codec's tables. Exact restores the mode state; both tracks take the tick's events from the View.
+    /// </summary>
+    [Theory]
+    [InlineData(MatchFormat.SlopballCoop, ReplayTrackChoice.Best)]
+    [InlineData(MatchFormat.SlopballVersus, ReplayTrackChoice.Best)]
+    [InlineData(MatchFormat.CourseRace, ReplayTrackChoice.Best)]
+    [InlineData(MatchFormat.CourseCoop, ReplayTrackChoice.Best)]
+    [InlineData(MatchFormat.CourseScramble, ReplayTrackChoice.Best)]
+    [InlineData(MatchFormat.MankiMayhem, ReplayTrackChoice.Best)]
+    [InlineData(MatchFormat.SlopballCoop, ReplayTrackChoice.ViewOnly)]
+    [InlineData(MatchFormat.SlopballVersus, ReplayTrackChoice.ViewOnly)]
+    [InlineData(MatchFormat.CourseRace, ReplayTrackChoice.ViewOnly)]
+    [InlineData(MatchFormat.CourseCoop, ReplayTrackChoice.ViewOnly)]
+    [InlineData(MatchFormat.CourseScramble, ReplayTrackChoice.ViewOnly)]
+    [InlineData(MatchFormat.MankiMayhem, ReplayTrackChoice.ViewOnly)]
+    public void ModeDisplayWorldProjectsBackToTheRecordedViewOnEveryTick(MatchFormat format, ReplayTrackChoice choice)
+    {
+        var recording = Modes[format].Value;
+        using var replay = Open(recording.Bytes, choice);
+        Assert.Equal(choice == ReplayTrackChoice.Best ? ReplayTrack.Exact : ReplayTrack.View, replay.Track);
+        var reprojector = new Reprojector(replay.Header, replay.Arena);
+        var mismatches = new Dictionary<string, int>();
+        var kinds = new Dictionary<string, int>();
+        int ticks = 0;
+        var probe = new Probe
+        {
+            OnPresent = frame =>
+            {
+                var expected = recording.Views[(int)(frame.View.Tick - replay.Range.First)];
+                foreach (var d in Diff(expected, reprojector.Project(frame.World)))
+                    mismatches[d] = mismatches.GetValueOrDefault(d) + 1;
+                foreach (var o in expected.ModeObjects) kinds[o.Kind] = kinds.GetValueOrDefault(o.Kind) + 1;
+                foreach (var e in expected.Events)
+                    if (ModeEventKey(e) is { } key) kinds[key] = kinds.GetValueOrDefault(key) + 1;
+                ticks++;
+            }
+        };
+        while (replay.Step(probe).Status == ReplayStep.Presented) { }
+        Assert.Equal(recording.Views.Count, ticks);
+        Assert.True(mismatches.Count == 0, string.Join(", ", mismatches.Take(20).Select(m => $"{m.Key} x{m.Value}")));
+        string coverage = string.Join(", ", kinds.OrderBy(k => k.Key).Select(k => $"{k.Key} x{k.Value}"));
+        Assert.True(kinds.Keys.Any(k => !k.Contains(':')) && kinds.Keys.Any(k => k.Contains(':')), coverage);
+        Console.WriteLine($"{format} {choice}: {coverage}");
+    }
+
+    /// <summary>
+    /// The View has no wall hit budget, shot spawn or director seed: the display world states them as unrecorded (0)
+    /// instead of guessing, and the presenters draw those parts with their labelled fallbacks.
+    /// </summary>
+    [Fact]
+    public void UnrecordedModeFieldsStayUnrecordedOnTheViewTrack()
+    {
+        using (var mayhem = Open(Modes[MatchFormat.MankiMayhem].Value.Bytes, ReplayTrackChoice.ViewOnly))
+        {
+            int walls = 0;
+            var probe = new Probe { OnPresent = frame =>
+            {
+                Assert.Equal(0u, frame.World.MankiMayhem!.Value.Seed);
+                foreach (var wall in frame.World.MayhemWalls) { Assert.Equal(0, wall.HitBudget); walls++; }
+            } };
+            while (mayhem.Step(probe).Status == ReplayStep.Presented) { }
+            Assert.True(walls > 0);
+        }
+        using (var exact = Open(Modes[MatchFormat.MankiMayhem].Value.Bytes, ReplayTrackChoice.Best))
+        {
+            int walls = 0;
+            var probe = new Probe { OnPresent = frame => { foreach (var wall in frame.World.MayhemWalls) { Assert.NotEqual(0, wall.HitBudget); walls++; } } };
+            while (exact.Step(probe).Status == ReplayStep.Presented) { }
+            Assert.True(walls > 0);
+        }
+        using var slopball = Open(Modes[MatchFormat.SlopballCoop].Value.Bytes, ReplayTrackChoice.ViewOnly);
+        var served = new Probe { OnPresent = frame => Assert.Equal(0f, frame.World.Slopball!.Value.Shot.Spawn.X) };
+        while (slopball.Step(served).Status == ReplayStep.Presented) { }
+    }
+
+    static ReplayContent CourseContent(CharacterCourseDefinition course)
+    {
+        var arena = LoadArena("fightguy_pier")!.Definition;
+        var old = arena.Arcade!;
+        arena.Arcade = ArcadeStageDefinition.ForCourse(old.ProfileId, old.GameplayRevision + 1, old.AllowedPackageIds, course);
+        return new(Roster.Value, _ => new ReplayArena(arena, "changed-course"), "fightguy");
+    }
+
+    [Fact]
+    public void CourseKeepsRecordedHitsAboveTodaysBudget()
+    {
+        var recording = Modes[MatchFormat.CourseCoop].Value;
+        var old = LoadArena("fightguy_pier")!.Definition.Arcade!.Course!;
+        var target = old.Targets[0];
+        var targets = old.Targets.ToArray();
+        targets[0] = new(target.Id, target.Position, target.Radius, 2);
+        var today = new CharacterCourseDefinition(targets, old.Checkpoints, old.Finish);
+        var bytes = Doctor(recording, h => h, v =>
+        {
+            foreach (var t in v.ModeObjects.OfType<ReplayCourseTarget>().Where(t => t.TargetId == target.Id)) t.HitsLeft = 4;
+        });
+        using var replay = ReplayWorld.Open(new MemoryStream(bytes), CourseContent(today), ReplayTrackChoice.ViewOnly).World!;
+        var probe = new Probe { OnPresent = f =>
+        {
+            foreach (var p in f.World.CoursePlayers) Assert.Equal(4, f.World.CourseTargetHitsLeft(p.EntityId, 0));
+        } };
+        Assert.Null(replay.Seek(replay.Range.Last, probe));
+        Assert.NotEmpty(probe.Frames);
+    }
+
+    [Theory]
+    [InlineData(MatchFormat.CourseRace, false)]
+    [InlineData(MatchFormat.CourseCoop, false)]
+    [InlineData(MatchFormat.CourseRace, true)]
+    [InlineData(MatchFormat.CourseCoop, true)]
+    public void CourseLocksFollowSemanticTargetsAcrossArenaChanges(MatchFormat format, bool remove)
+    {
+        var recording = Modes[format].Value;
+        var old = LoadArena("fightguy_pier")!.Definition.Arcade!.Course!;
+        var targets = remove ? old.Targets.Skip(1).ToArray() : old.Targets.Reverse().ToArray();
+        // Checkpoints refer to cumulative target counts, so omit them in this changed test arena.
+        var today = new CharacterCourseDefinition(targets, Array.Empty<CourseCheckpointDefinition>(), old.Finish);
+        var bytes = Doctor(recording, h => h, v =>
+        {
+            foreach (var fighter in v.Fighters)
+            {
+                var target = v.ModeObjects.OfType<ReplayCourseTarget>().Single(t =>
+                    t.PerspectiveEntityId == fighter.EntityId && t.TargetId == old.Targets[0].Id);
+                fighter.LockOn = true;
+                fighter.LockTargetId = target.EntityId;
+                fighter.HomingTargetId = target.EntityId;
+            }
+        });
+        using var replay = ReplayWorld.Open(new MemoryStream(bytes), CourseContent(today), ReplayTrackChoice.ViewOnly).World!;
+        var probe = new Probe { OnPresent = f =>
+        {
+            foreach (var fighter in f.View.Fighters)
+            {
+                var state = f.World.GetState(fighter.EntityId);
+                ulong expected = remove ? 0 : f.World.CourseTargetEntityId(fighter.EntityId, targets.Length - 1);
+                Assert.Equal(!remove, state.LockOn);
+                Assert.Equal(expected, state.TargetEntityId);
+                Assert.Equal(expected, state.HomingDashTargetId);
+                if (!remove) Assert.NotEqual(fighter.LockTargetId, state.TargetEntityId);
+            }
+        } };
+        Assert.Null(replay.Seek(replay.Range.First + 10, probe));
+        Assert.NotEmpty(probe.Frames);
+    }
+
+    /// <summary>
+    /// Course targets are today's arena layout matched by recorded ID, never by position in the file: reordered records
+    /// decode the same, a target the recording lacks keeps all its hits, and events naming an ID today's arena lacks are
+    /// left out rather than pinned on another target.
+    /// </summary>
+    [Fact]
+    public void CourseTargetsMatchByRecordedIdNotByOrder()
+    {
+        var recording = Modes[MatchFormat.CourseCoop].Value;
+        var arena = LoadArena(ArenaFor(MatchFormat.CourseCoop))!.Definition.Arcade!.Course!;
+        int renamed = Enumerable.Range(0, arena.Targets.Count).First(i => recording.Views.Any(v => v.ModeObjects
+            .OfType<ReplayCourseTarget>().Any(t => t.TargetId == arena.Targets[i].Id && t.HitsLeft < arena.Targets[i].Hits)));
+        string id = arena.Targets[renamed].Id;
+        int dropped = 0;
+        var bytes = Doctor(recording, h => h, v =>
+        {
+            var objects = v.ModeObjects.ToList();
+            foreach (var t in objects.OfType<ReplayCourseTarget>()) if (t.TargetId == id) t.TargetId = "removed-since";
+            int first = objects.FindIndex(o => o is ReplayCourseTarget);
+            var targets = objects.OfType<ReplayCourseTarget>().Reverse().Cast<ReplayModeObject>().ToList();
+            objects.RemoveAll(o => o is ReplayCourseTarget);
+            objects.InsertRange(first, targets);
+            v.ModeObjects = objects;
+            foreach (var e in v.Events.OfType<ReplayCourseEvent>()) if (e.ObjectId == id) { e.ObjectId = "removed-since"; dropped++; }
+        });
+        Assert.True(dropped > 0);
+        using var replay = Open(bytes, ReplayTrackChoice.ViewOnly);
+        int shown = 0, compared = 0;
+        var probe = new Probe { OnPresent = frame =>
+        {
+            var original = recording.Views[(int)(frame.View.Tick - replay.Range.First)];
+            foreach (var player in frame.World.CoursePlayers)
+                for (int i = 0; i < arena.Targets.Count; i++)
+                {
+                    int hits = frame.World.CourseTargetHitsLeft(player.EntityId, i);
+                    if (i == renamed) { Assert.Equal(arena.Targets[i].Hits, hits); continue; }
+                    Assert.Equal(original.ModeObjects.OfType<ReplayCourseTarget>()
+                        .Single(t => t.PerspectiveEntityId == player.EntityId && t.TargetId == arena.Targets[i].Id).HitsLeft, hits);
+                    compared++;
+                }
+            foreach (var e in frame.World.LastTickOnlineCourseEvents)
+            {
+                Assert.NotEqual(renamed, e.Event.Kind is CharacterCourseEventKind.TargetBroken or CharacterCourseEventKind.TargetHit ? e.Event.Index : -1);
+                shown++;
+            }
+        } };
+        while (replay.Step(probe).Status == ReplayStep.Presented) { }
+        int recorded = recording.Views.Sum(v => v.Events.OfType<ReplayCourseEvent>().Count());
+        Assert.Equal(recorded - dropped, shown);
+        Assert.True(compared > 0);
+    }
+
+    static string? ModeEventKey(ReplayEvent e) => e switch
+    {
+        ReplaySlopballEvent s => "slopball:" + s.EventId,
+        ReplayCourseEvent c => "course:" + c.EventId,
+        ReplayMayhemEvent m => "mayhem:" + m.EventId,
+        _ => null,
+    };
 
     [Fact]
     public void EveryReleasedGoldenSeeksAndStepsEveryTickThroughTheDisplayWorld()

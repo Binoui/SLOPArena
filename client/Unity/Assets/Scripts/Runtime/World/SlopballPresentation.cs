@@ -66,6 +66,7 @@ namespace SlopArena.Client.World
         private readonly float[] _surfaceReady = new float[4];
         private readonly float _radius, _floorY, _netZ, _netHalf, _netTop;
         private readonly float _senderHeight;
+        private readonly Vector3 _senderHome;
         private readonly Vector3 _senderScale;
         private bool _senderPlaced;
         private SlopballServe _nextServe;
@@ -81,6 +82,12 @@ namespace SlopArena.Client.World
 
         /// <summary>The saved best before this attempt; SlopballMatch refreshes it after banking.</summary>
         public ulong PersonalBest { get; set; }
+
+        /// <summary>
+        /// A Replay on its View track does not record the shot's spawn, so the sender goes where the recorded ball is
+        /// served and waits at home until the first serve. Live play and the Exact track follow the shot's spawn.
+        /// </summary>
+        public bool SenderFollowsBall { get; set; }
 
         /// <summary>For verification commands: loaded clips, sounds played this attempt, the ball's face and live effects.</summary>
         public object Diagnostics
@@ -140,6 +147,7 @@ namespace SlopArena.Client.World
             if (_sender != null)
             {
                 _senderHeight = _sender.position.y;
+                _senderHome = _sender.position;
                 _senderDressing = _sender.Find("Club Sender");
                 _senderScale = _senderDressing != null ? _senderDressing.localScale : Vector3.one;
                 _lampMaterial = new Material(Shader.Find("Universal Render Pipeline/Unlit"));
@@ -198,8 +206,10 @@ namespace SlopArena.Client.World
         {
             if (simulation.ArcadeBall is not ArcadeBallState ball) return;
             var state = simulation.Slopball ?? default;
-            _senderTarget = new Vector3(state.Shot.Spawn.X, _senderHeight, state.Shot.Spawn.Z);
-            if (!_senderPlaced && _sender != null) { _sender.position = _senderTarget; _senderPlaced = true; }
+            if (!SenderFollowsBall) AimSender(state.Shot.Spawn);
+            else
+                foreach (var e in events)
+                    if (e.Kind is SlopballEventKind.Served or SlopballEventKind.ServeReady) AimSender(ball.Position);
 
             // A hit ends the ball's path at its contact time: later contacts in that tick never happened.
             _ballVelocity = Position(ball.Velocity);
@@ -224,6 +234,18 @@ namespace SlopArena.Client.World
             }
             if (simulation.Slopball.HasValue) Telegraph(state);
             _combo = state.Returns;
+        }
+
+        public void RestoreSender(ArcadePoint at)
+        {
+            AimSender(at);
+            if (_sender != null) _sender.position = _senderTarget;
+        }
+
+        private void AimSender(ArcadePoint at)
+        {
+            _senderTarget = new Vector3(at.X, _senderHeight, at.Z);
+            if ((!_senderPlaced || SenderFollowsBall) && _sender != null) { _sender.position = _senderTarget; _senderPlaced = true; }
         }
 
         private void OnServe(in ArcadeBallState ball)
@@ -522,12 +544,12 @@ namespace SlopArena.Client.World
 
         private void Queue(AudioClip clip, float delay, float volume, float pitch = 1f)
         {
-            if (clip != null) _queued.Add((Time.time + delay, clip, volume, pitch));
+            if (clip != null && !PresentationOutput.Silent) _queued.Add((Time.time + delay, clip, volume, pitch));
         }
 
         private void Play(AudioClip clip, float volume, float pitch = 1f)
         {
-            if (clip == null) return;
+            if (clip == null || !PresentationOutput.TryPlay()) return;
             AudioSource voice = null;
             foreach (var candidate in _voices) if (!candidate.isPlaying) { voice = candidate; break; }
             if (voice == null)
@@ -539,6 +561,28 @@ namespace SlopArena.Client.World
             voice.Play();
             _played.TryGetValue(clip.name, out int count);
             _played[clip.name] = count + 1;
+        }
+
+        /// <summary>A Replay seek: no ball, effect, queued sound, sender light or trick count from before it.</summary>
+        public void Reset()
+        {
+            _queued.Clear();
+            foreach (var effect in _effects)
+                if (effect != null) { effect.SetActive(false); Object.Destroy(effect); }
+            _effects.Clear();
+            foreach (var voice in _voices) voice.Stop();
+            _ball.Hide();
+            _ball.SetTrailColor(Heat[0]);
+            _marker.gameObject.SetActive(false);
+            if (_dropLine != null) _dropLine.enabled = false;
+            Array.Clear(_surfaceReady, 0, _surfaceReady.Length);
+            _senderPlaced = false;
+            _senderTarget = _senderHome;
+            if (_sender != null) _sender.position = _senderHome;
+            _hits = 0; _bankSince = _skySince = _netSince = false;
+            _beat = 0; _lampFlash = _recoil = _recoilSpeed = 0f;
+            _combo = 0; _newBestShown = false;
+            ShowLamps(0, 0f);
         }
 
         public void Dispose()

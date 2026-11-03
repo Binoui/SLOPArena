@@ -1,6 +1,7 @@
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Text;
 using System.IO;
 using System.Net;
 using System.Net.Sockets;
@@ -955,7 +956,8 @@ namespace SlopArena.Server
                     var roster = _slots.OrderBy(s => s.EntityId).Select(s => new ReplayParticipant(s.EntityId,
                         "steam", s.SteamId.ToString(System.Globalization.CultureInfo.InvariantCulture), s.Content.Identity,
                         s.Form == 0 ? "base" : "alternate", CampId(_replayRoster!.Single(p => (ulong)p.EntityId == s.EntityId).Camp),
-                        _replayRoster!.Single(p => (ulong)p.EntityId == s.EntityId).Colour.ToString(System.Globalization.CultureInfo.InvariantCulture))).ToArray();
+                        _replayRoster!.Single(p => (ulong)p.EntityId == s.EntityId).Colour.ToString(System.Globalization.CultureInfo.InvariantCulture),
+                        SanitizeReplayDisplayName(_replayRoster!.Single(p => (ulong)p.EntityId == s.EntityId).DisplayName))).ToArray();
                     var header = new ReplayHeader(_matchId, _arena.Name, _replayRules!, packet.Tick, roster,
                         ReplayBuildIdentity.Current(Environment.GetEnvironmentVariable("SLOPARENA_RELEASE_ID") ??
                             typeof(MatchInstance).Assembly.GetName().Version?.ToString() ?? "unknown",
@@ -970,6 +972,19 @@ namespace SlopArena.Server
                 _recording?.Complete(new(ReplayEndReason.Cancelled, "capture-failed: " + e.Message, null));
                 Diagnostics.Log(_serverTick, "Replay failed: " + e.Message, "error");
             }
+        }
+        private static string SanitizeReplayDisplayName(string? name)
+        {
+            if (name == null) return "";
+            var result = new System.Text.StringBuilder();
+            int scalars = 0;
+            foreach (var rune in name.EnumerateRunes())
+            {
+                if (System.Text.Rune.IsControl(rune)) continue;
+                if (scalars++ == 24) break;
+                result.Append(rune.ToString());
+            }
+            return result.ToString();
         }
         private static string CampId(SlopballCamp camp) => camp switch
         { SlopballCamp.Teal => "teal", SlopballCamp.Clay => "clay", _ => "" };

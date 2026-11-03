@@ -163,6 +163,17 @@ namespace SlopArena.Shared.Replays
             return duration;
         }
 
+        /// <summary>Recorded observations through a tick, without moving the playback cursor or restoring the world.</summary>
+        public IEnumerable<ReplayViewTick> ReadViews(uint through)
+        {
+            for (uint tick = Range.First; tick <= through && tick <= Range.Last; tick++)
+            {
+                var read = reader.ReadView(tick);
+                if (read.Failure != null) throw new InvalidDataException(read.Failure.ToString());
+                yield return read.Tick!;
+            }
+        }
+
         public uint? CurrentTick => player.CurrentTick;
 
         public ReplayFailure? Seek(uint tick, IReplayPresenter presenter)
@@ -209,8 +220,8 @@ namespace SlopArena.Shared.Replays
                 {
                     // Decoding builds every value before the display world changes, so a failure leaves the last tick shown.
                     if (display.ExactSimulation == null)
-                        owner.viewShell!.ApplySnapshot(ReplayViewDecoder.Prepare(owner.viewShell, display.View, owner.cast));
-                    owner.World.ApplyTickOutputs(ReplayViewDecoder.Outputs(display.View, owner.cast));
+                        owner.viewShell!.ApplySnapshot(ReplayViewDecoder.Prepare(owner.viewShell, display.View, owner.cast, owner.Arena));
+                    owner.World.ApplyTickOutputs(ReplayViewDecoder.Outputs(display.View, owner.cast, owner.Arena));
                 }
                 catch (Exception e) when (ReplayStorage.ParseFailure(e) || e is KeyNotFoundException or IndexOutOfRangeException)
                 {

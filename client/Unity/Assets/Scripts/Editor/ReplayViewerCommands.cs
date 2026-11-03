@@ -28,16 +28,26 @@ namespace SlopArena.EditorTools
             MainThreadRequired = true, Tags = new[] { "replays" })]
         public static object BuildScene() => new { success = true, scene = ReplaySceneBuilder.Build() };
 
-        [CliCommand("sloparena.replays.record-bots", "Record a same-build CPU stock fight as a .slopreplay with this Editor's content, so it plays Exact here.",
+        [CliCommand("sloparena.replays.record-bots", "Record a same-build CPU Match (stock or an online mode) as a .slopreplay with this Editor's content, so it plays Exact here.",
             MainThreadRequired = true, Tags = new[] { "replays", "testing" })]
         public static object RecordBots(
             [CliArg("output", "Repository-relative or absolute output path ending in .slopreplay.", Required = true)] string output,
             [CliArg("fighters", "Comma-separated package IDs, 2 to 4; append :alternate to start in the alternate form.")] string fighters = "fightguy,nyx:alternate",
-            [CliArg("arena", "Baked arena name.")] string arena = "slop_pit",
+            [CliArg("arena", "Baked arena name; empty picks the format's usual arena.")] string arena = "",
             [CliArg("ticks", "Recorded ticks (60 per second).")] int ticks = 1800,
-            [CliArg("seed", "Bot random seed.")] int seed = 7)
+            [CliArg("seed", "Bot random seed.")] int seed = 7,
+            [CliArg("match-format", "stock, slopball-coop, slopball-versus, course-race, course-coop, course-scramble or manki-mayhem.")] string format = "stock")
         {
             if (!output.EndsWith(".slopreplay", StringComparison.Ordinal)) throw new ArgumentException("output must end with .slopreplay");
+            if (!MatchFormats.TryParseWire(format, out var matchFormat)) throw new ArgumentException($"Unknown format '{format}'.");
+            if (arena.Length == 0)
+                arena = matchFormat switch
+                {
+                    MatchFormat.Stock => "slop_pit",
+                    MatchFormat.SlopballCoop or MatchFormat.SlopballVersus => "slopball",
+                    MatchFormat.MankiMayhem => "manki_mayhem",
+                    _ => "fightguy_pier",
+                };
             string path = Path.GetFullPath(Path.IsPathRooted(output) ? output : Path.Combine(RepositoryRoot, output));
             if (!ClientSession.TryBuildLocalMatchCatalog(out var catalog, out var failure) || catalog == null)
                 throw new InvalidOperationException(failure);
@@ -47,18 +57,24 @@ namespace SlopArena.EditorTools
             var picks = fighters.Split(',').Select(f => f.Trim().Split(':')).ToArray();
             if (picks.Length is < 2 or > 4) throw new ArgumentException("fighters must name 2 to 4 packages.");
             var entries = picks.Select(p => catalog.ResolvePackage(p[0]) ?? throw new ArgumentException($"No package '{p[0]}'.")).ToArray();
+            if (!matchFormat.Admits(definition) && !(matchFormat == MatchFormat.CourseScramble && definition.Arcade?.Course != null))
+                throw new ArgumentException($"Arena '{arena}' cannot host {format}.");
+            var camps = entries.Select((_, i) => matchFormat == MatchFormat.SlopballVersus ? (i % 2 == 0 ? SlopballCamp.Teal : SlopballCamp.Clay) : SlopballCamp.None).ToArray();
             var roster = entries.Select((e, i) => new ReplayParticipant((ulong)i + 1, "cpu", i.ToString(CultureInfo.InvariantCulture), e.Identity,
-                picks[i].Length > 1 && picks[i][1] == "alternate" ? "alternate" : "base", "", i.ToString(CultureInfo.InvariantCulture))).ToArray();
+                picks[i].Length > 1 && picks[i][1] == "alternate" ? "alternate" : "base", camps[i].ToWire(), i.ToString(CultureInfo.InvariantCulture))).ToArray();
             // The GameHost's content hash: the whole roster handle map with the Match arena (MultiMatchOrchestrator).
             var records = catalog.Entries.Where(e => e.LegacySelector.HasValue)
                 .Select(e => new MatchContentHandleRecord(e.Handle, e.LegacySelector!.Value, e.Identity, e.DisplayName)).ToList();
             string hash = SteamMatchDescriptor.HashContent(new MatchContentHandleMap(MatchContentHandleMap.CurrentSchemaVersion, records, identity));
-            var header = new ReplayHeader("editor-bots-" + seed, arena, new ReplayRules("stock", "off", 4, false), 1, roster,
+            var header = new ReplayHeader("editor-bots-" + seed, arena, new ReplayRules(format, "off", 4, false), 1, roster,
                 ReplayBuildIdentity.Current("editor", hash), identity.Digest);
-            var sim = new ServerSimulation(definition, MatchFormat.Stock.CreateRule(4, FriendlyFireMode.Off));
+            var sim = new ServerSimulation(definition, matchFormat.CreateRule(4, FriendlyFireMode.Off,
+                roster.ToDictionary(p => p.EntityId, p => camps[(int)p.EntityId - 1])));
             for (int i = 0; i < entries.Length; i++)
             {
-                var spawn = definition.SpawnPoints[i % definition.SpawnPoints.Length];
+                // The GameHost's starts (MatchInstance.PickSpawn): stock uses spawn points, modes their own layout.
+                var spawn = matchFormat == MatchFormat.Stock ? definition.SpawnPoints[i % definition.SpawnPoints.Length]
+                    : matchFormat.StartFor(definition, i, entries.Length, camps);
                 var state = new CharacterState
                 {
                     EntityId = (ulong)i + 1, PX = spawn.X, PY = spawn.Y, PZ = spawn.Z, FacingYaw = spawn.Yaw, IsGrounded = true,
@@ -67,12 +83,16 @@ namespace SlopArena.EditorTools
                 state.Form.Active = (byte)(roster[i].FormId == "alternate" ? 1 : 0);
                 sim.RegisterEntity(state.EntityId, entries[i].Definition, state, entries[i].BakedAnimation);
             }
+            if (matchFormat == MatchFormat.SlopballCoop) sim.BeginSlopballRun((uint)seed);
+            if (matchFormat == MatchFormat.SlopballVersus) sim.BeginVersusSlopball();
+            if (matchFormat.IsCourse()) sim.BeginOnlineCourse();
+            if (matchFormat == MatchFormat.MankiMayhem) sim.BeginMankiMayhem((uint)seed);
             var capture = new ReplayCapture(header, catalog, definition);
             var policy = new HeuristicBotPolicy();
             var rng = new System.Random(seed);
             var memories = entries.Select(_ => new BotMemory { Difficulty = CpuDifficulty.Normal }).ToArray();
             var inputs = new Dictionary<ulong, InputState>();
-            int perching = 0, hits = 0;
+            int perching = 0, hits = 0, modeEvents = 0;
             Directory.CreateDirectory(Path.GetDirectoryName(path)!);
             using (var stream = File.Create(path))
             using (var writer = new ReplayWriter(stream, header))
@@ -85,20 +105,24 @@ namespace SlopArena.EditorTools
                         for (int j = 0; j < entries.Length; j++)
                             if (j != i) policy.ObserveOpponent(memories[i], sim.GetState((ulong)j + 1), sim.GetDefinition((ulong)j + 1), entries[j].BakedAnimation, sim.GetActiveMove((ulong)j + 1)?.Slot);
                         memories[i].ChooseOpponent(sim.GetState(id));
-                        inputs[id] = policy.Decide(sim.GetState(id), sim.GetDefinition(id), rng, memories[i], definition, entries[i].BakedAnimation, activeMove: sim.GetActiveMove(id)?.Slot);
+                        inputs[id] = policy.Decide(sim.GetState(id), sim.GetDefinition(id), rng, memories[i], definition, entries[i].BakedAnimation, activeMove: sim.GetActiveMove(id)?.Slot,
+                            mayhemThreats: matchFormat == MatchFormat.MankiMayhem ? new MayhemThreats(sim) : null);
                     }
                     sim.Tick(inputs);
                     var frame = new WorldFramePacket(MatchState.Playing, sim.CaptureSnapshot(), Array.Empty<RelayedInput>(),
-                        sim.GetPresentationEvents(true).Where(e => WorldFramePacket.CanCarry(e)).ToArray(), sim.LastTickHits.ToArray());
+                        sim.GetPresentationEvents(true).Where(e => WorldFramePacket.CanCarry(e)).ToArray(), sim.LastTickHits.ToArray(),
+                        sim.LastTickSlopballEvents.Select(e => new SlopballTickEvent(sim.CurrentTick, e)).ToArray(),
+                        sim.LastTickOnlineCourseEvents.ToArray(), sim.LastTickMayhemEvents.ToArray());
                     var captured = capture.Capture(sim, frame);
                     if (captured.Status != ReplayCaptureStatus.Accepted) throw new InvalidOperationException(captured.Detail);
                     if (writer.Append(captured.Capture!) != ReplayAppend.BufferedOrCommitted) throw new InvalidOperationException("The Replay writer stopped.");
                     perching += captured.Capture!.View.Shapes.Count(s => s.VisualKindId == "perching");
                     hits += captured.Capture.View.Hits.Count;
+                    modeEvents += captured.Capture.View.Events.Count(e => e is not ReplayPresentationEvent);
                 }
                 writer.Complete(new ReplayConclusion(ReplayEndReason.Cancelled, "editor bot fixture", null));
             }
-            return new { success = true, path, ticks, fighters = roster.Select(r => r.Package.PackageId + ":" + r.FormId).ToArray(), perchingShapeTicks = perching, hits };
+            return new { success = true, path, format, arena, ticks, fighters = roster.Select(r => r.Package.PackageId + ":" + r.FormId).ToArray(), perchingShapeTicks = perching, hits, modeEvents };
         }
 
         [CliCommand("sloparena.replays.directory-selftest", "Check the Replay folder rule against tools/tests/replay_directory_vectors.json, the vectors replay_pull.py also uses.",
@@ -303,6 +327,14 @@ namespace SlopArena.EditorTools
             var seekMs = new List<double>();
             var failures = new List<object>();
             int warmupPlayed = 0, warmupSuppressed = 0, nextTickSounds = 0;
+            // Exercise every court-owned clock even when a CPU fixture never returns a ball.
+            const BindingFlags fields = BindingFlags.Instance | BindingFlags.NonPublic;
+            var modes = typeof(ReplayMatch).GetField("_modes", fields)?.GetValue(match);
+            var slopball = modes?.GetType().GetField("_slopball", fields)?.GetValue(modes);
+            var court = slopball?.GetType().GetField("_court", fields)?.GetValue(slopball) as SlopballCourtShow;
+            var senderHome = slopball == null ? (Vector3?)null
+                : (Vector3?)slopball.GetType().GetField("_launcherHome", fields)?.GetValue(slopball);
+            int courtStressChecks = 0;
             var watch = new System.Diagnostics.Stopwatch();
             bool Timed(uint tick)
             {
@@ -328,6 +360,14 @@ namespace SlopArena.EditorTools
                 var fresh = SeekB(b);
                 if (!Timed(a)) throw new InvalidOperationException($"Seek to {a} failed.");
                 for (int i = 0; i < 60; i++) match.StepForward();
+                if (court != null)
+                {
+                    court.Present(987);
+                    court.SetHeat(4);
+                    court.Returned();
+                    court.Tick(.07f);
+                    courtStressChecks++;
+                }
                 var after = SeekB(b);
                 warmupPlayed += fresh.Played + after.Played;
                 warmupSuppressed += fresh.Suppressed + after.Suppressed;
@@ -338,11 +378,39 @@ namespace SlopArena.EditorTools
                     failures.Add(new { a, b, onlyFresh = onlyFresh.Take(8).ToArray(), onlyAfter = onlyAfter.Take(8).ToArray(),
                         seekSounds = new[] { fresh.Played, after.Played }, nextTickSounds = new[] { fresh.Next, after.Next }, censusLines = fresh.Census.Count });
             }
+            // Compare continuous playback with a direct seek beyond the transient warmup after every serve.
+            var rallyFailures = new List<object>();
+            var serves = replay.ReadViews(range.Last).Where(v => v.Events.OfType<ReplaySlopballEvent>()
+                .Any(e => e.EventId == "served")).Select(v => v.Tick).ToArray();
+            int rallyChecks = 0, offHomeRallyChecks = 0;
+            foreach (uint serve in serves)
+            {
+                uint target = serve + 45;
+                if (target > range.Last || serves.Any(t => t > serve && t <= target)) continue;
+                match.Seek(serve);
+                for (uint t = serve; t < target; t++) match.StepForward();
+                var continuous = match.Census().Where(x => x.StartsWith("sender ")).ToArray();
+                match.Seek(range.First);
+                match.Seek(target);
+                var direct = match.Census().Where(x => x.StartsWith("sender ")).ToArray();
+                if (!continuous.SequenceEqual(direct)) rallyFailures.Add(new { serve, target, continuous, direct });
+                var observation = replay.ReadViews(serve).Last().ModeObjects.OfType<ReplayBall>().FirstOrDefault();
+                if (replay.Track == ReplayTrack.View && observation != null && direct.Length > 0)
+                {
+                    var sender = UnityEngine.Object.FindFirstObjectByType<ReplayMatch>()
+                        .GetComponentsInChildren<Transform>(true).FirstOrDefault(t => t.name == "Ball Sender");
+                    if (sender != null && (Mathf.Abs(sender.position.x - observation.Position.X) > .001f
+                        || Mathf.Abs(sender.position.z - observation.Position.Z) > .001f))
+                        rallyFailures.Add(new { serve, target, reason = "sender differs from recorded serve position" });
+                }
+                if (observation != null && senderHome is { } home && (Mathf.Abs(observation.Position.X - home.x) > .01f || Mathf.Abs(observation.Position.Z - home.z) > .01f)) offHomeRallyChecks++;
+                rallyChecks++;
+            }
             var sorted = seekMs.OrderBy(x => x).ToList();
             double Percentile(double p) => sorted[Math.Min(sorted.Count - 1, (int)Math.Ceiling(p * sorted.Count) - 1)];
             return new
             {
-                success = failures.Count == 0, pairs = 20, failures = failures.Take(6).ToArray(), failureCount = failures.Count,
+                success = failures.Count == 0 && rallyFailures.Count == 0, rallyChecks, offHomeRallyChecks, rallyFailures, courtStressChecks, pairs = 20, failures = failures.Take(6).ToArray(), failureCount = failures.Count,
                 warmupSoundsPlayed = warmupPlayed, warmupSoundsSuppressed = warmupSuppressed, nextTickSoundsAfterHistory = nextTickSounds,
                 seeks = sorted.Count, seekMedianMs = Math.Round(Percentile(0.5), 2), seekP95Ms = Math.Round(Percentile(0.95), 2),
                 seekMaxMs = Math.Round(sorted[sorted.Count - 1], 2),

@@ -108,7 +108,7 @@ internal static class ReplayExact
         }
         return null;
     }
-    static IMatchRule Rule(ReplayHeader h, ArenaDefinition arena)
+    internal static IMatchRule Rule(ReplayHeader h, ArenaDefinition arena)
     {
         if (!MatchFormats.TryParseWire(h.Rules.FormatId, out var format)) throw new ArgumentException("Format");
         // MatchFormats.Admits currently omits Scramble, whose arena contract is the course contract.
