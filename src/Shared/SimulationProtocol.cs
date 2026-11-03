@@ -114,8 +114,9 @@ namespace SlopArena.Shared
         //   Snapshot layout unchanged.
         // 35: the 0.2.0-playtest.44 release: the Shared Replay file and GameHost recording (ADR-0060). The Replay
         //   Exact Track shares WorldFramePacket's body encoder; wire bytes, simulation and World Snapshot layout unchanged.
-        // 36: the 0.2.0-playtest.46 release: Replay participant display names in additive header tag 8 (View v2) and an
-        //   optional match-start displayName. Simulation, wire and World Snapshot layout unchanged.
+        // 36: the 0.2.0-playtest.47 release (the playtest.46 build never shipped): Replay participant display
+        //   names in additive header tag 8 (View v2) and an optional match-start displayName. Simulation, wire
+        //   and World Snapshot layout unchanged.
         //
         // Bump once per deploy, never per change: release prepare refuses a release whose src/Shared
         // changed since the previous release tag while this value (and the Master's Protocol) did not.
