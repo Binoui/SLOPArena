@@ -218,9 +218,11 @@ def cmd_record(args) -> None:
         if args.cameras:
             plan = read(Path(args.cameras))
         else:
-            # Never let this build copy the Shared plugin into the open Editor (that needs a lease).
-            result = subprocess.run(['dotnet', 'run', '--project', 'tools/ComboFinder', '-c', 'Release',
-                                     '-p:SkipUnityPluginCopy=true', '--',
+            # Build quietly first: `dotnet run` prints build output into the stdout this reads as JSON. Never let
+            # the build copy the Shared plugin into the open Editor (that needs a lease).
+            subprocess.run(['dotnet', 'build', 'tools/ComboFinder', '-c', 'Release', '-p:SkipUnityPluginCopy=true',
+                            '-nologo', '-v', 'q'], cwd=ROOT, capture_output=True, check=True)
+            result = subprocess.run(['dotnet', 'tools/ComboFinder/bin/Release/net8.0/ComboFinder.dll',
                                      'cameras', str(combo_path), '--orientation', orientation], cwd=ROOT,
                                     capture_output=True, text=True, check=True)
             plan = json.loads(result.stdout)
