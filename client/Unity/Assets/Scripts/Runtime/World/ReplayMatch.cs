@@ -39,8 +39,6 @@ namespace SlopArena.Client.World
         private ulong _focus;
         private uint? _pendingSeek;
         private bool _pausedForMenu;
-        private bool _orbiting;
-        private bool _cameraModeStale = true;
         private CinemachineBrain? _brain;
         private string? _banner;
         private readonly ReplayEffects _effects = new();
@@ -211,10 +209,8 @@ namespace SlopArena.Client.World
             {
                 _pausedForMenu = IsPaused;
                 if (IsPaused && _transport.State == ReplayTransportState.Playing) SetTransport(_transport.With(ReplayTransportState.Paused));
-                if (!IsPaused) _cameraModeStale = true;
             }
             if (IsPaused) return;
-            UpdateCameraMode();
             var keyboard = Keyboard.current;
             var pad = Gamepad.current;
             if (keyboard?.spaceKey.wasPressedThisFrame == true || pad?.buttonSouth.wasPressedThisFrame == true) TogglePlay();
@@ -230,16 +226,9 @@ namespace SlopArena.Client.World
             if (keyboard?.hKey.wasPressedThisFrame == true) _overlay?.ToggleHidden();
         }
 
-        /// <summary>Orbit and zoom while the right mouse button is held or a controller is in use; else the cursor is free for the bar.</summary>
-        private void UpdateCameraMode()
-        {
-            if (_cameraMount == null) return;
-            bool orbit = Mouse.current?.rightButton.isPressed == true || HumanInputActions.LastUsedGamepad;
-            if (orbit == _orbiting && !_cameraModeStale) return;
-            _orbiting = orbit;
-            _cameraModeStale = false;
-            _cameraMount.SetMode(orbit ? CameraMode.Normal : CameraMode.FreeCursor);
-        }
+        /// <summary>The viewer owns cursor admission even when focus, seek or the menu resets the camera.</summary>
+        public CameraMode ViewerCameraMode => !IsPaused && Mouse.current?.rightButton.isPressed == true
+            ? CameraMode.Normal : CameraMode.FreeCursor;
 
         protected override void LateUpdate()
         {

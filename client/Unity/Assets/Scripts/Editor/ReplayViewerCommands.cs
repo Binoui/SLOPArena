@@ -18,6 +18,8 @@ using Newtonsoft.Json.Linq;
 using Unity.Pipeline.Commands;
 using UnityEditor;
 using UnityEngine;
+using UnityEngine.UIElements;
+using Cursor = UnityEngine.Cursor;
 
 namespace SlopArena.EditorTools
 {
@@ -228,17 +230,18 @@ namespace SlopArena.EditorTools
         [CliCommand("sloparena.replays.check", "Check the open Replay viewer. play: every tick at 2x, ten step-backs and step-forwards, every fighter focused, no console errors.",
             MainThreadRequired = true, Tags = new[] { "replays", "testing" })]
         public static async Task<object> Check(
-            [CliArg("script", "play; pose: a sword move's weapon tip follows the recorded pose clock; orbit: the camera orbits and zooms while paused; seek-hygiene: what Seek(B) shows does not depend on what came before.", Required = true)] string script,
+            [CliArg("script", "cursor: viewer cursor, mouse transport and controller orbit; play; pose: a sword move's weapon tip follows the recorded pose clock; orbit: the camera orbits and zooms while paused; seek-hygiene: what Seek(B) shows does not depend on what came before.", Required = true)] string script,
             [CliArg("screenshot-tick", "Tick offset from the first tick to leave the viewer paused on afterwards.")] int screenshotTick = 120)
         {
             RequirePlayMode();
             var match = ActiveReplay() ?? throw new InvalidOperationException("Open a Replay first (sloparena.replays.open).");
+            if (script == "cursor") return await CursorCheck(match);
             if (script == "resume") return await ResumeCheck(match);
             if (script == "scrub-clock") return ScrubClockCheck(match);
             if (script == "pose") return PoseCheck(match);
             if (script == "orbit") return await OrbitCheck(match);
             if (script == "seek-hygiene") return SeekHygiene(match);
-            if (script != "play") throw new ArgumentException("script must be play, pose, orbit, seek-hygiene, resume or scrub-clock.");
+            if (script != "play") throw new ArgumentException("script must be play, pose, orbit, seek-hygiene, resume, scrub-clock or cursor.");
             var errors = new List<string>();
             void Log(string message, string stack, LogType type)
             {
@@ -415,6 +418,132 @@ namespace SlopArena.EditorTools
                 seeks = sorted.Count, seekMedianMs = Math.Round(Percentile(0.5), 2), seekP95Ms = Math.Round(Percentile(0.95), 2),
                 seekMaxMs = Math.Round(sorted[sorted.Count - 1], 2),
             };
+        }
+
+        private static async Task<object> CursorCheck(ReplayMatch match)
+        {
+            var mount = UnityEngine.Object.FindFirstObjectByType<SlopArena.Client.Camera.CameraMount>();
+            var menu = MatchPauseMenu.Active;
+            var results = new List<object>();
+            bool success = true;
+            async Task Free(string step)
+            {
+                await Task.Delay(100);
+                bool pass = mount.Mode == SlopArena.Client.Camera.CameraMode.FreeCursor && Cursor.lockState == CursorLockMode.None;
+                success &= pass;
+                results.Add(new { step, pass, mode = mount.Mode.ToString(), cursor = Cursor.lockState.ToString() });
+            }
+            var mouse = UnityEngine.InputSystem.InputSystem.AddDevice<UnityEngine.InputSystem.Mouse>();
+            var pad = UnityEngine.InputSystem.InputSystem.AddDevice<UnityEngine.InputSystem.Gamepad>();
+            try
+            {
+                await Free("open");
+                var orbital = mount.GetComponent<Unity.Cinemachine.CinemachineOrbitalFollow>();
+                float stillYaw = orbital.HorizontalAxis.Value;
+                float stillRadius = orbital.RadialAxis.Value;
+                UnityEngine.InputSystem.InputSystem.QueueStateEvent(mouse, new UnityEngine.InputSystem.LowLevel.MouseState
+                    { delta = new Vector2(80, 30), scroll = new Vector2(0, 120) });
+                await Task.Delay(100);
+                bool still = Mathf.Abs(Mathf.DeltaAngle(stillYaw, orbital.HorizontalAxis.Value)) < 0.01f
+                    && Mathf.Abs(stillRadius - orbital.RadialAxis.Value) < 0.01f;
+                results.Add(new { step = "unheld-mouse-does-not-orbit-or-zoom", pass = still });
+                success &= still;
+                menu.SetPaused(true);
+                menu.SetPaused(false);
+                await Free("pause-resume");
+                match.CycleFocus(1);
+                await Free("focus");
+                match.Seek(match.Replay.Range.First + 60);
+                await Free("seek");
+                var aim = match.Replay.ReadViews(match.Replay.Range.Last)
+                    .FirstOrDefault(v => v.Fighters.Any(f => match.Replay.Cast.Any(m => m.EntityId == f.EntityId && m.Recorded.Package.PackageId == "manki")
+                        && f.SlotId is "ground.R" or "air.R" && f.MoveElapsedTicks < 40));
+                bool recordedAim = aim != null;
+                success &= recordedAim;
+                if (aim != null)
+                {
+                    match.Seek(aim.Tick);
+                    await Free("recorded-aim");
+                    match.StepForward();
+                    await Free("after-recorded-aim");
+                }
+                results.Add(new { step = "fixture-has-aim", pass = recordedAim, tick = aim?.Tick });
+                // Exercise the same lifecycle writer used when a fighter's presentation is reset.
+                mount.SetMode(SlopArena.Client.Camera.CameraMode.Normal);
+                await Free("external-mode-writer");
+                UnityEngine.InputSystem.InputSystem.QueueStateEvent(mouse, new UnityEngine.InputSystem.LowLevel.MouseState().WithButton(UnityEngine.InputSystem.LowLevel.MouseButton.Right));
+                await Task.Delay(100);
+                float heldYaw = orbital.HorizontalAxis.Value;
+                float heldRadius = orbital.RadialAxis.Value;
+                UnityEngine.InputSystem.InputSystem.QueueStateEvent(mouse,
+                    new UnityEngine.InputSystem.LowLevel.MouseState { delta = new Vector2(80, 30), scroll = new Vector2(0, 120) }
+                        .WithButton(UnityEngine.InputSystem.LowLevel.MouseButton.Right));
+                await Task.Delay(100);
+                bool moved = Mathf.Abs(Mathf.DeltaAngle(heldYaw, orbital.HorizontalAxis.Value)) > 0.1f
+                    && Mathf.Abs(heldRadius - orbital.RadialAxis.Value) > 0.01f;
+                success &= moved;
+                results.Add(new { step = "held-mouse-orbits-and-zooms", pass = moved });
+                bool held = mount.Mode == SlopArena.Client.Camera.CameraMode.Normal && Cursor.lockState == CursorLockMode.Locked;
+                success &= held;
+                results.Add(new { step = "right-held", pass = held });
+                UnityEngine.InputSystem.InputSystem.QueueStateEvent(mouse, new UnityEngine.InputSystem.LowLevel.MouseState());
+                await Free("right-released");
+                UnityEngine.InputSystem.InputSystem.QueueStateEvent(pad, new UnityEngine.InputSystem.LowLevel.GamepadState { rightStick = new Vector2(0.8f, 0) });
+                float yaw = mount.GetComponent<Unity.Cinemachine.CinemachineOrbitalFollow>().HorizontalAxis.Value;
+                await Free("gamepad-cursor");
+                float turn = Mathf.Abs(Mathf.DeltaAngle(yaw, mount.GetComponent<Unity.Cinemachine.CinemachineOrbitalFollow>().HorizontalAxis.Value));
+                success &= turn > 0.1f;
+                results.Add(new { step = "gamepad-orbit", pass = turn > 0.1f, turn });
+            }
+            finally
+            {
+                UnityEngine.InputSystem.InputSystem.RemoveDevice(mouse);
+                UnityEngine.InputSystem.InputSystem.RemoveDevice(pad);
+            }
+            await Free("devices-removed");
+            if (match.Transport.State == ReplayTransportState.Playing) match.TogglePlay();
+            var root = UnityEngine.Object.FindFirstObjectByType<HUDManager>().Document.rootVisualElement;
+            var play = root.Q<Button>("replay-play");
+            void Pointer(VisualElement target, EventType type, Vector2 position)
+            {
+                var input = new Event { type = type, button = 0, mousePosition = position };
+                if (type == EventType.MouseDown)
+                {
+                    using var e = PointerDownEvent.GetPooled(input);
+                    target.SendEvent(e);
+                }
+                else if (type == EventType.MouseUp)
+                {
+                    using var e = PointerUpEvent.GetPooled(input);
+                    target.SendEvent(e);
+                }
+                else
+                {
+                    using var e = PointerMoveEvent.GetPooled(input);
+                    target.SendEvent(e);
+                }
+            }
+            Pointer(play, EventType.MouseDown, play.worldBound.center);
+            Pointer(play, EventType.MouseUp, play.worldBound.center);
+            await Task.Delay(100);
+            bool clicked = match.Transport.State == ReplayTransportState.Playing;
+            results.Add(new { step = "pointer-play", pass = clicked });
+            success &= clicked;
+            if (clicked) match.TogglePlay();
+            var slider = root.Q<SliderInt>("replay-timeline");
+            var drag = slider.Q("unity-drag-container");
+            uint before = match.Replay.CurrentTick ?? 0;
+            var from = drag.worldBound.center;
+            var to = new Vector2(drag.worldBound.xMin + drag.worldBound.width * 0.2f, from.y);
+            Pointer(drag, EventType.MouseDown, from);
+            Pointer(drag, EventType.MouseMove, to);
+            Pointer(drag, EventType.MouseUp, to);
+            await Task.Delay(100);
+            uint after = match.Replay.CurrentTick ?? 0;
+            bool dragged = before != after && after == (uint)slider.value;
+            results.Add(new { step = "pointer-timeline", pass = dragged, before, after, slider = slider.value });
+            success &= dragged;
+            return new { success, results };
         }
 
         /// <summary>Paused (timeScale 0), orbit mode must still turn and zoom the render camera.</summary>
