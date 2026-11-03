@@ -46,14 +46,19 @@ namespace SlopArena.Client.Replays
         private readonly OnlineSlopball? _slopball;
         private ReplayWorld? _replay;
         private readonly List<(uint Tick, ReplayVector Position)> _serves = new();
+        private readonly List<(uint Tick, ulong Combo, bool Reaction)> _courtTicks = new();
 
         private ReplayModes WithHistory(ReplayWorld replay)
         {
             _replay = replay;
             foreach (var tick in replay.ReadViews(replay.Range.Last))
+            {
+                _courtTicks.Add((tick.Tick, tick.ModeObjects.OfType<ReplaySlopballRun>().FirstOrDefault()?.Returns ?? 0,
+                    tick.Events.OfType<ReplaySlopballEvent>().Any(e => e.EventId is "returned" or "point-scored")));
                 if (tick.Events.OfType<ReplaySlopballEvent>().Any(e => e.EventId is "served" or "serve-ready")
                     && tick.ModeObjects.OfType<ReplayBall>().FirstOrDefault() is { } ball)
                     _serves.Add((tick.Tick, ball.Position));
+            }
             return this;
         }
         private readonly OnlineCharacterCourse? _course;
@@ -88,7 +93,7 @@ namespace SlopArena.Client.Replays
             bool view = replay.Track == ReplayTrack.View;
             if (format.IsSlopball() && arena.Arcade?.Slopball != null)
                 return new ReplayModes(new OnlineSlopball(scene.Parent, scene.Stage, arena, scene.Hud, scene.RenderCamera, format, scene.Perspective,
-                    senderFollowsBall: view), null, null, arena.Arcade.Slopball.NetZ).WithHistory(replay);
+                    senderFollowsBall: view, replayCourt: true), null, null, arena.Arcade.Slopball.NetZ).WithHistory(replay);
             if (format.IsCourse() && arena.Arcade?.Course != null)
                 return new ReplayModes(null, new OnlineCharacterCourse(scene.Parent, arena, scene.Hud, scene.RenderCamera,
                     Roster(replay), scene.Perspective), null, null, arena.Arcade.Course);
@@ -131,6 +136,9 @@ namespace SlopArena.Client.Replays
                 _slopballEvents.Clear();
                 foreach (var e in world.LastTickSlopballEvents) _slopballEvents.Add(new SlopballTickEvent(world.CurrentTick, e));
                 _slopball.AfterUpdate(world, world.LastTickHits, _slopballEvents);
+                if (_replay?.Track == ReplayTrack.Exact && world.Slopball is { } run) _slopball.RestoreSender(run.Shot.Spawn);
+                _slopball.PresentReplayCourt(world.Slopball?.Returns ?? 0,
+                    _slopballEvents.Any(e => e.Event.Kind is SlopballEventKind.Returned or SlopballEventKind.PointScored));
                 camera?.SetCourt(_courtNetZ, ball.Active ? _slopball.BallAnchor.position : null);
                 if (state.LockOn && ball.Active && state.TargetEntityId == ball.EntityId)
                 {
@@ -187,6 +195,15 @@ namespace SlopArena.Client.Replays
         public void Reset(uint targetTick)
         {
             _slopball?.Reset();
+            if (_slopball != null && _replay != null)
+            {
+                uint first = Math.Max(_replay.Range.First, targetTick >= 30 ? targetTick - 30 : 0);
+                foreach (var tick in _courtTicks)
+                {
+                    if (tick.Tick >= first) break;
+                    _slopball.PresentReplayCourt(tick.Combo, tick.Reaction);
+                }
+            }
             if (_slopball != null && _replay?.Track == ReplayTrack.View)
             {
                 uint first = Math.Max(_replay.Range.First, targetTick >= 30 ? targetTick - 30 : 0);

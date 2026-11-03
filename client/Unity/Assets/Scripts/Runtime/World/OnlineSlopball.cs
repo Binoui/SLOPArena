@@ -27,14 +27,16 @@ namespace SlopArena.Client.World
         private readonly bool _versus;
         private readonly Func<ulong> _perspective;
         private readonly bool _senderFollowsBall;
+        private readonly bool _replayCourt;
 
         /// <param name="format">The Match format; live play reads MatchConfig.</param>
         /// <param name="perspective">Whose camp the versus panel speaks for; live play is the local fighter, a Replay the followed one.</param>
         /// <param name="senderFollowsBall">A View-track Replay without shot spawns: the sender goes where the ball is served.</param>
         public OnlineSlopball(Transform parent, Transform stage, in ArenaDefinition arena, HUDManager hud,
-            Func<UnityEngine.Camera> camera, MatchFormat? format = null, Func<ulong> perspective = null, bool senderFollowsBall = false)
+            Func<UnityEngine.Camera> camera, MatchFormat? format = null, Func<ulong> perspective = null, bool senderFollowsBall = false, bool replayCourt = false)
         {
             _senderFollowsBall = senderFollowsBall;
+            _replayCourt = replayCourt;
             _versus = (format ?? MatchConfig.Format) == MatchFormat.SlopballVersus;
             _perspective = perspective ?? (() => MatchConfig.LocalEntityId);
             var launcher = stage != null ? stage.Find("Ball Sender") : null;
@@ -100,9 +102,9 @@ namespace SlopArena.Client.World
             foreach (var item in events)
             {
                 _events.Add(item.Event);
-                if (item.Event.Kind == SlopballEventKind.Returned) _court?.Returned();
+                if (!_replayCourt && item.Event.Kind == SlopballEventKind.Returned) _court?.Returned();
                 if (item.Event.Kind == SlopballEventKind.PointScored)
-                { _court?.Returned(); _view.ShowPoint(item.Event.Camp); }
+                { if (!_replayCourt) _court?.Returned(); _view.ShowPoint(item.Event.Camp); }
             }
             _presentation?.Present(simulation, hits, simulation.LastTickArcadeBallContacts, _events);
             if (simulation.SlopballVersus is { } versus)
@@ -113,8 +115,7 @@ namespace SlopArena.Client.World
             else
             {
                 _view.Present(run, ball, 0, null);
-                _court?.Present(run.Returns);
-                _court?.SetHeat(run.Heat);
+                if (!_replayCourt) { _court?.Present(run.Returns); _court?.SetHeat(run.Heat); }
             }
         }
 
@@ -125,10 +126,19 @@ namespace SlopArena.Client.World
             if (_launcher != null) _launcher.position = new Vector3(position.X, _launcherHeight, position.Z);
         }
 
+        /// <summary>Replay court reactions advance on recorded 60 Hz ticks, including during seek reconstruction.</summary>
+        public void PresentReplayCourt(ulong combo, bool reaction)
+        {
+            if (!_replayCourt) return;
+            if (reaction) _court?.Returned();
+            if (!_versus) { _court?.Present(combo); _court?.SetHeat(SlopballDefinition.HeatOf(combo)); }
+            _court?.Tick(1f / 60f);
+        }
+
         public void Update(float deltaTime, ServerSimulation simulation, UnityEngine.Camera camera)
         {
             _view.Tick(Time.unscaledDeltaTime, camera);
-            _court?.Tick(Time.unscaledDeltaTime);
+            if (!_replayCourt) _court?.Tick(Time.unscaledDeltaTime);
             _presentation?.Update(deltaTime, simulation);
         }
 
@@ -136,6 +146,8 @@ namespace SlopArena.Client.World
         public void Reset()
         {
             _events.Clear();
+            _court?.Reset();
+            if (_versus) _court?.ClearCombo();
             if (_launcher != null) _launcher.position = _launcherHome;
             _presentation?.Reset();
             _view.Reset();

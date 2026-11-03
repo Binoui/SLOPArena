@@ -58,6 +58,26 @@ namespace SlopArena.Client.World
             var lines = _effects.Census(Fighters.Values).ToList();
             if (StageVisual != null && StageVisual.Find("Ball Sender") is { } sender)
                 lines.Add($"sender {sender.position.x:0.000},{sender.position.y:0.000},{sender.position.z:0.000}");
+            if (StageVisual != null)
+            {
+                var block = new MaterialPropertyBlock();
+                foreach (var t in StageVisual.GetComponentsInChildren<Transform>(true))
+                    if (SlopballCourtShow.CardNames.Contains(t.name) || t.name is "Flood Panels" or "Flood Beams")
+                    {
+                        var scale = t.localScale;
+                        var rotation = t.localRotation;
+                        var position = t.localPosition;
+                        var renderer = t.GetComponent<Renderer>();
+                        block.Clear();
+                        if (renderer != null) renderer.GetPropertyBlock(block);
+                        var uv = block.GetVector("_BaseMap_ST");
+                        var colour = block.GetColor("_BaseColor");
+                        lines.Add($"court {t.name} scale={scale.ToString("F5")} rotation={rotation.ToString("F5")} position={position.ToString("F5")} uv={uv.ToString("F5")} colour={colour.ToString("F5")} glow={block.GetFloat("_Glow"):F5}");
+                    }
+                foreach (var light in StageVisual.GetComponentsInChildren<Light>(true))
+                    if (light.name == SlopballCourtShow.KeyLightName)
+                        lines.Add($"court light {light.intensity:F5} {light.color.ToString("F5")}");
+            }
             return lines;
         }
 

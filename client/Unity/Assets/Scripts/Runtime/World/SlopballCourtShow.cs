@@ -74,6 +74,23 @@ namespace SlopArena.Client.World
                 key != null ? key.GetComponent<Light>() : null);
         }
 
+        /// <summary>Discard every reaction clock and restore neutral court materials, light and card transforms.</summary>
+        public void Reset()
+        {
+            _flash = 0f;
+            _lit = false;
+            _tint = _targetTint = Color.white;
+            _heatChanged = true;
+            foreach (var card in _cards)
+            {
+                card.Transform.localScale = card.Scale;
+                SetFace(card, BlankCard);
+                card.Face = card.Target = -1;
+                card.Flip = -1f;
+            }
+            Tick(0f);
+        }
+
         /// <summary>Show the live combo (capped at 999); changed cards flip over.</summary>
         public void Present(ulong combo)
         {

@@ -366,7 +366,7 @@ namespace SlopArena.EditorTools
             var rallyFailures = new List<object>();
             var serves = replay.ReadViews(range.Last).Where(v => v.Events.OfType<ReplaySlopballEvent>()
                 .Any(e => e.EventId == "served")).Select(v => v.Tick).ToArray();
-            int rallyChecks = 0;
+            int rallyChecks = 0, offHomeRallyChecks = 0;
             foreach (uint serve in serves)
             {
                 uint target = serve + 45;
@@ -378,13 +378,23 @@ namespace SlopArena.EditorTools
                 match.Seek(target);
                 var direct = match.Census().Where(x => x.StartsWith("sender ")).ToArray();
                 if (!continuous.SequenceEqual(direct)) rallyFailures.Add(new { serve, target, continuous, direct });
+                var observation = replay.ReadViews(serve).Last().ModeObjects.OfType<ReplayBall>().FirstOrDefault();
+                if (replay.Track == ReplayTrack.View && observation != null && direct.Length > 0)
+                {
+                    var sender = UnityEngine.Object.FindFirstObjectByType<ReplayMatch>()
+                        .GetComponentsInChildren<Transform>(true).FirstOrDefault(t => t.name == "Ball Sender");
+                    if (sender != null && (Mathf.Abs(sender.position.x - observation.Position.X) > .001f
+                        || Mathf.Abs(sender.position.z - observation.Position.Z) > .001f))
+                        rallyFailures.Add(new { serve, target, reason = "sender differs from recorded serve position" });
+                }
+                if (observation != null && (Mathf.Abs(observation.Position.X) > .01f || Mathf.Abs(observation.Position.Z) > .01f)) offHomeRallyChecks++;
                 rallyChecks++;
             }
             var sorted = seekMs.OrderBy(x => x).ToList();
             double Percentile(double p) => sorted[Math.Min(sorted.Count - 1, (int)Math.Ceiling(p * sorted.Count) - 1)];
             return new
             {
-                success = failures.Count == 0 && rallyFailures.Count == 0, rallyChecks, rallyFailures, pairs = 20, failures = failures.Take(6).ToArray(), failureCount = failures.Count,
+                success = failures.Count == 0 && rallyFailures.Count == 0, rallyChecks, offHomeRallyChecks, rallyFailures, pairs = 20, failures = failures.Take(6).ToArray(), failureCount = failures.Count,
                 warmupSoundsPlayed = warmupPlayed, warmupSoundsSuppressed = warmupSuppressed, nextTickSoundsAfterHistory = nextTickSounds,
                 seeks = sorted.Count, seekMedianMs = Math.Round(Percentile(0.5), 2), seekP95Ms = Math.Round(Percentile(0.95), 2),
                 seekMaxMs = Math.Round(sorted[sorted.Count - 1], 2),
