@@ -101,7 +101,7 @@ namespace SlopArena.Client.World
                 if (target.TryGetComponent<CourseBonusTarget>(out var bonus))
                     {
                     int remaining = simulation.CourseTargetHitsLeft(self, i), budget = _definition.Targets[i].Hits;
-                    if (simulation.ReplayDisplay && remaining > budget) bonus.ResetDamage();
+                    if (remaining > budget) bonus.ResetDamage();
                     else bonus.PresentDamage(budget - remaining, budget);
                 }
             }
