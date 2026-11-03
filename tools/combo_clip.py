@@ -158,10 +158,17 @@ def wire_slots() -> dict[str, int]:
     return {label: constants['Normal' + label if label.isdigit() else label] for label in '123AERF'}
 
 
-def verify(combo: dict, shot: dict, run: Path) -> None:
+def verify(combo: dict, shot: dict, run: Path, until: int | None = None) -> None:
+    """Compare a shoot with the combo; `until` checks only the hits up to that tick (an early split pass)."""
     attacker = next(f for f in combo['fighters'] if f['role'] == 'attacker')
     victim = next(f for f in combo['fighters'] if f['role'] == 'victim')
     timeline, slots = combo['timeline'], wire_slots()
+    if until is not None:
+        want = [(h['tick'], h['owner'], h['slot'], round(h['damage'], 3), h['blocked']) for h in timeline['hits'] if h['tick'] <= until]
+        got = [(h['tick'], int(h['owner']), h['slot'], round(h['damage'], 3), h['blocked']) for h in shot['hits'] if h['tick'] <= until]
+        if want != got:
+            raise ValueError(f'hits up to tick {until} differ: expected {want}, got {got}; {DIVERGED}')
+        return
     hits = [h for h in shot['hits'] if h['tick'] <= timeline['ticks'] and not h['blocked']]
     taken = sum(h['target'] == str(attacker['id']) for h in hits)
     if taken != timeline['taken']:
@@ -244,16 +251,32 @@ def cmd_record(args) -> None:
             if angle.get('victimRespawn'):
                 # Out of this angle's view, so the frames after the KO show the burst and no respawned victim.
                 next(f for f in fighters if f['id'] == victim_id)['respawn'] = angle['victimRespawn']
-            spec = {'stage': combo['stage'], 'fighters': fighters, 'cameras': [dict(angle['camera'], name=name)],
-                'capture': {'from': angle['from'], 'to': angle['to'], 'step': 1,
-                            'width': plan['width'], 'height': plan['height'], 'quality': 92}}
             if angle['to'] < combo['timeline']['ko']:
                 raise ValueError(f'{name} capture must include the KO tick for verification')
-            spec_path = folder / f'{name}.spec.json'
-            write(spec_path, spec)
-            run = folder / f'{name}-run'
-            shot = shoot(spec_path, run)
-            verify(combo, shot, run)
+            # Photo mode refuses a shoot over 1400 megapixels, so a long fight is shot in consecutive passes.
+            # Each pass replays the whole fight; earlier passes check their hits, the last checks everything.
+            per_pass = 1_400_000_000 // (plan['width'] * plan['height']) - 1
+            windows = [(start, min(angle['to'], start + per_pass - 1)) for start in range(angle['from'], angle['to'] + 1, per_pass)]
+            runs = []
+            for i, (start, end) in enumerate(windows):
+                spec = {'stage': combo['stage'], 'fighters': fighters, 'cameras': [dict(angle['camera'], name=name)],
+                        'capture': {'from': start, 'to': end, 'step': 1,
+                                    'width': plan['width'], 'height': plan['height'], 'quality': 92}}
+                suffix = '' if len(windows) == 1 else f'-{i + 1}'
+                spec_path = folder / f'{name}{suffix}.spec.json'
+                write(spec_path, spec)
+                run_i = folder / f'{name}-run{suffix}'
+                shot = shoot(spec_path, run_i)
+                verify(combo, shot, run_i, until=None if i == len(windows) - 1 else end)
+                runs.append(run_i)
+            run = runs[0]
+            for extra in runs[1:]:
+                for frame in (extra / name).glob('*.jpg'):
+                    frame.rename(run / name / frame.name)
+            if len(runs) > 1:
+                subprocess.run(['ffmpeg', '-v', 'error', '-y', *[a for r in runs for a in ('-i', str(r / 'audio.wav'))],
+                                '-filter_complex', f"concat=n={len(runs)}:v=0:a=1", str(run / 'audio-joined.wav')], check=True)
+                (run / 'audio-joined.wav').replace(run / 'audio.wav')
             frames = sorted(int(p.stem) for p in (run / name).glob('*.jpg'))
             if frames != list(range(angle['from'], angle['to'] + 1)):
                 raise ValueError(f'{name}: missing or extra captured frames')
