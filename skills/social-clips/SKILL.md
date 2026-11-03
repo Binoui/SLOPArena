@@ -113,6 +113,8 @@ The reveal rule above still applies.
    Mono and the headless .NET run can part ways on some moves (a Wibou run attack turned
    0.08° apart on 2026-11-02), and only Unity's version can be filmed. Passing combos become
    proposed ideas; the summary is the title and idea text, and the owner approves on the board.
+   A long sweep can run as a detached service, but run `check`, `propose` and `record` from the
+   agent session (`systemd-run --user --scope`): the gateway refuses callers without an agent identity.
 3. For a render run, read the idea and newest owner comment. Record with
    `python3 tools/combo_clip.py record <idea>` if
    `tmp/content/<idea>/footage/portrait/pack.json` is missing, unverified, stale, or lacks
@@ -126,6 +128,8 @@ The reveal rule above still applies.
 5. A redo means recut first. Set the idea's `edit` to a cut list, or pass
    `--cuts '[{"angle":"side","to":200},{"angle":"kill"}]'`.
    Bounds are inclusive simulation ticks. Cuts continue from the previous cut's end.
+   A cut's `"speed": 0.5` (0.5 to 1) slows it, picture and sound, for a slow-motion finisher;
+   split the angle into cuts around the hit to slow only that beat.
    Reuse the verified pack unless the note needs another camera or the content changed.
 
 Portrait is the default. Use `record --orientation portrait,landscape` for both packs,
