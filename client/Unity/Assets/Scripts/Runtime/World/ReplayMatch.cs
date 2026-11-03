@@ -53,7 +53,13 @@ namespace SlopArena.Client.World
         public ReplayTransport Transport => _transport;
         public ulong Focus => _focus;
         /// <summary>What a viewer sees now, for the history-independent seek check.</summary>
-        public IReadOnlyList<string> Census() => _effects.Census(Fighters.Values);
+        public IReadOnlyList<string> Census()
+        {
+            var lines = _effects.Census(Fighters.Values).ToList();
+            if (StageVisual != null && StageVisual.Find("Ball Sender") is { } sender)
+                lines.Add($"sender {sender.position.x:0.000},{sender.position.y:0.000},{sender.position.z:0.000}");
+            return lines;
+        }
 
         public PlayerRenderer? RendererOf(ulong entityId) => Fighters.TryGetValue(entityId, out var renderer) ? renderer : null;
         /// <summary>Ticks presented since the scene opened, for checks.</summary>
@@ -240,7 +246,7 @@ namespace SlopArena.Client.World
             }
             ResetSimulationPresentation();
             _projectiles.SetPredictedSimulation(_replay!.World);
-            _modes?.Reset();
+            _modes?.Reset(targetTick);
             _effects.Sweep();
             _deaths.Clear();
             _poseTicks.Clear();

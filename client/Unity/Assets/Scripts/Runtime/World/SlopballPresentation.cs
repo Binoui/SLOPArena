@@ -236,10 +236,16 @@ namespace SlopArena.Client.World
             _combo = state.Returns;
         }
 
+        public void RestoreSender(ArcadePoint at)
+        {
+            AimSender(at);
+            if (_sender != null) _sender.position = _senderTarget;
+        }
+
         private void AimSender(ArcadePoint at)
         {
             _senderTarget = new Vector3(at.X, _senderHeight, at.Z);
-            if (!_senderPlaced && _sender != null) { _sender.position = _senderTarget; _senderPlaced = true; }
+            if ((!_senderPlaced || SenderFollowsBall) && _sender != null) { _sender.position = _senderTarget; _senderPlaced = true; }
         }
 
         private void OnServe(in ArcadeBallState ball)

@@ -44,6 +44,18 @@ namespace SlopArena.Client.Replays
     internal sealed class ReplayModes : IDisposable
     {
         private readonly OnlineSlopball? _slopball;
+        private ReplayWorld? _replay;
+        private readonly List<(uint Tick, ReplayVector Position)> _serves = new();
+
+        private ReplayModes WithHistory(ReplayWorld replay)
+        {
+            _replay = replay;
+            foreach (var tick in replay.ReadViews(replay.Range.Last))
+                if (tick.Events.OfType<ReplaySlopballEvent>().Any(e => e.EventId is "served" or "serve-ready")
+                    && tick.ModeObjects.OfType<ReplayBall>().FirstOrDefault() is { } ball)
+                    _serves.Add((tick.Tick, ball.Position));
+            return this;
+        }
         private readonly OnlineCharacterCourse? _course;
         private readonly MankiMayhemPresentation? _mayhem;
         private readonly float? _courtNetZ;
@@ -76,7 +88,7 @@ namespace SlopArena.Client.Replays
             bool view = replay.Track == ReplayTrack.View;
             if (format.IsSlopball() && arena.Arcade?.Slopball != null)
                 return new ReplayModes(new OnlineSlopball(scene.Parent, scene.Stage, arena, scene.Hud, scene.RenderCamera, format, scene.Perspective,
-                    senderFollowsBall: view), null, null, arena.Arcade.Slopball.NetZ);
+                    senderFollowsBall: view), null, null, arena.Arcade.Slopball.NetZ).WithHistory(replay);
             if (format.IsCourse() && arena.Arcade?.Course != null)
                 return new ReplayModes(null, new OnlineCharacterCourse(scene.Parent, arena, scene.Hud, scene.RenderCamera,
                     Roster(replay), scene.Perspective), null, null, arena.Arcade.Course);
@@ -172,9 +184,17 @@ namespace SlopArena.Client.Replays
         }
 
         /// <summary>A seek, or a new followed fighter: every mode presenter shows nothing from before.</summary>
-        public void Reset()
+        public void Reset(uint targetTick)
         {
             _slopball?.Reset();
+            if (_slopball != null && _replay?.Track == ReplayTrack.View)
+            {
+                uint first = Math.Max(_replay.Range.First, targetTick >= 30 ? targetTick - 30 : 0);
+                ReplayVector? serve = null;
+                foreach (var item in _serves)
+                    if (item.Tick <= first) serve = item.Position;
+                if (serve is { } position) _slopball.RestoreSender(new ArcadePoint(position.X, position.Y, position.Z));
+            }
             _course?.Reset();
             _mayhem?.Reset();
         }

@@ -362,11 +362,29 @@ namespace SlopArena.EditorTools
                     failures.Add(new { a, b, onlyFresh = onlyFresh.Take(8).ToArray(), onlyAfter = onlyAfter.Take(8).ToArray(),
                         seekSounds = new[] { fresh.Played, after.Played }, nextTickSounds = new[] { fresh.Next, after.Next }, censusLines = fresh.Census.Count });
             }
+            // Compare continuous playback with a direct seek beyond the transient warmup after every serve.
+            var rallyFailures = new List<object>();
+            var serves = replay.ReadViews(range.Last).Where(v => v.Events.OfType<ReplaySlopballEvent>()
+                .Any(e => e.EventId == "served")).Select(v => v.Tick).ToArray();
+            int rallyChecks = 0;
+            foreach (uint serve in serves)
+            {
+                uint target = serve + 45;
+                if (target > range.Last || serves.Any(t => t > serve && t <= target)) continue;
+                match.Seek(serve);
+                for (uint t = serve; t < target; t++) match.StepForward();
+                var continuous = match.Census().Where(x => x.StartsWith("sender ")).ToArray();
+                match.Seek(range.First);
+                match.Seek(target);
+                var direct = match.Census().Where(x => x.StartsWith("sender ")).ToArray();
+                if (!continuous.SequenceEqual(direct)) rallyFailures.Add(new { serve, target, continuous, direct });
+                rallyChecks++;
+            }
             var sorted = seekMs.OrderBy(x => x).ToList();
             double Percentile(double p) => sorted[Math.Min(sorted.Count - 1, (int)Math.Ceiling(p * sorted.Count) - 1)];
             return new
             {
-                success = failures.Count == 0, pairs = 20, failures = failures.Take(6).ToArray(), failureCount = failures.Count,
+                success = failures.Count == 0 && rallyFailures.Count == 0, rallyChecks, rallyFailures, pairs = 20, failures = failures.Take(6).ToArray(), failureCount = failures.Count,
                 warmupSoundsPlayed = warmupPlayed, warmupSoundsSuppressed = warmupSuppressed, nextTickSoundsAfterHistory = nextTickSounds,
                 seeks = sorted.Count, seekMedianMs = Math.Round(Percentile(0.5), 2), seekP95Ms = Math.Round(Percentile(0.95), 2),
                 seekMaxMs = Math.Round(sorted[sorted.Count - 1], 2),

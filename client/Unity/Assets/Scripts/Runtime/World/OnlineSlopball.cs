@@ -20,6 +20,7 @@ namespace SlopArena.Client.World
         private readonly SlopballPresentation _presentation;
         private readonly Transform _launcher;
         private readonly float _launcherHeight;
+        private readonly Vector3 _launcherHome;
         private readonly GameObject _plainBall;
         private readonly Material _plainMaterial;
         private readonly List<SlopballEvent> _events = new();
@@ -39,7 +40,7 @@ namespace SlopArena.Client.World
             var launcher = stage != null ? stage.Find("Ball Sender") : null;
             if (_versus && launcher != null) launcher.gameObject.SetActive(false);
             _launcher = _versus ? null : launcher;
-            if (_launcher != null) _launcherHeight = _launcher.position.y;
+            if (_launcher != null) { _launcherHeight = _launcher.position.y; _launcherHome = _launcher.position; }
             _court = SlopballCourtShow.Find(stage);
             if (_versus) _court?.ClearCombo();
             _view = new SlopballView(hud.Document.rootVisualElement, cooperative: true);
@@ -117,6 +118,13 @@ namespace SlopArena.Client.World
             }
         }
 
+        /// <summary>Restore the last recorded serve origin before the seek warmup.</summary>
+        public void RestoreSender(ArcadePoint position)
+        {
+            _presentation?.RestoreSender(position);
+            if (_launcher != null) _launcher.position = new Vector3(position.X, _launcherHeight, position.Z);
+        }
+
         public void Update(float deltaTime, ServerSimulation simulation, UnityEngine.Camera camera)
         {
             _view.Tick(Time.unscaledDeltaTime, camera);
@@ -128,6 +136,7 @@ namespace SlopArena.Client.World
         public void Reset()
         {
             _events.Clear();
+            if (_launcher != null) _launcher.position = _launcherHome;
             _presentation?.Reset();
             _view.Reset();
         }
