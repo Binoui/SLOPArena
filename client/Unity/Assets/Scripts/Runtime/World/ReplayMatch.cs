@@ -280,7 +280,7 @@ namespace SlopArena.Client.World
             }
             UpdateSwordTrailsFromResolver(world.Resolver);
             PresentTimelineEvents();
-            if (_modes?.Present(world, _focus, _playerRenderer.transform, _cameraMount) != true) UpdateLockCamera(world);
+            if (_modes?.Present(frame, _focus, _playerRenderer.transform, _cameraMount) != true) UpdateLockCamera(world);
             PresentStockLosses(frame);
             _overlay?.Show(frame.View.Tick, _replay!.Range.First, _transport.State == ReplayTransportState.Playing,
                 ReplayTransport.Label(_transport.Speed), FocusName());
@@ -442,6 +442,8 @@ namespace SlopArena.Client.World
                 float height = renderer.CharacterDef?.CapsuleHeight ?? 1.8f;
                 _overlay.Label(move.EntityId, string.Join(" · ", parts), renderer.transform.position + Vector3.up * (height + 0.4f), camera);
             }
+            if (_modes != null)
+                foreach (var (key, text, position) in _modes.Labels) _overlay.Label(key, text, position, camera);
         }
 
         // ── Recorded observations ───────────────────────────────────────────────────

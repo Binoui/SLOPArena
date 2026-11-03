@@ -25,12 +25,15 @@ namespace SlopArena.Client.World
         private readonly List<SlopballEvent> _events = new();
         private readonly bool _versus;
         private readonly Func<ulong> _perspective;
+        private readonly bool _senderFollowsBall;
 
         /// <param name="format">The Match format; live play reads MatchConfig.</param>
         /// <param name="perspective">Whose camp the versus panel speaks for; live play is the local fighter, a Replay the followed one.</param>
+        /// <param name="senderFollowsBall">A View-track Replay without shot spawns: the sender goes where the ball is served.</param>
         public OnlineSlopball(Transform parent, Transform stage, in ArenaDefinition arena, HUDManager hud,
-            Func<UnityEngine.Camera> camera, MatchFormat? format = null, Func<ulong> perspective = null)
+            Func<UnityEngine.Camera> camera, MatchFormat? format = null, Func<ulong> perspective = null, bool senderFollowsBall = false)
         {
+            _senderFollowsBall = senderFollowsBall;
             _versus = (format ?? MatchConfig.Format) == MatchFormat.SlopballVersus;
             _perspective = perspective ?? (() => MatchConfig.LocalEntityId);
             var launcher = stage != null ? stage.Find("Ball Sender") : null;
@@ -45,7 +48,8 @@ namespace SlopArena.Client.World
             _anchor = anchor.transform;
             var set = Resources.Load<SlopballPresentationSet>(SlopballPresentationSet.ResourcesPath);
             if (set != null && set.Ball != null && set.GroundMarker != null)
-                _presentation = new SlopballPresentation(set, parent, _anchor, arena, _launcher, _view, hud, camera);
+                _presentation = new SlopballPresentation(set, parent, _anchor, arena, _launcher, _view, hud, camera)
+                    { SenderFollowsBall = senderFollowsBall };
             else
             {
                 // Without the generated set the court still shows a plain ball.
@@ -84,8 +88,12 @@ namespace SlopArena.Client.World
             {
                 _plainBall.SetActive(ball.Active);
                 _plainBall.transform.localScale = Vector3.one * (ball.Radius * 2f);
-                if (_launcher != null)
+                if (_launcher != null && !_senderFollowsBall)
                     _launcher.position = new Vector3(run.Shot.Spawn.X, _launcherHeight, run.Shot.Spawn.Z);
+                else if (_launcher != null)
+                    foreach (var item in events)
+                        if (item.Event.Kind is SlopballEventKind.Served or SlopballEventKind.ServeReady)
+                            _launcher.position = new Vector3(ball.Position.X, _launcherHeight, ball.Position.Z);
             }
             _events.Clear();
             foreach (var item in events)

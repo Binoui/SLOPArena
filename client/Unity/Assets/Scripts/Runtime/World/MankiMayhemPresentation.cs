@@ -16,6 +16,8 @@ namespace SlopArena.Client.World
     public sealed partial class MankiMayhemPresentation : IDisposable
     {
         public const float ShowPitch = 8f;
+        // A View-track Replay's landing rings: a marker size that never follows today's blast radius.
+        private const float FixedRingRadius = 2.5f;
         public MankiHostPresenter Host { get; }
         private readonly ServerSimulation _sim;
         private readonly ProjectileVFXManager _projectiles;
@@ -32,6 +34,14 @@ namespace SlopArena.Client.World
         private Transform _slamMark;
         private readonly AudioClip _wallHit = Resources.Load<AudioClip>("Audio/SFX/Bonk/impact_light");
         private readonly AudioClip _wallBreak = Resources.Load<AudioClip>("Audio/SFX/CoursePier/course_car_break");
+
+        /// <summary>
+        /// A Replay on its View track records where and when each bomb lands, not the blast radius or call time it was
+        /// tuned with: landing rings draw at one fixed size and fill from the recorded launch to the landing.
+        /// </summary>
+        public bool FixedTelegraphs { get; set; }
+
+        private float RingRadius => FixedTelegraphs ? FixedRingRadius : MankiMayhemTuning.BlastRadius;
 
         public MankiMayhemPresentation(Transform parent, ServerSimulation simulation, MankiMayhemDefinition stage, MatchContentEntry manki,
             IReadOnlyDictionary<ulong, PlayerRenderer> fighters, IReadOnlyList<HUDManager.HudPlayer> players,
@@ -78,17 +88,17 @@ namespace SlopArena.Client.World
                     var root = new GameObject($"Landing ring {ring.Ordinal}").transform;
                     root.SetParent(_root, false);
                     root.position = new Vector3(ring.Position.X, ring.Position.Y + .18f, ring.Position.Z);
-                    Circle(root, "Dark rim", _ink, .25f, 1f);
-                    var gold = Circle(root, "Gold warning", _gold, .12f, 1f);
+                    Circle(root, "Dark rim", _ink, .25f, 1f, RingRadius);
+                    var gold = Circle(root, "Gold warning", _gold, .12f, 1f, RingRadius);
                     gold.transform.localPosition = Vector3.up * .015f;
-                    var fill = Circle(root, "Impact countdown", _hot, .1f, 0f);
+                    var fill = Circle(root, "Impact countdown", _hot, .1f, 0f, RingRadius);
                     fill.transform.localPosition = Vector3.up * .03f;
                     // Raised ribs keep a flat ring legible at the low show pitch.
                     for (int i = 0; i < 8; i++)
                     {
                         float angle = i * Mathf.PI / 4f;
                         var line = Line(root, "Raised warning", _gold, .09f);
-                        var point = new Vector3(Mathf.Cos(angle), 0f, Mathf.Sin(angle)) * MankiMayhemTuning.BlastRadius;
+                        var point = new Vector3(Mathf.Cos(angle), 0f, Mathf.Sin(angle)) * RingRadius;
                         line.positionCount = 2;
                         line.SetPosition(0, point); line.SetPosition(1, point + Vector3.up * .55f);
                     }
@@ -107,8 +117,12 @@ namespace SlopArena.Client.World
                 visual.Root.gameObject.SetActive(!attached && _sim.CurrentTick <= ring.LandingTick
                     && state.Phase is MankiMayhemPhase.Call or MankiMayhemPhase.Pattern or MankiMayhemPhase.Settle);
                 float duration = MankiMayhemTuning.CallTicks + MankiMayhemTuning.FlightTicks - 1;
-                float progress = Mathf.Clamp01(1f - (ring.LandingTick - Math.Min(ring.LandingTick, _sim.CurrentTick)) / duration);
-                SetCircle(visual.Fill, progress);
+                float progress = !FixedTelegraphs
+                    ? Mathf.Clamp01(1f - (ring.LandingTick - Math.Min(ring.LandingTick, _sim.CurrentTick)) / duration)
+                    : ring.LandingTick > ring.LaunchTick
+                        ? Mathf.Clamp01((_sim.CurrentTick - Math.Min(_sim.CurrentTick, ring.LaunchTick)) / (float)(ring.LandingTick - ring.LaunchTick))
+                        : 1f;
+                SetCircle(visual.Fill, progress, RingRadius);
             }
             UpdateWaves();
             UpdateWalls(events ?? _sim.LastTickMayhemEvents, retracted);
@@ -165,7 +179,9 @@ namespace SlopArena.Client.World
                 Object.Destroy(plank.GetComponent<Collider>()); plank.transform.SetParent(root, false);
                 plank.transform.localPosition = new Vector3(0, -wall.HalfExtents.Y + .45f + rail * (wall.HalfExtents.Y * 2 - .8f) / 4f, 0);
                 plank.transform.localScale = new Vector3(wall.HalfExtents.X * 2, rail == 0 ? .55f : .14f, wall.HalfExtents.Z * 2);
-                plank.GetComponent<Renderer>().sharedMaterial = wall.HitBudget == MankiMayhemTuning.CrackedWallHits ? _gold : _hot;
+                // A View-track Replay has no hit budget (0): one neutral look, since the cracked wall cannot be told apart.
+                plank.GetComponent<Renderer>().sharedMaterial = wall.HitBudget == 0 ? _ink
+                    : wall.HitBudget == MankiMayhemTuning.CrackedWallHits ? _gold : _hot;
             }
             for (int side = -1; side <= 1; side += 2)
             {
@@ -197,15 +213,19 @@ namespace SlopArena.Client.World
                 live.Add(wall.EntityId);
                 if (!_walls.TryGetValue(wall.EntityId, out var root)) { root = Wall(wall); _walls.Add(wall.EntityId, root); }
                 float height = wall.HalfExtents.Y * 2;
-                float rise = wall.Phase == RuntimeSolidPhase.Rising ? Mathf.Clamp01(wall.PhaseTick / (float)MankiMayhemTuning.WallRiseTicks)
+                // Without a hit budget the wall is a View-track recording: drawn upright while it stands, with no
+                // rise, sink or cracks from today's tuning.
+                bool neutral = wall.HitBudget == 0;
+                float rise = neutral ? 1f
+                    : wall.Phase == RuntimeSolidPhase.Rising ? Mathf.Clamp01(wall.PhaseTick / (float)MankiMayhemTuning.WallRiseTicks)
                     : wall.Phase == RuntimeSolidPhase.Sinking ? 1f - Mathf.Clamp01(wall.PhaseTick / (float)MankiMayhemTuning.WallSinkTicks) : 1f;
                 root.position = new Vector3(wall.Center.X, wall.Center.Y - height * (1 - rise), wall.Center.Z);
                 root.rotation = Quaternion.Euler(0, wall.Yaw * Mathf.Rad2Deg, 0);
                 for (int i = 0; i < root.childCount; i++)
                 {
                     var child = root.GetChild(i);
-                    child.gameObject.SetActive(wall.HitsLeft > 0 && (!child.name.StartsWith("Crack")
-                        || int.Parse(child.name.Substring(6)) < wall.HitBudget - wall.HitsLeft + (wall.HitBudget == MankiMayhemTuning.CrackedWallHits ? 1 : 0)));
+                    child.gameObject.SetActive(wall.HitsLeft > 0 && (!child.name.StartsWith("Crack") || !neutral
+                        && int.Parse(child.name.Substring(6)) < wall.HitBudget - wall.HitsLeft + (wall.HitBudget == MankiMayhemTuning.CrackedWallHits ? 1 : 0)));
                 }
             }
             foreach (var id in _walls.Keys.Where(id => !live.Contains(id)).ToArray())
@@ -248,9 +268,10 @@ namespace SlopArena.Client.World
             _view.Present(_sim, id => _fighters[id].transform.position, _camera());
         }
 
-        private LineRenderer Circle(Transform parent, string name, Material material, float width, float progress)
+        private LineRenderer Circle(Transform parent, string name, Material material, float width, float progress,
+            float radius = MankiMayhemTuning.BlastRadius)
         {
-            var line = Line(parent, name, material, width); SetCircle(line, progress); return line;
+            var line = Line(parent, name, material, width); SetCircle(line, progress, radius); return line;
         }
         private static LineRenderer Line(Transform parent, string name, Material material, float width)
         {
@@ -262,14 +283,14 @@ namespace SlopArena.Client.World
             line.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
             line.receiveShadows = false; return line;
         }
-        private static void SetCircle(LineRenderer line, float progress)
+        private static void SetCircle(LineRenderer line, float progress, float radius = MankiMayhemTuning.BlastRadius)
         {
             int count = Mathf.Max(2, Mathf.CeilToInt(64 * progress) + 1);
             line.positionCount = count;
             for (int i = 0; i < count; i++)
             {
                 float angle = i / (float)(count - 1) * Mathf.PI * 2f * progress;
-                line.SetPosition(i, new Vector3(Mathf.Cos(angle), 0f, Mathf.Sin(angle)) * MankiMayhemTuning.BlastRadius);
+                line.SetPosition(i, new Vector3(Mathf.Cos(angle), 0f, Mathf.Sin(angle)) * radius);
             }
         }
         /// <summary>A Replay seek: rings, waves, walls, wall debris, stings, score stamps and host reactions start over.</summary>

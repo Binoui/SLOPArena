@@ -235,7 +235,7 @@ public class ReplayWorldTests
         };
         var cast = ReplayCastIndex.Build(replay.Header, Content())!;
         var restored = ReplayViewDecoder.Prepare(replay.World,
-            new ReplayViewTick { Fighters = new[] { fighter } }, cast);
+            new ReplayViewTick { Fighters = new[] { fighter } }, cast, replay.Arena);
         replay.World.ApplySnapshot(restored);
         for (int i = 0; i < slots.Length; i++)
         {
@@ -326,6 +326,12 @@ public class ReplayWorldTests
     [InlineData(MatchFormat.CourseCoop, ReplayTrackChoice.Best)]
     [InlineData(MatchFormat.CourseScramble, ReplayTrackChoice.Best)]
     [InlineData(MatchFormat.MankiMayhem, ReplayTrackChoice.Best)]
+    [InlineData(MatchFormat.SlopballCoop, ReplayTrackChoice.ViewOnly)]
+    [InlineData(MatchFormat.SlopballVersus, ReplayTrackChoice.ViewOnly)]
+    [InlineData(MatchFormat.CourseRace, ReplayTrackChoice.ViewOnly)]
+    [InlineData(MatchFormat.CourseCoop, ReplayTrackChoice.ViewOnly)]
+    [InlineData(MatchFormat.CourseScramble, ReplayTrackChoice.ViewOnly)]
+    [InlineData(MatchFormat.MankiMayhem, ReplayTrackChoice.ViewOnly)]
     public void ModeDisplayWorldProjectsBackToTheRecordedViewOnEveryTick(MatchFormat format, ReplayTrackChoice choice)
     {
         var recording = Modes[format].Value;
@@ -354,6 +360,88 @@ public class ReplayWorldTests
         string coverage = string.Join(", ", kinds.OrderBy(k => k.Key).Select(k => $"{k.Key} x{k.Value}"));
         Assert.True(kinds.Keys.Any(k => !k.Contains(':')) && kinds.Keys.Any(k => k.Contains(':')), coverage);
         Console.WriteLine($"{format} {choice}: {coverage}");
+    }
+
+    /// <summary>
+    /// The View has no wall hit budget, shot spawn or director seed: the display world states them as unrecorded (0)
+    /// instead of guessing, and the presenters draw those parts with their labelled fallbacks.
+    /// </summary>
+    [Fact]
+    public void UnrecordedModeFieldsStayUnrecordedOnTheViewTrack()
+    {
+        using (var mayhem = Open(Modes[MatchFormat.MankiMayhem].Value.Bytes, ReplayTrackChoice.ViewOnly))
+        {
+            int walls = 0;
+            var probe = new Probe { OnPresent = frame =>
+            {
+                Assert.Equal(0u, frame.World.MankiMayhem!.Value.Seed);
+                foreach (var wall in frame.World.MayhemWalls) { Assert.Equal(0, wall.HitBudget); walls++; }
+            } };
+            while (mayhem.Step(probe).Status == ReplayStep.Presented) { }
+            Assert.True(walls > 0);
+        }
+        using (var exact = Open(Modes[MatchFormat.MankiMayhem].Value.Bytes, ReplayTrackChoice.Best))
+        {
+            int walls = 0;
+            var probe = new Probe { OnPresent = frame => { foreach (var wall in frame.World.MayhemWalls) { Assert.NotEqual(0, wall.HitBudget); walls++; } } };
+            while (exact.Step(probe).Status == ReplayStep.Presented) { }
+            Assert.True(walls > 0);
+        }
+        using var slopball = Open(Modes[MatchFormat.SlopballCoop].Value.Bytes, ReplayTrackChoice.ViewOnly);
+        var served = new Probe { OnPresent = frame => Assert.Equal(0f, frame.World.Slopball!.Value.Shot.Spawn.X) };
+        while (slopball.Step(served).Status == ReplayStep.Presented) { }
+    }
+
+    /// <summary>
+    /// Course targets are today's arena layout matched by recorded ID, never by position in the file: reordered records
+    /// decode the same, a target the recording lacks keeps all its hits, and events naming an ID today's arena lacks are
+    /// left out rather than pinned on another target.
+    /// </summary>
+    [Fact]
+    public void CourseTargetsMatchByRecordedIdNotByOrder()
+    {
+        var recording = Modes[MatchFormat.CourseCoop].Value;
+        var arena = LoadArena(ArenaFor(MatchFormat.CourseCoop))!.Definition.Arcade!.Course!;
+        int renamed = Enumerable.Range(0, arena.Targets.Count).First(i => recording.Views.Any(v => v.ModeObjects
+            .OfType<ReplayCourseTarget>().Any(t => t.TargetId == arena.Targets[i].Id && t.HitsLeft < arena.Targets[i].Hits)));
+        string id = arena.Targets[renamed].Id;
+        int dropped = 0;
+        var bytes = Doctor(recording, h => h, v =>
+        {
+            var objects = v.ModeObjects.ToList();
+            foreach (var t in objects.OfType<ReplayCourseTarget>()) if (t.TargetId == id) t.TargetId = "removed-since";
+            int first = objects.FindIndex(o => o is ReplayCourseTarget);
+            var targets = objects.OfType<ReplayCourseTarget>().Reverse().Cast<ReplayModeObject>().ToList();
+            objects.RemoveAll(o => o is ReplayCourseTarget);
+            objects.InsertRange(first, targets);
+            v.ModeObjects = objects;
+            foreach (var e in v.Events.OfType<ReplayCourseEvent>()) if (e.ObjectId == id) { e.ObjectId = "removed-since"; dropped++; }
+        });
+        Assert.True(dropped > 0);
+        using var replay = Open(bytes, ReplayTrackChoice.ViewOnly);
+        int shown = 0, compared = 0;
+        var probe = new Probe { OnPresent = frame =>
+        {
+            var original = recording.Views[(int)(frame.View.Tick - replay.Range.First)];
+            foreach (var player in frame.World.CoursePlayers)
+                for (int i = 0; i < arena.Targets.Count; i++)
+                {
+                    int hits = frame.World.CourseTargetHitsLeft(player.EntityId, i);
+                    if (i == renamed) { Assert.Equal(arena.Targets[i].Hits, hits); continue; }
+                    Assert.Equal(original.ModeObjects.OfType<ReplayCourseTarget>()
+                        .Single(t => t.PerspectiveEntityId == player.EntityId && t.TargetId == arena.Targets[i].Id).HitsLeft, hits);
+                    compared++;
+                }
+            foreach (var e in frame.World.LastTickOnlineCourseEvents)
+            {
+                Assert.NotEqual(renamed, e.Event.Kind is CharacterCourseEventKind.TargetBroken or CharacterCourseEventKind.TargetHit ? e.Event.Index : -1);
+                shown++;
+            }
+        } };
+        while (replay.Step(probe).Status == ReplayStep.Presented) { }
+        int recorded = recording.Views.Sum(v => v.Events.OfType<ReplayCourseEvent>().Count());
+        Assert.Equal(recorded - dropped, shown);
+        Assert.True(compared > 0);
     }
 
     static string? ModeEventKey(ReplayEvent e) => e switch

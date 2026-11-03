@@ -209,7 +209,7 @@ namespace SlopArena.Shared.Replays
                 {
                     // Decoding builds every value before the display world changes, so a failure leaves the last tick shown.
                     if (display.ExactSimulation == null)
-                        owner.viewShell!.ApplySnapshot(ReplayViewDecoder.Prepare(owner.viewShell, display.View, owner.cast));
+                        owner.viewShell!.ApplySnapshot(ReplayViewDecoder.Prepare(owner.viewShell, display.View, owner.cast, owner.Arena));
                     owner.World.ApplyTickOutputs(ReplayViewDecoder.Outputs(display.View, owner.cast, owner.Arena));
                 }
                 catch (Exception e) when (ReplayStorage.ParseFailure(e) || e is KeyNotFoundException or IndexOutOfRangeException)

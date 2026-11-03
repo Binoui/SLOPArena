@@ -103,11 +103,14 @@ namespace SlopArena.Shared.Replays
     {
         internal static ServerSimulation Create(ReplayHeader header, ArenaDefinition arena, ReplayCastIndex cast)
         {
-            // Mode simulations need their recorded state decoded (later View units), so a non-stock Match shows
-            // its fighters on a rule that eliminates no one.
-            IMatchRule rule = MatchFormats.TryParseWire(header.Rules.FormatId, out var format) && format == MatchFormat.Stock
-                ? format.CreateRule(header.Rules.MaxStocks)
-                : NoWinMatchRule.Instance;
+            // The recorded format's own rule, so the mode simulations exist for the decoder to restore. When today's arena
+            // or rules no longer admit the format, only the fighters show, on a rule that eliminates no one.
+            IMatchRule rule;
+            if (MatchFormats.TryParseWire(header.Rules.FormatId, out var format) && format == MatchFormat.Stock)
+                rule = format.CreateRule(header.Rules.MaxStocks);
+            else
+                try { rule = ReplayExact.Rule(header, arena); }
+                catch (ArgumentException) { rule = NoWinMatchRule.Instance; }
             var shell = new ServerSimulation(arena, rule) { ReplayDisplay = true };
             foreach (var member in cast.Members)
             {

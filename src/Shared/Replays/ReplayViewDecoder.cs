@@ -9,9 +9,9 @@ namespace SlopArena.Shared.Replays
     /// the simulation's own restore types and never writes simulation state. ReplayWorldTests pins the round trip
     /// and lists what does not survive it.
     /// </summary>
-    internal static class ReplayViewDecoder
+    internal static partial class ReplayViewDecoder
     {
-        internal static ServerSimulation.PreparedSnapshot Prepare(ServerSimulation shell, ReplayViewTick view, ReplayCastIndex cast)
+        internal static ServerSimulation.PreparedSnapshot Prepare(ServerSimulation shell, ReplayViewTick view, ReplayCastIndex cast, ArenaDefinition arena)
         {
             var fighters = new ServerSimulation.FighterSnapshot[view.Fighters.Count];
             ulong maxActivation = 0, maxInteraction = 0;
@@ -61,9 +61,10 @@ namespace SlopArena.Shared.Replays
                 resolver.LastEmissionId = Math.Max(resolver.LastEmissionId, s.EmissionId);
                 maxActivation = Math.Max(maxActivation, s.ActivationId);
             }
+            var modes = Modes(shell, view, arena, cast);
             // Never used: a display world is never ticked. Kept past every observed identity for consistency.
             return new ServerSimulation.PreparedSnapshot(view.Tick, maxActivation + 1, maxInteraction + 1, fighters, resolver,
-                default, default, default, false, null, null, null);
+                modes.Ball, modes.Rules, modes.Volley, false, null, modes.Course, modes.Mayhem);
         }
 
         /// <summary>
@@ -392,6 +393,13 @@ namespace SlopArena.Shared.Replays
         static readonly Dictionary<string, SlopballCamp> Camps = Inverse<SlopballCamp>(ReplaySemanticIds.Id);
         static readonly Dictionary<string, CharacterCourseEventKind> CourseEvents = Inverse<CharacterCourseEventKind>(ReplaySemanticIds.Id);
         static readonly Dictionary<string, MankiMayhemEventKind> MayhemEvents = Inverse<MankiMayhemEventKind>(ReplaySemanticIds.Id);
+        static readonly Dictionary<string, SlopballPhase> SlopballPhases = Inverse<SlopballPhase>(ReplaySemanticIds.Id);
+        static readonly Dictionary<string, SlopballServe> Serves = Inverse<SlopballServe>(ReplaySemanticIds.Id);
+        static readonly Dictionary<string, SlopballVersusPhase> VersusPhases = Inverse<SlopballVersusPhase>(ReplaySemanticIds.Id);
+        static readonly Dictionary<string, CharacterCoursePhase> CoursePhases = Inverse<CharacterCoursePhase>(ReplaySemanticIds.Id);
+        static readonly Dictionary<string, MankiMayhemPhase> MayhemPhases = Inverse<MankiMayhemPhase>(ReplaySemanticIds.Id);
+        static readonly Dictionary<string, MankiMayhemCard> Cards = Inverse<MankiMayhemCard>(ReplaySemanticIds.Id);
+        static readonly Dictionary<string, RuntimeSolidPhase> WallPhases = Inverse<RuntimeSolidPhase>(ReplaySemanticIds.Id);
 
         internal static ActionState? Action(string id) => Actions.TryGetValue(id, out var v) ? v : null;
         internal static PresentationEventSource? Source(string id) => Sources.TryGetValue(id, out var v) ? v : null;
@@ -403,5 +411,12 @@ namespace SlopArena.Shared.Replays
         internal static SlopballCamp? Camp(string id) => Camps.TryGetValue(id, out var v) ? v : null;
         internal static CharacterCourseEventKind? CourseEvent(string id) => CourseEvents.TryGetValue(id, out var v) ? v : null;
         internal static MankiMayhemEventKind? MayhemEvent(string id) => MayhemEvents.TryGetValue(id, out var v) ? v : null;
+        internal static SlopballPhase? SlopballPhase(string id) => SlopballPhases.TryGetValue(id, out var v) ? v : null;
+        internal static SlopballServe? Serve(string id) => Serves.TryGetValue(id, out var v) ? v : null;
+        internal static SlopballVersusPhase? VersusPhase(string id) => VersusPhases.TryGetValue(id, out var v) ? v : null;
+        internal static CharacterCoursePhase? CoursePhase(string id) => CoursePhases.TryGetValue(id, out var v) ? v : null;
+        internal static MankiMayhemPhase? MayhemPhase(string id) => MayhemPhases.TryGetValue(id, out var v) ? v : null;
+        internal static MankiMayhemCard? Card(string id) => Cards.TryGetValue(id, out var v) ? v : null;
+        internal static RuntimeSolidPhase? WallPhase(string id) => WallPhases.TryGetValue(id, out var v) ? v : null;
     }
 }
