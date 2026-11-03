@@ -435,7 +435,7 @@ namespace SlopArena.Client.World
                 var move = _frame.Moves[i];
                 if (!Fighters.TryGetValue(move.EntityId, out var renderer) || renderer == null) continue;
                 var member = _replay.Cast.First(m => m.EntityId == move.EntityId);
-                var parts = new List<string>(2);
+                var parts = new List<string>(3) { ReplayText.Fighter(member) };
                 if (member.Kind == ReplayCastKind.StandIn) parts.Add($"Stand-in for {member.Recorded.Package.PackageId}");
                 if (move.RecordedName.Length > 0 && (move.Match == ReplayMoveMatch.Missing || _overlay.NamesShown))
                     parts.Add(move.Match == ReplayMoveMatch.Missing ? $"{move.RecordedName} (missing)" : move.RecordedName);

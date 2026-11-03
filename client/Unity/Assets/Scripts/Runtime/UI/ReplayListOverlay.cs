@@ -115,12 +115,13 @@ namespace SlopArena.Client.UI
             return row;
         }
 
-        private static string Title(ReplayListing listing)
+        private string Title(ReplayListing listing)
         {
             if (listing.Summary is not { } summary) return System.IO.Path.GetFileName(listing.Path);
             var header = summary.Header;
             string length = summary.Range is { } range ? ReplayText.Clock(range.Last - range.First + 1) : "0:00";
-            string fighters = string.Join(" vs ", header.Roster.Select(p => p.Package.PackageId));
+            string fighters = string.Join(" vs ", header.Roster.Select(p =>
+                ReplayLabels.ReplayParticipantLabel(p, _content?.Catalog.ResolvePackage(p.Package.PackageId)?.DisplayName ?? p.Package.PackageId)));
             return $"{ReplayText.Mode(header.Rules.FormatId)} · {header.ArenaId} · {fighters} · {length}";
         }
 
@@ -160,7 +161,7 @@ namespace SlopArena.Client.UI
 
         private static Label Text(string text, int size)
         {
-            var label = new Label(text);
+            var label = new Label(text) { enableRichText = false };
             label.style.color = Color.white;
             label.style.fontSize = size;
             return label;

@@ -724,8 +724,10 @@ inside `SilenceOutput()`. Pause keeps orbit and zoom (hold the right mouse butto
 through `CameraUsesUnscaledTime` and the Cinemachine brain's `IgnoreTimeScale`. Paused steps sample
 still poses with `PlayScrubbedState`. The bar shows play, steps, speed, a timeline that seeks once per
 rendered frame, the followed fighter (Tab, LB/RB), the track with its reason, move names (M) and Leave.
-Labels over fighters name a stand-in and a Missing move. The end of the file shows the conclusion, or
-the partial reason. Fight cards show the fighter's name and the last four digits of a Steam ID.
+The list, focus bar, fight cards, mode scoreboards and labels over fighters use the recorded display
+name. Without one, they show the fighter's name and the last six digits of a Steam ID. Non-Steam
+participants without a name show the fighter's name. Fighter labels also name a stand-in and a Missing
+move. The end of the file shows the conclusion, or the partial reason.
 
 `Scenes/Replay.unity` is generated from `Arena_Offline` by `sloparena.replays.build-scene`; rebuild it
 after changing that scene. Editor commands, all through the gateway:
@@ -798,7 +800,7 @@ the same folder: `SLOPARENA_REPLAY_DIR="$HOME/.local/share/sloparena/replays" %c
 
 Home shows **Replays** only when that folder holds a `.slopreplay` or `.slopreplay.part` file. The list
 opens over Home. It shows the folder it read and a Refresh button, and has one row per file, newest
-first. Each row gives the mode, arena, fighters and length, then
+first. Each row gives the mode, arena, participant labels and length, then
 "Downloaded" with the file's modification time, Complete, Partial or Empty, and Exact or View with its
 reason. A file from a newer build says "Made by a newer build. Update SLOPArena." `ReplayLibrary` reads
 summaries on a worker, at most 500 files, cancellable, cached by path, size and modification time; the
