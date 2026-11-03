@@ -163,6 +163,11 @@ phone / desk browser ──tailnet──▶ alfred: content-factory (board, SQLi
   Its docstring lists the commands.
 - `tools/social_clip.py` and `tools/social_explainer.py` read an idea from the
   factory and upload each result as the next take.
+- `tools/combo_clip.py` handles `format: "combo"` ideas with an embedded Finder combo.
+  `record` verifies each camera pass and keeps a footage pack under
+  `tmp/content/<idea>/footage/<orientation>/`. `edit` recuts that pack and uploads a take.
+  Redo notes normally need only a recut. Content changes require a fresh Finder combo.
+  See [Combo clips](../../skills/social-clips/SKILL.md#combo-clips).
 - An idea moves `proposed` → `approved` → `rendered` → `ready` → `posted`, or
   to `rejected`. Only the owner's buttons and new takes change it.
 - The T3 scheduled task "Content factory run" holds the agent prompt. Its

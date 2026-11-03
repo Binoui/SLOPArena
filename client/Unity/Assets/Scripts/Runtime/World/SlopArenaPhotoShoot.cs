@@ -50,6 +50,10 @@ namespace SlopArena.EditorTools
         public float AimDistance = -1f;
         public float AimPitchDegrees;
         public List<PhotoInput> Inputs = new();
+        /// <summary>Exact per-tick inputs from tick 0 (tools/ComboFinder); replaces Inputs while it lasts, neutral after.</summary>
+        public InputState[]? Tape;
+        /// <summary>Where the fighter returns after a KO (feet x, z on the floor); null keeps the start.</summary>
+        public Vector2? Respawn;
     }
 
     public sealed class PhotoCamera
@@ -230,7 +234,15 @@ namespace SlopArena.EditorTools
                 DamagePercent = fighter.Damage, Deaths = fighter.Deaths, MatchState = MatchState.Playing
             };
             _bridge.RegisterEntity(fighter.Id, entry.Definition, state, entry.BakedAnimation);
-            _bridge.SetRespawnPosition(fighter.Id, state.PX, state.PY, state.PZ, yaw);
+            if (fighter.Respawn is { } respawn)
+            {
+                float floor = Arena.Heightmap.Sample(respawn.x, respawn.y);
+                if (floor == float.MinValue)
+                    throw new InvalidOperationException($"Fighter {fighter.Id} respawn has no floor below ({respawn.x}, {respawn.y}).");
+                _bridge.SetRespawnPosition(fighter.Id, respawn.x, floor + entry.Definition.CapsuleHeight * 0.5f, respawn.y, yaw);
+            }
+            else
+                _bridge.SetRespawnPosition(fighter.Id, state.PX, state.PY, state.PZ, yaw);
             renderer.ApplyServerState(_bridge.GetState(fighter.Id), _bridge.GetActiveMove(fighter.Id)?.Slot);
             return renderer;
         }
@@ -349,6 +361,11 @@ namespace SlopArena.EditorTools
 
         private InputState BuildInput(PhotoFighter fighter, int tick)
         {
+            if (fighter.Tape is { Length: > 0 } tape)
+            {
+                if (tick < tape.Length) return tape[tick];
+                return new InputState { FacingYaw = tape[^1].FacingYaw, AimYaw = tape[^1].AimYaw };
+            }
             var self = _bridge.GetState(fighter.Id);
             float aimYaw = fighter.YawDegrees, distance = fighter.AimDistance;
             if (fighter.Target != 0 && _entries.ContainsKey(fighter.Target))
@@ -419,6 +436,7 @@ namespace SlopArena.EditorTools
                     .Append(",\"vy\":").Append(Num(s.VY))
                     .Append(",\"state\":\"").Append(s.State).Append("\",\"slot\":").Append(s.AttackSlot)
                     .Append(",\"grounded\":").Append(s.IsGrounded ? "true" : "false")
+                    .Append(",\"deaths\":").Append(s.Deaths)
                     .Append(",\"damage\":").Append(s.DamagePercent)
                     .Append(",\"hitstun\":").Append(s.HitstunTicks)
                     .Append(",\"facing\":").Append(Num(s.FacingYaw * Mathf.Rad2Deg)).Append('}');
