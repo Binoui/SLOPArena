@@ -170,6 +170,8 @@ namespace SlopArena.Client.Camera
         private void Update()
         {
             if (_orbital == null) return;
+            var replay = World.MatchBase.Active as World.ReplayMatch;
+            if (replay != null) SetMode(replay.ViewerCameraMode);
             if (_showBounds.HasValue) return;
 
             bool suppressCameraInput = ChatInputGate.SuppressGameplay ||
@@ -222,7 +224,7 @@ namespace SlopArena.Client.Camera
                 ApplyStyle(CameraStyle.Arena);
                 _manualOrbitGraceRemaining = 0f;
             }
-            else if (_mode == CameraMode.Normal)
+            else if (_mode == CameraMode.Normal || replay != null && _mode == CameraMode.FreeCursor)
             {
                 var preferences = ClientSettingsService.Instance;
                 var toggle = HumanInputActions.Get("CameraToggle");
@@ -236,8 +238,9 @@ namespace SlopArena.Client.Camera
                     ShowCameraNote($"Camera: {style.DisplayName()}");
                 }
                 ApplyStyle(preferences.ResolveCameraStyle(HumanInputActions.LastUsedGamepad));
-                Vector2 mouseLook = HumanInputActions.MouseLook.ReadValue<Vector2>();
-                Vector2 stickLook = CameraStick;
+                Vector2 mouseLook = replay != null && _mode == CameraMode.FreeCursor
+                    ? Vector2.zero : HumanInputActions.MouseLook.ReadValue<Vector2>();
+                Vector2 stickLook = replay != null ? HumanInputActions.StickLook.ReadValue<Vector2>() : CameraStick;
                 // Controllers get a shorter manual grace and stronger lock assistance.
                 bool controller = HumanInputActions.LastUsedGamepad;
                 bool manualLook = mouseLook.sqrMagnitude > 0.0001f || stickLook.sqrMagnitude > 0.0001f;
@@ -263,7 +266,7 @@ namespace SlopArena.Client.Camera
                 _orbital.HorizontalAxis.Value += delta.x * (settings.InvertCameraHorizontal ? -1f : 1f);
                 SetCameraPitchDeg(GetCameraPitchDeg() - delta.y * (settings.InvertCameraVertical ? -1f : 1f));
 
-                float zoom = HumanInputActions.ZoomDelta;
+                float zoom = replay != null && _mode == CameraMode.FreeCursor ? 0f : HumanInputActions.ZoomDelta;
                 if (Mathf.Abs(zoom) > 0.001f)
                     _orbital.RadialAxis.Value -= zoom * 0.05f;
             }
@@ -357,6 +360,7 @@ namespace SlopArena.Client.Camera
         }
         public void SetMode(CameraMode mode)
         {
+            if (World.MatchBase.Active is World.ReplayMatch replay) mode = replay.ViewerCameraMode;
             _mode = mode;
             if (mode != CameraMode.Normal)
                 _manualOrbitGraceRemaining = _lockManualGraceSeconds;
