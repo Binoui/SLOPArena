@@ -64,6 +64,19 @@ namespace SlopArena.Shared.Replays
                     rings.ToArray(), slams.ToArray(), walls.ToArray()) : null);
         }
 
+        static ulong CourseTarget(ServerSimulation shell, ReplayViewTick view, ArenaDefinition arena, ulong perspective, ulong recordedId)
+        {
+            if (recordedId == 0 || view.Fighters.Any(f => f.EntityId == recordedId)) return recordedId;
+            var target = view.ModeObjects.OfType<ReplayCourseTarget>()
+                .FirstOrDefault(t => t.PerspectiveEntityId == perspective && t.EntityId == recordedId);
+            if (target == null) return 0;
+            var targets = arena.Arcade!.Course!.Targets;
+            for (int i = 0; i < targets.Count; i++)
+                if (targets[i].Id == target.TargetId) return shell.CourseTargetEntityId(perspective, i);
+            return 0;
+
+        }
+
         static ArcadePoint P(ReplayVector v) => new(v.X, v.Y, v.Z);
 
         static ArcadeBallSimulation.Snapshot Ball(ReplayBall b)

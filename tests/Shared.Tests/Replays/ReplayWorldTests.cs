@@ -422,6 +422,46 @@ public class ReplayWorldTests
         Assert.NotEmpty(probe.Frames);
     }
 
+    [Theory]
+    [InlineData(MatchFormat.CourseRace, false)]
+    [InlineData(MatchFormat.CourseCoop, false)]
+    [InlineData(MatchFormat.CourseRace, true)]
+    [InlineData(MatchFormat.CourseCoop, true)]
+    public void CourseLocksFollowSemanticTargetsAcrossArenaChanges(MatchFormat format, bool remove)
+    {
+        var recording = Modes[format].Value;
+        var old = LoadArena("fightguy_pier")!.Definition.Arcade!.Course!;
+        var targets = remove ? old.Targets.Skip(1).ToArray() : old.Targets.Reverse().ToArray();
+        // Checkpoints refer to cumulative target counts, so omit them in this changed test arena.
+        var today = new CharacterCourseDefinition(targets, Array.Empty<CourseCheckpointDefinition>(), old.Finish);
+        var bytes = Doctor(recording, h => h, v =>
+        {
+            foreach (var fighter in v.Fighters)
+            {
+                var target = v.ModeObjects.OfType<ReplayCourseTarget>().Single(t =>
+                    t.PerspectiveEntityId == fighter.EntityId && t.TargetId == old.Targets[0].Id);
+                fighter.LockOn = true;
+                fighter.LockTargetId = target.EntityId;
+                fighter.HomingTargetId = target.EntityId;
+            }
+        });
+        using var replay = ReplayWorld.Open(new MemoryStream(bytes), CourseContent(today), ReplayTrackChoice.ViewOnly).World!;
+        var probe = new Probe { OnPresent = f =>
+        {
+            foreach (var fighter in f.View.Fighters)
+            {
+                var state = f.World.GetState(fighter.EntityId);
+                ulong expected = remove ? 0 : f.World.CourseTargetEntityId(fighter.EntityId, targets.Length - 1);
+                Assert.Equal(!remove, state.LockOn);
+                Assert.Equal(expected, state.TargetEntityId);
+                Assert.Equal(expected, state.HomingDashTargetId);
+                if (!remove) Assert.NotEqual(fighter.LockTargetId, state.TargetEntityId);
+            }
+        } };
+        Assert.Null(replay.Seek(replay.Range.First + 10, probe));
+        Assert.NotEmpty(probe.Frames);
+    }
+
     /// <summary>
     /// Course targets are today's arena layout matched by recorded ID, never by position in the file: reordered records
     /// decode the same, a target the recording lacks keeps all its hits, and events naming an ID today's arena lacks are

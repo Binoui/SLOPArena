@@ -156,6 +156,11 @@ namespace SlopArena.Client.Replays
                     labels.Add((ulong.MaxValue - (ulong)i, $"Target {target.Id}: not in this Replay",
                         new Vector3(target.Position.X, target.Position.Y + target.Radius + .9f, target.Position.Z)));
             }
+            var fighter = view.Fighters.FirstOrDefault(f => f.EntityId == focus);
+            if (fighter is { LockOn: true } && recorded.Values.FirstOrDefault(t => t.EntityId == fighter.LockTargetId) is { } locked
+                && !today.Contains(locked.TargetId))
+                labels.Add((ulong.MaxValue - (ulong)course.Targets.Count, $"Lock cleared: target {locked.TargetId} is absent",
+                    new Vector3(locked.Position.X, locked.Position.Y + locked.Radius + 1.4f, locked.Position.Z)));
             return labels;
         }
 

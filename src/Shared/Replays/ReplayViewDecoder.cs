@@ -21,6 +21,12 @@ namespace SlopArena.Shared.Replays
                 var member = cast.Member(f.EntityId) ?? throw new KeyNotFoundException("View fighter " + f.EntityId);
                 var move = cast.Move(f.EntityId, f.PackageId, f.MoveFormId, f.MoveName, f.SlotId, f.ActivationAirborne);
                 var state = Fighter(f, cast.Form(member, f.FormId));
+                if (shell.OnlineCourse.HasValue)
+                {
+                    state.TargetEntityId = CourseTarget(shell, view, arena, f.EntityId, f.LockTargetId);
+                    state.LockOn &= state.TargetEntityId != 0;
+                    state.HomingDashTargetId = CourseTarget(shell, view, arena, f.EntityId, f.HomingTargetId);
+                }
                 CookedTimelineAbility? ability = null;
                 AttackPose? pose = null;
                 if (move.Slot is { } slot)
