@@ -275,6 +275,14 @@ Check saved payloads for every cooked package and the exact roster requirement w
 the package is built-in. Cooking an existing roster entry refreshes its pin automatically;
 new admission remains a separate acceptance step.
 
+Runtime presentation scripts that a package's prefabs or bindings reference are cook
+dependencies too. Editing one, such as `World/ChargeTierCues.cs` or `World/NyxAttackCue.cs`,
+makes the open Editor recook the affected packages into uncommitted `content-cooked/<package>/`
+files and roster pins. Commit that recook with the script change. Otherwise the release build's
+deterministic cook verification rejects the stale hashes (`verify.cooked.mismatch`), as it did
+for playtest.46 on 2026-11-03. To find the cause, compare the `dependencies.current` lists in
+two releases' `cook-verification.json`.
+
 ### Unrostered pipeline probe evidence
 
 Bonk is rostered and has gameplay coverage. Use a disposable unrostered fixture
