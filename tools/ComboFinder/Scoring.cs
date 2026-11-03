@@ -32,20 +32,13 @@ static class Scoring
         int beaten = str.Count > 1 ? r.VictimSwings.Count(w => w.tick > str[0].first && w.tick < str[^1].last) : 0;
         s += 15 * Math.Min(4, beaten);
         var kinds = str.Select(x => (x.slot, x.ground)).ToList();
-        // Normals carry the string; a special may open it, finish it, or set up once mid-string into two more normals.
+        // Owner taste (2026-11-03): a variety of moves, normals usually flow better, special-only strings are fine.
+        // These are scores, not rules. A light special reads as a miss on screen, so it costs points.
         bool koFollows = r.VictimKo >= 0 && str.Count > 0 && r.VictimKo - str[^1].last < 120;
-        int normals = kinds.Count(k => normalWires.Contains(k.slot)), misplaced = 0, setups = 0;
-        for (int i = 0; i < kinds.Count; i++)
-        {
-            // A light special reads as a miss on screen (owner, 2026-11-02: Wibou's weak R), wherever it sits.
-            if (!normalWires.Contains(kinds[i].slot) && str[i].tier == 0) { misplaced++; continue; }
-            if (normalWires.Contains(kinds[i].slot) || i == 0 || (i == kinds.Count - 1 && koFollows)) continue;
-            bool setup = i + 2 < kinds.Count && normalWires.Contains(kinds[i + 1].slot) && normalWires.Contains(kinds[i + 2].slot);
-            if (setup && setups++ == 0) continue;
-            misplaced++;
-        }
-        int distinctNormals = kinds.Where(k => normalWires.Contains(k.slot)).Distinct().Count();
-        s += 35 * normals + 10 * (kinds.Count - normals) + 25 * distinctNormals - 90 * misplaced;
+        int normals = kinds.Count(k => normalWires.Contains(k.slot));
+        int lightSpecials = str.Count(x => !normalWires.Contains(x.slot) && x.tier == 0);
+        int distinct = kinds.Distinct().Count();
+        s += 35 * normals + 20 * (kinds.Count - normals) + 25 * distinct - 60 * lightSpecials;
         for (int i = 1; i < kinds.Count; i++) if (kinds[i] == kinds[i - 1]) s -= 35;
         // Chasing: the attacker travels or takes to the air during the string.
         if (str.Count > 1)
@@ -65,10 +58,10 @@ static class Scoring
         if (r.VictimKo >= 0)
         {
             s += 300;
-            if (koFollows) s += normals >= 3 ? 250 + 40 * normals : 60;
+            if (koFollows) s += 250 + 30 * str.Count;
         }
         string name(byte slot, bool g) => (g ? "g" : "a") + (normalWires.Contains(slot) ? "N" + slot : "S" + slot);
-        return (s, $"string={bestLen} normals={normals} misplaced={misplaced} beaten={beaten} [{string.Join(" ", kinds.Select(k => name(k.slot, k.ground)))}] moves={landed.Count} dmg={dmg:F0} taken={taken} blocked={blocked} whiffs={r.CloseVictimSwings} ko={r.VictimKo}");
+        return (s, $"string={bestLen} normals={normals} distinct={distinct} light={lightSpecials} beaten={beaten} [{string.Join(" ", kinds.Select(k => name(k.slot, k.ground)))}] moves={landed.Count} dmg={dmg:F0} taken={taken} blocked={blocked} whiffs={r.CloseVictimSwings} ko={r.VictimKo}");
     }
 
     internal static (double score, string why, int progress) RouteScore(RunTrace r, string[] route)

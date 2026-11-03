@@ -73,15 +73,10 @@ static class Search
         File.WriteAllText(Path.Combine(output, id + ".json"), Json.Write(combo));
         return combo;
     }
-    static bool Eligible(Timeline t)
-    {
-        var str = t.Moves.Where(m => m.Tick >= t.String.From && m.LastTick <= t.String.To).ToArray();
-        bool Normal(LandedMove m) => m.Label.Length == 2 && m.Label[0] is 'a' or 'g';
-        if (str.Any(m => !Normal(m) && m.Tier == 0)) return false;
-        if (t.Taken != 0 || t.Ko < 0 || str.Length == 0 || t.Moves.Any(m => m.Label.StartsWith("slot")) || t.String.To != t.Moves[^1].LastTick || t.Ko - str[^1].LastTick >= 120 || str.Count(Normal) * 2 <= str.Length) return false;
-        int setups = 0;
-        for (int i = 1; i < str.Length - 1; i++)
-            if (!Normal(str[i]) && !(i + 2 < str.Length && Normal(str[i + 1]) && Normal(str[i + 2]) && setups++ == 0)) return false;
-        return true;
-    }
+    /// <summary>
+    /// The only hard requirement: a landed string that ends in a KO within two seconds of its last move. Everything else
+    /// (hits taken, normals versus specials, weak specials) is weighed by the score.
+    /// </summary>
+    static bool Eligible(Timeline t) => t.Ko >= 0 && t.Moves.Length > 0 && t.String.To == t.Moves[^1].LastTick
+        && t.Ko - t.String.To < 120 && !t.Moves.Any(m => m.Label.StartsWith("slot"));
 }

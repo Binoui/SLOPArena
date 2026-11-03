@@ -27,14 +27,15 @@ ordered progress. Route tokens are `g1` through `g3`, `a1` through `a3`,
 `1`, `2`, `3`, `A`, `E`, `R`, `F`, `beeline`, and `juggle`.
 
 Search re-simulates each branch from tick zero because CPU memory cannot be
-cloned. Scores reward normals, variety, chasing, beaten swings, and a KO after
-the pressure string. Gaps over 70 ticks break a free-search string. Repeated
-hits from one activation count as one landed move. Export requires no hit taken,
-a majority of normals in the string, specials in the approved positions, and a
-KO within 120 ticks of its last hit. A special can open or finish the string,
-or appear once mid-string followed by two normals, and it must hit at least
-Medium in the game's impact tiers (`CombatFeedback.Classify`): a light special
-reads as a miss on screen. Each landed move records its `tier`.
+cloned. Gaps over 70 ticks, or a hit the victim lands, break a free-search
+string; repeated hits from one activation count as one landed move. The only
+hard requirement for export is a string that ends in a KO within 120 ticks of
+its last move. Everything else is score, after the owner's taste: a variety of
+different moves, normals somewhat above specials (they usually flow better),
+chasing, beaten victim swings and a KO soon after the string score up; hits
+taken, the same move twice in a row, and a special that lands only a light hit
+(`CombatFeedback.Classify`, which reads as a miss on screen) score down. A
+special-only string can still win. Each landed move records its `tier`.
 
 `cameras` plans side, far-side, behind and wide angles that follow both fighters
 and pull back with their distance, and a fixed `kill` angle behind the last hit,

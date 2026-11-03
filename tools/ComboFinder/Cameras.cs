@@ -20,16 +20,25 @@ static class Cameras
         cx /= n; cy /= n; cz /= n;
         float alen = MathF.Max(1e-3f, MathF.Sqrt(ax * ax + az * az)); ax /= alen; az /= alen;
         const float Dist = 6.5f, Up = 1.4f;
-        // Count sampled sight lines from each side that the floor or a crate blocks.
+        bool portrait = orientation == "portrait";
+        // Pull back per metre between the fighters so both fit across the frame: portrait shows about 0.62 m per
+        // metre of distance horizontally at fov 58, landscape about 1.3 m at fov 40, plus a metre of margin each side.
+        float spread = portrait ? 1.6f : 0.8f;
+        int from = Math.Max(1, s0 - 50);
+        // Count blocked sight lines from where the following camera will actually be on each sampled tick of the clip:
+        // the fighters' midpoint plus the side offset, pulled back with their distance.
         int Blocked(float side)
         {
-            float px = cx + az * side * Dist, pz = cz - ax * side * Dist, py = cy + Up;
             int blocked = 0;
-            for (int t = Math.Max(1, s0 - 40); t <= s1; t += 4)
+            for (int t = from; t <= Math.Min(s1, pa.Count); t += 4)
             {
                 var (x1, y1, z1) = pa[t - 1]; var (x2, y2, z2) = pv[t - 1];
+                float mx = (x1 + x2) / 2, my = (y1 + y2) / 2, mz = (z1 + z2) / 2;
+                float sep = MathF.Sqrt((x2 - x1) * (x2 - x1) + (y2 - y1) * (y2 - y1) + (z2 - z1) * (z2 - z1));
+                float d = Dist + spread * sep;
+                float px = mx + az * side * d, pz = mz - ax * side * d, py = my + Up;
                 foreach (var (tx, ty, tz) in new[] { (x1, y1, z1), (x2, y2, z2) })
-                    for (float u = 0.1f; u < 0.95f; u += 0.05f)
+                    for (float u = 0.05f; u < 0.95f; u += 0.05f)
                     {
                         float h = arena.Heightmap.Sample(px + (tx - px) * u, pz + (tz - pz) * u);
                         if (h != float.MinValue && h > py + (ty - py) * u - 0.2f) { blocked++; break; }
@@ -42,12 +51,8 @@ static class Cameras
         float camX = cx + az * sideSign * Dist, camZ = cz - ax * sideSign * Dist;
         var (kx, ky, kz) = pv[s1 - 1];
 
-        int cut = Math.Max(s0, s1 - 12), from = Math.Max(1, s0 - 50), to = ko + 30;
-        bool portrait = orientation == "portrait";
+        int cut = Math.Max(s0, s1 - 12), to = ko + 30;
         float fov = portrait ? 58f : 40f;
-        // Pull back per metre between the fighters so both fit across the frame: portrait shows about 0.62 m per
-        // metre of distance horizontally at fov 58, landscape about 1.3 m at fov 40, plus a metre of margin each side.
-        float spread = portrait ? 1.6f : 0.8f;
         PhotoCamera Camera(float x, float y, float z, float lx, float ly, float lz, object follow, float ease = 0.08f, float? lens = null, bool pull = true) =>
             new(new[] { x, y, z }, new[] { lx, ly, lz }, follow, new[] { 0f, 0.3f, 0f }, true, ease, lens ?? fov, 4000f, pull ? spread : null);
         var both = new[] { 1, 2 };
