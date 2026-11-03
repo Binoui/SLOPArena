@@ -327,6 +327,14 @@ namespace SlopArena.EditorTools
             var seekMs = new List<double>();
             var failures = new List<object>();
             int warmupPlayed = 0, warmupSuppressed = 0, nextTickSounds = 0;
+            // Exercise every court-owned clock even when a CPU fixture never returns a ball.
+            const BindingFlags fields = BindingFlags.Instance | BindingFlags.NonPublic;
+            var modes = typeof(ReplayMatch).GetField("_modes", fields)?.GetValue(match);
+            var slopball = modes?.GetType().GetField("_slopball", fields)?.GetValue(modes);
+            var court = slopball?.GetType().GetField("_court", fields)?.GetValue(slopball) as SlopballCourtShow;
+            var senderHome = slopball == null ? (Vector3?)null
+                : (Vector3?)slopball.GetType().GetField("_launcherHome", fields)?.GetValue(slopball);
+            int courtStressChecks = 0;
             var watch = new System.Diagnostics.Stopwatch();
             bool Timed(uint tick)
             {
@@ -352,6 +360,14 @@ namespace SlopArena.EditorTools
                 var fresh = SeekB(b);
                 if (!Timed(a)) throw new InvalidOperationException($"Seek to {a} failed.");
                 for (int i = 0; i < 60; i++) match.StepForward();
+                if (court != null)
+                {
+                    court.Present(987);
+                    court.SetHeat(4);
+                    court.Returned();
+                    court.Tick(.07f);
+                    courtStressChecks++;
+                }
                 var after = SeekB(b);
                 warmupPlayed += fresh.Played + after.Played;
                 warmupSuppressed += fresh.Suppressed + after.Suppressed;
@@ -387,14 +403,14 @@ namespace SlopArena.EditorTools
                         || Mathf.Abs(sender.position.z - observation.Position.Z) > .001f))
                         rallyFailures.Add(new { serve, target, reason = "sender differs from recorded serve position" });
                 }
-                if (observation != null && (Mathf.Abs(observation.Position.X) > .01f || Mathf.Abs(observation.Position.Z) > .01f)) offHomeRallyChecks++;
+                if (observation != null && senderHome is { } home && (Mathf.Abs(observation.Position.X - home.x) > .01f || Mathf.Abs(observation.Position.Z - home.z) > .01f)) offHomeRallyChecks++;
                 rallyChecks++;
             }
             var sorted = seekMs.OrderBy(x => x).ToList();
             double Percentile(double p) => sorted[Math.Min(sorted.Count - 1, (int)Math.Ceiling(p * sorted.Count) - 1)];
             return new
             {
-                success = failures.Count == 0 && rallyFailures.Count == 0, rallyChecks, offHomeRallyChecks, rallyFailures, pairs = 20, failures = failures.Take(6).ToArray(), failureCount = failures.Count,
+                success = failures.Count == 0 && rallyFailures.Count == 0, rallyChecks, offHomeRallyChecks, rallyFailures, courtStressChecks, pairs = 20, failures = failures.Take(6).ToArray(), failureCount = failures.Count,
                 warmupSoundsPlayed = warmupPlayed, warmupSoundsSuppressed = warmupSuppressed, nextTickSoundsAfterHistory = nextTickSounds,
                 seeks = sorted.Count, seekMedianMs = Math.Round(Percentile(0.5), 2), seekP95Ms = Math.Round(Percentile(0.95), 2),
                 seekMaxMs = Math.Round(sorted[sorted.Count - 1], 2),
