@@ -106,7 +106,7 @@ namespace SlopArena.Client.Replays
         public bool Present(in ReplayFrame frame, ulong focus, Transform focusTransform, CameraMount? camera)
         {
             var world = frame.World;
-            if (_courseDefinition != null) _courseLabels ??= CourseLabels(frame.View, _courseDefinition);
+            if (_courseDefinition != null) _courseLabels = CourseLabels(frame.View, _courseDefinition, focus);
             if (_mayhem != null)
             {
                 _mayhem.Host.Present(world, world.LastTickMayhemEvents);
@@ -135,10 +135,10 @@ namespace SlopArena.Client.Replays
         }
 
         /// <summary>The target set is the arena's, so the first presented tick decides the labels for the whole Replay.</summary>
-        private static List<(ulong Key, string Text, Vector3 Position)> CourseLabels(ReplayViewTick view, CharacterCourseDefinition course)
+        private static List<(ulong Key, string Text, Vector3 Position)> CourseLabels(ReplayViewTick view, CharacterCourseDefinition course, ulong focus)
         {
             var recorded = new Dictionary<string, ReplayCourseTarget>();
-            foreach (var target in view.ModeObjects.OfType<ReplayCourseTarget>()) recorded.TryAdd(target.TargetId, target);
+            foreach (var target in view.ModeObjects.OfType<ReplayCourseTarget>().Where(t => t.PerspectiveEntityId == focus)) recorded.TryAdd(target.TargetId, target);
             var today = new HashSet<string>(course.Targets.Select(t => t.Id));
             var labels = new List<(ulong, string, Vector3)>();
             foreach (var target in recorded.Values.Where(t => !today.Contains(t.TargetId)))
@@ -149,6 +149,9 @@ namespace SlopArena.Client.Replays
                 var target = course.Targets[i];
                 // Keys from the top of the range never meet fighter or recorded target entity IDs; the label sits higher
                 // so it never covers a renamed target's label on the same spot.
+                if (recorded.TryGetValue(target.Id, out var observation) && observation.HitsLeft > target.Hits)
+                    labels.Add((observation.EntityId, $"Target {target.Id}: {observation.HitsLeft} recorded hits left exceeds today's budget {target.Hits}; neutral damage",
+                        new Vector3(target.Position.X, target.Position.Y + target.Radius + .9f, target.Position.Z)));
                 if (!recorded.ContainsKey(target.Id))
                     labels.Add((ulong.MaxValue - (ulong)i, $"Target {target.Id}: not in this Replay",
                         new Vector3(target.Position.X, target.Position.Y + target.Radius + .9f, target.Position.Z)));

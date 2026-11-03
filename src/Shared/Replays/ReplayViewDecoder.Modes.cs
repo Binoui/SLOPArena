@@ -105,7 +105,7 @@ namespace SlopArena.Shared.Replays
                 for (int i = 0; i < hits.Length; i++)
                 {
                     var target = targets.FirstOrDefault(t => t.PerspectiveEntityId == p.EntityId && t.TargetId == definition.Targets[i].Id);
-                    hits[i] = target != null ? (byte)Math.Clamp(target.HitsLeft, 0, definition.Targets[i].Hits) : definition.Targets[i].Hits;
+                    hits[i] = target != null ? (byte)Math.Clamp(target.HitsLeft, 0, byte.MaxValue) : definition.Targets[i].Hits;
                     if (target != null && target.BreakerId != 0) breakers[i] = target.BreakerId;
                 }
                 int checkpoint = -1;

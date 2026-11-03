@@ -392,6 +392,36 @@ public class ReplayWorldTests
         while (slopball.Step(served).Status == ReplayStep.Presented) { }
     }
 
+    static ReplayContent CourseContent(CharacterCourseDefinition course)
+    {
+        var arena = LoadArena("fightguy_pier")!.Definition;
+        var old = arena.Arcade!;
+        arena.Arcade = ArcadeStageDefinition.ForCourse(old.ProfileId, old.GameplayRevision + 1, old.AllowedPackageIds, course);
+        return new(Roster.Value, _ => new ReplayArena(arena, "changed-course"), "fightguy");
+    }
+
+    [Fact]
+    public void CourseKeepsRecordedHitsAboveTodaysBudget()
+    {
+        var recording = Modes[MatchFormat.CourseCoop].Value;
+        var old = LoadArena("fightguy_pier")!.Definition.Arcade!.Course!;
+        var target = old.Targets[0];
+        var targets = old.Targets.ToArray();
+        targets[0] = new(target.Id, target.Position, target.Radius, 2);
+        var today = new CharacterCourseDefinition(targets, old.Checkpoints, old.Finish);
+        var bytes = Doctor(recording, h => h, v =>
+        {
+            foreach (var t in v.ModeObjects.OfType<ReplayCourseTarget>().Where(t => t.TargetId == target.Id)) t.HitsLeft = 4;
+        });
+        using var replay = ReplayWorld.Open(new MemoryStream(bytes), CourseContent(today), ReplayTrackChoice.ViewOnly).World!;
+        var probe = new Probe { OnPresent = f =>
+        {
+            foreach (var p in f.World.CoursePlayers) Assert.Equal(4, f.World.CourseTargetHitsLeft(p.EntityId, 0));
+        } };
+        Assert.Null(replay.Seek(replay.Range.Last, probe));
+        Assert.NotEmpty(probe.Frames);
+    }
+
     /// <summary>
     /// Course targets are today's arena layout matched by recorded ID, never by position in the file: reordered records
     /// decode the same, a target the recording lacks keeps all its hits, and events naming an ID today's arena lacks are

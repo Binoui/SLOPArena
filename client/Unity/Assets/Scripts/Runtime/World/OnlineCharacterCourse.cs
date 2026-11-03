@@ -99,7 +99,11 @@ namespace SlopArena.Client.World
                 var target = _presentation.Targets[i];
                 target.gameObject.SetActive(!simulation.IsCourseTargetBroken(self, i));
                 if (target.TryGetComponent<CourseBonusTarget>(out var bonus))
-                    bonus.PresentDamage(_definition.Targets[i].Hits - simulation.CourseTargetHitsLeft(self, i), _definition.Targets[i].Hits);
+                    {
+                    int remaining = simulation.CourseTargetHitsLeft(self, i), budget = _definition.Targets[i].Hits;
+                    if (simulation.ReplayDisplay && remaining > budget) bonus.ResetDamage();
+                    else bonus.PresentDamage(budget - remaining, budget);
+                }
             }
             _view.Present(local, paused, null, false, null);
             string status = run.Ended ? "COURSE OVER"
