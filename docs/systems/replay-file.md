@@ -605,7 +605,7 @@ Exact when `choice` is Best and the gate passes, else View with the gate's refus
 Both tracks restore one never-ticked `ServerSimulation`, the display world, for every presented tick.
 Exact uses the World Snapshot restore. View runs `ReplayViewDecoder`, which builds the simulation's own
 `PreparedSnapshot` from the View record, and the existing `ApplySnapshot` writes it. Each tick's hits,
-deaths and presentation events come from the View record on both tracks (`ApplyTickOutputs`).
+deaths, presentation events and mode events come from the View record on both tracks (`ApplyTickOutputs`).
 Presenters implement `IReplayPresenter` and read `ReplayFrame.World` as they read a live simulation.
 
 - **Tick guard.** Every Replay shell sets `ReplayDisplay`, and `Tick` throws on it. This is defense in
@@ -641,7 +641,7 @@ Presenters implement `IReplayPresenter` and read `ReplayFrame.World` as they rea
 | Capsule end bone | Today's move supplies the end bone of the hitbox event with the same start bone |
 | Applied hit stun | A hit stuns when it did damage, froze anyone, or left its target reacting that tick |
 | Bonk's `MoveSpot` and challenge target | Not shown |
-| Mode state (ball, course, Mayhem) | Not decoded yet; a non-stock Match shows its fighters on a no-elimination rule |
+| Mode state (ball, course, Mayhem) | Decoded into each mode's restore snapshot; what it lacks is in [Online modes](#online-modes) |
 
 ### Live seams the viewer uses
 
@@ -656,8 +656,15 @@ Every seam is additive, and its live default is the behaviour before it existed.
 - `PresentationOutput.TryPlay()` is the one gate for sound and rumble. A `MatchBase.SilenceOutput()`
   scope makes it refuse, and counts what it skipped. The sites: `CombatSFX`, `UISFX` (click, countdown,
   finish), `PlayerRenderer` (its one-shots, which `AirDodgePresentation` and `HomingDashPresentation`
-  use too), `MankiBombVisual`, `ChargeTierCues` and the controller rumble. No camera impulse or screen
-  shake exists in runtime code today, so nothing else needs the gate.
+  use too), `MankiBombVisual`, `ChargeTierCues`, the controller rumble, and the mode presenters
+  (`SlopballPresentation`, `CharacterCoursePresentation`, Mayhem's wall hits and show stings). Their
+  delayed-sound queues drop entries while `PresentationOutput.Silent`. No camera impulse or screen shake
+  exists in runtime code today, so nothing else needs the gate.
+- `OnlineSlopball` and `OnlineCharacterCourse` take an optional perspective (whose camp, targets and events
+  show) and their format or roster; the live defaults read `MatchConfig.LocalEntityId`, `MatchConfig.Format`
+  and `ClientSession.MatchRoster`. Each mode presenter has a `Reset()` for a seek: `OnlineSlopball` (with
+  `SlopballPresentation` and `SlopballView`), `OnlineCharacterCourse` and `MankiMayhemPresentation` (with
+  `MankiMayhemView` and `MankiHostPresenter`).
 
 ### Recorded observations over today's tuning
 
@@ -672,6 +679,25 @@ Each override is optional and null in live play. A new recorded observation belo
 | `ChargeTierCues`, `ChargePropFeedback`, `ChargeScale` | `ChargeTier`, `ChargeProgress` | `ChargeTier`, `ChargeProgress` | `ChargeTiers.Of` and `Progress` on today's move |
 | `HUDManager.Recorded` | cooldown run length, charge pips | `ReplayCooldown.DurationTicks`, `ChargeStepsReached` | today's `CooldownTicks`, `ChargeTiers.StepsReached` |
 | `CombatFeedback.RecordedOwnPresentation` | whether a hit showed its own presentation | the hit's `PresentationId` and the tick's `hit-contact` events | today's slot `HitPresentationId` |
+| `SlopballPresentation.SenderFollowsBall` (View track) | where the ball sender stands | the ball's position on each serve tick | the shot's spawn |
+| `MankiMayhemPresentation.FixedTelegraphs` (View track) | landing ring size and countdown fill | each ring's `LaunchTick` and `LandingTick`; a fixed 2.5 m marker | today's blast radius and call plus flight time |
+| `MankiMayhemPresentation` walls with hit budget 0 (View track) | wall look, cracks, rise and sink | `HitsLeft` only: one neutral look, upright while it stands | material and cracks from the budget, today's rise and sink time |
+
+### Online modes
+
+`ReplayModes.Create` builds the live mode presenter for the file's format (`OnlineSlopball`,
+`OnlineCharacterCourse`, `MankiMayhemPresentation`), with the followed fighter as its perspective. It feeds
+it the display world after the fighters, in PvPMatch's order. A new followed fighter re-presents the tick
+from their side. On View, `ReplayViewDecoder.Modes` builds each mode's restore snapshot, and the shell runs
+the recorded format's own rule (fighters only when today's arena no longer hosts it). Mode events reach the
+display world from the View on both tracks. A seek resets every mode presenter before the pools are recalled.
+
+| Mode | Exact track | View track shows | View track falls back to | Both tracks lack |
+|---|---|---|---|---|
+| **Slopball co-op** | Everything below, with the real shot | Ball (position, velocity, damage, curve, hitstop, live); run phase, returns, streaks, serve and countdown clocks, receive, arm and net flags, misses, next serve kind; served, received, returned, missed, re-serve and stop events | The shot's spawn, velocity and flight are not recorded: the sender goes where the recorded ball is served and waits at its stage spot until the first serve. Seed, shot index and miss budget are 0, since only ticking reads them | Ball contacts are per-tick scratch: no bounce sounds or squash and no bank, sky or net-cord callouts; a ball's path ends at its hit's contact time |
+| **Slopball versus** | Everything below | Scores, serving camp and server, serve clock, winner, phase; serve-ready, served and point events; the panel speaks for the followed fighter's camp | Serve-rotation counters are 0 (they pick the next server when ticking) | The same ball contacts |
+| **Course race, co-op, scramble** | Everything below | Course clock, finish window, ended and winner; each player's phase, clock, checkpoint, place, withdrawal, points, leash and progress; each perspective's targets (hits left, broken, breaker); scramble leader and safe ground; go, target, checkpoint, respawn and completion events for the followed fighter | Targets and checkpoints are today's arena matched by recorded ID, never by order. A recorded target the arena no longer has is labelled "not on today's course" where it stood; a target the Replay never recorded keeps all its hits and is labelled "not in this Replay"; events naming a missing ID are left out. The first-finish tick, scramble ground history and other racers' safe ground are not recorded | |
+| **Manki Mayhem** | Everything below, with real wall budgets and today's ring styling | Round, card, phase and its clock, hazards launched; players' scores, rounds, bonuses, bench and withdrawal; landing rings, slams, walls (place, size, yaw, hits left, phase); call, wind-up, launch, bench, score, end, slam and wall events; host hazards as shapes | Walls have no hit budget: one neutral look while they stand, no cracks, no rise or sink. Landing rings draw at a fixed 2.5 m and fill from the recorded launch to the landing. The director seed is 0 | Host reactions older than the 30-tick warmup are gone after a seek until the next event; the host's throw and slam timing and the slam warning window are today's animation. The show camera frames the deck, as in live play, so orbit is off |
 
 ### The viewer in Unity
 
@@ -691,7 +717,7 @@ after changing that scene. Editor commands, all through the gateway:
 
 | Command | What it does |
 |---|---|
-| `sloparena.replays.record-bots --output <path> [--fighters fightguy,nyx:alternate] [--ticks 1800]` | Records a same-build CPU fight with this Editor's content, so it plays Exact |
+| `sloparena.replays.record-bots --output <path> [--fighters fightguy,nyx:alternate] [--ticks 1800] [--match-format stock\|slopball-coop\|slopball-versus\|course-race\|course-coop\|course-scramble\|manki-mayhem]` | Records a same-build CPU Match with this Editor's content, so it plays Exact; each format takes its usual arena, starts and Begin call |
 | `sloparena.replays.open --file <path> [--tick N] [--focus id] [--track best\|view]` | Opens a Replay in Play Mode at a tick |
 | `sloparena.replays.check --script play` | Every tick at 2×, ten step-backs and step-forwards, every fighter focused, Nyx crows drawn, no console errors |
 | `sloparena.replays.check --script pose` | A blade move's weapon tip follows the recorded pose clock, not today's clip time |
@@ -702,13 +728,15 @@ Commands time out after 30 s, so check files of up to about 2,000 ticks with `pl
 ### Seek hygiene
 
 A seek must show the same thing whatever was on screen before it. `ReplayMatch.Reset` lets owners reset
-themselves first: each renderer, its blade trail (`WeaponAttach.ResetForSeek`), the timeline, Bonk,
-tether and sword owners, and the projectile visuals. `ReplayEffects.Sweep` then recalls the pools
+themselves first: each renderer (with its flight exhaust), its blade trail (`WeaponAttach.ResetForSeek`), the
+timeline, Bonk, tether and sword owners, the projectile visuals and the mode presenters. `ReplayEffects.Sweep` then recalls the pools
 (`GraphicHitEffect.RecallAll`, `MovementFeedbackEffect.RecallOneShots`), stops the scene's playing
 sounds, and removes roots spawned since the Replay began, except UI, pools and the camera's framing anchor
 (`CameraMount.FramingAnchor`, made on the camera's first switch to an automatic style). It logs each removal:
-every logged name is an effect whose owner does not reset itself yet. The timeline dispatcher and the
-projectile manager deactivate what they destroy, because `Destroy` waits for the frame's end and a seek
+every logged name is an effect whose owner does not reset itself yet. The pool recall includes trails and
+auras whose owner has ended them, since they fade on game time and a paused seek would keep them. The
+timeline dispatcher, the projectile manager, the course presentation, Manki's flight exhaust and the sword
+sweep trails deactivate what they destroy, because `Destroy` waits for the frame's end and a seek
 re-presents within the frame.
 
 Warmup ticks run the ordinary present code inside `SilenceOutput()`. What a warmup tick spawns starts at
@@ -727,6 +755,17 @@ the same sounds on the next live tick. Measured in the Editor on 2026-11-02 (60 
 | FightGuy and Nyx, 900 ticks | Exact | 9.97 ms | 17.65 ms |
 | Released golden, 180 ticks | View | 8.27 ms | 13.50 ms |
 | Bonk, Manki, Nyx, Bashie, 900 ticks | View | 15.70 ms | 25.69 ms |
+
+With the mode presenters, on same-build 1,200-tick fixtures (Exact, 2026-11-03):
+
+| Replay | Seek median | Seek p95 |
+|---|---|---|
+| Slopball co-op, 2 fighters | 15.2 ms | 23.9 ms |
+| Slopball versus, 2 fighters | 15.2 ms | 26.0 ms |
+| Course race, 2 fighters | 36.3 ms | 90.7 ms |
+| Course co-op, 2 fighters | 33.4 ms | 106.8 ms |
+| Course scramble, 3 fighters | 56.6 ms | 126.6 ms |
+| Manki Mayhem, 4 fighters | 29.7 ms | 56.2 ms |
 
 ### Where Replays live, and the list
 
