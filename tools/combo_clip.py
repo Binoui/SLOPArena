@@ -146,7 +146,8 @@ def shoot(spec: Path, run: Path) -> dict:
                                'scripts/unity-editor-gateway.ts', '--project-path', 'client/Unity',
                                '--batch', str(batch)], cwd=ROOT, stdout=out, stderr=err).returncode
     if code:
-        raise ValueError(f'gateway exited {code}; stop and read {result} and {error}')
+        # Not a divergence: the Editor did not run the shoot, so nothing was compared. Stop instead of skipping.
+        raise RuntimeError(f'gateway exited {code}; stop and read {result} and {error}')
     return social_clip.shoot_result(result)
 
 
@@ -176,9 +177,10 @@ def verify(combo: dict, shot: dict, run: Path) -> None:
         if len(expected) != len(actual):
             raise ValueError(f'hit count differs: expected {len(expected)}, got {len(actual)}; {DIVERGED}')
     # Merged moves (all a combo carried before raw hits): compare each move's first/last
-    # tick, wire slot and total damage, and reject every extra landed hit.
+    # tick, wire slot and total damage, and reject every extra landed hit. Raw hits above
+    # already prove this, and a projectile landing after a later move breaks the merge.
     index = 0
-    for move in timeline['moves']:
+    for move in ([] if 'hits' in timeline else timeline['moves']):
         actual = []
         while index < len(mine) and mine[index]['tick'] <= move['lastTick']:
             actual.append(mine[index])
@@ -188,7 +190,7 @@ def verify(combo: dict, shot: dict, run: Path) -> None:
                 or any(h['slot'] != expected_slot for h in actual)
                 or abs(sum(h['damage'] for h in actual) - move['damage']) > 0.001):
             raise ValueError(f'first differing hit: expected {move}, got {actual}; {DIVERGED}')
-    if index != len(mine):
+    if 'hits' not in timeline and index != len(mine):
         raise ValueError(f'first differing hit: unexpected {mine[index]}; {DIVERGED}')
     deaths = victim.get('deaths', 0)
     ko = None
@@ -336,7 +338,7 @@ def main() -> None:
     args = parser.parse_args()
     try:
         args.func(args)
-    except (ValueError, KeyError, OSError, subprocess.CalledProcessError) as error:
+    except (ValueError, RuntimeError, KeyError, OSError, subprocess.CalledProcessError) as error:
         parser.exit(1, f'combo_clip: {error}\n')
 
 
