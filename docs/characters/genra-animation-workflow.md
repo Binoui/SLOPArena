@@ -212,7 +212,11 @@ as transitions exist, inspect rough playback for timing, weight, arcs and contac
 stills alone cannot establish those qualities. Repair the animation's observed
 defects before buying more reference variations.
 
-Use Seedance only for a question stills can't answer: a prop or mount that changes how
+Video is free on the local ComfyUI (`video_ref.py --models local/wan2.2-5b`, see
+[local references](../contributing/local-comfyui.md)): use it whenever motion would help,
+without asking, one beat per take. Its takes are rougher than Seedance's.
+
+Use Seedance only for a question stills and local takes can't answer: a prop or mount that changes how
 the body works, or an unusual gait, stumble or elaborate recovery. Ask the owner first,
 with the movement question and the cost. Make one take of 8 s or less: Seedance 2.5 at
 720p cost $1.17 for 8 s and $2.32 for 10 s on 2026-10-21. When a move has several

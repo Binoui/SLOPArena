@@ -69,6 +69,14 @@ TAKE_FROM = {"proposed", "approved", "rendered"}
 RUN_KINDS = {"propose", "render", "redo", "scout"}
 RUN_STATES = {"queued", "sent", "running", "done", "failed"}
 UPLOADS = {"clip": "take-{n}.mp4", "poster": "take-{n}.jpg", "sheet": "take-{n}.sheet.jpg"}
+# Fetch now on the Numbers tab: the board asks, the desk relay takes it and starts `factory.py views`, which reports
+# done. Kept in memory: a restart only forgets one pending press.
+FETCH = {"asks": 0, "taken": 0, "requested": None, "done": None, "summary": "", "unmatched": []}
+# Meta login redirects land on /oauth here (Meta needs an https redirect); tools/social_api.py on the desk picks the
+# code up by its state and exchanges it with the app secret, which never leaves the desk.
+OAUTH: dict[str, dict] = {}
+OAUTH_PAGE = """<!doctype html><meta name=viewport content="width=device-width"><title>Slop Factory</title>
+<body style="font:18px system-ui;margin:40px">{}</body>"""
 
 
 class Refused(Exception):
@@ -118,7 +126,33 @@ def board() -> dict:
             "runs": [dict(r) for r in con.execute("SELECT * FROM runs ORDER BY id DESC LIMIT 40")],
             "inbox": [dict(r) for r in con.execute("SELECT * FROM inbox ORDER BY id DESC LIMIT 40")],
             "reports": [dict(r) for r in con.execute("SELECT * FROM reports ORDER BY id DESC LIMIT 10")],
+            "fetch": FETCH,
         }
+
+
+def fetch_request(body: dict) -> dict:
+    """Empty body: the owner pressed Fetch now. taken: <asks> the desk started. done + summary: it finished."""
+    if body.get("done"):
+        unmatched = [{k: str(u.get(k, ""))[:300] for k in ("platform", "url", "text")}
+                     for u in body.get("unmatched") or [] if isinstance(u, dict)][:30]
+        FETCH.update(done=now(), summary=str(body.get("summary", ""))[:600], unmatched=unmatched)
+    elif isinstance(body.get("taken"), int):
+        FETCH["taken"] = max(FETCH["taken"], body["taken"])
+    else:
+        FETCH.update(asks=FETCH["asks"] + 1, requested=now())
+    return FETCH
+
+
+def oauth_landing(query: dict) -> str:
+    state = query.get("state", "")
+    for key in [k for k, v in OAUTH.items() if time.time() - v["at"] > 900]:
+        del OAUTH[key]
+    if not re.fullmatch(r"[A-Za-z0-9_-]{8,64}", state) or not (query.get("code") or query.get("error")):
+        return "This page finishes a platform login started on the desk. Nothing to do here."
+    OAUTH[state] = {"at": time.time(), "code": query.get("code", "").removesuffix("#_"),
+                    "error": query.get("error_description") or query.get("error", "")}
+    return "Login refused: " + OAUTH[state]["error"] if OAUTH[state]["error"] else \
+        "Connected. The desk terminal picks it up in a few seconds; you can close this tab."
 
 
 def check_row(con: sqlite3.Connection, check_id: int) -> sqlite3.Row:
@@ -537,6 +571,9 @@ class Handler(BaseHTTPRequestHandler):
                 raise Refused("no such file", 404)
             kind = CHECK_MEDIA.get(target.suffix.lower(), "image/jpeg")
             return self.file(target, kind, f"{parts[1]}-{parts[2]}" if "dl" in query else "")
+        if method == "GET" and path == "/oauth":
+            page = OAUTH_PAGE.format(oauth_landing(query).replace("<", "&lt;"))
+            return self.send(200, page.encode(), "text/html; charset=utf-8")
         if parts[0] != "api":
             raise Refused("not found", 404)
         api = parts[1:]
@@ -556,6 +593,13 @@ class Handler(BaseHTTPRequestHandler):
                 return self.json(add_check_note(check_id, self.body()))
             if method == "PUT" and len(api) == 4 and api[2] == "media":
                 return self.json(upload_check(check_id, api[3], int(self.headers.get("Content-Length", 0)), self.rfile))
+        if method == "GET" and len(api) == 2 and api[0] == "oauth":
+            got = OAUTH.pop(api[1], None)
+            if not got:
+                raise Refused("no login yet", 404)
+            return self.json(got)
+        if api == ["fetch"]:
+            return self.json(FETCH if method == "GET" else fetch_request(self.body()))
         if method == "GET" and api == ["outbox"]:
             return self.json(outbox())
         if method == "POST" and len(api) == 2 and api[0] == "outbox":

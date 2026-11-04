@@ -24,18 +24,28 @@ export function createMenu({ catalog, modes, stages, paths, pick, go, isPaused, 
       img.src = portrait(paths.assets, f.id); img.alt = '';
       const name = document.createElement('span'); name.textContent = f.name;
       b.append(img, name);
-      if (ROSTER_UI[f.id].wip) b.insertAdjacentHTML('beforeend', '<small class="wip">WIP</small>');
       return b;
     };
+    // Admitted roster on the left, work-in-progress fighters on the right.
+    const fighterGroups = tile => [['Roster', false], ['WIP', true]].map(([label, wip]) => {
+      const fighters = catalog.fighters.filter(f => !!ROSTER_UI[f.id].wip === wip);
+      const group = document.createElement('div');
+      group.className = 'fighter-group' + (wip ? ' wip' : ''); group.style.setProperty('--n', fighters.length);
+      group.innerHTML = `<small class="group-label">${label}</small>`;
+      const grid = document.createElement('div'); grid.className = 'fighter-grid';
+      grid.replaceChildren(...fighters.map(tile));
+      group.append(grid);
+      return group;
+    }).filter(g => g.querySelector('.pick'));
     $('pickMode').replaceChildren(...Object.entries(modes).map(([id, m]) => {
       const b = btn(m.label, pick.mode === id, () => { pick.mode = id; });
       b.dataset.mode = id;
       if (id === 'tutorial' && !tutorialCompleted()) b.insertAdjacentHTML('beforeend', '<small class="badge">New here?</small>');
       return b;
     }));
-    $('pickYou').replaceChildren(...catalog.fighters.map(f => fighterTile(f, pick.you === f.id, () => { pick.you = f.id; })));
+    $('pickYou').replaceChildren(...fighterGroups(f => fighterTile(f, pick.you === f.id, () => { pick.you = f.id; })));
     $('fighterHelp').textContent = ROSTER_UI[pick.you].description;
-    $('pickCpu').replaceChildren(...catalog.fighters.map(f => fighterTile(f, pick.cpus.includes(f.id), () => {
+    $('pickCpu').replaceChildren(...fighterGroups(f => fighterTile(f, pick.cpus.includes(f.id), () => {
       pick.cpus = pick.cpus.includes(f.id) ? pick.cpus.filter(x => x !== f.id) : [...pick.cpus, f.id].slice(-3);
     })));
     $('pickStage').replaceChildren(...stages.map(([id, name]) => {

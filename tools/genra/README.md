@@ -626,9 +626,14 @@ animation's timing, spacing and contacts.
 Use generated video when an unresolved movement idea needs exploration, such as a stumble,
 distinctive gait or elaborate recovery. State the question the take should answer. Start
 with one short take from the selected model within the task's authorized budget.
-`video_ref.py` can also compare several models when that comparison is part of the task:
+`video_ref.py` can also compare several models when that comparison is part of the task.
+Start with `local/wan2.2-5b`: it renders on the local ComfyUI for free (about 7 minutes for 5 s,
+capped at 5 s; setup in [local references](../../docs/contributing/local-comfyui.md)). It follows
+the prompt's first beat only, so write one beat per take and chain takes from a frame of the
+previous one. A paid model needs the owner's OK:
 
 ```bash
+$PY tools/genra/video_ref.py generate PROMPT.txt --first-frame FRAME.jpg --models local/wan2.2-5b   # free, local
 $PY tools/genra/video_ref.py generate PROMPT.txt --first-frame FRAME.jpg --models bytedance/seedance-2.5 \
     [--duration 8] [--dry-run]
 $PY tools/genra/video_ref.py frames CLIP.mp4 --at 0.9,1.5,3.0 --labels crouch,launch,impact   # key-pose sheet, no credits

@@ -82,8 +82,30 @@ A video in Ready to post or Posted shows a badge per platform on its card:
 green where it is up, dashed where it is not yet. That is the checklist for
 posting the same video everywhere. In the video's detail view, **Posted on**
 takes a tick and an optional link per platform (TikTok, YouTube Shorts,
-Instagram, X); saving any tick on a Ready video moves it to Posted. Agents
+Instagram, Threads, X); saving any tick on a Ready video moves it to Posted. Agents
 record the same thing with `factory.py posted <idea> <platform> [<link>]`.
+
+Posting stays by hand; **Post everywhere** on a Ready video makes it quick. It
+opens the upload page of every platform not ticked yet (X and Threads with the
+caption already typed in; Threads uses the X text when the kit has no Threads
+entry). On the desk it also opens `factory.py drag <idea>`: a small window
+holding the clip file, to drag into each tab, since a web page cannot hand a
+file to another site. The browser needs pop-ups allowed for the board once, and
+the drag window needs a URL handler on the desk (personal setup, not in Git):
+
+```ini
+# ~/.local/share/applications/sloparena-post.desktop
+[Desktop Entry]
+Type=Application
+Name=SLOPArena post
+Exec=python3 /home/binoui/Documents/projects/SlopArena/tools/factory.py drag %u
+MimeType=x-scheme-handler/sloparena-post;
+NoDisplay=true
+```
+
+`xdg-mime default sloparena-post.desktop x-scheme-handler/sloparena-post` and
+`update-desktop-database ~/.local/share/applications` register it; without the
+second, Chrome's link opener says no app is available. The drag window uses GTK 4 from Python (`python-gobject`).
 
 A clip that only went out inside a longer video carries `usedIn: <idea>` and
 gets no badges, no Numbers row and no file in the folder.
@@ -109,24 +131,68 @@ Fighters shown before their reveal follow the same rules as the clip itself.
 
 ### Numbers that fill themselves
 
-`python3 tools/factory.py views` reads the public profiles
-(youtube.com/@SLOPArena/shorts and tiktok.com/@sloparena) with yt-dlp, which
-needs no account or API key. It first links new posts to their video: a post
-whose text shares most of its words with one video's title or caption kit gets
-that link, so pasting the kit is enough. Then it stores each linked post's
-views, likes and comments in `stats` and one row a day in `history`. The
-Numbers tab shows those numbers read-only with a link to the post. Instagram,
-X and Steam visits are still typed in.
+`python3 tools/factory.py views` finds every post on each platform, links new
+ones to their video, and stores each linked post's numbers in `stats` (views,
+likes, comments, plus `reach`, `saves`, `shares`, `reposts`, `watch_s` and
+`watch_pct` where the platform gives them) and one row a day in `history`.
 
-A post it cannot match with confidence stays unlinked and is printed with the
-command that links it (`factory.py posted <idea> <platform> <link>`); read
-them with `journalctl --user -u sloparena-views -n 30`.
+- **Instagram, Threads and YouTube** come from their official APIs through
+  `tools/social_api.py`, once it is logged in (setup below). Until YouTube is,
+  Shorts fall back to yt-dlp.
+- **TikTok** comes from yt-dlp's public numbers (youtube.com/@SLOPArena/shorts
+  and tiktok.com/@sloparena need no account).
+- **X and Steam visits** are typed in on the Numbers tab.
+
+A post is linked to the video whose title or caption kit for that platform
+shares most of its words (Threads also tries the X text), so pasting the kit is
+enough. A post it cannot match with confidence shows under **Posts to link** on
+the Numbers tab, with a clip picker. **Fetch now** there asks the desk to run
+`views` straight away: the relay (below) starts `sloparena-views.service`, and
+the run's one-line summary appears beside the button.
+
+#### One-time platform setup
+
+Reading your own accounts needs no app review. Keys and tokens live in
+`~/.config/sloparena/social.json` on the desk (0600, never in Git).
+
+1. **Meta app** (developers.facebook.com → My Apps → Create app, "SLOPArena
+   stats", no business portfolio). Use cases: *Manage messaging & content on
+   Instagram* and *Access the Threads API*. @sloparena must be a Creator or
+   Business account.
+   - Instagram → API setup with Instagram login: note the **Instagram app ID
+     and secret**; in Business login settings add the redirect URL
+     `https://alfred.tail026bc8.ts.net/oauth`.
+   - Threads → Settings: note the **Threads app ID and secret**, add the same
+     redirect URL; under Permissions add `threads_manage_insights`.
+   - App roles → Roles → Add people: @sloparena as **Instagram Tester** and as
+     **Threads Tester**. Accept both: instagram.com → Settings → Website
+     permissions → Apps and websites → Tester invites; threads.com → Settings →
+     Account → Website permissions → Invites.
+2. **Google Cloud project** "SLOPArena stats": enable *YouTube Data API v3* and
+   *YouTube Analytics API*; Google Auth Platform → Branding (name, email),
+   Audience → External and **Publish app** (a Testing app's login expires after
+   7 days); Clients → Create client → **Desktop app** → download the JSON.
+3. On the desk, log in once each (the browser opens; on Google, sign in with the
+   channel's account and accept the "unverified app" warning, it is your own):
+
+```sh
+python3 tools/social_api.py login instagram --app-id <id> --secret-file <file>
+python3 tools/social_api.py login threads --app-id <id> --secret-file <file>
+python3 tools/social_api.py login youtube --client-json <downloaded.json>
+python3 tools/social_api.py status
+```
+
+Meta tokens last 60 days and every `views` run refreshes them, so they only
+lapse if the timer stops for two months; then log in again.
 
 It runs on the desk every 6 hours from a systemd user timer (not in Git, since
 it is personal machine setup):
 
 ```ini
 # ~/.config/systemd/user/sloparena-views.service
+[Unit]
+Description=SLOPArena: read post numbers into the Slop Factory
+
 [Service]
 Type=oneshot
 WorkingDirectory=/home/binoui/Documents/projects/SlopArena
@@ -216,4 +282,5 @@ The relay sits behind Cloudflare, which refuses Python's default User-Agent
   `~/.t3/worktrees/SlopArena`. The agent works in the main checkout, so these
   worktrees are unused and need occasional cleanup.
 - The analyst role (reading posted numbers to steer the designer) is not built.
-  TikTok and Shorts numbers collect themselves; Instagram and X are typed in.
+  Every platform but X collects its own numbers (Instagram, Threads and YouTube
+  once `tools/social_api.py` is logged in); X and Steam visits are typed in.

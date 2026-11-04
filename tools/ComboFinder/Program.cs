@@ -84,7 +84,7 @@ try
                 Console.SetOut(Console.Error);
                 var content = new Content(file.Stage);
                 if (args[0] == "cameras") result = Json.Write(Cameras.Plan(content, file, Arg("--orientation")));
-                else { Replay.Run(content, file); result = $"PASS {file.Id}: content, moves, ticks, swings, taken and KO match\n"; }
+                else { var trace = Replay.Run(content, file); var (score, why) = Scoring.Score(trace); var (travel, planted) = Scoring.Movement(trace); result = $"PASS {file.Id}: content, moves, ticks, swings, taken and KO match\nscore={score:F1} travel={travel:F1}m planted={planted} {why}\n"; }
             }
             finally { Console.SetOut(stdout); }
             Console.Write(result);

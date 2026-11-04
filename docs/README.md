@@ -118,6 +118,7 @@ an implementation or authoring guide.
 | [Coding assistant setup](contributing/agents.md) | Shared instructions, skill discovery, checkouts, permissions, and manual handoffs |
 | [Editor coordination](contributing/unity-editor-coordination.md) | Caller identities, bounded leases, preservation, and recovery |
 | [Quality checks](contributing/quality.md) | Documentation, adapter, gateway, and applicable build/test commands |
+| [Local references with ComfyUI](contributing/local-comfyui.md) | Free motion clips and VFX sprite sheets on the maintainer's GPU |
 | [Project tools](../tools/README.md) | Maintained .NET build set, reports, diagnostics, and research boundaries |
 | [Contributor cleanup plan](plans/2026-10-13-contributor-cleanup.md) | Bounded cleanup batches and pending Unity decisions |
 | [Unity CLI](contributing/unity-cli.md) | Package inspection/cooking, Ability Lab commands, and Editor checks |

@@ -121,8 +121,12 @@ const checkActions = d => d.thread ? CHECK_ACTIONS[d.status]
   : CHECK_ACTIONS[d.status].filter(a => a[3] !== "commit").map(a => a[3] ? ["good","Good","go"] : a);
 const TAB_RUNS = {proposed: ["propose", "Propose clips", "The designer builds the batch around your open notes in the Scout inbox, then the latest scout reports and what changed in the game: 5 to 7 ideas here."],
   approved: ["render", "Render approved", "Films every idea in this tab; each take lands in To review."]};
-const ACTIVE = ["queued","sent","running"], PLATFORMS = ["tiktok","shorts","instagram","x"];
-const PLATFORM_NAMES = {tiktok: "TikTok", shorts: "YouTube Shorts", instagram: "Instagram", x: "X"};
+const ACTIVE = ["queued","sent","running"], PLATFORMS = ["tiktok","shorts","instagram","threads","x"];
+const PLATFORM_NAMES = {tiktok: "TikTok", shorts: "YouTube Shorts", instagram: "Instagram", threads: "Threads", x: "X"};
+// Upload pages Post everywhere opens; X and Threads get their caption typed in (Threads falls back to the X text).
+const UPLOAD = {tiktok: () => "https://www.tiktok.com/tiktokstudio/upload", shorts: () => "https://www.youtube.com/upload",
+  instagram: () => "https://www.instagram.com/", threads: c => "https://www.threads.com/intent/post?text=" + encodeURIComponent((c.threads || c.x || {}).text || ""),
+  x: c => "https://x.com/intent/post?text=" + encodeURIComponent((c.x || {}).text || "")};
 // Where a ready or posted video is up: its posts field, platform -> link (or true when posted without one).
 const shelf = d => ["ready","posted"].includes(d.status) && !d.usedIn;
 const plats = d => shelf(d) ? `<div class="plats">${PLATFORMS.map(p => `<span class="plat ${(d.posts || {})[p] ? "on" : ""}">${(d.posts || {})[p] ? "✓ " : ""}${PLATFORM_NAMES[p]}</span>`).join("")}</div>` : "";
@@ -197,12 +201,23 @@ function draftPosts() {
 }
 function where(d, draft) {
   const posts = draft || d.posts || {};
-  return `<h4>Posted on</h4><div class="where">${PLATFORMS.map(p => { const v = posts[p];
+  const left = PLATFORMS.filter(p => !posts[p]);
+  return `<h4>Posted on</h4>${d.status === "ready" && left.length ? `<p><button class="btn go" onclick="postEverywhere('${d.id}')">Post everywhere</button>
+    <span class="age">Opens ${left.map(p => PLATFORM_NAMES[p]).join(", ")}${desk() ? ", and the clip in a drag window on the desk" : ""}.</span></p>` : ""}<div class="where">${PLATFORMS.map(p => { const v = posts[p];
     return `<input type="checkbox" id="w-${p}" ${v ? "checked" : ""}><label for="w-${p}">${PLATFORM_NAMES[p]}</label>
       <span><input type="text" id="wl-${p}" placeholder="Link (optional)" value="${esc(typeof v === "string" ? v : "")}"
         oninput="if(this.value.trim())document.getElementById('w-${p}').checked=true"></span>`; }).join("")}</div>
     <button class="btn small go" onclick="savePosts('${d.id}')">Save where it's posted</button>
     ${PLATFORMS.filter(p => typeof posts[p] === "string").map(p => `<a href="${esc(posts[p])}" target="_blank" rel="noopener">${PLATFORM_NAMES[p]} ↗</a>`).join(" &middot; ")}`;
+}
+// On a desk (mouse), the sloparena-post: link opens `factory.py drag`: a small window to drag the file into each tab.
+const desk = () => matchMedia("(pointer: fine)").matches;
+function postEverywhere(id) {
+  const d = byId(id), posts = d.posts || {}, left = PLATFORMS.filter(p => !posts[p]);
+  if (desk()) location.href = "sloparena-post:" + id;  // first: it needs the click, the pop-ups use the site permission
+  const blocked = left.filter(p => !window.open(UPLOAD[p](d.captions || {}), "_blank")).length;
+  say(blocked ? `${blocked} tab(s) blocked: allow pop-ups for this site (address bar icon), then press again`
+    : desk() ? "Drag the clip from the SLOPArena post window into each tab" : "Pages opened");
 }
 // Caption kit: captions field, platform -> {title?, text}, written by the agent that delivered the video.
 function kit(d) {
@@ -372,8 +387,10 @@ async function startRun(kind) {
 async function resend(id) {
   try { const r = await send("POST", `/api/runs/${id}/resend`, {}); say(`Run #${id}: ${r.state}`); await load(); } catch (e) { say("Failed: " + e.message); }
 }
-// TikTok and Shorts numbers come from `factory.py views` (desk timer) for posts with a link; the rest are typed here.
-const AUTO = ["tiktok", "shorts"];
+// Linked posts get their numbers from `factory.py views` (desk timer, or Fetch now); X and Steam are typed here.
+const AUTO = ["tiktok", "shorts", "instagram", "threads"];
+const EXTRA = {reach: "reach", saves: "saves", shares: "shares", reposts: "reposts", watch_s: "s watched", watch_pct: "% watched"};
+const extras = (st, p) => Object.entries(EXTRA).filter(([k]) => st[`${p}_${k}`] != null).map(([k, l]) => `${fmt(st[`${p}_${k}`])}${l.startsWith("%") ? "" : " "}${l}`).join(" · ");
 const auto = (d, p) => AUTO.includes(p) && typeof (d.posts || {})[p] === "string";
 const fmt = n => n == null || n === "" ? "" : Number(n).toLocaleString("en");
 function numbers() {
@@ -381,14 +398,39 @@ function numbers() {
   if (!posted.length) return `<div class="empty">Nothing posted yet. Mark a clip in READY TO POST as posted, then fill in its views here.</div>`;
   const checked = posted.map(d => (d.stats || {}).checked).filter(Boolean).sort().pop();
   const total = p => posted.some(d => (d.stats || {})[p] != null) ? posted.reduce((n, d) => n + (Number((d.stats || {})[p]) || 0), 0) : null;
-  return `<p class="age">TikTok and Shorts update by themselves every 6 hours${checked ? `, last check ${esc(checked.replace("T", " "))}` : ""}. Type the others.</p>
+  const f = B.fetch || {}, busy_ = f.asks > 0 && !(f.done && f.done >= f.requested);
+  const loose = loosePosts(), clips = top_().filter(d => shelf(d));
+  return `<div class="tabrun"><button class="btn go" onclick="fetchNow()" ${busy_ ? "disabled" : ""}>${busy_ ? (f.taken >= f.asks ? "Fetching…" : "Waiting for the desk…") : "Fetch now"}</button>
+    <span>Every platform but X updates by itself every 6 hours${checked ? `, last ${esc(checked.replace("T", " "))}` : ""}.${f.summary ? ` Last fetch: ${esc(f.summary)}.` : ""}</span></div>
+    ${loose.length ? `<h4>Posts to link</h4><p class="age">Found on your profiles, but no clip's caption matched. Pick the clip once.</p>
+      <div class="where">${loose.map((u, i) => `<span>${PLATFORM_NAMES[u.platform] || esc(u.platform)}</span>
+        <a href="${esc(u.url)}" target="_blank" rel="noopener">${esc(u.text || u.url).slice(0, 70)}</a>
+        <span><select id="um-${i}"><option value="">Pick a clip…</option>${clips.map(d => `<option value="${esc(d.id)}">${esc(d.title || d.id)}</option>`).join("")}</select>
+        <button class="btn small go" onclick="linkPost(${i})">Link</button></span>`).join("")}</div>` : ""}
     <div style="overflow-x:auto"><table class="list"><tr><th>Clip</th><th>Posted</th>${PLATFORMS.map(p => `<th>${PLATFORM_NAMES[p]}</th>`).join("")}<th>Steam visits</th><th></th></tr>` +
     posted.map(d => { const st = d.stats || {};
       return `<tr><td>${esc(d.title)}</td><td>${esc(d.posted || "")}</td>${PLATFORMS.concat(["steam"]).map(p => auto(d, p)
-        ? `<td><a href="${esc(d.posts[p])}" target="_blank" rel="noopener"><b>${fmt(st[p]) || "–"}</b></a>${st[p + "_likes"] != null ? `<br><small>♥ ${fmt(st[p + "_likes"])}${st[p + "_comments"] != null ? ` · 💬 ${fmt(st[p + "_comments"])}` : ""}</small>` : ""}</td>`
+        ? `<td><a href="${esc(d.posts[p])}" target="_blank" rel="noopener"><b>${fmt(st[p]) || "–"}</b></a>${st[p + "_likes"] != null ? `<br><small>♥ ${fmt(st[p + "_likes"])}${st[p + "_comments"] != null ? ` · 💬 ${fmt(st[p + "_comments"])}` : ""}</small>` : ""}${extras(st, p) ? `<br><small>${extras(st, p)}</small>` : ""}</td>`
         : `<td><input id="s-${d.id}-${p}" value="${esc(st[p] ?? "")}"></td>`).join("")}
       <td><button class="btn small" onclick="stats('${d.id}')">Save</button></td></tr>`; }).join("") +
     `<tr><td><b>Total</b></td><td></td>${PLATFORMS.concat(["steam"]).map(p => `<td><b>${fmt(total(p))}</b></td>`).join("")}<td></td></tr></table></div>`;
+}
+// Posts the last fetch found but could not match, minus the ones linked since.
+function loosePosts() {
+  const linked = new Set(top_().flatMap(d => Object.values(d.posts || {})));
+  return ((B.fetch || {}).unmatched || []).filter(u => !linked.has(u.url));
+}
+async function fetchNow() {
+  try { await send("POST", "/api/fetch", {}); say("Asked the desk: numbers arrive in a minute or two"); await load(); } catch (e) { say("Failed: " + e.message); }
+}
+async function linkPost(i) {
+  const u = loosePosts()[i], d = byId(document.getElementById("um-" + i).value);
+  if (!u || !d) return say("Pick a clip first");
+  try {
+    await send("PATCH", `/api/ideas/${d.id}`, {posts: {...(d.posts || {}), [u.platform]: u.url}});
+    if (d.status === "ready") await send("POST", `/api/ideas/${d.id}/verdict`, {status: "posted", note: ""});
+    say(`${d.title}: linked on ${PLATFORM_NAMES[u.platform]}; numbers come with the next fetch`); await load();
+  } catch (e) { say("Failed: " + e.message); }
 }
 async function stats(id) {
   const s = {...(byId(id).stats || {})};  // keep the collector's numbers, likes and comments
@@ -451,7 +493,7 @@ load().then(() => {
     area = localStorage.area = "checks"; checkTab = localStorage.checkTab = checkById(+check[1]).status; showCheck(+check[1]);
   } else openIdea(hash);
 }).catch(e => say("Could not load: " + e.message));
-setInterval(() => { const typing = ["note", "inboxText", "checkNote", "sendNote", "checkFilter"].includes(document.activeElement?.id) || /^wl?-/.test(document.activeElement?.id || ""); const playing = [...document.querySelectorAll("video")].some(v => !v.paused);
+setInterval(() => { const typing = ["note", "inboxText", "checkNote", "sendNote", "checkFilter"].includes(document.activeElement?.id) || /^(wl?|s|um)-/.test(document.activeElement?.id || ""); const playing = [...document.querySelectorAll("video")].some(v => !v.paused);
   if (!typing && !playing) load(); }, 15000);
 </script>
 </body>

@@ -30,6 +30,15 @@ and open decisions live in the
 3. Inventory what exists: `Presentation/` assets, `emitPresentation` cues,
    `hitPresentationId` per slot, the weapon trail style in the catalog's weapon config,
    entries in `Resources/VFXConfigs/ProjectileVisuals.asset`, and sounds.
+4. **Local motion references** for any effect whose shape changes over time (water rising
+   and collapsing, fire turning to smoke, a transformation). Baked shapes and particles can't
+   morph, so show the motion before building it. Draw a first frame in the character's
+   palette on pure black, generate a short clip on the local ComfyUI with
+   `tools/vfx/comfy_video.py` (free, about 5–8 minutes), and grade it into the character's
+   bands with `tools/vfx/flipbook.py`. For attacks, drive the clip with a blockout from the move's
+   real hitboxes (`tools/vfx/blockout.py`, then `comfy_video.py --control masses.mp4`) so its reach
+   and timing match the hitbox. Show it beside the concept board. One beat per take;
+   chain takes for later beats. Setup and pitfalls: [local references](../../docs/contributing/local-comfyui.md).
 
 ## 2. Capture "before"
 
@@ -70,6 +79,40 @@ these "before" frames with the same banding the builder bakes, one panel per bea
 short captions and a palette. Wait for approval; concepts are cheap to change, built
 effects are not. Keep gags at the character's expense, and keep finishers dignified if the
 owner asks (FightGuy's Fist of Fury).
+
+## Craft: what makes an effect read
+
+Design concepts and builders with these. They are starting points the owner's taste can
+override; the rules table in step 3 records measured engine behaviour. Adapted from the craft
+rules of [kanaworksai-hue/effekseer-vfx-skill](https://github.com/kanaworksai-hue/effekseer-vfx-skill)
+(MIT); screen shake and impact frames stay opt-in per move ([combat presentation plan](../../docs/plans/2026-10-16-combat-presentation-pass.md)).
+
+- **Time structure.** Anticipation (optional, 2–14 ticks, small and drawing in) → contact
+  (2–5 ticks, the brightest moment, on the tick the hitbox opens) → body (8–20 ticks) →
+  secondary (10–40 ticks: sparks, debris, dust) → dissipation (most of the life). Charges
+  invert it: a long inward build, then one flash at release. Buffs, armour and stances drop
+  the contact flash and fade in with a slight overshoot.
+- **The body changes shape.** It sweeps open, breaks into pieces, swaps sheet frames
+  (`PresentationFx.FlickerFrames` over baked shapes) or splits into strokes; shrinking and
+  fading alone reads as a sticker.
+- **Ease out.** Particles burst fast, then hang and droop (`Drag`, size and velocity curves);
+  nothing travels at constant speed in a straight line.
+- **Light goes first, the shape lingers.** A bright layer hands over to a darker alpha copy
+  (smoke, dust, ink) that starts a few ticks later and lives about 1.6–2× as long.
+- **Broken arcs over clean rings.** Build bodies from several partial strokes, each sweeping
+  60–200° with its own radius, tilt and width, rather than one full ring or round billboard.
+- **Direction.** Sparks, debris and droplets spray along the hit (`HitResult.DirX`/`DirZ`) and
+  slightly up, not as a symmetric ball.
+- **Stagger the read points.** The flash leaves first, the form takes over, debris keeps
+  moving, smoke thins last. A later layer brighter than the contact needs a reason (a second
+  hit, a release).
+- **Check the tail.** Look at the exit start, its middle and a frame after the cue ends: no
+  empty tail, no static dirty afterimage, no large shape still visible at the end.
+- **One palette family plus white and the dark rim.** A second hue needs a job.
+- **Moves differ in at least three of** shape, motion, rhythm, material and secondary
+  motion. A recolour is not a new effect.
+- **Budget.** About 60 live particles for an ordinary hit and at most three screen-sized
+  layers alive at once; a finisher may briefly exceed both.
 
 ## 3. Build the effects
 
@@ -185,6 +228,10 @@ python3 tools/presentation_review.py page tmp/vfx/<package>/page --spec tmp/vfx/
 
 - Inspect sheets yourself first, with full-resolution crops for small effects; check both
   stages and the wide view for leaps and launches.
+- Then run the [blind review](blind-review.md): one fresh subagent that never sees the builder
+  scores each move on the captures, and you make one fix pass for its `iterate` moves before
+  the owner sees anything. Capture with `move_review.py run <package> --hitboxes` so it can
+  judge reach.
 - Show the owner close-ups at ¼× and 1×, and option grids for open choices. Gameplay-distance
   comparisons hide these effects.
 - Keep a page under about 20 MB: lower `--quality` or shorten the frame windows.

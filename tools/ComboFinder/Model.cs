@@ -39,7 +39,7 @@ sealed record RunTrace
     public List<InputState> TapeA = new(), TapeV = new();
     public int CloseVictimSwings;
     public List<MoveInstance> Moves = new();
-    public List<bool> VictimFree = new(), AttackerAir = new(), VictimAir = new();
+    public List<bool> VictimFree = new(), AttackerAir = new(), VictimAir = new(), AttackerPlanted = new();
     public List<int> Beelines = new();
     public List<Position> AttackerPos = new(), VictimPos = new();
     public List<Death> Deaths = new();

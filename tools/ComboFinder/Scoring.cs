@@ -6,7 +6,10 @@ using static SlopArena.ComboFinder.Runner;
 static class Scoring
 {
     const ulong A = 1, V = 2;
-    internal static (double score, string why) Score(RunTrace r)
+    internal static (double score, string why) Score(RunTrace r) { var e = Evaluate(r); return (e.score, e.why); }
+    /// <summary>The attacker's own travel in metres and idle grounded ticks over the scored string, for reports.</summary>
+    internal static (double travel, int planted) Movement(RunTrace r) { var e = Evaluate(r); return (e.travel, e.planted); }
+    static (double score, string why, double travel, int planted) Evaluate(RunTrace r)
     {
         double s = -0.05 * r.Ticks;
         var mine = r.Hits.Where(h => h.Owner == A && !h.Blocked).ToList();
@@ -40,16 +43,25 @@ static class Scoring
         int distinct = kinds.Distinct().Count();
         s += 35 * normals + 20 * (kinds.Count - normals) + 25 * distinct - 60 * lightSpecials;
         for (int i = 1; i < kinds.Count; i++) if (kinds[i] == kinds[i - 1]) s -= 35;
-        // Chasing: the attacker travels or takes to the air during the string.
-        if (str.Count > 1)
+        // Movement (owner, 2026-11-04): the attacker should move like a player, not stand and let the CPU walk in. From
+        // the approach before the first hit to the last hit, reward the attacker's own travel, the ground it closes
+        // on the victim, and air time. The share of that time spent standing idle costs points; a share, so a long
+        // string costs no more than a short one.
+        double travel = 0, closed = 0; int air = 0, planted = 0, window = 0;
+        if (str.Count > 0)
         {
-            double travel = 0; int air = 0;
-            for (int t = str[0].first; t < str[^1].last && t < r.AttackerPos.Count; t++)
+            for (int t = Math.Max(1, str[0].first - 60); t < str[^1].last && t < r.AttackerPos.Count; t++)
             {
-                var (x0, _, z0) = r.AttackerPos[t - 1]; var (x1, _, z1) = r.AttackerPos[t];
-                travel += Math.Sqrt((x1 - x0) * (x1 - x0) + (z1 - z0) * (z1 - z0)); if (r.AttackerAir[t]) air++;
+                window++;
+                var (x0, _, z0) = r.AttackerPos[t - 1]; var (x1, _, z1) = r.AttackerPos[t]; var (vx, _, vz) = r.VictimPos[t - 1];
+                double sx = x1 - x0, sz = z1 - z0, dx = vx - x0, dz = vz - z0, d = Math.Sqrt(dx * dx + dz * dz);
+                travel += Math.Sqrt(sx * sx + sz * sz);
+                if (d > 1e-3) closed += Math.Max(0, (sx * dx + sz * dz) / d);
+                if (r.AttackerAir[t]) air++;
+                if (r.AttackerPlanted[t]) planted++;
             }
-            s += Math.Min(40, 4 * travel) + Math.Min(30, air * 0.3) + (kinds.Any(k => !k.ground) && kinds.Any(k => k.ground) ? 30 : 0);
+            s += Math.Min(150, 3 * travel) + Math.Min(80, 4 * closed) + Math.Min(60, air * 0.4) - 200.0 * planted / Math.Max(1, window);
+            if (kinds.Any(k => !k.ground) && kinds.Any(k => k.ground)) s += 30;
         }
         int taken = r.Hits.Count(h => h.Owner == V && !h.Blocked);
         int blocked = r.Hits.Count(h => h.Owner == V && h.Blocked);
@@ -61,7 +73,7 @@ static class Scoring
             if (koFollows) s += 250 + 30 * str.Count;
         }
         string name(byte slot, bool g) => (g ? "g" : "a") + (normalWires.Contains(slot) ? "N" + slot : "S" + slot);
-        return (s, $"string={bestLen} normals={normals} distinct={distinct} light={lightSpecials} beaten={beaten} [{string.Join(" ", kinds.Select(k => name(k.slot, k.ground)))}] moves={landed.Count} dmg={dmg:F0} taken={taken} blocked={blocked} whiffs={r.CloseVictimSwings} ko={r.VictimKo}");
+        return (s, $"string={bestLen} normals={normals} distinct={distinct} light={lightSpecials} beaten={beaten} [{string.Join(" ", kinds.Select(k => name(k.slot, k.ground)))}] moves={landed.Count} dmg={dmg:F0} taken={taken} blocked={blocked} whiffs={r.CloseVictimSwings} ko={r.VictimKo}", travel, planted);
     }
 
     internal static (double score, string why, int progress) RouteScore(RunTrace r, string[] route)

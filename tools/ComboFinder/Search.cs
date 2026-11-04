@@ -42,7 +42,7 @@ static class Search
             var done = ordered.FirstOrDefault(c => c.Ko >= 0);
             if (done != null && (bestDone == null || done.Score > bestDone.Score || done.Score == bestDone.Score && string.CompareOrdinal(done.Key, bestDone.Key) < 0)) bestDone = done;
             beam = ordered.Where(c => c.Ko == -1).GroupBy(c => c.Why)
-                .Select(g => g.OrderBy(c => c.Plan.Count(p => p != "idle")).ThenBy(c => c.Key, StringComparer.Ordinal).First())
+                .Select(g => g.OrderByDescending(c => c.Score).ThenByDescending(c => c.Plan.Count(p => p != "idle")).ThenBy(c => c.Key, StringComparer.Ordinal).First())
                 .OrderByDescending(c => c.Score).ThenBy(c => c.Key, StringComparer.Ordinal).Take(o.Beam).ToList();
             if (beam.Count > 0 && (bestPartial == null || beam[0].Score > bestPartial.Score || beam[0].Score == bestPartial.Score && string.CompareOrdinal(beam[0].Key, bestPartial.Key) < 0)) bestPartial = beam[0];
             if (bestDone != null && firstKoSeg < 0) firstKoSeg = seg;

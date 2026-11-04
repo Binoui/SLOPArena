@@ -28,14 +28,18 @@ sealed class Runner
     // Attacker action vocabulary: each entry fills Seg ticks of input relative to the victim.
     static readonly string[] slots = { "1", "2", "3", "A", "E", "R", "F" };
     internal static readonly HashSet<byte> normalWires = new HashSet<byte> { Slot("1"), Slot("2"), Slot("3") };
-    internal static readonly List<string> actions = new List<string> { "idle", "toward", "away", "left", "right", "jump", "jumpToward", "dashToward", "dashAway", "shield", "grab", "down" };
+    // Movement (owner, 2026-11-04: found strings lacked movement). Eight stick directions around the victim, short hops
+    // (jump released inside Simulation.ShortHopWindowTicks), full jumps, jumps away (wall jumps near a wall), aimed air
+    // dodges, and normals pressed while drifting in any direction.
+    internal static readonly string[] moveActions = { "idle", "toward", "away", "left", "right", "towardLeft", "towardRight", "awayLeft", "awayRight",
+        "jump", "jumpToward", "jumpAway", "highJump", "highJumpToward", "dashToward", "dashAway", "dodgeToward", "dodgeAway", "shield", "down" };
+    internal static readonly List<string> actions = moveActions.Append("grab").ToList();
     static Runner()
     {
         foreach (var s in slots) { actions.Add("press" + s); actions.Add("pressToward" + s); }
-        foreach (var s in new[] { "1", "2", "3" }) actions.Add("hopToward" + s);
+        foreach (var s in new[] { "1", "2", "3" }) { actions.Add("hopToward" + s); actions.Add("pressAway" + s); actions.Add("pressLeft" + s); actions.Add("pressRight" + s); }
         actions.Add("aimA"); actions.Add("aimTowardA");
     }
-    internal static readonly string[] moveActions = { "idle", "toward", "away", "left", "right", "jump", "jumpToward", "dashToward", "dashAway", "shield", "down" };
     // Route token -> the press actions that can start it.
     internal static IEnumerable<string> PressesFor(string token)
     {
@@ -68,8 +72,17 @@ sealed class Runner
             case "away": Move(to + 180f); input.AimYaw = input.FacingYaw = Wire(to); break;
             case "left": Move(to - 90f); break;
             case "right": Move(to + 90f); break;
+            case "towardLeft": Move(to - 45f); break;
+            case "towardRight": Move(to + 45f); break;
+            case "awayLeft": Move(to - 135f); input.AimYaw = input.FacingYaw = Wire(to); break;
+            case "awayRight": Move(to + 135f); input.AimYaw = input.FacingYaw = Wire(to); break;
             case "jump": input.JumpHeld = k < 4; input.Jump = k == 0; break;
             case "jumpToward": input.JumpHeld = k < 4; input.Jump = k == 0; Move(to); break;
+            case "jumpAway": input.JumpHeld = k < 4; input.Jump = k == 0; Move(to + 180f); input.AimYaw = input.FacingYaw = Wire(to); break;
+            case "highJump": input.JumpHeld = true; input.Jump = k == 0; break;
+            case "highJumpToward": input.JumpHeld = true; input.Jump = k == 0; Move(to); break;
+            case "dodgeToward": input.ShieldHeld = k < 2; input.ShieldPressed = k == 0; Move(to); break;
+            case "dodgeAway": input.ShieldHeld = k < 2; input.ShieldPressed = k == 0; Move(to + 180f); input.AimYaw = input.FacingYaw = Wire(to); break;
             case "dashToward": input.DashPressed = k == 0; Move(to); break;
             case "dashAway": input.DashPressed = k == 0; Move(to + 180f); break;
             case "shield": input.ShieldHeld = true; input.ShieldPressed = k == 0; break;
@@ -80,6 +93,9 @@ sealed class Runner
             default:
                 if (action.StartsWith("hopToward")) { input.JumpHeld = k < 4; input.Jump = k == 0; Move(to); if (k == 5) input.ActiveSlot = Slot(action[9..]); }
                 else if (action.StartsWith("pressToward")) { if (k == 0) input.ActiveSlot = Slot(action[11..]); Move(to); }
+                else if (action.StartsWith("pressAway")) { if (k == 0) input.ActiveSlot = Slot(action[9..]); Move(to + 180f); input.AimYaw = input.FacingYaw = Wire(to); }
+                else if (action.StartsWith("pressLeft")) { if (k == 0) input.ActiveSlot = Slot(action[9..]); Move(to - 90f); }
+                else if (action.StartsWith("pressRight")) { if (k == 0) input.ActiveSlot = Slot(action[10..]); Move(to + 90f); }
                 else if (action.StartsWith("press") && k == 0) input.ActiveSlot = Slot(action[5..]);
                 break;
         }
@@ -139,6 +155,7 @@ sealed class Runner
             bool victimFree = v2.HitstunTicks == 0 && !v2.InPostHitstunFlight && v2.State != ActionState.Hitstun && v2.State != ActionState.Grabbed;
             r.VictimFree.Add(victimFree);
             r.AttackerAir.Add(!a2.IsGrounded);
+            r.AttackerPlanted.Add(a2.IsGrounded && a2.State == ActionState.Idle && (a2.PX - a.PX) * (a2.PX - a.PX) + (a2.PZ - a.PZ) * (a2.PZ - a.PZ) < 1e-4f);
             r.VictimAir.Add(!v2.IsGrounded);
             if (a2.State == ActionState.HomingDashFloat && a.State != ActionState.HomingDashFloat) r.Beelines.Add(tick);
             r.AttackerPos.Add(new(a2.PX, a2.PY, a2.PZ));

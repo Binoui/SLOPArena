@@ -36,6 +36,7 @@ Shader "SLOPArena/GraphicCharacter"
             #pragma fragment Frag
             #pragma multi_compile _ _MAIN_LIGHT_SHADOWS _MAIN_LIGHT_SHADOWS_CASCADE
             #pragma multi_compile_fragment _ _SHADOWS_SOFT
+            #pragma multi_compile _ _ADDITIONAL_LIGHTS_VERTEX _ADDITIONAL_LIGHTS
             #pragma multi_compile_instancing
 
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
@@ -72,6 +73,7 @@ Shader "SLOPArena/GraphicCharacter"
                 half _FlashAmount;
                 float _CodeCutHeight;
             CBUFFER_END
+            half _FighterFill;
 
             Varyings Vert(Attributes input)
             {
@@ -86,6 +88,17 @@ Shader "SLOPArena/GraphicCharacter"
                 return output;
             }
 
+            half3 Toon(Light light, half3 normalWS)
+            {
+                half wrappedLight = saturate(dot(normalWS, light.direction) * 0.5h + 0.5h);
+                // Broad, soft steps retain the graphic look without cutting across faces.
+                half band = 0.35h + 0.40h * smoothstep(0.30h, 0.58h, wrappedLight)
+                    + 0.25h * smoothstep(0.65h, 0.88h, wrappedLight);
+                half shadowAttenuation = lerp(0.45h, 1.0h, light.shadowAttenuation);
+                return lerp(_ShadowColor.rgb, half3(1, 1, 1), band)
+                    * light.color * (light.distanceAttenuation * shadowAttenuation);
+            }
+
             half4 Frag(Varyings input, FRONT_FACE_TYPE facing : FRONT_FACE_SEMANTIC) : SV_Target
             {
                 float2 cell = floor(input.positionWS.xz * 24);
@@ -95,15 +108,18 @@ Shader "SLOPArena/GraphicCharacter"
                 half3 normalWS = normalize(input.normalWS) * IS_FRONT_VFACE(facing, 1.0h, -1.0h);
                 Light mainLight = GetMainLight(TransformWorldToShadowCoord(input.positionWS));
                 half wrappedLight = saturate(dot(normalWS, mainLight.direction) * 0.5h + 0.5h);
-                // Broad, soft steps retain the graphic look without cutting across faces.
-                half band = 0.35h + 0.40h * smoothstep(0.30h, 0.58h, wrappedLight)
-                    + 0.25h * smoothstep(0.65h, 0.88h, wrappedLight);
-                half3 diffuseTint = lerp(_ShadowColor.rgb, half3(1, 1, 1), band);
                 half3 viewDir = SafeNormalize(GetWorldSpaceViewDir(input.positionWS));
-                half shadowAttenuation = lerp(0.45h, 1.0h, mainLight.shadowAttenuation);
+                half3 direct = Toon(mainLight, normalWS);
+                // Stages light their sets with point lights; fighters take them too or read darker than the floor.
+                #if defined(_ADDITIONAL_LIGHTS) || defined(_ADDITIONAL_LIGHTS_VERTEX)
+                uint lightCount = GetAdditionalLightsCount();
+                for (uint lightIndex = 0u; lightIndex < lightCount; ++lightIndex)
+                    direct += Toon(GetAdditionalLight(lightIndex, input.positionWS), normalWS);
+                #endif
                 half3 ambient = max(SampleSH(normalWS), half3(0, 0, 0));
-                half3 color = albedo.rgb * (ambient
-                    + diffuseTint * mainLight.color * shadowAttenuation);
+                // Night stages use a weak key light; a fill from the camera keeps fighters readable on any stage.
+                direct += _FighterFill * saturate(dot(normalWS, viewDir) * 0.5h + 0.5h);
+                half3 color = albedo.rgb * (ambient + direct);
 
                 // A restrained satin highlight gives volume without a wet/plastic finish.
                 half3 halfDir = SafeNormalize(mainLight.direction + viewDir);
