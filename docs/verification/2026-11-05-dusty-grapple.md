@@ -4,8 +4,10 @@ Engine-only implementation of accepted ADR-0063. No Unity Editor or gateway oper
 
 ## Automated evidence
 
-- Full Shared suite: 4,854 passed, zero failures (4.94 minutes).
-- Final focused grapple, snapshot contract and Arcade compatibility suite: 31 passed.
+- Full Shared suite: 4,861 passed, zero failures (5.13 minutes).
+- Documentation checks passed (463 Markdown files scanned).
+- Final focused grapple, snapshot contract and Arcade compatibility suite: 33 passed.
+- Full Server suite: 99 passed, zero failures (4.26 minutes).
 - Shared and Server builds: passed with `-p:SkipUnityPluginCopy=true`.
 - The full Shared run includes CourseFinishability, CharacterCourse, and both-direction Nyx Manor crossing checks across the roster. Packages remain unchanged; these establish existing course behavior, not acceptance of Dusty's future package switch.
 
@@ -25,7 +27,9 @@ Saved the pre-feature Shared assembly after the catch-only refactor commit `68ca
 
 ## Search cost spot measurement
 
-Selected the baked arena with the most collision triangles: `hamster_habitat`, 6,192 triangles. At world position (-34.5, 0, 0), using the salamander body, prototype parameters and caller-owned triangle scratch, 10 warmups followed by 200 anchor queries averaged 0.298 ms/query; all 200 found an anchor. Debug .NET build, concurrent Shared test activity, one fixed position. This is a smoke measurement, not a worst-case bound or a release benchmark. Scratch storage was 24,768 bytes, allocated by the caller before timing.
+Selected the baked arena with the most collision triangles: `hamster_habitat`, 6,192 triangles. At world position (-34.5, 0, 0), using the salamander body, prototype parameters and caller-owned triangle scratch, 10 warmups followed by 200 anchor queries averaged 0.424 ms/query; all 200 found an anchor. Debug .NET build, concurrent Shared test activity, one fixed position. This is a smoke measurement, not a worst-case bound or a release benchmark. Scratch storage was 24,768 bytes, allocated by the caller before timing. The 200 queries allocated zero bytes beyond the 40-byte Stopwatch used by the harness.
+
+The tie-order regression also verifies that triangle stages reject the drop resolver's heightmap fallback outside the physical lip. Heightmap-only stages continue to use heightmap support.
 
 ## Package-switch handoff
 

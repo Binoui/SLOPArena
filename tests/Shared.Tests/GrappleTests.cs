@@ -191,4 +191,20 @@ public sealed class GrappleTests
         Assert.Equal((ushort)4,sim.GetState(2).DamagePercent);
     }
 
+    [Fact]
+    public void ElevatedPlatformIsAStandableLip()
+    {
+        var arena=CourseShellArena.FromBoxes(new[] { (-3f,1.5f,0f,3f,2f,5f) },new SpawnPoint());
+        var s=Air() with { PY=.75f };
+        Assert.True(GrappleAnchors.TryFind(s,Definition(),arena,Parameters,0,1,new int[arena.CollisionTriangles.Length],out var a));
+        Assert.Equal(2f,a.Y,2); Assert.True(a.PopZ>.5f);
+    }
+    [Fact]
+    public void EqualDistanceLipsChooseTheLowerWorldHeadingIndex()
+    {
+        var arena=CourseShellArena.FromBoxes(new[] { (-5f,-10f,0f,5f,0f,10f), (-5f,-10f,-14f,5f,0f,-4f) },new SpawnPoint());
+        Assert.True(GrappleAnchors.TryFind(Air(),Definition(),arena,Parameters,0,0,new int[arena.CollisionTriangles.Length],out var a));
+        Assert.Equal(0f,a.Z,2); // +Z is heading zero; -Z is heading eight.
+    }
+
 }

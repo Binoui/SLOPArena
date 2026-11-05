@@ -63,6 +63,12 @@ public static class GrappleAnchors
     private static float Snap(float value) => MathF.Round(value * 100f) * .01f;
     private static bool Drop(float x, float z, float feet, in ArenaDefinition arena,
         CookedGrappleCapabilityParameters p, int[] scratch, out float y)
-        => SpellResolver.TryProjectStraightDrop(arena, x, feet + p.MaxRise + .01f, z, .005f, scratch, out y)
-            && y >= feet + p.MinRise && y <= feet + p.MaxRise;
+    {
+        if (!SpellResolver.TryProjectStraightDrop(arena, x, feet + p.MaxRise + .01f, z, .005f, scratch, out y)
+            || y < feet + p.MinRise || y > feet + p.MaxRise) return false;
+        // The drop resolver has a heightmap fallback. On triangle stages require actual geometry
+        // here: raster cells can extend beyond the physical lip, depending on the arena grid origin.
+        return !ArenaCollision.HasTriangles(arena)
+            || ArenaCollision.TryFindSupport(x, y + .005f, z, .005f, .01f, arena, scratch, out _);
+    }
 }
