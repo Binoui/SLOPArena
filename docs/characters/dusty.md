@@ -89,3 +89,7 @@ hitbox.
   wide brim. The clip brief has to keep his hands on the brim's edge.
 - **Big Iron as a recovery.** The recoil distance needs a feel check in play.
 - **Movement.** His own movement values have not had a pass.
+
+## Grapple anchors
+
+The accepted Lasso Grapple (ADR-0063) searches for the nearest standable lip at throw time, biased to the held stick's side. In air it prefers a lip, then the current fighter target; on ground it prefers the target, then a lip. Shield stops the loop; a caught fighter is held through the zip and kicked. One ordinary slot cooldown starts at the press, with no landing or hit refresh. Engine support lands separately from the salamander E package switch, rope presentation, clips and Lab UI.
