@@ -45,7 +45,8 @@ namespace SlopArena.Client.World
         private void LateUpdate()
         {
             if (_owner == null || _flash == null || _block == null) return;
-            if (!PresentationLifetime.IsCurrentAttack(_owner.CurrentActionState, _owner.CurrentAttackSequence, _sequence))
+            var move = _owner.CurrentMove;
+            if (move == null || !PresentationLifetime.IsCurrentAttack(_owner.CurrentActionState, _owner.CurrentAttackSequence, _sequence))
             {
                 Restore();
                 if (Pixels != null) Pixels.Stop(false, ParticleSystemStopBehavior.StopEmitting);
@@ -55,7 +56,7 @@ namespace SlopArena.Client.World
             }
             int tick = _owner.CurrentAttackElapsedTicks;
             byte clip = _owner.CurrentClipIndex;
-            bool leg = _owner.CurrentMove!.Clip(clip).AnimationId == _flash.LegAnimationId;
+            bool leg = move.Clip(clip).AnimationId == _flash.LegAnimationId;
             if (leg) _hadLeg = true;
             Look previous = _look;
             _look = leg && tick < _flash.LegTicks - 1 ? Look.Leg
