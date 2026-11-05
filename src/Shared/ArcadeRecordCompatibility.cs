@@ -251,6 +251,11 @@ public static class ArcadeRecordCompatibility
             x.StanceTicks, x.LockRange, x.MaxTargets, x.LegTicks, x.PassThroughDistance, x.SheatheTicks,
             x.RecoveryTicks, x.WhiffTicks, x.CutHitbox,
         },
+        CookedGrappleCapabilityParameters x => x with
+        {
+            OutAnimationId = "", HaulAnimationId = "", PopAnimationId = "", ZipAnimationId = "",
+            KickAnimationId = "", MissAnimationId = "", Kick = x.Kick with { HitPresentationId = null },
+        },
         CookedAimedRecoveryCapabilityParameters or CookedThrustCapabilityParameters
             or CookedRisingDragonCapabilityParameters or CookedChargedStreamCapabilityParameters
             or CookedCycloneKickCapabilityParameters

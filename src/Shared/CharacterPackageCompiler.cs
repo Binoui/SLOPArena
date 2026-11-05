@@ -52,6 +52,8 @@ public static class CharacterPackageCompiler
     public const string CannonballCapabilityVersion = "1";
     public const string ThrustCapabilityId = "slop.ability.thrust.v1";
     public const string ThrustCapabilityVersion = "1";
+    public const string GrappleCapabilityId = "slop.ability.grapple.v1";
+    public const string GrappleCapabilityVersion = "1";
     public const string TetherCapabilityId = "slop.ability.tether.v1";
     public const string TetherCapabilityVersion = "1";
     public const string CommandGrabCapabilityId = "slop.ability.command-grab.v1";
@@ -88,7 +90,8 @@ public static class CharacterPackageCompiler
     internal static bool IsTrustedCapability(string id, string version)
         => TrustedCapabilities.TryGetValue(id, out var supported) && supported == version;
     public static bool IsPublicCapability(string id, string version)
-        => id == AimedRecoveryCapabilityId && version == AimedRecoveryCapabilityVersion
+        => id == GrappleCapabilityId && version == GrappleCapabilityVersion
+            || id == AimedRecoveryCapabilityId && version == AimedRecoveryCapabilityVersion
             || id == TargetedLeapCapabilityId && version == TargetedLeapCapabilityVersion
             || id == DashStrikeCapabilityId && version == DashStrikeCapabilityVersion
             || id == FlashCutCapabilityId && version == FlashCutCapabilityVersion
@@ -260,6 +263,7 @@ public static class CharacterPackageCompiler
                      requirement.CapabilityId == SteeredChargeCapabilityId ||
                      requirement.CapabilityId == ShellStanceCapabilityId ||
                      requirement.CapabilityId == ThrustCapabilityId ||
+                     requirement.CapabilityId == GrappleCapabilityId ||
                      requirement.CapabilityId == TetherCapabilityId ||
                      requirement.CapabilityId == CommandGrabCapabilityId ||
                      requirement.CapabilityId == CannonballCapabilityId ||
@@ -306,7 +310,8 @@ public static class CharacterPackageCompiler
         if (d.HasErrors) return;
         var metadata = new CookedPackageMetadata(
             m.PackageId, m.Version, CookedSchemaVersion,
-            RequiresRuntimeApi122(c) ? "1.22.0"
+            c.Slots.Concat(c.AlternateForm?.Slots ?? Array.Empty<CharacterSlotSource>()).Any(s => s.Timeline.Stages.Any(t => t.Operations.Any(o => o is StartCapabilityOperationSource { CapabilityId: GrappleCapabilityId }))) ? "1.23.0"
+            : RequiresRuntimeApi122(c) ? "1.22.0"
             : RequiresRuntimeApi121(c) ? "1.21.0"
             : RequiresRuntimeApi120(c) ? "1.20.0"
             : c.Shell?.Splash?.Hitbox.RequiresFacingOwner == true || c.Shell?.Ride?.Wave.RequiresFacingOwner == true
@@ -556,6 +561,20 @@ public static class CharacterPackageCompiler
             .Where(operation => operation.CapabilityId == ThrustCapabilityId).ToArray();
         if (thrusts.Length > 0)
             ValidateThrustSlot(slot, index, thrusts, d);
+        var grapples = slot.Timeline.Stages.SelectMany(s => s.Operations).OfType<StartCapabilityOperationSource>()
+            .Where(o => o.CapabilityId == GrappleCapabilityId).ToArray();
+        if (grapples.Length > 0)
+        {
+            var stage = slot.Timeline.Stages[0];
+            if (!slot.IsRecoveryMove || TetherSlotError(grapples.Length, slot.Timeline.Stages.Count, grapples[0].Tick,
+                slot.Behavior, slot.AimMode, stage.IasaTicks, slot.ShellPolicy,
+                stage.Operations.Any(o => o != grapples[0] && o is not EmitPresentationOperationSource)) != null)
+                d.Error("capability.slot-invalid", "character.slots", "Grapple needs one tick-zero recovery lifecycle, no aim, IASA zero and only presentation alongside it.");
+            if (grapples[0].Parameters is GrappleCapabilityParameters g)
+                foreach (string clip in new[] { g.OutAnimationId, g.HaulAnimationId, g.PopAnimationId, g.ZipAnimationId, g.KickAnimationId, g.MissAnimationId })
+                    if (clip.Length > 0 && stage.AnimationIds.OrderBy(x => x, StringComparer.Ordinal).ToList().IndexOf(clip) <= 0)
+                        d.Error("reference.unresolved", "character.slots", "Grapple phase clips must be listed after the throw clip.");
+        }
         var tethers = slot.Timeline.Stages.SelectMany(stage => stage.Operations)
             .OfType<StartCapabilityOperationSource>()
             .Where(operation => operation.CapabilityId == TetherCapabilityId).ToArray();
@@ -759,6 +778,29 @@ public static class CharacterPackageCompiler
             || aim != AuthoringAimMode.None || iasaTicks != 0 || otherOperations
             ? "Tether requires one tick-zero lifecycle in one meleeCombo stage with no aim and IASA disabled, and only presentation alongside it."
             : shellPolicy == ShellPolicy.Tuck ? "A tether pops her out of the shell; it cannot tuck." : null;
+
+    internal static string? GrappleBoundsError(CookedGrappleCapabilityParameters p)
+    {
+        float[] values = { p.AnchorReach, p.MaxRise, p.MinRise, p.PopClearance, p.PopInset, p.PopVelocity,
+            p.ZipSpeed, p.KickRecoil, p.AirGravityScale, p.Projectile.Speed, p.Projectile.Radius };
+        if (values.Any(x => !float.IsFinite(x) || x < 0f)) return "Grapple values must be finite and nonnegative.";
+        var loop = p.Projectile;
+        if (!AllFinite(loop.LaunchOffsetX, loop.LaunchOffsetY, loop.LaunchOffsetZ, loop.Damage, loop.Angle,
+            loop.BaseKnockback, loop.KnockbackGrowth, loop.YawOffsetDegrees) || loop.Damage < 0 || loop.Angle < -90 || loop.Angle > 90
+            || loop.BaseKnockback != 0 || loop.KnockbackGrowth != 0 || loop.StunTicks != 0 || loop.YawOffsetDegrees != 0
+            || loop.Speed > 100 || loop.Radius > 3 || loop.MaxFlightTicks > 240 || p.Kick.HitGroup != 0)
+            return "The loop must be a bounded straight catch with no launch or stun; the kick cannot share a hit group.";
+        if (p.ThrowTick == 0 || p.ThrowTick > 600 || p.HaulTicks == 0 || p.HaulTicks > 600
+            || p.PopTicks == 0 || p.PopTicks > 600 || p.MaxZipTicks == 0 || p.MaxZipTicks > 600
+            || p.KickRecoveryTicks == 0 || p.KickRecoveryTicks > 600 || p.MissRecoveryTicks == 0 || p.MissRecoveryTicks > 600
+            || p.AnchorReach <= 0 || p.AnchorReach > 50 || p.MinRise <= 0 || p.MaxRise <= p.MinRise || p.MaxRise > 50
+            || p.PopInset <= 0 || p.PopInset > 5 || p.PopClearance > 10 || p.PopVelocity > 100
+            || p.ZipSpeed <= 0 || p.ZipSpeed > 100 || p.KickRecoil > 100 || p.AirGravityScale > 1
+            || p.Projectile.Speed <= 0 || p.Projectile.Radius <= 0 || p.Projectile.Gravity != 0
+            || p.Projectile.Return != null || p.Projectile.Homing != null || p.Projectile.Perch != null
+            || p.Projectile.MaxFlightTicks == 0) return "Grapple parameters exceed bounds; loop must be straight and nonreturning.";
+        return null;
+    }
 
     /// <summary>Bounds shared by the compiler and the cooked loader; null when the tether is admissible.</summary>
     internal static string? TetherBoundsError(CookedTetherCapabilityParameters x)
@@ -1186,6 +1228,7 @@ public static class CharacterPackageCompiler
                 ChargedProjectileCapabilityParameters x => x.Projectile,
                 FingerGunsCapabilityParameters x => x.Projectile,
                 ChargedStreamCapabilityParameters x => x.Projectile,
+                GrappleCapabilityParameters x => x.Projectile,
                 TetherCapabilityParameters x => x.Projectile,
                 _ => null,
             } is { } inner && (inner.Homing != null || inner.Perch != null))
@@ -1291,6 +1334,12 @@ public static class CharacterPackageCompiler
                 if (!string.IsNullOrEmpty(cannonball.LaunchPresentationId)
                     && !c.PresentationIds.Contains(cannonball.LaunchPresentationId, StringComparer.Ordinal))
                     d.Error("reference.unresolved", "character.operation.parameters.launchPresentationId", "Presentation ID is not declared.");
+                break;
+            case StartCapabilityOperationSource capability when capability.Parameters is GrappleCapabilityParameters grapple:
+                if (GrappleBoundsError((CookedGrappleCapabilityParameters)CookParameters(grapple)) is { } grappleError)
+                    d.Error("value.out-of-range", "character.operation.parameters", grappleError);
+                ValidateOperation(new SpawnProjectileOperationSource(0, AuthoringUnit.Meters, grapple.Projectile), c, d);
+                ValidateCapabilityHitbox(grapple.Kick, c, "kick", d);
                 break;
             case StartCapabilityOperationSource capability when capability.Parameters is TetherCapabilityParameters tether:
                 if (TetherBoundsError((CookedTetherCapabilityParameters)CookParameters(tether)) is { } tetherError)
@@ -1802,6 +1851,7 @@ public static class CharacterPackageCompiler
             TargetedLeapCapabilityParameters x => x with { Hitbox = x.Hitbox with { } },
             SteeredChargeCapabilityParameters x => x with { LanceHitbox = x.LanceHitbox with { }, ChestHitbox = x.ChestHitbox with { }, Carry = x.Carry with { Fling = x.Carry.Fling with { } } },
             ThrustCapabilityParameters x => x with { TrailHitbox = x.TrailHitbox == null ? null : x.TrailHitbox with { } },
+            GrappleCapabilityParameters x => x with { Projectile = x.Projectile with { }, Kick = x.Kick with { } },
             TetherCapabilityParameters x => x with { Projectile = x.Projectile == null ? null : x.Projectile with { }, AtTarget = x.AtTarget == null ? null : x.AtTarget with { } },
             CommandGrabCapabilityParameters x => x with { Capture = x.Capture with { } },
             CannonballCapabilityParameters x => x with { },
@@ -1843,6 +1893,7 @@ public static class CharacterPackageCompiler
                             or ThrustCapabilityParameters { TrailHitbox: not null }) hitboxes++;
                         else if (x.Parameters is DashStrikeCapabilityParameters) hitboxes += 2;
                         else if (x.Parameters is FlashCutCapabilityParameters or CommandGrabCapabilityParameters) hitboxes++;
+                        else if (x.Parameters is GrappleCapabilityParameters) { projectiles++; hitboxes++; }
                         else if (x.Parameters is ChargedProjectileCapabilityParameters or TetherCapabilityParameters { AtTarget: null }) projectiles++;
                         else if (x.Parameters is TetherCapabilityParameters) hitboxes++;
                         cookedOps.Add(new CookedStartCapabilityOperation(x.Tick, x.Unit, x.CapabilityId, x.CapabilityVersion, CookParameters(x.Parameters)));
@@ -1907,6 +1958,13 @@ public static class CharacterPackageCompiler
             x.StanceAnimationId, x.LegAnimationId, x.SheatheAnimationId,
             x.LockPresentationId, x.RevealPresentationId, x.SheathePresentationId, x.PopPresentationId),
         TargetedLeapCapabilityParameters x => new CookedTargetedLeapCapabilityParameters(x.RiseTicks, x.RiseHeight, x.HangTicks, x.DropTicks, x.MaxRange, x.NoTargetDistance, x.MaxFallTicks, x.HitRecoveryTicks, x.MissRecoveryTicks, CookHitbox(x.Hitbox), x.RiseAnimationId, x.HangAnimationId, x.HangPoseTick, x.DropAnimationId, x.LandingAnimationId, x.HitLandingSeekTick, x.RisePresentationId, x.HangPresentationId, x.LockPresentationId, x.LandingPresentationId),
+        GrappleCapabilityParameters x => new CookedGrappleCapabilityParameters(x.ThrowTick, x.AnchorReach, x.MaxRise, x.MinRise, x.HaulTicks, x.PopClearance, x.PopInset, x.PopVelocity, x.PopTicks, x.ZipSpeed, x.MaxZipTicks, x.KickRecoil, x.KickRecoveryTicks, x.MissRecoveryTicks, x.AirGravityScale,
+            x.Projectile is not { } ring ? null : new CookedProjectile(ring.LaunchOffsetX, ring.LaunchOffsetY, ring.LaunchOffsetZ,
+                ring.Speed, ring.Gravity, ring.Radius, ring.Damage, ring.Angle,
+                ring.BaseKnockback, ring.KnockbackGrowth, ring.StunTicks,
+                ring.MaxFlightTicks, ring.YawOffsetDegrees,
+                ring.Return is { } back ? new CookedProjectileReturn(back.OutboundTicks, back.ReturnSpeed,
+                    back.ReturnAcceleration, back.SelfHitDamage, back.SelfHitStunTicks) : null), CookHitbox(x.Kick), x.OutAnimationId, x.HaulAnimationId, x.PopAnimationId, x.ZipAnimationId, x.KickAnimationId, x.MissAnimationId),
         TetherCapabilityParameters x => new CookedTetherCapabilityParameters(x.ThrowTick,
             x.Projectile is not { } ring ? null : new CookedProjectile(ring.LaunchOffsetX, ring.LaunchOffsetY, ring.LaunchOffsetZ,
                 ring.Speed, ring.Gravity, ring.Radius, ring.Damage, ring.Angle,
@@ -2342,6 +2400,31 @@ public static class CharacterPackageCompiler
                 w.WriteNumber("minFlightTicks", x.MinFlightTicks); w.WriteNumber("maxFlightTicks", x.MaxFlightTicks);
                 Number(w, "maxLaunchSpeed", x.MaxLaunchSpeed);
                 OptionalString(w, "launchPresentationId", x.LaunchPresentationId);
+                break;
+            case CookedGrappleCapabilityParameters x:
+                w.WriteNumber( "throwTick", x.ThrowTick);
+                Number(w, "anchorReach", x.AnchorReach);
+                Number(w, "maxRise", x.MaxRise);
+                Number(w, "minRise", x.MinRise);
+                w.WriteNumber( "haulTicks", x.HaulTicks);
+                Number(w, "popClearance", x.PopClearance);
+                Number(w, "popInset", x.PopInset);
+                Number(w, "popVelocity", x.PopVelocity);
+                w.WriteNumber( "popTicks", x.PopTicks);
+                Number(w, "zipSpeed", x.ZipSpeed);
+                w.WriteNumber( "maxZipTicks", x.MaxZipTicks);
+                Number(w, "kickRecoil", x.KickRecoil);
+                w.WriteNumber( "kickRecoveryTicks", x.KickRecoveryTicks);
+                w.WriteNumber( "missRecoveryTicks", x.MissRecoveryTicks);
+                Number(w, "airGravityScale", x.AirGravityScale);
+                WriteProjectile(w, x.Projectile);
+                WriteHitboxObject(w, x.Kick, "kick");
+                OptionalString(w, "outAnimationId", x.OutAnimationId);
+                OptionalString(w, "haulAnimationId", x.HaulAnimationId);
+                OptionalString(w, "popAnimationId", x.PopAnimationId);
+                OptionalString(w, "zipAnimationId", x.ZipAnimationId);
+                OptionalString(w, "kickAnimationId", x.KickAnimationId);
+                OptionalString(w, "missAnimationId", x.MissAnimationId);
                 break;
             case CookedTetherCapabilityParameters x:
                 w.WriteNumber("throwTick", x.ThrowTick);

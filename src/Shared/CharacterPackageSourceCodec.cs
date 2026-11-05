@@ -471,6 +471,7 @@ public static class CharacterPackageSourceCodec
             TargetedLeapCapabilityParameters x => x with { Hitbox = x.Hitbox with { } },
             SteeredChargeCapabilityParameters x => x with { LanceHitbox = x.LanceHitbox with { }, ChestHitbox = x.ChestHitbox with { }, Carry = x.Carry with { Fling = x.Carry.Fling with { } } },
             ThrustCapabilityParameters x => x with { TrailHitbox = x.TrailHitbox == null ? null : x.TrailHitbox with { } },
+            GrappleCapabilityParameters x => x with { Projectile = x.Projectile with { }, Kick = x.Kick with { } },
             TetherCapabilityParameters x => x with { Projectile = x.Projectile == null ? null : x.Projectile with { }, AtTarget = x.AtTarget == null ? null : x.AtTarget with { } },
             CommandGrabCapabilityParameters x => x with { Capture = x.Capture with { } },
             CannonballCapabilityParameters x => x with { },
@@ -897,6 +898,31 @@ public static class CharacterPackageSourceCodec
                 w.WriteNumber("minFlightTicks", p.MinFlightTicks); w.WriteNumber("maxFlightTicks", p.MaxFlightTicks);
                 Number(w, "maxLaunchSpeed", p.MaxLaunchSpeed);
                 OptionalString(w, "launchPresentationId", p.LaunchPresentationId);
+                break;
+            case GrappleCapabilityParameters p:
+                w.WriteNumber( "throwTick", p.ThrowTick);
+                Number(w, "anchorReach", p.AnchorReach);
+                Number(w, "maxRise", p.MaxRise);
+                Number(w, "minRise", p.MinRise);
+                w.WriteNumber( "haulTicks", p.HaulTicks);
+                Number(w, "popClearance", p.PopClearance);
+                Number(w, "popInset", p.PopInset);
+                Number(w, "popVelocity", p.PopVelocity);
+                w.WriteNumber( "popTicks", p.PopTicks);
+                Number(w, "zipSpeed", p.ZipSpeed);
+                w.WriteNumber( "maxZipTicks", p.MaxZipTicks);
+                Number(w, "kickRecoil", p.KickRecoil);
+                w.WriteNumber( "kickRecoveryTicks", p.KickRecoveryTicks);
+                w.WriteNumber( "missRecoveryTicks", p.MissRecoveryTicks);
+                Number(w, "airGravityScale", p.AirGravityScale);
+                WriteProjectile(w, p.Projectile);
+                WriteHitboxNamed(w, p.Kick, "kick");
+                OptionalString(w, "outAnimationId", p.OutAnimationId);
+                OptionalString(w, "haulAnimationId", p.HaulAnimationId);
+                OptionalString(w, "popAnimationId", p.PopAnimationId);
+                OptionalString(w, "zipAnimationId", p.ZipAnimationId);
+                OptionalString(w, "kickAnimationId", p.KickAnimationId);
+                OptionalString(w, "missAnimationId", p.MissAnimationId);
                 break;
             case TetherCapabilityParameters p:
                 w.WriteNumber("throwTick", p.ThrowTick);
@@ -1488,6 +1514,7 @@ public static class CharacterPackageSourceCodec
             "slop.ability.targeted-leap.v2" => new[] { "riseTicks", "riseHeight", "hangTicks", "dropTicks", "maxRange", "noTargetDistance", "maxFallTicks", "hitRecoveryTicks", "missRecoveryTicks", "hitbox", "riseAnimationId", "hangAnimationId", "hangPoseTick", "dropAnimationId", "landingAnimationId", "hitLandingSeekTick", "risePresentationId", "hangPresentationId", "lockPresentationId", "landingPresentationId" },
             "slop.ability.steered-charge.v2" => SteeredChargeFields,
             "slop.ability.thrust.v1" => ThrustFields,
+            "slop.ability.grapple.v1" => new[] { "throwTick", "anchorReach", "maxRise", "minRise", "haulTicks", "popClearance", "popInset", "popVelocity", "popTicks", "zipSpeed", "maxZipTicks", "kickRecoil", "kickRecoveryTicks", "missRecoveryTicks", "airGravityScale", "projectile", "kick", "outAnimationId", "haulAnimationId", "popAnimationId", "zipAnimationId", "kickAnimationId", "missAnimationId" },
             "slop.ability.tether.v1" => TetherFields,
             CharacterPackageCompiler.CommandGrabCapabilityId => new[] { "lungeTicks", "lungeSpeed", "stopDistance", "captureTick", "capture", "releaseTick", "launch", "catchPresentationId", "releasePresentationId", "level", "anchorDistance", "releaseLockTicks", "whiffRecoveryTicks" },
             "slop.ability.cannonball.v1" => CannonballFields,
@@ -1504,6 +1531,23 @@ public static class CharacterPackageSourceCodec
             return ParseSteeredCharge(p, path + ".parameters", d);
         if (id == CharacterPackageCompiler.ThrustCapabilityId)
             return ParseThrust(p, path + ".parameters", d);
+        if (id == CharacterPackageCompiler.GrappleCapabilityId)
+            return new GrappleCapabilityParameters(UShort(p, "throwTick", path + ".parameters.throwTick", d),
+                Float(p, "anchorReach", path + ".parameters.anchorReach", d),
+                Float(p, "maxRise", path + ".parameters.maxRise", d),
+                Float(p, "minRise", path + ".parameters.minRise", d),
+                UShort(p, "haulTicks", path + ".parameters.haulTicks", d),
+                Float(p, "popClearance", path + ".parameters.popClearance", d),
+                Float(p, "popInset", path + ".parameters.popInset", d),
+                Float(p, "popVelocity", path + ".parameters.popVelocity", d),
+                UShort(p, "popTicks", path + ".parameters.popTicks", d),
+                Float(p, "zipSpeed", path + ".parameters.zipSpeed", d),
+                UShort(p, "maxZipTicks", path + ".parameters.maxZipTicks", d),
+                Float(p, "kickRecoil", path + ".parameters.kickRecoil", d),
+                UShort(p, "kickRecoveryTicks", path + ".parameters.kickRecoveryTicks", d),
+                UShort(p, "missRecoveryTicks", path + ".parameters.missRecoveryTicks", d),
+                Float(p, "airGravityScale", path + ".parameters.airGravityScale", d),
+                ParseProjectile(p, path + ".parameters", d), ParseHitboxNamed(p, "kick", path + ".parameters.kick", d), OptionalString(p, "outAnimationId", path + ".parameters.outAnimationId", d) ?? "", OptionalString(p, "haulAnimationId", path + ".parameters.haulAnimationId", d) ?? "", OptionalString(p, "popAnimationId", path + ".parameters.popAnimationId", d) ?? "", OptionalString(p, "zipAnimationId", path + ".parameters.zipAnimationId", d) ?? "", OptionalString(p, "kickAnimationId", path + ".parameters.kickAnimationId", d) ?? "", OptionalString(p, "missAnimationId", path + ".parameters.missAnimationId", d) ?? "");
         if (id == CharacterPackageCompiler.TetherCapabilityId)
             return ParseTether(p, path + ".parameters", d);
         if (id == CharacterPackageCompiler.CommandGrabCapabilityId)

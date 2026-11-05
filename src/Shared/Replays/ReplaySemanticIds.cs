@@ -52,6 +52,7 @@ internal static partial class ReplaySemanticIds
         PresentationEventSource.ProjectileCatch => "projectile-catch",
         PresentationEventSource.ProjectileSelfHit => "projectile-self-hit",
         PresentationEventSource.TetherRetract => "tether-retract",
+        PresentationEventSource.GrappleMiss => "grapple-miss",
         _ => "unknown"
     };
     internal static string Id(DefenseInteractionPhase v) => v switch

@@ -472,3 +472,11 @@ the admitted values; authoring and tests construct replacements when they change
    `WorldSnapshotTests` on any behaviour a restored simulation does not reproduce.
 
 For package creation, follow [Adding a Character](../characters/adding-a-new-character.md). For universal mechanics, see [Combat Systems](combat-systems.md). There is no legacy character execution path.
+
+## Lasso grapple (ADR-0063)
+
+`slop.ability.grapple.v1` requires runtime API 1.23.0 only for opt-in packages. It owns one tick-zero lifecycle in a single `meleeCombo` recovery stage with IASA zero, no aim mode and presentation operations only alongside it. All distances, speeds and durations are cooked parameters. The straight, nonreturning `projectile` is the loop; `kick` is an ordinary authored hitbox.
+
+`GrappleAnchors.TryFind` shares the deterministic 16-heading lip search with simulation, bots and reach tools. Callers provide triangle scratch storage. A valid lip has standing support inside it and a clear hand-to-lip line. A fixed haul follows an ease-in path outside and above the lip, then crosses inside and pops under gravity. No ledge hang is introduced.
+
+`ITetherCatch` shares contact/pair ownership with tether without changing Bashie's ring or Nyx's Grasp. A grapple holds the victim in `Reeled`, moves the thrower with `ZipToPartner`, ends the pair on arrival and spawns the kick that tick. The ordinary pair validator handles interruption and reciprocal catches. `ActiveMoveView.Spot` exposes the stage anchor; `GrappleMiss` announces the flop. Snapshot format 29 includes the entire move lifecycle; release tooling owns the protocol bump.

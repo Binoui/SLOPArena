@@ -16,7 +16,7 @@ namespace SlopArena.Shared.Abilities;
 /// a current target carrying her perch within range; any other press raises the unmarked hand ahead of her, an
 /// ordinary hit, then her recovery (section 10).
 /// </summary>
-public sealed class TetherAbility : ServerAbility, ILandingContinuationCapability
+public sealed class TetherAbility : ServerAbility, ILandingContinuationCapability, ITetherCatch
 {
     private enum Phase : byte { Windup, Out, Reel, Retract, Hand, Done }
 
@@ -34,15 +34,15 @@ public sealed class TetherAbility : ServerAbility, ILandingContinuationCapabilit
     public TetherAbility(CookedTetherCapabilityParameters parameters)
         => _parameters = parameters ?? throw new ArgumentNullException(nameof(parameters));
 
-    public override TetherAbility? Tether => this;
+    public override ITetherCatch? Tether => this;
     public override float GravityMultiplier => _parameters.AirGravityScale;
 
     /// <summary>The ring is out and its contacts catch.</summary>
-    internal bool Catches => _phase == Phase.Out;
+    public bool Catches => _phase == Phase.Out;
     /// <summary>A caught fighter is on the line.</summary>
-    internal bool Reeling => _phase == Phase.Reel;
+    public bool Reeling => _phase == Phase.Reel;
     /// <summary>The unmarked hand is out: its contacts are ordinary hits, not catches.</summary>
-    internal bool Launches => _phase == Phase.Hand;
+    public bool Launches => _phase == Phase.Hand;
 
     public override void OnStart(ref CharacterState s, CharacterDefinition def)
     {
@@ -274,7 +274,7 @@ public sealed class TetherAbility : ServerAbility, ILandingContinuationCapabilit
     }
 
     /// <summary>Called by the simulation in the tick its ring catches a fighter: the reel starts.</summary>
-    internal void OnCaught(ref CharacterState s, float victimX, float victimY, float victimZ)
+    public void OnCaught(ref CharacterState s, float victimX, float victimY, float victimZ)
     {
         // A placed catch takes one fighter: the rest of its window closes with the catch.
         if (_parameters.AtTarget != null) Resolver.RemoveOwnedHitboxes(s.EntityId, ActivationId);

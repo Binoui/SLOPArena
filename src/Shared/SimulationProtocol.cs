@@ -134,6 +134,7 @@ namespace SlopArena.Shared
         // changed since the previous release tag while this value (and the Master's Protocol) did not.
         // Note simulation changes below; the release bump folds them into one numbered line.
         // Unreleased:
+        // - Lasso grapple capability, GrappleMiss presentation source and World Snapshot v29 (ADR-0063).
         public const byte Version = 38;
     }
 }

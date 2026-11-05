@@ -63,7 +63,7 @@ namespace SlopArena.Shared
         /// reaction in progress, pairs both fighters, deals the ring's damage with no launch or hitstop, credits the
         /// hit and starts the reel. Armour does not resist it, as for grabs.
         /// </summary>
-        private void CatchOnTether(in SpellResolver.HitResult hit, TetherAbility tether,
+        private void CatchOnTether(in SpellResolver.HitResult hit, ITetherCatch tether,
             ref CharacterState thrower, ref CharacterState victim, Dictionary<ulong, InputState> inputs, int operationIndex)
         {
             ulong throwerId = hit.OwnerEntityId, victimId = hit.TargetEntityId;

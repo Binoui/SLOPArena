@@ -31,7 +31,7 @@ public sealed class CookedCharacterPackageLoadResult
 public static class CookedCharacterPackageLoader
 {
     private static readonly HashSet<string> SupportedRuntimeApiMinimums = new(
-        Enumerable.Range(0, 23).Select(minor => $"1.{minor}.0"), StringComparer.Ordinal);
+        Enumerable.Range(0, 24).Select(minor => $"1.{minor}.0"), StringComparer.Ordinal);
 
     /// <summary>True when an admitted 1.N.0 runtime API minimum is at least 1.<paramref name="minor"/>.0.</summary>
     private static bool ApiAtLeast(string runtimeApiMin, int minor)
@@ -121,6 +121,7 @@ public static class CookedCharacterPackageLoader
             ValidateAimedRecoveries(package.Definition, m.RuntimeApiMin, d);
             ValidateReturningProjectiles(package.Definition, m.RuntimeApiMin, d);
             ValidateShellStance(package.Definition, m.RuntimeApiMin, d);
+            ValidateGrapples(package.Definition, m.RuntimeApiMin, d);
             ValidateTethers(package.Definition, m.RuntimeApiMin, d);
             ValidateHomingAndPerch(package.Definition, m.RuntimeApiMin, d);
             ValidateCommandGrabs(package.Definition, m.RuntimeApiMin, d);
@@ -638,6 +639,28 @@ public static class CookedCharacterPackageLoader
         }
     }
 
+    private static void ValidateGrapples(CookedCharacterDefinition definition, string runtimeApiMin, List<CharacterDiagnostic> diagnostics)
+    {
+        foreach (var slot in definition.AllSlots)
+        {
+            var ops = slot.Timeline.Stages.SelectMany(s => s.Operations).OfType<CookedStartCapabilityOperation>()
+                .Where(o => o.CapabilityId == CharacterPackageCompiler.GrappleCapabilityId).ToArray();
+            if (ops.Length == 0) continue;
+            void Fail(string message) => diagnostics.Add(Error("package.capability.parameters-invalid", slot.Id, message));
+            if (!ApiAtLeast(runtimeApiMin, 23)) diagnostics.Add(Error("package.compatibility.unsupported", slot.Id, "Grapple requires runtime API 1.23.0."));
+            var stage = slot.Timeline.Stages[0];
+            if (!slot.IsRecoveryMove || CharacterPackageCompiler.TetherSlotError(ops.Length, slot.Timeline.Stages.Count,
+                ops[0].Tick, slot.Behavior, slot.AimMode, stage.IasaTicks, slot.ShellPolicy,
+                stage.Operations.Any(o => o != ops[0] && o is not CookedEmitPresentationOperation)) != null)
+                Fail("Grapple requires one tick-zero recovery lifecycle and presentation only.");
+            if (ops[0].Parameters is not CookedGrappleCapabilityParameters p) { Fail("Missing grapple parameters."); continue; }
+            if (CharacterPackageCompiler.GrappleBoundsError(p) is { } error) Fail(error);
+            ValidateChargedHitbox(p.Kick, definition, slot.Id + ".kick", diagnostics);
+            foreach (string clip in new[] { p.OutAnimationId, p.HaulAnimationId, p.PopAnimationId, p.ZipAnimationId, p.KickAnimationId, p.MissAnimationId })
+                if (clip.Length > 0 && stage.AnimationIds.ToList().IndexOf(clip) <= 0) Fail("Grapple phase clips must be listed after the throw clip.");
+        }
+    }
+
     /// <summary>Mirrors the compiler's tether rules (ADR-0048).</summary>
     private static void ValidateTethers(
         CookedCharacterDefinition definition, string runtimeApiMin, List<CharacterDiagnostic> diagnostics)
@@ -694,6 +717,7 @@ public static class CookedCharacterPackageLoader
                 CookedChargedProjectileCapabilityParameters x => x.Projectile,
                 CookedFingerGunsCapabilityParameters x => x.Projectile,
                 CookedChargedStreamCapabilityParameters x => x.Projectile,
+                CookedGrappleCapabilityParameters x => x.Projectile,
                 CookedTetherCapabilityParameters x => x.Projectile,
                 _ => null,
             } : null;
@@ -1313,6 +1337,7 @@ public static class CookedCharacterPackageLoader
                     "stanceAnimationId", "legAnimationId", "sheatheAnimationId", "lockPresentationId", "revealPresentationId",
                     "sheathePresentationId", "popPresentationId")),
                 "slop.ability.steered-charge.v2" => SteeredCharge(OOptional(e, SteeredChargeOptional, SteeredChargeFields)),
+                "slop.ability.grapple.v1" => Grapple(OOptional(e, new[] { "outAnimationId", "haulAnimationId", "popAnimationId", "zipAnimationId", "kickAnimationId", "missAnimationId" }, "throwTick", "anchorReach", "maxRise", "minRise", "haulTicks", "popClearance", "popInset", "popVelocity", "popTicks", "zipSpeed", "maxZipTicks", "kickRecoil", "kickRecoveryTicks", "missRecoveryTicks", "airGravityScale", "projectile", "kick")),
                 "slop.ability.tether.v1" => Tether(OOptional(e, TetherOptional, "throwTick", "projectile", "reelSpeed",
                     "anchorDistance", "arrivalStunTicks", "maxReelTicks", "retractSpeed", "missRecoveryTicks", "airGravityScale",
                     "reelAnimationId", "retractAnimationId", "throwPresentationId", "retractPresentationId", "atTarget")),
@@ -1396,6 +1421,9 @@ public static class CookedCharacterPackageLoader
                 UOrDefault(q, "whiffRecoveryTicks", 0));
         }
         /// <summary>A thrown ring has its projectile and retract speed; a placed catch has its atTarget block instead.</summary>
+        private static CookedCapabilityParameters Grapple(Dictionary<string, JsonElement> q)
+            => new CookedGrappleCapabilityParameters(U(q, "throwTick"), F(q, "anchorReach"), F(q, "maxRise"), F(q, "minRise"), U(q, "haulTicks"), F(q, "popClearance"), F(q, "popInset"), F(q, "popVelocity"), U(q, "popTicks"), F(q, "zipSpeed"), U(q, "maxZipTicks"), F(q, "kickRecoil"), U(q, "kickRecoveryTicks"), U(q, "missRecoveryTicks"), F(q, "airGravityScale"), ParseProjectile(q["projectile"]), ParseHitbox(q["kick"]), SO(q, "outAnimationId", ""), SO(q, "haulAnimationId", ""), SO(q, "popAnimationId", ""), SO(q, "zipAnimationId", ""), SO(q, "kickAnimationId", ""), SO(q, "missAnimationId", ""));
+
         private static CookedCapabilityParameters Tether(Dictionary<string, JsonElement> q)
         {
             CookedTetherAtTarget? at = null;

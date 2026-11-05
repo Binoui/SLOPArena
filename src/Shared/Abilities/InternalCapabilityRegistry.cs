@@ -62,6 +62,9 @@ public static class InternalCapabilityRegistry
             case CharacterPackageCompiler.CannonballCapabilityId when parameters is CookedCannonballCapabilityParameters cannonball:
                 capability = new CannonballAbility(cannonball);
                 return true;
+            case CharacterPackageCompiler.GrappleCapabilityId when parameters is CookedGrappleCapabilityParameters grapple:
+                capability = new GrappleAbility(grapple);
+                return true;
             case CharacterPackageCompiler.TetherCapabilityId when parameters is CookedTetherCapabilityParameters tether:
                 capability = new TetherAbility(tether);
                 return true;
