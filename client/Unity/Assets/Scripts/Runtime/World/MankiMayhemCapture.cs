@@ -7,144 +7,161 @@ using System.Linq;
 using Newtonsoft.Json;
 using SlopArena.Client.UI;
 using SlopArena.Shared;
+using SlopArena.Shared.Mayhem;
 using SlopArena.Shared.AI;
 using UnityEngine;
 
 namespace SlopArena.Client.World
 {
-    /// <summary>Real offline inputs and frames for the first pass through the Mayhem deck.</summary>
     public sealed class MankiMayhemCapture : MonoBehaviour
     {
         public TrainingMatch Match;
         public string Output;
         public bool FullShow;
         public MankiHostPresenter Host;
-        private string _reaction;
-        private int _reactionTicks;
         public bool Done { get; private set; }
+        private readonly Dictionary<ulong, (byte Hits, uint Tick)> _boardChanges = new();
         private readonly HashSet<string> _shots = new();
         private readonly Queue<string> _pending = new();
-        private readonly List<object> _events = new();
-        private readonly Dictionary<string, int> _frames = new();
-        private int _previousRate, _cleanupFrames;
-        private float _previousFixed;
-        private Texture2D _pixels;
+        private readonly List<object> _evidence = new();
         private readonly object _inputOwner = new();
-        private bool _jumpSeen, _cageSeen, _cleaned, _tripped;
-        private CharacterDefinition _definition;
-        private ArenaDefinition _arena;
-
+        private readonly MayhemCpu _cpu = new(CpuDifficulty.Normal);
+        private int _rate, _endFrames;
+        private float _fixed;
         private void OnEnable()
         {
-            _previousRate = Time.captureFramerate; _previousFixed = Time.fixedDeltaTime;
-            Time.captureFramerate = 60; Time.fixedDeltaTime = 1f / 60f;
-            if (!Match.TryAcquireCaptureInputSequence(_inputOwner)) throw new InvalidOperationException("P1 capture input is already owned.");
-            _definition = BuiltInContentResolver.Resolve(MatchConfig.PlayerClass).Definition;
-            _arena = ArenaBinaryFormat.LoadFromFile(BakedContentPaths.ResolveArena(MatchConfig.ArenaName))
-                ?? throw new InvalidOperationException("Mayhem capture requires its baked arena.");
+            _rate=Time.captureFramerate; _fixed=Time.fixedDeltaTime;
+            Time.captureFramerate=60; Time.fixedDeltaTime=1f/60f;
+            if (!Match.TryAcquireCaptureInputSequence(_inputOwner)) throw new InvalidOperationException("Capture input owned.");
             Match.CaptureSimulationTickCompleted += Tick;
             StartCoroutine(Capture());
         }
-
+        private void Shot(string name) { if (_shots.Add(name)) _pending.Enqueue(name); }
         private void Tick(uint tick)
         {
-            var sim = Match.CaptureSimulation;
-            var state = sim.MankiMayhem.Value;
-            foreach (var e in sim.LastTickMayhemEvents)
-                _events.Add(new { tick, round = e.RoundIndex, card = state.Card.ToString(), kind = e.Kind.ToString(), entity = e.EntityId.ToString(), e.OperationIndex, e.Points });
-            if (FullShow)
+            var sim=Match.CaptureSimulation; var v=sim.MayhemView; if(v==null) return;
+            var c=v.Cursor; string channel=v.Channel?.CopyKey.Replace("mayhem.channel.","")??"show";
+            uint age=tick-c.PhaseStart;
+            if(c.Phase==MayhemPhase.Call && age>=15) Shot(channel+"-call");
+            if(c.Phase==MayhemPhase.Play && channel=="no-running" && WatchSafe(v)) Shot("watch-safe");
+            if(c.Phase==MayhemPhase.Play && tick>=c.PlayStart+(c.Deadline-c.PlayStart)/2) Shot(channel+"-play");
+            if(c.Phase==MayhemPhase.Verdict && age>=10) Shot(channel+"-verdict");
+            if(c.Phase==MayhemPhase.Verdict && channel=="spot" && age>=1) Shot("spot-buzzer");
+            if(c.Phase==MayhemPhase.SpeedUp && age>=15) Shot("speed-up-act-"+(c.Act+1));
+            if(v.Contestants.Any(p=>p.Failure!=null)) Shot("splat");
+            foreach(var e in sim.LastTickMayhemEvents)
             {
-                if (state.Phase == MankiMayhemPhase.Call && state.PhaseTick >= 30) Shot("crt-" + state.Card.ToString().ToLowerInvariant());
+                if(e.Kind==MayhemEventKind.WatchWarning) Shot("watch-warning");
+                if(e.Kind==MayhemEventKind.WatchStart) Shot("watching");
+                if(e.Kind==MayhemEventKind.Launch) Shot("host-throw");
+                if(e.Kind==MayhemEventKind.Slam) Shot("host-slam");
+                if(e.Kind==MayhemEventKind.TargetHit) Shot("boards-cracked");
+                if(e.Kind==MayhemEventKind.Fail) Shot("splat-"+e.SplatStyle.ToString().ToLowerInvariant());
             }
-            var input = default(InputState);
-            if (state.Card == MankiMayhemCard.Jump)
+            if (c.Phase == MayhemPhase.Play)
             {
-                _jumpSeen = true;
-                if (state.Phase == MankiMayhemPhase.Call) Shot("jump-call");
-                uint first = sim.MayhemSlams.Count > 0 ? sim.MayhemSlams[0].Tick : 0;
-                if (sim.CurrentTick < first + 125)
+                foreach (var solid in v.Scene.Solids)
                 {
-                    new MayhemThreats(sim).TryAvoid(sim.GetState(MatchConfig.LocalEntityId), _definition, _arena, out input);
-                    input.JumpHeld = input.Jump;
+                    if (solid.HitsLeft == solid.HitBudget) Shot("props-cage-intact");
+                    if (solid.HitsLeft == solid.HitBudget - 1) Shot($"cage-{solid.CageEntityId}-first-hit");
+                    if (solid.HitsLeft == 0) { Shot($"cage-{solid.CageEntityId}-open"); Shot("props-cage-broken"); }
+                    else if (solid.HitsLeft > 0) Shot("props-cage-tear");
+                    else Shot("props-cage-broken");
                 }
-                if (sim.GetState(MatchConfig.LocalEntityId).PY - _definition.CapsuleHeight * .5f > .5f && sim.Resolver.GetActiveHitboxes().Any(h => h.Shape == HitboxShape.Ring))
-                    Shot("jump-wave-mid-jump");
-                _tripped |= sim.LastTickHits.Any(h => h.OwnerEntityId == ServerSimulation.MayhemHostEntityId && h.TargetEntityId == MatchConfig.LocalEntityId);
-                if (_tripped && sim.GetState(MatchConfig.LocalEntityId).HitstunTicks > 0) Shot("jump-tripped");
+                foreach (var target in v.Scene.Targets)
+                {
+                    if (!_boardChanges.TryGetValue(target.EntityId, out var change) || change.Hits != target.HitsLeft)
+                    { change = (target.HitsLeft, tick); _boardChanges[target.EntityId] = change; }
+                    if (target.HitsLeft == target.Hits) Shot("props-boards-intact");
+                    else if (tick - change.Tick >= 12)
+                    {
+                        if (target.HitsLeft == 0) Shot("props-boards-all-split");
+                        else if (target.HitsLeft == target.Hits - 1) Shot("props-boards-one-split");
+                    }
+                }
+                foreach (var ring in v.Scene.Rings)
+                {
+                    if ((long)tick - ring.SlamTick == ring.LifetimeTicks - 3) Shot($"wave-widest-act-{c.Act + 1}");
+                    if ((long)tick - ring.SlamTick == 100) Shot($"wave-deck-edge-act-{c.Act + 1}");
+                    if ((long)tick - ring.SlamTick >= 25 && (long)tick - ring.SlamTick < 28)
+                        Shot($"props-wave-act-{c.Act + 1}-slam-{ring.Ordinal}");
+                }
+                foreach (var bomb in v.Scene.Bombs)
+                {
+                    if (channel == "dodge" && bomb.Launched && tick <= bomb.LaunchTick + 2) Shot("bomb-just-launched");
+                    if (channel == "dodge" && bomb.Launched && !bomb.Exploded && tick > bomb.LaunchTick + (bomb.ImpactTick - bomb.LaunchTick) * .65f) Shot("props-bomb-falling");
+                    if (channel == "dodge" && bomb.Exploded) Shot("props-bomb-blast");
+                }
+                if (v.Scene.Zones.Count > 0 && v.Contestants.Any(p => p.EntityId == MatchConfig.LocalEntityId && p.ObjectiveMet)) Shot("spot-p1-holding");
+                if (v.Scene.Zones.Count > 0 && v.Contestants.Any(p => p.ObjectiveMet)) Shot("props-spot-holder");
             }
-            if (state.Card == MankiMayhemCard.BreakOut)
-            {
-                _cageSeen = true;
-                if (state.Phase == MankiMayhemPhase.Call && state.PhaseTick >= 8) Shot("breakout-call-rising");
-                new MayhemThreats(sim).TryAvoid(sim.GetState(MatchConfig.LocalEntityId), _definition, _arena, out input);
-                if (sim.LastTickMayhemEvents.Any(e => e.Kind == MankiMayhemEventKind.WallHit)) Shot("breakout-wall-cracking");
-                var exit = sim.MayhemWalls.FirstOrDefault(w => w.CageEntityId == MatchConfig.LocalEntityId && w.HitBudget == MankiMayhemTuning.CrackedWallHits);
-                if (exit.EntityId != 0 && sim.GetState(MatchConfig.LocalEntityId).PZ < exit.CageCenter.Z - MankiMayhemTuning.CageHalfSize - _definition.CapsuleRadius)
-                    Shot("breakout-escaping");
-                if (Match.CaptureLastTickPresentationEvents.Any(e => e.PresentationId == "mayhem.scatter.blast")) Shot("breakout-blast");
-                if (sim.MayhemWalls.Count == 0 && state.Phase is MankiMayhemPhase.Score or MankiMayhemPhase.Break)
-                { Shot("breakout-empty-cleanup"); _cleaned = true; }
-            }
-            if (FullShow)
-            {
-                if (state.RoundIndex == 0) input = new InputState { MoveX = 1f, Right = true };
-                _reactionTicks = _reaction == Host.Reaction ? _reactionTicks + 1 : 0;
-                _reaction = Host.Reaction;
-                if (_reaction == "laugh" && _reactionTicks >= 12) Shot("ko-booth-laugh");
-                if (_reaction == "hype" && _reactionTicks >= 25) Shot("last-standing-hype");
-                if (sim.LastTickMayhemEvents.Any(e => e.Kind == MankiMayhemEventKind.Slam)) Shot("host-slam");
-                if (state.Card == MankiMayhemCard.BreakOut && sim.LastTickMayhemEvents.Any(e => e.Kind == MankiMayhemEventKind.Launch)) Shot("host-lob");
-            }
-            Match.SetCaptureSequenceInput(_inputOwner, input);
+            if(c.Phase==MayhemPhase.Intro) Shot("intro");
+            Match.SetCaptureSequenceInput(_inputOwner,_cpu.Decide(sim,MatchConfig.LocalEntityId));
         }
-
-        private void Shot(string name) { if (_shots.Add(name)) _pending.Enqueue(name); }
-
         private IEnumerator Capture()
         {
-            var end = new WaitForEndOfFrame();
-            while (!Done)
+            var end=new WaitForEndOfFrame();
+            while(!Done)
             {
                 yield return end;
-                var sim = Match.CaptureSimulation; var state = sim.MankiMayhem.Value;
-                if (FullShow && state.Ended && _cleanupFrames >= 30) Shot("show-finale");
-                string card = state.Card == MankiMayhemCard.Jump ? "jump" : state.Card == MankiMayhemCard.BreakOut ? "breakout" : null;
-                if (FullShow) card = "full-match";
-                bool clip = FullShow ? Time.frameCount % 2 == 0 : card != null && state.RoundIndex < 3 && sim.CurrentTick % 2 == 0;
-                if (clip || _pending.Count > 0)
+                var sim=Match.CaptureSimulation; var v=sim.MayhemView; if(v==null) continue;
+                if(v.Cursor.Phase==MayhemPhase.Ended && ++_endFrames==30) Shot("show-ended");
+                if(_pending.Count>0)
                 {
-                    if (_pixels == null) _pixels = new Texture2D(Screen.width, Screen.height, TextureFormat.RGB24, false);
-                    _pixels.ReadPixels(new Rect(0, 0, Screen.width, Screen.height), 0, 0, false);
-                    while (_pending.Count > 0)
+                    var pixels=new Texture2D(Screen.width,Screen.height,TextureFormat.RGB24,false);
+                    pixels.ReadPixels(new Rect(0,0,Screen.width,Screen.height),0,0,false);
+                    while(_pending.Count>0)
                     {
-                        string name = _pending.Dequeue();
-                        File.WriteAllBytes(Path.Combine(Output, name + ".png"), _pixels.EncodeToPNG());
-                        _events.Add(new { shot = name, tick = sim.CurrentTick, round = state.RoundIndex, phase = state.Phase.ToString(),
-                            hostReaction = Host?.Reaction, players = sim.MayhemPlayers, walls = sim.MayhemWalls,
-                            rings = sim.Resolver.GetActiveHitboxes().Where(h => h.Shape == HitboxShape.Ring)
-                                .Select(h => new { h.X, h.Y, h.Z, h.Radius }).ToArray() });
+                        string name=_pending.Dequeue(); File.WriteAllBytes(Path.Combine(Output,name+".png"),pixels.EncodeToPNG());
+                        var mount = FindFirstObjectByType<SlopArena.Client.Camera.CameraMount>();
+                        var camera = mount.RenderCamera;
+                        _evidence.Add(new { shot=name, view=Newtonsoft.Json.Linq.JToken.FromObject(v), width=Screen.width,height=Screen.height,host=Host?.Reaction,
+                            option=MankiMayhemPresentation.SelectedCamera.ToString(),
+                            reducedFlashing=ClientSettingsService.Instance.ReducedFlashing,
+                            camera=new { pitch=mount.GetCameraPitchDeg(), radius=mount.GetOrbitRadius(), camera.fieldOfView,
+                                position=new[] { camera.transform.position.x,camera.transform.position.y,camera.transform.position.z } },
+                            rings=v.Scene.Bombs.Select(b => new { b.Lane,b.Ordinal,kind="bomb", inFrame=DiscInFrame(camera,new Vector3(b.Landing.X,b.Landing.Y,b.Landing.Z),b.BlastRadius) }).ToArray(),
+                            spotlights=v.Scene.Zones.Select(z => new { z.Lane,z.Ordinal,inFrame=DiscInFrame(camera,new Vector3(z.Center.X,z.Center.Y,z.Center.Z),z.Radius) }).ToArray(),
+                            fighters=sim.GetAllStates().Select(p => {
+                                float height=sim.GetDefinition(p.Key).CapsuleHeight;
+                                var center=new Vector3(p.Value.PX,p.Value.PY,p.Value.PZ);
+                                var top=camera.WorldToViewportPoint(center+Vector3.up*height*.5f);
+                                var bottom=camera.WorldToViewportPoint(center-Vector3.up*height*.5f);
+                                return new { id=p.Key, capsuleHeight=height, pixels=Mathf.Abs(top.y-bottom.y)*camera.pixelHeight,
+                                    top=new[] { top.x,top.y,top.z }, bottom=new[] { bottom.x,bottom.y,bottom.z },
+                                    inFrame=top.z>0 && bottom.z>0 && top.x>=0 && top.x<=1 && bottom.x>=0 && bottom.x<=1 && top.y<=1 && bottom.y>=0 };
+                            }).ToArray() });
                     }
-                    if (clip)
-                    {
-                        string folder = Path.Combine(Output, card); Directory.CreateDirectory(folder);
-                        _frames.TryGetValue(card, out int frame); _frames[card] = frame + 1;
-                        File.WriteAllBytes(Path.Combine(folder, $"{frame:0000}.jpg"), _pixels.EncodeToJPG(90));
-                    }
+                    Destroy(pixels);
                 }
-                if ((FullShow ? state.Ended : _jumpSeen && _cageSeen && _cleaned) && ++_cleanupFrames >= (FullShow ? 60 : 4))
+                if(_endFrames>=60)
                 {
-                    Done = true;
-                    File.WriteAllText(Path.Combine(Output, "scenario.json"), JsonConvert.SerializeObject(new { shots = _shots, events = _events,
-                        players = sim.MayhemPlayers, frames = _frames, tick = sim.CurrentTick }, Formatting.Indented));
+                    Done=true;
+                    File.WriteAllText(Path.Combine(Output,"scenario.json"),JsonConvert.SerializeObject(new { shots=_shots, frames=_evidence, tick=sim.CurrentTick,view=v },Formatting.Indented));
                 }
             }
+        }
+        private static bool WatchSafe(MayhemShowView view)
+        {
+            foreach (var cue in view.Scene.Watches)
+                if (view.Tick >= cue.WarningTick && view.Tick < cue.EndTick) return false;
+            return true;
+        }
+        private static bool DiscInFrame(UnityEngine.Camera camera, Vector3 center, float radius)
+        {
+            for (int i=0;i<32;i++)
+            {
+                float angle=i*Mathf.PI/16;
+                var p=camera.WorldToViewportPoint(center+new Vector3(Mathf.Cos(angle)*radius,0,Mathf.Sin(angle)*radius));
+                if (p.z<=0 || p.x<0 || p.x>1 || p.y<0 || p.y>1) return false;
+            }
+            return true;
         }
 
         private void OnDisable()
         {
-            Match.CaptureSimulationTickCompleted -= Tick; Match.ReleaseCaptureInputSequence(_inputOwner);
-            Time.captureFramerate = _previousRate; Time.fixedDeltaTime = _previousFixed;
-            if (_pixels != null) Destroy(_pixels);
+            Match.CaptureSimulationTickCompleted-=Tick; Match.ReleaseCaptureInputSequence(_inputOwner);
+            Time.captureFramerate=_rate; Time.fixedDeltaTime=_fixed;
         }
     }
 }

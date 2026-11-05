@@ -16,11 +16,15 @@ skills/social-clips/SKILL.md owns the workflow. Its address comes from $SLOPAREN
                                       [--source <project dir>] [--idea "..."]
                                                             # file a video made outside the factory: ready, or posted
     python3 tools/factory.py sync [--out ~/Videos/SLOPArena-social]   # chosen takes of Ready and Posted as a folder
-    python3 tools/factory.py posted <idea> tiktok|shorts|instagram|x [<link>]   # where it is up; moves Ready to Posted
-    python3 tools/factory.py views [--dry-run]              # read TikTok/Shorts numbers into stats; links new posts
+    python3 tools/factory.py drag <idea>                    # desk window to drag its file into upload pages
+                                                            # (Post everywhere on the board opens it: sloparena-post:<idea>)
+    python3 tools/factory.py posted <idea> tiktok|shorts|instagram|threads|x [<link>]   # where it is up; moves Ready to Posted
+    python3 tools/factory.py views [--dry-run]              # every platform's numbers into stats; links new posts
+                                                            # (Instagram/Threads/YouTube via tools/social_api.py)
     python3 tools/factory.py set <idea> '{"captions": {...}}'   # the caption kit, one entry per platform:
         {"shorts": {"title": "...", "text": "..."}, "tiktok": {"text": "..."}, "instagram": {"text": "..."},
-         "x": {"text": "...", "reply": "..."}}            # docs/systems/content-factory.md has the house style
+         "x": {"text": "...", "reply": "..."}, "threads": {"text": "..."}}   # threads optional: falls back to x
+                                                            # docs/systems/content-factory.md has the house style
     python3 tools/factory.py run <run> running|done|failed [--summary "..."] [--made 12b-x,12c-y,report:2]
                                                             # done needs --made: every idea added or given a take, and reports
     python3 tools/factory.py inbox                          # inbox items not yet answered by a report
@@ -139,6 +143,65 @@ def file_final(idea_id: str, clip: Path, title: str, fmt: str, posted: str | Non
 SOCIAL = Path.home() / "Videos/SLOPArena-social"
 
 
+def shelf_path(idea: dict, out: Path) -> Path:
+    name = re.sub(r"[^\w !'&,.()+-]+", " ", idea.get("title") or idea["id"]).strip()
+    name = re.sub(r" {2,}", " ", name)
+    if idea["status"] == "posted":
+        return out / "posted" / f"{idea.get('posted') or ''} {name}.mp4".strip()
+    return out / "ready" / f"{name}.mp4"
+
+
+def drag(target: str) -> None:
+    """A small always-open window holding one video's file, to drag into every upload page in turn (browsers cannot
+    hand a file from one site to another). The board's Post everywhere button opens it through the sloparena-post:
+    URL handler; docs/systems/content-factory.md has the one-time desk setup."""
+    idea_id = target.removeprefix("sloparena-post:").strip("/")
+    try:
+        idea = get(idea_id)
+        path = shelf_path(idea, SOCIAL)
+        if not path.is_file():
+            fetch(idea_id, path)
+        error = None
+    except (SystemExit, OSError, urllib.error.URLError) as e:
+        idea, path, error = {"title": idea_id}, None, str(e)
+    import gi
+    gi.require_version("Gtk", "4.0")
+    gi.require_version("Gdk", "4.0")
+    from gi.repository import Gdk, Gio, GLib, GObject, Gtk
+
+    def build(app):
+        win = Gtk.ApplicationWindow(application=app, title=f"SLOPArena post: {idea.get('title') or idea_id}")
+        win.set_default_size(260, 380)
+        box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8, margin_top=10, margin_bottom=10,
+                      margin_start=10, margin_end=10)
+        if error:
+            box.append(Gtk.Label(label=f"Could not get the clip:\n{error}", wrap=True))
+        else:
+            frame = Path(tempfile.gettempdir()) / f"sloparena-post-{idea_id}.jpg"
+            try:
+                poster(path, frame, idea.get("format") == "explainer")
+                picture = Gtk.Picture.new_for_filename(str(frame))
+                picture.set_vexpand(True)
+                box.append(picture)
+            except (subprocess.CalledProcessError, OSError):
+                pass
+            box.append(Gtk.Label(label=f"Drag me into each tab\n{path.name}", wrap=True, justify=Gtk.Justification.CENTER))
+            files = Gdk.FileList.new_from_list([Gio.File.new_for_path(str(path))])
+            source = Gtk.DragSource(actions=Gdk.DragAction.COPY)
+            uris = GLib.Bytes.new(f"{path.as_uri()}\r\n".encode())  # what browsers read; FileList for the rest
+            source.connect("prepare", lambda *_: Gdk.ContentProvider.new_union([
+                Gdk.ContentProvider.new_for_value(GObject.Value(Gdk.FileList, files)),
+                Gdk.ContentProvider.new_for_bytes("text/uri-list", uris)]))
+            box.add_controller(source)
+        win.set_child(box)
+        win.present()
+
+    app = Gtk.Application(application_id=None, flags=Gio.ApplicationFlags.NON_UNIQUE)
+    app.connect("activate", build)
+    GLib.set_prgname("sloparena-post")
+    app.run([])
+
+
 def sync(out: Path) -> None:
     """Mirror the board's Ready to post and Posted videos into a plain folder for posting by hand:
     ready/<title>.mp4 and posted/<date> <title>.mp4. A clip that moved to Posted leaves ready/."""
@@ -146,12 +209,7 @@ def sync(out: Path) -> None:
     for idea in call("GET", "/api/ideas"):
         if idea["status"] not in {"ready", "posted"} or idea.get("format") == "shot" or idea.get("usedIn"):
             continue  # usedIn: went out only inside another video
-        name = re.sub(r"[^\w !'&,.()+-]+", " ", idea.get("title") or idea["id"]).strip()
-        name = re.sub(r" {2,}", " ", name)
-        if idea["status"] == "posted":
-            wanted[out / "posted" / f"{idea.get('posted') or ''} {name}.mp4".strip()] = idea
-        else:
-            wanted[out / "ready" / f"{name}.mp4"] = idea
+        wanted[shelf_path(idea, out)] = idea
     for folder in ("ready", "posted"):
         for old in (out / folder).glob("*.mp4") if (out / folder).is_dir() else []:
             if old not in wanted:
@@ -165,7 +223,8 @@ def sync(out: Path) -> None:
           f"{sum(1 for p in wanted if p.parent.name == 'posted')} posted")
 
 
-PLATFORMS = ["tiktok", "shorts", "instagram", "x"]
+PLATFORMS = ["tiktok", "shorts", "instagram", "threads", "x"]
+PLATFORM_LABELS = {"tiktok": "TikTok", "shorts": "YouTube", "instagram": "Instagram", "threads": "Threads", "x": "X"}
 
 
 def mark_posted(idea_id: str, platform: str, link: str) -> None:
@@ -206,7 +265,8 @@ def match_post(video: dict, ideas: list[dict], platform: str) -> dict | None:
         return None
     scores = []
     for idea in ideas:
-        kit = (idea.get("captions") or {}).get(platform) or {}
+        captions = idea.get("captions") or {}
+        kit = captions.get(platform) or (captions.get("x") if platform == "threads" else None) or {}
         best = max((len(said & words(t)) / len(said) for t in (idea.get("title"), kit.get("title"), kit.get("text"))
                     if t), default=0)
         scores.append((best, idea))
@@ -216,52 +276,106 @@ def match_post(video: dict, ideas: list[dict], platform: str) -> dict | None:
     return None
 
 
+def post_key(url: str) -> str:
+    """One post however its link was pasted: shortcodes and video ids, without query strings or trailing slashes."""
+    match = re.search(r"instagram\.com/(?:[\w.]+/)?(?:p|reels?)/([\w-]+)|threads\.(?:net|com)/@[\w.]+/post/([\w-]+)"
+                      r"|youtube\.com/(?:shorts/|watch\?v=)([\w-]{11})|youtu\.be/([\w-]{11})|/video/(\d+)", url)
+    return next(g for g in match.groups() if g) if match else url.split("?")[0].split("#")[0].rstrip("/")
+
+
+def ytdlp_posts(platform: str, linked: dict[str, str]) -> list[dict]:
+    """Public numbers through yt-dlp: the profile listing finds new posts, then each linked post is read once."""
+    posts = []
+    for video in (ytdlp("--flat-playlist", CHANNELS[platform]) or {}).get("entries") or []:
+        url = video.get("url") or ""
+        if platform == "shorts":
+            url = f"https://www.youtube.com/shorts/{video['id']}"
+        if url:
+            posts.append({"url": url, "text": f"{video.get('title') or ''} {video.get('description') or ''}"})
+    for url in linked.values():
+        if not any(post_key(p["url"]) == post_key(url) for p in posts):
+            posts.append({"url": url, "text": ""})  # linked by hand, not in the listing (yet)
+    for post in posts:
+        if post_key(post["url"]) in {post_key(u) for u in linked.values()}:
+            video = ytdlp(post["url"]) or {}
+            post.update(views=video.get("view_count"), likes=video.get("like_count"),
+                        comments=video.get("comment_count"))
+    return posts
+
+
 def views(dry_run: bool) -> None:
-    """Link new posts found on the public profiles, then store each linked post's views, likes and comments.
-    stats keeps <platform>, <platform>_likes, <platform>_comments and checked; history keeps one row a day."""
+    """Find every post on each platform, link new ones to their clip, then store each linked post's numbers.
+    Instagram, Threads and YouTube come from their official APIs once tools/social_api.py is logged in (richer:
+    reach, saves, shares, watch time); TikTok, and Shorts until then, from yt-dlp's public numbers.
+    stats keeps <platform>, <platform>_likes, _comments, _<extra> and checked; history keeps one row a day.
+    The run's summary and the posts it could not match go to the board's Numbers tab."""
+    import social_api
     ideas = [i for i in call("GET", "/api/ideas") if i["status"] in {"ready", "posted"} and not i.get("usedIn")
              and i.get("format") != "shot"]
-    linked = {v for i in ideas for v in (i.get("posts") or {}).values() if isinstance(v, str)}
-    for platform, channel in CHANNELS.items():
-        listing = ytdlp("--flat-playlist", channel) or {}
-        for video in listing.get("entries") or []:
-            url = video.get("url") or ""
-            if platform == "shorts":
-                url = f"https://www.youtube.com/shorts/{video['id']}"
-            if not url or url in linked:
+    since = min((datetime.fromisoformat(i["created"]).date() for i in ideas), default=datetime.now().date())
+    api = social_api.connected()
+    found, unmatched, notes, new = {}, [], [], 0
+    for platform in PLATFORMS:
+        linked = {i["id"]: (i.get("posts") or {})[platform] for i in ideas
+                  if isinstance((i.get("posts") or {}).get(platform), str)}
+        try:
+            if platform in api:
+                posts = social_api.posts(platform, since)
+            elif platform in CHANNELS:
+                posts = ytdlp_posts(platform, linked)
+            else:
+                continue  # X: typed in
+        except (social_api.ApiError, OSError) as error:
+            notes.append(f"{PLATFORM_LABELS[platform]} failed: {error}"[:160])
+            print(f"{platform}: {error}", file=sys.stderr)
+            continue
+        keys = {post_key(u) for u in linked.values()}
+        for post in posts:
+            if post_key(post["url"]) in keys:
                 continue
-            idea = match_post(video, [i for i in ideas if not isinstance((i.get("posts") or {}).get(platform), str)],
-                              platform)
+            idea = match_post({"title": post["text"]}, [i for i in ideas if not isinstance(
+                (i.get("posts") or {}).get(platform), str)], platform)
             if not idea:
-                print(f"unlinked {platform} post: {url} \"{(video.get('title') or '')[:60]}\"\n"
-                      f"  link it: python3 tools/factory.py posted <idea> {platform} {url}")
+                if (post.get("at") or "9") >= since.isoformat():
+                    unmatched.append({"platform": platform, "url": post["url"], "text": post["text"][:120]})
+                print(f"unlinked {platform} post: {post['url']} \"{post['text'][:60]}\"\n"
+                      f"  link it: python3 tools/factory.py posted <idea> {platform} {post['url']}")
                 continue
-            print(f"{idea['id']}: found on {platform} {url}")
-            idea.setdefault("posts", {})[platform] = url
-            linked.add(url)
+            print(f"{idea['id']}: found on {platform} {post['url']}")
+            idea.setdefault("posts", {})[platform] = post["url"]
+            linked[idea["id"]] = post["url"]
+            keys.add(post_key(post["url"]))
+            new += 1
             if not dry_run:
-                mark_posted(idea["id"], platform, url)
-    stamp = datetime.now().isoformat(timespec="minutes")
+                mark_posted(idea["id"], platform, post["url"])
+        found[platform] = {post_key(p["url"]): p for p in posts}
+    stamp, counted = datetime.now().isoformat(timespec="minutes"), 0
     for idea in ideas:
         stats, today = dict(idea.get("stats") or {}), {}
         for platform, url in (idea.get("posts") or {}).items():
-            if platform not in CHANNELS or not isinstance(url, str):
+            post = found.get(platform, {}).get(post_key(url)) if isinstance(url, str) else None
+            if not post or post.get("views") is None:
                 continue
-            video = ytdlp(url)
-            if not video:
-                continue
-            for suffix, key in (("", "view_count"), ("_likes", "like_count"), ("_comments", "comment_count")):
-                if video.get(key) is not None:
-                    stats[platform + suffix] = video[key]
-            today[platform] = video.get("view_count")
+            for suffix, value in [("", post["views"]), ("_likes", post.get("likes")),
+                                  ("_comments", post.get("comments"))] + \
+                    [("_" + k, v) for k, v in (post.get("extra") or {}).items()]:
+                if value is not None:
+                    stats[platform + suffix] = value
+            today[platform] = post["views"]
         if not today:
             continue
+        counted += 1
         stats["checked"] = stamp
         history = [h for h in idea.get("history") or [] if h.get("at") != stamp[:10]] + [{"at": stamp[:10], **today}]
         print(f"{idea['id']}: " + ", ".join(f"{p} {v}" for p, v in today.items()))
         if not dry_run:
             call("POST", f"/api/ideas/{idea['id']}/stats", {"stats": stats})
             call("PATCH", f"/api/ideas/{idea['id']}", {"history": history})
+    summary = "; ".join([f"numbers for {counted} clip(s)", f"{new} new post(s) linked"] +
+                        ([f"{len(unmatched)} post(s) to link by hand"] if unmatched else []) + notes)
+    print(summary)
+    if not dry_run:
+        call("POST", "/api/fetch", {"done": True, "summary": summary, "unmatched": unmatched[:30]})
 
 
 def migrate(queue: Path) -> None:
@@ -423,9 +537,19 @@ def relay_message(note: dict) -> str:
             f'Read the check: python3 tools/factory.py check get {note["check_id"]}' + STAY_ACTIVE)
 
 
+def fetch_pressed() -> None:
+    """Fetch now on the Numbers tab: start the views service (the same one the 6-hour timer runs)."""
+    state = call("GET", "/api/fetch")
+    if state.get("asks", 0) > state.get("taken", 0):
+        call("POST", "/api/fetch", {"taken": state["asks"]})
+        subprocess.run(["systemctl", "--user", "start", "--no-block", "sloparena-views.service"], check=False)
+        print("fetch: started views", flush=True)
+
+
 def relay(once: bool, interval: float) -> None:
     while True:
         try:
+            fetch_pressed()
             for note in call("GET", "/api/outbox"):
                 try:
                     subprocess.run([t3_cli(), "thread", "send", owner_thread(note["thread"])[0], "-"],
@@ -476,6 +600,7 @@ def main() -> None:
     final.add_argument("--idea", dest="idea_text", default="", help="one line on what it shows")
     sub.add_parser("sync").add_argument("--out", type=Path, default=SOCIAL)
     sub.add_parser("views").add_argument("--dry-run", action="store_true")
+    sub.add_parser("drag").add_argument("idea", help="an idea id, or the sloparena-post:<idea> link from the board")
     up = sub.add_parser("posted")
     up.add_argument("idea")
     up.add_argument("platform", choices=PLATFORMS)
@@ -557,6 +682,8 @@ def main() -> None:
     elif args.command == "posted":
         mark_posted(args.idea, args.platform, args.link)
         sync(SOCIAL)
+    elif args.command == "drag":
+        drag(args.idea)
     elif args.command == "views":
         views(args.dry_run)
     elif args.command == "sync":

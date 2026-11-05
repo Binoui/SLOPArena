@@ -8,11 +8,17 @@ namespace SlopArena.Client.UI
     public sealed class ModeSelectController : MonoBehaviour, IFrontendPageController
     {
         private FrontendPageContext _context = null!;
+        // The press that opened this page (Home's LOCAL PLAY) can arrive a second time a frame
+        // later as the panel's own submit for the same pad button; it would land on the focused
+        // BRAWL card and skip Mode Select. Ignore card presses that soon after opening.
+        private const float OpenGraceSeconds = 0.25f;
+        private float _openedAt;
         public void InjectPageContext(FrontendPageContext context) => _context = context;
 
         private void OnEnable()
         {
             MatchConfig.ClearActiveMatch();
+            _openedAt = Time.unscaledTime;
             var style = Resources.Load<StyleSheet>("UI/LocalPlay");
             foreach (var root in _context.OwnedRoots) if (style != null) root.styleSheets.Add(style);
             var hero = _context.Q<VisualElement>("local-mode-hero")!;
@@ -20,7 +26,10 @@ namespace SlopArena.Client.UI
             Button? initial = null;
             foreach (var mode in LocalPlayModes.All)
             {
-                var card = new Button(() => LocalPlayModes.Open(mode.Mode)) { name = "local-mode-" + mode.Mode };
+                var card = new Button(() =>
+                {
+                    if (Time.unscaledTime - _openedAt >= OpenGraceSeconds) LocalPlayModes.Open(mode.Mode);
+                }) { name = "local-mode-" + mode.Mode };
                 card.AddToClassList("local-mode-card");
                 if (mode.HasStageStep) card.AddToClassList("local-mode-card--hero");
                 var art = new VisualElement { pickingMode = PickingMode.Ignore };

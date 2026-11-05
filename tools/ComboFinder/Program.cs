@@ -73,6 +73,35 @@ try
                 Console.WriteLine($"{c.Search.Score:F1} | {c.Timeline.Ticks / 60.0:F2} | {c.Summary}");
             Console.WriteLine($"Found {found.Count} combos");
             return found.Count == 0 ? 1 : 0;
+        case "mine":
+        {
+            // CPU against CPU: many seeded fights per start layout, best eligible strings exported as combos.
+            int fights = Number("--fights", 2000), keep = Number("--keep", 3);
+            var victimDifficulty = Arg("--victim-difficulty", "hard") switch
+            {
+                "hard" => SlopArena.Shared.AI.CpuDifficulty.Hard, "normal" => SlopArena.Shared.AI.CpuDifficulty.Normal,
+                var d => throw new ArgumentException($"Unknown --victim-difficulty {d}")
+            };
+            var wantedLayouts = List("--layouts", "all");
+            var mined = new List<ComboFile>();
+            foreach (var stage in List("--stages"))
+                foreach (var a in List("--attackers"))
+                    foreach (var v in List("--victims"))
+                        foreach (var damage in List("--damages").Select(ushort.Parse))
+                        {
+                            if (a == v) continue;
+                            var o = Options(a, v, stage, damage, 1);
+                            foreach (var layout in new Content(stage).Layouts())
+                                if (wantedLayouts.Contains("all") || wantedLayouts.Contains(layout.Name))
+                                    mined.AddRange(Mine.Run(o with { Layout = layout.Name, AttackerPosition = layout.Attacker, VictimPosition = layout.Victim },
+                                        fights, keep, victimDifficulty, Arg("--out")));
+                        }
+            Console.WriteLine("score | seconds | id | summary");
+            foreach (var c in mined.OrderByDescending(c => c.Search.Score).ThenBy(c => c.Id, StringComparer.Ordinal).Take(Number("--top", int.MaxValue)))
+                Console.WriteLine($"{c.Search.Score:F1} | {c.Timeline.Ticks / 60.0:F2} | {c.Id} | {c.Summary}");
+            Console.WriteLine($"Mined {mined.Count} combos");
+            return mined.Count == 0 ? 1 : 0;
+        }
         case "verify":
         case "cameras":
             if (args.Length < 2) throw new ArgumentException("Missing combo path");
@@ -84,7 +113,14 @@ try
                 Console.SetOut(Console.Error);
                 var content = new Content(file.Stage);
                 if (args[0] == "cameras") result = Json.Write(Cameras.Plan(content, file, Arg("--orientation")));
-                else { Replay.Run(content, file); result = $"PASS {file.Id}: content, moves, ticks, swings, taken and KO match\n"; }
+                else { var exact = args.Contains("--exact") ? new System.Text.StringBuilder() : null; var trace = Replay.Run(content, file, exact); var (score, why) = Scoring.Score(trace); var (travel, planted) = Scoring.Movement(trace); result = $"PASS {file.Id}: content, moves, ticks, swings, taken and KO match\nscore={score:F1} travel={travel:F1}m planted={planted} {why}\n";
+                    // --positions prints both fighters' positions per tick (1-based, like photo mode's states.jsonl), to
+                    // find the first tick where a Unity replay drifts from the headless one.
+                    // --exact prints every CharacterState field per tick in SlopArenaPhotoShoot's exact.txt format.
+                    if (exact != null) result = exact.ToString();
+                    else if (args.Contains("--positions"))
+                        result = string.Concat(trace.AttackerPos.Zip(trace.VictimPos).Select((p, i) => FormattableString.Invariant(
+                            $"{i + 1} {p.First.x:R} {p.First.y:R} {p.First.z:R} {p.Second.x:R} {p.Second.y:R} {p.Second.z:R}\n"))); }
             }
             finally { Console.SetOut(stdout); }
             Console.Write(result);

@@ -259,12 +259,50 @@ def load(spec_only: bool = False, spec=SPEC) -> dict:
 SHELL_ASSETS = {"FishingBoatHull": "SplashDeckHull", "Wheelhouse": "SplashDeckWheelhouse", "FishHatch": "SplashDeckFishHatch"}
 
 
+SLAM_HALF_WIDTH = 4.25  # provisional: the 8.5 m kraken arm the maintainer kept ("fine as is")
+SLAM_HALF_HEIGHT = 1.2  # provisional: the lying arm's top is about 2.4 m above the deck
+SPAWN_CLEARANCE = 1.25  # lane edges stay this far from every spawn x, so a fighter on a spawn is never in a lane
+
+
+def slam_lanes(spec=SPEC):
+    """Mid lane amidships; aft and fore lanes just outside the spawns' safe strips, covering wheelhouse and hatch."""
+    beam, top = spec["hull"]["half_beam"], spec["top"]
+    spawn_x = min(abs(x) for x, _, _ in spec["spawns"])
+    if SLAM_HALF_WIDTH > spawn_x - SPAWN_CLEARANCE:
+        raise ValueError("the mid slam lane would reach a spawn")
+    outer = spawn_x + SPAWN_CLEARANCE + SLAM_HALF_WIDTH
+    for name, x in (("Wheelhouse", -outer), ("FishHatch", outer)):
+        x0, _, x1, _ = spec["raised"][name]["footprint"]
+        if not (x - SLAM_HALF_WIDTH <= x0 and x1 <= x + SLAM_HALF_WIDTH):
+            raise ValueError(f"the {name} is not inside its slam lane")
+    return [{"name": name, "kind": "Box", "center": [x, top + SLAM_HALF_HEIGHT, 0],
+             "halfExtents": [SLAM_HALF_WIDTH, SLAM_HALF_HEIGHT, beam], "yaw": 0}
+            for name, x in (("slam_aft", -outer), ("slam_mid", 0.0), ("slam_fore", outer))]
+
+
+def hazard_anchors(spec=SPEC):
+    h = spec["hull"]
+    beam, top = h["half_beam"], spec["top"]
+    x0, z0, x1, z1 = spec["raised"]["FishHatch"]["footprint"]
+    return slam_lanes(spec) + [
+        {"name": "bow_wave", "kind": "Box", "center": [(h["shoulder_x"] + h["bow_x"]) / 2, top + 1, 0],
+         "halfExtents": [(h["bow_x"] - h["shoulder_x"]) / 2, 1, beam], "yaw": 0},
+        {"name": "hatch", "kind": "Box", "center": [(x0 + x1) / 2, spec["raised"]["FishHatch"]["top"], (z0 + z1) / 2],
+         "halfExtents": [(x1 - x0) / 2, 1, (z1 - z0) / 2], "yaw": 0},
+        {"name": "water_loop", "kind": "Loop", "points": [
+            [h["stern_x"] - 3, top - 2, -beam - 3], [h["bow_x"] + 3, top - 2, -beam - 3],
+            [h["bow_x"] + 3, top - 2, 0], [h["bow_x"] + 3, top - 2, beam + 3],
+            [h["stern_x"] - 3, top - 2, beam + 3], [h["stern_x"] - 3, top - 2, 0]]},
+    ]
+
+
 def unity_shell_json(spec=SPEC) -> dict:
     """Input for sloparena.stage.shell-apply: indexed meshes and spawn markers."""
     meshes = [shell.mesh(name, SHELL_ASSETS[name], *shell.indexed(tris)) for name, tris in collision(spec).items()]
     top = spec["top"] + spec["spawn_body_half_height"]
     return shell.document("splash_deck", spec["kill_y"], meshes,
-                          [(x, top, z, yaw) for x, z, yaw in spec["spawns"]])
+                          [(x, top, z, yaw) for x, z, yaw in spec["spawns"]],
+                          hazard_anchors=hazard_anchors(spec))
 
 
 if __name__ == "__main__":

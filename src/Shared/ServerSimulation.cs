@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using SlopArena.Shared.Abilities;
+using SlopArena.Shared.Mayhem;
 
 namespace SlopArena.Shared
 {
@@ -98,15 +99,23 @@ namespace SlopArena.Shared
 		/// Authored velocity and owned vertical motion still run. Null = normal match gravity.</summary>
 		public ulong? NoGravityEntityId;
 
+        private readonly SlopArena.Shared.StageHazards.StageHazardSession? _stageHazards;
+        public SlopArena.Shared.StageHazards.StageHazardView? StageHazards => _stageHazards?.View;
+
 		/// <param name="rule">Win-condition rule (elimination + match end). Defaults to stock mode, 3 stocks.</param>
 		/// <param name="downActionTuning">Immutable down-action tuning. Defaults to the shared production values.</param>
 		/// <param name="combatTuning">Immutable combat tuning. Defaults to the shipped profile.</param>
+		/// <param name="stageHazardSeed">Match-owned deterministic hazard seed; ignored when Off.</param>
 		public ServerSimulation(ArenaDefinition arena, IMatchRule? rule = null, DownActionTuning? downActionTuning = null,
-			CombatTuning? combatTuning = null)
+			CombatTuning? combatTuning = null, uint stageHazardSeed = 0)
 		{
 			_arena = arena;
 			_blastLines = ArenaCollision.ResolveBlastLines(in arena);
 			_rule = rule ?? new StockMatchRule(3);
+            bool hazardsOn = _rule is StockMatchRule { StageHazards: StageHazardMode.On }
+                or NoWinMatchRule { StageHazards: StageHazardMode.On };
+            if (hazardsOn && SlopArena.Shared.StageHazards.StageHazardFamilies.Bind(arena) is { } family)
+                _stageHazards = new SlopArena.Shared.StageHazards.StageHazardSession(family, stageHazardSeed, 0);
 			_attackTargetFilter = _rule is SlopballCoopMatchRule or SlopballVersusMatchRule or CourseMatchRule or MankiMayhemMatchRule ? CanAttackTarget : null;
 			_downActionTuning = downActionTuning ?? DownActionTuning.Default;
 			CombatTuning = combatTuning ?? SlopArena.Shared.CombatTuning.Default;
@@ -131,7 +140,7 @@ namespace SlopArena.Shared
             {
                 if (arena.Arcade?.Mayhem == null) throw new ArgumentException("Mayhem needs a Mayhem arena.", nameof(rule));
                 arena.Arcade.Mayhem.ValidateArena(in arena);
-                _mayhem = new MankiMayhemSimulation(arena.Arcade.Mayhem);
+                _mayhem = new MayhemShow(arena.Arcade.Mayhem);
             }
             if (_rule is CourseMatchRule && _onlineCourse == null)
                 throw new ArgumentException("Online courses need a course arena.", nameof(rule));
@@ -155,7 +164,7 @@ namespace SlopArena.Shared
 			if (_arcadeBall != null && (id == ArcadeBallSimulation.TargetInputId || id >= ArcadeBallSimulation.FirstEntityId))
 				throw new ArgumentException("Arcade reserves the ball target alias and object identity range.", nameof(id));
             if (_mayhem != null && (id == 0 || id >= ArcadeBallSimulation.FirstEntityId
-                || !_states.ContainsKey(id) && (_states.Count >= 4 || _mayhem.State.Seed != 0)))
+                || !_states.ContainsKey(id) && (_states.Count >= 4 || _mayhem.Begun)))
                 throw new ArgumentException("Mayhem reserves object identities and admits up to four fighters before Begin.", nameof(id));
 			_defs[id] = def;
                 if (_onlineCourse != null) _onlineCourse.Register(id, initialState);
@@ -301,6 +310,8 @@ namespace SlopArena.Shared
 		public void ActivateAbility(ulong entityId, ServerAbility ability, byte slot, CharacterDefinition def, short? activationAimYaw = null, InputState activationInput = default, bool fromShell = false)
 		{
 			if (!_states.TryGetValue(entityId, out var state)) return;
+			// The gate's actual-activation point: nothing starts a move the Mayhem channel has not switched on.
+			if (!AdmitsMayhemSlot(entityId, (byte)(slot + 1))) return;
 			unchecked
 			{
 				_nextActivationId++;
@@ -1018,7 +1029,8 @@ namespace SlopArena.Shared
 				bool bufferedPress = input.ActiveSlot == 0 && state.BufferedSlot > 0
 					&& (ActionStates.AdmitsActions(state.State) || state.State == ActionState.HomingDashArrive
                         || CanSwapCancel(id, in state, state.BufferedSlot))
-					&& !input.Jump && !input.ShieldHeld && !input.GrabPressed;
+					&& !input.Jump && !input.ShieldHeld && !input.GrabPressed
+					&& AdmitsMayhemSlot(id, state.BufferedSlot);
 				if (bufferedPress)
 					input.ActiveSlot = state.BufferedSlot;
                 connectedSwap = CanSwapCancel(id, in state, input.ActiveSlot);
@@ -1591,7 +1603,8 @@ namespace SlopArena.Shared
                 Simulation.SimulateTick(ref state, def, input, _arena,
 					out bool ordinaryActionOpportunity, out bool movementActionAccepted,
 					_downActionTuning, verticalMotionOwned, GetActiveMove(id),
-					NoGravityEntityId == id || state.Flight.Active ? 0f : activeAbility?.GravityMultiplier ?? 1f, CombatTuning);
+					NoGravityEntityId == id || state.Flight.Active ? 0f : activeAbility?.GravityMultiplier ?? 1f, CombatTuning,
+					_mayhem?.ControlsFor(id, _tick));
 
 				if (state.State is ActionState.Shielding or ActionState.AirDodgeMovement
                     || state.State == ActionState.GrabAttempt && beforeMovement.State != ActionState.GrabAttempt)
@@ -2131,7 +2144,7 @@ namespace SlopArena.Shared
 			if (_arcadeBall != null && _arcadeBall.State.Active) entityList.Add(_arcadeBall.CollisionTarget);
             if (_course != null) entityList.AddRange(_course.CollisionTargets());
             if (_onlineCourse != null) entityList.AddRange(_onlineCourse.CollisionTargets());
-            if (_mayhem != null) entityList.AddRange(_mayhem.Solids.CollisionTargets());
+            if (_mayhem != null) entityList.AddRange(MayhemCollisionTargets());
 			_lastEntityList = entityList;
 			return entityList;
 		}
@@ -2432,8 +2445,7 @@ namespace SlopArena.Shared
 					ResolveCourseTargetHit(hit, courseTarget, inputs, hitContactOperationIndex++);
 					continue;
 				}
-                if (_mayhem != null && _mayhem.Solids.Contains(hit.TargetEntityId))
-                { ResolveMayhemWallHit(hit); continue; }
+                if (_mayhem != null && TryResolveMayhemContact(in hit)) continue;
 				if (!_states.TryGetValue(hit.TargetEntityId, out var targetState)) continue;
 				bool attackerExists = _states.TryGetValue(hit.OwnerEntityId, out var attackerState);
 
@@ -2584,7 +2596,7 @@ namespace SlopArena.Shared
 
 				bool shove = IsMayhemShove(hit.OwnerEntityId, hit.TargetEntityId);
                 ushort percentBefore = targetState.DamagePercent;
-                float finalDamage = shove ? 0f : hit.Damage;
+                float finalDamage = shove || _mayhem != null ? 0f : hit.Damage;
 				targetState.DamagePercent += (ushort)finalDamage;
 				if (targetState.DamagePercent > 999) targetState.DamagePercent = 999;
 
@@ -2781,8 +2793,7 @@ namespace SlopArena.Shared
 			foreach (var (ex, ey, ez, explosion, ownerId, attackSlot, activationId, airborne, attackSequence) in _spellResolver.DrainPendingExplosions())
 			{
                 if (_mayhem != null && ownerId == MayhemHostEntityId)
-                    foreach (ulong wall in _mayhem.Solids.InBlast(ex, ey, ez, explosion.Radius).ToArray())
-                        _mayhem.HitWall(_tick, wall, wreck: true);
+                    ResolveMayhemHostBlast(ex, ey, ez, explosion.Radius, activationId);
                 if (_states.TryGetValue(ownerId, out var blastOwner))
                 {
                     if (explosion.EndsOwnerActivation && GetActiveAbility(ownerId)?.ActivationId == activationId)
@@ -2849,6 +2860,8 @@ namespace SlopArena.Shared
 
 		private void CheckBlastDeaths()
 		{
+			// Mayhem consumes falls before this point: no respawn, stock loss, death or attached-bomb explosion.
+			if (_mayhem != null) return;
 			// ── Step 4: Blast zone death check (void + side + top; inactive planes are ±inf) ──
 			var deadIds = new List<ulong>();
 			foreach (var kvp in _states)
@@ -3033,10 +3046,12 @@ namespace SlopArena.Shared
                 if (_course != null)
                     foreach (var state in _states.Values) coursePrevious = new(state.PX, state.PY, state.PZ);
 				_tick++;
-                if (_mayhem != null && !_mayhem.BeginTick(_tick, _states, ResetMayhemFighters, _spellResolver))
-                { LastTickHits.Clear(); _presentationEvents.Clear(); return; }
-                if (_mayhem != null && inputs.Keys.Any(id => _mayhem.Inactive(id)))
-                    inputs = inputs.Where(pair => !_mayhem.Inactive(pair.Key)).ToDictionary(pair => pair.Key, pair => pair.Value);
+                _stageHazards?.Tick(_tick, _spellResolver, !EvaluateMatch().IsEnded);
+                if (_mayhem != null)
+                {
+                    if (!_mayhem.BeginTick(_tick, this)) { LastTickHits.Clear(); _presentationEvents.Clear(); return; }
+                    inputs = AdmitMayhemInputs(inputs);
+                }
 				if (PredictCoupledInteractions && HasCoupledInteraction())
 					UpdateCoupledInteractions(releaseDue: false, inputs);
 				CaptureSettledCrouchCandidates();
@@ -3074,10 +3089,10 @@ namespace SlopArena.Shared
 
 				ProcessProjectileExplosions();
 
+				_mayhem?.EndTick(_tick, this);
 				CheckBlastDeaths();
                 FinishCourseTick(coursePrevious);
                 FinishOnlineCourseTick();
-                _mayhem?.FinishTick(_tick, _states, LastTickDeaths.Select(d => d.EntityId), BenchMayhemFighter, _spellResolver);
 				MirrorReturningProjectileSlots();
                 if (_volley != null && _volley.Events.Any(e => e.Kind == SlopballEventKind.PointScored))
                     ResetVersusPoint();

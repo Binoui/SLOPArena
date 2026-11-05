@@ -3,6 +3,7 @@ using System.Buffers.Binary;
 using System.Collections.Generic;
 using System.IO;
 using System.IO.Compression;
+using SlopArena.Shared.Mayhem;
 
 namespace SlopArena.Shared
 {
@@ -22,16 +23,16 @@ namespace SlopArena.Shared
     {
         public const uint Magic = 0x4D524657; // "WFRM"
         /// <summary>2 adds the Slopball events of the frame's event ticks (ADR-0040); 8 adds the attacker's form to
-        /// each hit (ADR-0051).</summary>
-        public const byte FormatVersion = 8;
+        /// each hit (ADR-0051); 9 replaces the Mayhem round events with channel events (ADR-0061).</summary>
+        public const byte FormatVersion = 10;
         public const int HeaderSize = 16;
         public const int MaxBodyBytes = 64 * 1024;
         public const int MaxPresentationEvents = 256;
         public const int MaxHits = 128;
         public const int MaxSlopballEvents = 32;
         public const int MaxCourseEvents = 1024;
-        public const int MaxMayhemEvents = 64;
-        private const int MayhemEventBytes = 21;
+        public const int MaxMayhemEvents = 128;
+        private const int MayhemEventBytes = 4 + 2 + 1 + 8 + 1 + 8 + 2;
         private const int CourseEventBytes = 27;
         private const int SlopballEventBytes = 4 + 1 + 8 + 8 + 4 + 1;
         /// <summary>Ticks whose complete event and hit record each frame carries, ending at its own tick.</summary>
@@ -41,7 +42,7 @@ namespace SlopArena.Shared
         public WorldFramePacket(MatchState matchState, WorldSnapshot snapshot, IReadOnlyList<RelayedInput> inputs,
             IReadOnlyList<TimelinePresentationEvent> events, IReadOnlyList<SpellResolver.HitResult> hits,
             IReadOnlyList<SlopballTickEvent>? slopballEvents = null, IReadOnlyList<CourseTickEvent>? courseEvents = null,
-            IReadOnlyList<MankiMayhemEvent>? mayhemEvents = null)
+            IReadOnlyList<MayhemEvent>? mayhemEvents = null)
         {
             MatchState = matchState;
             Snapshot = snapshot ?? throw new ArgumentNullException(nameof(snapshot));
@@ -50,7 +51,7 @@ namespace SlopArena.Shared
             Hits = hits ?? throw new ArgumentNullException(nameof(hits));
             SlopballEvents = slopballEvents ?? Array.Empty<SlopballTickEvent>();
             CourseEvents = courseEvents ?? Array.Empty<CourseTickEvent>();
-            MayhemEvents = mayhemEvents ?? Array.Empty<MankiMayhemEvent>();
+            MayhemEvents = mayhemEvents ?? Array.Empty<MayhemEvent>();
             if (MayhemEvents.Count > MaxMayhemEvents) throw new ArgumentOutOfRangeException(nameof(mayhemEvents));
             if (CourseEvents.Count > MaxCourseEvents) throw new ArgumentOutOfRangeException(nameof(courseEvents));
             if (events.Count > MaxPresentationEvents)
@@ -72,7 +73,7 @@ namespace SlopArena.Shared
         /// <summary>Every Slopball event of the ticks <see cref="EventsFromTick"/> to <see cref="Tick"/>; empty for a stock fight.</summary>
         public IReadOnlyList<SlopballTickEvent> SlopballEvents { get; }
         public IReadOnlyList<CourseTickEvent> CourseEvents { get; }
-        public IReadOnlyList<MankiMayhemEvent> MayhemEvents { get; }
+        public IReadOnlyList<MayhemEvent> MayhemEvents { get; }
 
         /// <summary>First tick whose complete event and hit record this frame carries.</summary>
         public uint EventsFromTick => EventsFrom(Tick);
@@ -170,8 +171,8 @@ namespace SlopArena.Shared
             foreach (var item in MayhemEvents)
             {
                 if (!ValidMayhemEvent(item, Tick)) throw new ArgumentOutOfRangeException(nameof(MayhemEvents));
-                w.WriteUInt(item.MatchTick); w.WriteUShort(item.RoundIndex); w.WriteByte((byte)item.Kind);
-                w.WriteULong(item.EntityId); w.WriteInt(item.OperationIndex); w.WriteUShort(item.Points);
+                w.WriteUInt(item.MatchTick); w.WriteUShort(item.Episode); w.WriteByte(item.Lane); w.WriteULong(item.Operation);
+                w.WriteByte((byte)item.Kind); w.WriteULong(item.Subject); w.WriteUShort(item.Value);
             }
             byte[] body = w.ToArray();
             if (body.Length > MaxBodyBytes)
@@ -333,11 +334,11 @@ namespace SlopArena.Shared
             }
             int mayhemCount = r.ReadCount(MayhemEventBytes);
             if (mayhemCount > MaxMayhemEvents) throw Malformed("Mayhem event count");
-            var mayhem = new MankiMayhemEvent[mayhemCount];
+            var mayhem = new MayhemEvent[mayhemCount];
             for (int i = 0; i < mayhem.Length; i++)
             {
-                mayhem[i] = new(r.ReadUInt(), r.ReadUShort(), (MankiMayhemEventKind)r.ReadByte(),
-                    r.ReadULong(), r.ReadInt(), r.ReadUShort());
+                mayhem[i] = new(r.ReadUInt(), r.ReadUShort(), r.ReadByte(), r.ReadULong(), (MayhemEventKind)r.ReadByte(),
+                    r.ReadULong(), r.ReadUShort());
                 if (!ValidMayhemEvent(mayhem[i], tick)) throw Malformed("Mayhem event");
             }
             if (!r.AtEnd)
@@ -345,19 +346,9 @@ namespace SlopArena.Shared
             return new WorldFramePacket(matchState, snapshot, inputs, events, hits, slopball, courses, mayhem);
         }
 
-        public static bool ValidMayhemEvent(MankiMayhemEvent item, uint tick)
-        {
-            bool wall = item.Kind is MankiMayhemEventKind.WallHit or MankiMayhemEventKind.WallBroken;
-            bool fighter = item.Kind is MankiMayhemEventKind.Bench or MankiMayhemEventKind.Score;
-            bool hazard = item.Kind is MankiMayhemEventKind.WindUp or MankiMayhemEventKind.Launch or MankiMayhemEventKind.Slam;
-            return item.MatchTick >= EventsFrom(tick) && item.MatchTick <= tick
-                && item.Kind <= MankiMayhemEventKind.WallBroken
-                && item.RoundIndex < MankiMayhemTuning.DeckPasses * MankiMayhemRounds.DeckSize
-                && (wall ? RuntimeSolidSet.IsWallId(item.EntityId) : fighter ? item.EntityId is > 0 and < ArcadeBallSimulation.FirstEntityId
-                    : item.EntityId == ServerSimulation.MayhemHostEntityId)
-                && (wall ? item.OperationIndex == (int)(item.EntityId - RuntimeSolidSet.FirstEntityId) : hazard ? item.OperationIndex is >= 0 and < 64 : item.OperationIndex == 0)
-                && (item.Kind == MankiMayhemEventKind.Score ? item.Points is > 0 and <= 2 : item.Points == 0);
-        }
+        public static bool ValidMayhemEvent(MayhemEvent item, uint tick)
+            => item.MatchTick >= EventsFrom(tick) && item.MatchTick <= tick
+                && MayhemEvent.IsValid(in item, ServerSimulation.MayhemHostEntityId);
 
         private static bool ValidCourseEvent(CourseTickEvent item, uint tick)
         {

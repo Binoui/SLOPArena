@@ -115,7 +115,7 @@ namespace SlopArena.Shared
         /// co-op Slopball run finishes together, so it reads as a shared result.
         /// </summary>
         public MatchOutcome EvaluateMatch()
-            => _mayhem != null ? _mayhem.Outcome : _onlineCourse != null ? _onlineCourse.Outcome
+            => _mayhem != null ? _mayhem.Outcome(_tick) : _onlineCourse != null ? _onlineCourse.Outcome
                 : _rule is SlopballVersusMatchRule versus
                 ? _volley!.State.Ended
                     ? new MatchOutcome(true, versus.Camps.First(x => x.Value == _volley.State.Winner).Key, false)

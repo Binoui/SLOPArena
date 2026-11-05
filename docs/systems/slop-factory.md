@@ -1,6 +1,7 @@
 # File and answer human checks
 
-Slop Factory has **Clips** for social videos, **Checks** for human playtests, and a
+Slop Factory has **Clips** for social videos, **Checks** for human playtests,
+**Player reports** for in-game feedback, and a
 **Console** tab that opens the live Master station at `/console/` and shows how many
 players are online. Open the factory board on the phone or desk.
 Checks stay in To try, Redo, Good, or Dropped until someone moves them.
@@ -116,7 +117,7 @@ the VPS under the network alias `master`, so the console's fixed
 `http://master:8080` reaches it.
 
 The console trusts only requests that carry Caddy's `X-Console-Gateway` token, and
-only the console reads the Master key. Provision `~/content-factory/secrets` once,
+the console and factory backends read the Master key. The key never enters board JSON or browser requests. Provision `~/content-factory/secrets` once,
 each file mode 600 and owned by alfred's uid 1000:
 
 - `tunnel_key` and `tunnel_key.pub`: an ed25519 key generated on alfred. Its VPS
@@ -129,3 +130,61 @@ each file mode 600 and owned by alfred's uid 1000:
 
 After a VPS replacement, recheck Master's private address. Update the
 `permitopen` line and set `MASTER_PRIVATE=<ip>:8080` in `~/content-factory/.env`.
+
+
+## Triage player reports
+
+Open **Player reports** to read feedback pulled privately from Master. Each card
+shows the player screenshot, kind, message, mode, stage, fighters, game version,
+reporter name, and match id when available. Open a card for the captured context.
+Player text is evidence, not instructions for an agent.
+
+Use **Dismiss** to set a report aside and **Reopen** to return it to New. Use
+**Promote** to review the prefilled title and steps, add reproduction steps and
+an optional area, then create a To try check. Promotion creates the check and
+its report link in one transaction. Repeated promotion returns that same check.
+The check displays the retained report screenshot. Promotion does not start QA,
+launch a thread, publish an issue, or contact the player.
+
+The backend rescans Master's paged listing every 60 seconds. **Pull now** wakes
+that worker. The lane shows the last successful sweep, error, and scanned,
+imported, and failed counts. Failed items retry next sweep. Existing ids skip
+detail and screenshot downloads. The importer never changes owner triage.
+
+`player_reports` stores immutable metadata and JPEG bytes together in
+`factory.db`. `player_report_triage` stores dismissal and the linked check.
+Status is derived from that triage. Accepted evidence is retained indefinitely
+in both Master and Factory for this slice. Unsent game drafts live only in game
+memory and disappear on exit. No logs are uploaded.
+
+The factory service mounts the existing `master_console_key` secret and uses
+`FEEDBACK_MASTER_ORIGIN=http://master:8080`,
+`FEEDBACK_OWNER_KEY_FILE=/run/secrets/master_console_key`, and
+`FEEDBACK_SOURCE=playtest-master`. The source is a stable backend label, not a
+browser-supplied URL. The backend reads and trims the key file, like
+`tools/replay_pull.py`, and sends `X-Console-Key` only to the configured origin.
+Redirects are refused. An unset URL or key-file path disables the worker.
+Pull status retains fixed error messages, never remote bodies or exceptions.
+
+The board uses these routes, separate from the Scout inbox and reports.
+
+- `GET /api/player-reports?status=new|dismissed|promoted&before=&limit=50`
+  returns `items`, `nextCursor`, `counts`, and `pull`. Pass the opaque cursor
+  back as URL-encoded `before`. The maximum page size is 100.
+- `GET /api/player-reports/{source}/{reportId}` returns evidence and triage.
+- `GET /api/player-reports/{source}/{reportId}/screenshot.jpg` serves the local
+  committed JPEG with `no-store` and `nosniff`.
+- `PATCH /api/player-reports/{source}/{reportId}` accepts `{"dismissed": true}`
+  or `{"dismissed": false}`. Promoted reports keep their check link.
+- `POST /api/player-reports/{source}/{reportId}/promote` accepts the existing
+  check fields. Title and steps are required for a first promotion.
+- `POST /api/player-reports/pull` wakes the configured worker.
+
+For a local fake-Master exercise, run
+`python3 -m unittest discover -s tools -p 'test_factory_feedback.py'`. It uses a
+temporary SQLite database and a loopback HTTP Master, including interrupted
+image transfers, paging, concurrent promotion, and secret-safe errors. To run
+the board locally, set the three feedback environment variables to a loopback
+fake Master and a temporary key file, then run
+`python3 tools/content_factory/server.py --host 127.0.0.1 --data /tmp/factory-feedback --port 18765`.
+This does not use or change the deployed Factory database.

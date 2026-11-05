@@ -15,6 +15,11 @@ repository. Each clip spends real credits: check GET /api/v1/videos/models for p
 compare.mp4 (every clip in the folder tiled and labelled, the shorter ones holding their last frame) and manifest.json.
 Each model gets the nearest resolution and duration it supports. `frames` writes beat-NN-<label>.png at the given seconds,
 key-poses.png (the labelled sheet a brief attaches and the owner checks) and beats.json, which a brief maps to game ticks.
+
+`local/wan2.2-5b` in --models renders on this machine through a running ComfyUI (tools/vfx/comfy_video.py; setup in
+docs/contributing/local-comfyui.md): no credits, about 7 minutes for 5 s on an RTX 4070, capped at 5 s. Try it first; a paid
+model needs the owner's OK. It follows the prompt's first beat and drifts after it, so ask one beat per take and chain
+takes from a frame of the previous one (`frames` writes it).
 """
 from __future__ import annotations
 
@@ -33,6 +38,12 @@ from pathlib import Path
 API = 'https://openrouter.ai/api/v1'
 KEY_FILE = Path.home() / '.config/sloparena/openrouter.key'
 FONT = '/usr/share/fonts/TTF/DejaVuSans.ttf'
+LOCAL = {'local/wan2.2-5b'}
+LOCAL_SECONDS = 5
+# The template's negative minus 风格/作品/画作 ("style, artwork, painting"), which fight a cartoon look.
+LOCAL_NEGATIVE = ('过曝，静态，细节模糊不清，字幕，静止，整体发灰，最差质量，低质量，JPEG压缩残留，畸形的，毁容的，形态畸形的肢体，'
+                  '手指融合，静止不动的画面，杂乱的背景，三条腿，背景人很多，倒着走，'
+                  'realistic photo, camera movement, zoom, cut, extra limbs, extra characters, text, watermark')
 
 
 def key() -> str:
@@ -105,6 +116,21 @@ def generate(model: str, body: dict, out: Path, attempts: int = 60, wait: int = 
         return job | {'model': model, 'path': str(path)}
     except Exception as error:  # one failing provider must not lose the others' clips
         return {'model': model, 'status': 'error', 'error': str(error)}
+
+
+def generate_local(model: str, prompt: str, frame: Path, duration: int, out: Path) -> dict:
+    """One clip from the local ComfyUI. Landscape frames render at 1280x704, portrait ones at 704x1280."""
+    sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'vfx'))
+    import comfy_video
+    from PIL import Image
+    width, height = Image.open(frame).size
+    path = out / (model.replace('/', '__') + '.mp4')
+    try:
+        record = comfy_video.generate(frame, prompt, path, seconds=min(duration, LOCAL_SECONDS),
+                                      size='1280x704' if width >= height else '704x1280', negative=LOCAL_NEGATIVE)
+    except RuntimeError as error:
+        return {'model': model, 'status': 'error', 'error': str(error)}
+    return {'model': model, 'status': 'completed', 'path': str(path), 'local': record}
 
 
 def compare(clips: list[tuple[str, Path]], path: Path, cols: int = 2, cell=(640, 360)) -> Path:
@@ -233,22 +259,31 @@ def main(argv=None):
     prompt = prompt_path.read_text().strip()
     out = Path(args.out) if args.out else prompt_path.parent / prompt_path.stem
     models = [m for m in args.models.split(',') if m]
-    specs = supported()
+    local = [m for m in models if m in LOCAL]
+    unknown = [m for m in models if m.startswith('local/') and m not in LOCAL]
+    if unknown:
+        raise SystemExit(f'unknown local model {unknown}; known: {sorted(LOCAL)}')
+    remote = [m for m in models if m not in LOCAL]
+    specs = supported() if remote else {}
     bodies = {}
-    for m in models:  # each model at the nearest resolution and duration it supports
+    for m in remote:  # each model at the nearest resolution and duration it supports
         spec = specs.get(m, {})
         bodies[m] = request_body(m, prompt, frame, closest(args.duration, spec.get('supported_durations')),
                                  closest(args.resolution, spec.get('supported_resolutions'), height), args.aspect)
     if args.dry_run:
+        for m in local:
+            print(json.dumps({'model': m, 'local': True, 'seconds': min(args.duration, LOCAL_SECONDS), 'prompt': prompt}, indent=2))
         for m, body in bodies.items():
             shown = json.loads(json.dumps(body))
             shown['frame_images'][0]['image_url']['url'] = shown['frame_images'][0]['image_url']['url'][:40] + '...'
             print(json.dumps(shown, indent=2))
         return 0
     out.mkdir(parents=True, exist_ok=True)
-    with ThreadPoolExecutor(len(models)) as pool:
-        jobs = list(pool.map(lambda m: generate(m, bodies[m], out), models))
-    names = {m.replace('/', '__'): m for m in specs}  # earlier runs into the same folder join the comparison
+    with ThreadPoolExecutor(len(remote) + 1) as pool:  # remote jobs in parallel, local ones one at a time on the GPU
+        pending = [pool.submit(generate, m, bodies[m], out) for m in remote]
+        local_jobs = pool.submit(lambda: [generate_local(m, prompt, frame, args.duration, out) for m in local])
+        jobs = [job.result() for job in pending] + local_jobs.result()
+    names = {m.replace('/', '__'): m for m in [*specs, *LOCAL]}  # earlier runs into the same folder join the comparison
     done = [(names.get(c.stem, c.stem), c) for c in sorted(out.glob('*.mp4')) if c.name != 'compare.mp4']
     manifest = {'prompt': prompt, 'firstFrame': str(frame), 'duration': args.duration, 'resolution': args.resolution,
                 'jobs': [{k: v for k, v in j.items() if k not in ('unsigned_urls',)} for j in jobs]}

@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using SlopArena.Shared.Mayhem;
 using System.Diagnostics;
 using System.IO;
 
@@ -44,9 +45,9 @@ namespace SlopArena.Shared.Rollback
             new(static e => e.Key, static k => k.MatchTick);
         private readonly RollbackLedger<CourseEventKey, CourseTickEvent> _courses =
             new(static e => e.Key, static k => k.MatchTick);
-        private readonly RollbackLedger<MayhemEventKey, MankiMayhemEvent> _mayhem =
+        private readonly RollbackLedger<MayhemEventKey, MayhemEvent> _mayhem =
             new(static e => e.Key, static k => k.MatchTick);
-        private readonly List<MankiMayhemEvent> _tickMayhem = new();
+        private readonly List<MayhemEvent> _tickMayhem = new();
         private readonly List<CourseTickEvent> _tickCourses = new();
         private readonly List<SlopballTickEvent> _tickSlopball = new();
         private readonly List<TimelinePresentationEvent> _tickEvents = new();
@@ -223,7 +224,7 @@ namespace SlopArena.Shared.Rollback
             => _hits.Drain(started, retracted);
 
         /// <summary>Slopball events to present, and predicted ones the GameHost ruled out, since the previous call (ADR-0040).</summary>
-        public void DrainMayhemEvents(List<MankiMayhemEvent> started, List<MankiMayhemEvent> retracted)
+        public void DrainMayhemEvents(List<MayhemEvent> started, List<MayhemEvent> retracted)
             => _mayhem.Drain(started, retracted);
 
         public void DrainCourseEvents(List<CourseTickEvent> started, List<CourseTickEvent> retracted)
@@ -392,11 +393,11 @@ namespace SlopArena.Shared.Rollback
                     throw SnapshotReader.Malformed("Slopball event");
             if (frame.CourseEvents.Count > 0 && !_sim.OnlineCourse.HasValue)
                 throw SnapshotReader.Malformed("course event mode");
-            if (frame.MayhemEvents.Count > 0 && !_sim.MankiMayhem.HasValue)
+            if (frame.MayhemEvents.Count > 0 && !_sim.IsMankiMayhem)
                 throw SnapshotReader.Malformed("Mayhem event mode");
             foreach (var item in frame.MayhemEvents)
                 if (!WorldFramePacket.ValidMayhemEvent(item, frame.Tick)
-                    || item.EntityId != ServerSimulation.MayhemHostEntityId && !RuntimeSolidSet.IsWallId(item.EntityId) && !_fighters.Contains(item.EntityId))
+                    || item.Kind is MayhemEventKind.Pass or MayhemEventKind.Fail && !_fighters.Contains(item.Subject))
                     throw SnapshotReader.Malformed("Mayhem event");
             foreach (var item in frame.CourseEvents)
             {
@@ -413,7 +414,7 @@ namespace SlopArena.Shared.Rollback
         }
 
         private bool ValidPresentationOwner(ulong id) => _fighters.Contains(id)
-            || _sim.MankiMayhem.HasValue && id == ServerSimulation.MayhemHostEntityId;
+            || _sim.IsMankiMayhem && id == ServerSimulation.MayhemHostEntityId;
 
         private static bool InEventRange(uint tick, WorldFramePacket frame)
             => tick >= frame.EventsFromTick && tick <= frame.Tick;
@@ -450,7 +451,7 @@ namespace SlopArena.Shared.Rollback
                 _slopball.RecordPredicted(_tickSlopball);
             }
             if (_sim.OnlineCourse.HasValue) _courses.RecordPredicted(_sim.LastTickOnlineCourseEvents);
-            if (_sim.MankiMayhem.HasValue) _mayhem.RecordPredicted(_sim.LastTickMayhemEvents);
+            if (_sim.IsMankiMayhem) _mayhem.RecordPredicted(_sim.LastTickMayhemEvents);
             StorePrediction(tick, _sim.CaptureSnapshot());
         }
 
@@ -463,7 +464,7 @@ namespace SlopArena.Shared.Rollback
                     if (evt.MatchTick == tick)
                         _tickEvents.Add(evt);
                 _events.RecordAuthoritative(tick, _tickEvents);
-                if (_sim.MankiMayhem.HasValue)
+                if (_sim.IsMankiMayhem)
                 {
                     _tickMayhem.Clear();
                     foreach (var item in frame.MayhemEvents)

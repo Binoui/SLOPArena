@@ -59,6 +59,54 @@ Then inspect with `sloparena.stage.inspect --stage splash_deck --output
 | `palette.py` | Sunny-morning Mediterranean palette |
 | `build.py` | Assembly, clearance checks, AO, export, digest and report |
 | `preview.py` | Eevee quick-review views; actual appearance is judged in Unity |
+| `kraken.py` | Kraken hazard mesh, rig, weights and AO (see [Kraken hazard](#kraken-hazard)) |
+| `kraken_clips.py` | Kraken clips, solved per frame from authored arm paths |
+| `kraken_build.py` | Kraken entry point: FBX, `kraken.json`, checks, re-import |
+| `kraken_preview.py` | Kraken key-frame renders on the boat and the contact sheet |
+
+## Kraken hazard
+
+The toggleable kraken (concept B, "the grumpy neighbour") is a separate rigged asset, not part of the
+harbour FBX. It reads the slam lanes and their width from `layout.slam_lanes()` and
+`layout.SLAM_HALF_WIDTH` at build time, so moving a lane is a rebuild:
+
+```bash
+blender -b --factory-startup --python-exit-code 1 -P tools/blender/splash_deck/kraken_build.py -- \
+  [--out tmp/stage-hazards/kraken-build] [--no-bake] [--preview]
+```
+
+It writes `kraken.fbx` (one skinned mesh with `Col` vertex colours, armature `KrakenRig`: `Root`,
+`Head` and eight tentacle chains, every clip on one take), `kraken.json` (per variant the anchor and yaw
+the presenter places the object at, the surfaced Root position and the clip names; each clip's first and
+last frame in the take; a few exact bone positions to check playback against) and `kraken-report.json`;
+`--preview` adds key-frame renders and `contact-sheet.jpg`. It never writes into `client/Unity`. Every
+run re-imports the FBX and checks its bones, the take and the colours, measures how far the arm tips
+drift from the exact poses at every frame, and measures that no arm rises more than 4 m above the deck
+during the warning; an unchanged build is byte-identical. The FBX must stay under 12 MB (no LFS).
+
+- **Clips.** `lurk` (in-place swimming loop; the eyes and cap surface once a loop) and, for each
+  `<side>.<lane>` (port or starboard, aft, mid or fore): `rise`, `warn` (loop), `slam`, `lie` (loop),
+  `withdraw`, plus the optional `jab` flourish on the NO FIGHTING ON DECK sign from its own anchor.
+  `rise` starts and `withdraw` and `jab` end on lurk frame 0. Root motion is on the `Root` bone; the
+  object stays where the presenter puts it. The Unity importer splits the single take into these clips
+  with the frame ranges in `kraken.json` (`takes.clips`).
+- **Paths, not key poses.** Every frame, each arm is laid along an authored path by a chord walk that
+  keeps bone lengths; the path's up vectors set the roll, so the slam arm lands suckers down. All arms
+  are the same length and each shape's only knob deepens a dive, so spare length stays under the water.
+- **Export.** One take, sampled every frame, then every key that linear interpolation rebuilds within
+  `--key-tolerance` metres at the arm tip (default 5 mm per bone) is dropped: about 7.5 MB, tips within
+  about 14 cm of the exact pose. Every rotation component and the Root's translation are written even
+  when constant, so no player fills a channel from another clip or the rest pose. 32 takes cost 14 MB
+  in curve headers alone, and keys every second frame let Euler angles wrap between keys (tips jumped
+  tens of metres on the in-between frames).
+
+- **Unity.** `client/Unity/Assets/Stages/splash_deck/Hazards/Resources/StageHazards/Kraken/` holds the
+  imported `kraken.fbx` and `kraken.json` beside the kraken materials; `KrakenHazardImport` (Editor) splits
+  the take into clips from `kraken.json` and sets the rig up on first import (Generic, no root motion node,
+  no materials). The import uses resampled curves with Optimal compression at 0.05 degrees, checked
+  against the `checkpoints` in `kraken.json` (about 11 cm at the arm tips). To update it, copy both files
+  over under your Editor lease and import the json, then the FBX. `KrakenHazardPresentation` reads the
+  same `kraken.json` at runtime.
 
 ## Rules the build checks
 

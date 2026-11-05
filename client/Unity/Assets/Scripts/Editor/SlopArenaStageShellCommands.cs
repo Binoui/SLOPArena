@@ -174,6 +174,13 @@ namespace SlopArena.EditorTools
                 if (shell["course"] is JObject courseSpec)
                     course = ApplyCourse(aids, courseSpec);
 
+                if (shell["hazardAnchors"] is JArray hazardSpecs)
+                {
+                    string arenaPath = Path.Combine(repository, "data/arenas", stage + ".arena");
+                    var arena = SlopArena.Shared.ArenaBinaryFormat.LoadFromFile(arenaPath)
+                        ?? throw new InvalidOperationException("Bake the static stage before applying hazard anchors.");
+                    StageHazardMarkerAuthoring.Apply(aids, hazardSpecs, arena);
+                }
                 EditorSceneManager.MarkSceneDirty(scene);
                 if (!EditorSceneManager.SaveScene(scene)) throw new InvalidOperationException("Saving " + scenePath + " failed.");
             }

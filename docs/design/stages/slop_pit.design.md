@@ -1,13 +1,13 @@
 ---
 key: slop_pit
-status: accepted
-locked: 2026-10-16
+status: locked
+locked: 2026-11-04
 approved_by: maintainer
-approval_scope: selected warehouse cage-fight venue and raised-ring layout, procedural rebuild
-accepted: 2026-10-17
+approval_scope: "Picks of 2026-10-16: the warehouse cage-fight venue and the raised-ring layout, procedural rebuild (accepted 2026-10-17). Picks of 2026-11-04: background direction \"A + slop falls\" from the four-tab concept board (A Lights down, B Big crowd, C Into the pit, A + slop falls): relight the accepted venue into lamp pools with silhouetted fans and pour slop from the stand fronts into the pit; ring, floor and tower unchanged (\"go for A + slop falls\")"
 blockout:
   - .stage-authoring-cache/slop_pit/ring-20261016/build/preview/
   - tmp/slop-pit-ring/pass-05-pvp/
+  - tmp/slop-pit-bg/comp/R-lights-down-slop-falls-1.png
 ---
 
 # Slop Pit — Underground Fight Ring
@@ -18,6 +18,15 @@ key art. From the presented options they selected the **warehouse cage fight**
 venue and, with the shell explicitly open to change, the **raised ring** layout.
 Those choices authorize this bounded implementation. The maintainer accepted the
 built stage on 2026-10-17 ("the maps are much better"). The stage keeps the immutable key `slop_pit` and its display name.
+
+On 2026-11-04 the maintainer said the playable area looks nice but the background
+needs work. From the gameplay camera the stands read as one lamp-lit orange stripe
+repeated four times, busier than the fight, and the slop never showed. From a board of
+four directions painted over a real gameplay capture, the maintainer picked
+**A + slop falls**: keep this venue, light it like fight night and put the slop on
+screen. Decisions 5 to 7, 11 and 12, the palette and the negative decisions below
+record that pick. The 2026-10-17 acceptance covers the previous background. The ring,
+floor and tower it accepted do not change.
 
 ## Personality
 
@@ -54,19 +63,26 @@ Coordinates live in `tools/blender/slop_pit/layout.py` and the generator modules
    plywood hoarding — mostly plain dark sheets, some raw ply, a few tags and pasted
    fight posters built from the roster portraits — and dark concrete with I-beams
    further down.
-5. **The pit.** The tower stands in a moat of green slop 13 m below the kill plane,
-   with a slow sheen, bubbles, half-sunk barrels and crates, and outfall pipes
-   dribbling from the pit walls. A steel walkout bridge with bulbs runs from the
-   west wall's FIGHTERS tunnel to a door in the tower, three metres under the kill
-   plane.
+5. **The pit and its falls.** The tower stands in a moat of green slop 13 m below the
+   kill plane, with a slow sheen, bubbles, and half-sunk barrels and crates. Two slop
+   falls per side pour from big rusty pipes that leave the second gallery's riser near
+   the ends of each stand, run out over the first gallery and the rim fence, and drop
+   in front of the pit wall into the moat. The falls are the slop the gameplay camera
+   sees: sickly yellow-green, matte, with brightness waves running down them, and
+   duller than the hero neon. A steel walkout bridge with bulbs runs from the west
+   wall's FIGHTERS tunnel to a door in the tower, three metres under the kill plane.
 6. **The crowd all round.** Beyond the camera envelope, terraced scaffold stands
    rise from the pit rim on all four sides: a tall chain-link fence with barbed wire
    at the rim, then three galleries behind chain-link railings, packed with
    low-poly fans who hop and pump their fists; a few hold up glowing phones. From
    the default camera the first two galleries fill the band just above the ring.
-7. **The poster's backlight.** Each gallery's back wall glows orange, hottest under
-   its work lamps, so fans, scaffold braces and chain-link read as dark silhouettes
-   against warm light. Fire barrels burn at the rim.
+   Fans in a lamp pool read as black silhouettes against hot light, and fans between
+   pools sit in darkness.
+7. **Lamp pools, not a lit wall.** Each side has a few warm pools of light, mostly on
+   the upper galleries, each under its own work lamp, with irregular spacing and
+   size. Between the pools the stands fall into warm darkness. Near each fall, green
+   light spills onto the stand fronts and up the pit wall. Fire barrels burn at the
+   rim. There are no bulb strings along the galleries.
 8. **The rig.** A lighting truss with par cans aimed at the ring runs along every
    ceiling edge; four corner truss columns carry floodlight banks and speaker
    stacks. Chains with hooks hang from the ceiling edge, and fighter and crown
@@ -77,13 +93,14 @@ Coordinates live in `tools/blender/slop_pit/layout.py` and the generator modules
     TICKETS signs); south is the bar (a HOUSE RULES board, SLOP COLA and BONK
     BURGER light boxes); west is the walkout (FIGHTERS light boxes over the tunnel
     and on the stand).
-11. **The scene world.** Below: the slop moat and the tower base. Above: a low
-    concrete ceiling over the stands and an open dark void over the pit. Far: the
-    stands' glowing back walls with exit signs. The fight sits inside a place,
-    never on a platter.
-12. **Busy here / empty here.** Busy: the stands all round and the north sign.
-    Empty: the ring canvas and ringside floor (flush detail only), the air above the
-    ring and the pit, which stays dark apart from the low slop glow.
+11. **The scene world.** Below: the slop moat, the falls and the tower base. Above: a
+    low concrete ceiling over the stands and an open dark void over the pit. Far: a
+    few lamp pools in the dark stands, with exit signs. The fight sits inside a
+    place, never on a platter.
+12. **Busy here / empty here.** Busy: the lamp pools high in the stands, the north
+    sign and the falls near the ends of each stand. Calm: the band of stands directly
+    behind the fighters, which stays dark between pools. Empty: the ring canvas and
+    ringside floor (flush detail only), the air above the ring and the pit.
 
 ## Gameplay shell
 
@@ -121,14 +138,19 @@ marker height 2.05; blast planes x/z ±26, top 21.2, kill −11
   slop animate in the StageNeon shader, beyond or below the corridor.
 - No second hero landmark competing with the north sign, no vendor assets and no
   real brands.
+- No even wash of light across the stands and no bulb strings. Light comes from the
+  lamp pools, the signs, the fire barrels and the falls.
+- No fall in front of the north hero sign, and no fall brighter than it.
 
 ## Palette & lighting
 
 Fight night underground: a near-black warm void, a high warm-white key from the
 south-south-west that leaves short fighter shadows on the canvas, and a warm
-overhead over the ring. The stands glow orange behind dark silhouettes, the slop
-glows sickly green below the tower, and the hero neon is Action Yellow. The ring
-canvas and floor stay neutral so fighters and their amber and cyan rims read first.
+overhead over the ring. The ring is the brightest thing in view. The stands sit in
+warm darkness broken by a few hot lamp pools with dark silhouettes in front, the
+slop's sickly green shows in the falls and the light they throw, and the hero neon is
+Action Yellow. The ring canvas and floor stay neutral so fighters and their amber
+and cyan rims read first.
 
 ## Camera vantages
 
@@ -175,3 +197,9 @@ three original scrap meshes) is superseded. Backups of its source scene, arena,
 prefab, thumbnail and briefs are in
 `.stage-authoring-cache/slop_pit/ring-20261016/backup/`; earlier art passes remain
 in `.stage-authoring-cache/slop_pit/`.
+
+The 2026-11-04 background pass replaced the even orange wash, the work lamp every 5 m
+and the bulb strings with lamp pools, and replaced the low outfalls under the floor
+edge with falls from the stand fronts. The art the maintainer accepted on 2026-10-17
+is in Git history. The [production brief](slop_pit.md#background-pass-2026-11-04)
+records the pass and its checks.

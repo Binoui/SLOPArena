@@ -150,6 +150,10 @@ MonoBehaviour:
     _clip: {fileID: 7400000, guid: 0fae26af212816884a6cc8b74c84fa07, type: 2}
     _extrapolation: 0
     _poseTrackId: anim.nyx.tumble
+  - _semanticId: anim.nyx.walljump
+    _clip: {fileID: 7400000, guid: 94d8d55b883b1daddadebce36b4558fd, type: 2}
+    _extrapolation: 0
+    _poseTrackId: anim.nyx.walljump
   _presentations:
   - _semanticId: presentation.nyx.props.pole-held
     _prefab: {fileID: 5221491064675687420, guid: 647ff8d1ceb878cb2a6952dc33e84f24, type: 3}
@@ -197,10 +201,20 @@ MonoBehaviour:
     _prefab: {fileID: 3098619972461289785, guid: 73a80c1244fe73f9597711b7393878a2, type: 3}
   - _semanticId: presentation.nyx.selfie-release
     _prefab: {fileID: 1961740670762370150, guid: 22b8a06ec961e7379b05ff866cd39215, type: 3}
-  - _semanticId: presentation.nyx.shadow-hit
-    _prefab: {fileID: 7792985148091195292, guid: ff99fed3d58810effaf98b15ce7c234e, type: 3}
-  - _semanticId: presentation.nyx.pink-hit
-    _prefab: {fileID: 2694738838867806668, guid: 26273d2fbc1884d54b57fc678c6c1f86, type: 3}
+  - _semanticId: presentation.nyx.rake-hit
+    _prefab: {fileID: 6376550382067228014, guid: 47811721286508e7aab0dd8c2c29cf84, type: 3}
+  - _semanticId: presentation.nyx.clench-hit
+    _prefab: {fileID: 2520165111252905060, guid: 43bc9a69e2f6c7fa5a7c77ea699a2e81, type: 3}
+  - _semanticId: presentation.nyx.feather-hit
+    _prefab: {fileID: 8098814601190777136, guid: 3c32071b7f5cb8c2080c63ba958d154a, type: 3}
+  - _semanticId: presentation.nyx.like-hit
+    _prefab: {fileID: 6191308449336036799, guid: c8d6e46de00f8db13817f3e6aeb514b9, type: 3}
+  - _semanticId: presentation.nyx.shutter-hit
+    _prefab: {fileID: 2468934662031211434, guid: 3a0f58efc0fdbe4e988ce2285c0adca4, type: 3}
+  - _semanticId: presentation.nyx.selfie-hit
+    _prefab: {fileID: 2019379121757143988, guid: 23ff4d7b4acdc88cc97ef2a04fbddae5, type: 3}
+  - _semanticId: presentation.nyx.grasp-hit
+    _prefab: {fileID: 661023305603571097, guid: aea0091569a5697a0b77733e7c084c01, type: 3}
   - _semanticId: presentation.nyx.crow-pop
     _prefab: {fileID: 6668716205312011973, guid: 8b0709c0279dbf40d8d45709e0df1733, type: 3}
   - _semanticId: presentation.nyx.crow-launch

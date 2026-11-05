@@ -118,6 +118,13 @@ namespace SlopArena.Client.UI
             _resumeButton = documentRoot.Q<Button>("shell-menu-resume");
             _settingsButton = documentRoot.Q<Button>("shell-menu-settings");
             var quitButton = documentRoot.Q<Button>("shell-menu-quit");
+            if (quitButton?.parent != null)
+            {
+                var feedback = new Button(() => { CloseMenu(); FeedbackOverlay.RequestOpen(); })
+                    { text = "FEEDBACK", name = "shell-menu-feedback" };
+                foreach (var css in quitButton.GetClasses()) feedback.AddToClassList(css);
+                quitButton.parent.Insert(quitButton.parent.IndexOf(quitButton), feedback);
+            }
             var menuTrigger = documentRoot.Q<Button>("shell-menu-trigger");
             var settingsTopButton = documentRoot.Q<Button>("shell-settings");
             if (settingsTopButton != null) settingsTopButton.clicked += OpenSettingsFromTopBar;

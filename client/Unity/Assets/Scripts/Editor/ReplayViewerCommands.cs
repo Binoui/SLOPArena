@@ -12,6 +12,7 @@ using SlopArena.Client.Replays;
 using SlopArena.Client.UI;
 using SlopArena.Client.World;
 using SlopArena.Shared;
+using SlopArena.Shared.Mayhem;
 using SlopArena.Shared.AI;
 using SlopArena.Shared.Replays;
 using Newtonsoft.Json.Linq;
@@ -93,6 +94,7 @@ namespace SlopArena.EditorTools
             var policy = new HeuristicBotPolicy();
             var rng = new System.Random(seed);
             var memories = entries.Select(_ => new BotMemory { Difficulty = CpuDifficulty.Normal }).ToArray();
+            var mayhemCpus = entries.Select(_ => new MayhemCpu(CpuDifficulty.Normal)).ToArray();
             var inputs = new Dictionary<ulong, InputState>();
             int perching = 0, hits = 0, modeEvents = 0;
             Directory.CreateDirectory(Path.GetDirectoryName(path)!);
@@ -107,8 +109,7 @@ namespace SlopArena.EditorTools
                         for (int j = 0; j < entries.Length; j++)
                             if (j != i) policy.ObserveOpponent(memories[i], sim.GetState((ulong)j + 1), sim.GetDefinition((ulong)j + 1), entries[j].BakedAnimation, sim.GetActiveMove((ulong)j + 1)?.Slot);
                         memories[i].ChooseOpponent(sim.GetState(id));
-                        inputs[id] = policy.Decide(sim.GetState(id), sim.GetDefinition(id), rng, memories[i], definition, entries[i].BakedAnimation, activeMove: sim.GetActiveMove(id)?.Slot,
-                            mayhemThreats: matchFormat == MatchFormat.MankiMayhem ? new MayhemThreats(sim) : null);
+                        inputs[id] = matchFormat == MatchFormat.MankiMayhem ? mayhemCpus[i].Decide(sim, id) : policy.Decide(sim.GetState(id), sim.GetDefinition(id), rng, memories[i], definition, entries[i].BakedAnimation, activeMove: sim.GetActiveMove(id)?.Slot);
                     }
                     sim.Tick(inputs);
                     var frame = new WorldFramePacket(MatchState.Playing, sim.CaptureSnapshot(), Array.Empty<RelayedInput>(),

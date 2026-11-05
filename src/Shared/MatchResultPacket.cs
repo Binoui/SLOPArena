@@ -1,6 +1,7 @@
 using System;
 using System.Linq;
 using System.Buffers.Binary;
+using SlopArena.Shared.Mayhem;
 
 namespace SlopArena.Shared;
 
@@ -44,7 +45,8 @@ public sealed class MatchResultPacket
     private const int VersusSize = 6;
     private const byte MayhemMarker = 4;
     private const int MayhemHeaderSize = 2;
-    private const int MayhemPlayerSize = 15;
+    /// <summary>Entity ID, pass mask (one bit per episode) and withdrawn flag; ratings are recomputed from the mask.</summary>
+    private const int MayhemPlayerSize = 13;
     private const byte CourseMarker = 3;
     private const byte ScrambleMarker = 5;
     private const int ScramblePlayerSize = 24;
@@ -98,9 +100,7 @@ public sealed class MatchResultPacket
         => result.Players != null && result.Players.Count == entries.Length
             && result.Players.Select(p => p.EntityId).Distinct().Count() == entries.Length
             && result.Players.All(p => p.EntityId is > 0 and < ServerSimulation.MayhemHostEntityId
-                && p.RoundsSurvived <= MankiMayhemTuning.DeckPasses * MankiMayhemRounds.DeckSize
-                && p.Bonuses <= p.RoundsSurvived * MankiMayhemTuning.LastStandingBonus
-                && p.Score == p.RoundsSurvived * MankiMayhemTuning.SurvivalPoints + p.Bonuses
+                && (p.PassMask & ~MayhemShowPlan.AllEpisodesMask) == 0
                 && Array.Exists(entries, e => e.EntityId == p.EntityId && e.Placement == result.PlaceFor(p.EntityId)));
 
     public void Serialize(Span<byte> buffer)
@@ -142,9 +142,7 @@ public sealed class MatchResultPacket
             foreach (var player in mayhem.Players)
             {
                 BinaryPrimitives.WriteUInt64LittleEndian(buffer.Slice(offset, 8), player.EntityId); offset += 8;
-                BinaryPrimitives.WriteUInt16LittleEndian(buffer.Slice(offset, 2), player.Score); offset += 2;
-                BinaryPrimitives.WriteUInt16LittleEndian(buffer.Slice(offset, 2), player.RoundsSurvived); offset += 2;
-                BinaryPrimitives.WriteUInt16LittleEndian(buffer.Slice(offset, 2), player.Bonuses); offset += 2;
+                BinaryPrimitives.WriteUInt32LittleEndian(buffer.Slice(offset, 4), player.PassMask); offset += 4;
                 buffer[offset++] = player.Withdrawn ? (byte)1 : (byte)0;
             }
         }
@@ -201,11 +199,9 @@ public sealed class MatchResultPacket
             var players = new MayhemFinishResult[count];
             for (int i = 0; i < count; i++)
             {
-                if (buffer[offset + 14] > 1) return false;
+                if (buffer[offset + 12] > 1) return false;
                 players[i] = new(BinaryPrimitives.ReadUInt64LittleEndian(buffer.Slice(offset, 8)),
-                    BinaryPrimitives.ReadUInt16LittleEndian(buffer.Slice(offset + 8, 2)),
-                    BinaryPrimitives.ReadUInt16LittleEndian(buffer.Slice(offset + 10, 2)),
-                    BinaryPrimitives.ReadUInt16LittleEndian(buffer.Slice(offset + 12, 2)), buffer[offset + 14] == 1);
+                    BinaryPrimitives.ReadUInt32LittleEndian(buffer.Slice(offset + 8, 4)), buffer[offset + 12] == 1);
                 offset += MayhemPlayerSize;
             }
             mayhem = new(Array.AsReadOnly(players));

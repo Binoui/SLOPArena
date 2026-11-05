@@ -31,6 +31,7 @@ TOP_BLAST_MARGIN = 20.0
 
 SPEC = {
     "roof_top": 0.0,
+    "dance": (-5.0, -4.0, 5.0, 4.0),
     "kill_y": -12.0,  # AuthoringAids/KillPlane sits on the lowest wall vertex
     # Broad roof, 30 x 24 with 3 m chamfered corners. CCW in map view (+x right, +z up).
     "roof": [(-12.0, -12.0), (12.0, -12.0), (15.0, -9.0), (15.0, 9.0),
@@ -159,9 +160,21 @@ def load(spec_only: bool = False, spec=SPEC) -> dict:
     return data
 
 
+def hazard_anchors(spec=SPEC):
+    """Row-major 2 m pads, south to north then west to east, on the roof."""
+    x0, z0, x1, z1 = spec["dance"]
+    assert (x1 - x0, z1 - z0) == (10, 8)
+    for x, z, _ in spec["spawns"]:
+        if x0 <= x <= x1 and z0 <= z <= z1:
+            raise ValueError("After Hours spawn lies on the dance floor")
+    return [{"name": "dance_pads", "kind": "Cells", "radius": 1.0,
+             "points": [[x0 + 1 + 2 * col, spec["roof_top"], z0 + 1 + 2 * row]
+                        for row in range(4) for col in range(5)]}]
+
+
 def unity_shell_json(spec=SPEC) -> dict:
     """Input for the collision-source rebuild script (Unity eval)."""
-    return {"roofTop": spec["roof_top"], "killY": spec["kill_y"], "roof": [list(p) for p in spec["roof"]],
+    return {"hazardAnchors": hazard_anchors(spec), "roofTop": spec["roof_top"], "killY": spec["kill_y"], "roof": [list(p) for p in spec["roof"]],
             "risers": [{"name": k.replace(" ", ""), "min": [v[0], spec["roof_top"], v[1]], "max": [v[2], v[4], v[3]]}
                        for k, v in spec["risers"].items()],
             "spawns": [{"name": "Spawn_%02d" % (i + 1), "position": [x, spec["roof_top"] + spec["spawn_body_half_height"], z], "yaw": yaw}

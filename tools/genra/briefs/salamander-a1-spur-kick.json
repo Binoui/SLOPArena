@@ -1,0 +1,250 @@
+{
+  "name": "salamander-a1-spur-kick",
+  "purpose": "attack",
+  "rigpack": "artifacts/genra-rigpacks/salamander-unity-moves",
+  "character": "Dusty, a tiger salamander (55 joints: a Humanoid body with Mixamo names; each hand has a thumb and THREE fingers (Thumb, Index, Middle, Ring chains), no little finger; five tail joints Tail1-Tail5 under Hips; three rigid joints under Head: Hat (his tall wide-brimmed hat, its own mesh), Mustache (the fake mustache glued on his snout) and Straw (a wheat straw in the left corner of his mouth)). He is lanky: in the rig his hip joints stand 0.42 m above the floor when straight, thigh 0.176 m, shin 0.137 m, upper arm 0.158 m, forearm 0.093 m, long hands (about 0.15 m wrist to fingertip); 0.95 m to the top of his head, 1.13 m with the hat (the game draws him 1.8 times bigger). A thick tail hangs behind him from the seat of his jeans. His poncho is cloth simulated in the game and is not in this rig: pose the body only.",
+  "references": {
+    "showdown": "references/showdown.usda",
+    "idle": "references/idle.usda",
+    "fall": "references/fall.usda",
+    "run": "references/run.usda"
+  },
+  "entry": {
+    "reference": "fall",
+    "tick": 0
+  },
+  "exit": {
+    "reference": "fall",
+    "tick": 0,
+    "from_tick": 76
+  },
+  "views": [
+    "profile",
+    "three-quarter-left",
+    "gameplay"
+  ],
+  "images": [
+    "../../../docs/design/references/dusty/dusty-model.jpg",
+    "images/fall-entry.png"
+  ],
+  "image_notes": "1: Dusty's real model in a T-pose (front, three-quarter, side, back); the spurs are the gold stars on the backs of his boot heels. His poncho is not in the rig. 2: his fall pose on this rig (profile, front, three-quarter rear), the entry and exit pose of this clip.",
+  "notes": "Dusty air.1 (anim.salamander.a1), 2026-11-04: Spur Kick replaces Double Tap, which used finger guns (normals are body hits only). Authored at 76 ticks, twice the current 38-tick game stage (owner: attacks were always \"too fast\"); game contact tick 7, active 7-23, act from 33, landing lag 9 map to authored 14, 14-46 and 66. Revision 1 (same day): the first keys aimed the boot dead ahead on the centre line and showed 1% of it from the match camera, hidden by his own thigh; this brief turns him side-on and kicks across (40-45% in a rig probe).",
+  "description": "Dusty's air.1, Spur Kick: his all-rounder aerial. A stiff flying kick held out spur first, like the classic held-out kick of a platform fighter: one leg snaps straight out in front of him and STAYS out through the whole hit, heel and spur leading, while he leans back for balance with his arms out and his tail counterweighting. Then the leg folds back in and he returns to his fall pose.\n\nWho he is. Dusty (image 1) is a small-time tiger salamander who wants to be a legend of the West: yellow and dark brown blotched skin, a tall brown hat with a red band and a wide brim, a black curly mustache that is fake and glued on, a straw in the corner of his mouth, an orange-red poncho, patched blue jeans with his tail out through a hole, brown boots with star spurs on the heels. He is self-made and can't afford a gun. He is proud, scrappy and genuinely good in a fight: this kick is clean and confident, not a flail. His normals are plain body hits: no finger guns, no props, open or loosely relaxed hands with a thumb and three fingers.\n\nHow the game plays it. The match camera sits straight behind him and 20 degrees above, so the kick must read from behind: the kicking boot ends up well AHEAD of him, in front of his body (not out beside his hip), not tucked under his seat and not hidden behind his own leg. Measured on this rig: a straight leg aimed dead ahead on the centre line points along the camera's line of sight, so from behind it shrinks to a stub and the thigh hides the boot (1% of the boot visible). A side-on kick across the body shows 40-45% of it. So this is a side-on flying kick. The fighter does not travel in the clip; the game moves him. The game plays this 76-tick clip at about double speed and crossfades in and out over about 0.1 s.\n\nIn the air. Tick 0 and tick 76 are his fall pose exactly (image 2). There is no floor contact.\n\nThe kick. The RIGHT leg kicks. He turns side-on: the hips and chest turn 20-30 degrees to his left (the right hip comes forward, the left hip goes back), and the straight right leg kicks forward and ACROSS in front of him, so the right boot ends up 6-12 cm left of his centre line, in front of his left hip and still inside his body's width (a defender straight ahead of him is in the boot's path). At contact and through the hold the right knee is straight (fully extended, never bent backward), the leg aimed forward and down about 30-45 degrees below horizontal. The boot is flexed, toes pulled up, so the sole and the heel face the target and the spur on the heel leads. The left leg tucks: knee bent up under him, left boot back under his seat, so the two legs make a clear 'one out, one in' shape. The upper body leans back about 15-25 degrees from his fall lean to balance the leg, staying turned with the hips; the arms go out wide along his turned shoulders at about shoulder height (the right arm back, the left arm forward over the kick), elbows soft, hands open and relaxed; the tail swings back and up behind him as the counterweight.\n\nThe move (76 ticks, played once):\n- Tick 0: the fall pose.\n- Tick 8, the chamber: the hips start turning to his left, the right knee pulls up toward his chest and across toward his centre line, the right boot tucked under the knee, toes already pulled up; the left knee draws up too; the hips rock back a touch; the arms gather in a little toward his body, elbows bent; chin down, eyes forward. A short, clear load.\n- Tick 14, contact: the hips finish their turn and the right leg snaps straight out forward, down and across, knee locked, spur first, boot well ahead of his hips and just left of centre. The hips lead the snap; the chest leans back 1-2 ticks later; the arms fling out wide 2-3 ticks after the leg; the head settles back last.\n- Ticks 14-46, the held kick: the leg stays straight out the whole time, as a MOVING hold, never a frozen pose. The boot drifts 2-4 cm (a slight dip and lift), the body sways back and forth a few degrees, the arms keep balancing (a slow 5-10 degree bob), the fingers loosen.\n- Tick 30: the middle of the hold, the same kick shape with the drift.\n- Tick 46: the end of the hit; the right leg is still straight out in front.\n- Tick 56, the fold: the right knee bends and the boot comes back in under him; the hips turn back toward the front; the upper body comes forward again; the arms start to come in.\n- Tick 66: recovered (the player can act here), close to the fall pose.\n- Tick 76: the fall pose, matching tick 0.\nAfter the hit the recovery is plain and short: the leg folds back, the body rebalances and the arms take the shortest calm path back to the fall pose. No gesture and no flourish in the ending lag (owner: normals don't need personality in ending lag).\n\nLife. Overlap and follow-through everywhere: the hips lead, the chest trails 1-3 ticks, the arms and head trail 2-4 ticks, the tail trails the most. No two body parts arrive on the same tick, and every hold is a moving hold (key its end a few degrees on from its start). Secondary motion with numbers:\n- Tail (Tail1-Tail5): on the snap the tail swings back and up against the kick, each joint 5-15 degrees, the tip (Tail5) travelling 10-20 cm, the swing rolling down the chain from Tail1 to Tail5 one to two ticks per joint; through the hold it keeps a slow sway of 3-8 degrees per joint; on the fold it swings back down past the fall pose by a few degrees and settles.\n- Hat (joint Hat): at most 3-5 degrees of lag against the head, tipping back a little on the snap and settling during the hold. Mustache and Straw stay rigid.\n- Hands: fingers relaxed and slightly curled, loosening a few degrees with the arm swings; three fingers and a thumb, never a fist.\nTreat every flow and life warning as something to avoid.",
+  "clock": {
+    "duration_ticks": 76,
+    "game_duration_ticks": 38,
+    "contact_tick": 14,
+    "active": [
+      14,
+      46
+    ],
+    "iasa_tick": 66
+  },
+  "timing": {
+    "fixed": [
+      "76 ticks played once (about twice the 38-tick game stage); tick 0 and tick 76 are the fall pose exactly",
+      "one kick: the right leg is straight out in front from contact at tick 14 to the end of the hit at tick 46",
+      "the player can act from tick 66"
+    ],
+    "adjustable": [
+      "how far he turns side-on (20-30 degrees asked) and how far left of centre the boot sits (6-12 cm asked), as long as the boot reads from behind and stays in front of his body",
+      "the chamber's shape and depth, the lean-back angle and how the fold spreads over ticks 46-66",
+      "the game stage and hit ticks scale with the clip (today 38 ticks, contact 7, active 7-23, act from 33)"
+    ]
+  },
+  "fast_windows": [
+    [
+      8,
+      15
+    ]
+  ],
+  "strike": [
+    "RightFoot",
+    "RightToeBase"
+  ],
+  "keys": [
+    0,
+    8,
+    14,
+    30,
+    46,
+    56,
+    66,
+    76
+  ],
+  "review_ticks": [
+    0,
+    4,
+    8,
+    11,
+    14,
+    18,
+    22,
+    30,
+    38,
+    46,
+    51,
+    56,
+    61,
+    66,
+    71,
+    76
+  ],
+  "targets": [
+    {
+      "name": "chamber: right knee pulled up at tick 8 (m)",
+      "kind": "below",
+      "a": "Hips",
+      "b": "RightLeg",
+      "tick": 8,
+      "min": -0.06
+    },
+    {
+      "name": "contact: right boot well ahead of the hips at tick 14 (m)",
+      "kind": "ahead",
+      "a": "RightFoot",
+      "b": "Hips",
+      "tick": 14,
+      "min": 0.22
+    },
+    {
+      "name": "contact: right boot below the hips at tick 14 (char up, m)",
+      "kind": "char",
+      "a": "RightFoot",
+      "axis": "up",
+      "tick": 14,
+      "min": -0.26,
+      "max": -0.06
+    },
+    {
+      "name": "contact: right boot across in front of him, just left of centre at tick 14 (char right, m)",
+      "kind": "char",
+      "a": "RightFoot",
+      "axis": "right",
+      "tick": 14,
+      "min": -0.13,
+      "max": -0.06
+    },
+    {
+      "name": "contact: side-on, right hip level with or ahead of the left hip at tick 14 (m)",
+      "kind": "ahead",
+      "a": "RightUpLeg",
+      "b": "LeftUpLeg",
+      "tick": 14,
+      "min": -0.02
+    },
+    {
+      "name": "contact: right leg straight, hip to ankle at tick 14 (m)",
+      "kind": "distance",
+      "a": "RightUpLeg",
+      "b": "RightFoot",
+      "tick": 14,
+      "min": 0.295
+    },
+    {
+      "name": "contact: toes pulled up, spur leading at tick 14 (toe above ankle, m)",
+      "kind": "below",
+      "a": "RightFoot",
+      "b": "RightToeBase",
+      "tick": 14,
+      "min": 0.0
+    },
+    {
+      "name": "contact: left knee tucked, hip to ankle at tick 14 (m)",
+      "kind": "distance",
+      "a": "LeftUpLeg",
+      "b": "LeftFoot",
+      "tick": 14,
+      "max": 0.24
+    },
+    {
+      "name": "contact: leaning back, head over the hips at tick 14 (m)",
+      "kind": "ahead",
+      "a": "Head",
+      "b": "Hips",
+      "tick": 14,
+      "max": 0.1
+    },
+    {
+      "name": "contact: arms out wide at tick 14 (hand to hand, m)",
+      "kind": "distance",
+      "a": "LeftHand",
+      "b": "RightHand",
+      "tick": 14,
+      "min": 0.55
+    },
+    {
+      "name": "hold: right boot still well ahead at tick 30 (m)",
+      "kind": "ahead",
+      "a": "RightFoot",
+      "b": "Hips",
+      "tick": 30,
+      "min": 0.2
+    },
+    {
+      "name": "hold: right boot still across in front at tick 30 (char right, m)",
+      "kind": "char",
+      "a": "RightFoot",
+      "axis": "right",
+      "tick": 30,
+      "min": -0.14,
+      "max": -0.05
+    },
+    {
+      "name": "hold: right leg still straight at tick 30 (m)",
+      "kind": "distance",
+      "a": "RightUpLeg",
+      "b": "RightFoot",
+      "tick": 30,
+      "min": 0.29
+    },
+    {
+      "name": "end of hit: right boot still ahead at tick 46 (m)",
+      "kind": "ahead",
+      "a": "RightFoot",
+      "b": "Hips",
+      "tick": 46,
+      "min": 0.2
+    },
+    {
+      "name": "end of hit: right boot still across in front at tick 46 (char right, m)",
+      "kind": "char",
+      "a": "RightFoot",
+      "axis": "right",
+      "tick": 46,
+      "min": -0.14,
+      "max": -0.05
+    },
+    {
+      "name": "end of hit: right leg still straight at tick 46 (m)",
+      "kind": "distance",
+      "a": "RightUpLeg",
+      "b": "RightFoot",
+      "tick": 46,
+      "min": 0.29
+    },
+    {
+      "name": "fold: right knee bent again at tick 56 (m)",
+      "kind": "distance",
+      "a": "RightUpLeg",
+      "b": "RightFoot",
+      "tick": 56,
+      "max": 0.26
+    },
+    {
+      "name": "tail counterweight: tip swings 10 cm or more, ticks 8-30 (m)",
+      "kind": "range",
+      "a": "Tail5",
+      "axis": "up",
+      "window": [
+        8,
+        30
+      ],
+      "min": 0.1
+    }
+  ],
+  "preview_views": [
+    "profile",
+    "three-quarter-left"
+  ]
+}

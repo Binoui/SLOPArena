@@ -29,7 +29,9 @@ namespace SlopArena.Shared
         // 23: Kamikaze's vulnerable startup/travel phase.
         // 24: a perch's dive lifecycle and pecks, and the tether's unmarked branch (ADR-0051 sections 9 and 10).
         // 26: one wall jump per airtime in CharacterState.
-        public const uint SnapshotFormatVersion = 26;
+        // 27: the Mayhem channel show (ADR-0061): seed, roster, withdrawals, pass masks, current failures, on-air set,
+        //     safe poses and the current channel's own state, replacing the round director.
+        public const uint SnapshotFormatVersion = 28;
 
         private readonly List<ulong> _abilityOrder = new();
 
@@ -105,6 +107,7 @@ namespace SlopArena.Shared
             if (_course != null) w.WriteBool(_arcadeInputReleaseRequired);
             w.WriteBool(_mayhem != null);
             _mayhem?.WriteSnapshot(w);
+            _stageHazards?.WriteSnapshot(w);
             return new WorldSnapshot(w.ToArray());
         }
 
@@ -201,16 +204,18 @@ namespace SlopArena.Shared
             if (hasCourse) inputRelease = r.ReadBool();
             bool hasMayhem = r.ReadBool();
             if (hasMayhem != (_mayhem != null)) throw SnapshotReader.Malformed("Mayhem presence");
-            var mayhem = hasMayhem ? _mayhem!.ReadSnapshot(r, ids) : null;
+            var mayhem = hasMayhem ? _mayhem!.ReadSnapshot(r, ids, tick) : null;
+            var hazards = _stageHazards?.PrepareSnapshot(r, tick);
             if (!r.AtEnd)
                 throw SnapshotReader.Malformed("trailing data");
 
             return new PreparedSnapshot(tick, nextActivationId, nextInteractionId, fighters,
-                resolver, ball, rules, volley, inputRelease, course, onlineCourse, mayhem) { HeldCuts = heldCuts, PendingPops = pendingPops };
+                resolver, ball, rules, volley, inputRelease, course, onlineCourse, mayhem) { HeldCuts = heldCuts, PendingPops = pendingPops, Hazards = hazards };
         }
 
         internal void ApplySnapshot(PreparedSnapshot prepared)
         {
+            if (prepared.Hazards != null) _stageHazards!.Apply(prepared.Hazards);
             _tick = prepared.Tick;
             _nextActivationId = prepared.NextActivationId;
             _nextInteractionId = prepared.NextInteractionId;
@@ -344,8 +349,9 @@ namespace SlopArena.Shared
             ArcadeBallSimulation.Snapshot Ball, SlopballSimulation.Snapshot Rules,
             SlopballVersusSimulation.Snapshot Volley, bool InputRelease,
             CharacterCourseSimulation.Snapshot? Course, OnlineCourseSimulation.Snapshot? OnlineCourse,
-            MankiMayhemSimulation.Snapshot? Mayhem)
+            Mayhem.MayhemShow.Snapshot? Mayhem)
         {
+            internal SlopArena.Shared.StageHazards.PreparedStageHazards? Hazards { get; init; }
             internal HeldCut[] HeldCuts { get; init; } = Array.Empty<HeldCut>();
             internal PendingPop[] PendingPops { get; init; } = Array.Empty<PendingPop>();
         }

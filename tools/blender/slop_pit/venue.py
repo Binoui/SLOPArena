@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import math
 import random
+from typing import NamedTuple
 
 from stagekit import font, geo
 import palette as P
@@ -38,6 +39,59 @@ BANNERS = {0: [(-24.0, "crown"), (24.0, "crown_slop")],
            2: [(-24.0, "crown_slop"), (-8.0, "wibou"), (8.0, "bonk"), (24.0, "crown")],
            3: [(-24.0, "manki"), (-8.0, "crown"), (8.0, "crown_slop"), (24.0, "fightguy")]}
 HERO = (-11.5, 11.5)   # north gallery 2: the SLOP PIT neon sign replaces the crowd here
+
+
+class Pool(NamedTuple):
+    level: int
+    u: float
+    half: float
+    heat: float
+
+
+class Fall(NamedTuple):
+    u: float
+
+
+SIDE_LIGHT = {
+    0: ((Pool(0, -9, 2.4, 0.6), Pool(1, -19, 3.2, 0.7), Pool(1, 16, 2.7, 0.65),
+         Pool(2, -32, 4.0, 0.95), Pool(2, 28, 3.5, 0.85),
+         Pool(3, -22, 4.5, 0.9), Pool(3, 3, 3.0, 0.75), Pool(3, 34, 2.5, 0.8)),
+        (Fall(-30.5), Fall(31.8))),
+    1: ((Pool(0, 12, 2.0, 0.6), Pool(1, -12, 3.5, 0.65),
+         Pool(2, -35, 2.5, 0.85), Pool(2, -3, 4.8, 0.9), Pool(2, 25, 3.2, 0.75),
+         Pool(3, -24, 3.5, 0.8), Pool(3, 15, 4.2, 1.0)),
+        (Fall(-32.2), Fall(28.7))),
+    2: ((Pool(0, -17, 2.2, 0.6), Pool(1, 6, 3.0, 0.7), Pool(1, 32, 2.3, 0.6),
+         Pool(2, -27, 4.5, 0.95), Pool(2, 16, 3.8, 0.85),
+         Pool(3, -8, 4.8, 0.9), Pool(3, 29, 3.2, 0.8)),
+        (Fall(-28.8), Fall(32.5))),
+    3: ((Pool(0, 5, 2.0, 0.6), Pool(1, -24, 3.2, 0.7), Pool(1, 22, 2.5, 0.65),
+         Pool(2, -9, 4.0, 0.9), Pool(2, 33, 2.8, 0.8),
+         Pool(3, -32, 3.8, 0.95), Pool(3, 8, 4.5, 0.85)),
+        (Fall(-31.4), Fall(29.6))),
+}
+LEVELS = tuple(zip((RIM_Y,) + tuple(y for y, _ in GALLERIES),
+                   tuple(w for _, w in GALLERIES) + (BACK_W,),
+                   tuple(y for y, _ in GALLERIES) + (CEILING_Y - 2.5,)))
+# Pipes clear gallery 1's fans and the rim fence; the falls hang in front of the pit wall
+# but stay beyond the 41 m camera envelope that build.py --dry checks.
+PIPE_Y = 2.2
+PIPE_MOUTH_W = PIT_W + 0.1
+FALL_W = PIT_W - 0.25
+FALL_DEPTH = 0.2
+FALL_TOP = PIPE_Y - 0.3
+FALL_BAND = 0.35
+
+
+def spill(side, u, y):
+    along = max(max(0.0, 1.0 - ((u - fall.u) / 3.8) ** 2) ** 2
+                for fall in SIDE_LIGHT[side.k][1])
+    height = max(0.0, min(1.0, (GALLERIES[0][0] + 2.0 - y) / 7.0))
+    return along * height * height * (3.0 - 2.0 * height)
+
+
+def pipe_gap(side, u0, u1):
+    return any(u0 < fall.u + 1.8 and u1 > fall.u - 1.8 for fall in SIDE_LIGHT[side.k][1])
 
 
 def disc(m, center, normal, radius, segments, color, mat=VENUE):
@@ -144,21 +198,70 @@ class Venue:
                 u = u1
             # rim curb
             parts.box(m, side, (0.0, RIM_Y + 0.12, PIT_W + 0.2), (2 * SPAN, 0.24, 0.4), P.CONCRETE, VENUE, skip=("bottom",))
-            # outfall pipes pouring slop
-            for u in (-22.0 + rng.uniform(-4, 4), 18.0 + rng.uniform(-4, 4)):
-                mouth = side.P(u, -19.0, PIT_W - 1.0)
-                geo.cylinder_between(m, side.P(u, -19.0, PIT_W + 0.1), mouth, 0.55, 12, P.RUST, VENUE)
-                geo.lathe(m, mouth, [(0.6, -0.08), (0.6, 0.08)], 12, P.STEEL_DARK, VENUE)
-                fall = [(-0.18, -19.25), (0.18, -19.25), (0.42, SLOP_Y), (-0.42, SLOP_Y)]
-                with geo.state(g, alpha=0.3, anim=(50.7, rng.random())):
-                    geo.oriented(g, [side.P(u + du, y, PIT_W - 1.2) for du, y in fall], side.inward,
-                                 geo.mix(P.SLOP, P.SLOP_GLOW, 0.25), VENUE)
-                cx, _, cz = side.P(u, SLOP_Y, PIT_W - 1.4)
-                for k in range(9):
-                    t = 2 * math.pi * k / 9
-                    with geo.state(g, alpha=0.15):
-                        geo.box(g, (cx + 0.75 * math.cos(t), SLOP_Y + 0.04, cz + 0.75 * math.sin(t)), (0.35, 0.08, 0.35),
-                                P.SLOP_FOAM, VENUE, yaw=t, skip=("bottom",))
+        for fall in SIDE_LIGHT[side.k][1]:
+            u = fall.u
+            mouth = side.P(u, PIPE_Y, PIPE_MOUTH_W)
+            with geo.state(m, alpha=0.0):
+                geo.cylinder_between(m, side.P(u, PIPE_Y, GALLERIES[1][1] + 0.1), mouth, 0.95, 16, geo.scale(P.RUST, 1.5), VENUE)
+                geo.cylinder_between(m, side.P(u, PIPE_Y, PIPE_MOUTH_W + 0.2), mouth, 1.12, 16, P.STEEL_DARK, VENUE)
+                disc(m, side.P(u, PIPE_Y, PIPE_MOUTH_W - 0.01), side.inward, 0.82, 16, P.SLOP_DARK)
+                for du in (-1.1, 1.1):
+                    parts.beam(m, side.P(u + du, PIPE_Y, GALLERIES[0][1] + 0.2), side.P(u + du, *GALLERIES[1]), 0.09, P.STEEL, VENUE)
+                for k in range(10):
+                    t = 2 * math.pi * k / 10
+                    geo.box(m, side.P(u + math.cos(t), PIPE_Y + math.sin(t), PIPE_MOUTH_W - 0.04),
+                            (0.12, 0.12, 0.12), P.RUST, VENUE)
+            color = geo.mix(P.SLOP, P.SLOP_GLOW, 0.55)
+            # Keep the rounded body steady; only narrow surface streaks pulse.
+            profile = [(FALL_TOP, PIPE_MOUTH_W), (PIPE_Y - 0.6, PIT_W - 0.1), (1.0, FALL_W)]
+            bends = profile + [(SLOP_Y, FALL_W)]
+            profile = [bends[0]]
+            for (ya, wa), (yb, wb) in zip(bends, bends[1:]):
+                bands = math.ceil((ya - yb) / FALL_BAND)
+                profile.extend((ya + (yb - ya) * j / bands, wa + (wb - wa) * j / bands)
+                               for j in range(1, bands + 1))
+            for (y0, w0), (y1, w1) in zip(profile, profile[1:]):
+                width0 = 0.75 + 0.16 * (FALL_TOP - y0) / (FALL_TOP - SLOP_Y)
+                width1 = 0.75 + 0.16 * (FALL_TOP - y1) / (FALL_TOP - SLOP_Y)
+                # The fall is the light source, so it stays brighter than the green spill it throws.
+                with geo.state(g, alpha=0.75, anim=(0.0, 0.0)):
+                    for left, right in ((-1, 0), (0, 1)):
+                        pts = [side.P(u + left * width0, y0, w0 - FALL_DEPTH),
+                               side.P(u + right * width0, y0, w0 - FALL_DEPTH),
+                               side.P(u + right * width1, y1, w1 - FALL_DEPTH),
+                               side.P(u + left * width1, y1, w1 - FALL_DEPTH)]
+                        cols = [geo.scale(color, 1.0 if x == 0 else 0.35)
+                                for x in (left, right, right, left)]
+                        geo.oriented(g, pts, side.inward, cols, VENUE)
+                    geo.oriented(g, [side.P(u - width1, y1, w1 + FALL_DEPTH), side.P(u + width1, y1, w1 + FALL_DEPTH),
+                                     side.P(u + width0, y0, w0 + FALL_DEPTH), side.P(u - width0, y0, w0 + FALL_DEPTH)],
+                                 tuple(-v for v in side.inward), geo.scale(color, 0.55), VENUE)
+                    for sign in (-1, 1):
+                        geo.oriented(g, [side.P(u + sign * width0, y0, w0 - FALL_DEPTH), side.P(u + sign * width0, y0, w0 + FALL_DEPTH),
+                                         side.P(u + sign * width1, y1, w1 + FALL_DEPTH), side.P(u + sign * width1, y1, w1 - FALL_DEPTH)],
+                                     side.inward, geo.scale(color, 0.35), VENUE)
+                if y0 - y1 <= FALL_BAND + 1e-6:
+                    for offset, width, phase in ((-0.43, 0.16, 0.0), (0.02, 0.2, 0.3), (0.4, 0.15, 0.65)):
+                        with geo.state(g, alpha=0.55, anim=(51.0, (y0 / 8.0 + phase) % 1.0)):
+                            geo.oriented(g, [side.P(u + offset - width / 2, y0, w0 - FALL_DEPTH - 0.025),
+                                             side.P(u + offset + width / 2, y0, w0 - FALL_DEPTH - 0.025),
+                                             side.P(u + offset + width / 2, y1, w1 - FALL_DEPTH - 0.025),
+                                             side.P(u + offset - width / 2, y1, w1 - FALL_DEPTH - 0.025)],
+                                         side.inward, geo.scale(color, 1.5), VENUE)
+            with geo.state(g, alpha=0.3, anim=(50.3, 0.0)):
+                for k in range(14):
+                    t = 2 * math.pi * k / 14
+                    parts.box(g, side, (u + 1.2 * math.cos(t), SLOP_Y + 0.04, PIT_W + 0.35 + 0.7 * math.sin(t)),
+                              (0.4, 0.08, 0.28), P.SLOP_FOAM, VENUE)
+        with geo.state(g, alpha=0.6):
+            for k in range(83):
+                u0 = -SPAN + k
+                for y0, y1 in ((SLOP_Y, -20), (-20, -15), (-15, -10), (-10, RIM_Y)):
+                    corners = [(u0, y0), (u0 + 1, y0), (u0 + 1, y1), (u0, y1)]
+                    if not any(spill(side, u, y) for u, y in corners):
+                        continue
+                    geo.oriented(g, [side.P(u, y, PIT_W - 0.025) for u, y in corners], side.inward,
+                                 [geo.mix(geo.scale(P.CONCRETE_DARK, 0.28), P.SLOP_GLOW, spill(side, u, y) * 0.35) for u, y in corners], HAZE)
         if side.k == 3:  # the fighters' tunnel behind the walkout bridge
             with geo.state(m, alpha=0.0):
                 parts.rect(m, side, -1.6, 1.6, -14.5, -11.4, PIT_W - 0.02, (0.02, 0.02, 0.02), VENUE)
@@ -255,42 +358,40 @@ class Venue:
                     disc(g, tuple(tip[i] + d[i] * 0.01 for i in range(3)), d, 0.15, 8,
                          P.LAMP_WARM if (k + side.k) % 3 else P.LAMP_AMBER)
             k += 1
-        # work lamps under each deck edge, backlighting the fans in front of each riser
-        lower = RIM_Y
-        for gi, (y, w) in enumerate(GALLERIES):
-            for k in range(int(2 * SPAN / 5.0)):
-                u = -SPAN + 2.5 + 5.0 * k
-                with geo.state(g, alpha=1.0):
-                    parts.box(g, side, (u, y - 0.42, w - 0.35), (0.42, 0.16, 0.28), P.LAMP_WARM, VENUE, skip=("top",))
-            lower = y
+        for pool in SIDE_LIGHT[side.k][0]:
+            _, w, top = LEVELS[pool.level]
+            with geo.state(g, alpha=pool.heat):
+                parts.box(g, side, (pool.u, top - 0.42, w - 0.35), (0.42, 0.16, 0.28), P.LAMP_WARM, VENUE, skip=("top",))
 
     def haze(self, side, m):
-        """Glowing wash behind every row of fans: the poster's orange backlight. Each bay is
-        hottest under its work lamp and falls off sideways and downwards; a few bays are dark."""
-        rng = self.rng
-        levels = [(RIM_Y, GALLERIES[0][1])] + [(GALLERIES[i][0], GALLERIES[i + 1][1]) for i in range(2)] + [(GALLERIES[2][0], BACK_W)]
-        for li, (y0, w) in enumerate(levels):
-            top = (GALLERIES[li][0] if li < 3 else CEILING_Y - 2.5) - 0.3
-            bottom = y0 + 0.4
-            bays = int(round(2 * SPAN / BAY))
-            for k in range(bays):
-                u0 = -SPAN + BAY * k
-                hot = rng.uniform(0.7, 1.0) if rng.random() > 0.14 else rng.uniform(0.08, 0.2)
-                hc = u0 + BAY / 2 + rng.uniform(-0.35, 0.35)
-
-                def col(u, y, hot=hot, hc=hc):
-                    fy = (y - bottom) / (top - bottom)
-                    fu = 1.0 - min(1.0, abs(u - hc) / (BAY * 0.8))
-                    i = hot * (0.1 + 0.9 * fy ** 1.8) * (0.3 + 0.7 * fu)
-                    return geo.mix(geo.scale(P.HAZE_DEEP, 0.35), P.HAZE_HOT, min(1.0, i))
-                us = (u0, u0 + BAY / 2, u0 + BAY)
-                ys = (bottom, bottom + (top - bottom) * 0.55, top)
-                for a in range(2):
-                    for b in range(2):
-                        corners = [(us[a], ys[b]), (us[a + 1], ys[b]), (us[a + 1], ys[b + 1]), (us[a], ys[b + 1])]
-                        with geo.state(m, alpha=1.0):
-                            geo.oriented(m, [side.P(u, y, w - 0.04) for u, y in corners], side.inward,
-                                         [col(u, y) for u, y in corners], HAZE)
+        """The wash on the wall behind each row of fans: near-black outside the SIDE_LIGHT
+        pools, and inside them hottest at head height so the fans read as silhouettes."""
+        pools = SIDE_LIGHT[side.k][0]
+        for li, (y0, w, ceiling) in enumerate(LEVELS):
+            bottom, top = y0 + 0.4, ceiling - 0.3
+            def col(u, y):
+                head = y0 + 1.6
+                if y <= head:
+                    t = max(0.0, min(1.0, (y - bottom) / (head - bottom)))
+                    vertical = 0.5 + 0.5 * t * t * (3.0 - 2.0 * t)
+                else:
+                    t = min(1.0, (y - head) / (top - head))
+                    vertical = 1.0 - 0.75 * t * t * (3.0 - 2.0 * t)
+                heat = max([0.0] + [p.heat * max(0.0, 1.0 - ((u - p.u) / (1.4 * p.half)) ** 2) ** 2
+                                   for p in pools if p.level == li])
+                warm = geo.mix(geo.scale(P.HAZE_DEEP, 0.03), P.HAZE_HOT, heat * vertical * 0.72)
+                green = spill(side, u, y) * (0.25 if li == 0 else 0.12 if li == 1 else 0.0)
+                return tuple(warm[i] + P.SLOP_GLOW[i] * green for i in range(3))
+            columns = math.ceil(2 * SPAN)
+            rows = math.ceil((top - bottom) / 0.6)
+            ys = [bottom + (top - bottom) * j / rows for j in range(rows + 1)]
+            for k in range(columns):
+                u0, u1 = -SPAN + 2 * SPAN * k / columns, -SPAN + 2 * SPAN * (k + 1) / columns
+                for y1, y2 in zip(ys, ys[1:]):
+                    corners = [(u0, y1), (u1, y1), (u1, y2), (u0, y2)]
+                    with geo.state(m, alpha=1.0):
+                        geo.oriented(m, [side.P(u, y, w - 0.04) for u, y in corners], side.inward,
+                                     [col(u, y) for u, y in corners], HAZE)
 
     def fences(self, side, m):
         """Chain-link: the tall rim fence and every gallery railing."""
@@ -298,6 +399,8 @@ class Venue:
             posts = int(round(2 * SPAN / 3.0))
             for k in range(posts):
                 u0, u1 = -SPAN + 2 * SPAN * k / posts, -SPAN + 2 * SPAN * (k + 1) / posts
+                if pipe_gap(side, u0, u1):
+                    continue
                 parts.chain_link(m, side, u0 + 0.05, u1 - 0.05, RIM_Y + 0.12, RIM_Y + 3.9, PIT_W + 0.48, 0.34, 0.05,
                                  geo.scale(P.GALV, 0.62), VENUE)
             for y, w in GALLERIES:
@@ -306,6 +409,8 @@ class Venue:
                     u0 = -SPAN + BAY * k
                     if side.k == 0 and y == GALLERIES[1][0] and u0 + BAY > HERO[0] and u0 < HERO[1]:
                         continue  # behind the hero sign
+                    if y == GALLERIES[0][0] and pipe_gap(side, u0, u0 + BAY):
+                        continue
                     parts.chain_link(m, side, u0 + 0.04, u0 + BAY - 0.04, y + 0.06, y + 1.05, w + 0.1, 0.3, 0.04,
                                      geo.scale(P.GALV, 0.62), VENUE)
 
@@ -322,6 +427,8 @@ class Venue:
             while u < SPAN - 0.5:
                 skip = rng.random() < (0.45 if sparse else 0.07)
                 if side.k == 0 and fy == GALLERIES[1][0] and HERO[0] - 0.4 < u < HERO[1] + 0.4:
+                    skip = True
+                if ri < 4 and pipe_gap(side, u, u):
                     skip = True
                 if not skip:
                     parts.fan(m, side, u, w + rng.uniform(-0.15, 0.15), fy, rng, P)
@@ -344,22 +451,6 @@ class Venue:
             with geo.state(g, alpha=1.0, anim=(-1.0, rng.random())):
                 geo.lathe(g, (x, y + 0.88, z), [(0.13, 0.0), (0.0, 0.4)], 5, P.FIRE_CORE, VENUE)
             u += rng.uniform(10.0, 16.0)
-
-    def string_lights(self, side, g):
-        rng = self.rng
-        for y, w in GALLERIES[:2]:
-            span = 5.0
-            k = 0
-            while -SPAN + span * (k + 1) <= SPAN + 1e-6:
-                u0, u1 = -SPAN + span * k, -SPAN + span * (k + 1)
-                k += 1
-                if side.k == 0 and y == GALLERIES[1][0] and u1 > HERO[0] and u0 < HERO[1]:
-                    continue
-                pts = geo.catenary(side.P(u0, y + 1.12, w + 0.08), side.P(u1, y + 1.12, w + 0.08), 0.22, 9)
-                for i, p in enumerate(pts[1:-1]):
-                    anim = (rng.uniform(0.2, 0.5), rng.random()) if rng.random() < 0.15 else (0.0, 0.0)
-                    with geo.state(g, alpha=1.0, anim=anim):
-                        geo.box(g, (p[0], p[1] - 0.05, p[2]), (0.08, 0.1, 0.08), P.BULB, VENUE, skip=("top",))
 
     def banners(self, side, m, g):
         y_top = GALLERIES[2][0] + 1.12
@@ -485,7 +576,7 @@ class Venue:
                     disc(m, (cx + fwd[0] * 0.46, cy, cz + fwd[2] * 0.46), fwd, 0.36, 10, (0.12, 0.12, 0.13))
         # warm wash on both corner faces so the corners read as lit walls, not dead concrete
         for face in (0, 1):
-            for y0, y1, hot in ((RIM_Y + 0.5, 4.5, 0.45), (5.0, 15.5, 0.7)):
+            for y0, y1, hot in ((RIM_Y + 0.5, 4.5, 0.16), (5.0, 15.5, 0.25)):
                 c_top, c_bot = geo.scale(P.HAZE_HOT, hot), geo.scale(P.HAZE_DEEP, hot * 0.25)
                 if face == 0:
                     pts = [(sx * (PIT_W - 0.04), y0, sz * (PIT_W + 0.4)), (sx * (PIT_W - 0.04), y0, sz * BACK_W),
@@ -534,7 +625,6 @@ class Venue:
             b.background("Fences", "%s Fences" % name, lambda m, g, side=side: self.fences(side, m))
             b.background("Crowd", "%s Crowd" % name, lambda m, g, side=side: stats.__setitem__(name, self.crowd(side, m)))
             b.background("Stands", "%s Fire" % name, lambda m, g, side=side: self.barrels(side, g, m))
-            b.background("Stands", "%s Lights" % name, lambda m, g, side=side: self.string_lights(side, g))
             b.background("Banners", "%s Banners" % name, lambda m, g, side=side: self.banners(side, m, g))
             b.background("Stands", "%s Signs" % name, lambda m, g, side=side: self.signs(side, m, g))
         for sx in (-1, 1):

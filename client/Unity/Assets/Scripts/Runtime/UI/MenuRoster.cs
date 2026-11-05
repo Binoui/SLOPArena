@@ -17,6 +17,7 @@ namespace SlopArena.Client.UI
     {
         private static readonly Dictionary<CharacterClass, string> Names = new();
         private static readonly Dictionary<CharacterClass, string> AlternateNames = new();
+        private static readonly Dictionary<CharacterClass, string> PackageIds = new();
         public static readonly CharacterClass[] Classes = LoadClasses();
 
         /// <summary>
@@ -25,6 +26,10 @@ namespace SlopArena.Client.UI
         /// </summary>
         public static string Name(CharacterClass characterClass) =>
             Names.TryGetValue(characterClass, out var name) ? name : characterClass.ToString();
+
+        /// <summary>The admitted fighter's package id from the cooked roster, without compiling or loading the package.</summary>
+        public static string? PackageId(CharacterClass characterClass) =>
+            PackageIds.TryGetValue(characterClass, out var id) ? id : null;
 
         /// <summary>True for a fighter with two forms (ADR-0051), whose card picks the starting form.</summary>
         public static bool HasForms(CharacterClass characterClass) => AlternateNames.ContainsKey(characterClass);
@@ -57,6 +62,7 @@ namespace SlopArena.Client.UI
                     BuiltInRosterManifest manifest = BuiltInRosterManifestCodec.Load(path);
                     foreach (var entry in manifest.Entries)
                     {
+                        PackageIds[entry.Selector] = entry.PackageId;
                         string runtime = Path.Combine(root, entry.PackageId, "character.runtime.json");
                         if (ReadDisplayName(runtime) is { } name)
                             Names[entry.Selector] = name;
@@ -94,7 +100,7 @@ namespace SlopArena.Client.UI
         }
 
         /// <summary>True for a fighter still being built; menus tag it WIP so players know its kit and art are unfinished.</summary>
-        public static bool IsWorkInProgress(CharacterClass characterClass) => characterClass is CharacterClass.Bashie or CharacterClass.Salamander or CharacterClass.Nyx;
+        public static bool IsWorkInProgress(CharacterClass characterClass) => characterClass is CharacterClass.Bashie or CharacterClass.Salamander;
 
         /// <summary>
         /// Short, player-facing guidance that distinguishes each admitted fighter's

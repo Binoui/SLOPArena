@@ -16,8 +16,8 @@ public sealed class MankiMayhemDefinition
     {
         if (!hostOrigin.IsFinite || !float.IsFinite(minX) || !float.IsFinite(maxX)
             || !float.IsFinite(minZ) || !float.IsFinite(maxZ) || !float.IsFinite(deckTop)
-            || maxX - minX <= 2f * MankiMayhemTuning.PlacementMargin
-            || maxZ - minZ <= 2f * MankiMayhemTuning.PlacementMargin || hostOrigin.Y <= deckTop)
+            || maxX - minX <= 2f * Mayhem.MayhemShowTuning.PlacementMargin
+            || maxZ - minZ <= 2f * Mayhem.MayhemShowTuning.PlacementMargin || hostOrigin.Y <= deckTop)
             throw new ArgumentException("Mayhem needs finite play bounds, a deck top and an elevated host origin.");
         HostOrigin = hostOrigin; MinX = minX; MaxX = maxX; MinZ = minZ; MaxZ = maxZ; DeckTop = deckTop;
     }

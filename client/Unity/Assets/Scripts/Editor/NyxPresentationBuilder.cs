@@ -61,7 +61,7 @@ namespace SlopArena.EditorTools
         private sealed class Materials
         {
             public Material ShadowBurst, PinkBurst, ShadowBand, PinkBand, Heart, Sparkle, Shard, Feather, Bat;
-            public Material ClawBlade, PinkBlade, ShadowWhip, ClawMarks, LightRay, Viewfinder, PoleSmear, ShockRing, ShadowShockRing, Glint, TrailDots;
+            public Material ClawBlade, PinkBlade, ShadowWhip, LightRay, Viewfinder, PoleSmear, ShockRing, ShadowShockRing, Glint, TrailDots;
             public Material InkPool, DropLine;
         }
         private sealed class CueWindow
@@ -137,8 +137,7 @@ namespace SlopArena.EditorTools
             Bind("bat-scatter", BatScatter());
             Bind("selfie-pop", SelfiePop());
             Bind("selfie-release", SelfieRelease());
-            Bind("shadow-hit", Contact("NyxShadowHit", false));
-            Bind("pink-hit", Contact("NyxPinkHit", true));
+            foreach (var family in HitFamilies) Bind(family.Id, BuildContact(family));
             Bind("crow-pop", CrowPop());
             Bind("crow-launch", CrowLaunch());
             var crow = Crow();
@@ -984,14 +983,14 @@ namespace SlopArena.EditorTools
             return _kit.SaveMesh(quad);
         }
 
-        /// <summary>A peck on the carrier's head: a small violet star, claw scratches and a couple of feathers.</summary>
+        /// <summary>Pecks are capability cues with a fixed 20-tick life, so use a short feather-family beat.</summary>
         private static GameObject CrowPeck()
         {
             var root = _kit.NewRoot("NyxCrowPeck", attackBound: false);
-            const ParticleSystemScalingMode scale = ParticleSystemScalingMode.Hierarchy;
-            Pop(root, "Peck star", _materials.ShadowBurst, .6f, .13f, scale);
-            Pop(root, "Peck scratches", _materials.ClawMarks, .5f, .18f, scale);
-            Motifs(root, "Peck feathers", _materials.Feather, 3, .2f, .28f, 1.8f, scale);
+            var flash = Pop(root, "Peck star", _materials.ShadowBurst, .6f, .05f, ContactScale);
+            flash.GetComponent<ParticleSystemRenderer>().pivot = new Vector3(0f, 0f, .8f);
+            FeatherHit(root, .22f, 4, .2f);
+            _kit.Sound(root, HitFamilies[2].Sound, .32f, 1f);
             return Save(root);
         }
 
@@ -1012,23 +1011,8 @@ namespace SlopArena.EditorTools
             return Save(root);
         }
 
-        /// <summary>The crow's pop on her next fake-form hit: a violet star and ring and an explosion of feathers.</summary>
-        private static GameObject CrowPop()
-        {
-            var root = _kit.NewRoot("NyxCrowPop", attackBound: false);
-            const ParticleSystemScalingMode scale = ParticleSystemScalingMode.Hierarchy;
-            Pop(root, "Pop star", _materials.ShadowBurst, 1.05f, .14f, scale);
-            var ring = Particles(root, "Pop ring", _materials.ShadowShockRing, .3f, scaling: scale);
-            Burst(ring, 1);
-            var main = ring.main;
-            main.startLifetime = .22f;
-            main.startSize = 1.3f;
-            SizeOverLife(ring, Curve((0f, .35f), (.25f, 1f), (1f, 1.15f)));
-            Fade(ring, .4f);
-            Motifs(root, "Crow feathers", _materials.Feather, 12, .28f, .3f, 3.6f, scale);
-            Motifs(root, "Pop shards", _materials.Shard, 4, .16f, .22f, 2.6f, scale);
-            return Save(root);
-        }
+        /// <summary>The crow pop shares the pecks' feather vocabulary.</summary>
+        private static GameObject CrowPop() => BuildContact(HitFamilies[2], "NyxCrowPop");
 
         /// <summary>
         /// Grasp warning: a violet ring on the floor at the catch's radius with five claw tips that
@@ -1682,23 +1666,14 @@ namespace SlopArena.EditorTools
             return Save(root);
         }
 
-        /// <summary>The selfie flash at her phone: a white-hot star, an opening shutter ring, hearts and sparkles.</summary>
+        /// <summary>The pre-launch focus beat at her phone; the launch contact owns the flash.</summary>
         private static GameObject SelfiePop()
         {
             var (root, cue, content, duration) = AttackRoot("NyxSelfiePop", "selfie-pop", "Phone flash");
             cue.OriginBoneId = "bone.right-hand";
             float life = duration / 60f;
             content.transform.localPosition = Vector3.up * .22f;
-            Pop(content, "Shutter star", _materials.Glint, 1.1f, life * .7f, ParticleSystemScalingMode.Local);
-            var ring = Particles(content, "Shutter ring", _materials.ShockRing, life, ParticleSystemSimulationSpace.Local);
-            Burst(ring, 1);
-            var main = ring.main;
-            main.startLifetime = life;
-            main.startSize = 1.1f;
-            SizeOverLife(ring, Curve((0f, .3f), (.25f, 1f), (1f, 1.35f)));
-            Fade(ring, .45f);
-            Motifs(content, "Photo hearts", _materials.Heart, 5, .26f, life, 2.8f);
-            Motifs(content, "Photo sparkles", _materials.Sparkle, 6, .18f, life, 3.3f);
+            Pop(content, "Focus brackets", _materials.Viewfinder, 1.1f, life, ParticleSystemScalingMode.Local);
             return Save(root);
         }
 
@@ -1712,7 +1687,7 @@ namespace SlopArena.EditorTools
             var heart = Particles(root, "Like heart", _materials.Heart, .45f, ParticleSystemSimulationSpace.Local);
             Burst(heart, 1);
             var main = heart.main;
-            main.startLifetime = .42f;
+            main.startLifetime = 9f / 60f;
             main.startSize = .75f;
             SizeOverLife(heart, Curve((0f, .3f), (.15f, 1.2f), (.3f, 1f), (1f, .9f)));
             var velocity = heart.velocityOverLifetime;
@@ -1721,7 +1696,7 @@ namespace SlopArena.EditorTools
             velocity.x = new ParticleSystem.MinMaxCurve(0f, 0f);
             velocity.y = new ParticleSystem.MinMaxCurve(.7f, .7f);
             velocity.z = new ParticleSystem.MinMaxCurve(0f, 0f);
-            Fade(heart, .7f);
+            Fade(heart, .25f);
             InFront(heart);
             var ring = Particles(root, "Like ring", _materials.ShockRing, .3f, ParticleSystemSimulationSpace.Local);
             Burst(ring, 1);
@@ -1850,47 +1825,259 @@ namespace SlopArena.EditorTools
 
         // ── Contacts and shared pieces ───────────────────────────────────────────
 
-        /// <summary>
-        /// Confirmed hits: a burst star with streaks, plus three claw scratches and shards for her
-        /// shadows, or a heart and sparkles for Nyxxie. Contacts scale with damage (Hierarchy).
-        /// </summary>
-        private static GameObject Contact(string name, bool fake)
+        private sealed class HitFamily
         {
-            var root = _kit.NewRoot(name, attackBound: false);
-            const ParticleSystemScalingMode scale = ParticleSystemScalingMode.Hierarchy;
-            Pop(root, "Contact flash", fake ? _materials.PinkBurst : _materials.ShadowBurst, .75f, .13f, scale);
-            var lines = Particles(root, "Contact streaks", fake ? _materials.PinkBand : _materials.ShadowBand, .25f, scaling: scale);
-            Burst(lines, 6);
-            var main = lines.main;
-            main.startLifetime = new ParticleSystem.MinMaxCurve(.08f, .14f);
-            main.startSize = .07f;
-            main.startSpeed = new ParticleSystem.MinMaxCurve(4f, 7f);
-            Sphere(lines, .08f);
-            Stretch(lines, .025f, 2.6f);
-            Fade(lines, .45f);
-            InFront(lines);
-            if (fake)
+            public string Id, Sound;
+            public bool Pink, ImmediateFlash;
+            public Action<GameObject> Regular, Heavy;
+            public HitFamily(string id, bool pink, Action<GameObject> regular, Action<GameObject> heavy, string sound, bool immediateFlash = true)
+            { Id = id; Pink = pink; Regular = regular; Heavy = heavy; Sound = sound; ImmediateFlash = immediateFlash; }
+        }
+
+        private static readonly HitFamily[] HitFamilies = {
+            new("rake-hit", false, RakeHit, null, "nyx_rake"),
+            new("clench-hit", false, r => ClenchHit(r, false), r => ClenchHit(r, true), "nyx_clench"),
+            new("feather-hit", false, FeatherHit, null, "nyx_feather"),
+            new("like-hit", true, LikeHit, null, "nyx_like"),
+            new("shutter-hit", true, r => ShutterHit(r, false), r => ShutterHit(r, true), "nyx_shutter"),
+            new("selfie-hit", true, SelfieHit, null, "nyx_selfie", immediateFlash: false),
+            new("grasp-hit", false, GraspHit, null, "nyx_clench"),
+        };
+        private const ParticleSystemScalingMode ContactScale = ParticleSystemScalingMode.Hierarchy;
+
+        private static GameObject BuildContact(HitFamily family, string name = null)
+        {
+            var root = _kit.NewRoot(name ?? "Nyx" + string.Concat(family.Id.Split('-').Select(x => char.ToUpperInvariant(x[0]) + x.Substring(1))), attackBound: false);
+            void Build(GameObject layer, Action<GameObject> shape, bool heavy)
             {
-                var heart = Pop(root, "Contact heart", _materials.Heart, .34f, .2f, scale);
-                heart.GetComponent<ParticleSystemRenderer>().pivot = new Vector3(0f, 0f, .5f);
-                Motifs(root, "Contact hearts", _materials.Heart, 2, .16f, .23f, 2.3f, scale);
-                Motifs(root, "Contact sparkles", _materials.Sparkle, 3, .14f, .2f, 3f, scale);
+                if (family.ImmediateFlash) Pop(layer, "Contact flash", family.Pink ? _materials.Glint : _materials.ShadowBurst, heavy ? 1.2f : .8f, .05f, ContactScale);
+                shape(layer);
+                _kit.Sound(layer, family.Sound, .48f, 1f);
+                if (heavy) _kit.Sound(Child(layer, "Heavy sound"), "nyx_heavy", .42f, 1f);
             }
+            if (family.Heavy == null) Build(root, family.Regular, false);
             else
             {
-                var scratches = Particles(root, "Claw scratches", _materials.ClawMarks, .2f, scaling: scale);
-                Burst(scratches, 1);
-                main = scratches.main;
-                main.startLifetime = .17f;
-                main.startSize = .85f;
-                main.startRotation = new ParticleSystem.MinMaxCurve(-.2f, .2f);
-                SizeOverLife(scratches, Curve((0f, .6f), (.2f, 1.05f), (.35f, 1f), (1f, 1f)));
-                Fade(scratches, .5f);
-                InFront(scratches);
-                scratches.GetComponent<ParticleSystemRenderer>().pivot = new Vector3(0f, 0f, .4f);
-                Motifs(root, "Shadow shards", _materials.Shard, 5, .12f, .23f, 2.3f, scale);
+                var regular = Child(root, "Regular");
+                var heavy = Child(root, "Heavy");
+                Build(regular, family.Regular, false);
+                Build(heavy, family.Heavy, true);
+                regular.SetActive(false); heavy.SetActive(false);
+                var variant = root.AddComponent<DamageScaleVariant>();
+                variant.Regular = regular; variant.Heavy = heavy; variant.HeavyFromScale = 1.38f;
+            }
+            foreach (var ps in root.GetComponentsInChildren<ParticleSystem>(true))
+            {
+                var renderer = ps.GetComponent<ParticleSystemRenderer>();
+                if (renderer.renderMode == ParticleSystemRenderMode.Billboard)
+                    renderer.pivot = new Vector3(0f, 0f, .8f);
             }
             return Save(root);
+        }
+
+        // Closed tapered ribbons retain thickness through the full camera ring.
+        private static Mesh ContactBladeMesh(string name, IEnumerable<Blade> blades)
+        {
+            const int steps = 16;
+            var vertices = new List<Vector3>(); var uv = new List<Vector2>(); var triangles = new List<int>();
+            foreach (var blade in blades)
+            {
+                int first = vertices.Count;
+                for (int i = 0; i <= steps; i++)
+                {
+                    float t = i / (float)steps;
+                    var tangent = (blade.At(Mathf.Min(1, t + .01f)) - blade.At(Mathf.Max(0, t - .01f))).normalized;
+                    var across = Vector3.Cross(tangent, blade.Hint).normalized;
+                    var depth = Vector3.Cross(tangent, across).normalized;
+                    float taper = Mathf.Max(.02f, Mathf.Sin(Mathf.PI * Mathf.Pow(t, .7f)));
+                    for (int corner = 0; corner < 4; corner++)
+                    {
+                        float side = corner < 2 ? -1 : 1;
+                        float back = corner == 0 || corner == 3 ? -1 : 1;
+                        vertices.Add(blade.At(t) + across * side * blade.Width * .5f * taper + depth * back * blade.Width * .16f * taper);
+                        uv.Add(new Vector2(t, side < 0 ? .12f : .88f));
+                    }
+                    if (i == 0) continue;
+                    for (int face = 0; face < 4; face++)
+                    {
+                        int q = first + (i - 1) * 4 + face, n = first + (i - 1) * 4 + (face + 1) % 4;
+                        triangles.AddRange(new[] { q, q + 4, n, n, q + 4, n + 4 });
+                    }
+                }
+                triangles.AddRange(new[] { first, first + 1, first + 2, first, first + 2, first + 3 });
+                int end = first + steps * 4;
+                triangles.AddRange(new[] { end + 2, end + 1, end, end + 3, end + 2, end });
+            }
+            var mesh = new Mesh { name = name }; mesh.SetVertices(vertices); mesh.SetUVs(0, uv); mesh.SetTriangles(triangles, 0);
+            mesh.RecalculateNormals(); mesh.RecalculateBounds(); return _kit.SaveMesh(mesh);
+        }
+
+        private static ParticleSystem ContactMesh(GameObject root, string name, Material material, Mesh mesh, float life)
+        {
+            var ps = MeshShape(root, name, material, mesh, life, Vector3.zero,
+                Curve((0, 1), (.2f, 1.12f), (.65f, 1), (1, .05f)), Flat(), Flat(), .55f);
+            var main = ps.main; main.scalingMode = ContactScale;
+            InFront(ps);
+            return ps;
+        }
+
+        private static void ContactDebris(GameObject root, string name, Material material, int count, float size, float life)
+        {
+            var ps = Motifs(root, name, material, count, size, life, 3f, ContactScale);
+            var main = ps.main; main.startDelay = .08f; main.gravityModifier = .35f;
+            var velocity = ps.velocityOverLifetime; velocity.enabled = true;
+            velocity.space = ParticleSystemSimulationSpace.Local;
+            velocity.x = new ParticleSystem.MinMaxCurve(-.5f, .5f);
+            velocity.y = new ParticleSystem.MinMaxCurve(.4f, 1.2f);
+            velocity.z = new ParticleSystem.MinMaxCurve(1f, 2.5f);
+            Drag(ps, .2f); Spin(ps, 260f);
+        }
+
+        private static void RakeHit(GameObject root)
+        {
+            // Baked tear stages replace the silhouette at ticks 3 and 7, before breakup at 12.
+            for (int phase = 0; phase < 3; phase++)
+            {
+                int stage = phase;
+                var blades = new List<Blade>();
+                for (int i = 0; i < 3; i++)
+                {
+                    float x = (i - 1) * .25f;
+                    var start = new Vector3(x - .32f, .55f, -.2f);
+                    var middle = new Vector3(x + .08f, .18f, .12f);
+                    var tip = new Vector3(x + .5f, -.5f, .38f);
+                    blades.Add(new Blade(Bezier(start, middle, tip), .18f + stage * .07f, Vector3.forward));
+                    if (stage > 0)
+                        foreach (float side in new[] { -1f, 1f })
+                            blades.Add(new Blade(Bezier(middle, tip + Vector3.right * side * .12f * stage,
+                                tip + new Vector3(side * .18f * stage, -.14f * stage, .05f)), .11f, Vector3.forward));
+                }
+                var ps = ContactMesh(root, "Tear phase " + stage, _materials.ClawBlade,
+                    ContactBladeMesh(stage == 0 ? "NyxHitRakeMesh" : "NyxHitRakeSplit" + stage, blades), .1f);
+                var main = ps.main;
+                main.startDelay = new[] { 0f, 3f / 60f, 7f / 60f }[stage];
+                main.startLifetime = new[] { 3f / 60f, 4f / 60f, 5f / 60f }[stage];
+                SizeOverLife(ps, Curve((0, 1), (1, 1.12f)));
+                Fade(ps, .9f);
+                ps.GetComponent<ParticleSystemRenderer>().alignment = ParticleSystemRenderSpace.View;
+            }
+            ContactDebris(root, "Torn strips", _materials.Shard, 7, .23f, .32f);
+            var strips = root.GetComponentsInChildren<ParticleSystem>(true).Last();
+            var m = strips.main; m.startDelay = 12f / 60f;
+        }
+
+        private static void ClenchHit(GameObject root, bool heavy)
+        {
+            var fingers = Child(root, "Contact fingers");
+            var blades = Enumerable.Range(0, 5).Select(i => {
+                var radial = Around(i * 72f);
+                return new Blade(Bezier(radial * .32f - Vector3.up * .3f, radial * .65f + Vector3.up * .35f,
+                    radial * .15f + Vector3.up * .65f), .22f, Vector3.Cross(Vector3.up, radial));
+            });
+            var ps = ContactMesh(fingers, "Clenching ink", _materials.ClawBlade, ContactBladeMesh("NyxHitClenchMesh", blades), .23f);
+            SizeOverLife(ps, Curve((0, .75f), (.25f, 1.1f), (.8f, .5f), (1, .1f)), Curve((0, .5f), (.3f, 1), (1, .7f)));
+            if (heavy)
+            {
+                for (int stage = 0; stage < 2; stage++)
+                {
+                    int phase = stage;
+                    var crown = Enumerable.Range(0, 7).Select(i => {
+                        float spread = (i - 3) / 3f;
+                        var tip = new Vector3(spread * (phase == 0 ? .32f : .52f),
+                            -.35f - .12f * (i % 2), phase == 0 ? .65f : .95f);
+                        return new Blade(Bezier(Vector3.zero, tip * .6f + Vector3.up * .1f, tip),
+                            phase == 0 ? .22f : .14f, Vector3.up);
+                    });
+                    var spikes = ContactMesh(root, "Slam splay " + phase, _materials.ClawBlade,
+                        ContactBladeMesh(phase == 0 ? "NyxHitCrownMesh" : "NyxHitCrownSplayed", crown), .1f);
+                    var m = spikes.main; m.startDelay = phase * 4f / 60f; m.startLifetime = 4f / 60f;
+                    SizeOverLife(spikes, Curve((0, 1), (1, 1.08f))); Fade(spikes, .8f);
+                }
+            }
+            ContactDebris(root, "Ink shards", _materials.Shard, heavy ? 14 : 8, heavy ? .3f : .2f, .5f);
+            if (heavy)
+            {
+                var shards = root.GetComponentsInChildren<ParticleSystem>(true).Last();
+                var m = shards.main; m.startDelay = 8f / 60f; m.startSpeed = 0f;
+                var v = shards.velocityOverLifetime; v.y = new ParticleSystem.MinMaxCurve(-2f, -.7f);
+            }
+        }
+
+        private static void FeatherHit(GameObject root) => FeatherHit(root, .58f, 10, .3f);
+
+        private static void FeatherHit(GameObject root, float life, int count, float size)
+        {
+            ContactDebris(root, "Paper feathers", _materials.Feather, count, size, life);
+            var ps = root.GetComponentsInChildren<ParticleSystem>(true).Last();
+            var shape = ps.shape; shape.enabled = true; shape.shapeType = ParticleSystemShapeType.Circle;
+            shape.radius = size * 1.27f; shape.radiusThickness = 0f;
+            ps.GetComponent<ParticleSystemRenderer>().pivot = new Vector3(0f, 0f, .8f);
+        }
+
+        private static void GraspHit(GameObject root)
+        {
+            ContactDebris(root, "Fling shards", _materials.Shard, 9, .24f, 4f / 60f);
+            var shards = root.GetComponentsInChildren<ParticleSystem>(true).Last();
+            var main = shards.main; main.startDelay = 0f; main.startSpeed = 0f;
+            main.startLifetime = 4f / 60f;
+            var v = shards.velocityOverLifetime;
+            v.y = new ParticleSystem.MinMaxCurve(3f, 5f);
+            v.z = new ParticleSystem.MinMaxCurve(2f, 4f);
+        }
+
+        private static void LikeHit(GameObject root)
+        {
+            var heart = Pop(root, "Fat like heart", _materials.Heart, .68f, 5f / 60f, ContactScale);
+            SizeOverLife(heart, Curve((0, .45f), (.3f, 1.2f), (.65f, 1), (1, .65f)));
+            Fade(heart, .65f);
+            ContactDebris(root, "Cracked likes", _materials.Heart, 5, .2f, .16f);
+            ContactDebris(root, "Like sparkle shards", _materials.Sparkle, 5, .14f, .16f);
+            foreach (var ps in root.GetComponentsInChildren<ParticleSystem>(true).Where(p => p != heart && p.gameObject.name != "Contact flash"))
+            {
+                var m = ps.main; m.startDelay = 4f / 60f; m.startSpeed = 0f;
+            }
+        }
+
+        private static void ShutterHit(GameObject root, bool heavy)
+        {
+            var blades = Enumerable.Range(0, 6).Select(i => {
+                float angle = i * 60f;
+                return new Blade(t => {
+                    float a = (angle + 48f * t) * Mathf.Deg2Rad;
+                    float r = Mathf.Lerp(.15f, heavy ? .8f : .58f, t);
+                    return new Vector3(Mathf.Cos(a) * r, Mathf.Sin(a) * r, .15f * Mathf.Sin(a));
+                }, heavy ? .25f : .18f, Vector3.forward);
+            });
+            var ps = ContactMesh(root, "Six iris blades", _materials.PinkBlade, ContactBladeMesh(heavy ? "NyxHeavyIrisMesh" : "NyxIrisMesh", blades), .12f);
+            ps.GetComponent<ParticleSystemRenderer>().alignment = ParticleSystemRenderSpace.View;
+            Spin(ps, 180f);
+            for (int i = 0; i < 6; i++)
+            {
+                float angle = -65f + i * 26f;
+                var arc = new[] { new Blade(t => {
+                    float a = (angle + t * 43f) * Mathf.Deg2Rad;
+                    return new Vector3(Mathf.Sin(a) * .45f, .12f + Mathf.Cos(a) * .25f, .2f) * (heavy ? .8f : .58f);
+                }, .13f, Vector3.forward) };
+                var part = ContactMesh(root, "Broken ring " + i, _materials.PinkBlade,
+                    ContactBladeMesh((heavy ? "NyxHeavyArc" : "NyxHitArc") + i, arc), .22f);
+                part.GetComponent<ParticleSystemRenderer>().alignment = ParticleSystemRenderSpace.View;
+                var main = part.main; main.startDelay = .06f;
+                var v = part.velocityOverLifetime; v.enabled = true; v.space = ParticleSystemSimulationSpace.Local;
+                v.x = Mathf.Sin(angle * Mathf.Deg2Rad) * 1.2f;
+                v.y = .7f + .4f * Mathf.Cos(angle * Mathf.Deg2Rad);
+                v.z = 3.5f;
+                Drag(part, .2f);
+            }
+            ContactDebris(root, "Shutter sparkles", _materials.Sparkle, heavy ? 6 : 3, .15f, .3f);
+        }
+
+        private static void SelfieHit(GameObject root)
+        {
+            var brackets = Pop(root, "Viewfinder", _materials.Viewfinder, 1.4f, .27f, ContactScale);
+            SizeOverLife(brackets, Curve((0, .85f), (.15f, 1), (.6f, 1.6f), (1, 2.1f)));
+            var flash = Pop(root, "Camera flash", _materials.Glint, 1.35f, .033f, ContactScale);
+            var main = flash.main; main.startDelay = .033f;
+            ContactDebris(root, "Selfie likes", _materials.Heart, 4, .18f, .36f);
         }
 
         private static ParticleSystem Pop(GameObject root, string name, Material material, float size, float life, ParticleSystemScalingMode scaling)
@@ -2087,6 +2274,13 @@ namespace SlopArena.EditorTools
 
         private static GameObject Save(GameObject root)
         {
+            var names = new Dictionary<string, int>();
+            foreach (var node in root.GetComponentsInChildren<Transform>(true))
+            {
+                names.TryGetValue(node.name, out int count);
+                names[node.name] = count + 1;
+                if (count > 0) node.name += " " + count;
+            }
             foreach (var system in root.GetComponentsInChildren<ParticleSystem>(true))
             {
                 uint seed = 2166136261;
@@ -2199,14 +2393,6 @@ namespace SlopArena.EditorTools
                 }, 512),
                 DropLine = DropLineMaterial(),
                 // Three parallel claw scratches, tapered at both ends, for her contacts.
-                ClawMarks = Bake("NyxClawMarks", (u, v) =>
-                {
-                    var p = Rotate(new Vector2(u * 2f - 1f, v * 2f - 1f), 35f);
-                    float d = 1f;
-                    for (int i = -1; i <= 1; i++)
-                        d = Mathf.Min(d, Lens(p - new Vector2(i * .08f, i * .3f), .85f - Mathf.Abs(i) * .12f, .1f));
-                    return Banded(d, false);
-                }),
             };
         }
 

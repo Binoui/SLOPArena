@@ -53,6 +53,10 @@ reviews: it writes the Unity gateway batch for `sloparena.hitfeel.*` captures,
 summarizes the batch output, and turns frames into contact sheets, labelled
 before/after WebP clips and an HTML review page. Sheets and clips need `ffmpeg`.
 Workflow: [character VFX pass](../skills/sloparena-character-vfx-pass/SKILL.md).
+[`vfx/comfy_video.py`](vfx/comfy_video.py) renders a reference clip on a local ComfyUI and
+[`vfx/flipbook.py`](vfx/flipbook.py) turns an effect clip into a toon-graded sprite sheet; [`vfx/blockout.py`](vfx/blockout.py) draws a
+control blockout from a move's real hitboxes; see
+[local references](../docs/contributing/local-comfyui.md).
 [`glyph_mask.py`](glyph_mask.py) renders text from a font (default: FightGuy's 肉 face)
 into a grayscale mask PNG that presentation builders bake into toon-banded textures; it
 needs Pillow.

@@ -101,6 +101,7 @@ namespace SlopArena.Client.UI
 
         private void Update()
         {
+            if (FeedbackOverlay.OwnsInput) return;
             var shell = FrontendController.Shell;
             if (shell?.Root == null || !FrontendController.IsFrontendActive)
                 return;

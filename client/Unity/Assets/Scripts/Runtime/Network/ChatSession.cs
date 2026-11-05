@@ -235,6 +235,9 @@ namespace SlopArena.Client.Network
             {
                 SteamAPI.RunCallbacks();
                 ulong observedSteamId = SteamUser.GetSteamID().m_SteamID;
+                if (_feedbackObservedSteamId != 0 && observedSteamId != _feedbackObservedSteamId)
+                    _feedbackAccountGeneration++;
+                _feedbackObservedSteamId = observedSteamId;
                 if (_authenticatedSteamId != 0 && observedSteamId != 0 &&
                     observedSteamId != _authenticatedSteamId)
                     ClearAccountSession();
@@ -1081,6 +1084,22 @@ namespace SlopArena.Client.Network
                 Debug.LogWarning($"[ChatSession] Room leave during account switch failed: {ex.Message}");
             }
             await lobby.DisconnectAsync();
+        }
+
+        private ulong _feedbackObservedSteamId;
+        private int _feedbackAccountGeneration;
+        public int FeedbackAccountGeneration => unchecked(_accountGeneration + _feedbackAccountGeneration);
+
+        public async Task<SlopArena.Shared.FeedbackSendResult> SendFeedbackAsync(SlopArena.Shared.FeedbackSubmission submission,
+            System.Threading.CancellationToken ct = default)
+        {
+            int generation = _accountGeneration;
+            EnsureMasterClient();
+            if (_masterClient.TokenExpiresAt is DateTimeOffset expiry && expiry <= DateTimeOffset.UtcNow)
+                await RenewTokenAsync();
+            if (!await EnsureAuthenticatedAsync() || _destroyed || generation != _accountGeneration)
+                return new SlopArena.Shared.FeedbackSendResult.Retryable("Steam sign-in unavailable. Your draft is kept.");
+            return await _masterClient.SendFeedbackAsync(_masterClient.Token!, submission, ct);
         }
 
         private void EnsureMasterClient()

@@ -168,6 +168,18 @@ public sealed class BotMemory
     private int _lastEvaluatedContactSequence;
     private int _pendingContactCount;
 
+    private readonly StageHazards.StageHazardView?[] _hazardHistory = new StageHazards.StageHazardView?[MaximumReactionDelayTicks + 1];
+    private StageHazards.StageHazardView? _delayedHazards;
+    public void ObserveStageHazards(StageHazards.StageHazardView? view)
+    {
+        if (view == null) { Array.Clear(_hazardHistory, 0, _hazardHistory.Length); _delayedHazards = null; return; }
+        _hazardHistory[view.Tick % (uint)_hazardHistory.Length] = view;
+        uint delay = (uint)BotDifficultyProfile.ForDifficulty(Difficulty).ReactionDelayTicks;
+        _delayedHazards = view.Tick >= delay ? _hazardHistory[(view.Tick - delay) % (uint)_hazardHistory.Length] : null;
+        if (_delayedHazards != null && _delayedHazards.Tick != view.Tick - delay) _delayedHazards = null;
+    }
+    internal StageHazards.StageHazardView? VisibleHazards => _delayedHazards;
+
     public BotMemory()
     {
         for (int i = 0; i < _tracks.Length; i++)
@@ -513,6 +525,7 @@ public sealed class BotMemory
     /// </summary>
     public void Reset()
     {
+        ObserveStageHazards(null);
         ForgetCombat();
         ThreatEvaluations = RecoveryEvaluations = ContactEvaluations = 0; PlanSerial = 0;
         Side = 0;

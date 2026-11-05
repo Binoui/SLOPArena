@@ -326,7 +326,7 @@ namespace SlopArena.Client.World
                 if (known && fighter.Deaths > previous && frame.Delivery == ReplayDelivery.Live)
                     _hudManager?.ShowStockToast(fighter.EntityId, _replay!.Header.Rules.FormatId switch
                     {
-                        MatchFormats.MankiMayhemWire => $"P{fighter.EntityId} · OUT · BACK NEXT ROUND",
+                        MatchFormats.MankiMayhemWire => $"P{fighter.EntityId} · CANCELLED · BACK NEXT CHANNEL",
                         MatchFormats.CourseRaceWire or MatchFormats.CourseCoopWire or MatchFormats.CourseScrambleWire => $"P{fighter.EntityId} · FALL · CHECKPOINT RESET",
                         _ => $"P{fighter.EntityId} · −1 LIFE",
                     });

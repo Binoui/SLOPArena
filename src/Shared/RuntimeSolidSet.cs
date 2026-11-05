@@ -13,6 +13,14 @@ public readonly record struct RuntimeSolid(ulong EntityId, ulong CageEntityId, A
     public bool Blocks => HitsLeft > 0 && Phase is RuntimeSolidPhase.Rising or RuntimeSolidPhase.Active;
 }
 
+/// <summary>Cage wall geometry and timing. Provisional.</summary>
+public static class RuntimeSolidTuning
+{
+    public const float CageHalfSize = 1.9f, WallHalfThickness = .18f, WallHeight = 6.2f;
+    public const byte WallHits = 3, CrackedWallHits = 2;
+    public const ushort WallRiseTicks = 18, WallSinkTicks = 30;
+}
+
 /// <summary>Mayhem walls have no support surface and never change the baked arena.</summary>
 public sealed class RuntimeSolidSet
 {
@@ -23,22 +31,25 @@ public sealed class RuntimeSolidSet
     public static bool IsWallId(ulong id) => id >= FirstEntityId && id < FirstEntityId + MaximumCount;
     public bool Contains(ulong id) => _walls.Any(w => w.EntityId == id);
     internal void Clear() => _walls.Clear();
-    internal void AddCage(ulong fighter, ArcadePoint center, float top, int cageIndex)
+    /// <summary>Four walls around <paramref name="center"/>; side 0 faces +Z, 1 +X, 2 -Z, 3 -X. The cracked side breaks first.</summary>
+    internal void AddCage(ulong fighter, ArcadePoint center, float top, int cageIndex, int crackedSide)
     {
         for (int side = 0; side < 4; side++)
         {
             float yaw = side % 2 == 0 ? 0 : MathF.PI * .5f;
-            float dx = side == 1 ? 1 : side == 3 ? -1 : 0;
-            float dz = side == 0 ? 1 : side == 2 ? -1 : 0;
-            byte budget = side == 2 ? MankiMayhemTuning.CrackedWallHits : MankiMayhemTuning.WallHits;
+            var (dx, dz) = SideDirection(side);
+            byte budget = side == crackedSide ? RuntimeSolidTuning.CrackedWallHits : RuntimeSolidTuning.WallHits;
             _walls.Add(new(FirstEntityId + (ulong)(cageIndex * 4 + side), fighter, center,
-                new(center.X + dx * MankiMayhemTuning.CageHalfSize, top + MankiMayhemTuning.WallHeight * .5f,
-                    center.Z + dz * MankiMayhemTuning.CageHalfSize),
-                new(MankiMayhemTuning.CageHalfSize + MankiMayhemTuning.WallHalfThickness,
-                    MankiMayhemTuning.WallHeight * .5f, MankiMayhemTuning.WallHalfThickness),
+                new(center.X + dx * RuntimeSolidTuning.CageHalfSize, top + RuntimeSolidTuning.WallHeight * .5f,
+                    center.Z + dz * RuntimeSolidTuning.CageHalfSize),
+                new(RuntimeSolidTuning.CageHalfSize + RuntimeSolidTuning.WallHalfThickness,
+                    RuntimeSolidTuning.WallHeight * .5f, RuntimeSolidTuning.WallHalfThickness),
                 yaw, budget, budget, RuntimeSolidPhase.Rising, 0));
         }
     }
+
+    public static (float X, float Z) SideDirection(int side)
+        => (side == 1 ? 1 : side == 3 ? -1 : 0, side == 0 ? 1 : side == 2 ? -1 : 0);
 
     internal void Step()
     {
@@ -46,10 +57,10 @@ public sealed class RuntimeSolidSet
         {
             var wall = _walls[i];
             ushort age = (ushort)Math.Min(ushort.MaxValue, wall.PhaseTick + 1);
-            if (wall.Phase == RuntimeSolidPhase.Sinking && age >= MankiMayhemTuning.WallSinkTicks)
+            if (wall.Phase == RuntimeSolidPhase.Sinking && age >= RuntimeSolidTuning.WallSinkTicks)
             { _walls.RemoveAt(i); continue; }
             _walls[i] = wall with { PhaseTick = age,
-                Phase = wall.Phase == RuntimeSolidPhase.Rising && age >= MankiMayhemTuning.WallRiseTicks
+                Phase = wall.Phase == RuntimeSolidPhase.Rising && age >= RuntimeSolidTuning.WallRiseTicks
                     ? RuntimeSolidPhase.Active : wall.Phase };
         }
     }
@@ -75,9 +86,11 @@ public sealed class RuntimeSolidSet
         result = default; return false;
     }
 
-    public IEnumerable<SpellResolver.EntityData> CollisionTargets()
+    public IEnumerable<SpellResolver.EntityData> CollisionTargets() => CollisionTargets(_walls);
+
+    public static IEnumerable<SpellResolver.EntityData> CollisionTargets(IReadOnlyList<RuntimeSolid> walls)
     {
-        foreach (var wall in _walls)
+        foreach (var wall in walls)
         {
             if (!wall.Blocks) continue;
             float c = MathF.Cos(wall.Yaw), s = MathF.Sin(wall.Yaw);
@@ -96,9 +109,11 @@ public sealed class RuntimeSolidSet
         }
     }
 
-    internal IEnumerable<ulong> InBlast(float x, float y, float z, float radius)
+    internal IEnumerable<ulong> InBlast(float x, float y, float z, float radius) => InBlast(_walls, x, y, z, radius);
+
+    internal static IEnumerable<ulong> InBlast(IReadOnlyList<RuntimeSolid> walls, float x, float y, float z, float radius)
     {
-        foreach (var wall in _walls)
+        foreach (var wall in walls)
         {
             if (!wall.Blocks) continue;
             Local(wall, x, z, out float lx, out float lz);
@@ -110,10 +125,14 @@ public sealed class RuntimeSolidSet
     }
 
     public void Constrain(in CharacterState previous, ref CharacterState state, CharacterDefinition def)
+        => Constrain(_walls, in previous, ref state, def);
+
+    public static void Constrain(IReadOnlyList<RuntimeSolid> walls, in CharacterState previous, ref CharacterState state,
+        CharacterDefinition def)
     {
         float x = previous.PX, z = previous.PZ;
         float remainingX = state.PX - x, remainingZ = state.PZ - z;
-        foreach (var wall in _walls)
+        foreach (var wall in walls)
         {
             if (!wall.Blocks || !Vertical(wall, previous.PY, def)) continue;
             Local(wall, x, z, out float lx, out float lz);
@@ -129,7 +148,7 @@ public sealed class RuntimeSolidSet
         {
             float earliest = 1f, normalX = 0, normalZ = 0;
             bool found = false;
-            foreach (var wall in _walls)
+            foreach (var wall in walls)
             {
                 if (!wall.Blocks) continue;
                 Local(wall, x, z, out float lx, out float lz);

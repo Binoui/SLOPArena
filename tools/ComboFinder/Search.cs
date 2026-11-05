@@ -2,12 +2,13 @@ using System.Collections.Concurrent;
 using System.Diagnostics;
 namespace SlopArena.ComboFinder;
 
-sealed record Candidate(List<string> Plan, double Score, string Why, int Ko)
+sealed record Candidate(List<string> Plan, double Score, string Why, int Ko, int Moves = 0)
 {
     internal string Key => string.Join(",", Plan);
 }
 static class Search
 {
+    const int MinPatienceMoves = 5;
     internal static ComboFile? Find(SearchOptions o, string output)
     {
         var watch = Stopwatch.StartNew();
@@ -35,17 +36,20 @@ static class Search
                     var rs = Scoring.RouteScore(r, route); score = rs.score; why = rs.why;
                     if (ko >= 0 && rs.progress != 1) ko = -2;
                 }
-                if (ko >= 0 && (r.AttackerKo >= 0 || !Eligible(Replay.Timeline(r)))) ko = -2;
-                candidates.Add(new(plan, score, why, ko));
+                int moves = 0;
+                if (ko >= 0) { var t = Replay.Timeline(r); moves = t.Moves.Length; if (r.AttackerKo >= 0 || !Eligible(t)) ko = -2; }
+                candidates.Add(new(plan, score, why, ko, moves));
             });
             var ordered = candidates.OrderByDescending(c => c.Score).ThenBy(c => c.Key, StringComparer.Ordinal).ToList();
             var done = ordered.FirstOrDefault(c => c.Ko >= 0);
             if (done != null && (bestDone == null || done.Score > bestDone.Score || done.Score == bestDone.Score && string.CompareOrdinal(done.Key, bestDone.Key) < 0)) bestDone = done;
             beam = ordered.Where(c => c.Ko == -1).GroupBy(c => c.Why)
-                .Select(g => g.OrderBy(c => c.Plan.Count(p => p != "idle")).ThenBy(c => c.Key, StringComparer.Ordinal).First())
+                .Select(g => g.OrderByDescending(c => c.Score).ThenByDescending(c => c.Plan.Count(p => p != "idle")).ThenBy(c => c.Key, StringComparer.Ordinal).First())
                 .OrderByDescending(c => c.Score).ThenBy(c => c.Key, StringComparer.Ordinal).Take(o.Beam).ToList();
             if (beam.Count > 0 && (bestPartial == null || beam[0].Score > bestPartial.Score || beam[0].Score == bestPartial.Score && string.CompareOrdinal(beam[0].Key, bestPartial.Key) < 0)) bestPartial = beam[0];
-            if (bestDone != null && firstKoSeg < 0) firstKoSeg = seg;
+            // Patience runs from the first KO after a real string. A quick kill (a lone special that travels far, say)
+            // would otherwise end the search before longer strings have time to form.
+            if (firstKoSeg < 0 && ordered.Any(c => c.Ko >= 0 && c.Moves >= MinPatienceMoves)) firstKoSeg = seg;
             if (seg % 10 == 0) Console.Error.WriteLine($"segment={seg} best={beam.FirstOrDefault()?.Score:F1} KO={bestDone?.Score:F1} elapsed={watch.Elapsed.TotalSeconds:F1}s");
             if (bestDone != null && seg - firstKoSeg >= o.Patience) break;
         }
@@ -61,6 +65,13 @@ static class Search
             foreach (var m in timeline.Moves) Console.WriteLine($"landed tick={m.Tick} lastTick={m.LastTick} {m.Label} damage={m.Damage}");
             return null;
         }
+        return Export(o, content, fighters, trace, best.Score, route.Length == 0 ? null : route, output);
+    }
+    internal static ComboFile Export(SearchOptions o, Content content, FighterTape[] start, RunTrace trace, double score, string[]? route, string output)
+    {
+        var fighters = start.ToArray();
+        var timeline = Replay.Timeline(trace);
+        string summary = Replay.Summary(o, timeline);
         fighters[0] = fighters[0] with { Tape = Replay.Tape(trace.TapeA) };
         fighters[1] = fighters[1] with { Tape = Replay.Tape(trace.TapeV) };
         // Factory idea ids allow only [a-z0-9-], and the footage folder is named after the idea. The tape hash keeps
@@ -68,7 +79,7 @@ static class Search
         string tapes = Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(
             System.Text.Encoding.ASCII.GetBytes(fighters[0].Tape + fighters[1].Tape)))[..6].ToLowerInvariant();
         string id = $"{o.Attacker}-{o.Victim}-{o.Stage.Replace('_', '-')}-{o.Damage}-{o.Layout}-{tapes}";
-        var combo = new ComboFile(1, id, o.Stage, content.Stamp(fighters), new(o.Seed, o.Beam, "Hard", best.Score, route.Length == 0 ? null : route), fighters, timeline, summary);
+        var combo = new ComboFile(1, id, o.Stage, content.Stamp(fighters), new(o.Seed, o.Beam, "Hard", score, route), fighters, timeline, summary);
         Directory.CreateDirectory(output);
         File.WriteAllText(Path.Combine(output, id + ".json"), Json.Write(combo));
         return combo;
@@ -77,6 +88,6 @@ static class Search
     /// The only hard requirement: a landed string that ends in a KO within two seconds of its last move. Everything else
     /// (hits taken, normals versus specials, weak specials) is weighed by the score.
     /// </summary>
-    static bool Eligible(Timeline t) => t.Ko >= 0 && t.Moves.Length > 0 && t.String.To == t.Moves[^1].LastTick
+    internal static bool Eligible(Timeline t) => t.Ko >= 0 && t.Moves.Length > 0 && t.String.To == t.Moves[^1].LastTick
         && t.Ko - t.String.To < 120 && !t.Moves.Any(m => m.Label.StartsWith("slot"));
 }

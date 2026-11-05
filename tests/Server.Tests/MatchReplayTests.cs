@@ -128,9 +128,9 @@ public class MatchReplayTests(ITestOutputHelper output)
         var tie = new MatchResultPacket(1, true,
             new[] { new MatchResultEntry(1, 1, 0, 0), new MatchResultEntry(2, 1, 0, 0), new MatchResultEntry(3, 3, 0, 0) },
             mayhem: new MayhemRunResult(new[] {
-                new MayhemFinishResult(1, MankiMayhemTuning.SurvivalPoints, 1, 0, false),
-                new MayhemFinishResult(2, MankiMayhemTuning.SurvivalPoints, 1, 0, false),
-                new MayhemFinishResult(3, 0, 0, 0, false) }));
+                new MayhemFinishResult(1, 0b1, false),
+                new MayhemFinishResult(2, 0b10, false),
+                new MayhemFinishResult(3, 0, false) }));
         Set(match, "_matchResultPacket", tie);
         Set(match, "_format", MatchFormat.MankiMayhem);
         Set(match, "_winnerEntityId", 0UL);

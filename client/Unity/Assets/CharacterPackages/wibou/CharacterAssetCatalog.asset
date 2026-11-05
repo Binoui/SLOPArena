@@ -94,6 +94,10 @@ MonoBehaviour:
     _clip: {fileID: 7400000, guid: 04f799445821d49a2b6f2e982baa8824, type: 2}
     _extrapolation: 0
     _poseTrackId: anim.wibou.tumble
+  - _semanticId: anim.wibou.walljump
+    _clip: {fileID: 7400000, guid: 29ffb58145a96e7889f053b63efb6ca1, type: 2}
+    _extrapolation: 0
+    _poseTrackId: anim.wibou.walljump
   - _semanticId: anim.wibou.crouch
     _clip: {fileID: 7400000, guid: ba8ae8dd5561ad7ed8745a14ff48e752, type: 2}
     _extrapolation: 0

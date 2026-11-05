@@ -32,8 +32,8 @@ Material:
     - _Ambient: 0
     - _Base: 0.42
     - _Cull: 2
-    - _FogAmount: 0.55
-    - _Glow: 0.32
+    - _FogAmount: 1
+    - _Glow: 2.2
     - _Shade: 0.35
     - _TimeScale: 1
     m_Colors:

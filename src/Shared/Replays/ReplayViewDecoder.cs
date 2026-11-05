@@ -86,7 +86,7 @@ namespace SlopArena.Shared.Replays
             var events = new List<TimelinePresentationEvent>(view.Events.Count);
             var slopball = new List<SlopballEvent>();
             var course = new List<CourseTickEvent>();
-            var mayhem = new List<MankiMayhemEvent>();
+            var mayhem = new List<Mayhem.MayhemEvent>();
             foreach (var e in view.Events)
                 switch (e)
                 {
@@ -100,8 +100,9 @@ namespace SlopArena.Shared.Replays
                         && CourseObjectIndex(arena, kind, c.ObjectId) is { } index:
                         course.Add(new CourseTickEvent(view.Tick, c.EntityId, new CharacterCourseEvent(kind, index, c.ElapsedTicks), c.Sequence));
                         break;
-                    case ReplayMayhemEvent m when SemanticParse.MayhemEvent(m.EventId) is { } kind:
-                        mayhem.Add(new MankiMayhemEvent(view.Tick, m.RoundIndex, kind, m.EntityId, m.OperationIndex, m.Points));
+                    case ReplayMayhemChannelEvent m when SemanticParse.MayhemEvent(m.EventId) is { } kind:
+                        var item = new Mayhem.MayhemEvent(view.Tick, m.Episode, m.Lane, m.Operation, kind, m.Subject, m.Value);
+                        if (Mayhem.MayhemEvent.IsValid(in item, ServerSimulation.MayhemHostEntityId)) mayhem.Add(item);
                         break;
                 }
             return new ServerSimulation.TickOutputs(hits, deaths, events, slopball, course, mayhem);
@@ -398,13 +399,16 @@ namespace SlopArena.Shared.Replays
         static readonly Dictionary<string, SlopballEventKind> SlopballEvents = Inverse<SlopballEventKind>(ReplaySemanticIds.Id);
         static readonly Dictionary<string, SlopballCamp> Camps = Inverse<SlopballCamp>(ReplaySemanticIds.Id);
         static readonly Dictionary<string, CharacterCourseEventKind> CourseEvents = Inverse<CharacterCourseEventKind>(ReplaySemanticIds.Id);
-        static readonly Dictionary<string, MankiMayhemEventKind> MayhemEvents = Inverse<MankiMayhemEventKind>(ReplaySemanticIds.Id);
+        static readonly Dictionary<string, Mayhem.MayhemEventKind> MayhemEvents = Inverse<Mayhem.MayhemEventKind>(ReplaySemanticIds.Id);
         static readonly Dictionary<string, SlopballPhase> SlopballPhases = Inverse<SlopballPhase>(ReplaySemanticIds.Id);
         static readonly Dictionary<string, SlopballServe> Serves = Inverse<SlopballServe>(ReplaySemanticIds.Id);
         static readonly Dictionary<string, SlopballVersusPhase> VersusPhases = Inverse<SlopballVersusPhase>(ReplaySemanticIds.Id);
         static readonly Dictionary<string, CharacterCoursePhase> CoursePhases = Inverse<CharacterCoursePhase>(ReplaySemanticIds.Id);
-        static readonly Dictionary<string, MankiMayhemPhase> MayhemPhases = Inverse<MankiMayhemPhase>(ReplaySemanticIds.Id);
-        static readonly Dictionary<string, MankiMayhemCard> Cards = Inverse<MankiMayhemCard>(ReplaySemanticIds.Id);
+        static readonly Dictionary<string, Mayhem.MayhemPhase> MayhemPhases = Inverse<Mayhem.MayhemPhase>(ReplaySemanticIds.Id);
+        static readonly Dictionary<string, Mayhem.FailCause> FailCauses = Inverse<Mayhem.FailCause>(ReplaySemanticIds.Id);
+        static readonly Dictionary<string, Mayhem.SplatStyle> SplatStyles = Inverse<Mayhem.SplatStyle>(ReplaySemanticIds.Id);
+        static readonly Dictionary<string, Mayhem.MayhemZoneKind> ZoneKinds = Inverse<Mayhem.MayhemZoneKind>(ReplaySemanticIds.Id);
+        static readonly Dictionary<string, Mayhem.MayhemTargetKind> TargetKinds = Inverse<Mayhem.MayhemTargetKind>(ReplaySemanticIds.Id);
         static readonly Dictionary<string, RuntimeSolidPhase> WallPhases = Inverse<RuntimeSolidPhase>(ReplaySemanticIds.Id);
 
         internal static ActionState? Action(string id) => Actions.TryGetValue(id, out var v) ? v : null;
@@ -416,13 +420,16 @@ namespace SlopArena.Shared.Replays
         internal static SlopballEventKind? SlopballEvent(string id) => SlopballEvents.TryGetValue(id, out var v) ? v : null;
         internal static SlopballCamp? Camp(string id) => Camps.TryGetValue(id, out var v) ? v : null;
         internal static CharacterCourseEventKind? CourseEvent(string id) => CourseEvents.TryGetValue(id, out var v) ? v : null;
-        internal static MankiMayhemEventKind? MayhemEvent(string id) => MayhemEvents.TryGetValue(id, out var v) ? v : null;
+        internal static Mayhem.MayhemEventKind? MayhemEvent(string id) => MayhemEvents.TryGetValue(id, out var v) ? v : null;
         internal static SlopballPhase? SlopballPhase(string id) => SlopballPhases.TryGetValue(id, out var v) ? v : null;
         internal static SlopballServe? Serve(string id) => Serves.TryGetValue(id, out var v) ? v : null;
         internal static SlopballVersusPhase? VersusPhase(string id) => VersusPhases.TryGetValue(id, out var v) ? v : null;
         internal static CharacterCoursePhase? CoursePhase(string id) => CoursePhases.TryGetValue(id, out var v) ? v : null;
-        internal static MankiMayhemPhase? MayhemPhase(string id) => MayhemPhases.TryGetValue(id, out var v) ? v : null;
-        internal static MankiMayhemCard? Card(string id) => Cards.TryGetValue(id, out var v) ? v : null;
+        internal static Mayhem.MayhemPhase? MayhemPhase(string id) => MayhemPhases.TryGetValue(id, out var v) ? v : null;
+        internal static Mayhem.FailCause? FailCause(string id) => FailCauses.TryGetValue(id, out var v) ? v : null;
+        internal static Mayhem.SplatStyle? SplatStyle(string id) => SplatStyles.TryGetValue(id, out var v) ? v : null;
+        internal static Mayhem.MayhemZoneKind? ZoneKind(string id) => ZoneKinds.TryGetValue(id, out var v) ? v : null;
+        internal static Mayhem.MayhemTargetKind? TargetKind(string id) => TargetKinds.TryGetValue(id, out var v) ? v : null;
         internal static RuntimeSolidPhase? WallPhase(string id) => WallPhases.TryGetValue(id, out var v) ? v : null;
     }
 }

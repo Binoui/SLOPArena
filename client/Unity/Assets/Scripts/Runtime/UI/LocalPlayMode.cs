@@ -48,6 +48,7 @@ namespace SlopArena.Client.UI
             Apply();
             if (Format == MatchFormat.MankiMayhem)
                 MatchConfig.MayhemSeed = (uint)Random.Range(1, int.MaxValue);
+            MatchConfig.StageHazardSeed = (uint)Random.Range(1, int.MaxValue);
             SceneManager.LoadScene(Scene);
         }
     }
@@ -65,7 +66,7 @@ namespace SlopArena.Client.UI
             new LocalPlayModeInfo(LocalPlayMode.CharacterCourse, "SLOP RALLY", "Solo time trial, or race friends for targets and finish points.",
                 "1–4 · HUMAN SEATS · COUCH", "local-poster--course", LocalSeatPolicy.HumanCourseSeats, false, "START COURSE",
                 GameMode.Arcade, MatchFormat.Stock, "", World.CharacterCourseMatch.SceneName),
-            new LocalPlayModeInfo(LocalPlayMode.MankiMayhem, "MANKI MAYHEM", "Manki calls the round. Survive it to score.",
+            new LocalPlayModeInfo(LocalPlayMode.MankiMayhem, "MANKI MAYHEM", "Manki's party show. Pass each channel to earn ratings.",
                 "2–4 · CPUS · COUCH", "local-poster--mayhem", LocalSeatPolicy.FourSeats, false, "START MAYHEM",
                 GameMode.Solo, MatchFormat.MankiMayhem, "manki_mayhem", "Arena_Offline")
         };

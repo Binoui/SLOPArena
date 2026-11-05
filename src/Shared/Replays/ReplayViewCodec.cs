@@ -352,6 +352,95 @@ internal static class ReplayViewCodec
         Field<ReplayMayhemWall, ushort>(10, U16, x => x.PhaseTick, (x, v) => { x.PhaseTick = v; return x; }, nameof(ReplayMayhemWall.PhaseTick)));
     internal static byte[] WriteReplayMayhemWall(ReplayMayhemWall x) => ReplayMayhemWallTable.Write(x);
     internal static ReplayMayhemWall ReadReplayMayhemWall(byte[] b) => ReplayMayhemWallTable.Read(b);
+    internal static readonly Table<ReplayMayhemChannelEvent> ReplayMayhemChannelEventTable = new(() => new(),
+        Field<ReplayMayhemChannelEvent, string>(1, Text, x => x.Kind, (x, v) => { x.Kind = v; return x; }, nameof(ReplayMayhemChannelEvent.Kind)),
+        Field<ReplayMayhemChannelEvent, string>(2, Text, x => x.EventId, (x, v) => { x.EventId = v; return x; }, nameof(ReplayMayhemChannelEvent.EventId)),
+        Field<ReplayMayhemChannelEvent, ushort>(3, U16, x => x.Episode, (x, v) => { x.Episode = v; return x; }, nameof(ReplayMayhemChannelEvent.Episode)),
+        Field<ReplayMayhemChannelEvent, byte>(4, U8, x => x.Lane, (x, v) => { x.Lane = v; return x; }, nameof(ReplayMayhemChannelEvent.Lane)),
+        Field<ReplayMayhemChannelEvent, ulong>(5, U64, x => x.Operation, (x, v) => { x.Operation = v; return x; }, nameof(ReplayMayhemChannelEvent.Operation)),
+        Field<ReplayMayhemChannelEvent, ulong>(6, U64, x => x.Subject, (x, v) => { x.Subject = v; return x; }, nameof(ReplayMayhemChannelEvent.Subject)),
+        Field<ReplayMayhemChannelEvent, ushort>(7, U16, x => x.Value, (x, v) => { x.Value = v; return x; }, nameof(ReplayMayhemChannelEvent.Value)));
+    internal static byte[] WriteReplayMayhemChannelEvent(ReplayMayhemChannelEvent x) => ReplayMayhemChannelEventTable.Write(x);
+    internal static ReplayMayhemChannelEvent ReadReplayMayhemChannelEvent(byte[] b) => ReplayMayhemChannelEventTable.Read(b);
+    internal static readonly Table<ReplayMayhemShow> ReplayMayhemShowTable = new(() => new(),
+        Field<ReplayMayhemShow, string>(1, Text, x => x.Kind, (x, v) => { x.Kind = v; return x; }, nameof(ReplayMayhemShow.Kind)),
+        Field<ReplayMayhemShow, uint>(2, U32, x => x.Seed, (x, v) => { x.Seed = v; return x; }, nameof(ReplayMayhemShow.Seed)),
+        Field<ReplayMayhemShow, int>(3, I32, x => x.Episode, (x, v) => { x.Episode = v; return x; }, nameof(ReplayMayhemShow.Episode)),
+        Field<ReplayMayhemShow, string>(4, Text, x => x.PhaseId, (x, v) => { x.PhaseId = v; return x; }, nameof(ReplayMayhemShow.PhaseId)),
+        Field<ReplayMayhemShow, string>(5, Text, x => x.ChannelId, (x, v) => { x.ChannelId = v; return x; }, nameof(ReplayMayhemShow.ChannelId)));
+    internal static byte[] WriteReplayMayhemShow(ReplayMayhemShow x) => ReplayMayhemShowTable.Write(x);
+    internal static ReplayMayhemShow ReadReplayMayhemShow(byte[] b) => ReplayMayhemShowTable.Read(b);
+    internal static readonly Table<ReplayMayhemContestant> ReplayMayhemContestantTable = new(() => new(),
+        Field<ReplayMayhemContestant, string>(1, Text, x => x.Kind, (x, v) => { x.Kind = v; return x; }, nameof(ReplayMayhemContestant.Kind)),
+        Field<ReplayMayhemContestant, ulong>(2, U64, x => x.EntityId, (x, v) => { x.EntityId = v; return x; }, nameof(ReplayMayhemContestant.EntityId)),
+        Field<ReplayMayhemContestant, bool>(3, Bool, x => x.OnAir, (x, v) => { x.OnAir = v; return x; }, nameof(ReplayMayhemContestant.OnAir)),
+        Field<ReplayMayhemContestant, bool>(4, Bool, x => x.Withdrawn, (x, v) => { x.Withdrawn = v; return x; }, nameof(ReplayMayhemContestant.Withdrawn)),
+        Field<ReplayMayhemContestant, uint>(5, U32, x => x.PassMask, (x, v) => { x.PassMask = v; return x; }, nameof(ReplayMayhemContestant.PassMask)),
+        Field<ReplayMayhemContestant, string>(6, Text, x => x.FailCauseId, (x, v) => { x.FailCauseId = v; return x; }, nameof(ReplayMayhemContestant.FailCauseId)),
+        Field<ReplayMayhemContestant, string>(7, Text, x => x.SplatStyleId, (x, v) => { x.SplatStyleId = v; return x; }, nameof(ReplayMayhemContestant.SplatStyleId)),
+        Field<ReplayMayhemContestant, uint>(8, U32, x => x.FailTick, (x, v) => { x.FailTick = v; return x; }, nameof(ReplayMayhemContestant.FailTick)),
+        Field<ReplayMayhemContestant, ReplayVector>(9, Vec, x => x.Anchor, (x, v) => { x.Anchor = v; return x; }, nameof(ReplayMayhemContestant.Anchor)),
+        Field<ReplayMayhemContestant, float>(10, F32, x => x.AnchorYaw, (x, v) => { x.AnchorYaw = v; return x; }, nameof(ReplayMayhemContestant.AnchorYaw)));
+    internal static byte[] WriteReplayMayhemContestant(ReplayMayhemContestant x) => ReplayMayhemContestantTable.Write(x);
+    internal static ReplayMayhemContestant ReadReplayMayhemContestant(byte[] b) => ReplayMayhemContestantTable.Read(b);
+    internal static readonly Table<ReplayMayhemBomb> ReplayMayhemBombTable = new(() => new(),
+        Field<ReplayMayhemBomb, string>(1, Text, x => x.Kind, (x, v) => { x.Kind = v; return x; }, nameof(ReplayMayhemBomb.Kind)),
+        Field<ReplayMayhemBomb, byte>(2, U8, x => x.Lane, (x, v) => { x.Lane = v; return x; }, nameof(ReplayMayhemBomb.Lane)),
+        Field<ReplayMayhemBomb, ushort>(3, U16, x => x.Ordinal, (x, v) => { x.Ordinal = v; return x; }, nameof(ReplayMayhemBomb.Ordinal)),
+        Field<ReplayMayhemBomb, bool>(4, Bool, x => x.Launched, (x, v) => { x.Launched = v; return x; }, nameof(ReplayMayhemBomb.Launched)),
+        Field<ReplayMayhemBomb, ReplayVector>(5, Vec, x => x.Landing, (x, v) => { x.Landing = v; return x; }, nameof(ReplayMayhemBomb.Landing)),
+        Field<ReplayMayhemBomb, uint>(6, U32, x => x.LaunchTick, (x, v) => { x.LaunchTick = v; return x; }, nameof(ReplayMayhemBomb.LaunchTick)),
+        Field<ReplayMayhemBomb, uint>(7, U32, x => x.ImpactTick, (x, v) => { x.ImpactTick = v; return x; }, nameof(ReplayMayhemBomb.ImpactTick)),
+        Field<ReplayMayhemBomb, float>(8, F32, x => x.BlastRadius, (x, v) => { x.BlastRadius = v; return x; }, nameof(ReplayMayhemBomb.BlastRadius)),
+        Field<ReplayMayhemBomb, bool>(9, Bool, x => x.Exploded, (x, v) => { x.Exploded = v; return x; }, nameof(ReplayMayhemBomb.Exploded)));
+    internal static byte[] WriteReplayMayhemBomb(ReplayMayhemBomb x) => ReplayMayhemBombTable.Write(x);
+    internal static ReplayMayhemBomb ReadReplayMayhemBomb(byte[] b) => ReplayMayhemBombTable.Read(b);
+    internal static readonly Table<ReplayMayhemShockwave> ReplayMayhemShockwaveTable = new(() => new(),
+        Field<ReplayMayhemShockwave, string>(1, Text, x => x.Kind, (x, v) => { x.Kind = v; return x; }, nameof(ReplayMayhemShockwave.Kind)),
+        Field<ReplayMayhemShockwave, byte>(2, U8, x => x.Lane, (x, v) => { x.Lane = v; return x; }, nameof(ReplayMayhemShockwave.Lane)),
+        Field<ReplayMayhemShockwave, ushort>(3, U16, x => x.Ordinal, (x, v) => { x.Ordinal = v; return x; }, nameof(ReplayMayhemShockwave.Ordinal)),
+        Field<ReplayMayhemShockwave, ReplayVector>(4, Vec, x => x.Center, (x, v) => { x.Center = v; return x; }, nameof(ReplayMayhemShockwave.Center)),
+        Field<ReplayMayhemShockwave, uint>(5, U32, x => x.SlamTick, (x, v) => { x.SlamTick = v; return x; }, nameof(ReplayMayhemShockwave.SlamTick)),
+        Field<ReplayMayhemShockwave, float>(6, F32, x => x.Speed, (x, v) => { x.Speed = v; return x; }, nameof(ReplayMayhemShockwave.Speed)),
+        Field<ReplayMayhemShockwave, float>(7, F32, x => x.HalfWidth, (x, v) => { x.HalfWidth = v; return x; }, nameof(ReplayMayhemShockwave.HalfWidth)),
+        Field<ReplayMayhemShockwave, float>(8, F32, x => x.HalfHeight, (x, v) => { x.HalfHeight = v; return x; }, nameof(ReplayMayhemShockwave.HalfHeight)),
+        Field<ReplayMayhemShockwave, ushort>(9, U16, x => x.LifetimeTicks, (x, v) => { x.LifetimeTicks = v; return x; }, nameof(ReplayMayhemShockwave.LifetimeTicks)));
+    internal static byte[] WriteReplayMayhemShockwave(ReplayMayhemShockwave x) => ReplayMayhemShockwaveTable.Write(x);
+    internal static ReplayMayhemShockwave ReadReplayMayhemShockwave(byte[] b) => ReplayMayhemShockwaveTable.Read(b);
+    internal static readonly Table<ReplayMayhemZone> ReplayMayhemZoneTable = new(() => new(),
+        Field<ReplayMayhemZone, string>(1, Text, x => x.Kind, (x, v) => { x.Kind = v; return x; }, nameof(ReplayMayhemZone.Kind)),
+        Field<ReplayMayhemZone, byte>(2, U8, x => x.Lane, (x, v) => { x.Lane = v; return x; }, nameof(ReplayMayhemZone.Lane)),
+        Field<ReplayMayhemZone, ushort>(3, U16, x => x.Ordinal, (x, v) => { x.Ordinal = v; return x; }, nameof(ReplayMayhemZone.Ordinal)),
+        Field<ReplayMayhemZone, string>(4, Text, x => x.ZoneId, (x, v) => { x.ZoneId = v; return x; }, nameof(ReplayMayhemZone.ZoneId)),
+        Field<ReplayMayhemZone, ReplayVector>(5, Vec, x => x.Center, (x, v) => { x.Center = v; return x; }, nameof(ReplayMayhemZone.Center)),
+        Field<ReplayMayhemZone, float>(6, F32, x => x.Radius, (x, v) => { x.Radius = v; return x; }, nameof(ReplayMayhemZone.Radius)),
+        Field<ReplayMayhemZone, uint>(7, U32, x => x.ActiveFrom, (x, v) => { x.ActiveFrom = v; return x; }, nameof(ReplayMayhemZone.ActiveFrom)),
+        Field<ReplayMayhemZone, uint>(8, U32, x => x.ActiveUntil, (x, v) => { x.ActiveUntil = v; return x; }, nameof(ReplayMayhemZone.ActiveUntil)));
+    internal static byte[] WriteReplayMayhemZone(ReplayMayhemZone x) => ReplayMayhemZoneTable.Write(x);
+    internal static ReplayMayhemZone ReadReplayMayhemZone(byte[] b) => ReplayMayhemZoneTable.Read(b);
+    internal static readonly Table<ReplayMayhemWatch> ReplayMayhemWatchTable = new(() => new(),
+        Field<ReplayMayhemWatch, string>(1, Text, x => x.Kind, (x, v) => { x.Kind = v; return x; }, nameof(ReplayMayhemWatch.Kind)),
+        Field<ReplayMayhemWatch, byte>(2, U8, x => x.Lane, (x, v) => { x.Lane = v; return x; }, nameof(ReplayMayhemWatch.Lane)),
+        Field<ReplayMayhemWatch, ushort>(3, U16, x => x.Ordinal, (x, v) => { x.Ordinal = v; return x; }, nameof(ReplayMayhemWatch.Ordinal)),
+        Field<ReplayMayhemWatch, uint>(4, U32, x => x.WarningTick, (x, v) => { x.WarningTick = v; return x; }, nameof(ReplayMayhemWatch.WarningTick)),
+        Field<ReplayMayhemWatch, uint>(5, U32, x => x.StartTick, (x, v) => { x.StartTick = v; return x; }, nameof(ReplayMayhemWatch.StartTick)),
+        Field<ReplayMayhemWatch, uint>(6, U32, x => x.EndTick, (x, v) => { x.EndTick = v; return x; }, nameof(ReplayMayhemWatch.EndTick)));
+    internal static byte[] WriteReplayMayhemWatch(ReplayMayhemWatch x) => ReplayMayhemWatchTable.Write(x);
+    internal static ReplayMayhemWatch ReadReplayMayhemWatch(byte[] b) => ReplayMayhemWatchTable.Read(b);
+    internal static readonly Table<ReplayMayhemTarget> ReplayMayhemTargetTable = new(() => new(),
+        Field<ReplayMayhemTarget, string>(1, Text, x => x.Kind, (x, v) => { x.Kind = v; return x; }, nameof(ReplayMayhemTarget.Kind)),
+        Field<ReplayMayhemTarget, byte>(2, U8, x => x.Lane, (x, v) => { x.Lane = v; return x; }, nameof(ReplayMayhemTarget.Lane)),
+        Field<ReplayMayhemTarget, ushort>(3, U16, x => x.Ordinal, (x, v) => { x.Ordinal = v; return x; }, nameof(ReplayMayhemTarget.Ordinal)),
+        Field<ReplayMayhemTarget, string>(4, Text, x => x.TargetId, (x, v) => { x.TargetId = v; return x; }, nameof(ReplayMayhemTarget.TargetId)),
+        Field<ReplayMayhemTarget, ulong>(5, U64, x => x.EntityId, (x, v) => { x.EntityId = v; return x; }, nameof(ReplayMayhemTarget.EntityId)),
+        Field<ReplayMayhemTarget, ulong>(6, U64, x => x.OwnerId, (x, v) => { x.OwnerId = v; return x; }, nameof(ReplayMayhemTarget.OwnerId)),
+        Field<ReplayMayhemTarget, ReplayVector>(7, Vec, x => x.Center, (x, v) => { x.Center = v; return x; }, nameof(ReplayMayhemTarget.Center)),
+        Field<ReplayMayhemTarget, float>(8, F32, x => x.Radius, (x, v) => { x.Radius = v; return x; }, nameof(ReplayMayhemTarget.Radius)),
+        Field<ReplayMayhemTarget, float>(9, F32, x => x.HalfHeight, (x, v) => { x.HalfHeight = v; return x; }, nameof(ReplayMayhemTarget.HalfHeight)),
+        Field<ReplayMayhemTarget, byte>(10, U8, x => x.HitsLeft, (x, v) => { x.HitsLeft = v; return x; }, nameof(ReplayMayhemTarget.HitsLeft)),
+        Field<ReplayMayhemTarget, byte>(11, U8, x => x.Hits, (x, v) => { x.Hits = v; return x; }, nameof(ReplayMayhemTarget.Hits)));
+    internal static byte[] WriteReplayMayhemTarget(ReplayMayhemTarget x) => ReplayMayhemTargetTable.Write(x);
+    internal static ReplayMayhemTarget ReadReplayMayhemTarget(byte[] b) => ReplayMayhemTargetTable.Read(b);
     internal static readonly Table<ReplayCooldown> ReplayCooldownTable = new(() => new(),
         Field<ReplayCooldown, string>(1, Text, x => x.PackageId, (x, v) => { x.PackageId = v; return x; }, nameof(ReplayCooldown.PackageId)),
         Field<ReplayCooldown, string>(2, Text, x => x.FormId, (x, v) => { x.FormId = v; return x; }, nameof(ReplayCooldown.FormId)),
@@ -365,7 +454,8 @@ internal static class ReplayViewCodec
         Kind<ReplayEvent, ReplayPresentationEvent>("presentation", ReplayPresentationEventTable),
         Kind<ReplayEvent, ReplaySlopballEvent>("slopball", ReplaySlopballEventTable),
         Kind<ReplayEvent, ReplayCourseEvent>("course", ReplayCourseEventTable),
-        Kind<ReplayEvent, ReplayMayhemEvent>("mayhem", ReplayMayhemEventTable));
+        Kind<ReplayEvent, ReplayMayhemEvent>("mayhem", ReplayMayhemEventTable),
+        Kind<ReplayEvent, ReplayMayhemChannelEvent>("mayhem-channel", ReplayMayhemChannelEventTable));
     internal static byte[] WriteReplayEvent(ReplayEvent x) => ReplayEventKinds.Write(x);
     internal static ReplayEvent ReadReplayEvent(byte[] b) => ReplayEventKinds.Read(b);
     internal static readonly KindRegistry<ReplayModeObject> ReplayModeObjectKinds = new(
@@ -379,7 +469,14 @@ internal static class ReplayViewCodec
         Kind<ReplayModeObject, ReplayMayhemPlayer>("mayhem-player", ReplayMayhemPlayerTable),
         Kind<ReplayModeObject, ReplayMayhemRing>("mayhem-ring", ReplayMayhemRingTable),
         Kind<ReplayModeObject, ReplayMayhemSlam>("mayhem-slam", ReplayMayhemSlamTable),
-        Kind<ReplayModeObject, ReplayMayhemWall>("mayhem-wall", ReplayMayhemWallTable));
+        Kind<ReplayModeObject, ReplayMayhemWall>("mayhem-wall", ReplayMayhemWallTable),
+        Kind<ReplayModeObject, ReplayMayhemShow>("mayhem-show", ReplayMayhemShowTable),
+        Kind<ReplayModeObject, ReplayMayhemContestant>("mayhem-contestant", ReplayMayhemContestantTable),
+        Kind<ReplayModeObject, ReplayMayhemBomb>("mayhem-bomb", ReplayMayhemBombTable),
+        Kind<ReplayModeObject, ReplayMayhemShockwave>("mayhem-shockwave", ReplayMayhemShockwaveTable),
+        Kind<ReplayModeObject, ReplayMayhemZone>("mayhem-zone", ReplayMayhemZoneTable),
+        Kind<ReplayModeObject, ReplayMayhemWatch>("mayhem-watch", ReplayMayhemWatchTable),
+        Kind<ReplayModeObject, ReplayMayhemTarget>("mayhem-target", ReplayMayhemTargetTable));
     internal static byte[] WriteReplayModeObject(ReplayModeObject x) => ReplayModeObjectKinds.Write(x);
     internal static ReplayModeObject ReadReplayModeObject(byte[] b) => ReplayModeObjectKinds.Read(b);
 }

@@ -495,35 +495,32 @@ public sealed partial class HeuristicBotPolicy
     public InputState Decide(in CharacterState self, CharacterDefinition def,
         Random rng, BotMemory memory, in ArenaDefinition arena, BakedAnimationData? baked = null,
         CpuBehavior behavior = CpuBehavior.Attack, CookedSlotDefinition? activeMove = null,
-        MayhemThreats? mayhemThreats = null, bool canSwapCancel = false)
+        bool canSwapCancel = false)
     {
         memory.WalkProbesThisTick = 0;
-        InputState input;
-        if (mayhemThreats.HasValue && mayhemThreats.Value.TryAvoid(self, def, arena, out input))
+        def = def.ForForm(self.Form.Active);
+        var input = default(InputState);
+        if (memory.Behavior != behavior) memory.EndClimb();
+        // Finish a validated climb before selecting attacks or a recovery. Either can cancel the full jump
+        // against the face before the capsule reaches the ledge top.
+        if (OwnWait(self, activeMove) == 0 && Admits(self, activeMove)
+            && TryAvoidStageHazard(self, def, arena, memory, out var hazardStep, out var hazardInput))
         {
-            memory.ClearPlan();
-            memory.ForgetCombat();
-            memory.EndClimb();
+            memory.ClearPlan(); memory.EndClimb(); memory.EndCombat(CpuPlanEnd.Interrupted);
+            input = hazardInput;
+            ApplyFootstep(ref input, hazardStep, self, def, in arena, memory);
         }
-        else
+        else if (!ContinueClimb(ref input, self, def, arena, memory))
         {
-            def = def.ForForm(self.Form.Active);
-            input = default;
-            if (memory.Behavior != behavior) memory.EndClimb();
-            // Finish a validated climb before selecting attacks or a recovery. Either can cancel the full jump
-            // against the face before the capsule reaches the ledge top.
-            if (!ContinueClimb(ref input, self, def, arena, memory))
-            {
-                input = DecideAction(self, def, rng, memory, in arena, baked, behavior, activeMove, canSwapCancel,
-                    out var step);
-                // Attacks and neutral input keep run momentum; Shield is the immediate brake.
-                if (!step.Moves && input.ActiveSlot == 0 && !input.GrabPressed && !input.Jump
-                    && !input.IsAiming && self.IsGrounded && OwnWait(self, activeMove) == 0
-                    && Admits(self, activeMove) && !HasSafeCoast(self, arena)) input.ShieldHeld = true;
-                if (ApplyFootstep(ref input, step, self, def, in arena, memory) == FootstepOutcome.Blocked
-                    && memory.Combat.Kind != CpuCombatPlanKind.None)
-                    memory.EndCombat(CpuPlanEnd.Blocked, space: true);
-            }
+            input = DecideAction(self, def, rng, memory, in arena, baked, behavior, activeMove, canSwapCancel,
+                out var step);
+            // Attacks and neutral input keep run momentum; Shield is the immediate brake.
+            if (!step.Moves && input.ActiveSlot == 0 && !input.GrabPressed && !input.Jump
+                && !input.IsAiming && self.IsGrounded && OwnWait(self, activeMove) == 0
+                && Admits(self, activeMove) && !HasSafeCoast(self, arena)) input.ShieldHeld = true;
+            if (ApplyFootstep(ref input, step, self, def, in arena, memory) == FootstepOutcome.Blocked
+                && memory.Combat.Kind != CpuCombatPlanKind.None)
+                memory.EndCombat(CpuPlanEnd.Blocked, space: true);
         }
         // Startup aim correction prefers the input's target, so it turns toward the fighter the CPU chose.
         ulong opponent = memory.OpponentId;

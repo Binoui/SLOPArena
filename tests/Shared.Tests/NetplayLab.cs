@@ -80,7 +80,7 @@ internal sealed class NetplayLab
     public Dictionary<uint, Dictionary<ulong, CharacterState>> ServerStates { get; } = new();
     /// <summary>Active resolver hitboxes (attacks and projectiles) after each GameHost tick.</summary>
     public Dictionary<uint, int> ServerHitboxes { get; } = new();
-    public List<MankiMayhemEvent> ServerMayhemEvents { get; } = new();
+    public List<Mayhem.MayhemEvent> ServerMayhemEvents { get; } = new();
     public List<TimelinePresentationEvent> ServerEvents { get; } = new();
     public List<SpellResolver.HitResult> ServerHits { get; } = new();
     public Dictionary<ulong, int[]> ServerSources { get; } = new();
@@ -260,9 +260,9 @@ internal sealed class NetplayLab
         public bool ServerSeesDisconnected { get; set; }
         public PeerInputTimeline ServerInputs { get; } = new();
         public List<InputState> Recent { get; } = new();
-        public List<MankiMayhemEvent> MayhemStarted { get; } = new();
-        public List<MankiMayhemEvent> MayhemRetracted { get; } = new();
-        public List<(bool Start, MankiMayhemEvent Event)> MayhemLog { get; } = new();
+        public List<Mayhem.MayhemEvent> MayhemStarted { get; } = new();
+        public List<Mayhem.MayhemEvent> MayhemRetracted { get; } = new();
+        public List<(bool Start, Mayhem.MayhemEvent Event)> MayhemLog { get; } = new();
         public List<TimelinePresentationEvent> Started { get; } = new();
         public List<TimelinePresentationEvent> Retracted { get; } = new();
         public List<SpellResolver.HitResult> Hits { get; } = new();

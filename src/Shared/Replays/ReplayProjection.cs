@@ -201,13 +201,14 @@ public sealed partial class ReplayCapture
             ElapsedTicks = e.Event.ElapsedTicks,
             Sequence = e.Sequence
         });
-        foreach (var e in frame.MayhemEvents) if (e.MatchTick == frame.Tick) events.Add(new ReplayMayhemEvent
+        foreach (var e in frame.MayhemEvents) if (e.MatchTick == frame.Tick) events.Add(new ReplayMayhemChannelEvent
         {
-            EntityId = e.EntityId,
             EventId = ReplaySemanticIds.Id(e.Kind),
-            RoundIndex = e.RoundIndex,
-            OperationIndex = e.OperationIndex,
-            Points = e.Points
+            Episode = e.Episode,
+            Lane = e.Lane,
+            Operation = e.Operation,
+            Subject = e.Subject,
+            Value = e.Value
         });
         foreach (var hit in sim.LastTickHits) lastHits[(hit.TargetEntityId, hit.OwnerEntityId, hit.MatchTick, hit.AttackSlot)] = hit;
         var vh = new ReplayHit[sim.LastTickHits.Count];

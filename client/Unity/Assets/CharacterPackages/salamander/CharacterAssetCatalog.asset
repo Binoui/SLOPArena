@@ -110,6 +110,10 @@ MonoBehaviour:
     _clip: {fileID: 7400000, guid: f2299ef646f932ea29631ae65ff7fc80, type: 2}
     _extrapolation: 0
     _poseTrackId: anim.salamander.tumble
+  - _semanticId: anim.salamander.walljump
+    _clip: {fileID: 7400000, guid: c25278f6ab1065406a53f57924aab086, type: 2}
+    _extrapolation: 0
+    _poseTrackId: anim.salamander.walljump
   _presentations: []
   _presentationProfile:
     _respawnTint: {r: 1, g: 1, b: 1, a: 0.95}

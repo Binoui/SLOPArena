@@ -49,6 +49,7 @@ Use [Project context](../CONTEXT.md) for canonical gameplay vocabulary and settl
 | [Online Arcade implementation options](design/online-arcade-implementation.md) | Room contract, admission, Match Format, Shared formats, rollback coverage and client hosting, for approval |
 | [Manki Mayhem feature brief](design/manki-mayhem.md) | Manki's game-show survival mode: call cards, rounds, scoring, friendly fire, host and show camera |
 | [Manki Mayhem implementation plan](design/manki-mayhem-implementation.md) | Ordered slices, files and tests, maintainer test path, risks and open decisions ([ADR-0044](adr/0044-manki-mayhem-hazard-director.md)) |
+| [Stage hazards feature brief](design/stage-hazards.md) | Picked hazards for Splash Deck (kraken), Last Stop (Train of the Day), After Hours (Bass Drop) and Slop Pit (crowd); the On/Off switch, defaults and what the ADR must settle |
 | [Arcade Phase 1](design/arcade-phase-1.md) | Ball/contact foundation, test-court launch steps and verification status |
 | [Arcade Phase 2](design/arcade-phase-2.md) | Playable Slopball, court/shot rules, launch steps and native verification |
 | [Arcade Phase 3](design/arcade-phase-3.md) | Offline menu, locked starts, results/retry and compatible local personal bests |
@@ -106,6 +107,7 @@ New packages live under `client/Unity/Assets/CharacterPackages/<package>/`. Cook
 | Wibou | Cooked package; rostered | [Wibou](characters/wibou.md) |
 | Bashie | Cooked package; rostered with her own model and a partially authored kit; see her page for remaining stand-ins | [Bashie](characters/bashie.md) |
 | Nyx | Playable with placeholder moves; two-form engine and her own animations in progress | [Nyx](characters/nyx.md) |
+| Dusty (package `salamander`) | Rostered as WIP; identity and specials settled 2026-11-04, new specials not built | [Dusty](characters/dusty.md) |
 
 The [Nilus page](characters/nilus.md) is a historical record of a retired character, not
 an implementation or authoring guide.
@@ -118,6 +120,7 @@ an implementation or authoring guide.
 | [Coding assistant setup](contributing/agents.md) | Shared instructions, skill discovery, checkouts, permissions, and manual handoffs |
 | [Editor coordination](contributing/unity-editor-coordination.md) | Caller identities, bounded leases, preservation, and recovery |
 | [Quality checks](contributing/quality.md) | Documentation, adapter, gateway, and applicable build/test commands |
+| [Local references with ComfyUI](contributing/local-comfyui.md) | Free motion clips and VFX sprite sheets on the maintainer's GPU |
 | [Project tools](../tools/README.md) | Maintained .NET build set, reports, diagnostics, and research boundaries |
 | [Contributor cleanup plan](plans/2026-10-13-contributor-cleanup.md) | Bounded cleanup batches and pending Unity decisions |
 | [Unity CLI](contributing/unity-cli.md) | Package inspection/cooking, Ability Lab commands, and Editor checks |
@@ -148,6 +151,7 @@ Accepted records for current gameplay, runtime and content decisions include:
 - [ADR-0037: Arcade Shared objects and unified stage artifact](adr/0037-arcade-shared-objects-and-unified-stage-artifact.md)
 - [ADR-0038: Editor play without installed animation clips](adr/0038-editor-play-without-installed-clips.md)
 - [ADR-0046: Slop Rally courses are racing maps for every fighter](adr/0046-courses-open-to-every-fighter.md)
+- [ADR-0062: Stage hazards: one switch, typed hazard families and baked anchors](adr/0062-stage-hazards.md)
 
 Older accepted ADRs remain the decision record for the mechanics they cover. If a living guide conflicts with an accepted ADR or current code, update the living guide; do not rewrite the historical decision.
 

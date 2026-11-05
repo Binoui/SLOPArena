@@ -33,6 +33,7 @@ namespace SlopArena.Client.UI
         private VisualElement _grid;
         private VisualElement _hero;
         private Label _heroName;
+        private Button _stageHazards;
         private LobbyClient _lobby;
         private ChatSession _chatSession;
         private bool _roomMode;
@@ -66,6 +67,15 @@ namespace SlopArena.Client.UI
             _heroName = _context.Q<Label>("stage-hero-name");
             ShowHero("");
             _btnConfirm = _context.Q<Button>("btn-confirm");
+            _stageHazards?.RemoveFromHierarchy();
+            _stageHazards = new Button(() =>
+            {
+                MatchConfig.StageHazards = MatchConfig.StageHazards == StageHazardMode.On ? StageHazardMode.Off : StageHazardMode.On;
+                RefreshStageHazards();
+            }) { name = "stage-hazards" };
+            _stageHazards.AddToClassList("btn-secondary");
+            _stageHazards.style.display = DisplayStyle.None;
+            _btnConfirm?.parent.Insert(0, _stageHazards);
             _lblSelectedStage = _context.Q<Label>("lbl-selected-stage");
             _lblWaiting = _context.Q<Label>("lbl-waiting");
             _playerCards = _context.Q<VisualElement>("player-cards-area");
@@ -279,7 +289,7 @@ namespace SlopArena.Client.UI
             if (_context.Q<Button>("stage-arcade-versus") is { } versus) versus.clicked += PickVersus;
             if (_context.Q<Button>("stage-arcade-course") is { } course) course.clicked += ShowCourses;
             _context.Q<Button>("stage-arcade-mayhem").clicked += PickMayhem;
-            foreach (string mode in new[] { "off", "shoves", "on" })
+            foreach (string mode in new[] { "off", "shoves" })
             {
                 string choice = mode;
                 _context.Q<Button>("mayhem-rule-" + mode).clicked += () =>
@@ -288,6 +298,7 @@ namespace SlopArena.Client.UI
                     _mayhemFriendlyFire = choice; PickMayhem();
                 };
             }
+            _context.Q<Button>("mayhem-rule-on")?.RemoveFromHierarchy();
             ShowRoomTab(false);
         }
 
@@ -355,7 +366,7 @@ namespace SlopArena.Client.UI
             _context.Q<VisualElement>("mayhem-card")?.EnableInClassList("arcade-mode-card--selected", selected == MatchFormats.MankiMayhemWire);
             if (_context.Q<Label>("mayhem-badge") is { } mayhemBadge)
                 mayhemBadge.text = mayhemAdmitted ? "2–4 PLAYERS" : "NOT AVAILABLE";
-            foreach (string mode in new[] { "off", "shoves", "on" })
+            foreach (string mode in new[] { "off", "shoves" })
             {
                 var chip = _context.Q<Button>("mayhem-rule-" + mode);
                 chip?.EnableInClassList("active", (leader ? _mayhemFriendlyFire : _roomSnapshot?.MayhemFriendlyFire) == mode);
@@ -958,6 +969,7 @@ namespace SlopArena.Client.UI
         private void SelectStage(string name)
         {
             ShowHero(name);
+            RefreshStageHazards(name);
             if (MatchConfig.Mode == GameMode.PvP && !ClientSession.IsLobbyHost)
                 return;
 
@@ -992,6 +1004,15 @@ namespace SlopArena.Client.UI
                 _btnConfirm.SetEnabled(!_roomMode || ClientSession.IsLobbyHost &&
                     !_roomActionPending && _lobby?.IsConnected == true);
             }
+        }
+
+        private void RefreshStageHazards(string name = null)
+        {
+            var arena = ArenaRegistry.Get(name ?? _selectedArena);
+            bool visible = MatchConfig.Mode == GameMode.Solo && MatchConfig.Format == MatchFormat.Stock
+                && arena.HasValue && MatchConfig.HasStageHazardFamily(arena.Value);
+            _stageHazards.style.display = visible ? DisplayStyle.Flex : DisplayStyle.None;
+            _stageHazards.text = "STAGE HAZARDS  " + (MatchConfig.StageHazards == StageHazardMode.On ? "ON" : "OFF");
         }
 
         private void ShowHero(string name)

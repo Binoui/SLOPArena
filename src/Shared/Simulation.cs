@@ -165,9 +165,15 @@ namespace SlopArena.Shared
             ref CharacterState s, CharacterDefinition def, InputState input, ArenaDefinition arena,
             out bool ordinaryActionOpportunity, out bool movementActionAccepted,
             DownActionTuning tuning, bool verticalMotionOwned, ActiveMoveView? activeMove,
-            float gravityMultiplier = 1f, CombatTuning? combatTuning = null)
+            float gravityMultiplier = 1f, CombatTuning? combatTuning = null, Mayhem.MayhemControls? gate = null)
         {
             _lastDownAdmissionReason = null;
+            // The Mayhem gate before jump, defense, grab, down and buffer admission; null is unrestricted.
+            if (gate is { } controls)
+            {
+                input = controls.Filter(input);
+                controls.ClearForbidden(ref s);
+            }
             ordinaryActionOpportunity = false;
             movementActionAccepted = false;
             if (s.InteractionId != 0 && ActionStates.MovedByPartner(s.State))

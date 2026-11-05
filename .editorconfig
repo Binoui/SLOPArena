@@ -91,3 +91,9 @@ dotnet_diagnostic.IDE0058.severity = none  # Expression value is never used (too
 dotnet_diagnostic.IDE0059.severity = warning  # Unnecessary assignment of a value
 dotnet_diagnostic.IDE0060.severity = warning  # Remove unused parameter
 dotnet_diagnostic.IDE0080.severity = warning  # Remove unnecessary suppression operator
+
+# Mayhem switch expressions over Mayhem enums list every value (ADR-0061)
+[src/Shared/Mayhem/**.cs]
+dotnet_diagnostic.CS8509.severity = error
+# Unnamed enum values come only from casts, and every reader validates enum ranges at its boundary.
+dotnet_diagnostic.CS8524.severity = none

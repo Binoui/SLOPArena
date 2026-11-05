@@ -1,4 +1,5 @@
 using SlopArena.Shared;
+using SlopArena.Shared.Mayhem;
 using UnityEngine;
 using UnityEngine.UIElements;
 
@@ -29,12 +30,12 @@ namespace SlopArena.Client.UI
         private float _duration = Duration;
         private VisualElement _standings;
 
-        public void ShowMayhem(System.Collections.Generic.IReadOnlyList<MayhemPlayer> players, System.Func<ulong, string> name, System.Func<ulong, int> playerNumber, bool online = false)
+        public void ShowMayhem(System.Collections.Generic.IReadOnlyList<MayhemContestantView> players, System.Func<ulong, string> name, System.Func<ulong, int> playerNumber, bool online = false)
         {
-            var ordered = new System.Collections.Generic.List<MayhemPlayer>(players);
+            var ordered = new System.Collections.Generic.List<MayhemContestantView>(players);
             ordered.Sort((a, b) => a.Withdrawn != b.Withdrawn ? a.Withdrawn.CompareTo(b.Withdrawn)
-                : a.Score != b.Score ? b.Score.CompareTo(a.Score) : a.EntityId.CompareTo(b.EntityId));
-            int winners = ordered.FindAll(p => p.Score == ordered[0].Score && !p.Withdrawn).Count;
+                : a.Ratings != b.Ratings ? b.Ratings.CompareTo(a.Ratings) : a.EntityId.CompareTo(b.EntityId));
+            int winners = ordered.FindAll(p => p.Ratings == ordered[0].Ratings && !p.Withdrawn).Count;
             ShowPoster("SHOW'S\nOVER!", winners == 0 ? "MATCH ENDED" : winners > 1 ? "SHARED WIN!" : $"{name(ordered[0].EntityId)} WINS!",
                 "MANKI MAYHEM", CharacterClass.None);
             _duration = float.PositiveInfinity;
@@ -47,9 +48,9 @@ namespace SlopArena.Client.UI
             _standings.style.paddingLeft = _standings.style.paddingRight = 22;
             foreach (var player in ordered)
             {
-                int place = 1 + ordered.FindAll(p => !p.Withdrawn && p.Score > player.Score).Count;
-                var row = new Label($"{(player.Withdrawn ? "OUT" : place.ToString())}.  {name(player.EntityId)}     {player.Score} POINTS\n     {player.RoundsSurvived} SURVIVED · {player.Bonuses} BONUS");
-                row.style.fontSize = 22; row.style.color = !player.Withdrawn && player.Score == ordered[0].Score ? new Color(1f, .77f, .12f) : Color.white;
+                int place = 1 + ordered.FindAll(p => !p.Withdrawn && p.Ratings > player.Ratings).Count;
+                var row = new Label($"{(player.Withdrawn ? "OUT" : place.ToString())}.  {name(player.EntityId)}     {player.Ratings} RATINGS\n     {MayhemShowPlan.Passes(player.PassMask)} CHANNELS PASSED");
+                row.style.fontSize = 22; row.style.color = !player.Withdrawn && player.Ratings == ordered[0].Ratings ? new Color(1f, .77f, .12f) : Color.white;
                 row.style.borderLeftWidth = 6;
                 row.style.borderLeftColor = SeatColours.For(playerNumber(player.EntityId));
                 row.style.marginBottom = 10; _standings.Add(row);

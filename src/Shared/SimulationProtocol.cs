@@ -119,11 +119,21 @@ namespace SlopArena.Shared
         //   and World Snapshot layout unchanged.
         // 37: the 0.2.0-playtest.48 release: comment-only Shared change; the Replay viewer's cursor fix is Unity-only.
         //   Simulation, wire and World Snapshot layout unchanged.
+        // 38: the 0.2.0-playtest.49 release: Bass Drop on After Hours with generic hazard cues and family-owned
+        //   frozen action bytes; ADR-0062 opt-in stage hazard sessions, Kraken Slam and conditional World Snapshot
+        //   state; Mayhem bombs snapshot actual impacts and Impact events join the World Frame event vocabulary;
+        //   Manki Mayhem channels (ADR-0061): the round director, cards, Settle, benching, survival scoring, damage
+        //   carry-over and MayhemThreats are replaced by a seeded channel show (three acts of four regulars plus
+        //   PRIME TIME!), one verdict book of pass masks, splats instead of launches, falls consumed before blast
+        //   deaths, and the control gate in input filtering, buffered slots, activation and Simulation.SimulateTick.
+        //   Host hazards fail through invincibility. Friendly fire On is refused. World Snapshot v28, World Frame
+        //   format 10 (26-byte channel events), MatchResultPacket Mayhem rows carry pass masks, and the Replay View
+        //   gains the mayhem-show family.
         //
         // Bump once per deploy, never per change: release prepare refuses a release whose src/Shared
         // changed since the previous release tag while this value (and the Master's Protocol) did not.
         // Note simulation changes below; the release bump folds them into one numbered line.
         // Unreleased:
-        public const byte Version = 37;
+        public const byte Version = 38;
     }
 }

@@ -57,6 +57,9 @@ namespace SlopArena.Client.UI
 
         private void BindControls()
         {
+            var hazards = _panel.Q<Toggle>("stage-hazards-toggle");
+            hazards.SetValueWithoutNotify(MatchConfig.StageHazards == StageHazardMode.On);
+            hazards.RegisterValueChangedCallback(evt => _match.SetStageHazards(evt.newValue ? StageHazardMode.On : StageHazardMode.Off));
             var cooldownToggle = _panel.Q<Toggle>("no-cd-toggle");
             cooldownToggle.SetValueWithoutNotify(_match.NoCooldowns);
             cooldownToggle.RegisterValueChangedCallback(evt => _match.SetNoCooldowns(evt.newValue));

@@ -125,13 +125,23 @@ def cmd_propose(args) -> None:
     # arbitrary fields as SQLite JSON. No tape truncation or path fallback needed.
     for source in args.combos:
         _, combo, out = load_job(source)
+        # Content can change under a long sweep (another thread's cook); skip those, keep proposing the rest.
+        if current_content(combo) != combo['content']:
+            print(f"{combo['id']} skipped: stale, content changed since it was found", flush=True)
+            continue
         if not args.no_check and not check(combo, out):
             print(f"{combo['id']} skipped: not reproducible in Unity", flush=True)
             continue
         idea_id = re.sub('[^a-z0-9-]', '-', combo['id'].lower())
-        idea = {'id': idea_id, 'format': 'combo', 'status': 'proposed',
-                'title': combo['summary'], 'idea': combo['summary'], 'combo': combo}
-        print(factory.call('POST', '/api/ideas', idea)['id'], 'added')
+        fields = {'format': 'combo', 'title': combo['summary'], 'idea': combo['summary'], 'combo': combo}
+        existing = next((i for i in factory.call('GET', '/api/ideas') if i['id'] == idea_id), None)
+        if existing is None:
+            print(factory.call('POST', '/api/ideas', {'id': idea_id, 'status': 'proposed', **fields})['id'], 'added')
+        elif existing['status'] == 'proposed':
+            # The same fight found again (same tapes, same id) after a content change: refresh its embedded combo.
+            print(factory.call('PATCH', f'/api/ideas/{idea_id}', fields)['id'], 'refreshed')
+        else:
+            print(f"{idea_id} skipped: already on the board as {existing['status']}", flush=True)
 
 
 def shoot(spec: Path, run: Path) -> dict:
@@ -306,20 +316,25 @@ def cmd_edit(args) -> None:
         raise ValueError('cuts must be a nonempty list')
     work = social_clip.fresh(out / f'edit-{args.orientation}')
     work.mkdir(parents=True)
-    start, filters, inputs, pairs = edit['from'], [], [], []
+    start, filters, inputs, pairs, duration = edit['from'], [], [], [], 0.0
     for i, cut in enumerate(cuts):
         name, end = safe_name(cut['angle']), cut.get('to', edit['end'])
+        speed = float(cut.get('speed', 1))
+        if not 0.5 <= speed <= 1:
+            raise ValueError(f'{name}: speed {speed} outside 0.5-1')
         angle = pack['angles'][name]
         if not angle['from'] <= start <= end <= min(angle['to'], edit['end']):
             raise ValueError(f'{name}: cut {start}-{end} outside captured window or edit end')
         inputs += ['-i', str(folder / f'{name}.mp4'), '-i', str(folder / f'{name}.wav')]
         offset, frames = start - angle['from'], end - start + 1
         hold = ',tpad=stop_mode=clone:stop_duration=0.6' if i == len(cuts) - 1 else ''
-        seconds = frames / FPS + (0.6 if hold else 0)
-        filters += [f'[{2*i}:v]trim=start_frame={offset}:end_frame={offset+frames},setpts=PTS-STARTPTS{hold}[v{i}]',
-                    f'[{2*i+1}:a]atrim=start={offset/FPS},asetpts=PTS-STARTPTS,apad,atrim=duration={seconds}[a{i}]']
+        seconds = frames / FPS / speed + (0.6 if hold else 0)
+        filters += [f'[{2*i}:v]trim=start_frame={offset}:end_frame={offset+frames},'
+                    f'setpts=(PTS-STARTPTS)/{speed},fps={FPS}{hold}[v{i}]',
+                    f'[{2*i+1}:a]atrim=start={offset/FPS},asetpts=PTS-STARTPTS,'
+                    f'atempo={speed},apad,atrim=duration={seconds}[a{i}]']
         pairs.append(f'[v{i}][a{i}]')
-        start = end + 1
+        start, duration = end + 1, duration + seconds
     filters.append(''.join(pairs) + f'concat=n={len(cuts)}:v=1:a=1[v][a]')
     subprocess.run(['ffmpeg', '-v', 'error', '-y', *inputs, '-filter_complex', ';'.join(filters),
                     '-map', '[v]', '-map', '[a]', '-c:v', 'libx264', '-preset', 'slow', '-crf', '18',
@@ -328,7 +343,6 @@ def cmd_edit(args) -> None:
     social_clip.normalize(work / 'joined.mkv', final)
     write(work / 'edit.json', {'comboHash': digest(combo), 'orientation': args.orientation, 'cuts': cuts, 'hold': 0.6})
     sheet = work / 'sheet.jpg'
-    duration = (start - edit['from']) / FPS + 0.6
     subprocess.run(['ffmpeg', '-v', 'error', '-y', '-i', str(final), '-vf',
                     f'fps={20/duration},scale=216:-1,tile=5x4', '-frames:v', '1', str(sheet)], check=True)
     print(final)

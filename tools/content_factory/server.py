@@ -11,13 +11,19 @@ talk back through tools/factory.py. skills/social-clips/SKILL.md owns the workfl
 from __future__ import annotations
 
 import argparse
+import hashlib
+import os
+import uuid
+from contextlib import closing
+from dataclasses import dataclass
 import json
 import re
 import sqlite3
 import threading
 import time
+import urllib.error
 import urllib.request
-from datetime import date, datetime
+from datetime import date, datetime, timezone
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import parse_qs, quote, unquote, urlsplit
@@ -39,6 +45,16 @@ CREATE TABLE IF NOT EXISTS takes (idea TEXT NOT NULL REFERENCES ideas, n INTEGER
 CREATE TABLE IF NOT EXISTS runs (id INTEGER PRIMARY KEY, kind TEXT NOT NULL, idea TEXT, state TEXT NOT NULL,
   summary TEXT, error TEXT, created TEXT NOT NULL, updated TEXT NOT NULL, made TEXT);
 CREATE TABLE IF NOT EXISTS inbox (id INTEGER PRIMARY KEY, body TEXT NOT NULL, at TEXT NOT NULL, report INTEGER);
+CREATE TABLE IF NOT EXISTS player_reports (
+  report_id TEXT PRIMARY KEY, source TEXT NOT NULL, received_utc TEXT NOT NULL,
+  payload_json TEXT NOT NULL, screenshot_jpeg BLOB, screenshot_sha256 TEXT,
+  CHECK((screenshot_jpeg IS NULL) = (screenshot_sha256 IS NULL)),
+  CHECK(screenshot_jpeg IS NULL OR length(screenshot_jpeg) BETWEEN 1 AND 1048576));
+CREATE INDEX IF NOT EXISTS player_reports_recent ON player_reports(received_utc, report_id);
+CREATE TABLE IF NOT EXISTS player_report_triage (
+  report_id TEXT PRIMARY KEY REFERENCES player_reports(report_id),
+  dismissed INTEGER NOT NULL DEFAULT 0 CHECK(dismissed IN (0,1)),
+  check_id INTEGER UNIQUE REFERENCES checks(id), CHECK(check_id IS NULL OR dismissed = 0));
 CREATE TABLE IF NOT EXISTS reports (id INTEGER PRIMARY KEY, kind TEXT NOT NULL, body TEXT NOT NULL, at TEXT NOT NULL);
 """
 # The statuses the owner may move an idea to from each status. A new take moves it to "rendered".
@@ -69,6 +85,14 @@ TAKE_FROM = {"proposed", "approved", "rendered"}
 RUN_KINDS = {"propose", "render", "redo", "scout"}
 RUN_STATES = {"queued", "sent", "running", "done", "failed"}
 UPLOADS = {"clip": "take-{n}.mp4", "poster": "take-{n}.jpg", "sheet": "take-{n}.sheet.jpg"}
+# Fetch now on the Numbers tab: the board asks, the desk relay takes it and starts `factory.py views`, which reports
+# done. Kept in memory: a restart only forgets one pending press.
+FETCH = {"asks": 0, "taken": 0, "requested": None, "done": None, "summary": "", "unmatched": []}
+# Meta login redirects land on /oauth here (Meta needs an https redirect); tools/social_api.py on the desk picks the
+# code up by its state and exchanges it with the app secret, which never leaves the desk.
+OAUTH: dict[str, dict] = {}
+OAUTH_PAGE = """<!doctype html><meta name=viewport content="width=device-width"><title>Slop Factory</title>
+<body style="font:18px system-ui;margin:40px">{}</body>"""
 
 
 class Refused(Exception):
@@ -84,6 +108,7 @@ def now() -> str:
 def db() -> sqlite3.Connection:
     con = sqlite3.connect(DATA / "factory.db", timeout=30, isolation_level=None)
     con.row_factory = sqlite3.Row
+    con.execute("PRAGMA foreign_keys=ON")
     return con
 
 
@@ -118,7 +143,279 @@ def board() -> dict:
             "runs": [dict(r) for r in con.execute("SELECT * FROM runs ORDER BY id DESC LIMIT 40")],
             "inbox": [dict(r) for r in con.execute("SELECT * FROM inbox ORDER BY id DESC LIMIT 40")],
             "reports": [dict(r) for r in con.execute("SELECT * FROM reports ORDER BY id DESC LIMIT 10")],
+            "fetch": FETCH,
+            "playerReportCounts": player_report_counts(con),
+            "playerReportPull": player_report_pull_status(),
         }
+
+
+@dataclass(frozen=True)
+class FeedbackSource:
+    name: str
+    master_origin: str
+    owner_key_file: Path
+
+
+PULL_LOCK = threading.Lock()
+PULL_WAKE = threading.Event()
+PULL_HEALTH = {"running": False, "lastAttemptUtc": None, "lastSuccessUtc": None,
+               "lastError": None, "scanned": 0, "imported": 0, "failed": 0}
+
+
+def feedback_source() -> FeedbackSource | None:
+    origin = os.environ.get("FEEDBACK_MASTER_ORIGIN", "").rstrip("/")
+    key_file = os.environ.get("FEEDBACK_OWNER_KEY_FILE", "")
+    if not origin or not key_file:
+        return None
+    return FeedbackSource(os.environ.get("FEEDBACK_SOURCE", "playtest-master"), origin, Path(key_file))
+
+
+def player_report_pull_status() -> dict:
+    return dict(PULL_HEALTH, enabled=feedback_source() is not None)
+
+
+class _NoFeedbackRedirect(urllib.request.HTTPRedirectHandler):
+    def redirect_request(self, req, fp, code, msg, headers, newurl):
+        return None
+
+
+def pull_player_reports_once(source: FeedbackSource | None = None) -> dict:
+    source = source or feedback_source()
+    if source is None or not PULL_LOCK.acquire(blocking=False):
+        return player_report_pull_status()
+    scanned = imported = failed = 0
+    error = None
+    PULL_HEALTH.update(running=True, lastAttemptUtc=datetime.now(timezone.utc).isoformat())
+    try:
+        origin = urlsplit(source.master_origin)
+        if origin.scheme not in {"http", "https"} or not origin.netloc or origin.username or origin.password or origin.query or origin.fragment or origin.path not in {"", "/"}:
+            raise ValueError()
+        if not re.fullmatch(r"[a-zA-Z0-9_-]{1,64}", source.name):
+            raise ValueError()
+        key = source.owner_key_file.read_text().strip()
+        if not key:
+            raise ValueError()
+        opener = urllib.request.build_opener(_NoFeedbackRedirect())
+        deadline = time.monotonic() + 300
+
+        def get(path, cap):
+            remaining = deadline - time.monotonic()
+            if remaining <= 0:
+                raise ValueError()
+            request = urllib.request.Request(source.master_origin.rstrip("/") + path, headers={"X-Console-Key": key})
+            try:
+                with opener.open(request, timeout=min(20, remaining)) as response:
+                    data = response.read(cap + 1)
+                    if len(data) > cap:
+                        raise ValueError()
+                    return data
+            except urllib.error.HTTPError as remote_error:
+                remote_error.close()
+                raise ValueError() from None
+
+        cursor, cursors = "", set()
+        while True:
+            page = json.loads(get("/owner/feedback?limit=100&cursor=" + quote(cursor, safe=""), 65536))
+            items = page["items"]
+            if not isinstance(items, list) or len(items) > 100:
+                raise ValueError()
+            for item in items:
+                scanned += 1
+                if scanned > 10000 or time.monotonic() > deadline:
+                    raise ValueError()
+                try:
+                    report_id = item["reportId"]
+                    if str(uuid.UUID(report_id)) != report_id:
+                        raise ValueError()
+                    with closing(db()) as con:
+                        if con.execute("SELECT 1 FROM player_reports WHERE report_id=?", (report_id,)).fetchone():
+                            continue
+                    payload = json.loads(get(f"/owner/feedback/{report_id}", 32768))
+                    validate_remote_report(payload, report_id)
+                    descriptor = payload["screenshot"]
+                    image, digest = None, None
+                    if descriptor is not None:
+                        size, digest = descriptor["bytes"], descriptor["sha256"]
+                        if type(size) is not int or not 1 <= size <= 1048576 or not isinstance(digest, str) or not re.fullmatch(r"[0-9a-f]{64}", digest):
+                            raise ValueError()
+                        image = get(f"/owner/feedback/{report_id}/screenshot", size)
+                        if len(image) != size or hashlib.sha256(image).hexdigest() != digest or not image.startswith(b"\xff\xd8\xff"):
+                            raise ValueError()
+                    with closing(db()) as con, con:
+                        con.execute("BEGIN IMMEDIATE")
+                        result = con.execute("INSERT OR IGNORE INTO player_reports VALUES (?,?,?,?,?,?)",
+                            (report_id, source.name, payload["receivedAtUtc"], json.dumps(payload), image, digest))
+                        imported += result.rowcount
+                except Exception:
+                    # Exception text and remote bodies can contain the owner key. Never retain either.
+                    failed += 1
+                    error = "One or more reports could not be imported; next sweep retries them."
+            next_cursor = page["nextCursor"]
+            if next_cursor is None:
+                break
+            if not isinstance(next_cursor, str) or not next_cursor or len(next_cursor) > 2048 or next_cursor in cursors:
+                raise ValueError()
+            cursors.add(next_cursor)
+            cursor = next_cursor
+    except Exception:
+        error = "Master feedback pull unavailable or invalid; next sweep retries it."
+    finally:
+        PULL_HEALTH.update(running=False, scanned=scanned, imported=imported, failed=failed, lastError=error)
+        if error is None:
+            PULL_HEALTH["lastSuccessUtc"] = datetime.now(timezone.utc).isoformat()
+        PULL_LOCK.release()
+    return player_report_pull_status()
+
+
+def validate_remote_report(payload: dict, report_id: str) -> None:
+    if payload["reportId"] != report_id or payload["kind"] not in {"bug", "feel", "idea", "love"}:
+        raise ValueError()
+    if not isinstance(payload["message"], str) or len(payload["message"].encode("utf-16-le")) > 4000:
+        raise ValueError()
+    received = datetime.fromisoformat(payload["receivedAtUtc"].replace("Z", "+00:00"))
+    if received.utcoffset() is None or received.utcoffset().total_seconds() != 0:
+        raise ValueError()
+    reporter, context = payload["reporter"], payload["context"]
+    if not isinstance(reporter["steamId"], str) or not isinstance(reporter["displayName"], (str, type(None))):
+        raise ValueError()
+    if not isinstance(context, dict) or context.get("phase") not in {"frontend", "match", "results", "replay"}:
+        raise ValueError()
+    if not isinstance(context.get("appVersion"), str) or not isinstance(context.get("match"), (dict, type(None))):
+        raise ValueError()
+    if not isinstance(payload["onlineMatchId"], (str, type(None))):
+        raise ValueError()
+    if payload["screenshot"] is not None and not isinstance(payload["screenshot"], dict):
+        raise ValueError()
+
+
+def player_feedback_loop(stop_event: threading.Event) -> None:
+    while not stop_event.is_set():
+        PULL_WAKE.clear()
+        pull_player_reports_once()
+        PULL_WAKE.wait(60)
+
+
+def start_player_feedback_worker() -> threading.Thread | None:
+    if feedback_source() is None:
+        return None
+    worker = threading.Thread(target=player_feedback_loop, args=(threading.Event(),), daemon=True)
+    worker.start()
+    return worker
+
+
+def request_player_report_pull() -> dict:
+    if feedback_source() is not None:
+        PULL_WAKE.set()
+    return player_report_pull_status()
+
+
+def report_url(row) -> str:
+    return f"/api/player-reports/{quote(row['source'], safe='')}/{row['report_id']}"
+
+
+def validate_report_identity(source: str, report_id: str) -> None:
+    try:
+        if not re.fullmatch(r"[a-zA-Z0-9_-]{1,64}", source) or str(uuid.UUID(report_id)) != report_id:
+            raise ValueError()
+    except (ValueError, TypeError, AttributeError):
+        raise Refused("invalid player report identity")
+
+
+def report_row(con, source, report_id):
+    row = con.execute("SELECT r.*, COALESCE(t.dismissed,0) dismissed, t.check_id FROM player_reports r "
+                      "LEFT JOIN player_report_triage t USING(report_id) WHERE r.source=? AND r.report_id=?",
+                      (source, report_id)).fetchone()
+    if row is None:
+        raise Refused("no player report", 404)
+    return row
+
+
+def full_player_report(row) -> dict:
+    return json.loads(row["payload_json"]) | {
+        "source": row["source"], "checkId": row["check_id"],
+        "status": "promoted" if row["check_id"] else "dismissed" if row["dismissed"] else "new",
+        "imageUrl": report_url(row) + "/screenshot.jpg" if row["screenshot_sha256"] else None}
+
+
+def player_report(source, report_id) -> dict:
+    with closing(db()) as con:
+        return full_player_report(report_row(con, source, report_id))
+
+
+def player_report_counts(con) -> dict:
+    return {status: count for status, count in con.execute(
+        "SELECT CASE WHEN t.check_id IS NOT NULL THEN 'promoted' WHEN t.dismissed=1 THEN 'dismissed' ELSE 'new' END status, "
+        "COUNT(*) FROM player_reports r LEFT JOIN player_report_triage t USING(report_id) GROUP BY status")}
+
+
+def player_reports(status="new", before=None, limit=50) -> dict:
+    if status not in {"new", "dismissed", "promoted"}:
+        raise Refused("invalid report status")
+    try:
+        limit = max(1, min(100, int(limit)))
+        cursor = json.loads(before) if before else ["9999", "~"]
+        if not isinstance(cursor, list) or len(cursor) != 2 or not all(isinstance(v, str) for v in cursor):
+            raise ValueError()
+    except (ValueError, TypeError):
+        raise Refused("invalid report page")
+    with closing(db()) as con:
+        rows = con.execute("SELECT r.report_id, r.source FROM player_reports r LEFT JOIN player_report_triage t USING(report_id) "
+            "WHERE (CASE WHEN t.check_id IS NOT NULL THEN 'promoted' WHEN t.dismissed=1 THEN 'dismissed' ELSE 'new' END)=? "
+            "AND (r.received_utc,r.report_id)<(?,?) ORDER BY r.received_utc DESC,r.report_id DESC LIMIT ?",
+            (status, *cursor, limit + 1)).fetchall()
+        items = [full_player_report(report_row(con, r["source"], r["report_id"])) for r in rows[:limit]]
+        return {"items": items, "nextCursor": json.dumps([items[-1]["receivedAtUtc"], items[-1]["reportId"]]) if len(rows) > limit else None,
+                "counts": player_report_counts(con), "pull": player_report_pull_status()}
+
+
+def patch_player_report(source, report_id, body) -> dict:
+    if body.keys() != {"dismissed"} or type(body["dismissed"]) is not bool:
+        raise Refused("dismissed must be true or false")
+    with closing(db()) as con, con:
+        con.execute("BEGIN IMMEDIATE")
+        row = report_row(con, source, report_id)
+        if row["check_id"] and body["dismissed"]:
+            raise Refused("a promoted report remains linked to its check")
+        con.execute("INSERT INTO player_report_triage(report_id,dismissed) VALUES (?,?) "
+                    "ON CONFLICT(report_id) DO UPDATE SET dismissed=excluded.dismissed", (report_id, int(body["dismissed"])))
+        return full_player_report(report_row(con, source, report_id))
+
+
+def promote_player_report(source, report_id, body) -> dict:
+    with closing(db()) as con, con:
+        con.execute("BEGIN IMMEDIATE")
+        row = report_row(con, source, report_id)
+        check_id = row["check_id"]
+        if check_id is None:
+            check_id = _insert_check(con, check_fields(body, creating=True))
+            con.execute("INSERT INTO player_report_triage(report_id,check_id) VALUES (?,?) "
+                        "ON CONFLICT(report_id) DO UPDATE SET dismissed=0,check_id=excluded.check_id", (report_id, check_id))
+        return full_check(con, check_row(con, check_id))
+
+
+def fetch_request(body: dict) -> dict:
+    """Empty body: the owner pressed Fetch now. taken: <asks> the desk started. done + summary: it finished."""
+    if body.get("done"):
+        unmatched = [{k: str(u.get(k, ""))[:300] for k in ("platform", "url", "text")}
+                     for u in body.get("unmatched") or [] if isinstance(u, dict)][:30]
+        FETCH.update(done=now(), summary=str(body.get("summary", ""))[:600], unmatched=unmatched)
+    elif isinstance(body.get("taken"), int):
+        FETCH["taken"] = max(FETCH["taken"], body["taken"])
+    else:
+        FETCH.update(asks=FETCH["asks"] + 1, requested=now())
+    return FETCH
+
+
+def oauth_landing(query: dict) -> str:
+    state = query.get("state", "")
+    for key in [k for k, v in OAUTH.items() if time.time() - v["at"] > 900]:
+        del OAUTH[key]
+    if not re.fullmatch(r"[A-Za-z0-9_-]{8,64}", state) or not (query.get("code") or query.get("error")):
+        return "This page finishes a platform login started on the desk. Nothing to do here."
+    OAUTH[state] = {"at": time.time(), "code": query.get("code", "").removesuffix("#_"),
+                    "error": query.get("error_description") or query.get("error", "")}
+    return "Login refused: " + OAUTH[state]["error"] if OAUTH[state]["error"] else \
+        "Connected. The desk terminal picks it up in a few seconds; you can close this tab."
 
 
 def check_row(con: sqlite3.Connection, check_id: int) -> sqlite3.Row:
@@ -134,7 +431,12 @@ def full_check(con: sqlite3.Connection, row: sqlite3.Row) -> dict:
              if p.is_file() and p.suffix.lower() in CHECK_MEDIA] if folder.is_dir() else []
     notes = [dict(n) for n in con.execute("SELECT * FROM check_notes WHERE check_id = ? ORDER BY id", (row["id"],))]
     qa = next((QA_RESULT.match(n["body"])[1].lower() for n in reversed(notes) if n["author"] == "qa"), None)
-    return dict(row) | {"notes": notes, "media": media, "qa": qa}
+    source = con.execute("SELECT r.report_id, r.source, r.screenshot_sha256 FROM player_reports r "
+                         "JOIN player_report_triage t USING(report_id) WHERE t.check_id=?", (row["id"],)).fetchone()
+    if source and source["screenshot_sha256"]:
+        media.append(report_url(source) + "/screenshot.jpg")
+    return dict(row) | {"notes": notes, "media": media, "qa": qa,
+                        "source_report": dict(source) if source else None}
 
 
 def check_fields(body: dict, creating: bool = False) -> dict:
@@ -153,15 +455,19 @@ def check_fields(body: dict, creating: bool = False) -> dict:
     return fields
 
 
+def _insert_check(con: sqlite3.Connection, fields: dict) -> int:
+    return con.execute(
+        "INSERT INTO checks (title, steps, area, status, thread, thread_title, created, updated) "
+        "VALUES (?, ?, ?, 'to-try', ?, ?, ?, ?)",
+        (fields["title"], fields["steps"], fields.get("area"), fields.get("thread"),
+         fields.get("thread_title"), now(), now())).lastrowid
+
+
 def add_check(body: dict) -> dict:
     fields = check_fields(body, creating=True)
-    with db() as con:
-        check_id = con.execute(
-            "INSERT INTO checks (title, steps, area, status, thread, thread_title, created, updated) "
-            "VALUES (?, ?, ?, 'to-try', ?, ?, ?, ?)",
-            (fields["title"], fields["steps"], fields.get("area"), fields.get("thread"),
-             fields.get("thread_title"), now(), now())).lastrowid
-        return full_check(con, check_row(con, check_id))
+    with closing(db()) as con, con:
+        con.execute("BEGIN IMMEDIATE")
+        return full_check(con, check_row(con, _insert_check(con, fields)))
 
 
 def patch_check(check_id: int, body: dict) -> dict:
@@ -484,6 +790,7 @@ class Handler(BaseHTTPRequestHandler):
         self.send_header("Content-Type", kind)
         self.send_header("Content-Length", str(len(body)))
         self.send_header("Cache-Control", "no-store")
+        self.send_header("X-Content-Type-Options", "nosniff")
         self.end_headers()
         self.wfile.write(body)
 
@@ -537,11 +844,35 @@ class Handler(BaseHTTPRequestHandler):
                 raise Refused("no such file", 404)
             kind = CHECK_MEDIA.get(target.suffix.lower(), "image/jpeg")
             return self.file(target, kind, f"{parts[1]}-{parts[2]}" if "dl" in query else "")
+        if method == "GET" and path == "/oauth":
+            page = OAUTH_PAGE.format(oauth_landing(query).replace("<", "&lt;"))
+            return self.send(200, page.encode(), "text/html; charset=utf-8")
         if parts[0] != "api":
             raise Refused("not found", 404)
         api = parts[1:]
         if method == "GET" and api == ["board"]:
             return self.json(board())
+        if api[:1] == ["player-reports"]:
+            if method == "GET" and len(api) == 1:
+                return self.json(player_reports(query.get("status", "new"), query.get("before"), query.get("limit", "50")))
+            if method == "POST" and api == ["player-reports", "pull"]:
+                return self.json(request_player_report_pull())
+            if len(api) >= 3:
+                source, report_id = api[1:3]
+                validate_report_identity(source, report_id)
+                if method == "GET" and len(api) == 3:
+                    return self.json(player_report(source, report_id))
+                if method == "GET" and api[3:] == ["screenshot.jpg"]:
+                    with closing(db()) as con:
+                        row = report_row(con, source, report_id)
+                        if row["screenshot_jpeg"] is None:
+                            raise Refused("no screenshot", 404)
+                        return self.send(200, row["screenshot_jpeg"], "image/jpeg")
+                if method == "PATCH" and len(api) == 3:
+                    return self.json(patch_player_report(source, report_id, self.body()))
+                if method == "POST" and api[3:] == ["promote"]:
+                    return self.json(promote_player_report(source, report_id, self.body()))
+            raise Refused("not found", 404)
         if method == "POST" and api == ["checks"]:
             return self.json(add_check(self.body()))
         if api[:1] == ["checks"] and len(api) >= 2:
@@ -556,6 +887,13 @@ class Handler(BaseHTTPRequestHandler):
                 return self.json(add_check_note(check_id, self.body()))
             if method == "PUT" and len(api) == 4 and api[2] == "media":
                 return self.json(upload_check(check_id, api[3], int(self.headers.get("Content-Length", 0)), self.rfile))
+        if method == "GET" and len(api) == 2 and api[0] == "oauth":
+            got = OAUTH.pop(api[1], None)
+            if not got:
+                raise Refused("no login yet", 404)
+            return self.json(got)
+        if api == ["fetch"]:
+            return self.json(FETCH if method == "GET" else fetch_request(self.body()))
         if method == "GET" and api == ["outbox"]:
             return self.json(outbox())
         if method == "POST" and len(api) == 2 and api[0] == "outbox":
@@ -657,6 +995,7 @@ def main() -> None:
         if "made" not in {col["name"] for col in con.execute("PRAGMA table_info(runs)")}:
             con.execute("ALTER TABLE runs ADD COLUMN made TEXT")
     threading.Thread(target=resend_loop, daemon=True).start()
+    start_player_feedback_worker()
     print(f"SLOPArena content factory on http://{args.host}:{args.port}, data in {DATA}", flush=True)
     ThreadingHTTPServer((args.host, args.port), Handler).serve_forever()
 

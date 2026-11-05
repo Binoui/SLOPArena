@@ -167,6 +167,7 @@ namespace SlopArena.EditorTools
             // Every decision samples the same pre-tick world; no bot sees another's new input.
             foreach (var fighter in _fighters)
             {
+                fighter.Memory.ObserveStageHazards(_bridge.InternalSim.StageHazards);
                 var self = _bridge.GetState(fighter.Id);
                 foreach (var other in _fighters)
                     if (other.Id != fighter.Id)

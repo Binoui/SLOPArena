@@ -1,7 +1,7 @@
 using System;
 namespace SlopArena.Shared.Replays;
 
-internal static class ReplaySemanticIds
+internal static partial class ReplaySemanticIds
 {
     internal static string Form(byte f) => f switch
     {
@@ -130,37 +130,6 @@ internal static class ReplaySemanticIds
         CharacterCourseEventKind.Respawned => "respawned",
         CharacterCourseEventKind.Completed => "completed",
         CharacterCourseEventKind.TargetHit => "target-hit",
-        _ => "unknown"
-    };
-    internal static string Id(MankiMayhemPhase v) => v switch
-    {
-        MankiMayhemPhase.Waiting => "waiting",
-        MankiMayhemPhase.Call => "call",
-        MankiMayhemPhase.Pattern => "pattern",
-        MankiMayhemPhase.Settle => "settle",
-        MankiMayhemPhase.Score => "score",
-        MankiMayhemPhase.Break => "break",
-        MankiMayhemPhase.Ended => "ended",
-        _ => "unknown"
-    };
-    internal static string Id(MankiMayhemEventKind v) => v switch
-    {
-        MankiMayhemEventKind.Call => "call",
-        MankiMayhemEventKind.WindUp => "wind-up",
-        MankiMayhemEventKind.Launch => "launch",
-        MankiMayhemEventKind.Bench => "bench",
-        MankiMayhemEventKind.Score => "score",
-        MankiMayhemEventKind.End => "end",
-        MankiMayhemEventKind.Slam => "slam",
-        MankiMayhemEventKind.WallHit => "wall-hit",
-        MankiMayhemEventKind.WallBroken => "wall-broken",
-        _ => "unknown"
-    };
-    internal static string Id(MankiMayhemCard v) => v switch
-    {
-        MankiMayhemCard.Scatter => "scatter",
-        MankiMayhemCard.Jump => "jump",
-        MankiMayhemCard.BreakOut => "break-out",
         _ => "unknown"
     };
     internal static string Id(CourseFormat v) => v switch

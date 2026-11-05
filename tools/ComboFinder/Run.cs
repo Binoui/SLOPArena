@@ -6,6 +6,7 @@ sealed class Runner
 {
     const ulong A = 1, V = 2;
     readonly ArenaDefinition arena; readonly MatchContentEntry att, vic; readonly CharacterState startA, startV; readonly int seed, Seg;
+    internal CpuDifficulty VictimDifficulty { get; init; } = CpuDifficulty.Hard;
     internal Runner(Content content, FighterTape a, FighterTape v, int seed = 1, int seg = 6) { arena = content.Arena; att = content.Resolve(a.Package); vic = content.Resolve(v.Package); this.seed = seed; Seg = seg; startA = Start(att, a.Feet[0], a.Feet[2], a.Yaw, a.Damage); startV = Start(vic, v.Feet[0], v.Feet[2], v.Yaw, v.Damage); }
     CharacterState Start(MatchContentEntry entry, float x, float z, float yawDeg, ushort dmg)
     {
@@ -28,14 +29,18 @@ sealed class Runner
     // Attacker action vocabulary: each entry fills Seg ticks of input relative to the victim.
     static readonly string[] slots = { "1", "2", "3", "A", "E", "R", "F" };
     internal static readonly HashSet<byte> normalWires = new HashSet<byte> { Slot("1"), Slot("2"), Slot("3") };
-    internal static readonly List<string> actions = new List<string> { "idle", "toward", "away", "left", "right", "jump", "jumpToward", "dashToward", "dashAway", "shield", "grab", "down" };
+    // Movement (owner, 2026-11-04: found strings lacked movement). Eight stick directions around the victim, short hops
+    // (jump released inside Simulation.ShortHopWindowTicks), full jumps, jumps away (wall jumps near a wall), aimed air
+    // dodges, and normals pressed while drifting in any direction.
+    internal static readonly string[] moveActions = { "idle", "toward", "away", "left", "right", "towardLeft", "towardRight", "awayLeft", "awayRight",
+        "jump", "jumpToward", "jumpAway", "highJump", "highJumpToward", "dashToward", "dashAway", "dodgeToward", "dodgeAway", "shield", "down" };
+    internal static readonly List<string> actions = moveActions.Append("grab").ToList();
     static Runner()
     {
         foreach (var s in slots) { actions.Add("press" + s); actions.Add("pressToward" + s); }
-        foreach (var s in new[] { "1", "2", "3" }) actions.Add("hopToward" + s);
+        foreach (var s in new[] { "1", "2", "3" }) { actions.Add("hopToward" + s); actions.Add("pressAway" + s); actions.Add("pressLeft" + s); actions.Add("pressRight" + s); }
         actions.Add("aimA"); actions.Add("aimTowardA");
     }
-    internal static readonly string[] moveActions = { "idle", "toward", "away", "left", "right", "jump", "jumpToward", "dashToward", "dashAway", "shield", "down" };
     // Route token -> the press actions that can start it.
     internal static IEnumerable<string> PressesFor(string token)
     {
@@ -68,8 +73,17 @@ sealed class Runner
             case "away": Move(to + 180f); input.AimYaw = input.FacingYaw = Wire(to); break;
             case "left": Move(to - 90f); break;
             case "right": Move(to + 90f); break;
+            case "towardLeft": Move(to - 45f); break;
+            case "towardRight": Move(to + 45f); break;
+            case "awayLeft": Move(to - 135f); input.AimYaw = input.FacingYaw = Wire(to); break;
+            case "awayRight": Move(to + 135f); input.AimYaw = input.FacingYaw = Wire(to); break;
             case "jump": input.JumpHeld = k < 4; input.Jump = k == 0; break;
             case "jumpToward": input.JumpHeld = k < 4; input.Jump = k == 0; Move(to); break;
+            case "jumpAway": input.JumpHeld = k < 4; input.Jump = k == 0; Move(to + 180f); input.AimYaw = input.FacingYaw = Wire(to); break;
+            case "highJump": input.JumpHeld = true; input.Jump = k == 0; break;
+            case "highJumpToward": input.JumpHeld = true; input.Jump = k == 0; Move(to); break;
+            case "dodgeToward": input.ShieldHeld = k < 2; input.ShieldPressed = k == 0; Move(to); break;
+            case "dodgeAway": input.ShieldHeld = k < 2; input.ShieldPressed = k == 0; Move(to + 180f); input.AimYaw = input.FacingYaw = Wire(to); break;
             case "dashToward": input.DashPressed = k == 0; Move(to); break;
             case "dashAway": input.DashPressed = k == 0; Move(to + 180f); break;
             case "shield": input.ShieldHeld = true; input.ShieldPressed = k == 0; break;
@@ -80,13 +94,17 @@ sealed class Runner
             default:
                 if (action.StartsWith("hopToward")) { input.JumpHeld = k < 4; input.Jump = k == 0; Move(to); if (k == 5) input.ActiveSlot = Slot(action[9..]); }
                 else if (action.StartsWith("pressToward")) { if (k == 0) input.ActiveSlot = Slot(action[11..]); Move(to); }
+                else if (action.StartsWith("pressAway")) { if (k == 0) input.ActiveSlot = Slot(action[9..]); Move(to + 180f); input.AimYaw = input.FacingYaw = Wire(to); }
+                else if (action.StartsWith("pressLeft")) { if (k == 0) input.ActiveSlot = Slot(action[9..]); Move(to - 90f); }
+                else if (action.StartsWith("pressRight")) { if (k == 0) input.ActiveSlot = Slot(action[10..]); Move(to + 90f); }
                 else if (action.StartsWith("press") && k == 0) input.ActiveSlot = Slot(action[5..]);
                 break;
         }
         return input;
     }
 
-    internal RunTrace Run(List<string> plan, int lookahead, bool record, InputState[]? tapeA = null, InputState[]? tapeV = null)
+    internal RunTrace Run(List<string> plan, int lookahead, bool record, InputState[]? tapeA = null, InputState[]? tapeV = null, System.Text.StringBuilder? exact = null,
+        int cpuAttackerSeed = -1, CpuDifficulty attackerDifficulty = CpuDifficulty.Hard)
     {
         var sim = new ServerSimulation(arena, NoWinMatchRule.Instance);
         sim.RegisterEntity(A, att.Definition, startA, att.BakedAnimation);
@@ -94,8 +112,12 @@ sealed class Runner
         sim.SetRespawnPosition(A, startA.PX, startA.PY, startA.PZ, startA.FacingYaw);
         sim.SetRespawnPosition(V, startV.PX, startV.PY, startV.PZ, startV.FacingYaw);
         var policy = new HeuristicBotPolicy();
-        var memory = new BotMemory { Difficulty = CpuDifficulty.Hard };
+        var memory = new BotMemory { Difficulty = VictimDifficulty };
         var rng = new Random(seed);
+        // `mine` lets a second CPU play the attacker instead of a planned input sequence.
+        var attackerPolicy = cpuAttackerSeed >= 0 ? new HeuristicBotPolicy() : null;
+        var attackerMemory = new BotMemory { Difficulty = attackerDifficulty };
+        var attackerRng = new Random(Math.Max(0, cpuAttackerSeed));
         var inputs = new Dictionary<ulong, InputState>();
         var r = new RunTrace();
         int total = tapeA?.Length ?? (plan.Count * Seg + lookahead);
@@ -105,7 +127,15 @@ sealed class Runner
         {
             var a = sim.GetState(A); var v = sim.GetState(V);
             string action = t < plan.Count * Seg ? plan[t / Seg] : "idle";
-            var ia = tapeA == null ? AttackerInput(action, t % Seg, a, v) : tapeA[t];
+            InputState ia;
+            if (tapeA != null) ia = tapeA[t];
+            else if (attackerPolicy != null)
+            {
+                attackerPolicy.ObserveOpponent(attackerMemory, v, sim.GetDefinition(V), vic.BakedAnimation, sim.GetActiveMove(V)?.Slot);
+                ia = attackerPolicy.Decide(a, att.Definition.ForForm(a.Form.Active), attackerRng, attackerMemory, arena, att.BakedAnimation,
+                    CpuBehavior.Attack, sim.GetActiveMove(A)?.Slot, canSwapCancel: sim.CanSwapCancel(A));
+            }
+            else ia = AttackerInput(action, t % Seg, a, v);
             policy.ObserveOpponent(memory, a, sim.GetDefinition(A), att.BakedAnimation, sim.GetActiveMove(A)?.Slot);
             var iv = policy.Decide(v, vic.Definition.ForForm(v.Form.Active), rng, memory, arena, vic.BakedAnimation,
                 CpuBehavior.Attack, sim.GetActiveMove(V)?.Slot, canSwapCancel: sim.CanSwapCancel(V));
@@ -116,6 +146,9 @@ sealed class Runner
             sim.Tick(inputs);
             int tick = t + 1;
             var a2 = sim.GetState(A); var v2 = sim.GetState(V);
+            if (exact != null)
+                foreach (var (id, st) in new[] { (A, a2), (V, v2) })
+                { exact.Append(tick).Append(' ').Append(id); AppendExact(exact, "", st); exact.Append('\n'); }
             if (a2.AttackSequence != a.AttackSequence)
             {
                 sequences[a2.AttackSequence] = r.Moves.Count;
@@ -139,6 +172,7 @@ sealed class Runner
             bool victimFree = v2.HitstunTicks == 0 && !v2.InPostHitstunFlight && v2.State != ActionState.Hitstun && v2.State != ActionState.Grabbed;
             r.VictimFree.Add(victimFree);
             r.AttackerAir.Add(!a2.IsGrounded);
+            r.AttackerPlanted.Add(a2.IsGrounded && a2.State == ActionState.Idle && (a2.PX - a.PX) * (a2.PX - a.PX) + (a2.PZ - a.PZ) * (a2.PZ - a.PZ) < 1e-4f);
             r.VictimAir.Add(!v2.IsGrounded);
             if (a2.State == ActionState.HomingDashFloat && a.State != ActionState.HomingDashFloat) r.Beelines.Add(tick);
             r.AttackerPos.Add(new(a2.PX, a2.PY, a2.PZ));
@@ -156,6 +190,17 @@ sealed class Runner
             if (r.VictimKo >= 0 || r.AttackerKo >= 0) break;
         }
         return r;
+    }
+    /// <summary>Same format as SlopArenaPhotoShoot.AppendExact: " name=value" per public field, floats as hex bits.</summary>
+    internal static void AppendExact(System.Text.StringBuilder text, string prefix, object value)
+    {
+        foreach (var field in value.GetType().GetFields(System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance).OrderBy(f => f.Name, StringComparer.Ordinal))
+        {
+            var v = field.GetValue(value);
+            if (v is float f) text.Append(' ').Append(prefix).Append(field.Name).Append('=').Append(BitConverter.SingleToInt32Bits(f).ToString("x8"));
+            else if (v != null && field.FieldType.IsValueType && !field.FieldType.IsPrimitive && !field.FieldType.IsEnum) AppendExact(text, prefix + field.Name + ".", v);
+            else text.Append(' ').Append(prefix).Append(field.Name).Append('=').Append(Convert.ToString(v, System.Globalization.CultureInfo.InvariantCulture));
+        }
     }
     float EdgeDistance(float x, float z, float dx, float dz)
     {

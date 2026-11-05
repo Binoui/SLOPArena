@@ -29,6 +29,7 @@ namespace SlopArena.Client.World
 
         [Header("Network")]
         [SerializeField] private NetworkClient _networkClient;
+        public uint? FeedbackLastObservedServerTick => _networkClient != null ? _networkClient.LastServerTick : null;
         [Header("Combat")]
         [SerializeField] private CombatFeedback _combatFeedback;
         private ProjectileVFXManager _projectileVFX;
@@ -688,7 +689,7 @@ namespace SlopArena.Client.World
                 return;
 
             _lastPresentedDeaths[entityId] = state.Deaths;
-            _hudManager?.ShowStockToast(entityId, MatchConfig.Format == MatchFormat.MankiMayhem ? $"{PlayerLabel(entityId)} · OUT · BACK NEXT ROUND" : MatchConfig.Format.IsCourse() ? $"{PlayerLabel(entityId)} · FALL · CHECKPOINT RESET" : $"{PlayerLabel(entityId)} · −1 LIFE");
+            _hudManager?.ShowStockToast(entityId, MatchConfig.Format == MatchFormat.MankiMayhem ? $"{PlayerLabel(entityId)} · CANCELLED · BACK NEXT CHANNEL" : MatchConfig.Format.IsCourse() ? $"{PlayerLabel(entityId)} · FALL · CHECKPOINT RESET" : $"{PlayerLabel(entityId)} · −1 LIFE");
         }
 
         private string PlayerLabel(ulong entityId)

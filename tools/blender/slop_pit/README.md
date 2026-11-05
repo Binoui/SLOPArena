@@ -16,15 +16,20 @@ command. What is specific to this stage:
 - Fans are built by `parts.fan` and hop and pump their fists through the
   `SLOPArena/StageNeon` bob channel (`Travel` = height and Hz × 10 + phase with a
   zero `TravelDir`); phones, bulbs, fire, neon and slop use the blink, chase, pulse
-  and flicker channels. Nothing animated needs a script.
+  and flicker channels. The slop falls pulse on thin streaks whose phase runs down
+  the fall. Nothing animated needs a script.
+- `SIDE_LIGHT` in `venue.py` lists each side's lamp pools and slop falls. The haze
+  wash, the work lamps, the green spill and the pipe gaps in fences and crowd all read
+  it, so move a pool or a fall in the table, not in the builders.
 - Poster and banner art crops the roster portraits in
   `client/Unity/Assets/Resources/UI/Portraits`; lettering uses the bundled Archivo
-  Black and Space Mono fonts.
+  Black and Space Mono fonts. A rebuild picks up new portraits.
 
 Modules: `layout.py` (shell spec and arena check), `palette.py`, `textures.py` (ring
 canvas, floor, atlas, detail), `parts.py` (stand frames, chain-link, chains, fans),
-`ring.py` (floor, ring, skirt, tower, footing and walkout bridge), `venue.py` (slop,
-pit walls, stands, haze, fences, crowd, rig, signs, corner towers), `build.py`
+`ring.py` (floor, ring, skirt, tower, footing and walkout bridge), `venue.py` (the
+`SIDE_LIGHT` light plan, slop and its falls, pit walls, stands, haze, fences, crowd,
+rig, signs, corner towers), `build.py`
 (checks, AO, export) and `preview.py` (Eevee views at the PvP camera's orbit).
 
 ```bash

@@ -995,7 +995,7 @@ namespace SlopArena.Server
             {
                 var course = p.Course?.Players.FirstOrDefault(x => x.EntityId == e.EntityId);
                 var mayhem = p.Mayhem?.Players.FirstOrDefault(x => x.EntityId == e.EntityId);
-                return new ReplayStanding(e.EntityId, e.Falls, e.KOs, mayhem?.Score ?? course?.Points ?? 0,
+                return new ReplayStanding(e.EntityId, e.Falls, e.KOs, mayhem?.Ratings ?? course?.Points ?? 0,
                     e.Placement, mayhem?.Withdrawn ?? course?.Withdrawn ?? false, course?.FinishTicks ?? 0);
             }).ToArray();
             // Ranked mode results can have several first-place fighters and lower-ranked
@@ -1095,7 +1095,7 @@ namespace SlopArena.Server
                     return order != 0 ? order : a.EntityId.CompareTo(b.EntityId);
                 });
             }
-            MayhemRunResult? mayhem = _sim.MankiMayhem.HasValue ? MayhemRunResult.From(_sim) : null;
+            MayhemRunResult? mayhem = _sim.IsMankiMayhem ? MayhemRunResult.From(_sim) : null;
             if (mayhem != null)
                 ranked = entries.Select(entry => new MatchResultEntry(entry.EntityId, mayhem.PlaceFor(entry.EntityId),
                     entry.KOs, entry.Falls)).OrderBy(e => e.Placement == 0 ? 255 : e.Placement).ThenBy(e => e.EntityId).ToArray();

@@ -9,6 +9,7 @@
             <ui:Label name="ts-input-hint" class="ts-hint" text="ESC / START · ADJUST TRAINING" />
         </ui:VisualElement>
         <ui:ScrollView name="ts-scroll" class="ts-scroll" horizontal-scroller-visibility="Hidden" vertical-scroller-visibility="Auto">
+            <ui:Toggle name="stage-hazards-toggle" class="ts-toggle" label="Stage Hazards" />
             <ui:VisualElement class="ts-section">
                 <ui:Label class="ts-label" text="BEHAVIOR" />
                 <ui:VisualElement class="ts-btn-row">

@@ -89,7 +89,7 @@ def _target(target_id, position, radius, hits=1):
     return target
 
 
-def document(stage, kill_y, meshes, spawns, course=None):
+def document(stage, kill_y, meshes, spawns, course=None, hazard_anchors=None):
     """spawns: [(x, y, z, yaw)] in Spawn_01.. order, y at the spawn marker (body centre).
     course: optional `course(...)` for a solo Character Course."""
     names = [m["name"] for m in meshes]
@@ -100,4 +100,8 @@ def document(stage, kill_y, meshes, spawns, course=None):
                       for i, (x, y, z, yaw) in enumerate(spawns)]}
     if course is not None:
         doc["course"] = course
+    if hazard_anchors is not None:
+        if course is not None:
+            raise ValueError("Arcade courses cannot carry hazard anchors")
+        doc["hazardAnchors"] = hazard_anchors
     return doc

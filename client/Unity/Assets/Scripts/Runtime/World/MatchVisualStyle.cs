@@ -27,6 +27,9 @@ namespace SlopArena.Client.World
         /// <summary>Resting silhouette rim applied to every fighter material.</summary>
         public const float RimStrength = 0.72f, RimPower = 3.2f;
 
+        /// <summary>Camera-facing fill on fighters only, so night stages with a weak key keep them readable (owner pick 2026-11-04).</summary>
+        public const float FighterFill = 0.6f;
+
         /// <summary>Fighter silhouette colour follows camp, course or seat identity.</summary>
         public static Color RimColorFor(PlayerRenderer renderer) => SeatColours.ForFighter(renderer.EntityId, renderer.PlayerNumber);
 
@@ -76,6 +79,7 @@ namespace SlopArena.Client.World
                 Debug.LogWarning("[MatchVisualStyle] SLOPArena/GraphicCharacter shader not found.");
                 return;
             }
+            Shader.SetGlobalFloat("_FighterFill", FighterFill);
 
             foreach (var player in FindObjectsByType<PlayerRenderer>(FindObjectsSortMode.None))
             {

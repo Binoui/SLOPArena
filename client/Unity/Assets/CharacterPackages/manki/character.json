@@ -38,6 +38,7 @@
     "hitMedium": "anim.manki.hit-medium",
     "hitHard": "anim.manki.hit-hard",
     "tumble": "anim.manki.tumble",
+    "wallJump": "anim.manki.walljump",
     "flying": "anim.manki.fly-loop",
     "mayhemLaugh": "anim.manki.gf-loop",
     "crouch": "anim.manki.crouch",

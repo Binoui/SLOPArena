@@ -34,6 +34,11 @@ namespace SlopArena.Client.UI
 
         /// <summary>True while the match menu owns local gameplay input.</summary>
         public bool IsPaused => _paused;
+        public bool FeedbackOnlineContinues => !_freezeSimulation;
+        public void HideForFeedback(bool hidden)
+        {
+            if (_panel != null) _panel.style.display = hidden ? DisplayStyle.None : (_paused ? DisplayStyle.Flex : DisplayStyle.None);
+        }
         public static MatchPauseMenu? Active { get; private set; }
 
         public void SetReturnToLobbyAction(Action? action, bool pending = false, string? error = null)
@@ -70,6 +75,7 @@ namespace SlopArena.Client.UI
 
         private void Update()
         {
+            if (FeedbackOverlay.OwnsInput) return;
             if (_root != null) MenuPrompts.ApplyInputMode(_root);
             // Escape also generates a UI Toolkit cancel event. Whichever path
             // changes pause first consumes the press for this frame.
@@ -170,6 +176,7 @@ namespace SlopArena.Client.UI
             if (_onRetry != null)
                 box.Add(MakeButton("RETRY", Retry));
             box.Add(MakeButton("SETTINGS", OpenSettings));
+            box.Add(MakeButton("FEEDBACK", () => FeedbackOverlay.RequestOpen()));
             _returnToLobbyButton = MakeButton("RETURN TO LOBBY", () => _onReturnToLobby?.Invoke());
             _returnToLobbyButton.style.display = DisplayStyle.None;
             box.Add(_returnToLobbyButton);

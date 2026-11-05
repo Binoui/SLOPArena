@@ -273,6 +273,7 @@ namespace SlopArena.Shared.Replays
         public ulong ElapsedTicks { get; internal set; } = 0;
         public ushort Sequence { get; internal set; } = 0;
     }
+    /// <summary>Legacy round-show event (ADR-0044); read for old files and never decoded.</summary>
     public sealed class ReplayMayhemEvent : ReplayEvent // Kind = "mayhem"
     {
         internal ReplayMayhemEvent()
@@ -287,6 +288,19 @@ namespace SlopArena.Shared.Replays
         public int OperationIndex { get; internal set; } = 0;
         public ushort Points { get; internal set; } = 0;
         // awarded result
+    }
+    public sealed class ReplayMayhemChannelEvent : ReplayEvent // Kind = "mayhem-channel", frame.MayhemEvents (ADR-0061)
+    {
+        internal ReplayMayhemChannelEvent()
+        {
+            Kind = "mayhem-channel";
+        }
+        public string EventId { get; internal set; } = "unknown";
+        public ushort Episode { get; internal set; } = 0;
+        public byte Lane { get; internal set; } = 0;
+        public ulong Operation { get; internal set; } = 0;
+        public ulong Subject { get; internal set; } = 0;
+        public ushort Value { get; internal set; } = 0;
     }
 
     /// <summary>Observed accepted contact; no base knockback, growth, stun formula or slot ordinals.</summary>
@@ -469,6 +483,7 @@ namespace SlopArena.Shared.Replays
         public ulong BreakerId { get; internal set; } = 0;
         // sim.CourseTargetBreaker(index), scramble only
     }
+    /// <summary>Legacy round-show record (ADR-0044); read for old files and never decoded.</summary>
     public sealed class ReplayMayhem : ReplayModeObject // Kind="mayhem", sim.MankiMayhem
     {
         internal ReplayMayhem()
@@ -482,6 +497,7 @@ namespace SlopArena.Shared.Replays
         public ushort PhaseTick { get; internal set; } = 0;
         public int HazardsLaunched { get; internal set; } = 0;
     }
+    /// <summary>Legacy round-show record (ADR-0044); read for old files and never decoded.</summary>
     public sealed class ReplayMayhemPlayer : ReplayModeObject // Kind="mayhem-player", sim.MayhemPlayers
     {
         internal ReplayMayhemPlayer()
@@ -495,6 +511,7 @@ namespace SlopArena.Shared.Replays
         public bool Benched { get; internal set; } = false;
         public bool Withdrawn { get; internal set; } = false;
     }
+    /// <summary>Legacy round-show record (ADR-0044); read for old files and never decoded.</summary>
     public sealed class ReplayMayhemRing : ReplayModeObject // Kind="mayhem-ring", sim.MayhemLandingRings
     {
         internal ReplayMayhemRing()
@@ -508,6 +525,7 @@ namespace SlopArena.Shared.Replays
         public ushort FuseTicks { get; internal set; } = 0;
         // observed telegraph lifetime, not recomputed tuning
     }
+    /// <summary>Legacy round-show record (ADR-0044); read for old files and never decoded.</summary>
     public sealed class ReplayMayhemSlam : ReplayModeObject // Kind="mayhem-slam", sim.MayhemSlams
     {
         internal ReplayMayhemSlam()
@@ -518,7 +536,7 @@ namespace SlopArena.Shared.Replays
         public ReplayVector Position { get; internal set; } = default;
         public uint Tick { get; internal set; } = 0;
     }
-    public sealed class ReplayMayhemWall : ReplayModeObject // Kind="mayhem-wall", sim.MayhemWalls
+    public sealed class ReplayMayhemWall : ReplayModeObject // Kind="mayhem-wall", MayhemView.Scene.Solids
     {
         internal ReplayMayhemWall()
         {
@@ -533,6 +551,109 @@ namespace SlopArena.Shared.Replays
         public byte HitsLeft { get; internal set; } = 0;
         public string PhaseId { get; internal set; } = "unknown";
         public ushort PhaseTick { get; internal set; } = 0;
+    }
+    public sealed class ReplayMayhemShow : ReplayModeObject // Kind="mayhem-show", MayhemView (ADR-0061)
+    {
+        internal ReplayMayhemShow()
+        {
+            Kind = "mayhem-show";
+        }
+        public uint Seed { get; internal set; } = 0;
+        // the plan, cursor and deadlines are a function of the seed and the tick
+        public int Episode { get; internal set; } = -1;
+        public string PhaseId { get; internal set; } = "unknown";
+        public string ChannelId { get; internal set; } = "";
+        // the channel's copy key; empty outside an episode
+    }
+    public sealed class ReplayMayhemContestant : ReplayModeObject // Kind="mayhem-contestant", MayhemView.Contestants
+    {
+        internal ReplayMayhemContestant()
+        {
+            Kind = "mayhem-contestant";
+        }
+        public ulong EntityId { get; internal set; } = 0;
+        public bool OnAir { get; internal set; } = false;
+        public bool Withdrawn { get; internal set; } = false;
+        public uint PassMask { get; internal set; } = 0;
+        public string FailCauseId { get; internal set; } = "";
+        // empty: no failure this episode
+        public string SplatStyleId { get; internal set; } = "";
+        public uint FailTick { get; internal set; } = 0;
+        public ReplayVector Anchor { get; internal set; } = default;
+        public float AnchorYaw { get; internal set; } = 0;
+    }
+    public sealed class ReplayMayhemBomb : ReplayModeObject // Kind="mayhem-bomb", MayhemView.Scene.Bombs
+    {
+        internal ReplayMayhemBomb()
+        {
+            Kind = "mayhem-bomb";
+        }
+        public byte Lane { get; internal set; } = 0;
+        public ushort Ordinal { get; internal set; } = 0;
+        public bool Launched { get; internal set; } = false;
+        public bool Exploded { get; internal set; } = false;
+        public ReplayVector Landing { get; internal set; } = default;
+        public uint LaunchTick { get; internal set; } = 0;
+        public uint ImpactTick { get; internal set; } = 0;
+        public float BlastRadius { get; internal set; } = 0;
+    }
+    public sealed class ReplayMayhemShockwave : ReplayModeObject // Kind="mayhem-shockwave", MayhemView.Scene.Rings
+    {
+        internal ReplayMayhemShockwave()
+        {
+            Kind = "mayhem-shockwave";
+        }
+        public byte Lane { get; internal set; } = 0;
+        public ushort Ordinal { get; internal set; } = 0;
+        public ReplayVector Center { get; internal set; } = default;
+        public uint SlamTick { get; internal set; } = 0;
+        public float Speed { get; internal set; } = 0;
+        public float HalfWidth { get; internal set; } = 0;
+        public float HalfHeight { get; internal set; } = 0;
+        public ushort LifetimeTicks { get; internal set; } = 0;
+    }
+    public sealed class ReplayMayhemZone : ReplayModeObject // Kind="mayhem-zone", MayhemView.Scene.Zones
+    {
+        internal ReplayMayhemZone()
+        {
+            Kind = "mayhem-zone";
+        }
+        public byte Lane { get; internal set; } = 0;
+        public ushort Ordinal { get; internal set; } = 0;
+        public string ZoneId { get; internal set; } = "unknown";
+        public ReplayVector Center { get; internal set; } = default;
+        public float Radius { get; internal set; } = 0;
+        public uint ActiveFrom { get; internal set; } = 0;
+        public uint ActiveUntil { get; internal set; } = 0;
+    }
+    public sealed class ReplayMayhemWatch : ReplayModeObject // Kind="mayhem-watch", MayhemView.Scene.Watches
+    {
+        internal ReplayMayhemWatch()
+        {
+            Kind = "mayhem-watch";
+        }
+        public byte Lane { get; internal set; } = 0;
+        public ushort Ordinal { get; internal set; } = 0;
+        public uint WarningTick { get; internal set; } = 0;
+        public uint StartTick { get; internal set; } = 0;
+        public uint EndTick { get; internal set; } = 0;
+    }
+    public sealed class ReplayMayhemTarget : ReplayModeObject // Kind="mayhem-target", MayhemView.Scene.Targets
+    {
+        internal ReplayMayhemTarget()
+        {
+            Kind = "mayhem-target";
+        }
+        public byte Lane { get; internal set; } = 0;
+        public ushort Ordinal { get; internal set; } = 0;
+        public string TargetId { get; internal set; } = "unknown";
+        public ulong EntityId { get; internal set; } = 0;
+        public ulong OwnerId { get; internal set; } = 0;
+        public ReplayVector Center { get; internal set; } = default;
+        public float Radius { get; internal set; } = 0;
+        public float HalfHeight { get; internal set; } = 0;
+        public byte HitsLeft { get; internal set; } = 0;
+        public byte Hits { get; internal set; } = 0;
     }
 }
 

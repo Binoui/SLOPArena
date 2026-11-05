@@ -18,6 +18,20 @@ namespace SlopArena.Client.World
     {
         public static MatchBase Active { get; private set; }
 
+        public System.Collections.Generic.IReadOnlyList<FeedbackFighter> DescribeFeedbackFighters()
+        {
+            var result = new System.Collections.Generic.List<FeedbackFighter>();
+            foreach (var pair in _fighters)
+            {
+                if (result.Count == 4) break;
+                var definition = pair.Value != null ? pair.Value.CharacterDef : null;
+                var entry = definition == null ? null : ClientSession.MatchContentCatalog?.Resolve(definition.Class);
+                if (entry != null && pair.Key != 0)
+                    result.Add(new FeedbackFighter(pair.Key, entry.Identity.PackageId, entry.Identity.Version, entry.Identity.CookedContentHash));
+            }
+            return result.AsReadOnly();
+        }
+
         protected virtual void Awake() => Active = this;
 
         // Subclasses provide the bridge (local sim or network)
@@ -273,6 +287,8 @@ namespace SlopArena.Client.World
             _timelinePresentations.Tick(Bridge.LastTickPresentationEvents, Bridge.GetActiveMove);
             TetherRopes.Present(Bridge, Bridge.LastTickPresentationEvents);
         }
+
+        protected void UnregisterHostPresentation(ulong id) => _timelinePresentations.UnregisterHost(id);
 
         protected void RegisterHostPresentation(ulong id, Transform root, CharacterAnimationCatalog catalog)
             => _timelinePresentations.RegisterHost(id, root, catalog);

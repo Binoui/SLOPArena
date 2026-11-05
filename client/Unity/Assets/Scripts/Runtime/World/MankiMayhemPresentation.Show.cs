@@ -4,7 +4,9 @@ using System.Linq;
 using Animancer;
 using SlopArena.Client.UI;
 using SlopArena.Shared;
+using SlopArena.Shared.Mayhem;
 using UnityEngine;
+using UnityEngine.UIElements;
 using Object = UnityEngine.Object;
 
 namespace SlopArena.Client.World
@@ -14,19 +16,11 @@ namespace SlopArena.Client.World
         private sealed class Crt
         {
             public Transform Root, Raster;
+            public Renderer Guest;
+            public Material GuestMaterial;
             public TextMesh Title, Subtitle, Header;
         }
-        private sealed class BoothSeat
-        {
-            public GameObject Rig;
-            public AnimancerComponent Animator;
-            public AnimationClip Idle;
-            public TextMesh Label;
-            public bool WasActive;
-            public Vector3 Position;
-        }
         private readonly List<Crt> _screens = new();
-        private readonly Dictionary<ulong, BoothSeat> _bench = new();
         private readonly Dictionary<MayhemEventKey, GameObject> _showSounds = new();
         private Font _showFont;
         private Material _screenInk;
@@ -74,52 +68,25 @@ namespace SlopArena.Client.World
                 crt.Raster = Line(root, "Travelling raster", _gold, .025f).transform;
                 var raster = crt.Raster.GetComponent<LineRenderer>(); raster.positionCount = 2;
                 raster.SetPositions(new[] { new Vector3(-5.1f, 0f, -.1f), new Vector3(5.1f, 0f, -.1f) });
+                var guest = GameObject.CreatePrimitive(PrimitiveType.Quad); Object.Destroy(guest.GetComponent<Collider>());
+                guest.transform.SetParent(root,false); guest.transform.localPosition = new Vector3(-4f,1f,-.12f);
+                guest.transform.localScale = new Vector3(1.5f,1.6f,1);
+                crt.Guest=guest.GetComponent<Renderer>(); crt.GuestMaterial=Material(Color.white); crt.Guest.sharedMaterial=crt.GuestMaterial;
                 _screens.Add(crt);
-            }
-            int seatIndex = 0;
-            foreach (var identity in players)
-            {
-                var catalog = _fighters[identity.EntityId].PresentationCatalog;
-                var rig = Object.Instantiate(catalog.Rig, _root);
-                rig.name = $"Booth P{identity.PlayerNumber} waiting fighter";
-                float x = new[] { -7.8f, -5.1f, 5.1f, 7.8f }[seatIndex++];
-                rig.transform.SetPositionAndRotation(Host.Root.position + new Vector3(x, .2f, -3.25f), Quaternion.Euler(0, 180, 0));
-                foreach (var collider in rig.GetComponentsInChildren<Collider>()) Object.Destroy(collider);
-                var animator = rig.GetComponentInChildren<Animator>(); animator.applyRootMotion = false;
-                animator.cullingMode = AnimatorCullingMode.AlwaysAnimate;
-                var animancer = animator.GetComponent<AnimancerComponent>();
-                if (animancer == null) animancer = animator.gameObject.AddComponent<AnimancerComponent>();
-                animancer.Animator = animator;
-                var idle = catalog.Animations.First(a => a.SemanticId.EndsWith(".idle", StringComparison.Ordinal)).Clip;
-                var pose = animancer.Play(idle); pose.Speed = 0; animancer.Evaluate(0);
-                var renderers = rig.GetComponentsInChildren<Renderer>();
-                float height = renderers.Max(r => r.bounds.max.y) - renderers.Min(r => r.bounds.min.y);
-                rig.transform.localScale *= 3.2f / height;
-                rig.transform.position += Vector3.up * (Host.Root.position.y + .2f - renderers.Min(r => r.bounds.min.y));
-                var label = Lettering(_root, $"Booth P{identity.PlayerNumber} OUT", Host.Root.position + new Vector3(x, 3.9f, -3.25f),
-                    .65f, SeatColours.For(identity.PlayerNumber));
-                label.transform.position = Host.Root.position + new Vector3(x, 3.9f, -3.25f);
-                label.text = $"P{identity.PlayerNumber} · OUT";
-                var seat = new BoothSeat { Rig = rig, Animator = animancer, Idle = idle, Label = label,
-                    WasActive = _fighters[identity.EntityId].gameObject.activeSelf, Position = rig.transform.position };
-                var pad = GameObject.CreatePrimitive(PrimitiveType.Cube); pad.name = $"Booth P{identity.PlayerNumber} bench pad";
-                Object.Destroy(pad.GetComponent<Collider>()); pad.transform.SetParent(_root, false);
-                pad.transform.position = Host.Root.position + new Vector3(x, .1f, -3.25f);
-                pad.transform.localScale = new Vector3(2.2f, .18f, 1.15f); pad.GetComponent<Renderer>().sharedMaterial = _gold;
-                rig.SetActive(false); label.gameObject.SetActive(false); _bench.Add(identity.EntityId, seat);
             }
         }
 
-        private void ShowEvents(IReadOnlyList<MankiMayhemEvent> events, IReadOnlyList<MankiMayhemEvent> retracted)
+        private void ShowEvents(IReadOnlyList<MayhemEvent> events, IReadOnlyList<MayhemEvent> retracted)
         {
             if (retracted != null)
                 foreach (var e in retracted)
                     if (_showSounds.Remove(e.Key, out var sound)) Object.Destroy(sound);
             foreach (var e in events)
             {
-                AudioClip clip = e.Kind == MankiMayhemEventKind.Call ? _callSting
-                    : e.Kind == MankiMayhemEventKind.Slam ? _slamSting
-                    : e.Kind == MankiMayhemEventKind.End || e.Kind == MankiMayhemEventKind.Score && e.Points > MankiMayhemTuning.SurvivalPoints ? _bonusSting : null;
+                AudioClip clip = e.Kind == MayhemEventKind.Call ? _callSting
+                    : e.Kind == MayhemEventKind.WatchStart ? Resources.Load<AudioClip>("Audio/SFX/Bashie/bashie_whistle_tweet")
+                    : e.Kind == MayhemEventKind.Slam ? _slamSting
+                    : e.Kind == MayhemEventKind.Ended || e.Kind == MayhemEventKind.SpeedUp ? _bonusSting : null;
                 if (clip == null || _showSounds.ContainsKey(e.Key) || !PresentationOutput.TryPlay()) continue;
                 var sound = new GameObject("Mayhem show sting"); sound.transform.SetParent(_root, false);
                 var audio = sound.AddComponent<AudioSource>(); audio.clip = clip; audio.volume = .32f; audio.spatialBlend = 0;
@@ -133,42 +100,69 @@ namespace SlopArena.Client.World
 
         private void UpdateShow()
         {
-            if (_sim.MankiMayhem is not MankiMayhemState state) return;
-            foreach (var player in _sim.MayhemPlayers)
+            var view = _sim.MayhemView; if (view == null) return;
+            foreach (var player in view.Contestants)
             {
-                var seat = _bench[player.EntityId];
-                bool waiting = player.Benched && !player.Withdrawn;
-                seat.Rig.SetActive(waiting); seat.Label.gameObject.SetActive(waiting);
-                _fighters[player.EntityId].gameObject.SetActive(!player.Benched && seat.WasActive);
-                if (waiting)
+                var fighter = _fighters[player.EntityId];
+                fighter.gameObject.SetActive(!player.Withdrawn);
+                foreach(var child in fighter.GetComponentsInChildren<Transform>())
+                    if(child.name=="Jetpack fuel") child.gameObject.SetActive(false);
+                if (!_originalScale.TryGetValue(player.EntityId,out var scale)) _originalScale[player.EntityId] = scale = fighter.transform.localScale;
+                fighter.transform.localScale = player.Failure?.Style == SplatStyle.Flattened ? Vector3.Scale(scale,new Vector3(1.5f,.2f,1.5f)) : scale;
+                foreach (var renderer in fighter.GetComponentsInChildren<Renderer>())
                 {
-                    var idle = seat.Animator.Play(seat.Idle); idle.Speed = 0;
-                    idle.Time = _sim.CurrentTick / 60f % seat.Idle.length; seat.Animator.Evaluate(0);
-                    seat.Rig.transform.position = seat.Position;
+                    var block = new MaterialPropertyBlock();
+                    renderer.GetPropertyBlock(block);
+                    block.SetColor("_BaseColor",player.Failure?.Style == SplatStyle.Toasted ? new Color(.2f,.15f,.12f) : Color.white);
+                    renderer.SetPropertyBlock(block);
+                }
+                for (int i=0;i<3;i++)
+                {
+                    var puff = Prop($"Splat {player.EntityId}/{i}",PrimitiveType.Sphere,_gold);
+                    bool failed = player.Failure != null;
+                    puff.gameObject.SetActive(failed);
+                    if (!failed) continue;
+                    var failure = player.Failure.Value;
+                    float age = (view.Tick-failure.Tick)/60f;
+                    bool dizzy = failure.Style == SplatStyle.Dizzy;
+                    float angle = age*4 + i*Mathf.PI*2/3;
+                    puff.position = fighter.transform.position + new Vector3(Mathf.Cos(angle)*.6f,dizzy?2f:.3f+(age%1f),Mathf.Sin(angle)*.6f);
+                    puff.localScale = Vector3.one*(dizzy?.32f:.35f);
+                    puff.GetComponent<Renderer>().enabled=!dizzy;
+                    var colour=new MaterialPropertyBlock(); colour.SetColor("_BaseColor",failure.Style==SplatStyle.Toasted?new Color(.22f,.2f,.18f):new Color(.65f,.5f,.25f)); puff.GetComponent<Renderer>().SetPropertyBlock(colour);
+                    if(dizzy && puff.childCount==0)
+                    {
+                        var star=Line(puff,"Dizzy star",_gold,.12f); star.positionCount=11;
+                        for(int j=0;j<=10;j++) { float a=j*Mathf.PI/5; float radius=j%2==0?1f:.4f; star.SetPosition(j,new Vector3(Mathf.Sin(a)*radius,Mathf.Cos(a)*radius,0)); }
+                    }
+                    if(puff.childCount>0) puff.GetChild(0).gameObject.SetActive(dizzy);
                 }
             }
-            bool call = state.Phase == MankiMayhemPhase.Call;
-            string scores = string.Join("\n", _sim.MayhemPlayers.OrderByDescending(p => p.Score).Select(p =>
-                $"{_view.Find(p.EntityId).Label}   {p.Score:00}{(p.Benched ? "  OUT" : "")}"));
+            var c = view.Cursor;
+            UISFX.SetMayhemMusicAct(c.Act);
+            string title = c.Phase == MayhemPhase.Intro ? "YOU'RE ON AIR!" : c.Phase == MayhemPhase.SpeedUp ? "SPEED UP!" : c.Phase == MayhemPhase.Ended ? "THAT'S THE SHOW!" : MankiMayhemView.CardTitle(view.Channel);
+            string subtitle = view.Scene.Watches.Count>0 ? MankiMayhemView.WatchText(view) : MankiMayhemView.CardSubtitle(view.Channel);
             foreach (var crt in _screens)
             {
-                crt.Header.text = state.Ended ? "THAT'S THE SHOW!" : $"MANKI MAYHEM  /  {state.RoundIndex + 1:00}";
-                crt.Title.transform.localPosition = new Vector3(0, call ? 1.15f : .45f, -.06f);
-                crt.Title.text = call ? MankiMayhemView.CardTitle(state.Card) : scores;
-                crt.Title.characterSize = (call ? (state.Card == MankiMayhemCard.BreakOut ? 1.04f : 1.3f) : .65f) * .1f;
-                crt.Subtitle.text = call ? MankiMayhemView.CardSubtitle(state.Card).Replace(" · ", "\n")
-                    : state.Ended ? "THANKS FOR SURVIVING" : "LIVE SCORES / SURVIVE TO SCORE";
-                float flicker = ClientSettingsService.Instance.ReducedFlashing ? 1f : .94f + .06f * Mathf.Sin(_sim.CurrentTick * 1.7f);
-                crt.Title.color = new Color(flicker, .78f * flicker, .17f * flicker);
+                var guest = view.Channel?.Id == MayhemChannels.NoRunning ? CharacterClass.Bashie : view.Channel?.Id == MayhemChannels.BreakBoards ? CharacterClass.FightGuy : CharacterClass.None;
+                crt.Guest.gameObject.SetActive(guest != CharacterClass.None);
+                if(guest != CharacterClass.None) crt.GuestMaterial.SetTexture("_BaseMap",Resources.Load<Texture2D>($"UI/Portraits/{guest}"));
+                crt.Header.text = $"MANKI MAYHEM / ACT {c.Act+1} / {Math.Max(0,c.Episode+1):00}";
+                crt.Title.text = title;
+                crt.Title.characterSize = (title.Length>14?.62f:1.1f)*.1f;
+                crt.Subtitle.text = subtitle.Replace(". ",".\n") + "\n" + ((Label)HUDManager.MayhemChip(SlopArena.Client.Input.HumanInputActions.LastUsedGamepad?"MoveStick":"MoveUp","Move")).text + "\n" + ((Label)HUDManager.MayhemChip("Jump","Jump")).text + "   " + ((Label)HUDManager.MayhemChip("Normal1","Hit")).text;
+                crt.Subtitle.characterSize = .045f;
+                crt.Title.color = view.Scene.Watches.Count>0 ? (subtitle=="NOT LOOKING"?Color.green:Color.red) : MayhemChannelLooks.For(view.Channel).Accent;
                 crt.Raster.gameObject.SetActive(!ClientSettingsService.Instance.ReducedFlashing);
-                crt.Raster.localPosition = Vector3.up * (3f - _sim.CurrentTick % 180 / 30f);
+                crt.Raster.localPosition = Vector3.up*(3f-view.Tick%180/30f);
             }
         }
+        private readonly Dictionary<ulong,Vector3> _originalScale = new();
 
         private void DisposeShow()
         {
-            foreach (var pair in _bench)
-                if (_fighters[pair.Key] != null) _fighters[pair.Key].gameObject.SetActive(pair.Value.WasActive);
+            UISFX.SetMayhemMusicAct(0);
+            foreach(var crt in _screens) Object.Destroy(crt.GuestMaterial);
             Object.Destroy(_screenInk);
         }
     }

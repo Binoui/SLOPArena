@@ -141,6 +141,11 @@ namespace SlopArena.Client.UI
         public static bool IsLocalMayhem => Mode == GameMode.Solo && Format == MatchFormat.MankiMayhem;
         public static FriendlyFireMode FriendlyFire;
         public static bool BallOnly;
+        public static StageHazardMode StageHazards = StageHazardMode.On;
+        public static uint StageHazardSeed;
+
+        public static bool HasStageHazardFamily(ArenaDefinition arena)
+            => SlopArena.Shared.StageHazards.StageHazardFamilies.IsAvailable(arena);
         public static Dictionary<ulong, SlopballCamp> Camps = new();
         public static Dictionary<ulong, byte> Colours = new();
 
@@ -149,6 +154,8 @@ namespace SlopArena.Client.UI
             Format = MatchFormat.Stock;
             FriendlyFire = FriendlyFireMode.Off;
             BallOnly = false;
+            StageHazards = StageHazardMode.On;
+            StageHazardSeed = 0;
             Camps.Clear();
             Colours.Clear();
             Mode = GameMode.Training;

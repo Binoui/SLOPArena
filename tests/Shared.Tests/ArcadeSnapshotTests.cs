@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using SlopArena.Shared.Mayhem;
 using Xunit;
 using Xunit.Abstractions;
 using static SlopArena.Shared.Tests.SlopballTests;
@@ -173,50 +174,37 @@ public class ArcadeSnapshotTests
     [Theory]
     [InlineData(41u)]
     [InlineData(1337u)]
-    public void MayhemRestoreBeforeEveryTickMatchesContinuousRoundsAndEvents(uint seed)
+    public void MayhemRestoreBeforeEveryTickMatchesTheContinuousShow(uint seed)
     {
-        var continuous = MankiMayhemTests.NewMatch(seed);
-        var restored = MankiMayhemTests.NewMatch(seed, reverse: true);
-        var phases = new HashSet<MankiMayhemPhase>();
-        var cards = new HashSet<MankiMayhemCard>();
-        int restores = 0, attachedTicks = 0, benchTicks = 0;
+        var continuous = MayhemWorld.NewShow(seed, roster: MayhemWorld.Four);
+        var restored = MayhemWorld.NewShow(seed, roster: MayhemWorld.Four, reverse: true);
+        var cpus = MayhemWorld.Cpus(continuous, 6);
+        var phases = new HashSet<MayhemPhase>();
+        var channels = new HashSet<ChannelId>();
+        int restores = 0, failedTicks = 0;
+        uint fall = continuous.MayhemShow!.Plan!.PlayStart(1) + 20;
         while (!continuous.EvaluateMatch().IsEnded && continuous.CurrentTick < 20000)
         {
-            if (continuous.CurrentTick == 10)
-            {
-                var carrier = continuous.GetState(1);
-                continuous.Resolver.Spawn(new Hitbox { OwnerId = ServerSimulation.MayhemHostEntityId,
-                    X = carrier.PX, Y = carrier.PY, Z = carrier.PZ, Radius = .4f, DurationTicks = 2,
-                    StickyFuseTicks = 30, Explosion = new ProjectileExplosion { Radius = 2, Damage = 12, DurationTicks = 2 } });
-            }
-            if (continuous.CurrentTick == 22) MankiMayhemTests.Ko(continuous, 2);
-            if (continuous.CurrentTick == 30) continuous.WithdrawMayhemPlayer(3);
-            if (continuous.MayhemWalls.FirstOrDefault(w => w.Blocks) is { EntityId: > 0 } wall
-                && continuous.CurrentTick % 17 == 0)
-                continuous.Resolver.Spawn(new Hitbox { OwnerId = 1, X = wall.Center.X, Y = 1, Z = wall.Center.Z,
-                    Radius = .4f, Damage = 1, DurationTicks = 1 });
+            if (continuous.CurrentTick == 900) continuous.WithdrawMayhemPlayer(3);
+            if (continuous.CurrentTick == fall) MayhemWorld.Ko(continuous, 2, -5f);
             continuous.ClearPresentationEvents();
             restored.RestoreSnapshot(continuous.CaptureSnapshot()); restores++;
-            var inputs = new Dictionary<ulong, InputState>
-            {
-                [1] = new() { MoveX = continuous.CurrentTick % 80 < 40 ? .1f : -.1f },
-                [2] = new() { Jump = continuous.CurrentTick % 101 == 0 },
-            };
+            var inputs = new Dictionary<ulong, InputState>();
+            foreach (var (id, cpu) in cpus) inputs[id] = cpu.Decide(continuous, id);
             continuous.Tick(new(inputs)); restored.Tick(new(inputs));
             Assert.True(continuous.CaptureSnapshot().ContentEquals(restored.CaptureSnapshot()),
                 $"Mayhem seed {seed} diverged at tick {continuous.CurrentTick}.");
             Assert.Equal(continuous.LastTickMayhemEvents, restored.LastTickMayhemEvents);
             Assert.Equal(continuous.GetPresentationEvents(), restored.GetPresentationEvents());
-            phases.Add(continuous.MankiMayhem!.Value.Phase);
-            cards.Add(continuous.MankiMayhem!.Value.Card);
-            if (continuous.Resolver.GetActiveHitboxes().Any(h => h.AttachedEntityId != 0)) attachedTicks++;
-            if (continuous.IsEntityInactive(2)) benchTicks++;
+            var view = continuous.MayhemView!;
+            phases.Add(view.Cursor.Phase);
+            if (view.Channel != null) channels.Add(view.Channel.Id);
+            if (view.Contestants.Any(c => c.Verdict == MayhemVerdict.Failed)) failedTicks++;
         }
         Assert.True(continuous.EvaluateMatch().IsEnded);
-        Assert.True(restores > 500); Assert.True(attachedTicks >= 30); Assert.True(benchTicks > 20);
-        Assert.Equal(6, phases.Count);
-        Assert.Equal(Enum.GetValues<MankiMayhemCard>().Order(), cards.Order());
-        _output.WriteLine($"seed {seed}: restores {restores}, attached ticks {attachedTicks}, bench ticks {benchTicks}");
+        Assert.True(restores > 5000); Assert.True(failedTicks > 0);
+        Assert.Equal(Enum.GetValues<MayhemPhase>().Order(), phases.Order());
+        _output.WriteLine($"seed {seed}: restores {restores}, ticks with a splat {failedTicks}, channels {string.Join(",", channels)}");
     }
 
     private static IEnumerable<FieldInfo> MutableFields(Type type)

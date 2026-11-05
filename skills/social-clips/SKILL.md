@@ -109,9 +109,13 @@ The reveal rule above still applies.
    README lists the options). Every stage start layout is searched; edge layouts find most
    KOs. Keep each combo JSON whole. Review the landed string and KO before proposing.
 2. `python3 tools/combo_clip.py propose <combo.json>...` first replays each combo in Unity
-   with one tiny camera (`check`, about 20 s) and skips any whose hits or KO differ: Unity's
-   Mono and the headless .NET run can part ways on some moves (a Wibou run attack turned
-   0.08° apart on 2026-11-02), and only Unity's version can be filmed. Passing combos become
+   with one tiny camera (`check`, about 20 s) and skips any whose hits or KO differ. Unity's
+   Mono computes floats in double precision and .NET 8 does not, so small gaps grow over a
+   fight ([netcode architecture](../../docs/systems/netcode-architecture.md#cross-runtime-float-precision-measured-2026-11-04)).
+   On 2026-11-04 five of six movement-heavy fights failed this check. A combo that passes plays
+   out the same on players' Mono clients and on the .NET GameHost, which is what makes the clip
+   real. Do not launch the Editor with `MONO_ARGUMENTS=-O=float32` to rescue combos: footage
+   must match shipped players (owner, 2026-11-04). Sweep more fights instead. Passing combos become
    proposed ideas; the summary is the title and idea text, and the owner approves on the board.
    A long sweep can run as a detached service, but run `check`, `propose` and `record` from the
    agent session (`systemd-run --user --scope`): the gateway refuses callers without an agent identity.

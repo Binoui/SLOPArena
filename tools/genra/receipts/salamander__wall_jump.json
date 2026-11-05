@@ -1,0 +1,345 @@
+{
+  "schema_version": 1,
+  "move": "shared-wall-jump-kickoff",
+  "target": "Assets/CharacterPackages/salamander/Animations/wall_jump.anim",
+  "source_asset": "Assets/Art/Experiments/GenRA/bonk/shared-wall-jump-kickoff.anim",
+  "source_run": "artifacts/genra-runs/20261101-195902-shared-wall-jump-kickoff",
+  "revise_parent": null,
+  "keys_run": null,
+  "transforms": {
+    "ticks": null,
+    "retime": null,
+    "alignOrigin": false,
+    "loopTime": false,
+    "grounding": null
+  },
+  "final_check": {
+    "status": "PASS",
+    "scope": "source run",
+    "flow_metrics": {},
+    "report": {
+      "mode": "full",
+      "skipped": [],
+      "passed": true,
+      "failures": [],
+      "warnings": [
+        {
+          "check": "clearance",
+          "message": "Weapon-Head within 1.0 cm at tick 18 (touching or intersecting)",
+          "pair": "Weapon-Head",
+          "tick": 18
+        }
+      ],
+      "metrics": {
+        "exitErrorMetres": 7.501121251585403e-07,
+        "hipTravelMetres": 0.06708203932499376,
+        "humanoid digit off-axis (deg)": 1.1493588703022688e-05,
+        "humanoid limits exceeded by (deg)": 1.597860352469985e-05,
+        "maxDegreesPerTick": 66.50635037693543,
+        "max roll about a limb bone (deg/tick)": 23.942262568026667,
+        "closestMetres": {
+          "LeftHand-Head": [
+            0.4575,
+            10
+          ],
+          "RightHand-Head": [
+            0.1753,
+            18
+          ],
+          "LeftForeArm-Head": [
+            0.3213,
+            10
+          ],
+          "RightForeArm-Head": [
+            0.1576,
+            18
+          ],
+          "LeftHand-Torso": [
+            0.065,
+            0
+          ],
+          "RightHand-Torso": [
+            0.0517,
+            0
+          ],
+          "LeftHand-RightHand": [
+            0.5552,
+            0
+          ],
+          "LeftHand-LeftLeg": [
+            0.0843,
+            2
+          ],
+          "LeftHand-RightLeg": [
+            0.3168,
+            0
+          ],
+          "RightHand-LeftLeg": [
+            0.289,
+            0
+          ],
+          "RightHand-RightLeg": [
+            0.073,
+            0
+          ],
+          "LeftLeg-RightLeg": [
+            0.002,
+            6
+          ],
+          "LeftFoot-RightFoot": [
+            0.0045,
+            2
+          ],
+          "LeftFoot-Torso": [
+            0.0657,
+            0
+          ],
+          "RightFoot-Torso": [
+            0.085,
+            0
+          ],
+          "LeftHand-LeftFoot": [
+            0.3877,
+            0
+          ],
+          "RightHand-RightFoot": [
+            0.3058,
+            0
+          ],
+          "Weapon-Head": [
+            0.0096,
+            18
+          ],
+          "Weapon-Torso": [
+            0.0013,
+            2
+          ],
+          "Weapon-LeftLeg": [
+            0.1033,
+            0
+          ],
+          "Weapon-RightLeg": [
+            0.0005,
+            0
+          ],
+          "Weapon-LeftHand": [
+            0.4986,
+            0
+          ],
+          "LeftForeArm-Prop": [
+            0.0128,
+            14
+          ],
+          "RightForeArm-Prop": [
+            0.26,
+            0
+          ],
+          "LeftHand-Prop": [
+            0.1723,
+            4
+          ],
+          "RightHand-Prop": [
+            0.483,
+            0
+          ],
+          "Head-Prop": [
+            0.0133,
+            10
+          ]
+        },
+        "face visible from the front (min)": 0.9090909090909091,
+        "left wrist bend max (deg)": 45.19046339030752,
+        "right wrist bend max (deg)": 45.33190765003453,
+        "life: torso swing (deg)": 6.5820207572015095,
+        "life: head bob against the hips / hips bob": 0.9690596469355395,
+        "plant: left foot ahead of the hips at tick 0 (m)": 0.3803879540536448,
+        "plant: right foot ahead of the hips at tick 0 (m)": 0.3596238764491725,
+        "plant: left foot high, at most 0.45 m below the hips at tick 0 (m)": 0.36133526237671365,
+        "plant: right foot high, at most 0.45 m below the hips at tick 0 (m)": 0.3803750291974446,
+        "plant: right hand behind the chest at tick 0 (m)": -0.2180139424398876,
+        "plant: plank tip behind the hilt at tick 0 (m)": -1.0788615146874192,
+        "push: left leg extended, foot far from the hips at tick 4 (m)": 0.8391652689285786,
+        "push: right leg extended, foot far from the hips at tick 4 (m)": 0.832445365755576,
+        "push: left foot still ahead of the hips at tick 4 (m)": 0.40546443420974665,
+        "push: plank tip to the right of the centre line at tick 4 (m)": 1.785658890522588,
+        "release: left hand at or above the upper chest at tick 9 (m)": 0.1481310923862056,
+        "release: right hand at or above the upper chest at tick 9 (m)": 0.14813586454168326,
+        "release: slight lean back, head not ahead of the hips at tick 8 (m)": -0.018538808778216634,
+        "hips stay near the fall height (m)": 0.059999997719999865
+      },
+      "checkpointOnly": false
+    }
+  },
+  "clip_sha256": "052cdfaf2a55433a7b326c90eb69107014fb61114876ec195a75ca777101c200",
+  "runs": [
+    {
+      "run": "artifacts/genra-runs/20261101-195902-shared-wall-jump-kickoff",
+      "stage": "full",
+      "cost_usd": 0.4915307999999999,
+      "config_recorded": true,
+      "flow_clean": null,
+      "check": {
+        "mode": "full",
+        "skipped": [],
+        "passed": true,
+        "failures": [],
+        "warnings": [
+          {
+            "check": "clearance",
+            "message": "Weapon-Head within 1.0 cm at tick 18 (touching or intersecting)",
+            "pair": "Weapon-Head",
+            "tick": 18
+          }
+        ],
+        "metrics": {
+          "exitErrorMetres": 7.501121251585403e-07,
+          "hipTravelMetres": 0.06708203932499376,
+          "humanoid digit off-axis (deg)": 1.1493588703022688e-05,
+          "humanoid limits exceeded by (deg)": 1.597860352469985e-05,
+          "maxDegreesPerTick": 66.50635037693543,
+          "max roll about a limb bone (deg/tick)": 23.942262568026667,
+          "closestMetres": {
+            "LeftHand-Head": [
+              0.4575,
+              10
+            ],
+            "RightHand-Head": [
+              0.1753,
+              18
+            ],
+            "LeftForeArm-Head": [
+              0.3213,
+              10
+            ],
+            "RightForeArm-Head": [
+              0.1576,
+              18
+            ],
+            "LeftHand-Torso": [
+              0.065,
+              0
+            ],
+            "RightHand-Torso": [
+              0.0517,
+              0
+            ],
+            "LeftHand-RightHand": [
+              0.5552,
+              0
+            ],
+            "LeftHand-LeftLeg": [
+              0.0843,
+              2
+            ],
+            "LeftHand-RightLeg": [
+              0.3168,
+              0
+            ],
+            "RightHand-LeftLeg": [
+              0.289,
+              0
+            ],
+            "RightHand-RightLeg": [
+              0.073,
+              0
+            ],
+            "LeftLeg-RightLeg": [
+              0.002,
+              6
+            ],
+            "LeftFoot-RightFoot": [
+              0.0045,
+              2
+            ],
+            "LeftFoot-Torso": [
+              0.0657,
+              0
+            ],
+            "RightFoot-Torso": [
+              0.085,
+              0
+            ],
+            "LeftHand-LeftFoot": [
+              0.3877,
+              0
+            ],
+            "RightHand-RightFoot": [
+              0.3058,
+              0
+            ],
+            "Weapon-Head": [
+              0.0096,
+              18
+            ],
+            "Weapon-Torso": [
+              0.0013,
+              2
+            ],
+            "Weapon-LeftLeg": [
+              0.1033,
+              0
+            ],
+            "Weapon-RightLeg": [
+              0.0005,
+              0
+            ],
+            "Weapon-LeftHand": [
+              0.4986,
+              0
+            ],
+            "LeftForeArm-Prop": [
+              0.0128,
+              14
+            ],
+            "RightForeArm-Prop": [
+              0.26,
+              0
+            ],
+            "LeftHand-Prop": [
+              0.1723,
+              4
+            ],
+            "RightHand-Prop": [
+              0.483,
+              0
+            ],
+            "Head-Prop": [
+              0.0133,
+              10
+            ]
+          },
+          "face visible from the front (min)": 0.9090909090909091,
+          "left wrist bend max (deg)": 45.19046339030752,
+          "right wrist bend max (deg)": 45.33190765003453,
+          "life: torso swing (deg)": 6.5820207572015095,
+          "life: head bob against the hips / hips bob": 0.9690596469355395,
+          "plant: left foot ahead of the hips at tick 0 (m)": 0.3803879540536448,
+          "plant: right foot ahead of the hips at tick 0 (m)": 0.3596238764491725,
+          "plant: left foot high, at most 0.45 m below the hips at tick 0 (m)": 0.36133526237671365,
+          "plant: right foot high, at most 0.45 m below the hips at tick 0 (m)": 0.3803750291974446,
+          "plant: right hand behind the chest at tick 0 (m)": -0.2180139424398876,
+          "plant: plank tip behind the hilt at tick 0 (m)": -1.0788615146874192,
+          "push: left leg extended, foot far from the hips at tick 4 (m)": 0.8391652689285786,
+          "push: right leg extended, foot far from the hips at tick 4 (m)": 0.832445365755576,
+          "push: left foot still ahead of the hips at tick 4 (m)": 0.40546443420974665,
+          "push: plank tip to the right of the centre line at tick 4 (m)": 1.785658890522588,
+          "release: left hand at or above the upper chest at tick 9 (m)": 0.1481310923862056,
+          "release: right hand at or above the upper chest at tick 9 (m)": 0.14813586454168326,
+          "release: slight lean back, head not ahead of the hips at tick 8 (m)": -0.018538808778216634,
+          "hips stay near the fall height (m)": 0.059999997719999865
+        },
+        "checkpointOnly": false
+      }
+    }
+  ],
+  "cost": {
+    "known_usd": 0.4915307999999999,
+    "total_usd": 0.4915307999999999,
+    "completeness": "complete",
+    "missing_runs": []
+  },
+  "promoted_at": "2026-11-04T16:07:56.743741+00:00",
+  "owner_verdict": null,
+  "owner_date": null,
+  "owner_note": null
+}

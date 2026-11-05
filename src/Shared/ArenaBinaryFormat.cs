@@ -10,7 +10,7 @@ namespace SlopArena.Shared
     ///
     /// Format:
     ///   Magic:  "AREN" (0x4E455241)
-    ///   Version: uint32 (1 through 6; ordinary stages continue writing 5)
+    ///   Version: uint32 (1 through 7; ordinary stages continue writing 5)
     ///   Name:        uint32 len + UTF8 bytes
     ///   DisplayName: uint32 len + UTF8 bytes
     ///   PreviewColor: uint32 len + UTF8 bytes
@@ -24,6 +24,7 @@ namespace SlopArena.Shared
     ///   [Version 2+]: TriangleCount: uint32
     ///     For each: AX, AY, AZ, BX, BY, BZ, CX, CY, CZ (9 × float32)
     ///   [Version 6]: Arcade section byte length and typed section bytes
+    ///   [Version 7]: Hazard anchor section byte length and typed section bytes
     /// <summary>
     /// Version history:
     ///   1 = Initial format: platforms, spawns, bounds. No triangle collision.
@@ -34,12 +35,13 @@ namespace SlopArena.Shared
     ///       0 in a v5 file means "auto" (derived from bounds/heightmap at resolve time);
     ///       v4 files carry no lines and resolve the same way.
     ///   6 = Embedded Arcade metadata. Plain stages retain byte-identical v5 exports.
+    ///   7 = Embedded hazard anchors, mutually exclusive with Arcade metadata.
     /// </summary>
 
     public static class ArenaBinaryFormat
     {
         private const uint Magic = 0x4E455241; // "AREN"
-        private const uint Version = 6;
+        private const uint Version = 7;
 
         /// <summary>
         /// Serialize an ArenaDefinition to a byte array.
@@ -53,6 +55,8 @@ namespace SlopArena.Shared
             if (arcade?.Length > 8192) throw new ArgumentException("Arcade metadata exceeds the bounded stage section.");
             if (arcade != null && (arena.SpawnPoints == null || arena.SpawnPoints.Length != (arena.Arcade?.Mayhem != null ? 4 : 1)))
                 throw new ArgumentException("An Arcade stage needs one authored start, or four for Mayhem.");
+            arena.HazardAnchors?.ValidateArena(arena);
+            byte[]? hazards = arena.HazardAnchors == null ? null : StageHazards.StageHazardAnchorFormat.Serialize(arena.HazardAnchors);
             // Calculate size upfront
             int size = 4 + 4; // magic + version
             size += 4 + Encoding.UTF8.GetByteCount(arena.Name ?? "");
@@ -80,13 +84,14 @@ namespace SlopArena.Shared
             size += 4; // count
             size += triCount * 9 * 4; // 9 floats per triangle
             if (arcade != null) size += 4 + arcade.Length;
+            if (hazards != null) size += 4 + hazards.Length;
 
             var buffer = new byte[size];
             int pos = 0;
 
             // Magic + Version
             BinaryPrimitives.WriteUInt32LittleEndian(buffer.AsSpan(pos), Magic); pos += 4;
-            BinaryPrimitives.WriteUInt32LittleEndian(buffer.AsSpan(pos), arcade != null ? Version : 5u); pos += 4;
+            BinaryPrimitives.WriteUInt32LittleEndian(buffer.AsSpan(pos), hazards != null ? 7u : arcade != null ? 6u : 5u); pos += 4;
 
             // Name
             WriteString(buffer, ref pos, arena.Name ?? "");
@@ -160,6 +165,11 @@ namespace SlopArena.Shared
             {
                 BinaryPrimitives.WriteInt32LittleEndian(buffer.AsSpan(pos), arcade.Length); pos += 4;
                 arcade.CopyTo(buffer, pos);
+            }
+            if (hazards != null)
+            {
+                BinaryPrimitives.WriteInt32LittleEndian(buffer.AsSpan(pos), hazards.Length); pos += 4;
+                hazards.CopyTo(buffer, pos);
             }
             return buffer;
         }
@@ -283,7 +293,7 @@ namespace SlopArena.Shared
                 arena.CollisionTriangles = null;
             }
 
-            if (version >= 6)
+            if (version == 6)
             {
                 if (pos + 4 > data.Length) return null;
                 int length = BinaryPrimitives.ReadInt32LittleEndian(data.AsSpan(pos)); pos += 4;
@@ -292,6 +302,16 @@ namespace SlopArena.Shared
                 Array.Copy(data, pos, section, 0, length);
                 arena.Arcade = ArcadeStageBinaryFormat.Deserialize(section);
                 if (arena.Arcade == null || arena.SpawnPoints.Length != (arena.Arcade?.Mayhem != null ? 4 : 1)) return null;
+            }
+
+            if (version == 7)
+            {
+                if (pos + 4 > data.Length) return null;
+                int length = BinaryPrimitives.ReadInt32LittleEndian(data.AsSpan(pos)); pos += 4;
+                if (length <= 0 || length > StageHazards.StageHazardAnchorFormat.MaxBytes || length != data.Length - pos) return null;
+                var section = new byte[length]; Array.Copy(data, pos, section, 0, length);
+                arena.HazardAnchors = StageHazards.StageHazardAnchorFormat.Deserialize(section, arena);
+                if (arena.HazardAnchors == null) return null;
             }
 
             // The grid is derived at load time, not serialized. Direct match loads

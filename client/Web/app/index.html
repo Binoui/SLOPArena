@@ -43,11 +43,14 @@
   .pick.on { border-color: var(--ink); background: var(--accent); }
   #pickMode .pick { font-size: 16px; min-width: 118px; font-family: 'Archivo Black', sans-serif; font-weight: 400; }
   .badge { display: inline-block; margin-left: 8px; padding: 1px 6px; background: var(--orange); color: var(--paper); font: 800 10px/1.5 system-ui, sans-serif; letter-spacing: .06em; text-transform: uppercase; vertical-align: 3px; }
-  #pickYou, #pickCpu { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); }
+  #pickYou, #pickCpu { display: flex; flex-wrap: nowrap; gap: 14px; }
+  .fighter-group { flex: var(--n) 1 0; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+  .fighter-group.wip { padding-left: 14px; border-left: 2px dashed var(--rule); }
+  .group-label { font: 800 9px/1.3 system-ui, sans-serif; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); }
+  .fighter-grid { display: grid; grid-template-columns: repeat(var(--n), minmax(0, 1fr)); gap: 6px; }
   .pick.fighter-tile { position: relative; min-width: 0; padding: 3px; border: 2px solid var(--ink); border-bottom-width: 4px; font-size: 10px; text-transform: uppercase; }
   .fighter-tile img { display: block; width: 100%; height: 76px; object-fit: cover; object-position: top; }
   .fighter-tile span { display: block; padding-top: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .fighter-tile .wip { position: absolute; top: 5px; right: 5px; background: var(--ink); color: var(--paper); padding: 1px 3px; font: 800 8px/1.4 system-ui, sans-serif; }
   #pickCpu .fighter-tile img { height: 42px; }
   #pickCpu .fighter-tile { font-size: 9px; }
   #pickStage { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); }
@@ -139,8 +142,10 @@
   }
   @media (max-width: 1000px) { .menu-grid { grid-template-columns: 220px minmax(0,1fr); gap: 24px; } .overlay { padding: 24px; } #pickStage { grid-template-columns: repeat(3,minmax(0,1fr)); } .invite { padding: 20px 18px; } .invite h2 { font-size: 28px; } .pick { padding-inline: 9px; } }
   @media (max-width: 700px) {
-    #pickYou { grid-template-columns: repeat(4, minmax(0, 1fr)); }
-    #pickCpu { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+    #pickYou, #pickCpu { flex-direction: column; gap: 8px; }
+    .fighter-group { flex: none; }
+    .fighter-group.wip { padding-left: 0; border-left: 0; }
+    .fighter-group.wip .fighter-grid { grid-template-columns: repeat(5, minmax(0, 1fr)); }
     .fighter-tile img { height: 80px; }
     #pickCpu .fighter-tile img { height: 48px; }
     .overlay { padding: 22px 18px 30px; }

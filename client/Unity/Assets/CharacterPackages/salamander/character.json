@@ -38,6 +38,7 @@
     "hitMedium": "anim.salamander.hit-medium",
     "hitHard": "anim.salamander.hit-hard",
     "tumble": "anim.salamander.tumble",
+    "wallJump": "anim.salamander.walljump",
     "crouch": "anim.salamander.crouch",
     "slide": "anim.salamander.slide",
     "landStartOffsetSeconds": 0.49,

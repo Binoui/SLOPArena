@@ -61,6 +61,8 @@ namespace SlopArena.Client.World
         public void RegisterHost(ulong entityId, Transform root, CharacterAnimationCatalog catalog)
             => _entries[entityId] = new Entry { Root = root, Catalog = catalog };
 
+        public void UnregisterHost(ulong entityId) => _entries.Remove(entityId);
+
         public void Tick(IReadOnlyList<TimelinePresentationEvent> events, System.Func<ulong, ActiveMoveView?> activeMove = null)
         {
             for (int i = _active.Count - 1; i >= 0; i--)
