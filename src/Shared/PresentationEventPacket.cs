@@ -230,7 +230,8 @@ public readonly struct PresentationEventPacket
             || source == PresentationEventSource.CapabilityLanding
             || source == PresentationEventSource.ProjectileCatch
             || source == PresentationEventSource.ProjectileSelfHit
-            || source == PresentationEventSource.TetherRetract;
+            || source == PresentationEventSource.TetherRetract
+            || source == PresentationEventSource.GrappleMiss;
 
     private static void ValidateTransform(float value, string name)
     {

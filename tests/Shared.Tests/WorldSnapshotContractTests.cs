@@ -223,6 +223,7 @@ public class WorldSnapshotContractTests
                     foreach (var operation in stage.Operations)
                         if (operation is CookedStartCapabilityOperation capability)
                             yield return capability;
+        yield return new CookedStartCapabilityOperation(0, AuthoringUnit.Ticks, CharacterPackageCompiler.GrappleCapabilityId, "1", GrappleTests.Parameters);
         // Public engine capabilities no roster fighter uses yet are covered through their fixtures.
         yield return new CookedStartCapabilityOperation(0, AuthoringUnit.Ticks,
             CharacterPackageCompiler.SteeredChargeCapabilityId,

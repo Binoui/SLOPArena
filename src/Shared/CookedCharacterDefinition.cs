@@ -931,3 +931,29 @@ public sealed record CookedMankiKamikazeCapabilityParameters(
     float ExplosionKbAngle,
     float SelfPushSpeed,
     string ExplosionPresentationId) : CookedCapabilityParameters;
+
+/// <summary>Dusty's lasso self-pull (ADR-0063), runtime API 1.23.0.</summary>
+public sealed record CookedGrappleCapabilityParameters(
+    ushort ThrowTick,
+    float AnchorReach,
+    float MaxRise,
+    float MinRise,
+    ushort HaulTicks,
+    float PopClearance,
+    float PopInset,
+    float PopVelocity,
+    ushort PopTicks,
+    float ZipSpeed,
+    ushort MaxZipTicks,
+    float KickRecoil,
+    ushort KickRecoveryTicks,
+    ushort MissRecoveryTicks,
+    float AirGravityScale,
+    CookedProjectile Projectile,
+    CookedHitbox Kick,
+    string OutAnimationId = "",
+    string HaulAnimationId = "",
+    string PopAnimationId = "",
+    string ZipAnimationId = "",
+    string KickAnimationId = "",
+    string MissAnimationId = "") : CookedCapabilityParameters;

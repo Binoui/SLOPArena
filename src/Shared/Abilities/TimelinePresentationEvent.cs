@@ -17,6 +17,7 @@ public enum PresentationEventSource : byte
     /// <c>Placement.DurationTicks</c> the whole retract: the client draws the ring home over that time.
     /// </summary>
     TetherRetract = 8,
+    GrappleMiss = 9,
 }
 
 public readonly record struct PresentationEventKey(
