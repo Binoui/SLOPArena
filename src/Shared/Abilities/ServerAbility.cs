@@ -38,7 +38,7 @@ namespace SlopArena.Shared.Abilities
         /// <summary>Whether body overlap moves only the other fighter during this activation.</summary>
         public virtual bool HoldsFighterPushboxPosition => false;
         /// <summary>The tether this activation runs, if any (ADR-0048): its contacts catch instead of hitting.</summary>
-        public virtual TetherAbility? Tether => null;
+        public virtual ITetherCatch? Tether => null;
         /// <summary>The command grab this activation runs, if any (ADR-0057): its capture holds the fighter it catches.</summary>
         public virtual ICommandHold? CommandHold => null;
         public virtual MoveSpot? Spot => null;
