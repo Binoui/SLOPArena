@@ -3,6 +3,7 @@ using System.Net;
 using System.Net.Sockets;
 using SlopArena.Server;
 using SlopArena.Shared;
+using SlopArena.Shared.Mayhem;
 using SlopArena.Shared.Rollback;
 using Xunit;
 
@@ -258,7 +259,7 @@ public class FullWorldNetplayTests
         var endpoint = new IPEndPoint(IPAddress.Loopback, port);
         using var first = new Peer(1, arena, catalog!, roster, endpoint, () => new MankiMayhemMatchRule());
         using var second = new Peer(2, arena, catalog!, roster, endpoint, () => new MankiMayhemMatchRule());
-        first.Input = _ => first.Session.Predictor.Simulation.MankiMayhem is { RoundIndex: 0 }
+        first.Input = _ => first.Session.Predictor.Simulation.MayhemView is { Cursor.Episode: <= 2 }
             ? new InputState { MoveX = -1f } : default;
         try
         {
@@ -268,16 +269,16 @@ public class FullWorldNetplayTests
             Assert.NotNull(first.LatestResult); Assert.NotNull(second.LatestResult);
             Assert.NotNull(first.LatestResult!.Mayhem);
             Assert.Equal(first.LatestResult.Mayhem!.Players, second.LatestResult!.Mayhem!.Players);
-            Assert.True(first.MayhemEvents.Any(e => e.Kind == MankiMayhemEventKind.Bench));
+            Assert.Contains(first.MayhemEvents, e => e.Kind == MayhemEventKind.Fail && e.Subject == 1 && e.Episode <= 2);
             foreach (var peer in new[] { first, second })
             {
                 Assert.Equal(0, peer.Totals.RejectedFrames);
                 Assert.True(peer.PredictedTicks > 1000);
                 Assert.Equal(MatchState.Ended, peer.Session.MatchState);
-                Assert.Equal(41u, peer.Session.Predictor.Simulation.MankiMayhem!.Value.Seed);
-                Assert.Contains(peer.MayhemEvents, e => e.Kind == MankiMayhemEventKind.End);
-                Assert.Contains(peer.MayhemEvents, e => e.Kind == MankiMayhemEventKind.Slam);
-                Assert.Contains(peer.MayhemEvents, e => e.Kind == MankiMayhemEventKind.WallBroken);
+                Assert.Equal(41u, peer.Session.Predictor.Simulation.MayhemView!.Seed);
+                Assert.Contains(peer.MayhemEvents, e => e.Kind == MayhemEventKind.Ended);
+                Assert.Contains(peer.MayhemEvents, e => e.Kind == MayhemEventKind.Launch);
+                Assert.Contains(peer.MayhemEvents, e => e.Kind == MayhemEventKind.SolidBroken);
                 Assert.Equal(peer.LatestResult!.Mayhem!.Players, MayhemRunResult.From(peer.Session.Predictor.Simulation).Players);
             }
         }
@@ -372,7 +373,7 @@ public class FullWorldNetplayTests
         private readonly List<SlopballTickEvent> _slopballRetracted = new();
         public int PredictedTicks { get; private set; }
         public MatchResultPacket? LatestResult { get; private set; }
-        public List<MankiMayhemEvent> MayhemEvents { get; } = new();
+        public List<MayhemEvent> MayhemEvents { get; } = new();
         public WorldFramePacket? LatestFrame { get; private set; }
         public NetplayPredictorStats Totals;
 
@@ -435,7 +436,7 @@ public class FullWorldNetplayTests
             ServedEvents += _slopballStarted.Count(e => e.Event.Kind == SlopballEventKind.Served);
             PointEvents += _slopballStarted.Count(e => e.Event.Kind == SlopballEventKind.PointScored);
             // Judge prediction from the first predicted tick on; countdown frames are plain jumps.
-            var mayhem = new List<MankiMayhemEvent>(); var retracted = new List<MankiMayhemEvent>();
+            var mayhem = new List<MayhemEvent>(); var retracted = new List<MayhemEvent>();
             Session.Predictor.DrainMayhemEvents(mayhem, retracted);
             foreach (var item in retracted) MayhemEvents.RemoveAll(e => e.Key == item.Key);
             foreach (var item in mayhem)

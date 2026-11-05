@@ -55,7 +55,7 @@
       "input": [
         {
           "ticks": 1,
-          "slot": "3"
+          "slot": "2"
         },
         {
           "ticks": 89
@@ -72,7 +72,7 @@
       "input": [
         {
           "ticks": 1,
-          "slot": "4"
+          "slot": "3"
         },
         {
           "ticks": 99
@@ -176,7 +176,7 @@
         },
         {
           "ticks": 1,
-          "slot": "4"
+          "slot": "3"
         },
         {
           "ticks": 94
@@ -460,6 +460,20 @@
         {
           "ticks": 114
         }
+      ],
+      "phases": [
+        {
+          "name": "wind-up",
+          "at": "cue:presentation.nyx.grasp-pop-6"
+        },
+        {
+          "name": "peak",
+          "at": "cue:presentation.nyx.grasp-pop+1"
+        },
+        {
+          "name": "fade",
+          "at": "cue:presentation.nyx.grasp-pop+16"
+        }
       ]
     },
     {
@@ -517,6 +531,28 @@
         {
           "ticks": 89
         }
+      ],
+      "phases": [
+        {
+          "name": "wind-up",
+          "at": "hit-6"
+        },
+        {
+          "name": "peak",
+          "at": "hit+1"
+        },
+        {
+          "name": "hit 2",
+          "at": "hit#2+1"
+        },
+        {
+          "name": "hit 3",
+          "at": "hit#3+1"
+        },
+        {
+          "name": "fade",
+          "at": "hit#3+16"
+        }
       ]
     },
     {
@@ -529,7 +565,7 @@
       "input": [
         {
           "ticks": 1,
-          "slot": "3"
+          "slot": "2"
         },
         {
           "ticks": 89
@@ -546,7 +582,7 @@
       "input": [
         {
           "ticks": 1,
-          "slot": "4"
+          "slot": "3"
         },
         {
           "ticks": 99
@@ -650,7 +686,7 @@
         },
         {
           "ticks": 1,
-          "slot": "4"
+          "slot": "3"
         },
         {
           "ticks": 94
@@ -804,7 +840,7 @@
         },
         {
           "name": "peak",
-          "at": "start+11"
+          "at": "hit+1"
         },
         {
           "name": "fade",
@@ -896,7 +932,7 @@
         },
         {
           "name": "peak",
-          "at": "start+11"
+          "at": "hit+1"
         },
         {
           "name": "fade",

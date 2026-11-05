@@ -1,0 +1,449 @@
+{
+  "name": "salamander-gr-lasso-throw",
+  "purpose": "special",
+  "rigpack": "artifacts/genra-rigpacks/salamander-unity-moves",
+  "character": "Dusty, the salamander gunslinger (package salamander; 55 joints: a Humanoid body with Mixamo names; each hand has a thumb and THREE fingers (Thumb, Index, Middle, Ring chains), no little finger; five tail joints Tail1-Tail5 under Hips; three rigid joints under Head: Hat (his hat, its own mesh), Mustache (the fake mustache on his snout) and Straw (a wheat straw in the corner of his mouth)). Measured on this rig pack (2026-11-04): upper arm 0.158 m, forearm 0.093 m, wrist to middle knuckle 0.066 m, thigh 0.176 m, shin 0.137 m. His hip joints stand 0.40 m above the floor in his idle; the top of his head (skin) is 0.51 m above the idle hips, the head hat's crown 0.69 m. The hat's brim is 0.58 m wide (0.29 m from the Hat joint to its edge) and sits at about 0.46-0.50 m above the idle hips. The game draws him 1.8 times bigger. A thick tail hangs behind him from the seat of his jeans. His poncho is cloth simulated in the game and is not in this rig: pose the body only.",
+  "references": {
+    "showdown": "references/showdown.usda",
+    "idle": "references/idle.usda",
+    "fall": "references/fall.usda"
+  },
+  "entry": {
+    "reference": "showdown",
+    "tick": 0
+  },
+  "views": [
+    "gameplay",
+    "profile",
+    "front",
+    "three-quarter-left"
+  ],
+  "images": [
+    "../../../docs/design/references/dusty/dusty-model.jpg",
+    "../../../tmp/salamander-identity/moves-v2/03-lasso-throw.png",
+    "../../../tmp/salamander-identity/moves-v2/09-combo.png"
+  ],
+  "image_notes": "1: Dusty's actual in-game model (T-pose: front, three-quarter, side, back); his identity and proportions are authoritative. His poncho is not in the rig. 2: the owner-approved concept for the END of this clip, the brace: leaning back on a taut rope, both hands on it, one boot forward, heels digging in. 3: the owner-approved combo frame that follows a catch: the rope taut in one fist while the other fist cocks for the Haymaker; it shows why the rope stays in one hand. The concept frames are owner-approved for pose energy and silhouette, not measured data, and their handedness is mirrored: they put the rope in his right hand. In the game the rope is in his LEFT hand and the right hand is free, so mirror the concepts' arms. The caught fighter in the frames is only a stand-in for whoever he lassoes; it is not in the rig.",
+  "notes": "Dusty ground.R (planned anim.salamander.gr-throw), kit locked 2026-11-04: Lasso, clip 1 of 4 (throw, reel loop, rodeo, miss). The current ground.R in character.json is the retired Tumbleweed; its data does not apply. Owner clock 2026-11-04: about 24 game ticks, the loop leaves his hand at game tick 14. Authored at 48 ticks, twice the game length (owner: animations always came out too fast), so the release is authored tick 28. The end pose, the brace, is the start pose of salamander-gr-lasso-reel and salamander-gr-lasso-miss; their tick-0 targets repeat this clip's tick-48 targets. Rope hand LEFT (the right fist is the Haymaker hand). The game draws the rope and the loop: during the twirl (ticks 8-24) the loop spins flat overhead around the left fist's circle, counterclockwise seen from above; from tick 28 the rope runs from the left fist to the flying loop.",
+  "description": "Dusty's R, Lasso: the throw. From his showdown idle he swings a rope loop once round above his head and throws it at his target with a real cowhand's overhand cast, then digs in and braces on the rope, leaning back, both hands on it, ready to haul.\n\nWho he is. Dusty (image 1) is a small-time tiger salamander who wants to be a legend of the West: yellow skin with dark brown blotches, a smug half-lidded smirk, a fake curly mustache glued on his snout, a straw in his mouth, a tall brown hat with a red band and a wide brim, an orange-red poncho, patched jeans with his tail out through the seat, brown boots with spurs. He is self-made and can't afford a gun. He is proud, a bit ridiculous, and genuinely good at this: the lasso is the one cowboy skill he really has, so he handles the rope like a real cowhand. The joke is on his dignity, never on him failing. This is a special, so it can carry personality.\n\nHow the game plays it. The match camera sits straight behind him and a little above, so the action must read from behind: arms out to the side or up, elbows driven out past his sides, never hidden in front of his chest. The game turns him to face his target before the move, so his target is straight ahead (front) and about 1.5-3 m away in the game. The fighter does not travel in the clip; the game moves the target. The game crossfades in and out over about 0.1 s.\n\nTHE ROPE. The rope, its loop and the caught fighter are NOT in the rig. The game draws the rope from his rope hand to the loop or the target (the way Bashie's Rescue Ring line runs from her hand) and moves the target itself. So pose his body and hands exactly as if a real, heavy rope were there, and put his hands where the rope would be. His LEFT hand is the rope hand in all four lasso clips: the rope's working end is always in the left fist (between joint LeftHand and LeftHandMiddle1), and the game attaches the rope there. His RIGHT hand is free (it throws the Haymaker in the lasso-into-Haymaker combo); it takes the rope only where this brief says. A hand on the rope is a loose fist around a 3 cm rope: index, middle and ring fingers curled 60-80 percent around it, the thumb closed over them, never a flat hand. When the rope runs toward the target the fist's index-and-thumb side faces along the rope toward the target and its ring-finger side faces back toward him, so the rope runs straight through the fist. Hands, forearms and the rope arm must stay clear of his head, face and hat brim (region Prop): a clearance warning against the hat is a real problem in these clips.\n\nThe floor. It is at up = -0.396 m in this character frame (origin: the hips of his showdown idle at tick 0). With a flat boot the toe joint (ToeBase) sits about 0.008 m above the floor and the ankle (Foot) about 0.078 m above it. Never push a boot through the floor and never slide a planted boot: a boot is either planted or stepping.\n\nEntry, tick 0 (reference `showdown`): the showdown stance, boots planted wide, knees bent, hands hovering out at his hips over invisible holsters, facing front. Exit, tick 48: the brace (below). It is not the idle: the next clip (the reel on a catch, the miss on a miss) starts from it.\n\nTHE TWIRL. His short arms reach above his head only out to the side, so the twirl happens up and OUT over his left shoulder, never straight over the hat: the left fist traces a small flat circle 10-16 cm across, about level with the top of his head (middle knuckle 0.38-0.54 m above his idle hips) and 0.14-0.36 m left of his centre line, forearm near upright, wrist rolling to spin the loop. Measured on this rig, the fist only gets there with his upper body side-bent 10-20 degrees AWAY from it (to his right), which also moves his head and hat brim clear of the rope arm: use that lean. The circle runs counterclockwise seen from above: behind (tick 8), toward his head (12), in front (16), out to his left (20), behind again (24). From behind this reads as his fist whirling over his left shoulder. His right arm swings out wide to his right at about shoulder height for balance, open hand, like a rodeo rider.\n\nTHE BRACE, the tug-of-war pose (concept image 2): the rope is taut from his left fist straight ahead to the target. He is turned a little side-on, hips and chest 15-30 degrees to his right so his left hip and shoulder lead toward the target. The left boot is planted forward (toe 20-34 cm in front of his idle hips) with the left leg nearly straight and braced, boot flat on the floor and dug in (toes not lifted); the right knee is bent under him carrying his weight, the right boot planted at or a little behind where it stood. The hips sit back and low (4-9 cm lower than the idle and 2-10 cm behind it) and the upper body leans back 15-25 degrees, the head behind the hips, chin up, eyes on the target with a gritted, confident grin. Both hands are on the rope: the LEFT fist forward on the rope line, 14-30 cm ahead of the hips, at belly height, a little left of his centre line; the RIGHT fist back at his right hip, holding the rope behind it, the right elbow bent and driven back past his right side (visible from behind). The tail lifts out behind him as a counterweight, curving up toward the tip.\n\nThe move (48 ticks, played once at double speed; the loop leaves his hand at tick 28):\n- Ticks 0-8, the shake-out: the hips shift his weight onto his right boot, then the chest follows; the left fist lifts off its holster and rises up and out past his left shoulder; the right hand drifts out to his right; his eyes go to the target with a proud little smirk.\n- Tick 8, TWIRL BACK: the left fist at the back of its circle, above and outside his left shoulder; upper body bending away to his right; right arm out wide.\n- Tick 12, TWIRL IN: the fist at the inner side of the circle (toward his head, still clear of the brim).\n- Tick 16, TWIRL FRONT: the fist at the front of the circle; his chin up, a cocky look at the target.\n- Tick 20, TWIRL OUT: the fist at the outer left side of the circle; the hips start to turn to his right, loading.\n- Tick 24, LOADED: the fist back behind his left shoulder, elbow up and out, the chest turned a little to his right and leaning back, weight on the right boot: the cast is cocked. The hips have already started forward.\n- Tick 28, RELEASE (the loop leaves his hand): an overhand cast. The hips drive forward first, the chest whips round to the target 1-2 ticks later, and the left arm sweeps forward and up to point at the target: arm nearly straight, fist well ahead of his head at about head height, a little left of his centre line, fingers loosening so the rope runs out through them. The left boot lifts to step forward. The right arm swings back for balance.\n- Tick 34, GRAB THE LINE: the left boot lands 20-34 cm forward and plants; the left fist closes on the rope and comes down to belly height; the right hand comes in and takes the rope at his right hip; the hips start to sink back.\n- Tick 40, DIG IN: the weight drops back onto the bent right leg, the upper body leans back, both boots flat and dug in; the head trails, eyes still on the target.\n- Tick 48, BRACE: the brace pose above, a moving hold (a few degrees on from tick 40, the lean still settling).\nThe right hand: out wide for balance during the twirl, swinging back on the cast, then onto the rope at his hip.\n\nFlow (the owner's rules). Overlap and follow-through everywhere: the hips lead every change, the chest trails them by 1-3 ticks, the head, arms and legs trail 2-4 ticks, the tail trails the most. No two body parts arrive on the same tick, and every hold is a moving hold (key its end 2-5 degrees on from its start, never the same pose twice). Secondary motion with numbers: the tail (Tail1-Tail5) answers every weight shift, rolling down the chain one to two ticks per joint, Tail1 about 4-8 degrees, Tail3 8-15, Tail5 15-28 (tip travel given per clip); the hat (joint Hat) lags the head by 2-5 degrees on fast head moves and settles after; Mustache and Straw stay rigid. Fingers that are not on the rope stay relaxed and slightly curled, three fingers and a thumb. Here: on the cast the tail whips up and to his left behind him (tip travel 15-30 cm) and swings back as he digs in; the hat tips back a few degrees on the release and settles.",
+  "clock": {
+    "duration_ticks": 48,
+    "game_duration_ticks": 24,
+    "contact_tick": 28
+  },
+  "timing": {
+    "fixed": [
+      "about 24 game ticks played once; this clip is authored at 48 ticks and plays at double speed",
+      "the loop leaves his left hand at game tick 14 (authored tick 28): the cast's release pose is on that tick",
+      "tick 0 is his showdown idle exactly",
+      "tick 48 is the brace that the reel and the miss clips start from (same targets as their tick 0)",
+      "the rope is always in his LEFT fist; the right hand is free and joins the rope only at his hip from tick 34"
+    ],
+    "adjustable": [
+      "the twirl's size, height and the side lean, as long as the fist whirls above and outside his left shoulder clear of the hat",
+      "how many ticks the shake-out takes before the twirl (the twirl may start between ticks 6 and 10)",
+      "the step length (20-34 cm) and the brace angles",
+      "the stage length in the move data, which sets the playback speed"
+    ]
+  },
+  "keys": [
+    0,
+    8,
+    12,
+    16,
+    20,
+    24,
+    28,
+    34,
+    40,
+    48
+  ],
+  "review_ticks": [
+    0,
+    4,
+    8,
+    12,
+    16,
+    20,
+    24,
+    26,
+    28,
+    30,
+    34,
+    40,
+    48
+  ],
+  "fast_windows": [
+    [
+      24,
+      32
+    ]
+  ],
+  "strike": [
+    "LeftHand"
+  ],
+  "targets": [
+    {
+      "name": "twirl back: left fist up level with his head top (m)",
+      "kind": "char",
+      "a": "LeftHandMiddle1",
+      "axis": "up",
+      "tick": 8,
+      "min": 0.38,
+      "max": 0.54
+    },
+    {
+      "name": "twirl back: left fist out over his left shoulder (m)",
+      "kind": "char",
+      "a": "LeftHandMiddle1",
+      "axis": "right",
+      "tick": 8,
+      "min": -0.36,
+      "max": -0.14
+    },
+    {
+      "name": "twirl back: fist at the back of its circle (front, m)",
+      "kind": "char",
+      "a": "LeftHandMiddle1",
+      "axis": "front",
+      "tick": 8,
+      "min": -0.16,
+      "max": -0.01
+    },
+    {
+      "name": "twirl in: left fist up (m)",
+      "kind": "char",
+      "a": "LeftHandMiddle1",
+      "axis": "up",
+      "tick": 12,
+      "min": 0.38,
+      "max": 0.54
+    },
+    {
+      "name": "twirl in: fist at the inner side, toward his head (m)",
+      "kind": "char",
+      "a": "LeftHandMiddle1",
+      "axis": "right",
+      "tick": 12,
+      "min": -0.26,
+      "max": -0.12
+    },
+    {
+      "name": "twirl front: left fist up (m)",
+      "kind": "char",
+      "a": "LeftHandMiddle1",
+      "axis": "up",
+      "tick": 16,
+      "min": 0.38,
+      "max": 0.54
+    },
+    {
+      "name": "twirl front: fist at the front of its circle (m)",
+      "kind": "char",
+      "a": "LeftHandMiddle1",
+      "axis": "front",
+      "tick": 16,
+      "min": 0.02,
+      "max": 0.16
+    },
+    {
+      "name": "twirl front: head leaning away to his right (m)",
+      "kind": "char",
+      "a": "Head",
+      "axis": "right",
+      "tick": 16,
+      "min": 0.03
+    },
+    {
+      "name": "twirl front: right arm out wide for balance (m)",
+      "kind": "char",
+      "a": "RightHandMiddle1",
+      "axis": "right",
+      "tick": 16,
+      "min": 0.28
+    },
+    {
+      "name": "twirl out: left fist up (m)",
+      "kind": "char",
+      "a": "LeftHandMiddle1",
+      "axis": "up",
+      "tick": 20,
+      "min": 0.36,
+      "max": 0.54
+    },
+    {
+      "name": "twirl out: fist at the outer left side (m)",
+      "kind": "char",
+      "a": "LeftHandMiddle1",
+      "axis": "right",
+      "tick": 20,
+      "min": -0.4,
+      "max": -0.26
+    },
+    {
+      "name": "twirl: fist circles side to side (m)",
+      "kind": "range",
+      "a": "LeftHandMiddle1",
+      "axis": "right",
+      "window": [
+        8,
+        20
+      ],
+      "min": 0.08,
+      "max": 0.22
+    },
+    {
+      "name": "twirl: fist circles front to back (m)",
+      "kind": "range",
+      "a": "LeftHandMiddle1",
+      "axis": "front",
+      "window": [
+        8,
+        20
+      ],
+      "min": 0.08,
+      "max": 0.22
+    },
+    {
+      "name": "loaded: left fist back behind his head (m)",
+      "kind": "ahead",
+      "a": "LeftHandMiddle1",
+      "b": "Head",
+      "tick": 24,
+      "max": -0.02
+    },
+    {
+      "name": "release: left fist well ahead of his head (m)",
+      "kind": "ahead",
+      "a": "LeftHandMiddle1",
+      "b": "Head",
+      "tick": 28,
+      "min": 0.12
+    },
+    {
+      "name": "release: left fist about head height (m)",
+      "kind": "char",
+      "a": "LeftHandMiddle1",
+      "axis": "up",
+      "tick": 28,
+      "min": 0.22,
+      "max": 0.46
+    },
+    {
+      "name": "release: left fist near his centre line (m)",
+      "kind": "char",
+      "a": "LeftHandMiddle1",
+      "axis": "right",
+      "tick": 28,
+      "min": -0.2,
+      "max": 0.04
+    },
+    {
+      "name": "release: left arm nearly straight (shoulder to wrist, m)",
+      "kind": "distance",
+      "a": "LeftArm",
+      "b": "LeftHand",
+      "tick": 28,
+      "min": 0.225
+    },
+    {
+      "name": "grab the line: left boot planted forward (toe front, m)",
+      "kind": "char",
+      "a": "LeftToeBase",
+      "axis": "front",
+      "tick": 34,
+      "min": 0.2,
+      "max": 0.34
+    },
+    {
+      "name": "grab the line: left toe on the floor (m)",
+      "kind": "char",
+      "a": "LeftToeBase",
+      "axis": "up",
+      "tick": 34,
+      "min": -0.4,
+      "max": -0.37
+    },
+    {
+      "name": "cast: tail whips behind him (tip, m)",
+      "kind": "range",
+      "a": "Tail5",
+      "axis": "right",
+      "window": [
+        20,
+        40
+      ],
+      "min": 0.12,
+      "max": 0.32
+    },
+    {
+      "name": "right toe stays on the floor through the twirl (m)",
+      "kind": "char",
+      "a": "RightToeBase",
+      "axis": "up",
+      "tick": 20,
+      "min": -0.4,
+      "max": -0.37
+    },
+    {
+      "name": "left toe on the floor before the step (m)",
+      "kind": "char",
+      "a": "LeftToeBase",
+      "axis": "up",
+      "tick": 20,
+      "min": -0.4,
+      "max": -0.37
+    },
+    {
+      "name": "brace: left fist forward on the rope line, ahead of the hips (m)",
+      "kind": "ahead",
+      "a": "LeftHandMiddle1",
+      "b": "Hips",
+      "tick": 48,
+      "min": 0.14,
+      "max": 0.3
+    },
+    {
+      "name": "brace: left fist a little left of centre (m)",
+      "kind": "char",
+      "a": "LeftHandMiddle1",
+      "axis": "right",
+      "tick": 48,
+      "min": -0.14,
+      "max": 0.04
+    },
+    {
+      "name": "brace: left fist at belly height (m)",
+      "kind": "char",
+      "a": "LeftHandMiddle1",
+      "axis": "up",
+      "tick": 48,
+      "min": -0.04,
+      "max": 0.16
+    },
+    {
+      "name": "brace: right fist back at his right hip (char right, m)",
+      "kind": "char",
+      "a": "RightHandMiddle1",
+      "axis": "right",
+      "tick": 48,
+      "min": 0.06,
+      "max": 0.22
+    },
+    {
+      "name": "brace: right fist back at the hip, not forward (m)",
+      "kind": "ahead",
+      "a": "RightHandMiddle1",
+      "b": "Hips",
+      "tick": 48,
+      "min": -0.08,
+      "max": 0.08
+    },
+    {
+      "name": "brace: right fist at hip height (m)",
+      "kind": "char",
+      "a": "RightHandMiddle1",
+      "axis": "up",
+      "tick": 48,
+      "min": -0.1,
+      "max": 0.06
+    },
+    {
+      "name": "brace: leaning back, head behind the hips (m)",
+      "kind": "ahead",
+      "a": "Head",
+      "b": "Hips",
+      "tick": 48,
+      "min": -0.18,
+      "max": -0.04
+    },
+    {
+      "name": "brace: hips low (m)",
+      "kind": "char",
+      "a": "Hips",
+      "axis": "up",
+      "tick": 48,
+      "min": -0.09,
+      "max": -0.03
+    },
+    {
+      "name": "brace: hips sitting back (m)",
+      "kind": "char",
+      "a": "Hips",
+      "axis": "front",
+      "tick": 48,
+      "min": -0.1,
+      "max": -0.02
+    },
+    {
+      "name": "brace: left boot planted forward (toe front, m)",
+      "kind": "char",
+      "a": "LeftToeBase",
+      "axis": "front",
+      "tick": 48,
+      "min": 0.2,
+      "max": 0.34
+    },
+    {
+      "name": "brace: left toe on the floor (m)",
+      "kind": "char",
+      "a": "LeftToeBase",
+      "axis": "up",
+      "tick": 48,
+      "min": -0.4,
+      "max": -0.37
+    },
+    {
+      "name": "brace: right toe on the floor (m)",
+      "kind": "char",
+      "a": "RightToeBase",
+      "axis": "up",
+      "tick": 48,
+      "min": -0.4,
+      "max": -0.37
+    },
+    {
+      "name": "brace: right boot at or behind its idle spot (toe front, m)",
+      "kind": "char",
+      "a": "RightToeBase",
+      "axis": "front",
+      "tick": 48,
+      "min": -0.12,
+      "max": 0.12
+    },
+    {
+      "name": "brace: left leg nearly straight, braced (hip to ankle, m)",
+      "kind": "distance",
+      "a": "LeftUpLeg",
+      "b": "LeftFoot",
+      "tick": 48,
+      "min": 0.285
+    },
+    {
+      "name": "brace: right knee bent under him (hip to ankle, m)",
+      "kind": "distance",
+      "a": "RightUpLeg",
+      "b": "RightFoot",
+      "tick": 48,
+      "max": 0.27
+    },
+    {
+      "name": "brace: side-on, left hip leading (m)",
+      "kind": "ahead",
+      "a": "LeftUpLeg",
+      "b": "RightUpLeg",
+      "tick": 48,
+      "min": 0.03,
+      "max": 0.1
+    },
+    {
+      "name": "brace: tail lifted out behind as a counterweight (tip up, m)",
+      "kind": "char",
+      "a": "Tail5",
+      "axis": "up",
+      "tick": 48,
+      "min": -0.33,
+      "max": -0.1
+    }
+  ]
+}

@@ -128,6 +128,7 @@ namespace SlopArena.Shared
     {
         /// <summary>Optional cooked Arcade section; older ordinary stages remain PvP.</summary>
         public ArcadeStageDefinition? Arcade;
+        public StageHazards.StageHazardAnchors? HazardAnchors;
         public readonly ArenaPurpose Purpose => Arcade == null ? ArenaPurpose.PvP : ArenaPurpose.Arcade;
 
         /// <summary>

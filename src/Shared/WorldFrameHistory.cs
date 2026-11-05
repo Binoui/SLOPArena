@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using SlopArena.Shared.Mayhem;
 
 namespace SlopArena.Shared
 {
@@ -14,8 +15,8 @@ namespace SlopArena.Shared
         private readonly List<SpellResolver.HitResult> _hits = new();
         private readonly List<TimelinePresentationEvent> _frameEvents = new();
         private readonly List<SpellResolver.HitResult> _frameHits = new();
-        private readonly List<MankiMayhemEvent> _mayhem = new();
-        private readonly List<MankiMayhemEvent> _frameMayhem = new();
+        private readonly List<MayhemEvent> _mayhem = new();
+        private readonly List<MayhemEvent> _frameMayhem = new();
         private readonly List<CourseTickEvent> _courses = new();
         private readonly List<CourseTickEvent> _frameCourses = new();
         private readonly List<SlopballTickEvent> _slopball = new();
@@ -26,7 +27,7 @@ namespace SlopArena.Shared
 
         /// <summary>Add what the simulation produced at <paramref name="tick"/>.</summary>
         public void Record(uint tick, IReadOnlyList<TimelinePresentationEvent> events, IReadOnlyList<SpellResolver.HitResult> hits,
-            IReadOnlyList<SlopballEvent>? slopballEvents = null, IReadOnlyList<CourseTickEvent>? courseEvents = null, IReadOnlyList<MankiMayhemEvent>? mayhemEvents = null)
+            IReadOnlyList<SlopballEvent>? slopballEvents = null, IReadOnlyList<CourseTickEvent>? courseEvents = null, IReadOnlyList<MayhemEvent>? mayhemEvents = null)
         {
             uint from = WorldFramePacket.EventsFrom(tick);
             _mayhem.RemoveAll(e => e.MatchTick < from || e.MatchTick > tick);
@@ -106,7 +107,7 @@ namespace SlopArena.Shared
             return _frameCourses;
         }
 
-        public IReadOnlyList<MankiMayhemEvent> MayhemEventsForFrame(uint tick)
+        public IReadOnlyList<MayhemEvent> MayhemEventsForFrame(uint tick)
         {
             _frameMayhem.Clear();
             uint from = WorldFramePacket.EventsFrom(tick);

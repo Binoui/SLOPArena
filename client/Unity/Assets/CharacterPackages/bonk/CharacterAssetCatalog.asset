@@ -122,6 +122,10 @@ MonoBehaviour:
     _clip: {fileID: 7400000, guid: 04f799445821d49a2b6f2e982baa8824, type: 2}
     _extrapolation: 0
     _poseTrackId: anim.tumble
+  - _semanticId: anim.bonk.walljump
+    _clip: {fileID: 7400000, guid: 0d410d607385d5b46bc22db748f3a81e, type: 2}
+    _extrapolation: 0
+    _poseTrackId: anim.bonk.walljump
   - _semanticId: anim.bonk.crouch
     _clip: {fileID: 7400000, guid: 59558aa450723e16b8afe09733abb55b, type: 2}
     _extrapolation: 0

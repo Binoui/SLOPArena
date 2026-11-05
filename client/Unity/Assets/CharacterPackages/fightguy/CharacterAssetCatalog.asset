@@ -94,6 +94,10 @@ MonoBehaviour:
     _clip: {fileID: 7400000, guid: 04f799445821d49a2b6f2e982baa8824, type: 2}
     _extrapolation: 0
     _poseTrackId: anim.tumble
+  - _semanticId: anim.fightguy.walljump
+    _clip: {fileID: 7400000, guid: 4d537aeeae2b245a684c016ebfe85e1a, type: 2}
+    _extrapolation: 0
+    _poseTrackId: anim.fightguy.walljump
   - _semanticId: anim.fightguy.crouch
     _clip: {fileID: 7400000, guid: ec85ad82fa4577ab0908d4e873fdace2, type: 2}
     _extrapolation: 0

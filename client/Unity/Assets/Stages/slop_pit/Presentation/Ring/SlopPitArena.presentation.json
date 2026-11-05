@@ -168,8 +168,8 @@
     1
    ],
    "floats": {
-    "_Base": 0.42,
-    "_Ambient": 0.5,
+    "_Base": 0.2,
+    "_Ambient": 0.2,
     "_Shade": 0.35,
     "_Glow": 1.4,
     "_FogAmount": 1,
@@ -200,8 +200,8 @@
     "_Base": 0.42,
     "_Ambient": 0,
     "_Shade": 0.35,
-    "_Glow": 0.32,
-    "_FogAmount": 0.55,
+    "_Glow": 2.2,
+    "_FogAmount": 1,
     "_TimeScale": 1,
     "_Cull": 2.0
    },
@@ -319,12 +319,12 @@
   "ambientIntensity": 1,
   "fog": true,
   "fogColor": [
-   0.3,
-   0.16,
-   0.07
+   0.14,
+   0.085,
+   0.05
   ],
   "fogStart": 24,
-  "fogEnd": 190
+  "fogEnd": 130
  },
  "cameras": [
   {

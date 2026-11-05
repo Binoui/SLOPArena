@@ -89,6 +89,12 @@ table.list input{width:80px;border:2px solid #1b1a18;padding:2px 4px}
 .notes .delivery{display:block;opacity:1}.notes .delivery.error{color:#b22}
 @media(max-width:700px){body{padding:12px}.sheet{grid-template-columns:1fr}.sheet video{width:100%;max-width:340px}
   .check-intro,.check-media,.check-feedback{grid-column:1;grid-row:auto}.check-media{margin:8px 0}.grid{grid-template-columns:repeat(2,1fr);gap:12px}h1{font-size:21px}}
+@media(max-width:700px){.grid.player-reports{grid-template-columns:1fr}}
+.player-reports .card img{width:100%;height:auto;aspect-ratio:16/9;object-fit:contain;display:block;background:#1b1a18}
+.report-open{display:block;width:100%;padding:0;border:0;background:transparent;text-align:left;font:inherit;color:inherit;cursor:pointer}
+.report-copy{padding:14px;overflow-wrap:anywhere;min-width:0}.report-copy p{white-space:pre-wrap}.player-evidence{white-space:pre-wrap;overflow-wrap:anywhere;max-width:100%}
+.report-image{width:100%;height:auto}.report-copy .btn,.report-open{min-height:44px}.report-copy label{display:block;margin:12px 0}
+.report-copy input,.report-copy textarea{box-sizing:border-box;width:100%;padding:10px;font:inherit;border:2px solid #1b1a18}
 </style>
 </head>
 <body>
@@ -96,6 +102,7 @@ table.list input{width:80px;border:2px solid #1b1a18;padding:2px 4px}
 <div class="tabs" id="areas">
   <button class="tab" id="clips-area" onclick="pickArea('clips')">Clips</button>
   <button class="tab" id="checks-area" onclick="pickArea('checks')">Checks</button>
+  <button class="tab" id="player-reports-area" onclick="pickArea('player-reports')">Player reports</button>
   <a class="tab" id="console-area" href="/console/" style="color:inherit;text-decoration:none">Console<span id="console-online" class="online" hidden></span></a>
 </div>
 <div class="bar">
@@ -133,7 +140,7 @@ const plats = d => shelf(d) ? `<div class="plats">${PLATFORMS.map(p => `<span cl
 const RUN_TEXT = {propose: "Sent to T3: the designer thread appears in about 2 minutes, ideas land in PROPOSED.", render: "Sent to T3: the thread appears in about 2 minutes, clips land in TO REVIEW.",
   scout: "Sent to T3: the scout thread appears in about 2 minutes, its report lands in this tab.", redo: "Sent to T3: the redo thread appears in about 2 minutes, the new take lands in TO REVIEW."};
 let B = {ideas: [], checks: [], runs: [], inbox: [], reports: []}, tab = localStorage.tab || "review", open = null, shown = {};
-let area = localStorage.area === "checks" ? "checks" : "clips", checkTab = localStorage.checkTab || "to-try", checkArea = "";
+let area = ["checks", "player-reports"].includes(localStorage.area) ? localStorage.area : "clips", checkTab = localStorage.checkTab || "to-try", checkArea = "";
 if (!TABS.some(t => t[0] === tab)) tab = "review";
 if (!CHECK_TABS.some(t => t[0] === checkTab)) checkTab = "to-try";
 const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"})[c]);
@@ -163,7 +170,7 @@ async function load() {
   document.getElementById("running").innerHTML = `<span class="dot ${active.length ? "busy" : ""}"></span><b>Running:</b> ` +
     (active.length ? active.map(r => `#${r.id} ${esc(runName(r))} (${r.state === "sent" ? "waiting for T3, about 2 min" : r.state})`).join(", ") : "nothing");
   draw();
-  if (open) area === "checks" ? showCheck(open, false) : show(open, false);
+  if (open && area !== "player-reports") area === "checks" ? showCheck(open, false) : show(open, false);
 }
 function count(k, s) {
   if (k === "scout") return B.inbox.filter(i => !i.report).length;
@@ -171,10 +178,12 @@ function count(k, s) {
   return k === "numbers" ? 0 : top_().filter(d => s.includes(d.status)).length;
 }
 function draw() {
-  for (const name of ["clips", "checks"]) document.getElementById(name + "-area").classList.toggle("on", area === name);
+  for (const name of ["clips", "checks", "player-reports"]) document.getElementById(name + "-area").classList.toggle("on", area === name);
   const waiting = B.checks.filter(c => c.status === "to-try" || c.status === "redo").length;
   document.getElementById("checks-area").innerHTML = "Checks" + (waiting ? `<b>${waiting}</b>` : "");
-  document.getElementById("running").parentElement.hidden = area === "checks";
+  document.getElementById("running").parentElement.hidden = area !== "clips";
+  document.getElementById("player-reports-area").innerHTML = "Player reports" + (B.playerReportCounts?.new ? `<b>${B.playerReportCounts.new}</b>` : "");
+  if (area === "player-reports") return void drawPlayerReports();
   if (area === "checks") return drawChecks();
   document.getElementById("tabs").innerHTML = TABS.map(([k, l, s]) => {
     const n = count(k, s);
@@ -282,6 +291,79 @@ function show(id, scroll = true) {
     ${t?.sheet ? `<a class="sheetlink" href="${t.sheet}" target="_blank">Contact sheet of take ${t.n}</a>` : ""}</div>`;
   sheet.classList.add("on"); draw(); if (scroll) sheet.scrollIntoView({behavior: "smooth", block: "nearest"});
 }
+let reportStatus = 'new', reportPage = null, reportItems = [], reportCursor = null, reportBusy = false;
+function reportContext(d) {
+  const c = d.context, m = c.match;
+  return [m?.mode || c.phase, m?.stageId, (m?.fighters || []).map(f => f.packageId).join(' / '), c.appVersion].filter(Boolean).join(' · ');
+}
+function reportPath(d) { return '/api/player-reports/' + encodeURIComponent(d.source) + '/' + d.reportId; }
+async function drawPlayerReports(more = false) {
+  document.getElementById('tabs').innerHTML = ['new','dismissed','promoted'].map(s =>
+    `<button class="tab ${s === reportStatus ? 'on' : ''}" data-status="${s}">${s} <b>${B.playerReportCounts?.[s] || 0}</b></button>`).join('');
+  document.querySelectorAll('#tabs [data-status]').forEach(b => b.onclick = () => { reportStatus = b.dataset.status; drawPlayerReports(); });
+  try {
+    const response = await fetch('/api/player-reports?status=' + reportStatus + (more && reportCursor ? '&before=' + encodeURIComponent(reportCursor) : ''));
+    if (!response.ok) throw new Error('Could not load player reports');
+    reportPage = await response.json();
+    if (area !== 'player-reports') return;
+    reportItems = more ? reportItems.concat(reportPage.items) : reportPage.items;
+    reportCursor = reportPage.nextCursor;
+    const p = reportPage.pull;
+    const health = !p.enabled ? 'Pull disabled. Configure Master URL and key file on the backend.' :
+      `${p.running ? 'Pulling… ' : ''}Last success ${p.lastSuccessUtc || 'never'}. Scanned ${p.scanned}, imported ${p.imported}, failed ${p.failed}.${p.lastError ? ' ' + p.lastError : ''}`;
+    document.getElementById('view').innerHTML = `<div class="tabrun"><button class="btn" id="pullReports" ${!p.enabled ? 'disabled' : ''}>Pull now</button><span>${esc(health)}</span></div>` +
+      (reportItems.length ? `<div class="grid player-reports">${reportItems.map((d,i) => `<article class="card"><button class="report-open" data-report="${i}">
+        ${d.imageUrl ? `<img src="${esc(d.imageUrl)}" alt="Player screenshot" loading="lazy">` : ''}
+        <div class="t">${esc(d.kind)}</div><div class="report-copy"><p>${esc(d.message || 'No message')}</p>
+        <p class="age">${esc(reportContext(d))}</p><p>${esc(d.reporter.displayName || 'Unnamed player')}</p>
+        <p class="age">Match ${esc(d.onlineMatchId || d.context.match?.onlineMatchId || 'unavailable')}</p>
+        <time class="age">${esc(d.receivedAtUtc)}</time></div></button></article>`).join('')}</div>` : '<div class="empty">No player reports here.</div>') +
+      (reportCursor ? '<button class="btn" id="moreReports">More reports</button>' : '');
+    document.querySelectorAll('[data-report]').forEach(b => b.onclick = () => showPlayerReport(reportItems[Number(b.dataset.report)]));
+    document.getElementById('pullReports').onclick = async () => { await fetch('/api/player-reports/pull', {method:'POST'}); drawPlayerReports(); };
+    if (reportCursor) document.getElementById('moreReports').onclick = () => drawPlayerReports(true);
+  } catch (e) { say(e.message); }
+}
+function showPlayerReport(d) {
+  hide();
+  const sheet = document.getElementById('sheet');
+  sheet.innerHTML = `<div class="report-copy"><h3>Player report · ${esc(d.kind)}</h3>
+    ${d.imageUrl ? `<a href="${esc(d.imageUrl)}" target="_blank" rel="noopener"><img class="report-image" src="${esc(d.imageUrl)}" alt="Player screenshot"></a>` : ''}
+    <p class="player-evidence">${esc(d.message || 'No message')}</p><p>${esc(reportContext(d))}</p>
+    <p>Reporter ${esc(d.reporter.displayName || 'Unnamed player')} · ${esc(d.reporter.steamId)}</p>
+    <p>Match ${esc(d.onlineMatchId || d.context.match?.onlineMatchId || 'unavailable')}</p>
+    <p class="age">Observed ${esc(d.context.observedAtUtc)} · Received ${esc(d.receivedAtUtc)}</p>
+    <details><summary>Captured context</summary><pre class="player-evidence">${esc(JSON.stringify(d.context, null, 2))}</pre></details>
+    <div class="acts">${d.checkId ? '<button class="btn" id="reportCheck">Open check #' + d.checkId + '</button>' :
+      `<button class="btn" id="dismissReport">${d.status === 'dismissed' ? 'Reopen' : 'Dismiss'}</button><button class="btn go" id="promoteReport">Promote</button>`}
+    <button class="btn" id="closeReport">Close</button></div>
+    <form id="reportPromotion" hidden><h4>Promote to check</h4><p>Review the player observation and write where to go, what to do, and what to look for.</p>
+    <label>Title<input id="reportTitle" required maxlength="300"></label><label>Steps<textarea id="reportSteps" required rows="8"></textarea></label>
+    <label>Area (optional)<input id="reportArea"></label><button class="btn go" type="submit">Create check</button></form></div>`;
+  sheet.classList.add('on');
+  document.getElementById('closeReport').onclick = hide;
+  if (d.checkId) document.getElementById('reportCheck').onclick = () => { pickArea('checks'); showCheck(d.checkId); };
+  else {
+    document.getElementById('dismissReport').onclick = async () => {
+      try { await send('PATCH', reportPath(d), {dismissed:d.status !== 'dismissed'}); hide(); await load(); }
+      catch (e) { say(e.message); }
+    };
+    document.getElementById('promoteReport').onclick = () => { document.getElementById('reportPromotion').hidden = false; };
+    document.getElementById('reportTitle').value = d.kind + ': ' + (d.message.split('\n')[0] || 'Player observation').slice(0,120);
+    document.getElementById('reportSteps').value = 'Player observation\n' + (d.message || 'No message') + '\n\nCaptured context\n' + reportContext(d) + '\n\nWhere to go\n\nWhat to do\n\nWhat to look for\n';
+    document.getElementById('reportPromotion').onsubmit = async event => {
+      event.preventDefault();
+      if (reportBusy) return;
+      reportBusy = true;
+      try {
+        const check = await send('POST', reportPath(d) + '/promote', {title:document.getElementById('reportTitle').value, steps:document.getElementById('reportSteps').value, area:document.getElementById('reportArea').value});
+        hide(); await load(); pickArea('checks'); showCheck(check.id);
+      } catch (e) { say(e.message); } finally { reportBusy = false; }
+    };
+  }
+  sheet.scrollIntoView({behavior:'smooth',block:'nearest'});
+}
+
 function pickArea(name) { area = localStorage.area = name; hide(); draw(); }
 function pickCheckTab(status) { checkTab = localStorage.checkTab = status; hide(); draw(); }
 const checkById = id => B.checks.find(c => c.id === id);
@@ -342,6 +424,7 @@ function showCheck(id, scroll = true) {
   sheet.innerHTML = `<div class="check-intro"><h3>${esc(d.title)}</h3><span class="chip" style="margin:0;display:inline-block">#${d.id} &middot; ${esc(d.status)}</span>
     ${d.area ? `<span class="chip" style="display:inline-block">${esc(d.area)}</span>` : ""}
     ${d.qa ? `<span class="chip qa-${esc(d.qa)}" style="display:inline-block">QA ${esc(d.qa)}</span>` : ""}
+    ${d.source_report ? '<button class="btn" id="checkSourceReport">View player report</button>' : ''}
     <div class="report checksteps">${md(d.steps)}</div>${threadChip(d)}
     </div>${media}<div class="check-feedback"><h4>Notes</h4><div class="notes">${d.notes.map(n => `<div class="${n.author === "owner" ? "" : n.author}"><small>${{owner: "You", agent: "Agent", qa: "QA"}[n.author]} ${esc(n.at.replace("T"," "))}</small> ${esc(n.body)}${n.send ? `<small class="delivery ${n.error && !n.delivered ? "error" : ""}">${n.delivered ? "Sent to thread" : n.error ? "Error: " + esc(n.error) : "Waiting for desk"}</small>` : ""}</div>`).join("") || `<p>No notes yet.</p>`}</div>
     <textarea id="checkNote" placeholder="What happened? What needs to change?" aria-label="Check note">${esc(note)}</textarea>
@@ -349,6 +432,13 @@ function showCheck(id, scroll = true) {
     <div class="acts">${checkActions(d).map(([status,label,kind,mode = ""]) => `<button class="btn ${kind}" onclick="checkAct(${d.id},'${status}','${mode}')">${label}</button>`).join("")}
     <button class="btn" onclick="checkAct(${d.id},'')">Save note</button><button class="btn" onclick="hide();draw()">Close</button></div>
     ${d.thread ? `<p class="age">Good + commit asks the thread to commit its files and settle. Good only stays on this board. Other verdicts go to the thread when the desk relay is running.</p>` : ""}</div>`;
+  if (d.source_report) document.getElementById('checkSourceReport').onclick = async () => {
+    try {
+      const r = await fetch('/api/player-reports/' + encodeURIComponent(d.source_report.source) + '/' + d.source_report.report_id);
+      if (!r.ok) throw new Error('Could not load source report');
+      const report = await r.json(); pickArea('player-reports'); showPlayerReport(report);
+    } catch (e) { say(e.message); }
+  };
   sheet.classList.add("on", "check-sheet"); draw(); if (scroll) sheet.scrollIntoView({behavior: "smooth", block: "start"});
 }
 async function checkAct(id, status, mode = "") {
@@ -493,7 +583,7 @@ load().then(() => {
     area = localStorage.area = "checks"; checkTab = localStorage.checkTab = checkById(+check[1]).status; showCheck(+check[1]);
   } else openIdea(hash);
 }).catch(e => say("Could not load: " + e.message));
-setInterval(() => { const typing = ["note", "inboxText", "checkNote", "sendNote", "checkFilter"].includes(document.activeElement?.id) || /^(wl?|s|um)-/.test(document.activeElement?.id || ""); const playing = [...document.querySelectorAll("video")].some(v => !v.paused);
+setInterval(() => { const typing = ["note", "inboxText", "checkNote", "sendNote", "checkFilter", "reportTitle", "reportSteps", "reportArea"].includes(document.activeElement?.id) || /^(wl?|s|um)-/.test(document.activeElement?.id || ""); const playing = [...document.querySelectorAll("video")].some(v => !v.paused);
   if (!typing && !playing) load(); }, 15000);
 </script>
 </body>

@@ -54,7 +54,7 @@ public class MatchStartRequestCodecTests
     [InlineData("slopball-coop", "shoves", false)]
     [InlineData("manki-mayhem", "off", true)]
     [InlineData("manki-mayhem", "shoves", true)]
-    [InlineData("manki-mayhem", "on", true)]
+    [InlineData("manki-mayhem", "on", false)]
     public void FriendlyFireIsAFormatCheckedRule(string format, string mode, bool valid)
     {
         string body = TwoPlayerBody.Insert(1, $"\"format\":\"{format}\",\"friendlyFire\":\"{mode}\",");

@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using SlopArena.Shared.Abilities;
+using SlopArena.Shared.Mayhem;
 
 namespace SlopArena.Shared
 {
@@ -22,7 +23,7 @@ namespace SlopArena.Shared
             IReadOnlyList<TimelinePresentationEvent> PresentationEvents,
             IReadOnlyList<SlopballEvent> SlopballEvents,
             IReadOnlyList<CourseTickEvent> CourseEvents,
-            IReadOnlyList<MankiMayhemEvent> MayhemEvents);
+            IReadOnlyList<MayhemEvent> MayhemEvents);
 
         /// <summary>Restore clears the outputs of the tick that produced the state; this writes the recorded ones back.</summary>
         internal void ApplyTickOutputs(TickOutputs outputs)

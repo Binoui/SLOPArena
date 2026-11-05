@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "submissionId": "78ca3171-8bac-4a20-9fb9-a885d5c50673",
+  "kind": "feel",
+  "message": "The landing feels late here",
+  "context": {
+    "appVersion": "0.1.0-playtest.48",
+    "protocolVersion": 35,
+    "platform": "WindowsPlayer",
+    "scene": "PvPMatch",
+    "phase": "match",
+    "observedAtUtc": "2026-11-04T12:00:00.000Z",
+    "match": {
+      "mode": "pvp",
+      "format": "stock",
+      "stageId": "slop_pit",
+      "onlineMatchId": "230d7309-7f7f-4836-988e-780f6ba92215",
+      "localEntityId": 1,
+      "lastObservedServerTick": 1240,
+      "fighters": [
+        { "entityId": 1, "packageId": "fightguy", "packageVersion": "1.0.0", "cookedContentHash": null },
+        { "entityId": 2, "packageId": "nyx", "packageVersion": null, "cookedContentHash": null }
+      ]
+    }
+  }
+}

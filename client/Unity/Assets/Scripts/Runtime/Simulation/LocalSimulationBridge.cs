@@ -8,13 +8,15 @@ namespace SlopArena.Client.Simulation
         private ServerSimulation _server;
         private readonly ArenaDefinition _arena;
         private readonly IMatchRule? _rule;
+        private readonly uint _stageHazardSeed;
         private readonly List<TimelinePresentationEvent> _lastTickPresentationEvents = new();
 
-        public LocalSimulationBridge(ArenaDefinition arena, IMatchRule? rule = null)
+        public LocalSimulationBridge(ArenaDefinition arena, IMatchRule? rule = null, uint stageHazardSeed = 0)
         {
             _arena = arena;
             _rule = rule;
-            _server = new ServerSimulation(arena, rule);
+            _stageHazardSeed = stageHazardSeed;
+            _server = new ServerSimulation(arena, rule, stageHazardSeed: _stageHazardSeed);
         }
 
         /// <summary>
@@ -24,7 +26,7 @@ namespace SlopArena.Client.Simulation
         /// </summary>
         public void Restart()
         {
-            _server = new ServerSimulation(_arena, _rule);
+            _server = new ServerSimulation(_arena, _rule, stageHazardSeed: _stageHazardSeed);
             _lastTickPresentationEvents.Clear();
         }
         public void RegisterEntity(ulong id, CharacterDefinition def, CharacterState initialState, BakedAnimationData? baked = null)

@@ -5,7 +5,7 @@
  "sourceSha256": "aefdb06f683c006ac3ee1970580c71d75b408270ac4e3969b4d8d2aba47dc12f",
  "arena": "data/arenas/slop_pit.arena",
  "arenaSha256": "0c15fbb284e64597bf837d93ff313d7f920a9f749dfbc11eb07e3cce1bb77ff1",
- "blender": "5.2.2 LTS",
+ "blender": "5.2.3 LTS",
  "materials": [
   "SP_Lit",
   "SP_Floor",
@@ -30,6 +30,6 @@
   "Stands",
   "Venue Glow"
  ],
- "geometryDigest": "45ca28d0eff8f743ea8b9b8886759c659c6308af855ab283fa7dee0a0c7a927f",
+ "geometryDigest": "8ea4632d55492ef77ea65c819be3f619f9a21d3ce0a68ac62f85baeedd205d9f",
  "problems": 0
 }

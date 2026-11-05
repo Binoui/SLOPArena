@@ -13,6 +13,7 @@ namespace SlopArena.Shared
     public class MasterServerClient : IDisposable
     {
         private readonly HttpClient _http;
+        private readonly HttpClient _feedbackHttp;
         private readonly bool _ownsHttpClient;
 
         private static readonly JsonSerializerOptions ServerJsonOptions = new()
@@ -51,6 +52,7 @@ namespace SlopArena.Shared
                 BaseAddress = new Uri(masterServerUrl.TrimEnd('/') + "/"),
                 Timeout = TimeSpan.FromSeconds(5)
             };
+            _feedbackHttp = new HttpClient { BaseAddress = _http.BaseAddress, Timeout = TimeSpan.FromSeconds(20) };
             _ownsHttpClient = true;
         }
 
@@ -61,6 +63,7 @@ namespace SlopArena.Shared
         public MasterServerClient(HttpClient httpClient)
         {
             _http = httpClient ?? throw new ArgumentNullException(nameof(httpClient));
+            _feedbackHttp = httpClient;
             _ownsHttpClient = false;
         }
         /// <summary>Authenticate with a fresh Steam web ticket, encoded as hex.</summary>
@@ -285,6 +288,84 @@ namespace SlopArena.Shared
             }
         }
 
+        public async Task<FeedbackSendResult> SendFeedbackAsync(string jwt, FeedbackSubmission submission,
+            CancellationToken ct = default)
+        {
+            if (string.IsNullOrEmpty(jwt)) return new FeedbackSendResult.Retryable("Steam sign-in is unavailable. Try again.");
+            int session = _sessionVersion;
+            using var deadline = CancellationTokenSource.CreateLinkedTokenSource(ct);
+            deadline.CancelAfter(TimeSpan.FromSeconds(20));
+            try
+            {
+                using var multipart = new MultipartFormDataContent();
+                var metadata = JsonSerializer.Serialize(new FeedbackWire(submission), ServerJsonOptions);
+                if (Encoding.UTF8.GetByteCount(metadata) > 16384) return new FeedbackSendResult.Rejected("feedback-too-large");
+                multipart.Add(new StringContent(metadata, Encoding.UTF8, "application/json"), "metadata");
+                if (submission.Image != null)
+                {
+                    var image = new ByteArrayContent(submission.Image.Jpeg.ToArray());
+                    image.Headers.ContentType = new MediaTypeHeaderValue("image/jpeg");
+                    multipart.Add(image, "screenshot", "feedback.jpg");
+                }
+                using var request = new HttpRequestMessage(HttpMethod.Post, "feedback") { Content = multipart };
+                request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", jwt);
+                using var response = await _feedbackHttp.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, deadline.Token);
+                if (session != _sessionVersion) return new FeedbackSendResult.Retryable("Steam session changed.");
+                int status = (int)response.StatusCode;
+                if (status == 200 || status == 201)
+                {
+                    using var stream = await response.Content.ReadAsStreamAsync();
+                    using var bytes = new System.IO.MemoryStream();
+                    var buffer = new byte[1024];
+                    int count;
+                    while ((count = await stream.ReadAsync(buffer, 0, buffer.Length, deadline.Token)) > 0)
+                    {
+                        if (bytes.Length + count > 8192) return new FeedbackSendResult.Retryable("Couldn't confirm it arrived. Press Retry, it won't send twice.");
+                        bytes.Write(buffer, 0, count);
+                    }
+                    using var document = JsonDocument.Parse(bytes.ToArray());
+                    var root = document.RootElement;
+                    if (root.TryGetProperty("reportId", out var id) && id.TryGetGuid(out var reportId) && reportId != Guid.Empty &&
+                        root.TryGetProperty("receivedAtUtc", out var time) && time.TryGetDateTimeOffset(out var received))
+                        return new FeedbackSendResult.Accepted(new FeedbackReceipt(reportId, received));
+                    return new FeedbackSendResult.Retryable("Couldn't confirm it arrived. Press Retry, it won't send twice.");
+                }
+                if (status == 404) return new FeedbackSendResult.Retryable("Feedback isn't available yet.");
+                if (status == 401) return new FeedbackSendResult.Retryable("Steam sign-in expired. Try again.");
+                if (status == 429)
+                {
+                    var retry = response.Headers.RetryAfter;
+                    var delay = retry?.Delta ?? (retry?.Date - DateTimeOffset.UtcNow);
+                    if (delay.HasValue) delay = TimeSpan.FromSeconds(Math.Max(0, Math.Min(86400, delay.Value.TotalSeconds)));
+                    return new FeedbackSendResult.Retryable("Too many reports for now. Try again later.", delay);
+                }
+                if (status >= 500 || status == 408) return new FeedbackSendResult.Retryable("The server is busy. Your feedback is kept, press Retry.");
+                return new FeedbackSendResult.Rejected(status == 413 ? "feedback-too-large" :
+                    status == 415 ? "unsupported-image" : status == 422 ? "unsupported-feedback-version" : "invalid-feedback");
+            }
+            catch (Exception e) when (e is HttpRequestException || e is OperationCanceledException || e is JsonException || e is System.IO.IOException || e is InvalidOperationException)
+            { return new FeedbackSendResult.Retryable("Couldn't reach the server. Your feedback is kept, press Retry."); }
+        }
+
+        private sealed class FeedbackWire
+        {
+            public int SchemaVersion => 1;
+            public Guid SubmissionId { get; }
+            public string Kind { get; }
+            public string Message { get; }
+            public object Context { get; }
+            public FeedbackWire(FeedbackSubmission submission)
+            {
+                SubmissionId = submission.SubmissionId; Kind = submission.Kind.ToString().ToLowerInvariant(); Message = submission.Message;
+                var c = submission.Context;
+                Context = new { c.AppVersion, c.ProtocolVersion, c.Platform, c.Scene,
+                    Phase = c.Phase.ToString().ToLowerInvariant(),
+                    ObservedAtUtc = c.ObservedAtUtc.UtcDateTime.ToString("yyyy-MM-dd'T'HH:mm:ss.fff'Z'", System.Globalization.CultureInfo.InvariantCulture),
+                    Match = c.Match == null ? null : new { c.Match.Mode, c.Match.Format, c.Match.StageId,
+                        c.Match.OnlineMatchId, c.Match.LocalEntityId, c.Match.LastObservedServerTick, c.Match.Fighters } };
+            }
+        }
+
         public void ClearAuthentication()
         {
             _sessionVersion++;
@@ -298,7 +379,10 @@ namespace SlopArena.Shared
         public void Dispose()
         {
             if (_ownsHttpClient)
+            {
                 _http.Dispose();
+                _feedbackHttp.Dispose();
+            }
         }
 
         private sealed class SetDisplayNamePayload

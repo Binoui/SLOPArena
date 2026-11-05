@@ -46,7 +46,7 @@ static class Replay
         }
         return inputs;
     }
-    internal static RunTrace Run(Content content, ComboFile combo)
+    internal static RunTrace Run(Content content, ComboFile combo, System.Text.StringBuilder? exact = null)
     {
         if (combo.Version != 1) throw new ArgumentException("version differs");
         if (combo.Fighters.Length != 2 || combo.Fighters[0].Id != 1 || combo.Fighters[1].Id != 2 || combo.Fighters[0].Role != "attacker" || combo.Fighters[1].Role != "victim")
@@ -59,7 +59,7 @@ static class Replay
             if (!combo.Content.Packages.TryGetValue(p.Key, out var hash) || hash != p.Value) throw new ArgumentException($"content.packages.{p.Key} differs");
         var a = Decode(combo.Fighters[0].Tape, "fighters[0].tape"); var v = Decode(combo.Fighters[1].Tape, "fighters[1].tape");
         if (a.Length != v.Length || a.Length != combo.Timeline.Ticks) throw new ArgumentException("tape length differs from timeline.ticks");
-        var r = new Runner(content, combo.Fighters[0], combo.Fighters[1]).Run(new(), 0, false, a, v);
+        var r = new Runner(content, combo.Fighters[0], combo.Fighters[1]).Run(new(), 0, false, a, v, exact);
         var actual = System.Text.Json.JsonSerializer.SerializeToNode(Timeline(r), Json.Options)!;
         var expected = System.Text.Json.JsonSerializer.SerializeToNode(combo.Timeline, Json.Options)!;
         string? difference = Difference(expected, actual, "timeline");

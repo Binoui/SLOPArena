@@ -47,7 +47,7 @@ public class MankiMayhemArenaTests
     [Fact]
     public void ExistingSlopballAndCourseArenaSectionsKeepTheirOriginalBytes()
     {
-        string root = MankiMayhemTests.Root;
+        string root = MayhemWorld.Root;
         int balls = 0, courses = 0;
         foreach (string path in Directory.EnumerateFiles(Path.Combine(root, "data/arenas"), "*.arena"))
         {

@@ -270,24 +270,25 @@ whether a character upgrade modifies its move or replaces it.
 
 ## Manki Mayhem
 
-Selected on 2026-10-27: a WarioWare-style show on its own stage,
-[Manki Mayhem](stages/manki_mayhem.design.md). Each round Manki shouts a call card
-and throws one pattern from his booth; two to four fighters dodge it. Hazards hit like
-normal attacks and recovery matters. It is **competitive survival**, not co-op and not a
-fight: survivors score each round. Cards come from a shuffled deck that speeds up as
-the Match goes, and friendly fire is a Room rule (Off, Shoves by default, On).
+Selected on 2026-10-27 as a three-card survival show on its own stage,
+[Manki Mayhem](stages/manki_mayhem.design.md), and redesigned on 2026-11-04 into a
+WarioWare-inspired show of short **channels**. Each channel is one word, the one control
+it needs and a few seconds on the deck, with a pass or fail for every contestant. Two to
+four fighters play every channel at once. It is the gateway mode for people who don't
+play fighting games: a hazard hit splats you for one channel, nobody is ever knocked out
+of the show, and move, jump and hit are the only controls until a channel switches on
+one more.
 
-The match rhythm is **call → dodge → recover → score → next call**. The first slice
-plays SCATTER! (sticky bombs), JUMP! (shockwave rings) and BREAK OUT! (walls around
-every fighter, a bomb incoming) online from the start, with the big animated host and
-a fixed show camera. TAKE COVER!, WEAVE! and GET HIM! follow. It needs no new kit work:
-the hazards belong to the show, not to a fighter.
+The show runs in three acts that speed up, each ending with a boss channel. Every pass
+earns ratings and the highest ratings win. The first slice plays DODGE!, JUMP!,
+BREAK OUT!, SPOT!, NO RUNNING!, BREAK THE BOARDS! and the boss PRIME TIME! in Local
+Play, with online Rooms after a coordinated release. Friendly fire is Off or Shoves.
 
-The [feature brief](manki-mayhem.md) holds the rules, rounds and presentation;
-[ADR-0044](../adr/0044-manki-mayhem-hazard-director.md) proposes the hazard director,
-host identity and runtime breakable walls; the
-[implementation plan](manki-mayhem-implementation.md) orders the work and lists the
-open decisions. No round count, score or timing is selected.
+The [feature brief](manki-mayhem.md) holds the rules, channels and presentation;
+[ADR-0061](../adr/0061-manki-mayhem-channels.md) records the channel core on top of
+[ADR-0044](../adr/0044-manki-mayhem-hazard-director.md); the
+[implementation plan](manki-mayhem-implementation.md) orders the work. No channel
+length, act size, rating or speed is selected.
 
 ## Moving geometry
 

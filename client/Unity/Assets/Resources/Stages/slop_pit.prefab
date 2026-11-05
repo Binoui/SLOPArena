@@ -439,9 +439,9 @@ MonoBehaviour:
   _ambientGround: {r: 0.1, g: 0.08, b: 0.07, a: 1}
   _ambientIntensity: 1
   _fog: 1
-  _fogColor: {r: 0.3, g: 0.16, b: 0.07, a: 1}
+  _fogColor: {r: 0.14, g: 0.085, b: 0.05, a: 1}
   _fogStart: 24
-  _fogEnd: 190
+  _fogEnd: 130
 --- !u!1 &7472005333454208854
 GameObject:
   m_ObjectHideFlags: 0

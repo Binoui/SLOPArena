@@ -857,6 +857,8 @@ public sealed class SlopArenaStageAuthoringService
         {
             if (component is Transform || component is MeshFilter || component is MeshRenderer) continue;
             if (component == arcadeSource) continue;
+            if (component is SlopArena.Client.World.StageHazardAnchorMarker
+                && component.transform.parent == aids.Find("HazardAnchors")) continue;
             Add(build.Diagnostics, "SOURCE_COMPONENT_UNSUPPORTED", component.GetType().Name + " on " + component.gameObject.name);
         }
 
@@ -1012,6 +1014,9 @@ public sealed class SlopArenaStageAuthoringService
         try { arcade?.Slopball?.ValidateCourt(in arena); }
         catch (ArgumentException exception)
         { Add(build.Diagnostics, "SLOPBALL_PROFILE_INVALID", exception.Message); return build; }
+        try { arena.HazardAnchors = SlopArena.EditorTools.StageHazardMarkerAuthoring.Read(aids, arena); }
+        catch (Exception exception)
+        { Add(build.Diagnostics, "HAZARD_ANCHORS_INVALID", exception.Message); return build; }
         build.Arena = arena;
         build.HasArena = true;
         return build;

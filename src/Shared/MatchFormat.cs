@@ -94,16 +94,22 @@ public static class MatchFormats
     /// <summary>The rule a format plays under; stock fights keep the Match's stock count.</summary>
     public static bool AdmitsFriendlyFire(this MatchFormat format, FriendlyFireMode mode) => format switch
     {
-        MatchFormat.MankiMayhem => mode <= FriendlyFireMode.On,
+        MatchFormat.MankiMayhem => mode is FriendlyFireMode.Off or FriendlyFireMode.Shoves,
         MatchFormat.SlopballCoop => mode is FriendlyFireMode.Off or FriendlyFireMode.On,
         _ => mode == FriendlyFireMode.Off,
     };
 
     public static IMatchRule CreateRule(this MatchFormat format, byte maxStocks, FriendlyFireMode friendlyFire = FriendlyFireMode.Off,
-        System.Collections.Generic.IReadOnlyDictionary<ulong, SlopballCamp>? camps = null, bool ballOnly = false) => format switch
+        System.Collections.Generic.IReadOnlyDictionary<ulong, SlopballCamp>? camps = null, bool ballOnly = false,
+        StageHazardMode stageHazards = StageHazardMode.Off)
+    {
+        if (stageHazards is not (StageHazardMode.Off or StageHazardMode.On)
+            || stageHazards == StageHazardMode.On && format != MatchFormat.Stock)
+            throw new ArgumentOutOfRangeException(nameof(stageHazards));
+        return format switch
     {
         MatchFormat.MankiMayhem => new MankiMayhemMatchRule(friendlyFire),
-        MatchFormat.Stock => new StockMatchRule(maxStocks),
+        MatchFormat.Stock => new StockMatchRule(maxStocks, stageHazards),
         MatchFormat.SlopballCoop => new SlopballCoopMatchRule(friendlyFire: friendlyFire),
         MatchFormat.SlopballVersus => new SlopballVersusMatchRule(camps!, ballOnly),
         MatchFormat.CourseScramble => new CourseMatchRule(CourseFormat.Scramble),
@@ -111,6 +117,7 @@ public static class MatchFormats
         MatchFormat.CourseCoop => new CourseMatchRule(cooperative: true),
         _ => throw new ArgumentOutOfRangeException(nameof(format)),
     };
+    }
 
     /// <summary>
     /// Where fighter <paramref name="index"/> of <paramref name="count"/> starts. Stock fights use

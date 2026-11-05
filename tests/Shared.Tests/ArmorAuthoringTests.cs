@@ -167,6 +167,7 @@ public sealed class ArmorAuthoringTests
             package.Definition.Presentation.Grabbed,
             package.Definition.Presentation.ThrowForward,
             package.Definition.Presentation.AirDodge,
+            package.Definition.Presentation.WallJump,
         })
             if (!string.IsNullOrEmpty(name)) names.Add(name);
         foreach (var slot in package.Definition.Slots)

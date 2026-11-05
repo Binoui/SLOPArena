@@ -22,6 +22,12 @@ services:
     restart: unless-stopped
     user: "1000:1000"
     command: python3 /app/server.py --data /data --port 8765
+    environment:
+      FEEDBACK_MASTER_ORIGIN: http://master:8080
+      FEEDBACK_SOURCE: playtest-master
+      FEEDBACK_OWNER_KEY_FILE: /run/secrets/master_console_key
+    secrets: [master_console_key]
+    depends_on: [tunnel]
     volumes:
       - ./app:/app:ro
       - ./data:/data

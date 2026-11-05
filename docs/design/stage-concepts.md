@@ -154,7 +154,7 @@ Do not change the guide because one concept wants an exception. Put that excepti
 
 ## Current boundaries
 
-- This guide covers current static PVP stages only. Hazards, moving geometry, and other non-static variants remain blocked until they have explicit Shared/server authority.
+- This guide covers static PVP stages. Stage hazards are an optional, switchable layer that never changes collision; they follow [ADR-0062](../adr/0062-stage-hazards.md) and the [stage hazards brief](stage-hazards.md). Moving geometry and other non-static variants remain blocked until they have explicit Shared/server authority.
 - It does not replace the stage-authoring asset, bake, inspect, or external-human-review requirements.
 - It does not turn Unity physics, colliders, animation, or background dressing into gameplay authority.
 - It does not prescribe a specific camera, performance budget, stage capacity subset, or numerical geometry standard.

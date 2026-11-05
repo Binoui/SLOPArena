@@ -6,6 +6,7 @@ sealed class Runner
 {
     const ulong A = 1, V = 2;
     readonly ArenaDefinition arena; readonly MatchContentEntry att, vic; readonly CharacterState startA, startV; readonly int seed, Seg;
+    internal CpuDifficulty VictimDifficulty { get; init; } = CpuDifficulty.Hard;
     internal Runner(Content content, FighterTape a, FighterTape v, int seed = 1, int seg = 6) { arena = content.Arena; att = content.Resolve(a.Package); vic = content.Resolve(v.Package); this.seed = seed; Seg = seg; startA = Start(att, a.Feet[0], a.Feet[2], a.Yaw, a.Damage); startV = Start(vic, v.Feet[0], v.Feet[2], v.Yaw, v.Damage); }
     CharacterState Start(MatchContentEntry entry, float x, float z, float yawDeg, ushort dmg)
     {
@@ -102,7 +103,8 @@ sealed class Runner
         return input;
     }
 
-    internal RunTrace Run(List<string> plan, int lookahead, bool record, InputState[]? tapeA = null, InputState[]? tapeV = null)
+    internal RunTrace Run(List<string> plan, int lookahead, bool record, InputState[]? tapeA = null, InputState[]? tapeV = null, System.Text.StringBuilder? exact = null,
+        int cpuAttackerSeed = -1, CpuDifficulty attackerDifficulty = CpuDifficulty.Hard)
     {
         var sim = new ServerSimulation(arena, NoWinMatchRule.Instance);
         sim.RegisterEntity(A, att.Definition, startA, att.BakedAnimation);
@@ -110,8 +112,12 @@ sealed class Runner
         sim.SetRespawnPosition(A, startA.PX, startA.PY, startA.PZ, startA.FacingYaw);
         sim.SetRespawnPosition(V, startV.PX, startV.PY, startV.PZ, startV.FacingYaw);
         var policy = new HeuristicBotPolicy();
-        var memory = new BotMemory { Difficulty = CpuDifficulty.Hard };
+        var memory = new BotMemory { Difficulty = VictimDifficulty };
         var rng = new Random(seed);
+        // `mine` lets a second CPU play the attacker instead of a planned input sequence.
+        var attackerPolicy = cpuAttackerSeed >= 0 ? new HeuristicBotPolicy() : null;
+        var attackerMemory = new BotMemory { Difficulty = attackerDifficulty };
+        var attackerRng = new Random(Math.Max(0, cpuAttackerSeed));
         var inputs = new Dictionary<ulong, InputState>();
         var r = new RunTrace();
         int total = tapeA?.Length ?? (plan.Count * Seg + lookahead);
@@ -121,7 +127,15 @@ sealed class Runner
         {
             var a = sim.GetState(A); var v = sim.GetState(V);
             string action = t < plan.Count * Seg ? plan[t / Seg] : "idle";
-            var ia = tapeA == null ? AttackerInput(action, t % Seg, a, v) : tapeA[t];
+            InputState ia;
+            if (tapeA != null) ia = tapeA[t];
+            else if (attackerPolicy != null)
+            {
+                attackerPolicy.ObserveOpponent(attackerMemory, v, sim.GetDefinition(V), vic.BakedAnimation, sim.GetActiveMove(V)?.Slot);
+                ia = attackerPolicy.Decide(a, att.Definition.ForForm(a.Form.Active), attackerRng, attackerMemory, arena, att.BakedAnimation,
+                    CpuBehavior.Attack, sim.GetActiveMove(A)?.Slot, canSwapCancel: sim.CanSwapCancel(A));
+            }
+            else ia = AttackerInput(action, t % Seg, a, v);
             policy.ObserveOpponent(memory, a, sim.GetDefinition(A), att.BakedAnimation, sim.GetActiveMove(A)?.Slot);
             var iv = policy.Decide(v, vic.Definition.ForForm(v.Form.Active), rng, memory, arena, vic.BakedAnimation,
                 CpuBehavior.Attack, sim.GetActiveMove(V)?.Slot, canSwapCancel: sim.CanSwapCancel(V));
@@ -132,6 +146,9 @@ sealed class Runner
             sim.Tick(inputs);
             int tick = t + 1;
             var a2 = sim.GetState(A); var v2 = sim.GetState(V);
+            if (exact != null)
+                foreach (var (id, st) in new[] { (A, a2), (V, v2) })
+                { exact.Append(tick).Append(' ').Append(id); AppendExact(exact, "", st); exact.Append('\n'); }
             if (a2.AttackSequence != a.AttackSequence)
             {
                 sequences[a2.AttackSequence] = r.Moves.Count;
@@ -173,6 +190,17 @@ sealed class Runner
             if (r.VictimKo >= 0 || r.AttackerKo >= 0) break;
         }
         return r;
+    }
+    /// <summary>Same format as SlopArenaPhotoShoot.AppendExact: " name=value" per public field, floats as hex bits.</summary>
+    internal static void AppendExact(System.Text.StringBuilder text, string prefix, object value)
+    {
+        foreach (var field in value.GetType().GetFields(System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance).OrderBy(f => f.Name, StringComparer.Ordinal))
+        {
+            var v = field.GetValue(value);
+            if (v is float f) text.Append(' ').Append(prefix).Append(field.Name).Append('=').Append(BitConverter.SingleToInt32Bits(f).ToString("x8"));
+            else if (v != null && field.FieldType.IsValueType && !field.FieldType.IsPrimitive && !field.FieldType.IsEnum) AppendExact(text, prefix + field.Name + ".", v);
+            else text.Append(' ').Append(prefix).Append(field.Name).Append('=').Append(Convert.ToString(v, System.Globalization.CultureInfo.InvariantCulture));
+        }
     }
     float EdgeDistance(float x, float z, float dx, float dz)
     {

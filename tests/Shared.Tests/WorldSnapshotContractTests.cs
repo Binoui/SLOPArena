@@ -1,9 +1,11 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Reflection;
 using SlopArena.Shared.Abilities;
+using SlopArena.Shared.Mayhem;
 using Xunit;
 
 namespace SlopArena.Shared.Tests;
@@ -26,38 +28,52 @@ public class WorldSnapshotContractTests
     };
 
     [Fact]
-    public void MayhemDirectorSnapshotCoversCursorPlayersBenchWithdrawalsAndLandingRings()
+    public void MayhemDirectorSnapshotCoversEveryField()
     {
-        var stage = MankiMayhemTests.Arena().Arcade!.Mayhem!;
-        var original = new MankiMayhemSimulation(stage);
-        original.Apply(new(new(81, 2, MankiMayhemCard.Scatter, MankiMayhemPhase.Pattern, 12, 1),
-            new[] { new MayhemPlayer(1, 3, 2, 1, true, false), new MayhemPlayer(2, 1, 1, 0, true, true) },
-            new[] { new MayhemLandingRing(0, new(3, 0, 4), 200, 289, 120) }, Array.Empty<MayhemSlam>(), Array.Empty<RuntimeSolid>()));
-        var w = new SnapshotWriter(); original.WriteSnapshot(w);
+        var (run, episode) = MayhemWorld.Airing(MayhemChannels.BreakOut, SpeedTier.Two);
+        var cpus = MayhemWorld.Cpus(run, 0);
+        uint play = MayhemWorld.Plan(run).PlayStart(episode);
+        while (run.CurrentTick < play + 40) MayhemWorld.StepCpus(run, cpus);
+        run.WithdrawMayhemPlayer(4);
+        MayhemWorld.Ko(run, 3, -5f);
+        MayhemWorld.StepCpus(run, cpus);
+        var view = MayhemWorld.View(run);
+        Assert.Equal(MayhemVerdict.Failed, view.Contestants[2].Verdict);
+        Assert.True(view.Contestants[3].Withdrawn);
+        var director = run.MayhemShow!;
+        var w = new SnapshotWriter(); director.WriteSnapshot(w);
         var r = new SnapshotReader(w.ToArray());
-        var copy = new MankiMayhemSimulation(stage);
-        copy.Apply(copy.ReadSnapshot(r, new ulong[] { 1, 2 }));
+        var copy = new MayhemShow(MayhemWorld.Arena().Arcade!.Mayhem!);
+        copy.Apply(copy.ReadSnapshot(r, new ulong[] { 1, 2, 3, 4 }, run.CurrentTick));
         Assert.True(r.AtEnd);
-        Assert.Equal(original.State, copy.State); Assert.Equal(original.Players, copy.Players); Assert.Equal(original.Rings, copy.Rings);
-        var fields = typeof(MankiMayhemSimulation).GetFields(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic)
-            .Where(f => !f.IsInitOnly).Select(f => f.Name).OrderBy(x => x).ToArray();
-        Assert.Equal(new[] { "_rings", "_slams", "_state" }, fields);
+        var again = new SnapshotWriter(); copy.WriteSnapshot(again);
+        Assert.Equal(w.ToArray(), again.ToArray());
+        var restored = copy.View(run.CurrentTick, run)!;
+        Assert.Equal((view.Cursor, view.Channel, view.Controls, view.Outcome, view.Seed),
+            (restored.Cursor, restored.Channel, restored.Controls, restored.Outcome, restored.Seed));
+        Assert.Equal(view.Contestants, restored.Contestants);
+        Assert.Equal(view.Scene.Solids, restored.Scene.Solids);
+        Assert.Equal(view.Scene.Bombs, restored.Scene.Bombs);
+        // A new field must be snapshotted (or listed here as replay-only display state).
+        var fields = typeof(MayhemShow).GetFields(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic)
+            .Where(f => !f.IsInitOnly).Select(f => f.Name).OrderBy(x => x, StringComparer.Ordinal).ToArray();
+        Assert.Equal(new[] { "_channel", "_channelEpisode", "_display", "_failures", "_lastSafe", "_onAir", "_passMasks",
+            "_plan", "_roster", "_withdrawn" }, fields);
     }
 
     [Fact]
-    public void MayhemSnapshotPresenceAndMalformedCursorAreRejectedAtomically()
+    public void MayhemSnapshotPresenceAndMalformedStateAreRejectedAtomically()
     {
-        var run = MankiMayhemTests.NewMatch(); MankiMayhemTests.Step(run);
-        var practice = new ServerSimulation(MankiMayhemTests.Arena(), NoWinMatchRule.Instance);
+        var run = MayhemWorld.NewShow(); MayhemWorld.Step(run);
+        var practice = new ServerSimulation(MayhemWorld.Arena(), NoWinMatchRule.Instance);
         for (ulong id = 1; id <= 4; id++) practice.RegisterEntity(id, TestHelpers.EngineDef, run.GetState(id));
         var before = run.CaptureSnapshot();
         Assert.Throws<InvalidDataException>(() => run.RestoreSnapshot(practice.CaptureSnapshot()));
         Assert.True(before.ContentEquals(run.CaptureSnapshot()));
-        var director = (MankiMayhemSimulation)typeof(ServerSimulation)
-            .GetField("_mayhem", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(run)!;
-        var payload = new SnapshotWriter(); director.WriteSnapshot(payload);
+        var payload = new SnapshotWriter(); run.MayhemShow!.WriteSnapshot(payload);
+        int section = before.Data.Length - payload.ToArray().Length;
         var malformed = before.Data.ToArray();
-        malformed[malformed.Length - payload.ToArray().Length + 7] = byte.MaxValue;
+        malformed[section + 4] = 9;
         Assert.Throws<InvalidDataException>(() => run.RestoreSnapshot(new WorldSnapshot(malformed)));
         Assert.True(before.ContentEquals(run.CaptureSnapshot()));
         var bytes = before.Data.ToArray(); bytes[0] = 9;

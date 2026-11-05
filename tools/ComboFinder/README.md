@@ -17,7 +17,8 @@ dotnet tools/ComboFinder/bin/Release/net8.0/ComboFinder.dll cameras \
 ```
 
 `search` defaults to seed 1, beam 30, maximum 660 ticks, patience 25 segments,
-and segment length 6 ticks. It searches every start layout of the stage: the
+and segment length 6 ticks. Patience counts from the first KO after at least five
+landed moves, so a quick kill does not end the search early. It searches every start layout of the stage: the
 first two spawn points with floor (`spawn`), and for each side of the floor
 (`east`, `west`, `north`, `south`) the victim 3 m inside the edge with the
 attacker 6 m further in. Kills happen near edges, so edge layouts find most
@@ -59,6 +60,22 @@ no combo, and exits 1. Sweep skips mirrors, writes all accepted combos, and rank
 them by score. `--top N` limits the printed table only. `--seeds 1,2` adds seeds.
 Other search controls also work on sweep. Sweep exits 1 when no combo qualifies.
 Invalid arguments and stale combos exit 2.
+
+`mine` plays many seeded fights between two CPUs, with the attacker on Hard and
+the victim on `--victim-difficulty` (`hard` or `normal`), and exports the
+`--keep` best eligible strings per start layout. It uses the same score as
+search. One fight is a single pass of the simulation, so it runs about 2,000
+fights in 10 to 15 seconds. The attacker moves like the CPU does, and mined
+fights are less finely balanced than searched ones; 3 of 4 passed the Unity
+check on 2026-11-04. Fights stop at 900 ticks, the last tick at which photo
+mode can start a capture. Its strings are shorter and use more specials than
+search's best.
+
+```sh
+dotnet tools/ComboFinder/bin/Release/net8.0/ComboFinder.dll mine --attackers bonk,wibou \
+  --victims fightguy --stages after_hours --damages 60 --fights 2000 --keep 3 \
+  --victim-difficulty normal --out /tmp/mined
+```
 
 `verify` replays the stored tapes rather than asking the CPU to regenerate its
 inputs. It checks protocol, arena SHA-256, cooked package hashes, ticks, KO,

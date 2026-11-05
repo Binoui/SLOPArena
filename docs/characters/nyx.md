@@ -235,6 +235,26 @@ Rebuild after a gameplay retune. `sloparena.presentation.nyx.verify-timing` reje
 beats and trails that outlive their cue, hitboxes that open with nothing showing, and
 any coverage field.
 
+The 2026-11-04 contact pass replaces `shadow-hit` and `pink-hit` with seven
+package-owned families. Contacts use Hierarchy scaling, draw InFront and grow with
+`clamp(sqrt(damage/6), 0.6, 1.6)`. Each has a soft procedural sound filtered below
+2.2 kHz. The heavy clench and shutter layers use `DamageScaleVariant` at 1.38,
+which selects Shadow Lash, Shadow Fist, Stomp-Kick and Double Dropkick.
+
+| Contact family | Moves | Read |
+| --- | --- | --- |
+| `rake-hit` | Shadow Flick, Shadow Ring, Up Claw | Three diagonal violet gashes widen at tick 3, split their tips at tick 7 and break into paper strips at tick 12. |
+| `clench-hit` | Grasping Hands, Shadow Lash, Shadow Fist | Ink fingers clench; heavy hits erupt into narrow down-forward spikes, splay at tick 4 and break into shards at tick 8. |
+| `grasp-hit` | Grasp, including crowed targets | Clench flash without fingers, with four ticks of shards thrown up and forward. Uses the clench sound. |
+| `feather-hit` | Hex Crow pecks, Logging Off | Violet flash and paper feathers that tumble down. Crow's hit-level `crow-pop` builds from the same family. Pecks emit `crow-peck` capability cues rather than hit contacts, so that cue uses a short feather beat and sound within its fixed 20-tick lifetime. |
+| `like-hit` | Phone Slaps, Spinning Slap | Camera star and a five-tick heart pop that cracks into small hearts and sparkle shards flying forward. Clears before the next slap. |
+| `shutter-hit` | Ring Light Uppercut, Ring Light Overhead, Stomp-Kick, Double Dropkick, Ring Light, Ring Light Rise, Going Live | Six-blade iris opens into broken arcs; broken arcs spray forward and slightly up in both variants. |
+| `selfie-hit` | Selfie Grab launch | Viewfinder and white flash followed by hearts. The zero-damage capture emits no contact; the earlier `selfie-pop` is now a focus-bracket beat. Release pops its like-heart, then fades it out within nine ticks of launch. |
+
+Slot-level IDs on Hex Crow, Grasp and Selfie Grab suppress the generic orange spark.
+Hit positions remain on the hitbox edge as determined by Shared. Close-up and
+two-stage captures are required for owner review; implementation is not in-game acceptance.
+
 All IDs below have the prefix `presentation.nyx.`.
 
 | Form | Move | Effects and how they match the hit |
@@ -258,7 +278,7 @@ All IDs below have the prefix `presentation.nyx.`.
 | Nyxxie | Double Dropkick | `dropkick-spike`. Each boot's drive into the hit shows as a pink trail at impact, and two pink spikes point from her soles down the capsule to its far end. |
 | Nyxxie | Ring Light | `ring-light-charge`, `ring-light`. The wind-up: the ring light opens behind her phone and spins up to full size by the flash, sparkles stream into the lens faster and faster, and in the last third three glints shoot out along her facing to the flash's far edge. The flash: a fan of pink light rays from her phone out to the far side of the five facing-filtered spheres (4.9 m), a big ring-light burst and pink star at the phone, focus lines that race out and stop at the fan's edge, and hearts and sparkles along it. |
 | Nyxxie | Ring Light Rise | `rotor-arcs`. The ring light spins over her head like a rotor, three pink blades inside a pink ring that spin up through the startup, with a downdraft and shed sparkles once she rises. A 1 m hip-tracked rotor hitbox pulses at ticks 15, 23 and 31 for 2 damage each, then finishes at tick 39 for 4 damage. Both pole meshes hide until the move ends or is cancelled. |
-| Nyxxie | Selfie Grab | `selfie-catch`, `selfie-pop`, `selfie-release`. Pink viewfinder brackets snap round the capture sphere, the selfie flash is a white-hot star and opening shutter ring with hearts, and a big pink "like" heart pops over her head at the launch. |
+| Nyxxie | Selfie Grab | `selfie-catch`, `selfie-pop`, `selfie-release`. Pink viewfinder brackets snap round the capture sphere, the pre-launch focus beat shows brackets, the launch contact supplies the white flash, and a big pink "like" heart pops over her head at the launch. |
 | Nyxxie | Logging Off | `logging-off`. Going Live in violet: a violet shock ring at the 3 m sphere, a floor ring, a violet flash behind her, focus lines, shards and feathers at the edge. |
 
 Confirmed contacts use `shadow-hit` (a violet star, streaks, three claw scratches and

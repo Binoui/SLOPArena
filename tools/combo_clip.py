@@ -125,13 +125,23 @@ def cmd_propose(args) -> None:
     # arbitrary fields as SQLite JSON. No tape truncation or path fallback needed.
     for source in args.combos:
         _, combo, out = load_job(source)
+        # Content can change under a long sweep (another thread's cook); skip those, keep proposing the rest.
+        if current_content(combo) != combo['content']:
+            print(f"{combo['id']} skipped: stale, content changed since it was found", flush=True)
+            continue
         if not args.no_check and not check(combo, out):
             print(f"{combo['id']} skipped: not reproducible in Unity", flush=True)
             continue
         idea_id = re.sub('[^a-z0-9-]', '-', combo['id'].lower())
-        idea = {'id': idea_id, 'format': 'combo', 'status': 'proposed',
-                'title': combo['summary'], 'idea': combo['summary'], 'combo': combo}
-        print(factory.call('POST', '/api/ideas', idea)['id'], 'added')
+        fields = {'format': 'combo', 'title': combo['summary'], 'idea': combo['summary'], 'combo': combo}
+        existing = next((i for i in factory.call('GET', '/api/ideas') if i['id'] == idea_id), None)
+        if existing is None:
+            print(factory.call('POST', '/api/ideas', {'id': idea_id, 'status': 'proposed', **fields})['id'], 'added')
+        elif existing['status'] == 'proposed':
+            # The same fight found again (same tapes, same id) after a content change: refresh its embedded combo.
+            print(factory.call('PATCH', f'/api/ideas/{idea_id}', fields)['id'], 'refreshed')
+        else:
+            print(f"{idea_id} skipped: already on the board as {existing['status']}", flush=True)
 
 
 def shoot(spec: Path, run: Path) -> dict:

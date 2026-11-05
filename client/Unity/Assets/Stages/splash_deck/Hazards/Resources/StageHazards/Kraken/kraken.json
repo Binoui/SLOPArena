@@ -1,0 +1,928 @@
+{
+ "version": 1,
+ "fbx": "kraken.fbx",
+ "fps": 30,
+ "waterY": -11.4,
+ "units": "metres; positions in Unity stage space; yaw in degrees about +Y, 0 = local +Z (the face) looking along stage +Z",
+ "placement": "Place the kraken object at a variant's anchor (on the water) with its yaw; the clips move the Root bone, never the object. Lurk: move the anchor along the route and loop `lurk`. rise starts and withdraw and jab end on lurk frame 0, so the cuts are seamless.",
+ "rig": {
+  "root": "Root",
+  "head": "Head",
+  "bones": 266,
+  "heroArm": "Arm0",
+  "jabArm": "Arm7",
+  "armLength": 68.284,
+  "bonesPerArm": 33
+ },
+ "frames": {
+  "lurk": 240,
+  "rise": 72,
+  "warn": 48,
+  "slam": 16,
+  "lie": 48,
+  "withdraw": 72,
+  "jab": 180
+ },
+ "takes": {
+  "note": "the FBX holds one take; split it into these clips by frame (first and last inclusive, 30 fps)",
+  "clips": {
+   "lurk": [
+    0,
+    240
+   ],
+   "port.aft.rise": [
+    241,
+    313
+   ],
+   "port.aft.warn": [
+    314,
+    362
+   ],
+   "port.aft.slam": [
+    363,
+    379
+   ],
+   "port.aft.lie": [
+    380,
+    428
+   ],
+   "port.aft.withdraw": [
+    429,
+    501
+   ],
+   "port.mid.rise": [
+    502,
+    574
+   ],
+   "port.mid.warn": [
+    575,
+    623
+   ],
+   "port.mid.slam": [
+    624,
+    640
+   ],
+   "port.mid.lie": [
+    641,
+    689
+   ],
+   "port.mid.withdraw": [
+    690,
+    762
+   ],
+   "port.fore.rise": [
+    763,
+    835
+   ],
+   "port.fore.warn": [
+    836,
+    884
+   ],
+   "port.fore.slam": [
+    885,
+    901
+   ],
+   "port.fore.lie": [
+    902,
+    950
+   ],
+   "port.fore.withdraw": [
+    951,
+    1023
+   ],
+   "starboard.aft.rise": [
+    1024,
+    1096
+   ],
+   "starboard.aft.warn": [
+    1097,
+    1145
+   ],
+   "starboard.aft.slam": [
+    1146,
+    1162
+   ],
+   "starboard.aft.lie": [
+    1163,
+    1211
+   ],
+   "starboard.aft.withdraw": [
+    1212,
+    1284
+   ],
+   "starboard.mid.rise": [
+    1285,
+    1357
+   ],
+   "starboard.mid.warn": [
+    1358,
+    1406
+   ],
+   "starboard.mid.slam": [
+    1407,
+    1423
+   ],
+   "starboard.mid.lie": [
+    1424,
+    1472
+   ],
+   "starboard.mid.withdraw": [
+    1473,
+    1545
+   ],
+   "starboard.fore.rise": [
+    1546,
+    1618
+   ],
+   "starboard.fore.warn": [
+    1619,
+    1667
+   ],
+   "starboard.fore.slam": [
+    1668,
+    1684
+   ],
+   "starboard.fore.lie": [
+    1685,
+    1733
+   ],
+   "starboard.fore.withdraw": [
+    1734,
+    1806
+   ],
+   "jab": [
+    1807,
+    1987
+   ]
+  }
+ },
+ "loops": [
+  "lurk",
+  "warn",
+  "lie"
+ ],
+ "lurk": {
+  "clip": "lurk",
+  "rootHeight": {
+   "deep": -24.428,
+   "peek": -6.466
+  },
+  "clearance": 12.237,
+  "note": "the object sits `clearance` metres outside the deck outline, as at the surfacing spots"
+ },
+ "deck": {
+  "top": 0.0,
+  "sternX": -15.5,
+  "bowX": 20.5,
+  "halfBeam": [
+   [
+    -15.5,
+    8.0
+   ],
+   [
+    -15.0,
+    9.658
+   ],
+   [
+    -14.5,
+    10.236
+   ],
+   [
+    -14.0,
+    10.598
+   ],
+   [
+    -13.5,
+    10.828
+   ],
+   [
+    -13.0,
+    10.958
+   ],
+   [
+    -12.5,
+    11.0
+   ],
+   [
+    -12.0,
+    11.0
+   ],
+   [
+    -11.5,
+    11.0
+   ],
+   [
+    -11.0,
+    11.0
+   ],
+   [
+    -10.5,
+    11.0
+   ],
+   [
+    -10.0,
+    11.0
+   ],
+   [
+    -9.5,
+    11.0
+   ],
+   [
+    -9.0,
+    11.0
+   ],
+   [
+    -8.5,
+    11.0
+   ],
+   [
+    -8.0,
+    11.0
+   ],
+   [
+    -7.5,
+    11.0
+   ],
+   [
+    -7.0,
+    11.0
+   ],
+   [
+    -6.5,
+    11.0
+   ],
+   [
+    -6.0,
+    11.0
+   ],
+   [
+    -5.5,
+    11.0
+   ],
+   [
+    -5.0,
+    11.0
+   ],
+   [
+    -4.5,
+    11.0
+   ],
+   [
+    -4.0,
+    11.0
+   ],
+   [
+    -3.5,
+    11.0
+   ],
+   [
+    -3.0,
+    11.0
+   ],
+   [
+    -2.5,
+    11.0
+   ],
+   [
+    -2.0,
+    11.0
+   ],
+   [
+    -1.5,
+    11.0
+   ],
+   [
+    -1.0,
+    11.0
+   ],
+   [
+    -0.5,
+    11.0
+   ],
+   [
+    0.0,
+    11.0
+   ],
+   [
+    0.5,
+    11.0
+   ],
+   [
+    1.0,
+    11.0
+   ],
+   [
+    1.5,
+    11.0
+   ],
+   [
+    2.0,
+    11.0
+   ],
+   [
+    2.5,
+    11.0
+   ],
+   [
+    3.0,
+    11.0
+   ],
+   [
+    3.5,
+    10.991
+   ],
+   [
+    4.0,
+    10.964
+   ],
+   [
+    4.5,
+    10.919
+   ],
+   [
+    5.0,
+    10.856
+   ],
+   [
+    5.5,
+    10.776
+   ],
+   [
+    6.0,
+    10.677
+   ],
+   [
+    6.5,
+    10.56
+   ],
+   [
+    7.0,
+    10.425
+   ],
+   [
+    7.5,
+    10.273
+   ],
+   [
+    8.0,
+    10.102
+   ],
+   [
+    8.5,
+    9.913
+   ],
+   [
+    9.0,
+    9.707
+   ],
+   [
+    9.5,
+    9.482
+   ],
+   [
+    10.0,
+    9.24
+   ],
+   [
+    10.5,
+    8.98
+   ],
+   [
+    11.0,
+    8.701
+   ],
+   [
+    11.5,
+    8.405
+   ],
+   [
+    12.0,
+    8.091
+   ],
+   [
+    12.5,
+    7.758
+   ],
+   [
+    13.0,
+    7.408
+   ],
+   [
+    13.5,
+    7.04
+   ],
+   [
+    14.0,
+    6.654
+   ],
+   [
+    14.5,
+    6.25
+   ],
+   [
+    15.0,
+    5.828
+   ],
+   [
+    15.5,
+    5.388
+   ],
+   [
+    16.0,
+    4.93
+   ],
+   [
+    16.5,
+    4.454
+   ],
+   [
+    17.0,
+    3.96
+   ],
+   [
+    17.5,
+    3.448
+   ],
+   [
+    18.0,
+    2.918
+   ],
+   [
+    18.5,
+    2.371
+   ],
+   [
+    19.0,
+    1.805
+   ],
+   [
+    19.5,
+    1.221
+   ],
+   [
+    20.0,
+    0.62
+   ],
+   [
+    20.5,
+    0.0
+   ]
+  ]
+ },
+ "jab": {
+  "clip": "jab",
+  "anchor": {
+   "position": [
+    -27.7373,
+    -11.4,
+    3.0
+   ],
+   "yaw": 90.0
+  }
+ },
+ "variants": {
+  "port.aft": {
+   "side": "port",
+   "lane": "slam_aft",
+   "anchor": {
+    "position": [
+     -20.5,
+     -11.4,
+     23.2373
+    ],
+    "yaw": 180.0
+   },
+   "surfacedRoot": [
+    -20.5,
+    -4.9,
+    23.2373
+   ],
+   "clips": {
+    "rise": "port.aft.rise",
+    "warn": "port.aft.warn",
+    "slam": "port.aft.slam",
+    "lie": "port.aft.lie",
+    "withdraw": "port.aft.withdraw"
+   }
+  },
+  "port.mid": {
+   "side": "port",
+   "lane": "slam_mid",
+   "anchor": {
+    "position": [
+     -9.0,
+     -11.4,
+     23.2373
+    ],
+    "yaw": 180.0
+   },
+   "surfacedRoot": [
+    -9.0,
+    -4.9,
+    23.2373
+   ],
+   "clips": {
+    "rise": "port.mid.rise",
+    "warn": "port.mid.warn",
+    "slam": "port.mid.slam",
+    "lie": "port.mid.lie",
+    "withdraw": "port.mid.withdraw"
+   }
+  },
+  "port.fore": {
+   "side": "port",
+   "lane": "slam_fore",
+   "anchor": {
+    "position": [
+     2.5,
+     -11.4,
+     23.2373
+    ],
+    "yaw": 180.0
+   },
+   "surfacedRoot": [
+    2.5,
+    -4.9,
+    23.2373
+   ],
+   "clips": {
+    "rise": "port.fore.rise",
+    "warn": "port.fore.warn",
+    "slam": "port.fore.slam",
+    "lie": "port.fore.lie",
+    "withdraw": "port.fore.withdraw"
+   }
+  },
+  "starboard.aft": {
+   "side": "starboard",
+   "lane": "slam_aft",
+   "anchor": {
+    "position": [
+     -2.5,
+     -11.4,
+     -23.2373
+    ],
+    "yaw": 0.0
+   },
+   "surfacedRoot": [
+    -2.5,
+    -4.9,
+    -23.2373
+   ],
+   "clips": {
+    "rise": "starboard.aft.rise",
+    "warn": "starboard.aft.warn",
+    "slam": "starboard.aft.slam",
+    "lie": "starboard.aft.lie",
+    "withdraw": "starboard.aft.withdraw"
+   }
+  },
+  "starboard.mid": {
+   "side": "starboard",
+   "lane": "slam_mid",
+   "anchor": {
+    "position": [
+     9.0,
+     -11.4,
+     -23.2373
+    ],
+    "yaw": 0.0
+   },
+   "surfacedRoot": [
+    9.0,
+    -4.9,
+    -23.2373
+   ],
+   "clips": {
+    "rise": "starboard.mid.rise",
+    "warn": "starboard.mid.warn",
+    "slam": "starboard.mid.slam",
+    "lie": "starboard.mid.lie",
+    "withdraw": "starboard.mid.withdraw"
+   }
+  },
+  "starboard.fore": {
+   "side": "starboard",
+   "lane": "slam_fore",
+   "anchor": {
+    "position": [
+     20.5,
+     -11.4,
+     -22.9695
+    ],
+    "yaw": 0.0
+   },
+   "surfacedRoot": [
+    20.5,
+    -4.9,
+    -22.9695
+   ],
+   "clips": {
+    "rise": "starboard.fore.rise",
+    "warn": "starboard.fore.warn",
+    "slam": "starboard.fore.slam",
+    "lie": "starboard.fore.lie",
+    "withdraw": "starboard.fore.withdraw"
+   }
+  }
+ },
+ "lanes": {
+  "slam_aft": {
+   "center": [
+    -11.5,
+    1.2,
+    0
+   ],
+   "halfExtents": [
+    4.25,
+    1.2,
+    11.0
+   ]
+  },
+  "slam_mid": {
+   "center": [
+    0.0,
+    1.2,
+    0
+   ],
+   "halfExtents": [
+    4.25,
+    1.2,
+    11.0
+   ]
+  },
+  "slam_fore": {
+   "center": [
+    11.5,
+    1.2,
+    0
+   ],
+   "halfExtents": [
+    4.25,
+    1.2,
+    11.0
+   ]
+  }
+ },
+ "warnMaxHeight": 4.0,
+ "checkpoints": {
+  "note": "bone heads (the Root and each arm's last bone) at these clip frames, metres in the kraken object's own space with Unity axes; playback should land within a few centimetres",
+  "points": [
+   {
+    "clip": "lurk",
+    "frame": 0,
+    "bones": {
+     "Root": [
+      -0.0,
+      -24.428,
+      -0.0
+     ],
+     "Arm0_32": [
+      -5.626,
+      -80.608,
+      -9.142
+     ],
+     "Arm1_32": [
+      -11.67,
+      -78.281,
+      -16.512
+     ],
+     "Arm2_32": [
+      -10.366,
+      -75.956,
+      -25.896
+     ],
+     "Arm3_32": [
+      -2.802,
+      -74.785,
+      -31.377
+     ],
+     "Arm4_32": [
+      6.215,
+      -75.009,
+      -29.943
+     ],
+     "Arm5_32": [
+      11.57,
+      -76.384,
+      -22.841
+     ],
+     "Arm6_32": [
+      10.639,
+      -78.517,
+      -14.193
+     ],
+     "Arm7_32": [
+      4.163,
+      -80.617,
+      -8.553
+     ]
+    }
+   },
+   {
+    "clip": "port.mid.warn",
+    "frame": 24,
+    "bones": {
+     "Root": [
+      -0.0,
+      6.5,
+      -0.0
+     ],
+     "Arm0_32": [
+      -9.0,
+      14.133,
+      16.682
+     ],
+     "Arm1_32": [
+      -15.253,
+      3.194,
+      -4.115
+     ],
+     "Arm2_32": [
+      -16.516,
+      3.936,
+      -4.73
+     ],
+     "Arm3_32": [
+      -3.512,
+      2.562,
+      -15.256
+     ],
+     "Arm4_32": [
+      3.66,
+      4.289,
+      -16.878
+     ],
+     "Arm5_32": [
+      16.598,
+      3.7,
+      -3.776
+     ],
+     "Arm6_32": [
+      15.043,
+      2.977,
+      -4.408
+     ],
+     "Arm7_32": [
+      13.506,
+      3.395,
+      -3.169
+     ]
+    }
+   },
+   {
+    "clip": "port.mid.slam",
+    "frame": 8,
+    "bones": {
+     "Root": [
+      -0.0,
+      6.784,
+      -0.0
+     ],
+     "Arm0_32": [
+      -9.0,
+      12.819,
+      33.01
+     ],
+     "Arm1_32": [
+      -14.895,
+      4.313,
+      -5.137
+     ],
+     "Arm2_32": [
+      -16.668,
+      3.802,
+      -3.722
+     ],
+     "Arm3_32": [
+      -3.599,
+      1.415,
+      -14.94
+     ],
+     "Arm4_32": [
+      4.037,
+      1.64,
+      -14.757
+     ],
+     "Arm5_32": [
+      16.688,
+      4.139,
+      -4.72
+     ],
+     "Arm6_32": [
+      16.192,
+      5.099,
+      -5.253
+     ],
+     "Arm7_32": [
+      12.799,
+      2.263,
+      -0.964
+     ]
+    }
+   },
+   {
+    "clip": "port.mid.lie",
+    "frame": 0,
+    "bones": {
+     "Root": [
+      -0.0,
+      6.5,
+      -0.0
+     ],
+     "Arm0_32": [
+      -9.149,
+      3.997,
+      35.629
+     ],
+     "Arm1_32": [
+      -14.855,
+      4.263,
+      -5.041
+     ],
+     "Arm2_32": [
+      -16.646,
+      3.794,
+      -3.734
+     ],
+     "Arm3_32": [
+      -3.566,
+      1.372,
+      -14.825
+     ],
+     "Arm4_32": [
+      4.016,
+      1.641,
+      -14.668
+     ],
+     "Arm5_32": [
+      16.556,
+      4.029,
+      -4.687
+     ],
+     "Arm6_32": [
+      16.134,
+      5.031,
+      -5.149
+     ],
+     "Arm7_32": [
+      15.016,
+      4.97,
+      -2.754
+     ]
+    }
+   },
+   {
+    "clip": "starboard.fore.warn",
+    "frame": 12,
+    "bones": {
+     "Root": [
+      -0.0,
+      6.75,
+      -0.0
+     ],
+     "Arm0_32": [
+      -9.0,
+      14.488,
+      17.613
+     ],
+     "Arm1_32": [
+      -14.75,
+      3.296,
+      -4.788
+     ],
+     "Arm2_32": [
+      -16.349,
+      3.196,
+      -4.514
+     ],
+     "Arm3_32": [
+      -4.155,
+      1.804,
+      -15.009
+     ],
+     "Arm4_32": [
+      3.728,
+      2.502,
+      -15.046
+     ],
+     "Arm5_32": [
+      16.819,
+      4.435,
+      -3.869
+     ],
+     "Arm6_32": [
+      14.839,
+      3.687,
+      -5.14
+     ],
+     "Arm7_32": [
+      13.676,
+      3.142,
+      -2.403
+     ]
+    }
+   }
+  ]
+ }
+}

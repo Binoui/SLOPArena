@@ -1,0 +1,335 @@
+{
+  "name": "salamander-ge-sombrero-copter-overhead",
+  "purpose": "special",
+  "rigpack": "artifacts/genra-rigpacks/salamander-unity-moves",
+  "character": "Dusty, the salamander gunslinger (package salamander; 55 joints: a Humanoid body with Mixamo names; each hand has a thumb and THREE fingers (Thumb, Index, Middle, Ring chains), no little finger; five tail joints Tail1-Tail5 under Hips; three rigid joints under Head: Hat (his hat, its own mesh), Mustache (the fake mustache on his snout) and Straw (a wheat straw in the corner of his mouth)). Measured on this rig pack (2026-11-04): upper arm 0.158 m, forearm 0.093 m, wrist to middle knuckle 0.066 m, thigh 0.176 m, shin 0.137 m. His hip joints stand 0.40 m above the floor in his idle; the top of his head (skin) is 0.51 m above the idle hips, the head hat's crown 0.69 m. The head hat's brim is 0.58 m wide and sits at about 0.46-0.50 m above the idle hips. The game draws him 1.8 times bigger. A thick tail hangs behind him from the seat of his jeans. His poncho is cloth simulated in the game and is not in this rig: pose the body only.",
+  "references": {
+    "showdown": "references/showdown.usda",
+    "idle": "references/idle.usda",
+    "fall": "references/fall.usda",
+    "jump": "references/jump.usda"
+  },
+  "entry": {
+    "reference": "showdown",
+    "tick": 0
+  },
+  "exit": {
+    "from_tick": 100,
+    "reference": "fall",
+    "tick": 0
+  },
+  "views": [
+    "gameplay",
+    "profile",
+    "front",
+    "three-quarter-right"
+  ],
+  "images": [
+    "../../../docs/design/references/dusty/dusty-model.jpg",
+    "../../../tmp/salamander-identity/moves-v1/02-sombrero-copter.png"
+  ],
+  "image_notes": "1: Dusty's actual in-game model (T-pose: front, three-quarter, side, back); his identity and proportions are authoritative. His poncho is not in the rig. 2: the owner-approved concept frame for this move, the HANG: both hands grip opposite sides of the hat brim overhead, arms raised with soft elbows, body hanging under it, boots dangling, tail curled up behind him. Treat it as pose energy and silhouette, not measured data: the concept's long arms hold the hat far above his head, which his real arms cannot reach (see the description).",
+  "notes": "Dusty ground.E (anim.salamander.ge), kit locked 2026-11-04: Sombrero Copter, his recovery, on slop.ability.aimed-recovery.v1 (startupTicks 16, verticalSpeed 15, directionalVerticalSpeed 13, horizontalSpeed 8, preparationRiseSpeed 0, riseSteerAcceleration 24), one 50-tick stage, cooldown 210. Replaces salamander-ge-sombrero-copter.json (hat spinning ON his head; its one-round takes were stiff). New in this brief: the hat is held OVERHEAD. The rig's Hat joint is rigid under Head and Unity's Humanoid leaves it unmapped, so no clip can move the hat: the game will hide the head hat from authored tick 12 to 90 (game ticks 6-45) and show a spinning hat prop between his hands, as Nyx's ring light shows a hand-held copy. Prop centre: the midpoint of LeftHandMiddle1 and RightHandMiddle1, brim plane at that height, crown up, spin axis the character up axis through that point; at tick 12 and 90 it coincides with the head hat so the swap is invisible. Reach (measured 2026-11-04 with solve() under the Humanoid limits, spine and collarbones free, knuckles 0.58 m apart): knuckles reach up = 0.58 with elbows about 150 degrees and shoulders shrugged, at most about 0.62 with the arms locked straight. So the grip sits 5-10 cm above his head top, not the 25-35 cm the concept suggests. Entry: showdown on the ground, because the ground start shows the whole startup with the boots on the floor and a matched tick 0 avoids a pop; from the air the game crossfades from his fall and the startup's leg action is small enough to read as a tuck. Authored at 100 ticks for the 50-tick stage (owner: animations always came out too fast).",
+  "description": "Dusty's E, Sombrero Copter: his recovery. He snatches his hat off his head, holds it overhead by the brim with both hands, and it spins like a helicopter rotor and lifts him into the air, boots dangling and pedalling, tail curled up behind him. Pure cartoon logic, played with total conviction.\n\nWho he is. Dusty (image 1) is a small-time tiger salamander who wants to be a legend of the West: yellow skin with dark brown blotches, a smug half-lidded smirk, a fake curly mustache glued on his snout, a straw in his mouth, a tall brown hat with a red band and a wide brim, an orange-red poncho, patched jeans with his tail out through the seat, brown boots with spurs. He is self-made and can't afford a gun, so everything is mime. He is proud, a bit ridiculous, and good at it: the joke is on his dignity, never on him failing. This is a special, so it can carry personality: a proud glance up at his rotor, a cocky chin in the air while he hangs, a satisfied plop when the hat goes back on.\n\nHow the game plays it. The match camera sits straight behind him, so the action must read from behind: his arms up in a Y holding the hat, his legs pedalling below, his tail curling out behind. The fighter does not travel in the clip; the game lifts him and the player steers him left, right, forward or back while he rises. So his hang stays centred: he never leans or points a direction of his own. The game crossfades in and out over about 0.1 s and plays this 100-tick clip over a 50-tick stage, twice as fast.\n\nTHE HAT. The rig's Hat joint is rigid on his head and the game cannot move it. Keep joint Hat at its bind rotation the whole clip. The game hides the head hat from tick 12 to 90 and draws a spinning hat prop between his hands instead. So from tick 12 to 90 his hands grip the brim of an INVISIBLE hat: both fists the brim's width apart (middle knuckles 0.54-0.60 m apart), at the same height (within 3 cm), the hat centred straight over his head (each knuckle 0 to 0.14 m in front of his hips). The prop's centre is the midpoint between the two middle knuckles (LeftHandMiddle1, RightHandMiddle1), with its brim at their height. The grip: fingers curled over the top of the brim's edge, thumb under it, palms facing each other toward the hat's centre, wrists nearly in line with the forearms. While he holds the overhead hat his forearms and hands will pass through the hidden head hat: clearance warnings between the arms or hands and the head-hat prop (region Prop) are expected and fine. Hands and forearms must still stay clear of his head and face.\n\nHIS REACH. Measured on this rig: with the knuckles 0.58 m apart his arms only reach knuckle height up = 0.58 (5-10 cm above the top of his head, which is at 0.51) with the elbows softly bent about 150 degrees and the shoulders shrugged up toward his ears, as a hanging body does. Locked straight arms get only about 4 cm more. Use the soft-elbow grip: arms up, elbows bent 135-165 degrees and pointing out to the sides, collarbones raised. Do not try to hold the hat higher than that, and do not narrow the grip to gain height.\n\nThe floor. It is at up = -0.396 m in this character frame (origin: the hips of his showdown idle at tick 0). With a flat boot the toe joint (ToeBase) sits about 0.008 m above the floor and the ankle (Foot) about 0.078 m above it. Until lift-off at tick 32 never push a boot through the floor; after it he is in the air and the floor no longer matters.\n\nEntry, tick 0 (reference `showdown`): the showdown stance, boots planted wide, knees bent, hands hovering out at his hips over invisible holsters, facing front. Exit, tick 100 (reference `fall`, tick 0): his fall pose, with the hat back on his head.\n\nThe move (100 ticks, played once at double speed; the game lifts him from tick 32):\n- Ticks 0-12, the grab (quick): both hands snap up from the holsters and take the head hat's brim at its left and right edges, at the height of the Hat joint, elbows out wide and high. The hands lead, the elbows trail; the head dips a touch to meet the hands and the knees give a little.\n- Tick 12, GRAB: fists on the brim edges at the sides of the hat (knuckles 0.52-0.60 m apart, level with joint Hat). From here the hat is the invisible prop.\n- Ticks 12-22, the lift: he raises the hat straight up off his head to the overhead grip as he sinks into his knees to load the jump. His chin comes up and he looks up at his rotor with a proud grin.\n- Tick 22, LIFT: the overhead grip (knuckles 0.19-0.27 m above the Head joint, 0.54-0.60 m apart), elbows soft and out, shoulders shrugged. Knees bent deepest, hips 2-7 cm lower than at tick 0, both boots flat on the floor where they started. The prop starts to spin here.\n- Ticks 22-32, the take-off: the rotor catches and pulls him up. Hips lead upward, the chest follows 1-3 ticks behind, the head and arms after. By tick 28 he is up on his toes (heels lifted, toe joints still on the floor), legs nearly straight, his whole body stretched long under the hat.\n- Tick 28, CATCH: up on his toes, body stretched up under the hat, chin up.\n- Tick 32, LIFT-OFF: the toes leave the floor, feet pointing down, the legs starting to swing loose; the tail swings down and back behind the hips, lagging.\n- Ticks 32-76, the hang (a moving hold, never a freeze): he hangs from the hat. The hat is the pivot: his fists stay on the brim at the overhead grip while his body swings gently under it like a pendulum, hips swaying 1.5-3 cm side to side and the torso tilting 3-6 degrees, a full swing about every 32 ticks, centred. His legs dangle and pedal like riding an invisible bicycle: the left knee lifts highest at tick 44, the right at tick 60, the left again at tick 76. The lifted thigh comes 35-55 degrees forward with the knee bent 50-80 degrees; the hanging leg stays nearly straight (thigh 5-15 degrees forward, knee 15-30 degrees); both boots point their toes down 20-40 degrees, and each boot trails its knee by 2-3 ticks. His tail curls up behind him: Tail1 points back and down from the seat, and Tail2 to Tail5 each bend 15-30 degrees upward so the tip hooks up behind him at about knee-to-hip height. The tail sways side to side behind the hips' swing, each joint 2 ticks behind its parent: Tail1 about 5-8 degrees, Tail3 10-15, Tail5 18-28. His head trails the chest by 3-5 ticks; it stays up, a cocky chin, the straw bobbing with it. The elbows give and recover 3-6 degrees with the swing; the hands do not leave the brim.\n- Tick 44, HANG LEFT: left knee high, right leg hanging, hips swung a little toward the right.\n- Tick 60, HANG RIGHT: right knee high, left leg hanging, hips swung a little toward the left.\n- Tick 76, HANG LEFT AGAIN: left knee rising again, and the body starting to settle: not the same pose as tick 44 (moving hold).\n- Ticks 76-90, the hat goes back on: he brings the hat straight down onto his head with both fists on the brim (a satisfied little nod as it lands), the legs slow their pedalling and come together under him toward the fall pose.\n- Tick 90, HAT ON: fists on the brim edges at the head hat's height again (level with joint Hat, knuckles 0.52-0.60 m apart), so the game swaps the prop back onto his head here. The head tips down a touch with the plop, the knees tuck up toward the fall pose.\n- Ticks 90-100, the release: the hands let go of the brim and open out into the fall pose's arms; the legs reach the fall pose. Tick 100 is the fall reference's tick 0 exactly.\n\nFlow (the owner's rules): overlap and follow-through everywhere. Hips lead every move, the chest trails them by 1-3 ticks, the head, arms, legs and tail trail more. No two keys of the hang are the same pose. Ease into and out of every beat, and do not let the whole body stop together. No body joint turns faster than about 12 degrees per tick outside the grab (ticks 2-14), where the hands may snap up quickly.",
+  "clock": {
+    "duration_ticks": 100,
+    "game_duration_ticks": 50
+  },
+  "timing": {
+    "fixed": [
+      "one 50-tick game stage played once (cooldown 210); this clip is authored at 100 ticks and plays at double speed",
+      "the game lifts him from game tick 16 (authored tick 32): boots on the floor before it, in the air after; the player steers him (riseSteerAcceleration 24), so the clip never leans or points a direction",
+      "tick 0 is his showdown idle exactly and tick 100 is his fall reference's tick 0 exactly, hat back on his head",
+      "the Hat joint never moves; from tick 12 to 90 the hands hold the brim of an invisible hat prop overhead (0.54-0.60 m apart, level), whose centre is the midpoint of the two middle knuckles; at ticks 12 and 90 the fists are on the head hat's brim so the swap is invisible",
+      "the grip height his arms can reach: knuckles about 0.19-0.27 m above the Head joint (5-10 cm above his head top), elbows soft"
+    ],
+    "adjustable": [
+      "the beats inside the startup (grab, lift, crouch, toes), as long as the fists are on the brim by tick 14 and the boots leave the floor at tick 32",
+      "the pedalling cycle, the pendulum sway and the tail's timing during the hang",
+      "when the hat goes back on (ticks 78-92), as long as it is seated before the fall pose; the prop's show window moves with it",
+      "the stage length in the move data, which sets the playback speed"
+    ]
+  },
+  "keys": [
+    0,
+    12,
+    22,
+    28,
+    32,
+    44,
+    60,
+    76,
+    90,
+    100
+  ],
+  "review_ticks": [
+    0,
+    6,
+    12,
+    22,
+    28,
+    32,
+    44,
+    52,
+    60,
+    76,
+    84,
+    90,
+    100
+  ],
+  "fast_windows": [
+    [
+      2,
+      14
+    ]
+  ],
+  "snap_degrees_per_tick": 12,
+  "targets": [
+    {
+      "name": "grab: fists a brim width apart on the head hat (m)",
+      "kind": "distance",
+      "a": "LeftHandMiddle1",
+      "b": "RightHandMiddle1",
+      "tick": 12,
+      "min": 0.52,
+      "max": 0.6
+    },
+    {
+      "name": "grab: left fist level with the Hat joint (m)",
+      "kind": "below",
+      "a": "Hat",
+      "b": "LeftHandMiddle1",
+      "tick": 12,
+      "min": -0.05,
+      "max": 0.04
+    },
+    {
+      "name": "grab: right fist level with the Hat joint (m)",
+      "kind": "below",
+      "a": "Hat",
+      "b": "RightHandMiddle1",
+      "tick": 12,
+      "min": -0.05,
+      "max": 0.04
+    },
+    {
+      "name": "lift: fists a brim width apart (m)",
+      "kind": "distance",
+      "a": "LeftHandMiddle1",
+      "b": "RightHandMiddle1",
+      "tick": 22,
+      "min": 0.54,
+      "max": 0.6
+    },
+    {
+      "name": "lift: right fist overhead, above the head top (m above Head)",
+      "kind": "below",
+      "a": "Head",
+      "b": "RightHandMiddle1",
+      "tick": 22,
+      "min": 0.19,
+      "max": 0.27
+    },
+    {
+      "name": "lift: crouched to load the jump (hips up, m)",
+      "kind": "char",
+      "a": "Hips",
+      "axis": "up",
+      "tick": 22,
+      "min": -0.07,
+      "max": -0.02
+    },
+    {
+      "name": "lift: left boot flat on the floor (toe up, m)",
+      "kind": "char",
+      "a": "LeftToeBase",
+      "axis": "up",
+      "tick": 22,
+      "min": -0.398,
+      "max": -0.375
+    },
+    {
+      "name": "catch: left toe still on the floor (m)",
+      "kind": "char",
+      "a": "LeftToeBase",
+      "axis": "up",
+      "tick": 28,
+      "min": -0.4,
+      "max": -0.37
+    },
+    {
+      "name": "catch: left heel lifted (ankle up, m)",
+      "kind": "char",
+      "a": "LeftFoot",
+      "axis": "up",
+      "tick": 28,
+      "min": -0.3,
+      "max": -0.2
+    },
+    {
+      "name": "hang left: fists a brim width apart (m)",
+      "kind": "distance",
+      "a": "LeftHandMiddle1",
+      "b": "RightHandMiddle1",
+      "tick": 44,
+      "min": 0.54,
+      "max": 0.6
+    },
+    {
+      "name": "hang left: left fist overhead (m above Head)",
+      "kind": "below",
+      "a": "Head",
+      "b": "LeftHandMiddle1",
+      "tick": 44,
+      "min": 0.19,
+      "max": 0.27
+    },
+    {
+      "name": "hang left: left elbow soft, not locked (shoulder to wrist, m)",
+      "kind": "distance",
+      "a": "LeftArm",
+      "b": "LeftHand",
+      "tick": 44,
+      "min": 0.225,
+      "max": 0.247
+    },
+    {
+      "name": "hang left: hat centred over him, left fist not ahead or behind (m)",
+      "kind": "char",
+      "a": "LeftHandMiddle1",
+      "axis": "front",
+      "tick": 44,
+      "min": 0.0,
+      "max": 0.14
+    },
+    {
+      "name": "hang left: left knee lifted (knee up, m)",
+      "kind": "char",
+      "a": "LeftLeg",
+      "axis": "up",
+      "tick": 44,
+      "min": -0.19,
+      "max": -0.1
+    },
+    {
+      "name": "hang left: tail tip curled up behind (m)",
+      "kind": "char",
+      "a": "Tail5",
+      "axis": "up",
+      "tick": 44,
+      "min": -0.3,
+      "max": -0.05
+    },
+    {
+      "name": "hang right: fists a brim width apart (m)",
+      "kind": "distance",
+      "a": "LeftHandMiddle1",
+      "b": "RightHandMiddle1",
+      "tick": 60,
+      "min": 0.54,
+      "max": 0.6
+    },
+    {
+      "name": "hang right: right fist overhead (m above Head)",
+      "kind": "below",
+      "a": "Head",
+      "b": "RightHandMiddle1",
+      "tick": 60,
+      "min": 0.19,
+      "max": 0.27
+    },
+    {
+      "name": "hang right: right elbow soft, not locked (shoulder to wrist, m)",
+      "kind": "distance",
+      "a": "RightArm",
+      "b": "RightHand",
+      "tick": 60,
+      "min": 0.225,
+      "max": 0.247
+    },
+    {
+      "name": "hang right: hat level, fists at the same height (m)",
+      "kind": "below",
+      "a": "LeftHandMiddle1",
+      "b": "RightHandMiddle1",
+      "tick": 60,
+      "min": -0.03,
+      "max": 0.03
+    },
+    {
+      "name": "hang right: right knee lifted (knee up, m)",
+      "kind": "char",
+      "a": "RightLeg",
+      "axis": "up",
+      "tick": 60,
+      "min": -0.19,
+      "max": -0.1
+    },
+    {
+      "name": "hat on: left fist back level with the Hat joint (m)",
+      "kind": "below",
+      "a": "Hat",
+      "b": "LeftHandMiddle1",
+      "tick": 90,
+      "min": -0.05,
+      "max": 0.04
+    },
+    {
+      "name": "hat on: fists a brim width apart (m)",
+      "kind": "distance",
+      "a": "LeftHandMiddle1",
+      "b": "RightHandMiddle1",
+      "tick": 90,
+      "min": 0.52,
+      "max": 0.6
+    },
+    {
+      "name": "pedalling: left boot moves up and down (m)",
+      "kind": "range",
+      "a": "LeftFoot",
+      "axis": "up",
+      "window": [
+        32,
+        84
+      ],
+      "min": 0.06,
+      "max": 0.18
+    },
+    {
+      "name": "pedalling: right boot moves up and down (m)",
+      "kind": "range",
+      "a": "RightFoot",
+      "axis": "up",
+      "window": [
+        32,
+        84
+      ],
+      "min": 0.06,
+      "max": 0.18
+    },
+    {
+      "name": "pendulum: hips sway side to side under the hat (m)",
+      "kind": "range",
+      "a": "Hips",
+      "axis": "right",
+      "window": [
+        32,
+        76
+      ],
+      "min": 0.015,
+      "max": 0.06
+    },
+    {
+      "name": "tail tip sways behind him (m)",
+      "kind": "range",
+      "a": "Tail5",
+      "axis": "right",
+      "window": [
+        32,
+        84
+      ],
+      "min": 0.04,
+      "max": 0.16
+    }
+  ]
+}

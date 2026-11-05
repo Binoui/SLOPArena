@@ -6,6 +6,7 @@ using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.InputSystem;
 using SlopArena.Shared;
+using SlopArena.Shared.Mayhem;
 using SlopArena.Shared.AI;
 using SlopArena.Client.Entities;
 using SlopArena.Client.Input;
@@ -76,6 +77,7 @@ namespace SlopArena.Client.World
         private sealed class NpcSlot
         {
             public ulong Id;
+            public MayhemCpu MayhemPolicy;
             public PlayerRenderer Renderer;
             public CharacterDefinition Def;
             /// <summary>The seat's picked starting form (ADR-0051).</summary>
@@ -96,6 +98,8 @@ namespace SlopArena.Client.World
         private readonly Dictionary<ulong, uint> _eliminatedAt = new();
         private bool _soloResultsShown;
         private MankiMayhemPresentation _mayhem;
+        private IStageHazardPresenter _stageHazards;
+        private Transform _stageHazardHost;
         private bool Mayhem => MatchConfig.IsLocalMayhem;
 
         // Presentation-only input seam used by VisualBaselineCaptureController and
@@ -143,7 +147,7 @@ namespace SlopArena.Client.World
             get
             {
                 if (!enabled || _bridge == null || _playerRenderer == null || _playerDef == null
-                    || MatchConfig.Mode != GameMode.Training || IsPaused || Time.timeScale <= 0f
+                    || (MatchConfig.Mode != GameMode.Training && MatchConfig.Mode != GameMode.Solo) || IsPaused || Time.timeScale <= 0f
                     || _npcs.Count == 0 || _bridge.InternalSim.GetDefinition(PlayerEntityId) == null
                     || _bridge.GetState(PlayerEntityId).EntityId != PlayerEntityId)
                     return false;
@@ -419,7 +423,9 @@ namespace SlopArena.Client.World
             _bridge = new LocalSimulationBridge(
                 arena,
                 Mayhem ? new MankiMayhemMatchRule(FriendlyFireMode.Shoves)
-                    : solo ? new StockMatchRule((byte)MatchConfig.MaxStocks) : NoWinMatchRule.Instance);
+                    : solo ? new StockMatchRule((byte)MatchConfig.MaxStocks, MatchConfig.StageHazards) : NoWinMatchRule.ForPractice(MatchConfig.StageHazards),
+                stageHazardSeed: MatchConfig.StageHazardSeed == 0
+                    ? MatchConfig.StageHazardSeed = (uint)UnityEngine.Random.Range(1, int.MaxValue) : MatchConfig.StageHazardSeed);
             _combatFeedback.SetSimulation(_bridge);
             if (_projectileVFX == null)
                 _projectileVFX = GetComponent<ProjectileVFXManager>() ?? gameObject.AddComponent<ProjectileVFXManager>();
@@ -505,6 +511,7 @@ namespace SlopArena.Client.World
                 _settingsPanel = panel;
                 panel.Init(this, _hudManager.Document, _cameraMount);
             }
+            CreateStageHazardPresentation();
             if (Mayhem)
             {
                 _bridge.InternalSim.BeginMankiMayhem(MatchConfig.MayhemSeed);
@@ -543,6 +550,55 @@ namespace SlopArena.Client.World
                 _sessionLog?.LogEvent(0, "seat", $"P{npc.PlayerNumber}:{npc.Id}:{npc.Def.Class}:{(npc.Input != null ? "local" : npc.Memory.Difficulty.ToString())}");
         }
 
+        private void CreateStageHazardPresentation()
+        {
+            if (_bridge.InternalSim.StageHazards == null) return;
+            _stageHazards = StageHazardPresenters.Create(_bridge.InternalSim.StageHazards, transform);
+            _stageHazardHost = _stageHazards != null ? _stageHazards.Root : new GameObject(StageHazardPresenters.RootName).transform;
+            if (_stageHazards == null) _stageHazardHost.SetParent(transform, false);
+            var catalog = _playerRenderer.PresentationCatalog;
+            RegisterHostPresentation(SlopArena.Shared.StageHazards.StageHazardOwner.EntityId, _stageHazardHost, catalog);
+            _projectileVFX.RegisterOwner(SlopArena.Shared.StageHazards.StageHazardOwner.EntityId, catalog);
+            _combatFeedback.RegisterHost(SlopArena.Shared.StageHazards.StageHazardOwner.EntityId, catalog);
+            _stageHazards?.Present(_bridge.InternalSim.StageHazards);
+        }
+
+        private void DisposeStageHazardPresentation()
+        {
+            if (_stageHazardHost == null) return;
+            ulong owner = SlopArena.Shared.StageHazards.StageHazardOwner.EntityId;
+            UnregisterHostPresentation(owner);
+            _projectileVFX?.UnregisterOwner(owner);
+            _combatFeedback.UnregisterHost(owner);
+            if (_stageHazards != null) _stageHazards.Dispose();
+            else Destroy(_stageHazardHost.gameObject);
+            _stageHazards = null; _stageHazardHost = null;
+        }
+
+        public void SetStageHazards(StageHazardMode mode)
+        {
+            if (_bridge == null || MatchConfig.Mode != GameMode.Training || MatchConfig.StageHazards == mode) return;
+            DisposeStageHazardPresentation();
+            var states = new Dictionary<ulong, CharacterState>(_bridge.GetAllStates());
+            bool noCooldowns = NoCooldowns;
+            MatchConfig.StageHazards = mode;
+            _bridge = new LocalSimulationBridge(_arenaDef, NoWinMatchRule.ForPractice(mode), MatchConfig.StageHazardSeed);
+            _tick = 0;
+            SetNoCooldowns(noCooldowns);
+            _combatFeedback.SetSimulation(_bridge);
+            _projectileVFX.SetSimulation(_bridge.InternalSim);
+            RestoreTrainingEntity(PlayerEntityId, _arenaDef.SpawnPoints[0], _playerEntry, states[PlayerEntityId], _playerRenderer);
+            foreach (var npc in _npcs)
+            {
+                RestoreTrainingEntity(npc.Id, npc.Spawn, npc.Entry, states[npc.Id], npc.Renderer);
+                npc.Memory.Reset();
+            }
+            ResetSimulationPresentation();
+            CreateStageHazardPresentation();
+            _hudManager?.Refresh();
+            Debug.Log($"[StageHazard] practice rebuilt mode={mode} seed={MatchConfig.StageHazardSeed}");
+        }
+
         private void FinishSessionLog(string reason)
         {
             _sessionLog?.Finish(reason);
@@ -551,6 +607,7 @@ namespace SlopArena.Client.World
 
         protected override void OnDestroy()
         {
+            DisposeStageHazardPresentation();
             _mayhem?.Dispose();
             FinishSessionLog("left");
             if (Couch) HumanInputActions.RestrictToDevices(null);
@@ -706,6 +763,7 @@ namespace SlopArena.Client.World
             };
             foreach (var npc in _npcs)
             {
+                npc.Memory.ObserveStageHazards(_bridge.InternalSim.StageHazards);
                 var state = _bridge.GetState(npc.Id);
                 if (_bridge.InternalSim.IsEntityInactive(npc.Id))
                 {
@@ -783,6 +841,7 @@ namespace SlopArena.Client.World
                     npc.Renderer.ApplyServerState(_bridge.GetState(npc.Id), _bridge.GetActiveMove(npc.Id)?.Slot);
             }
             UpdateSwordTrailsFromResolver(_bridge.InternalSim.Resolver);
+            _stageHazards?.Present(_bridge.InternalSim.StageHazards);
             _mayhem?.AfterTick();
             PresentTimelineEvents();
 
@@ -832,7 +891,7 @@ namespace SlopArena.Client.World
                     if (Mayhem)
                     {
                         _soloResultsShown = true;
-                        _hudManager?.ShowMayhemEnding(_bridge.InternalSim.MayhemPlayers,
+                        _hudManager?.ShowMayhemEnding(_bridge.InternalSim.MayhemView.Contestants,
                             id => id == PlayerEntityId ? "P1" : $"P{_npcs.First(n => n.Id == id).PlayerNumber}");
                     }
                     else BuildSoloResults(outcome);
@@ -948,6 +1007,7 @@ namespace SlopArena.Client.World
         private InputState BuildPolicyInput(CharacterState npcState, NpcSlot slot, CpuBehavior behavior)
         {
             if (slot.Def == null) return BuildIdleInput();
+            if (Mayhem) return (slot.MayhemPolicy ??= new MayhemCpu(slot.Memory.Difficulty)).Decide(_bridge.InternalSim, slot.Id);
             slot.Rng ??= new System.Random();
             ulong previous = slot.Memory.OpponentId;
             // Training CPUs fight P1 only; Solo and Mayhem CPUs may fight every active fighter.
@@ -966,7 +1026,6 @@ namespace SlopArena.Client.World
             }
             return _npcPolicy.Decide(npcState, slot.Def.ForForm(npcState.Form.Active), slot.Rng, slot.Memory,
                 _arenaDef, slot.Entry.BakedAnimation, behavior, _bridge.GetActiveMove(slot.Id)?.Slot,
-                mayhemThreats: Mayhem ? new MayhemThreats(_bridge.InternalSim) : null,
                 canSwapCancel: _bridge.InternalSim.CanSwapCancel(slot.Id));
         }
 

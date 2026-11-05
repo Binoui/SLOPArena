@@ -27,6 +27,8 @@ public interface IMatchRule
     MatchOutcome Evaluate(IReadOnlyDictionary<ulong, CharacterState> states);
 }
 
+public enum StageHazardMode : byte { Off, On }
+
 /// <summary>
 /// Stock mode: each player starts with <see cref="MaxStocks"/> stocks; a KO
 /// (void death / blast zone) costs one; 0 stocks = eliminated. Last player
@@ -37,7 +39,12 @@ public sealed class StockMatchRule : IMatchRule
 {
     public byte MaxStocks { get; }
 
-    public StockMatchRule(byte maxStocks) => MaxStocks = maxStocks;
+    public StageHazardMode StageHazards { get; }
+    public StockMatchRule(byte maxStocks, StageHazardMode stageHazards = StageHazardMode.Off)
+    {
+        if (stageHazards is not (StageHazardMode.Off or StageHazardMode.On)) throw new ArgumentOutOfRangeException(nameof(stageHazards));
+        MaxStocks = maxStocks; StageHazards = stageHazards;
+    }
 
     public bool IsEliminated(CharacterState state) => state.Deaths >= MaxStocks;
 
@@ -89,7 +96,13 @@ public sealed class NoWinMatchRule : IMatchRule
 {
     public static readonly NoWinMatchRule Instance = new();
 
-    private NoWinMatchRule() { }
+    public StageHazardMode StageHazards { get; }
+    private NoWinMatchRule(StageHazardMode mode = StageHazardMode.Off) { StageHazards = mode; }
+    public static NoWinMatchRule ForPractice(StageHazardMode mode)
+    {
+        if (mode is not (StageHazardMode.Off or StageHazardMode.On)) throw new ArgumentOutOfRangeException(nameof(mode));
+        return mode == StageHazardMode.Off ? Instance : new NoWinMatchRule(mode);
+    }
 
     public bool IsEliminated(CharacterState state) => false;
 
@@ -126,13 +139,14 @@ public sealed class SlopballCoopMatchRule : IMatchRule
 
 public enum FriendlyFireMode : byte { Off, Shoves, On }
 
-/// <summary>Competitive survival; the director owns scoring, benching and the Match outcome.</summary>
+/// <summary>The channel show (ADR-0061); the director owns verdicts, ratings and the Match outcome. Friendly fire is Off or Shoves.</summary>
 public sealed class MankiMayhemMatchRule : IMatchRule
 {
     public FriendlyFireMode FriendlyFire { get; }
     public MankiMayhemMatchRule(FriendlyFireMode friendlyFire = FriendlyFireMode.Shoves)
     {
-        if (friendlyFire > FriendlyFireMode.On) throw new ArgumentOutOfRangeException(nameof(friendlyFire));
+        if (friendlyFire is not (FriendlyFireMode.Off or FriendlyFireMode.Shoves))
+            throw new ArgumentOutOfRangeException(nameof(friendlyFire), "Mayhem friendly fire is Off or Shoves.");
         FriendlyFire = friendlyFire;
     }
     public bool IsEliminated(CharacterState state) => false;

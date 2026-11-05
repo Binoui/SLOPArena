@@ -673,8 +673,15 @@ new(s.CurrentTick,1,0,"test",1,PresentationEventSource.Timeline,0,0,0,0)};
         // Header byte 5 is SimulationProtocol.Version, which releases bump. DEFLATE output differs
         // between zlib builds (CI vs workstation), so the body is compared after inflating.
         expected[5] = SimulationProtocol.Version;
+        // Header byte 4 is the frame format. Format 9 changed only the Mayhem event rows, which this fixture has none of.
+        Assert.Equal(8, expected[4]);
+        expected[4] = WorldFramePacket.FormatVersion;
         Assert.Equal(expected.AsSpan(0, WorldFramePacket.HeaderSize).ToArray(), actual.AsSpan(0, WorldFramePacket.HeaderSize).ToArray());
-        Assert.Equal(WireBody(expected), WireBody(actual));
+        // Body bytes 4 to 7 are the embedded World Snapshot's own format version, which bumps with every snapshot layout.
+        var expectedBody = WireBody(expected);
+        Assert.Equal(26u, BinaryPrimitives.ReadUInt32LittleEndian(expectedBody.AsSpan(4)));
+        BinaryPrimitives.WriteUInt32LittleEndian(expectedBody.AsSpan(4), ServerSimulation.SnapshotFormatVersion);
+        Assert.Equal(expectedBody, WireBody(actual));
     }
     static byte[] WireBody(byte[] frame)
     {

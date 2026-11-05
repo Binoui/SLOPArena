@@ -341,6 +341,18 @@ namespace SlopArena.Shared
             }
         }
 
+        /// <summary>Removes everything stuck to <paramref name="carrierId"/> without exploding it.</summary>
+        internal void RemoveAttachedTo(ulong carrierId)
+        {
+            for (int i = _hitboxes.Count - 1; i >= 0; i--)
+            {
+                var hb = _hitboxes[i];
+                if (hb.AttachedEntityId != carrierId) continue;
+                OnHitboxRemoved?.Invoke(hb, hb.X, hb.Y, hb.Z);
+                _hitboxes.RemoveAt(i);
+            }
+        }
+
         internal void ExplodeAttachedTo(ulong carrierId)
         {
             for (int i = _hitboxes.Count - 1; i >= 0; i--)
@@ -609,6 +621,18 @@ namespace SlopArena.Shared
                     !emissionIds.Add(hitbox.EmissionId))
                     throw SnapshotReader.Malformed("hitbox emission identity");
                 data.Hitboxes.Add(hitbox);
+            }
+            var stageHitSets = new Dictionary<ulong, HashSet<ulong>>();
+            for (int i = 0; i < data.Hitboxes.Count; i++)
+            {
+                var hb = data.Hitboxes[i];
+                if (hb.OwnerId != StageHazards.StageHazardOwner.EntityId || hb.HitEntities == null) continue;
+                if (stageHitSets.TryGetValue(hb.ActivationId, out var hits))
+                {
+                    if (!hits.SetEquals(hb.HitEntities)) throw SnapshotReader.Malformed("stage hazard hit set");
+                    hb.HitEntities = hits; data.Hitboxes[i] = hb;
+                }
+                else stageHitSets.Add(hb.ActivationId, hb.HitEntities);
             }
             int explosions = r.ReadCount(1);
             for (int i = 0; i < explosions; i++)
@@ -881,7 +905,8 @@ namespace SlopArena.Shared
                             || MathF.Sin(victim.FacingYaw) * (owner.PX - victim.PX)
                                 + MathF.Cos(victim.FacingYaw) * (owner.PZ - victim.PZ) <= 0f)) continue;
                     if (hitThisTick.Contains(entity.Id)) continue;
-                    if (entity.InvincibilityTicks > 0) continue;
+                    // Mayhem host hazards fail a contestant whatever its dodge or move invincibility.
+                    if (entity.InvincibilityTicks > 0 && hb.OwnerId != ServerSimulation.MayhemHostEntityId) continue;
                     // One-hit-per-opponent: skip entities this hitbox already tagged.
                     if (hb.HitsMultipleOpponents && hb.HitEntities!.Contains(entity.Id))
                         continue;

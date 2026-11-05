@@ -2,6 +2,7 @@ using System.Reflection;
 using System.Security.Cryptography;
 using SlopArena.Shared.AI;
 using SlopArena.Shared.Replays;
+using SlopArena.Shared.Mayhem;
 using Xunit;
 namespace SlopArena.Shared.Tests.Replays;
 
@@ -86,18 +87,19 @@ public class ReplayWorldTests
         var policy = new HeuristicBotPolicy();
         var rng = new Random(seed);
         var memories = entries.Select(_ => new BotMemory { Difficulty = CpuDifficulty.Normal }).ToArray();
+        var mayhemCpus = entries.Select(_ => new MayhemCpu(CpuDifficulty.Normal)).ToArray();
         var views = new List<ReplayViewTick>();
         for (int tick = 0; tick < ticks; tick++)
         {
             var inputs = new Dictionary<ulong, InputState>();
             for (int i = 0; i < entries.Length; i++)
             {
+                if (format == MatchFormat.MankiMayhem) { inputs[(ulong)i + 1] = mayhemCpus[i].Decide(sim, (ulong)i + 1); continue; }
                 ulong id = (ulong)i + 1, other = (ulong)((i + 1 + tick / 300) % entries.Length) + 1;
                 if (other == id) other = (ulong)((i + 1) % entries.Length) + 1;
                 policy.ObserveOpponent(memories[i], sim.GetState(other), sim.GetDefinition(other), entries[(int)other - 1].BakedAnimation, sim.GetActiveMove(other)?.Slot);
                 memories[i].ChooseOpponent(sim.GetState(id));
-                inputs[id] = policy.Decide(sim.GetState(id), sim.GetDefinition(id), rng, memories[i], arena.Definition, entries[i].BakedAnimation, activeMove: sim.GetActiveMove(id)?.Slot,
-                    mayhemThreats: format == MatchFormat.MankiMayhem ? new MayhemThreats(sim) : null);
+                inputs[id] = policy.Decide(sim.GetState(id), sim.GetDefinition(id), rng, memories[i], arena.Definition, entries[i].BakedAnimation, activeMove: sim.GetActiveMove(id)?.Slot);
             }
             sim.Tick(inputs);
             var frame = new WorldFramePacket(MatchState.Playing, sim.CaptureSnapshot(), Array.Empty<RelayedInput>(), sim.GetPresentationEvents(true).Where(e => WorldFramePacket.CanCarry(e)).ToArray(), sim.LastTickHits.ToArray(),
@@ -181,6 +183,13 @@ public class ReplayWorldTests
             case ReplayMayhemRing x: Row(x, ReplayViewCodec.ReplayMayhemRingTable); break;
             case ReplayMayhemSlam x: Row(x, ReplayViewCodec.ReplayMayhemSlamTable); break;
             case ReplayMayhemWall x: Row(x, ReplayViewCodec.ReplayMayhemWallTable); break;
+            case ReplayMayhemShow x: Row(x, ReplayViewCodec.ReplayMayhemShowTable); break;
+            case ReplayMayhemContestant x: Row(x, ReplayViewCodec.ReplayMayhemContestantTable); break;
+            case ReplayMayhemBomb x: Row(x, ReplayViewCodec.ReplayMayhemBombTable); break;
+            case ReplayMayhemShockwave x: Row(x, ReplayViewCodec.ReplayMayhemShockwaveTable); break;
+            case ReplayMayhemZone x: Row(x, ReplayViewCodec.ReplayMayhemZoneTable); break;
+            case ReplayMayhemWatch x: Row(x, ReplayViewCodec.ReplayMayhemWatchTable); break;
+            case ReplayMayhemTarget x: Row(x, ReplayViewCodec.ReplayMayhemTargetTable); break;
             default: diffs.Add($"ModeObjects[{i}] unknown kind {expected.Kind}"); break;
         }
     }
@@ -312,7 +321,7 @@ public class ReplayWorldTests
         [MatchFormat.CourseRace] = new(() => RecordBots(new[] { CharacterClass.FightGuy, CharacterClass.Nyx }, 1800, format: MatchFormat.CourseRace)),
         [MatchFormat.CourseCoop] = new(() => RecordBots(new[] { CharacterClass.Wibou, CharacterClass.Bashie }, 1800, format: MatchFormat.CourseCoop)),
         [MatchFormat.CourseScramble] = new(() => RecordBots(new[] { CharacterClass.FightGuy, CharacterClass.Manki, CharacterClass.Bonk }, 1800, format: MatchFormat.CourseScramble)),
-        [MatchFormat.MankiMayhem] = new(() => RecordBots(new[] { CharacterClass.FightGuy, CharacterClass.Nyx, CharacterClass.Bashie, CharacterClass.Bonk }, 1800, seed: 11, format: MatchFormat.MankiMayhem)),
+        [MatchFormat.MankiMayhem] = new(() => RecordBots(new[] { CharacterClass.FightGuy, CharacterClass.Nyx, CharacterClass.Bashie, CharacterClass.Bonk }, 1800, seed: MayhemSeed, format: MatchFormat.MankiMayhem)),
     };
 
     /// <summary>
@@ -362,9 +371,20 @@ public class ReplayWorldTests
         Console.WriteLine($"{format} {choice}: {coverage}");
     }
 
+    /// <summary>A Mayhem show whose first channel is BREAK OUT!, so a short recording has cage walls.</summary>
+    static int MayhemSeed
+    {
+        get
+        {
+            uint seed = 11;
+            while (MayhemShowPlan.For(seed).ChannelAt(0) != MayhemChannels.BreakOut) seed++;
+            return (int)seed;
+        }
+    }
+
     /// <summary>
-    /// The View has no wall hit budget, shot spawn or director seed: the display world states them as unrecorded (0)
-    /// instead of guessing, and the presenters draw those parts with their labelled fallbacks.
+    /// The View has no wall hit budget, shot spawn or safe pose: the display world states them as unrecorded (0)
+    /// instead of guessing, and the presenters draw those parts with their labelled fallbacks. The show seed is recorded.
     /// </summary>
     [Fact]
     public void UnrecordedModeFieldsStayUnrecordedOnTheViewTrack()
@@ -374,8 +394,8 @@ public class ReplayWorldTests
             int walls = 0;
             var probe = new Probe { OnPresent = frame =>
             {
-                Assert.Equal(0u, frame.World.MankiMayhem!.Value.Seed);
-                foreach (var wall in frame.World.MayhemWalls) { Assert.Equal(0, wall.HitBudget); walls++; }
+                Assert.Equal((uint)MayhemSeed, frame.World.MayhemView!.Seed);
+                foreach (var wall in frame.World.MayhemView.Scene.Solids) { Assert.Equal(0, wall.HitBudget); walls++; }
             } };
             while (mayhem.Step(probe).Status == ReplayStep.Presented) { }
             Assert.True(walls > 0);
@@ -383,7 +403,7 @@ public class ReplayWorldTests
         using (var exact = Open(Modes[MatchFormat.MankiMayhem].Value.Bytes, ReplayTrackChoice.Best))
         {
             int walls = 0;
-            var probe = new Probe { OnPresent = frame => { foreach (var wall in frame.World.MayhemWalls) { Assert.NotEqual(0, wall.HitBudget); walls++; } } };
+            var probe = new Probe { OnPresent = frame => { foreach (var wall in frame.World.MayhemView!.Scene.Solids) { Assert.NotEqual(0, wall.HitBudget); walls++; } } };
             while (exact.Step(probe).Status == ReplayStep.Presented) { }
             Assert.True(walls > 0);
         }
@@ -519,6 +539,7 @@ public class ReplayWorldTests
         ReplaySlopballEvent s => "slopball:" + s.EventId,
         ReplayCourseEvent c => "course:" + c.EventId,
         ReplayMayhemEvent m => "mayhem:" + m.EventId,
+        ReplayMayhemChannelEvent m => "mayhem-channel:" + m.EventId,
         _ => null,
     };
 

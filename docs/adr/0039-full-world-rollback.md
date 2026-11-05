@@ -31,7 +31,9 @@ feel; apart from two upload hiccups, those defects trace back to the track split
 The client and GameHost run different runtimes (Unity Mono on Windows, .NET 8 on
 Linux), and the simulation uses `MathF` trigonometry and dictionary iteration whose
 results are not guaranteed identical across them. Pure input-only rollback would
-drift, so authoritative state must keep anchoring the client.
+drift, so authoritative state must keep anchoring the client. Measured on 2026-11-04:
+Unity Mono computes floats in double precision, so the gap is real on every tick
+([netcode architecture](../systems/netcode-architecture.md#cross-runtime-float-precision-measured-2026-11-04)).
 
 ## Decision
 

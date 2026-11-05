@@ -6,7 +6,7 @@ The stage picker currently offers seven PVP maps:
 | --- | --- |
 | [Table Manners](table_manners.md) | Rebuilt 2026-10-16 as a kids' craft table with a centre cake; accepted 2026-10-17 |
 | [Splash Deck](splash_deck.md) | Rebuilt 2026-10-16 as a fishing boat anchored in a Mediterranean harbour, keeping the barge's rated fight; accepted 2026-10-17 |
-| [Slop Pit](slop_pit.md) | Rebuilt 2026-10-16 as a raised fight ring in an underground venue; accepted 2026-10-17 |
+| [Slop Pit](slop_pit.md) | Rebuilt 2026-10-16 as a raised fight ring in an underground venue; accepted 2026-10-17. Background pass 2026-11-04 (lamp pools, slop falls) awaits the in-game verdict |
 | [After Hours](after_hours.md) | Rebuilt 2026-10-16 as a broad neon rooftop; accepted 2026-10-17 |
 | [Last Stop](last_stop.md) | Remade 2026-10-16 as Mind the Gap; accepted 2026-10-17 |
 | [Log Off](log_off.md) | Rebuilt 2026-10-16 as a split stump with fungus shelves and a sunset campsite; accepted 2026-10-17 |

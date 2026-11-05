@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using SlopArena.Shared.Mayhem;
 using SlopArena.Shared.Rollback;
 using Xunit;
 using Xunit.Abstractions;
@@ -20,7 +21,7 @@ public class NetplayPredictorTests
     [Theory]
     [InlineData(41, 1, 0, 0.0)]
     [InlineData(1337, 4, 3, 0.15)]
-    public void MayhemLedgerSurvivesDelayJitterLossAndBenchReturn(int seed, int delay, int jitter, double loss)
+    public void MayhemLedgerSurvivesDelayJitterLossAndASplatReturn(int seed, int delay, int jitter, double loss)
     {
         var lab = new NetplayLab("manki_mayhem", Duel, seed, format: MatchFormat.MankiMayhem,
             friendlyFire: FriendlyFireMode.Shoves);
@@ -30,22 +31,25 @@ public class NetplayPredictorTests
             p.Up.JitterTicks = p.Down.JitterTicks = jitter;
             p.Up.Loss = p.Down.Loss = loss;
         }
-        // Walk off during the first card. Keep sending movement while benched, then jump on return.
-        lab[1].Input = (p, tick) => p.Predictor.Simulation.MankiMayhem is { RoundIndex: 0 }
+        // Run off the deck in the first episode. Keep sending movement while splatted, then jump in later episodes.
+        lab[1].Input = (p, tick) => p.Predictor.Simulation.MayhemView is { Cursor.Episode: 0 or -1 }
             ? new InputState { MoveX = -1f } : new InputState { MoveX = .1f, JumpHeld = true };
-        lab.Run(15000);
+        lab.Run((int)MayhemShowPlan.For((uint)seed).EndTick + 60);
         lab.Quiesce(80);
-        Assert.True(lab.Server.MankiMayhem!.Value.Ended);
-        var bench = lab.ServerMayhemEvents.First(e => e.Kind == MankiMayhemEventKind.Bench && e.EntityId == 1);
-        var call = lab.ServerMayhemEvents.First(e => e.Kind == MankiMayhemEventKind.Call && e.MatchTick > bench.MatchTick);
-        for (uint tick = bench.MatchTick + 1; tick < call.MatchTick; tick++)
+        Assert.True(lab.Server.EvaluateMatch().IsEnded);
+        var fail = lab.ServerMayhemEvents.First(e => e.Kind == MayhemEventKind.Fail && e.Subject == 1);
+        Assert.Equal(FailCause.Fell, fail.FailCause);
+        var call = lab.ServerMayhemEvents.First(e => e.Kind == MayhemEventKind.Call && e.MatchTick > fail.MatchTick);
+        var pinned = lab.ServerStates[fail.MatchTick][1];
+        for (uint tick = fail.MatchTick + 1; tick < call.MatchTick; tick++)
         {
             var state = lab.ServerStates[tick][1];
+            Assert.Equal((pinned.PX, pinned.PZ), (state.PX, state.PZ));
             Assert.Equal(0f, state.VX); Assert.Equal(0f, state.VZ);
         }
-        // Bench clears server input history. Allow fresh bundles through the configured delay and loss.
+        uint play = MayhemShowPlan.For((uint)seed).PlayStart(1);
         Assert.Contains(Enumerable.Range(1, 30), offset =>
-            lab.ServerStates[call.MatchTick + (uint)offset][1].PX != lab.ServerStates[call.MatchTick][1].PX);
+            lab.ServerStates[play + (uint)offset][1].PX != lab.ServerStates[play][1].PX);
         foreach (var player in lab.Players)
         {
             Assert.Equal(0, player.Totals.RejectedFrames);
@@ -55,23 +59,23 @@ public class NetplayPredictorTests
                 else Assert.True(active.Remove(evt.Key), $"unstarted Mayhem retraction {evt.Key}");
             var expected = lab.ServerMayhemEvents.Select(e => e.Key).ToHashSet();
             Assert.True(expected.SetEquals(active), $"peer {player.Id}: expected {expected.Count} events, presented {active.Count}");
-            Assert.Equal(lab.Server.MayhemPlayers, player.Predictor.Simulation.MayhemPlayers);
+            Assert.Equal(lab.Server.MayhemView!.Contestants, player.Predictor.Simulation.MayhemView!.Contestants);
             _output.WriteLine(player.Describe());
         }
     }
 
     [Fact]
-    public void MayhemContradictedBenchRetractsAndHostRecordsAreAcceptedOnlyInMayhem()
+    public void MayhemContradictedFailRetractsAndHostRecordsAreAcceptedOnlyInMayhem()
     {
         var lab = new NetplayLab("manki_mayhem", Duel, 41, format: MatchFormat.MankiMayhem);
-        lab.Run(20);
+        lab.Run((int)MayhemShowPlan.For(41).PlayStart(0) + 20);
         var predictor = lab[1].Predictor;
         var state = predictor.GetState(2); state.PY = -200;
         predictor.Simulation.SetState(2, state);
         predictor.Advance(default);
-        var started = new List<MankiMayhemEvent>(); var retracted = new List<MankiMayhemEvent>();
+        var started = new List<MayhemEvent>(); var retracted = new List<MayhemEvent>();
         predictor.DrainMayhemEvents(started, retracted);
-        var contradicted = Assert.Single(started, e => e.Kind == MankiMayhemEventKind.Bench);
+        var contradicted = Assert.Single(started, e => e.Kind == MayhemEventKind.Fail);
         lab.Run(20);
         Assert.Contains(lab[1].MayhemRetracted, e => e.Key == contradicted.Key);
         Assert.False(lab.Server.IsEntityInactive(2));
@@ -83,36 +87,35 @@ public class NetplayPredictorTests
     [InlineData(5, 3, .15)]
     public void ContradictedPredictedWallBreakRetractsAndRestoresTheWall(int delay, int jitter, double loss)
     {
-        var lab = new NetplayLab("manki_mayhem", Duel, 1, format: MatchFormat.MankiMayhem);
+        uint seed = 1;
+        while (MayhemShowPlan.For(seed).ChannelAt(0) != MayhemChannels.BreakOut) seed++;
+        var lab = new NetplayLab("manki_mayhem", Duel, (int)seed, format: MatchFormat.MankiMayhem);
         foreach (var peer in lab.Players)
         {
             peer.Up.DelayTicks = peer.Down.DelayTicks = delay;
             peer.Up.JitterTicks = peer.Down.JitterTicks = jitter;
             peer.Up.Loss = peer.Down.Loss = loss;
         }
-        lab.Run(30);
+        lab.Run((int)MayhemShowPlan.For(seed).PlayStart(0) + 30);
         var predictor = lab[1].Predictor;
-        var wall = predictor.Simulation.MayhemWalls.First(w => w.Blocks);
-        var started = new List<MankiMayhemEvent>(); var retracted = new List<MankiMayhemEvent>();
+        IReadOnlyList<RuntimeSolid> Walls(ServerSimulation sim) => sim.MayhemView!.Scene.Solids;
+        var wall = Walls(predictor.Simulation).First(w => w.Blocks);
+        var started = new List<MayhemEvent>(); var retracted = new List<MayhemEvent>();
         predictor.DrainMayhemEvents(started, retracted); started.Clear(); retracted.Clear();
         for (int i = 0; i < wall.HitsLeft; i++)
         {
-            predictor.Simulation.Resolver.Spawn(new Hitbox { OwnerId = 1, X = wall.Center.X, Y = 1,
+            predictor.Simulation.Resolver.Spawn(new Hitbox { OwnerId = 1, ActivationId = 9000 + (ulong)i, X = wall.Center.X, Y = 1,
                 Z = wall.Center.Z, Radius = .4f, Damage = 1, DurationTicks = 1 });
             predictor.Advance(default);
         }
         predictor.DrainMayhemEvents(started, retracted);
-        var broken = Assert.Single(started, e => e.Kind == MankiMayhemEventKind.WallBroken);
-        Assert.Equal(0, predictor.Simulation.MayhemWalls.Single(w => w.EntityId == wall.EntityId).HitsLeft);
+        var broken = Assert.Single(started, e => e.Kind == MayhemEventKind.SolidBroken);
+        Assert.Equal(0, Walls(predictor.Simulation).Single(w => w.EntityId == wall.EntityId).HitsLeft);
         lab.Run(35); lab.Quiesce(30);
         Assert.Contains(lab[1].MayhemRetracted, e => e.Key == broken.Key);
-        Assert.Equal(wall.HitsLeft, predictor.Simulation.MayhemWalls.Single(w => w.EntityId == wall.EntityId).HitsLeft);
+        Assert.Equal(wall.HitsLeft, Walls(predictor.Simulation).Single(w => w.EntityId == wall.EntityId).HitsLeft);
         Assert.All(lab.Players, p => Assert.Equal(0, p.Totals.RejectedFrames));
-        Assert.Equal(lab.Server.MayhemWalls.Select(w => w with { PhaseTick = 0 }),
-            predictor.Simulation.MayhemWalls.Select(w => w with { PhaseTick = 0 }));
-        Assert.All(predictor.Simulation.MayhemWalls, w => Assert.Equal(
-            lab.Server.MayhemWalls.Single(x => x.EntityId == w.EntityId).PhaseTick + predictor.Simulation.CurrentTick - lab.Server.CurrentTick,
-            (uint)w.PhaseTick));
+        Assert.Equal(Walls(lab.Server).Select(w => w with { PhaseTick = 0 }), Walls(predictor.Simulation).Select(w => w with { PhaseTick = 0 }));
     }
 
     private static readonly CharacterClass[] Duel = { CharacterClass.FightGuy, CharacterClass.Manki };

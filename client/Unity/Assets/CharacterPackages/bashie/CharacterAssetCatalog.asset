@@ -110,6 +110,10 @@ MonoBehaviour:
     _clip: {fileID: 7400000, guid: 76e81443b7e72a384beeddef88178732, type: 2}
     _extrapolation: 0
     _poseTrackId: anim.bashie.tumble
+  - _semanticId: anim.bashie.walljump
+    _clip: {fileID: 7400000, guid: 9c1df8673094ae895b9808d4ec576e37, type: 2}
+    _extrapolation: 0
+    _poseTrackId: anim.bashie.walljump
   - _semanticId: anim.bashie.whistle
     _clip: {fileID: 7400000, guid: 1bdc86fb736913cff9a9979e884c03db, type: 2}
     _extrapolation: 0

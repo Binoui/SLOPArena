@@ -257,19 +257,32 @@ What an online Match plays: a stock fight on a PvP stage, or an Arcade format su
 _Avoid_: game mode (when referring to the online contract)
 
 **Manki Mayhem**:
-A two-to-four-player Arcade Match on `manki_mayhem`. A seeded Shared director runs Call, Pattern, Settle, Score and Break phases. Fighters survive hazards to score, keep percent until KO, and return from the bench at the next Call. Tied highest scores share the win. Rooms use human seats and free fighter picks, including mirrors. The leader chooses Off, Shoves or On on the Stage Select card, with Shoves as the default. The shuffled bag contains SCATTER!, JUMP!, and BREAK OUT!. Positions reset to spawns each round.
+A two-to-four-player Arcade Match on `manki_mayhem` ([ADR-0061](docs/adr/0061-manki-mayhem-channels.md)): a fixed show of Channels in three acts, each four regular Channels drawn from the seed and a boss, every act faster than the last. Every pass earns ratings (provisional: one, boss two); the highest ratings win and ties share the win. Nobody is ever out of the show. Percent never rises. Friendly fire is Off or Shoves (default); On is refused. Rooms use human seats and free fighter picks, including mirrors.
 
-**Call Card**:
-The Mayhem director's current hazard pattern. Its Call phase announces the pattern before it starts. SCATTER! throws sticky bombs, JUMP! sends expanding shockwaves, and BREAK OUT! raises breakable cages with an incoming bomb. Each pass draws every card once.
+**Channel**:
+One Mayhem microgame: a word, the one control it needs, a few seconds of play and a pass or fail for every contestant (DODGE!, JUMP!, BREAK OUT!, SPOT!, NO RUNNING!, BREAK THE BOARDS!, and the boss PRIME TIME!). Each is one sealed Shared class listed once in the `MayhemChannels` registry.
+_Avoid_: card, round
+
+**Episode**:
+One airing of a Channel in the show: Call (frozen at the starts, telegraphs shown), Play (start inclusive, deadline exclusive) and Verdict. SPEED UP! beats open acts two and three. The show's cursor is a function of the seed and the tick.
+
+**Verdict**:
+A contestant's result for one Episode: a pass bit, or the Episode's failure with its cause, splat style and anchor pose. The director is the only writer. A failure latches at once; a pass is committed only at the deadline.
+
+**Splat**:
+How a failed contestant waits for the next Call: inactive (no input, movement, hurtbox, pushbox or targeting) and pinned to its anchor pose, with attached effects removed without exploding. A hazard hit or a fall splats; a shove never does by itself.
+
+**Control Gate**:
+`MayhemControls`, Frozen or Playing with at most one extra verb (Shield, Grab, Specials or Beeline). Playing always admits move, walk, jumps and normals 1 to 3; down actions, lock toggle and retarget stay off. Shared applies it to raw input, buffered slots, actual activation and movement admission.
 
 **Host Entity**:
-Mayhem's reserved presentation and hazard owner, `ServerSimulation.MayhemHostEntityId`. It is not a fighter, cannot be targeted, and receives no KO credit. Host-owned hits affect every fighter under every friendly-fire rule.
+Mayhem's reserved presentation and hazard owner, `ServerSimulation.MayhemHostEntityId`. It is not a fighter, cannot be targeted, and receives no KO credit. Host-owned contacts go to the Channel before armour, invincibility, damage and knockback, under every friendly-fire rule.
 
 **Hazard**:
-A deterministic Mayhem attack owned by the Host Entity. Bombs use ordinary resolver projectiles and explosions, with sticky fuses for SCATTER!. Bombs are blockable. JUMP! uses unblockable expanding rings with a swept band and one hit per fighter. Predicted state supplies telegraphs and projectiles; World Frame events pass through the Mayhem rollback ledger before presentation.
+A deterministic Mayhem attack owned by the Host Entity. Bombs are impact bombs that drop steeply onto their telegraphed ring and explode on a fighter or the deck; the blast splats everyone it reaches. JUMP! uses unblockable expanding rings with a swept band that catch grounded fighters. Host hitboxes pack episode, lane and ordinal into their activation. Predicted state supplies telegraphs; World Frame events pass through the Mayhem rollback ledger before presentation.
 
 **Runtime Solid**:
-A focused Mayhem wall in Shared's deterministic, snapshotted `RuntimeSolidSet`. Fighters sweep against its box after movement and slide along its faces. It supplies no floor support. Damaging attacks and projectiles consume its hit budget, and host explosions wreck walls in range. BREAK OUT! creates four walls per fighter, including a cracked wall away from the incoming bomb. Kit mobility can clear the top, while a plain double jump cannot.
+A focused Mayhem wall in Shared's deterministic, snapshotted `RuntimeSolidSet`. Fighters sweep against its box after movement and slide along its faces. It supplies no floor support. Damaging attacks and projectiles consume its hit budget, and host explosions wreck walls in range. BREAK OUT! creates four walls per contestant; the cracked wall faces away from the other cages and breaks in two activations of any normal. Kit mobility can clear the top, while a plain double jump cannot.
 
 **Co-op Slopball Run**:
 An online Slopball Match in which two to four fighters share the player half against the Launcher. Returns count for the team; misses reset the combo and heat without ending the run. Fighters automatically target each new ball. Friendly fire defaults off: teammates cannot damage, block or grab one another unless the leader enables it in the Room lobby before preparation. The setting stays fixed during the Match. The leader can return everyone to the same Room from the match menu, preserving membership and chat.

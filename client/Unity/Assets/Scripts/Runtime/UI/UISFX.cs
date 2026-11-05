@@ -60,9 +60,18 @@ namespace SlopArena.Client.UI
             _instance._musicTarget = 1.3f;
         }
 
+        public static void SetMayhemMusicAct(int act)
+        {
+            // Resetting during scene teardown must not respawn the service from OnDestroy.
+            if (_instance == null && act == 0) return;
+            EnsureInstance();
+            _instance._musicSource.pitch = 1f + .06f * act;
+        }
+
         public static void ResetMusicLift()
         {
             if (_instance == null) return;
+            _instance._musicSource.pitch = 1f;
             _instance._musicDuck = 0f;
             _instance._musicTarget = 1f;
         }

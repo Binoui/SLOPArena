@@ -38,6 +38,7 @@
     "hitMedium": "anim.bashie.hit-medium",
     "hitHard": "anim.bashie.hit-hard",
     "tumble": "anim.bashie.tumble",
+    "wallJump": "anim.bashie.walljump",
     "crouch": "anim.bashie.crouch",
     "slide": "anim.bashie.slide",
     "landStartOffsetSeconds": 0.49,

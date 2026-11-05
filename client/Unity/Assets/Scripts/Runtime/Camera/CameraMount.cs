@@ -98,13 +98,15 @@ namespace SlopArena.Client.Camera
         private Bounds? _showBounds;
         private float _showPitch;
 
-        public void SetShowFraming(Bounds bounds, float pitch)
+        public void SetShowFraming(Bounds bounds, float pitch, float frameFill = .8f)
         {
             _showBounds = bounds;
+            _showFrameFill = Mathf.Clamp(frameFill, .5f, .95f);
             _showPitch = pitch;
             Couch = CouchCamera.Fixed;
             ApplyStyle(CameraStyle.Arena);
         }
+        private float _showFrameFill = .8f;
         private bool _couchYawSet;
 
         // Steady camera state.
@@ -324,7 +326,7 @@ namespace SlopArena.Client.Camera
                 _orbital.RadialAxis.Value = 1f;
                 _orbital.Radius = DistanceToFrame(show, show.center,
                     Quaternion.Euler(_showPitch, 0f, 0f), _cmCam.Lens.FieldOfView,
-                    RenderCamera != null ? RenderCamera.aspect : 16f / 9f);
+                    RenderCamera != null ? RenderCamera.aspect : 16f / 9f, _showFrameFill);
                 _framingAnchor.position = show.center;
                 UpdateBubbles();
                 PublishSightHoles();
@@ -754,9 +756,9 @@ namespace SlopArena.Client.Camera
         }
 
         internal static float DistanceToFrame(Bounds bounds, Vector3 anchor, Quaternion orientation,
-            float verticalFov, float aspect)
+            float verticalFov, float aspect, float frameFill = .8f)
         {
-            float vertical = Mathf.Tan(Mathf.Clamp(verticalFov, 1f, 179f) * 0.5f * Mathf.Deg2Rad) * 0.8f;
+            float vertical = Mathf.Tan(Mathf.Clamp(verticalFov, 1f, 179f) * 0.5f * Mathf.Deg2Rad) * frameFill;
             float horizontal = vertical * Mathf.Max(0.1f, aspect);
             var inverse = Quaternion.Inverse(orientation);
             float distance = 0f;

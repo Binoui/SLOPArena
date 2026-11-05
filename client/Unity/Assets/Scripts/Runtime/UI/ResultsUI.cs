@@ -297,7 +297,7 @@ namespace SlopArena.Client.UI
             if (ClientSession.CurrentMatchResults?.Mayhem is { } mayhem)
             {
                 var finish = System.Linq.Enumerable.First(mayhem.Players, p => p.EntityId == entry.EntityId);
-                var label = new Label($"{finish.Score} POINTS · {finish.RoundsSurvived} SURVIVED · {finish.Bonuses} BONUS"
+                var label = new Label($"{finish.Ratings} RATINGS"
                     + (finish.Withdrawn ? " · DISCONNECTED" : ""));
                 label.AddToClassList("results-stat-label"); stats.Add(label);
                 return stats;

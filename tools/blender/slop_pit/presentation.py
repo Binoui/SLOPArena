@@ -45,9 +45,9 @@ PRESENTATION = {
         {"slot": "SP_Floor", **lit("SlopPitFloor", "SlopPitFloor.png", 0.3, 0.3, 0.18)},
         {"slot": "SP_Canvas", **lit("SlopPitCanvas", "SlopPitCanvas.png", 0.12, 0.35, 0.05)},
         # Glow stays near 1.4 so lamps and neon keep their hue under the match's ACES grade.
-        {"slot": "SP_Venue", **night("SlopPitVenue", 0.42, 0.5, 1.4, 1)},
+        {"slot": "SP_Venue", **night("SlopPitVenue", 0.2, 0.2, 1.4, 1)},
         # The orange wash behind the fans: fully lit, partly through the haze.
-        {"slot": "SP_Haze", **night("SlopPitHaze", 0.42, 0, 0.32, 0.55)},
+        {"slot": "SP_Haze", **night("SlopPitHaze", 0.42, 0, 2.2, 1)},
     ],
     "shadows": {"cast": False, "receive": False,
                 "objects": {name: {"cast": True, "receive": True} for name in SHADOWED}},
@@ -63,7 +63,7 @@ PRESENTATION = {
     ],
     # Fight night underground: near-black warm void, smoky orange haze that swallows the stands.
     "atmosphere": {"background": [0.035, 0.022, 0.016], "ambientSky": [0.36, 0.30, 0.26], "ambientGround": [0.10, 0.08, 0.07],
-                   "ambientIntensity": 1, "fog": True, "fogColor": [0.30, 0.16, 0.07], "fogStart": 24, "fogEnd": 190},
+                   "ambientIntensity": 1, "fog": True, "fogColor": [0.14, 0.085, 0.05], "fogStart": 24, "fogEnd": 130},
     # Review poses for sloparena.stage.views.cameras; "thumbnail" is the stage-select card.
     "cameras": [
         {"name": "thumbnail", "position": [-27, 16, -31], "target": [0, -1.5, 2.5], "fov": 40},

@@ -20,6 +20,10 @@ namespace SlopArena.Client.Combat
 
         private ISimulationBridge _bridge;
         private CombatSFX _sfx;
+        private readonly Dictionary<ulong, SlopArena.Client.Animation.CharacterAnimationCatalog> _hosts = new();
+        public void RegisterHost(ulong owner, SlopArena.Client.Animation.CharacterAnimationCatalog catalog) => _hosts[owner] = catalog;
+        public void UnregisterHost(ulong owner) => _hosts.Remove(owner);
+
         private readonly Dictionary<ulong, CharacterDefinition> _definitions = new();
         private readonly Dictionary<ulong, PlayerRenderer> _renderers = new();
 
@@ -76,6 +80,8 @@ namespace SlopArena.Client.Combat
                     victim.HitFeel?.ReceiveHit(in hit, tier, attackerColour);
                 if (attacker != null)
                     _sfx.Play(tier, attacker.PresentationCatalog);
+                else if (_hosts.TryGetValue(hit.OwnerEntityId, out var hostCatalog))
+                    _sfx.Play(tier, hostCatalog);
                 ClientSettingsService.Instance.PlayConfirmedImpact();
             }
         }

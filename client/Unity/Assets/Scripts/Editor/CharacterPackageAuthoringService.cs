@@ -1745,7 +1745,7 @@ public static class CharacterPackageAssetOwnershipRegistry
             ["manki"] = new[] { "Assets/Resources/Audio/SFX/Manki/", "Assets/Art/Characters/manki/", "Assets/CharacterPackages/manki/", "Assets/Resources/Characters/Manki.prefab", "Assets/Resources/WeaponConfigs/Manki.asset" },
             ["bashie"] = new[] { "Assets/Resources/Audio/SFX/Bashie/", "Assets/Art/Characters/bashie/", "Assets/CharacterPackages/bashie/" },
             ["salamander"] = new[] { "Assets/Art/Characters/salamander/", "Assets/CharacterPackages/salamander/" },
-            ["nyx"] = new[] { "Assets/Art/Characters/nyx/", "Assets/CharacterPackages/nyx/" },
+            ["nyx"] = new[] { "Assets/Resources/Audio/SFX/Nyx/", "Assets/Art/Characters/nyx/", "Assets/CharacterPackages/nyx/" },
         };
 
     public static bool IsOwnedBy(string packageId, string projectRelativePath)

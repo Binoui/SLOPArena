@@ -114,6 +114,9 @@ namespace SlopArena.EditorTools
         private readonly List<View> _views = new();
         private readonly List<object> _hits = new();
         private readonly StringBuilder _states = new();
+        // Every CharacterState field each tick, floats as raw bits, written to exact.txt. tools/ComboFinder `verify
+        // --exact` prints the same lines for the headless run, so the first tick where Unity drifts can be found.
+        private readonly StringBuilder _exact = new();
         private UIDocument? _hudDocument;
         private PanelSettings? _hudOriginalPanel, _hudPanel;
         private bool _hudWasEnabled;
@@ -442,6 +445,24 @@ namespace SlopArena.EditorTools
                     .Append(",\"facing\":").Append(Num(s.FacingYaw * Mathf.Rad2Deg)).Append('}');
             }
             _states.Append("]}\n");
+            foreach (var fighter in Fighters)
+            {
+                _exact.Append(Tick).Append(' ').Append(fighter.Id);
+                AppendExact(_exact, "", _bridge.GetState(fighter.Id));
+                _exact.Append('\n');
+            }
+        }
+
+        /// <summary>Appends " name=value" for every public field, recursing into structs; floats as hex bits.</summary>
+        internal static void AppendExact(StringBuilder text, string prefix, object value)
+        {
+            foreach (var field in value.GetType().GetFields(System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance).OrderBy(f => f.Name, StringComparer.Ordinal))
+            {
+                var v = field.GetValue(value);
+                if (v is float f) text.Append(' ').Append(prefix).Append(field.Name).Append('=').Append(BitConverter.SingleToInt32Bits(f).ToString("x8"));
+                else if (v != null && field.FieldType.IsValueType && !field.FieldType.IsPrimitive && !field.FieldType.IsEnum) AppendExact(text, prefix + field.Name + ".", v);
+                else text.Append(' ').Append(prefix).Append(field.Name).Append('=').Append(Convert.ToString(v, CultureInfo.InvariantCulture));
+            }
         }
 
         private static string Num(float value) => value.ToString("0.###", CultureInfo.InvariantCulture);
@@ -471,6 +492,7 @@ namespace SlopArena.EditorTools
                     {
                         Directory.CreateDirectory(OutputDirectory);
                         File.WriteAllText(Path.Combine(OutputDirectory, "states.jsonl"), _states.ToString());
+                        File.WriteAllText(Path.Combine(OutputDirectory, "exact.txt"), _exact.ToString());
                         StopAudio();
                         WriteWav(Path.Combine(OutputDirectory, "audio.wav"));
                         Done = true;

@@ -2,6 +2,7 @@ using System;
 using System.Linq;
 using System.Collections.Generic;
 using SlopArena.Shared;
+using SlopArena.Shared.Mayhem;
 using SlopArena.Client.Input;
 using SlopArena.Client.Network;
 using UnityEngine;
@@ -383,6 +384,26 @@ namespace SlopArena.Client.UI
             }
         }
 
+        public static VisualElement MayhemChip(string action, string verb)
+        {
+            bool pad = HumanInputActions.LastUsedGamepad;
+            string group = pad ? HumanInputActions.GamepadGroup : HumanInputActions.KeyboardMouseGroup;
+            string path = BindingPath(action, group);
+            string label = HumanInputActions.BindingLabel(action, group);
+            var prompt = pad ? GamepadPrompt(path, label) : (HumanInputActions.KeyboardDisplayLabel(path, label), (string)null);
+            string keys=prompt.Item1;
+            if(!pad && action=="MoveUp") keys=string.Join(" ",new[] { "MoveUp","MoveLeft","MoveDown","MoveRight" }.Select(a=>HumanInputActions.BindingLabel(a,group)));
+            if(action=="Normal1") keys=string.Join(" / ",new[] { "Normal1","Normal2","Normal3" }.Select(a=>pad?GamepadPrompt(BindingPath(a,group),HumanInputActions.BindingLabel(a,group)).Text:HumanInputActions.KeyboardDisplayLabel(BindingPath(a,group),HumanInputActions.BindingLabel(a,group))));
+            var chip = new Label($"{keys}  {verb}");
+            chip.AddToClassList("ability-prompt");
+            if (prompt.Item2 != null) chip.AddToClassList(prompt.Item2);
+            chip.style.fontSize = 17; chip.style.color = Color.white;
+            chip.style.backgroundColor = new Color(.1f,.07f,.09f);
+            chip.style.paddingLeft = chip.style.paddingRight = 9;
+            chip.style.marginLeft = chip.style.marginRight = 4;
+            return chip;
+        }
+
         private static readonly string[] PromptKinds =
             { "prompt-a", "prompt-b", "prompt-x", "prompt-y", "stick-up", "stick-down", "stick-left", "stick-right" };
 
@@ -745,7 +766,7 @@ namespace SlopArena.Client.UI
             _soloCountdown?.Clear();
             if (results.Mayhem is { } mayhem)
             {
-                var players = mayhem.Players.Select(p => new MayhemPlayer(p.EntityId, p.Score, p.RoundsSurvived, p.Bonuses, false, p.Withdrawn)).ToArray();
+                var players = mayhem.Players.Select(p => new MayhemContestantView(p.EntityId, 0, false, p.Withdrawn, MayhemVerdict.Pending, null, false, p.PassMask, p.Ratings)).ToArray();
                 _soloEndCard?.ShowMayhem(players, id => ClientSession.MatchRoster?.FirstOrDefault(p => p.EntityId == (int)id)?.Name ?? $"P{id}", SeatOf, online: true);
                 return;
             }
@@ -803,7 +824,7 @@ namespace SlopArena.Client.UI
         private int SeatOf(ulong entityId) => _billboardPanels.TryGetValue(entityId, out var panel)
             ? panel.PlayerNumber : entityId is >= 1 and <= 4 ? (int)entityId : 2;
 
-        public void ShowMayhemEnding(IReadOnlyList<MayhemPlayer> players, Func<ulong, string> name)
+        public void ShowMayhemEnding(IReadOnlyList<MayhemContestantView> players, Func<ulong, string> name)
         {
             _soloCountdown?.Clear();
             _soloEndCard?.ShowMayhem(players, name, SeatOf);

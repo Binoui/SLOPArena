@@ -33,15 +33,17 @@ namespace SlopArena.Client.UI
             if (!_courseSelected && _slopballArena.HasValue) _arena = _slopballArena.Value;
         }
 
+        /// <summary>Whether Mode Select enables the mode's card. Reads the cooked roster, not the match catalog:
+        /// in the Editor every catalog request recompiles each character package from source (seconds per card).
+        /// A package that fails to compile still reports its error when the match starts.</summary>
         public static bool Available(LocalPlayModeInfo mode)
         {
-            if (!ClientSession.TryBuildLocalMatchCatalog(out var catalog, out _) || catalog == null) return false;
-            if (mode.HasStageStep) return MenuRoster.Classes.Length > 0;
+            if (MenuRoster.Classes.Length == 0) return false;
+            if (mode.HasStageStep) return true;
             if (mode.Seats == LocalSeatPolicy.FourSeats) return LoadArena(mode.Arena)?.Arcade?.Mayhem != null;
-            if (mode.Mode == LocalPlayMode.CharacterCourse)
-                return AvailableCourses().Any() && MenuRoster.Classes.Any(cls => catalog.Resolve(cls) != null);
+            if (mode.Mode == LocalPlayMode.CharacterCourse) return AvailableCourses().Any();
             return LoadArena(mode.Arena) is ArenaDefinition ball && ball.Arcade?.Slopball != null
-                && MenuRoster.Classes.Any(cls => catalog.Resolve(cls) is { } entry && ball.Arcade.AllowsPackage(entry.Identity.PackageId));
+                && MenuRoster.Classes.Any(cls => MenuRoster.PackageId(cls) is { } id && ball.Arcade.AllowsPackage(id));
         }
 
         public bool Admits(CharacterClass fighter)
@@ -66,10 +68,13 @@ namespace SlopArena.Client.UI
         private static readonly Dictionary<string, bool> StageVisuals = new(StringComparer.Ordinal);
 
         /// <summary>Whether Resources holds the stage's visual prefab. Loading one pulls in all its meshes and
-        /// textures, so a player build checks each stage once per session; the Editor rechecks as stages change.</summary>
+        /// textures, so a player build checks each stage once per session; the Editor rechecks as stages change,
+        /// looking for the file first so it loads a prefab only when it lives outside Assets/Resources/Stages.</summary>
         internal static bool HasStageVisual(string name)
         {
-            if (Application.isEditor) return Resources.Load<GameObject>("Stages/" + name) != null;
+            if (Application.isEditor)
+                return System.IO.File.Exists(System.IO.Path.Combine(Application.dataPath, "Resources", "Stages", name + ".prefab"))
+                    || Resources.Load<GameObject>("Stages/" + name) != null;
             if (!StageVisuals.TryGetValue(name, out bool exists))
                 StageVisuals[name] = exists = Resources.Load<GameObject>("Stages/" + name) != null;
             return exists;

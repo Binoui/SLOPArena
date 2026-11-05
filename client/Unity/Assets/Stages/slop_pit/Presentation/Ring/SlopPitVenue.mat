@@ -29,8 +29,8 @@ Material:
         m_Offset: {x: 0, y: 0}
     m_Ints: []
     m_Floats:
-    - _Ambient: 0.5
-    - _Base: 0.42
+    - _Ambient: 0.2
+    - _Base: 0.2
     - _Cull: 2
     - _FogAmount: 1
     - _Glow: 1.4

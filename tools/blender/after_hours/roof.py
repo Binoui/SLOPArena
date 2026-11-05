@@ -19,7 +19,8 @@ STREET_Y = -36.0
 PODIUM_TOP = -26.0
 COPING = 0.5
 FLOOR_H = 3.4
-DANCE = (-5.0, -4.0, 5.0, 4.0)
+from layout import SPEC
+DANCE = SPEC["dance"]
 
 
 def clip_convex(poly, outline):

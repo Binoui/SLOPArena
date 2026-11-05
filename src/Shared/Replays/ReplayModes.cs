@@ -108,45 +108,82 @@ public sealed partial class ReplayCapture
                 }
             }
         }
-        if (sim.MankiMayhem is
-            {
-            }
-       m)
+        if (sim.MayhemView is { } show)
         {
-            a.Add(new ReplayMayhem
+            a.Add(new ReplayMayhemShow
             {
-                RoundIndex = m.RoundIndex,
-                CardId = ReplaySemanticIds.Id(m.Card),
-                PhaseId = ReplaySemanticIds.Id(m.Phase),
-                PhaseTick = m.PhaseTick,
-                HazardsLaunched = m.HazardsLaunched
+                Seed = show.Seed,
+                Episode = show.Cursor.Episode,
+                PhaseId = ReplaySemanticIds.Id(show.Cursor.Phase),
+                ChannelId = show.Channel?.CopyKey ?? ""
             });
-            var players = new List<MayhemPlayer>(sim.MayhemPlayers);
-            players.Sort((a, b) => a.EntityId.CompareTo(b.EntityId));
-            foreach (var p in players) a.Add(new ReplayMayhemPlayer
+            foreach (var row in show.Contestants) a.Add(new ReplayMayhemContestant
             {
-                EntityId = p.EntityId,
-                Score = p.Score,
-                RoundsSurvived = p.RoundsSurvived,
-                Bonuses = p.Bonuses,
-                Benched = p.Benched,
-                Withdrawn = p.Withdrawn
+                EntityId = row.EntityId,
+                OnAir = row.OnAir,
+                Withdrawn = row.Withdrawn,
+                PassMask = row.PassMask,
+                FailCauseId = row.Failure is { } f ? ReplaySemanticIds.Id(f.Cause) : "",
+                SplatStyleId = row.Failure is { } splat ? ReplaySemanticIds.Id(splat.Style) : "",
+                FailTick = row.Failure?.Tick ?? 0,
+                Anchor = row.Failure is { } anchor ? new ReplayVector(anchor.Anchor.X, anchor.Anchor.Y, anchor.Anchor.Z) : default,
+                AnchorYaw = row.Failure?.Anchor.Yaw ?? 0f
             });
-            foreach (var r in sim.MayhemLandingRings) a.Add(new ReplayMayhemRing
+            var scene = show.Scene;
+            foreach (var bomb in scene.Bombs) a.Add(new ReplayMayhemBomb
             {
+                Lane = bomb.Lane,
+                Ordinal = bomb.Ordinal,
+                Launched = bomb.Launched,
+                Exploded = bomb.Exploded,
+                Landing = V(bomb.Landing),
+                LaunchTick = bomb.LaunchTick,
+                ImpactTick = bomb.ImpactTick,
+                BlastRadius = bomb.BlastRadius
+            });
+            foreach (var r in scene.Rings) a.Add(new ReplayMayhemShockwave
+            {
+                Lane = r.Lane,
                 Ordinal = r.Ordinal,
-                Position = V(r.Position),
-                LaunchTick = r.LaunchTick,
-                LandingTick = r.LandingTick,
-                FuseTicks = r.FuseTicks
+                Center = V(r.Center),
+                SlamTick = r.SlamTick,
+                Speed = r.Speed,
+                HalfWidth = r.HalfWidth,
+                HalfHeight = r.HalfHeight,
+                LifetimeTicks = r.LifetimeTicks
             });
-            foreach (var sl in sim.MayhemSlams) a.Add(new ReplayMayhemSlam
+            foreach (var z in scene.Zones) a.Add(new ReplayMayhemZone
             {
-                Ordinal = sl.Ordinal,
-                Position = V(sl.Position),
-                Tick = sl.Tick
+                Lane = z.Lane,
+                Ordinal = z.Ordinal,
+                ZoneId = ReplaySemanticIds.Id(z.Kind),
+                Center = V(z.Center),
+                Radius = z.Radius,
+                ActiveFrom = z.ActiveFrom,
+                ActiveUntil = z.ActiveUntil
             });
-            foreach (var w in sim.MayhemWalls) a.Add(new ReplayMayhemWall
+            foreach (var w in scene.Watches) a.Add(new ReplayMayhemWatch
+            {
+                Lane = w.Lane,
+                Ordinal = w.Ordinal,
+                WarningTick = w.WarningTick,
+                StartTick = w.StartTick,
+                EndTick = w.EndTick
+            });
+            foreach (var t in scene.Targets) a.Add(new ReplayMayhemTarget
+            {
+                Lane = t.Lane,
+                Ordinal = t.Ordinal,
+                TargetId = ReplaySemanticIds.Id(t.Kind),
+                EntityId = t.EntityId,
+                OwnerId = t.OwnerSeat < show.Contestants.Count ? show.Contestants[t.OwnerSeat].EntityId : 0,
+                Center = V(t.Center),
+                Radius = t.Radius,
+                HalfHeight = t.HalfHeight,
+                HitsLeft = t.HitsLeft,
+                Hits = t.Hits
+            });
+            foreach (var w in scene.Solids) a.Add(new ReplayMayhemWall
             {
                 EntityId = w.EntityId,
                 CageEntityId = w.CageEntityId,
@@ -155,8 +192,7 @@ public sealed partial class ReplayCapture
                 HalfExtents = V(w.HalfExtents),
                 Yaw = w.Yaw,
                 HitsLeft = w.HitsLeft,
-                PhaseId = ReplaySemanticIds.Id(w.Phase)
-            ,
+                PhaseId = ReplaySemanticIds.Id(w.Phase),
                 PhaseTick = w.PhaseTick
             });
         }

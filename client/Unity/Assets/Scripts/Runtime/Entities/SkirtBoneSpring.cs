@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace SlopArena.Client.Entities
@@ -22,10 +23,31 @@ namespace SlopArena.Client.Entities
             public float Radius = .08f;
         }
 
+        /// <summary>How raised limbs swing the chains outward before the spring runs.</summary>
+        public enum LiftModel
+        {
+            /// <summary>A long skirt from the waist: capsules 0-1 are thighs and 2-3 shins; raised thighs, a crouch and
+            /// raised feet lift the chains facing them.</summary>
+            LegPose,
+            /// <summary>Any capsules (legs, arms, tail): each chain swings just far enough to clear the limb parts under
+            /// it (below its top third, above its hem, inside its rest line, crossing it rather than hanging along it),
+            /// straight out or 40 degrees to either side, whichever needs the smallest swing. The swing rises within a
+            /// few frames and settles back slowly. A limb no swing within the lift limit clears is left to the collision passes,
+            /// which push fabric out from a limb behind it and fade out for a limb in front. For fabric that hangs
+            /// above the legs, such as a poncho.</summary>
+            Clearance,
+        }
+
+        [Tooltip("The bone the chains hang from: their parent, whose frame carries their rest pose.")]
         [SerializeField] private Transform _hips;
         [SerializeField] private Transform _modelRoot;
         [SerializeField] private Chain[] _chains = Array.Empty<Chain>();
         [SerializeField] private LegCapsule[] _capsules = Array.Empty<LegCapsule>();
+        [SerializeField] private LiftModel _liftModel = LiftModel.LegPose;
+        [Tooltip("Clearance only: the largest outward swing, in degrees.")]
+        [SerializeField, Range(0f, 85f)] private float _maxLift = 70f;
+        [Tooltip("Clearance only: extra radius around each capsule, in rig metres, for the fabric between neighbouring chains.")]
+        [SerializeField] private float _liftReach = .03f;
         [SerializeField, Range(0f, 1f)] private float _stiffness = .22f;
         [SerializeField, Range(0f, 1f)] private float _damping = .3f;
         [SerializeField, Range(0f, 1f)] private float _neighbourBlend = .35f;
@@ -47,6 +69,12 @@ namespace SlopArena.Client.Entities
         private Vector3 _restUpHips;
         private bool _reset = true;
         private float[] _lastLift;
+        private Quaternion[] _lastLiftRotation;
+        private Quaternion[][] _skinFrom, _skinCorrection;
+        private static readonly float[] SwingTurns = { 0f, -40f, 40f };
+        private const int LimbSamples = 4;
+        private readonly List<Vector4> _under = new List<Vector4>();
+        private Vector3[] _restLine = Array.Empty<Vector3>();
         private SkinnedMeshRenderer _skin;
         private Vector3[] _vertices;
         private BoneWeight[] _weights;
@@ -60,6 +88,12 @@ namespace SlopArena.Client.Entities
         private Vector3[,] _contactPoint;
         private Vector3[,] _contactPush;
         private float[,] _contactDepth;
+
+        // Clearance reads its rest frame before any clip poses the body; LegPose keeps reading it at the first step.
+        private void Awake()
+        {
+            if (_liftModel == LiftModel.Clearance) Initialize();
+        }
 
         private void OnEnable() => _reset = true;
 
@@ -115,6 +149,16 @@ namespace SlopArena.Client.Entities
                 }
             }
             _lastLift = new float[count];
+            _lastLiftRotation = new Quaternion[count];
+            _skinFrom = new Quaternion[count][];
+            _skinCorrection = new Quaternion[count][];
+            for (int c = 0; c < count; c++)
+            {
+                _lastLiftRotation[c] = Quaternion.identity;
+                _skinFrom[c] = new Quaternion[_chains[c].Bones.Length];
+                _skinCorrection[c] = new Quaternion[_chains[c].Bones.Length];
+                for (int j = 0; j < _skinCorrection[c].Length; j++) _skinCorrection[c][j] = Quaternion.identity;
+            }
             _skin = GetComponent<SkinnedMeshRenderer>();
             _vertices = _skin.sharedMesh.vertices;
             _weights = _skin.sharedMesh.boneWeights;
@@ -157,7 +201,7 @@ namespace SlopArena.Client.Entities
             if (Vector3.Distance(_lastRoot, _hips.position) > _teleportDistance) _reset = true;
             _lastRoot = _hips.position;
             Vector3 up = _hips.TransformDirection(_restUpHips);
-            bool crouching = _capsules.Length >= 4;
+            bool crouching = _liftModel == LiftModel.LegPose && _capsules.Length >= 4;
             for (int leg = 0; leg < 2 && crouching; leg++)
             {
                 var thigh = _capsules[leg]; var shin = _capsules[leg + 2];
@@ -169,8 +213,10 @@ namespace SlopArena.Client.Entities
                 var bones = _chains[c].Bones;
                 Vector3 pivot = _hips.TransformPoint(_rootHips[c]);
                 Vector3 radial = Vector3.ProjectOnPlane(pivot - _hips.position, up).normalized;
+                Vector3 liftAxis = Vector3.Cross(up, radial);
                 float lift = 0f;
-                for (int leg = 0; leg < Mathf.Min(2, _capsules.Length); leg++)
+                if (_liftModel == LiftModel.Clearance) lift = ClearanceLift(c, pivot, up, radial, scale, out liftAxis);
+                for (int leg = 0; _liftModel == LiftModel.LegPose && leg < Mathf.Min(2, _capsules.Length); leg++)
                 {
                     var thigh = _capsules[leg];
                     if (thigh.Start == null || thigh.End == null) continue;
@@ -194,8 +240,17 @@ namespace SlopArena.Client.Entities
                     float footLift = Mathf.Clamp(Mathf.Atan2(reach, drop) * Mathf.Rad2Deg - restAngle + 4f, 0f, 85f);
                     lift = Mathf.Max(lift, footLift * footAlignment * footAlignment);
                 }
-                Quaternion poseLift = Quaternion.AngleAxis(-lift, Vector3.Cross(up, radial));
+                Quaternion poseLift = Quaternion.AngleAxis(-lift, liftAxis);
                 Quaternion previousLift = Quaternion.AngleAxis(-_lastLift[c], Vector3.Cross(up, radial));
+                if (_liftModel == LiftModel.Clearance)
+                {
+                    // The swing rises with the limb almost at once and settles back slowly; snapping between swing
+                    // directions or dropping when a limb left popped the fabric.
+                    previousLift = _reset ? poseLift : _hips.rotation * _lastLiftRotation[c] * Quaternion.Inverse(_hips.rotation);
+                    float applied = Quaternion.Angle(Quaternion.identity, previousLift);
+                    poseLift = Quaternion.RotateTowards(previousLift, poseLift, (lift > applied ? 600f : 240f) * dt);
+                    _lastLiftRotation[c] = Quaternion.Inverse(_hips.rotation) * poseLift * _hips.rotation;
+                }
                 for (int j = 0; j < bones.Length; j++)
                 {
                     bones[j].localRotation = _restRotation[c][j];
@@ -250,9 +305,12 @@ namespace SlopArena.Client.Entities
                                 float distance = away.magnitude;
                                 if (distance >= radius) continue;
                                 Vector3 outward = Vector3.ProjectOnPlane(target - _hips.position, up).normalized;
+                                float push = radius - distance;
+                                if (_liftModel == LiftModel.Clearance) push *= LimbBehind(away, distance, outward);
+                                if (push <= 0f) continue;
                                 Vector3 normal = distance > 1e-5f ? away / distance : outward;
                                 if (Vector3.Dot(normal, outward) < .1f) normal = (normal + outward * 1.5f).normalized;
-                                next += normal * ((radius - distance) / t);
+                                next += normal * (push / t);
                             }
                         }
                     }
@@ -273,8 +331,145 @@ namespace SlopArena.Client.Entities
                     _previous[c][j] += tip - _position[c][j];
                     _position[c][j] = tip;
                 }
+            if (_liftModel == LiftModel.Clearance)
+                for (int c = 0; c < _chains.Length; c++)
+                    for (int j = 0; j < _chains[c].Bones.Length; j++)
+                        _skinFrom[c][j] = _chains[c].Bones[j].rotation;
             ResolveSkinContacts(scale, up);
+            if (_liftModel == LiftModel.Clearance) SettleSkinContacts(dt);
             _reset = false;
+        }
+
+        /// <summary>The smallest swing, in degrees, that lifts chain <paramref name="c"/>'s rest line clear of every
+        /// limb under it, and the axis it turns about; no swing when nothing within the limit clears them.</summary>
+        private float ClearanceLift(int c, Vector3 pivot, Vector3 up, Vector3 radial, float scale, out Vector3 axis)
+        {
+            axis = Vector3.Cross(up, radial);
+            GatherLimbsUnder(c, pivot, up, radial, scale);
+            if (_under.Count == 0 || Penetration(pivot, axis, 0f) <= 0f) return 0f;
+            // Swinging only straight out cleared an arm hanging just behind a corner chain by flaring it wide;
+            // a small swing forward clears it.
+            float best = float.MaxValue;
+            foreach (float turn in SwingTurns)
+            {
+                Vector3 candidate = Vector3.Cross(up, Quaternion.AngleAxis(turn, up) * radial);
+                float lift = SmallestClearSwing(pivot, candidate);
+                if (lift >= 0f && lift < best) { best = lift; axis = candidate; }
+            }
+            // Snapping to the limit for a limb no swing clears (one hanging along the chain) spread wings in idle.
+            return best == float.MaxValue ? 0f : best;
+        }
+
+        /// <summary>Samples of every capsule under chain <paramref name="c"/>: below the top third of its rest line,
+        /// above its hem and inside it. Fabric lifts over a limb beneath it; swinging out over a forearm already in
+        /// front of it flipped the front panel up like a table.</summary>
+        private void GatherLimbsUnder(int c, Vector3 pivot, Vector3 up, Vector3 radial, float scale)
+        {
+            _under.Clear();
+            int n = _chains[c].Bones.Length;
+            if (_restLine.Length != n) _restLine = new Vector3[n];
+            for (int j = 0; j < n; j++) _restLine[j] = _hips.TransformPoint(_restTipHips[c][j]);
+            float hem = Vector3.Dot(pivot - _restLine[n - 1], up);
+            Vector3 hang = (_restLine[n - 1] - pivot).normalized;
+            foreach (var capsule in _capsules)
+            {
+                if (capsule.Start == null || capsule.End == null) continue;
+                // An arm hanging beside a chain is nudged by the collision passes; swinging clear of a limb that
+                // parallel took a wide flare and spread wings in idle. Raised arms and thighs cross the chain.
+                if (Mathf.Abs(Vector3.Dot((capsule.End.position - capsule.Start.position).normalized, hang)) > .7f) continue;
+                float radius = (capsule.Radius + _liftReach) * scale;
+                for (int sample = 0; sample <= LimbSamples; sample++)
+                {
+                    Vector3 point = Vector3.Lerp(capsule.Start.position, capsule.End.position, sample / (float)LimbSamples);
+                    // The top third of the fabric rides the body: swinging it off an upper arm beside the pivot
+                    // took near the full limit and spread wings. The collision passes handle limbs there.
+                    float depth = Vector3.Dot(pivot - point, up);
+                    if (depth < hem / 3f || depth > hem) continue;
+                    Vector3 closest = pivot, head = pivot;
+                    foreach (Vector3 tip in _restLine)
+                    {
+                        Vector3 candidate = ClosestOnSegment(point, head, tip);
+                        if ((candidate - point).sqrMagnitude < (closest - point).sqrMagnitude) closest = candidate;
+                        head = tip;
+                    }
+                    if (Vector3.Dot(point - closest, radial) > 0f) continue;
+                    _under.Add(new Vector4(point.x, point.y, point.z, radius));
+                }
+            }
+        }
+
+        /// <summary>The smallest swing about <paramref name="axis"/> that clears every limb under the chain, or -1.</summary>
+        private float SmallestClearSwing(Vector3 pivot, Vector3 axis)
+        {
+            const int Steps = 7;
+            float below = 0f;
+            for (int step = 1; step <= Steps; step++)
+            {
+                float lift = _maxLift * step / Steps;
+                if (Penetration(pivot, axis, lift) <= 0f)
+                {
+                    for (int i = 0; i < 4; i++)
+                    {
+                        float mid = (below + lift) * .5f;
+                        if (Penetration(pivot, axis, mid) <= 0f) lift = mid;
+                        else below = mid;
+                    }
+                    return lift;
+                }
+                below = lift;
+            }
+            return -1f;
+        }
+
+        /// <summary>How deep the gathered rest line, swung by <paramref name="lift"/> degrees about
+        /// <paramref name="axis"/>, reaches into the deepest limb under it (negative when clear).</summary>
+        private float Penetration(Vector3 pivot, Vector3 axis, float lift)
+        {
+            Quaternion swing = Quaternion.AngleAxis(-lift, axis);
+            float worst = float.NegativeInfinity;
+            foreach (var limb in _under)
+            {
+                Vector3 point = limb;
+                // Fabric beside the pivot rides the body; no swing moves it off a limb there.
+                Vector3 head = pivot + swing * (_restLine[0] - pivot) * .5f;
+                foreach (Vector3 rest in _restLine)
+                {
+                    Vector3 tip = pivot + swing * (rest - pivot);
+                    worst = Mathf.Max(worst, limb.w - Vector3.Distance(point, ClosestOnSegment(point, head, tip)));
+                    head = tip;
+                }
+            }
+            return worst;
+        }
+
+        /// <summary>How fully a limb at <paramref name="away"/> from the fabric pushes it out: fully from behind, not
+        /// at all from in front. The fade keeps a limb sliding past the fabric from popping it.</summary>
+        private static float LimbBehind(Vector3 away, float distance, Vector3 outward)
+            => Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(-.2f, .3f, Vector3.Dot(away, outward) / Mathf.Max(distance, 1e-5f)));
+
+        private static Vector3 ClosestOnSegment(Vector3 point, Vector3 a, Vector3 b)
+        {
+            Vector3 axis = b - a;
+            return a + axis * Mathf.Clamp01(Vector3.Dot(point - a, axis) / Mathf.Max(axis.sqrMagnitude, 1e-10f));
+        }
+
+        /// <summary>The skin-contact correction poses one frame without feeding the spring, so an arm leaving fabric it
+        /// held at the 20-degree limit snapped the fabric back in one frame. Clearance keeps each bone's correction and
+        /// moves it toward this frame's at most 10 degrees a frame rising and 4 settling.</summary>
+        private void SettleSkinContacts(float dt)
+        {
+            Quaternion frame = _hips.rotation, toFrame = Quaternion.Inverse(frame);
+            for (int c = 0; c < _chains.Length; c++)
+                for (int j = 0; j < _chains[c].Bones.Length; j++)
+                {
+                    var bone = _chains[c].Bones[j];
+                    Quaternion wanted = bone.rotation * Quaternion.Inverse(_skinFrom[c][j]);
+                    Quaternion held = _reset ? wanted : frame * _skinCorrection[c][j] * toFrame;
+                    float rate = Quaternion.Angle(Quaternion.identity, wanted) > Quaternion.Angle(Quaternion.identity, held) ? 600f : 240f;
+                    Quaternion applied = Quaternion.RotateTowards(held, wanted, rate * dt);
+                    bone.rotation = applied * _skinFrom[c][j];
+                    _skinCorrection[c][j] = toFrame * applied * frame;
+                }
         }
 
         private void ResolveSkinContacts(float scale, Vector3 up)
@@ -325,6 +520,8 @@ namespace SlopArena.Client.Entities
                         float distance = away.magnitude, depth = radius - distance;
                         if (depth <= .001f * scale) continue;
                         Vector3 outward = Vector3.ProjectOnPlane(_hips.TransformPoint(_rootHips[c]) - _hips.position, up).normalized;
+                        if (_liftModel == LiftModel.Clearance) depth *= LimbBehind(away, distance, outward);
+                        if (depth <= 0f) continue;
                         Vector3 normal = distance > 1e-5f ? away / distance : outward;
                         if (Vector3.Dot(normal, outward) < 0f) normal = (normal + outward * 2f).normalized;
                         // Depth-weighted sums, not the deepest vertex: which vertex was deepest flipped between

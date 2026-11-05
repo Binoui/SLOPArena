@@ -348,6 +348,8 @@ persisted. All clocks are 60 Hz ticks; yaw/pitch are radians except LocalEulerDe
 
 ### ReplayMayhemEvent
 
+Legacy round-show event (ADR-0044). Readers still decode it for old files and present nothing from it.
+
 | Tag | Field/type | Default | Source |
 |---:|---|---|---|
 | 1 | Kind / string | `mayhem` | closed variant identity |
@@ -356,6 +358,20 @@ persisted. All clocks are 60 Hz ticks; yaw/pitch are radians except LocalEulerDe
 | 4 | RoundIndex / `ushort` | `0` | round number is a counter, not Card identity |
 | 5 | OperationIndex / `int` | `0` | current-tick frame mode/presentation event |
 | 6 | Points / `ushort` | `0` | awarded result |
+
+### ReplayMayhemChannelEvent
+
+The channel show's event (ADR-0061), keyed as the World Frame keys it.
+
+| Tag | Field/type | Default | Source |
+|---:|---|---|---|
+| 1 | Kind / string | `mayhem-channel` | closed variant identity |
+| 2 | EventId / `string` | `"unknown"` | frame.MayhemEvents[].Kind explicit switch |
+| 3 | Episode / `ushort` | `0` | episode index; 65535 for Intro, SpeedUp and Ended |
+| 4 | Lane / `byte` | `0` | PRIME TIME! child lane (0 or 1) |
+| 5 | Operation / `ulong` | `0` | source ordinal, or attacker and activation for a hit on a channel object |
+| 6 | Subject / `ulong` | `0` | Host Entity, contestant, solid or target |
+| 7 | Value / `ushort` | `0` | award, packed cause and splat style, hits left or act |
 
 ### ReplayHit
 
@@ -502,6 +518,9 @@ persisted. All clocks are 60 Hz ticks; yaw/pitch are radians except LocalEulerDe
 
 ### ReplayMayhem
 
+Legacy round-show records `mayhem`, `mayhem-player`, `mayhem-ring` and `mayhem-slam` (ADR-0044) keep their
+tags so old files still read; the decoder ignores them.
+
 | Tag | Field/type | Default | Source |
 |---:|---|---|---|
 | 1 | Kind / string | `mayhem` | closed variant identity |
@@ -548,15 +567,110 @@ persisted. All clocks are 60 Hz ticks; yaw/pitch are radians except LocalEulerDe
 | Tag | Field/type | Default | Source |
 |---:|---|---|---|
 | 1 | Kind / string | `mayhem-wall` | closed variant identity |
-| 2 | EntityId / `ulong` | `0` | sim.MayhemWalls |
-| 3 | CageEntityId / `ulong` | `0` | sim.MayhemWalls |
-| 4 | CageCenter / `ReplayVector` | `default` | sim.MayhemWalls |
-| 5 | Center / `ReplayVector` | `default` | sim.MayhemWalls |
-| 6 | HalfExtents / `ReplayVector` | `default` | sim.MayhemWalls |
-| 7 | Yaw / `float` | `0` | sim.MayhemWalls |
-| 8 | HitsLeft / `byte` | `0` | sim.MayhemWalls |
-| 9 | PhaseId / `string` | `"unknown"` | sim.MayhemWalls |
-| 10 | PhaseTick / `ushort` | `0` | sim.MayhemWalls |
+| 2 | EntityId / `ulong` | `0` | MayhemView.Scene.Solids |
+| 3 | CageEntityId / `ulong` | `0` | MayhemView.Scene.Solids |
+| 4 | CageCenter / `ReplayVector` | `default` | MayhemView.Scene.Solids |
+| 5 | Center / `ReplayVector` | `default` | MayhemView.Scene.Solids |
+| 6 | HalfExtents / `ReplayVector` | `default` | MayhemView.Scene.Solids |
+| 7 | Yaw / `float` | `0` | MayhemView.Scene.Solids |
+| 8 | HitsLeft / `byte` | `0` | MayhemView.Scene.Solids |
+| 9 | PhaseId / `string` | `"unknown"` | MayhemView.Scene.Solids |
+| 10 | PhaseTick / `ushort` | `0` | MayhemView.Scene.Solids |
+
+### ReplayMayhemShow
+
+The channel show (ADR-0061). The plan, cursor and deadlines are a function of the seed and the tick, so the
+decoder rebuilds them; the display world shows the recorded scene and never reruns a channel's setup.
+
+| Tag | Field/type | Default | Source |
+|---:|---|---|---|
+| 1 | Kind / string | `mayhem-show` | closed variant identity |
+| 2 | Seed / `uint` | `0` | MayhemView.Seed |
+| 3 | Episode / `int` | `-1` | MayhemView.Cursor.Episode |
+| 4 | PhaseId / `string` | `"unknown"` | MayhemView.Cursor.Phase explicit switch |
+| 5 | ChannelId / `string` | `""` | MayhemView.Channel.CopyKey; empty outside an episode |
+
+### ReplayMayhemContestant
+
+| Tag | Field/type | Default | Source |
+|---:|---|---|---|
+| 1 | Kind / string | `mayhem-contestant` | closed variant identity |
+| 2 | EntityId / `ulong` | `0` | MayhemView.Contestants |
+| 3 | OnAir / `bool` | `false` | on air since the current Call |
+| 4 | Withdrawn / `bool` | `false` | MayhemView.Contestants |
+| 5 | PassMask / `uint` | `0` | one pass bit per episode; ratings are recomputed |
+| 6 | FailCauseId / `string` | `""` | current episode's failure cause; empty when none |
+| 7 | SplatStyleId / `string` | `""` | current episode's splat style |
+| 8 | FailTick / `uint` | `0` | failure tick |
+| 9 | Anchor / `ReplayVector` | `default` | splat anchor hip |
+| 10 | AnchorYaw / `float` | `0` | splat anchor facing |
+
+### ReplayMayhemBomb
+
+| Tag | Field/type | Default | Source |
+|---:|---|---|---|
+| 1 | Kind / string | `mayhem-bomb` | closed variant identity |
+| 2 | Lane / `byte` | `0` | MayhemView.Scene.Bombs |
+| 3 | Ordinal / `ushort` | `0` | MayhemView.Scene.Bombs |
+| 4 | Launched / `bool` | `false` | landing is known once launched |
+| 5 | Landing / `ReplayVector` | `default` | telegraph ring centre |
+| 6 | LaunchTick / `uint` | `0` | MayhemView.Scene.Bombs |
+| 7 | ImpactTick / `uint` | `0` | MayhemView.Scene.Bombs |
+| 8 | BlastRadius / `float` | `0` | MayhemView.Scene.Bombs |
+
+### ReplayMayhemShockwave
+
+| Tag | Field/type | Default | Source |
+|---:|---|---|---|
+| 1 | Kind / string | `mayhem-shockwave` | closed variant identity |
+| 2 | Lane / `byte` | `0` | MayhemView.Scene.Rings |
+| 3 | Ordinal / `ushort` | `0` | MayhemView.Scene.Rings |
+| 4 | Center / `ReplayVector` | `default` | slam point |
+| 5 | SlamTick / `uint` | `0` | MayhemView.Scene.Rings |
+| 6 | Speed / `float` | `0` | metres per second |
+| 7 | HalfWidth / `float` | `0` | MayhemView.Scene.Rings |
+| 8 | HalfHeight / `float` | `0` | MayhemView.Scene.Rings |
+| 9 | LifetimeTicks / `ushort` | `0` | MayhemView.Scene.Rings |
+
+### ReplayMayhemZone
+
+| Tag | Field/type | Default | Source |
+|---:|---|---|---|
+| 1 | Kind / string | `mayhem-zone` | closed variant identity |
+| 2 | Lane / `byte` | `0` | MayhemView.Scene.Zones |
+| 3 | Ordinal / `ushort` | `0` | MayhemView.Scene.Zones |
+| 4 | ZoneId / `string` | `"unknown"` | zone kind explicit switch |
+| 5 | Center / `ReplayVector` | `default` | MayhemView.Scene.Zones |
+| 6 | Radius / `float` | `0` | MayhemView.Scene.Zones |
+| 7 | ActiveFrom / `uint` | `0` | MayhemView.Scene.Zones |
+| 8 | ActiveUntil / `uint` | `0` | MayhemView.Scene.Zones |
+
+### ReplayMayhemWatch
+
+| Tag | Field/type | Default | Source |
+|---:|---|---|---|
+| 1 | Kind / string | `mayhem-watch` | closed variant identity |
+| 2 | Lane / `byte` | `0` | MayhemView.Scene.Watches |
+| 3 | Ordinal / `ushort` | `0` | MayhemView.Scene.Watches |
+| 4 | WarningTick / `uint` | `0` | whistle and turn |
+| 5 | StartTick / `uint` | `0` | watch starts |
+| 6 | EndTick / `uint` | `0` | watch ends (exclusive) |
+
+### ReplayMayhemTarget
+
+| Tag | Field/type | Default | Source |
+|---:|---|---|---|
+| 1 | Kind / string | `mayhem-target` | closed variant identity |
+| 2 | Lane / `byte` | `0` | MayhemView.Scene.Targets |
+| 3 | Ordinal / `ushort` | `0` | MayhemView.Scene.Targets |
+| 4 | TargetId / `string` | `"unknown"` | target kind explicit switch |
+| 5 | EntityId / `ulong` | `0` | focused target identity |
+| 6 | OwnerId / `ulong` | `0` | the only contestant whose hits count |
+| 7 | Center / `ReplayVector` | `default` | MayhemView.Scene.Targets |
+| 8 | Radius / `float` | `0` | MayhemView.Scene.Targets |
+| 9 | HalfHeight / `float` | `0` | MayhemView.Scene.Targets |
+| 10 | HitsLeft / `byte` | `0` | MayhemView.Scene.Targets |
+| 11 | Hits / `byte` | `0` | MayhemView.Scene.Targets |
 
 ### ReplayCooldown
 

@@ -38,6 +38,7 @@
     "hitMedium": "anim.hit-medium",
     "hitHard": "anim.hit-hard",
     "tumble": "anim.tumble",
+    "wallJump": "anim.bonk.walljump",
     "crouch": "anim.bonk.crouch",
     "slide": "anim.bonk.slide",
     "landStartOffsetSeconds": 0.49,

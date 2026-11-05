@@ -38,6 +38,7 @@
     "hitMedium": "anim.nyx.hit-medium",
     "hitHard": "anim.nyx.hit-hard",
     "tumble": "anim.nyx.tumble",
+    "wallJump": "anim.nyx.walljump",
     "crouch": "anim.nyx.crouch",
     "slide": "anim.nyx.slide",
     "landStartOffsetSeconds": 0.49,
@@ -398,7 +399,7 @@
           }
         ]
       },
-      "hitPresentationId": "presentation.nyx.shadow-hit"
+      "hitPresentationId": "presentation.nyx.rake-hit"
     },
     {
       "id": "air.1",
@@ -481,7 +482,7 @@
           }
         ]
       },
-      "hitPresentationId": "presentation.nyx.shadow-hit"
+      "hitPresentationId": "presentation.nyx.rake-hit"
     },
     {
       "id": "ground.2",
@@ -602,7 +603,7 @@
           }
         ]
       },
-      "hitPresentationId": "presentation.nyx.shadow-hit"
+      "hitPresentationId": "presentation.nyx.clench-hit"
     },
     {
       "id": "air.2",
@@ -685,7 +686,7 @@
           }
         ]
       },
-      "hitPresentationId": "presentation.nyx.shadow-hit"
+      "hitPresentationId": "presentation.nyx.rake-hit"
     },
     {
       "id": "ground.3",
@@ -780,7 +781,7 @@
           }
         ]
       },
-      "hitPresentationId": "presentation.nyx.shadow-hit"
+      "hitPresentationId": "presentation.nyx.clench-hit"
     },
     {
       "id": "air.3",
@@ -863,12 +864,12 @@
           }
         ]
       },
-      "hitPresentationId": "presentation.nyx.shadow-hit"
+      "hitPresentationId": "presentation.nyx.clench-hit"
     },
     {
       "id": "ground.A",
       "name": "Hex Crow",
-      "description": "A crow climbs over your target, caws to mark the spot and dives. Perched, it pecks them and marks them for Grasp; Nyxxie\u0027s next hit pops it. Dash at the caw to dodge; shield or air dodge to swat it off.",
+      "description": "A crow climbs over your target, caws to mark the spot and dives. Perched, it pecks them and marks them for Grasp; Nyxxie's next hit pops it. Dash at the caw to dodge; shield or air dodge to swat it off.",
       "iconId": "icon.a",
       "behavior": "meleeCombo",
       "aimMode": "none",
@@ -975,7 +976,8 @@
             ]
           }
         ]
-      }
+      },
+      "hitPresentationId": "presentation.nyx.feather-hit"
     },
     {
       "id": "ground.E",
@@ -1123,7 +1125,8 @@
             ]
           }
         ]
-      }
+      },
+      "hitPresentationId": "presentation.nyx.grasp-hit"
     },
     {
       "id": "ground.F",
@@ -1207,7 +1210,7 @@
           }
         ]
       },
-      "hitPresentationId": "presentation.nyx.pink-hit"
+      "hitPresentationId": "presentation.nyx.shutter-hit"
     }
   ],
   "aliases": [
@@ -1256,15 +1259,20 @@
     "presentation.nyx.grasp-drag",
     "presentation.nyx.crow",
     "presentation.nyx.crow-pop",
-    "presentation.nyx.shadow-hit",
-    "presentation.nyx.pink-hit",
     "presentation.nyx.selfie-release",
     "presentation.nyx.selfie-catch",
     "presentation.nyx.crow-peck",
     "presentation.nyx.crow-scatter",
     "presentation.nyx.grasp-pop",
     "presentation.nyx.ring-light-charge",
-    "presentation.nyx.cast-aura"
+    "presentation.nyx.cast-aura",
+    "presentation.nyx.rake-hit",
+    "presentation.nyx.clench-hit",
+    "presentation.nyx.feather-hit",
+    "presentation.nyx.like-hit",
+    "presentation.nyx.shutter-hit",
+    "presentation.nyx.selfie-hit",
+    "presentation.nyx.grasp-hit"
   ],
   "alternateForm": {
     "id": "fake",
@@ -1458,7 +1466,7 @@
             }
           ]
         },
-        "hitPresentationId": "presentation.nyx.pink-hit"
+        "hitPresentationId": "presentation.nyx.like-hit"
       },
       {
         "id": "air.1",
@@ -1530,7 +1538,7 @@
             }
           ]
         },
-        "hitPresentationId": "presentation.nyx.pink-hit"
+        "hitPresentationId": "presentation.nyx.like-hit"
       },
       {
         "id": "ground.2",
@@ -1625,7 +1633,7 @@
             }
           ]
         },
-        "hitPresentationId": "presentation.nyx.pink-hit"
+        "hitPresentationId": "presentation.nyx.shutter-hit"
       },
       {
         "id": "air.2",
@@ -1708,7 +1716,7 @@
             }
           ]
         },
-        "hitPresentationId": "presentation.nyx.pink-hit"
+        "hitPresentationId": "presentation.nyx.shutter-hit"
       },
       {
         "id": "ground.3",
@@ -1792,7 +1800,7 @@
             }
           ]
         },
-        "hitPresentationId": "presentation.nyx.pink-hit"
+        "hitPresentationId": "presentation.nyx.shutter-hit"
       },
       {
         "id": "air.3",
@@ -1864,7 +1872,7 @@
             }
           ]
         },
-        "hitPresentationId": "presentation.nyx.pink-hit"
+        "hitPresentationId": "presentation.nyx.shutter-hit"
       },
       {
         "id": "ground.A",
@@ -2073,7 +2081,7 @@
             }
           ]
         },
-        "hitPresentationId": "presentation.nyx.pink-hit"
+        "hitPresentationId": "presentation.nyx.shutter-hit"
       },
       {
         "id": "ground.E",
@@ -2238,7 +2246,7 @@
             }
           ]
         },
-        "hitPresentationId": "presentation.nyx.pink-hit"
+        "hitPresentationId": "presentation.nyx.shutter-hit"
       },
       {
         "id": "ground.R",
@@ -2337,7 +2345,8 @@
               ]
             }
           ]
-        }
+        },
+        "hitPresentationId": "presentation.nyx.selfie-hit"
       },
       {
         "id": "ground.F",
@@ -2421,7 +2430,7 @@
             }
           ]
         },
-        "hitPresentationId": "presentation.nyx.shadow-hit"
+        "hitPresentationId": "presentation.nyx.feather-hit"
       }
     ],
     "aliases": [

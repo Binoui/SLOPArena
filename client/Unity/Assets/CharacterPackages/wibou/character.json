@@ -38,6 +38,7 @@
     "hitMedium": "anim.wibou.hit-medium",
     "hitHard": "anim.wibou.hit-hard",
     "tumble": "anim.wibou.tumble",
+    "wallJump": "anim.wibou.walljump",
     "crouch": "anim.wibou.crouch",
     "slide": "anim.wibou.slide",
     "landStartOffsetSeconds": 0.49,

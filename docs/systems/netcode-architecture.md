@@ -673,6 +673,52 @@ Cross-runtime differences (Unity Mono against .NET 8) only affect the few predic
 every frame re-anchors on GameHost state. Every ability must implement the snapshot
 contract ([ability architecture](ability-architecture.md), step 6).
 
+### Cross-runtime float precision (measured 2026-11-04)
+
+The client and the GameHost do not compute the same floats. Unity's Mono does `float`
+arithmetic and `MathF` in double precision and rounds afterwards. .NET 8 rounds after
+every operation. Every Unity Mono binary passes `-O=-float32` to Mono at startup: the
+Editor, development players and release players. A seeded probe of 200,000 inputs, run
+on the same machine and math library, differs from .NET 8 on 33–53% of results for
+`Sin`, `Cos`, `Atan2`, `Exp`, `Atan` and plain `a * b + c`. `Sqrt`, `Pow`, `Acos`,
+`Asin`, `Tan` and `Log` matched.
+
+What this means for online play today: nothing visible. The gap is about one unit in
+the last place per operation. It lives only inside the 3–4 tick Prediction Window,
+where it stays near a millionth of a metre, and every World Frame replaces it with
+GameHost state. Replays store every tick's World Snapshot (ADR-0060), so they do not
+drift either. The visible corrections online come from predicting opponents' inputs
+(their last input repeated without presses), not from float precision. Fixing precision
+would not lower latency or make corrections cleaner.
+
+What it does rule out: GGPO-style input-only synchronisation. That design sends only
+inputs and requires every machine to compute identical results. It would cut downstream
+bandwidth from 447–891 compressed bytes per tick and would allow peer-to-peer play.
+Reaching parity would take two changes:
+
+1. Clients must stop using Unity Mono's double mode. `MONO_ARGUMENTS=-O=float32`
+   overrides it in the Editor and in development players (Linux and Windows), and the
+   probe then matches .NET 8 on every value. Release Mono players do not read
+   `MONO_ARGUMENTS`, so shipped clients would need the IL2CPP backend. IL2CPP parity is
+   not yet measured.
+2. Shared would need its own trigonometry written in plain float arithmetic. Windows
+   clients and the Linux GameHost use different math libraries. Basic arithmetic and
+   square root are exact under IEEE 754 everywhere, but `sin`, `cos` and `atan2` are
+   not. The simulation has about 210 such calls in 40 files.
+
+Neither change is planned. Revisit them only if bandwidth or peer-to-peer becomes a
+goal.
+
+Offline tools that must reproduce Unity exactly, such as the combo-clip finder, hit the
+gap directly: small differences grow over a whole fight, and a hit that landed headless
+misses in the Editor. Measure it this way:
+
+- `sloparena.diag.float_probe --output <file>` (Editor command) writes the probe's raw
+  bits, to compare with the same probe run on .NET 8.
+- Photo mode writes `exact.txt`, every `CharacterState` field per tick with floats as
+  raw bits. `tools/ComboFinder` `verify <combo> --exact` prints the headless run in the
+  same format. The first differing line is the first tick that diverges.
+
 The protocol 9 three-track model (LocalTrack, PredictedTrack and RawTrack in
 `RollbackSimulator`, with raw playout and a defense-interaction barrier) was superseded
 by full-world rollback. It is not a current runtime or roster authoring contract.
