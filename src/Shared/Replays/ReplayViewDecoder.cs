@@ -407,6 +407,8 @@ namespace SlopArena.Shared.Replays
         static readonly Dictionary<string, Mayhem.MayhemPhase> MayhemPhases = Inverse<Mayhem.MayhemPhase>(ReplaySemanticIds.Id);
         static readonly Dictionary<string, Mayhem.FailCause> FailCauses = Inverse<Mayhem.FailCause>(ReplaySemanticIds.Id);
         static readonly Dictionary<string, Mayhem.SplatStyle> SplatStyles = Inverse<Mayhem.SplatStyle>(ReplaySemanticIds.Id);
+        static readonly Dictionary<string, Mayhem.MayhemBombKind> BombKinds = Inverse<Mayhem.MayhemBombKind>(ReplaySemanticIds.Id);
+        static readonly Dictionary<string, Mayhem.MayhemWatchKind> WatchKinds = Inverse<Mayhem.MayhemWatchKind>(ReplaySemanticIds.Id);
         static readonly Dictionary<string, Mayhem.MayhemZoneKind> ZoneKinds = Inverse<Mayhem.MayhemZoneKind>(ReplaySemanticIds.Id);
         static readonly Dictionary<string, Mayhem.MayhemTargetKind> TargetKinds = Inverse<Mayhem.MayhemTargetKind>(ReplaySemanticIds.Id);
         static readonly Dictionary<string, RuntimeSolidPhase> WallPhases = Inverse<RuntimeSolidPhase>(ReplaySemanticIds.Id);
@@ -428,6 +430,8 @@ namespace SlopArena.Shared.Replays
         internal static Mayhem.MayhemPhase? MayhemPhase(string id) => MayhemPhases.TryGetValue(id, out var v) ? v : null;
         internal static Mayhem.FailCause? FailCause(string id) => FailCauses.TryGetValue(id, out var v) ? v : null;
         internal static Mayhem.SplatStyle? SplatStyle(string id) => SplatStyles.TryGetValue(id, out var v) ? v : null;
+        internal static Mayhem.MayhemBombKind? BombKind(string id) => BombKinds.TryGetValue(id, out var v) ? v : null;
+        internal static Mayhem.MayhemWatchKind? WatchKind(string id) => WatchKinds.TryGetValue(id, out var v) ? v : null;
         internal static Mayhem.MayhemZoneKind? ZoneKind(string id) => ZoneKinds.TryGetValue(id, out var v) ? v : null;
         internal static Mayhem.MayhemTargetKind? TargetKind(string id) => TargetKinds.TryGetValue(id, out var v) ? v : null;
         internal static RuntimeSolidPhase? WallPhase(string id) => WallPhases.TryGetValue(id, out var v) ? v : null;

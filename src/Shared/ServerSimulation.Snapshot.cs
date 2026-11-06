@@ -31,7 +31,7 @@ namespace SlopArena.Shared
         // 26: one wall jump per airtime in CharacterState.
         // 27: the Mayhem channel show (ADR-0061): seed, roster, withdrawals, pass masks, current failures, on-air set,
         //     safe poses and the current channel's own state, replacing the round director.
-        public const uint SnapshotFormatVersion = 28;
+        public const uint SnapshotFormatVersion = 31;
 
         private readonly List<ulong> _abilityOrder = new();
 

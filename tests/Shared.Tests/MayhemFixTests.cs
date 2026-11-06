@@ -96,7 +96,7 @@ public class MayhemFixTests
         var stage = MayhemWorld.Arena().Arcade!.Mayhem!;
         var seats = new[] { new ChannelSeat(0, 1, new(-4, .85f, 0, 0), .4f, 1.7f),
             new ChannelSeat(1, 2, new(4, .85f, 0, 0), .4f, 1.7f) };
-        var setup = new ChannelSetup(5, 0, 0, SpeedTier.One, 100, 190, 490, stage, seats);
+        var setup = new ChannelSetup(new SoloAiring(new(new(1), new(1), 5)), 0, 0, SpeedTier.One, 100, 190, 490, stage, seats);
         var channel = MayhemChannels.Find(new(id)).Create(setup);
         var w = new SnapshotWriter(); channel.WriteSnapshot(w);
         var data = w.ToArray();
@@ -107,7 +107,7 @@ public class MayhemFixTests
             var list = data.ToList(); list.RemoveRange(header, stride);
             data = list.ToArray(); data[header - 1]--;
         }
-        var context = new ChannelRestore(new(id), 0, 0, stage, new ulong[] { 1, 2 }, 190, 490, 3);
+        var context = new ChannelRestore(new SoloAiring(new(new(id), new(1), 5)), 0, 0, SpeedTier.One, stage, new ulong[] { 1, 2 }, 190, 490, 3);
         Assert.Throws<System.IO.InvalidDataException>(() => MayhemChannels.Find(new(id)).Read(new SnapshotReader(data), context));
     }
 

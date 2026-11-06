@@ -12,8 +12,9 @@ internal readonly record struct MayhemDanger(float X, float Z, float Radius);
 
 internal static class MayhemMath
 {
-    /// <summary>Seed domains: deck shuffles, boss picks and channel setups never share a stream.</summary>
-    internal const uint DeckStream = 0x100, BossStream = 0x200, ChannelStream = 0x1000;
+    internal const uint TwistStream = 0x7000;
+    /// <summary>Seed domains: deck shuffles, boss picks, pair picks and channel setups never share a stream.</summary>
+    internal const uint DeckStream = 0x100, BossStream = 0x200, PairStream = 0x300, ChannelStream = 0x1000;
 
     internal static uint Sample(uint seed, uint stream, uint ordinal)
     {

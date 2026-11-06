@@ -24,7 +24,7 @@ namespace SlopArena.Shared
         public const uint Magic = 0x4D524657; // "WFRM"
         /// <summary>2 adds the Slopball events of the frame's event ticks (ADR-0040); 8 adds the attacker's form to
         /// each hit (ADR-0051); 9 replaces the Mayhem round events with channel events (ADR-0061).</summary>
-        public const byte FormatVersion = 10;
+        public const byte FormatVersion = 11;
         public const int HeaderSize = 16;
         public const int MaxBodyBytes = 64 * 1024;
         public const int MaxPresentationEvents = 256;

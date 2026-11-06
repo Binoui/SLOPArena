@@ -80,6 +80,7 @@ Use [Project context](../CONTEXT.md) for canonical gameplay vocabulary and settl
 | [Contributor input inventory](assets/contributor-inputs.md) | Catalog dependencies, local-only asset families and provenance gaps |
 | [Visual presentation baseline](visual-baseline.md) | Repeatable gameplay-camera evidence for visual comparisons |
 | [Store screenshots](steam/store-screenshots.md) | The Steam screenshot set, its recipes and the `sloparena.photo.*` photo mode |
+| [Store page text](steam/store-page.md) | The Steam short description and About section, with banners and loops from `tools/store_page` |
 | [3D visual-production process proposal](plans/2026-10-15-3d-visual-production-process.md) | Stage-first plan for design, Blender production, material-accurate review, reuse and targeted model/VFX work |
 | [Combat presentation pass](plans/2026-10-16-combat-presentation-pass.md) | Owner direction, current state and proposed order for hit feel, special VFX, audio and procedural deformation |
 | [AI 3D workflow research](research/2026-10-15-ai-3d-production-workflows.md) | Revision-pinned study of gamedev-skills and OhMyGame, including transferable practices and implementation limits |

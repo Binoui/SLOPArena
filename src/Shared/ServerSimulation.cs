@@ -1832,7 +1832,7 @@ namespace SlopArena.Shared
 			float maxRange, out float distanceSquared)
 		{
 			distanceSquared = 0f;
-			if (targetId == selfId || _onlineCourse != null && !CanAttackTarget(selfId, targetId) || _rule is SlopballCoopMatchRule && _states.ContainsKey(targetId)
+			if (targetId == selfId || (_onlineCourse != null || _mayhem != null) && !CanAttackTarget(selfId, targetId) || _rule is SlopballCoopMatchRule && _states.ContainsKey(targetId)
 				|| _rule is SlopballVersusMatchRule versus && _states.ContainsKey(targetId)
 				    && (versus.BallOnly || versus.CampOf(selfId) == versus.CampOf(targetId))
 				|| !TryGetCombatTargetPosition(targetId, out var target))
@@ -1940,26 +1940,31 @@ namespace SlopArena.Shared
 			state.AttackPosePitch = 0f;
 			ulong preferred = state.LockOn && !input.ToggleLock && !input.RetargetPressed
 				? state.TargetEntityId : ResolveObjectTargetAlias(input.TargetEntityId, state.EntityId);
-			ulong targetId = 0;
-			float bestDistance = float.MaxValue;
-			if (!input.RetargetPressed && IsStartupCorrectionTarget(state, preferred, operation, acquire: true, out _))
-				targetId = preferred;
-			else
-			{
-				foreach (ulong candidate in CombatTargetIds())
-				{
-					if (!IsStartupCorrectionTarget(state, candidate, operation, acquire: true, out float distance))
-						continue;
-					if (targetId == 0 || distance < bestDistance || distance == bestDistance && candidate < targetId)
-					{
-						targetId = candidate;
-						bestDistance = distance;
-					}
-				}
-			}
+			ulong targetId = NearestStartupCorrectionTarget(in state, operation, MayhemAimTargets(state.EntityId));
+			if (targetId == 0)
+				targetId = !input.RetargetPressed && IsStartupCorrectionTarget(state, preferred, operation, acquire: true, out _)
+					? preferred : NearestStartupCorrectionTarget(in state, operation, CombatTargetIds());
 			state.AttackCorrectionTargetId = targetId;
 			state.AttackCorrectionTargetDeaths = CombatTargetDeaths(targetId);
 			state.AttackCorrectionActive = targetId != 0;
+		}
+
+		private ulong NearestStartupCorrectionTarget(in CharacterState state, CookedStartupAimCorrectionOperation operation,
+			IEnumerable<ulong> candidates)
+		{
+			ulong targetId = 0;
+			float bestDistance = float.MaxValue;
+			foreach (ulong candidate in candidates)
+			{
+				if (!IsStartupCorrectionTarget(state, candidate, operation, acquire: true, out float distance))
+					continue;
+				if (targetId == 0 || distance < bestDistance || distance == bestDistance && candidate < targetId)
+				{
+					targetId = candidate;
+					bestDistance = distance;
+				}
+			}
+			return targetId;
 		}
 
 		internal void UpdateStartupAimCorrection(ref CharacterState state, CookedStartupAimCorrectionOperation operation, bool applyPose)

@@ -76,6 +76,7 @@ foreach (var catalog in catalogs)
             string name = bone.name.ToLowerInvariant();
             if (name.Contains("skirt") || name.Contains("cape") || name.Contains("coat")) return "cloth";
             if (name.Contains("hat")) return "hat";
+            if (name.Contains("spur")) return "spur";  // Dusty's boot spurs: cosmetic steel, like the hat
             if (name.Contains("tail")) return "tail";
             if (name == "shell" || name.StartsWith("shell_")) return "shell";
             // Manki's humanoid controls and weighted stretch/deform bones have separate names.
@@ -417,7 +418,7 @@ foreach (var catalog in catalogs)
                             if (Distance(p.point, new Vector3(shape.PosX, shape.PosY, shape.PosZ), new Vector3(shape.EndX, shape.EndY, shape.EndZ)) <= shape.Radius) { hitCurrent = true; break; }
                         if (hitOld) before[p.region] += p.area;
                         if (hitCurrent) current[p.region] += p.area;
-                        if (p.region != "cloth" && p.region != "hat") { clipTotal += p.area; if (hitCurrent) clipCovered += p.area; }
+                        if (p.region != "cloth" && p.region != "hat" && p.region != "spur") { clipTotal += p.area; if (hitCurrent) clipCovered += p.area; }
                     }
                 }
                 if (Mode == "fit") break;
@@ -448,14 +449,14 @@ foreach (var catalog in catalogs)
         else
         {
             if (maxPoseError > .0001f) throw new InvalidOperationException($"{catalog.PackageId} cooked/live pose mismatch {maxPoseError * 1000f:F3} mm at {poseErrorWitness}.");
-            string[] hittable = total.Keys.Where(r => r != "cloth" && r != "hat").ToArray();
+            string[] hittable = total.Keys.Where(r => r != "cloth" && r != "hat" && r != "spur").ToArray();
             double allArea = total.Values.Sum(), bodyArea = hittable.Sum(r => total[r]);
             report = new { package = catalog.PackageId, mode = Mode, sampleStep = 4, clips = bindings.Count, sampledFrames, surfaceSamples,
                 beforeAll = Math.Round(100 * before.Values.Sum() / allArea, 1), currentAll = Math.Round(100 * current.Values.Sum() / allArea, 1),
                 beforeBody = Math.Round(100 * hittable.Sum(r => before[r]) / bodyArea, 1), currentBody = Math.Round(100 * hittable.Sum(r => current[r]) / bodyArea, 1),
                 maxPoseErrorMm = maxPoseError * 1000f, poseErrorWitness,
                 regions = total.Keys.OrderBy(r => r).Select(r => new { region = r, areaPercent = Math.Round(100 * total[r] / allArea, 1),
-                    before = Math.Round(100 * before[r] / total[r], 1), current = Math.Round(100 * current[r] / total[r], 1), hittable = r != "cloth" && r != "hat" }).ToArray(),
+                    before = Math.Round(100 * before[r] / total[r], 1), current = Math.Round(100 * current[r] / total[r], 1), hittable = r != "cloth" && r != "hat" && r != "spur" }).ToArray(),
                 worstClips = worst.OrderBy(c => c.coverage).Take(5).Select(c => new { c.clip, coverage = Math.Round(100 * c.coverage, 1) }).ToArray() };
         }
         System.IO.File.WriteAllText(System.IO.Path.Combine(output, Mode + "-" + catalog.PackageId + ".json"), Json(report));

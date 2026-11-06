@@ -134,6 +134,19 @@ namespace SlopArena.Shared
         // changed since the previous release tag while this value (and the Master's Protocol) did not.
         // Note simulation changes below; the release bump folds them into one numbered line.
         // Unreleased:
+        // Mayhem finale, draw/shove observations, carry/progress cues and barrage replay fields. Snapshot 31.
+        // Shared Mayhem targets take one hit per attacker per tick and outrank rivals in aim correction; shields stop
+        // blockable shoves; friendly fire Off drops rivals from targeting. HOT POTATO! stores a timed return lock.
+        // Mayhem adds SUMO!, SMILE!, GLITCH! and BONK!, changing seeded deals. Snapshot 30
+        // stores their channel state and board target windows. Replay zones gain rectangle depths;
+        // targets gain active windows and shared ownership. New failure, zone and target semantic ids.
+        // - ADR-0063 plan-computed airings, one regular deal, per-act bosses and seeded twists;
+        //   resolved gates and restore context, analytic zones, watch kinds and CPU jump press tokens.
+        //   World Snapshot v29, World Frame v11; Replay View carries twist copy and analytic cue fields.
+        // - ADR-0063 PRIME TIME! remixes: explicit pair rows (BREAK OUT!+DODGE!, SPOT!+JUMP!), a shuffled pair deck for
+        //   acts one and two, child twists and seeds per lane, lane-and-owner contact routing and SafeStep CPUs.
+        //   The classic PRIME TIME! twist is gone. Replay View adds the pair and both child twist copy keys.
+        //   Each channel keeps one twist cycle across solo and remix airings, and Bomb rain rows pack into a late start.
         public const byte Version = 38;
     }
 }

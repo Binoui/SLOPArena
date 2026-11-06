@@ -24,6 +24,8 @@ namespace SlopArena.Client.World
         private readonly GameObject _held;
         private readonly Vector3 _rigPosition;
         private readonly Transform _rig;
+        private readonly Vector3 _boothPosition;
+        private Vector3 _deckPosition;
 
         public MankiHostPresenter(Transform parent, MatchContentEntry manki, MankiMayhemDefinition stage)
         {
@@ -32,6 +34,8 @@ namespace SlopArena.Client.World
             Root = new GameObject("Manki Host (presentation only)").transform;
             Root.SetParent(parent, false);
             Root.position = new Vector3(stage.HostOrigin.X, stage.HostOrigin.Y, stage.HostOrigin.Z);
+            _boothPosition = Root.position;
+            _deckPosition = new Vector3((stage.MinX + stage.MaxX) * .5f, stage.DeckTop + GetHimTuning.HalfHeight, (stage.MinZ + stage.MaxZ) * .5f);
             Root.rotation = Quaternion.Euler(0f, 180f, 0f);
             Root.localScale = Vector3.one * 3.5f;
             var model = Object.Instantiate(rig, Root);
@@ -109,13 +113,34 @@ namespace SlopArena.Client.World
                 clip=_throw; float ticks=(long)view.Tick-bomb.LaunchTick;
                 time=clip.length*(ticks<0?.38f*(ticks+30)/30f:Mathf.Lerp(.38f,1,ticks/18f)); Reaction="throw"; _held.SetActive(ticks<0);
             }
+            var target = view.Scene.Targets.FirstOrDefault(t => t.Kind == MayhemTargetKind.DizzyHost);
+            bool finale = view.Channel?.Id == MayhemChannels.GetHim;
+            bool onDeck = finale && (view.Cursor.Phase == MayhemPhase.Play || view.Cursor.Phase == MayhemPhase.Verdict);
+            Root.position = _boothPosition; Root.rotation = Quaternion.Euler(0, 180, 0);
+            if (onDeck)
+            {
+                if (target.EntityId != 0) _deckPosition = new Vector3(target.Center.X, target.Center.Y, target.Center.Z);
+                Root.position = _deckPosition;
+                if (target.EntityId != 0 && view.Tick < target.ActiveUntil)
+                {
+                    float fall = Mathf.Clamp01(((long)view.Tick - target.ActiveFrom) / 18f);
+                    Root.position = Vector3.Lerp(_boothPosition, _deckPosition, fall) + Vector3.up * Mathf.Sin(fall * Mathf.PI) * 2;
+                    Root.rotation = Quaternion.Euler(0, 180, 75 * fall);
+                    clip = _idle; time = 0; Reaction = "dizzy"; _held.SetActive(false);
+                }
+            }
+            if (view.Cursor.Phase == MayhemPhase.Ended)
+            {
+                float rise = Mathf.Clamp01(((long)view.Tick - view.Cursor.PhaseStart) / 24f);
+                Root.position = Vector3.Lerp(_deckPosition, _boothPosition, rise);
+            }
             var pose = _animancer.Play(clip); pose.Speed = 0f; pose.Time = time;
             _animancer.Evaluate(0f); _rig.localPosition = _rigPosition;
             _held.transform.position = Hand.position;
         }
 
         /// <summary>A Replay seek: reactions older than its warmup are not known, so none carry over.</summary>
-        public void Reset() => _reactions.Clear();
+        public void Reset() { _reactions.Clear(); Root.position = _boothPosition; Root.rotation = Quaternion.Euler(0, 180, 0); }
 
         public void Dispose()
         {

@@ -1,0 +1,271 @@
+{
+  "name": "salamander-ge-grapple-zip",
+  "purpose": "loop",
+  "rigpack": "artifacts/genra-rigpacks/salamander-unity-moves",
+  "character": "Dusty, the tiger-salamander cowboy (package salamander). His model and rig were rebuilt on 2026-11-05: 63 joints, a Humanoid body with Mixamo names; each hand has a thumb and FOUR fingers (Thumb, Index, Middle, Ring and Pinky chains). The game makes Pinky1-3 copy Ring1-3 (a RotationConstraint), so always curl the pinky exactly like the ring finger. Five tail joints Tail1-Tail5 hang under Hips. Three rigid joints sit under Head: Hat (his wide cowboy hat; the joint is at the crown's centre, 3 cm under his skull top), Mustache (the fake mustache glued on his snout) and Straw (a wheat straw in his mouth). A rigid steel spur sits on each boot heel (LeftSpur, RightSpur, children of the feet that no clip animates). Measured on this rig pack (2026-11-05): upper arm 0.133 m, forearm 0.118 m, wrist to middle knuckle 0.065 m, so shoulder to middle knuckle is at most 0.32 m; thigh 0.214 m, shin 0.224 m (hip to ankle 0.44 m straight); shoulder joints 0.20 m apart. In his showdown idle his hip joints stand about 0.50 m above the floor, the Head joint 0.23 m above the hips, the Hat joint 0.34 m and the hat's crown top 0.48 m. The hat brim is about 0.50 m across (0.25 m from the Hat joint to its edge) at about the Hat joint's height. The game draws him 1.8 times bigger. He wears a cropped brown leather vest over a cream shirt, an orange neckerchief, a belt with a holster and a coiled rope hanging on his right hip (part of the body mesh), blue jeans and big brown boots. There is no poncho and no cloth simulation: everything you see is in the rig. A thick spotted tail hangs behind him from the seat of his jeans.",
+  "references": {
+    "showdown": "references/showdown.usda",
+    "idle": "references/idle.usda",
+    "fall": "references/fall.usda"
+  },
+  "entry": {
+    "reference": "showdown",
+    "tick": 0,
+    "match": false
+  },
+  "loop": {
+    "from_tick": 0
+  },
+  "views": [
+    "gameplay",
+    "profile",
+    "front",
+    "three-quarter-right"
+  ],
+  "images": [
+    "../../../tmp/dusty-model-v2/new-model.jpg",
+    "../../../tmp/dusty-grapple/04-fighter.png"
+  ],
+  "image_notes": "1: Dusty's real model (T-pose front, three-quarter, side and back, and a face close-up); his identity and proportions are authoritative. 2: the owner-approved concept for this clip and the kick: boots first along the rope, both hands on it, the speed lines behind. The fighter is only a stand-in for whoever he caught. The concept frames are owner-approved for pose energy and silhouette, not measured data: their limbs are longer than his real ones, so match the shapes within his reach. The stage, the rope and other fighters in them are drawn by the game, not the rig.",
+  "notes": "Dusty E (planned anim.salamander.ge-zip), Lasso Grapple, clip 5 of 7, engine phase Zip: the loop caught a fighter, who is held in place; Dusty flies to a strike point just short of them at zipSpeed (first guess 24 m/s) for at most maxZipTicks (24). A calm 32-tick authored cycle at about double speed; the zip length varies, so it loops. The game draws the rope from the right fist to the fighter. The kick (salamander-ge-grapple-kick) starts from this pose: its tick-0 targets repeat these.",
+  "description": "Dusty's E, Lasso Grapple: the zip. The loop caught a fighter. He rockets along the taut rope boots first, both hands on it, straight at them. A loop that plays until he arrives.\n\nWho he is. Dusty (image 1, his real model) is a small-time tiger salamander who wants to be a legend of the West: orange-yellow skin with dark brown blotches, a smug half-lidded look, a fake curly mustache glued on his snout, a wheat straw in his mouth, a wide brown hat with an orange band, an orange neckerchief, a cropped leather vest over a cream shirt, jeans, big brown boots with steel spurs. He can't afford a gun. He is proud, scrappy and genuinely good with a rope: the joke is on his dignity, never on him failing. This is a special, so it can carry personality.\n\nThe move. His E, the Lasso Grapple, is his recovery. Knocked off the stage, he throws his rope loop up at the nearest stage edge. It catches, a quick two-hand yank slingshots him up, and he pops over the edge onto the top (there is no ledge hang). If the loop meets a fighter first, he zips to them boots first along the taut rope and kicks them. On a miss the loop flops and he flails as he falls. The game plays one clip per phase: throw, out (loop), yank, pop, zip (loop), kick, miss. This brief is one of them.\n\nHow the game plays it. The game turns him to face the edge or the fighter (straight ahead, `front`) and moves him itself: the fighter does not travel in the clip. The match camera sits straight behind him and a little above, so the action must read from behind: arms up or out to the sides, elbows out past his sides, never hidden in front of his chest. The game crossfades between phase clips over about 0.1 s.\n\nTHE ROPE. The rope and its loop are NOT in the rig. The game draws the rope from his RIGHT hand (the fist between joint RightHand and RightHandMiddle1) to the flying loop, the stage edge or the caught fighter. So pose his body and hands exactly as if a real, heavy rope were there. The RIGHT hand holds the rope in every clip of this move. A hand on the rope is a loose fist around a 3 cm rope: index, middle, ring and pinky fingers curled 60-80 percent around it, the thumb closed over them, never a flat hand; the fist's thumb-and-index side faces along the rope toward where it runs, so the rope runs straight through it. Where this brief puts the left hand on the rope too, it closes the same way further along the same rope line.\n\nHAT, MUSTACHE, STRAW AND TAIL. These joints are outside Unity's Humanoid; the game plays their keyed local rotations as they are, as in his existing clips. Only ever ROTATE them: the checks fail any joint translation except the hips'. The Hat turns about its crown-centre joint; tip it a few degrees with the head's fast moves (2-5 degrees of lag, settling after), and more only where this brief says. On this rig the hat is part of the Head skin region, so a hand on the brim reports as a hand-Head clearance warning: expected where this brief puts a hand on the brim, but a hand or forearm must never go into the crown, the face or the snout, and a tipped hat must not sink into his head. Mustache and Straw stay rigid at their bind rotation. The tail has no spring in the game: all of its motion is what you key.\n\nThe character frame is his showdown idle (reference `showdown`, tick 0), used only as a frame: origin at its hips, front his facing, up world up. The floor is at up = -0.51 m; with a flat boot the toe joint (ToeBase) sits about 1.5 cm above it. Tick 0 is free (entry.match false): the game crossfades into it from whatever came before.\n\nTHE ZIP POSE (concept image 2): flying boots first along the taut rope at the caught fighter straight ahead, like sliding feet first into a base. His body is reclined 50-70 degrees back from upright: hips forward, chest, head and shoulders back behind the hips (the Head joint at least 8 cm behind the hips), chin tucked to look past his boots at the target with a cocky squint. Both legs reach straight ahead together, a little below hip level (ankles 0.28-0.44 m ahead of the hips, 0-0.22 m below them), knees soft 20-35 degrees (cocked for the kick: hip to ankle 0.34-0.42 m), boots 10-22 cm apart, soles toward the target, toes pulled up. Both hands on the rope in front of his chest, pulling: the right fist at his lower chest, the left fist 6-18 cm further along the rope toward the target (and ahead of the right), elbows bent and out past his sides. The tail streams out behind him (its tip at least 0.20 m behind the hips), low, with a ripple. The hat is tipped back 6-10 degrees by the wind.\n\nThe loop (32 ticks, seamless, tick 32 equals tick 0): a calm flutter in the wind, not a flail. The legs pulse a little (knees 5-10 degrees, boots 2-4 cm), the body bobs 1-2 cm, the fists tug the rope a little, the tail ripples down its chain (each joint 2 ticks behind its parent, Tail5 10-20 degrees), the hat chatters 1-3 degrees. All of it overlapping, nothing stopping together.\n- Tick 0: the zip pose.\n- Tick 8: knees a touch more bent, fists tugging in.\n- Tick 16: knees a touch straighter, fists easing forward, tail ripple on its other side.\n- Tick 24: passing back.\n- Tick 32: the zip pose, same as tick 0.\n\nFlow (the owner's rules). Overlap and follow-through everywhere: the hips lead every change, the chest trails them by 1-3 ticks, the head, arms and legs trail 2-4 ticks, the tail trails the most, rolling down the chain one to two ticks per joint (Tail1 about 4-8 degrees, Tail3 8-15, Tail5 15-28 on big moves). No two body parts arrive on the same tick, and every hold is a moving hold (key its end 2-5 degrees on from its start, never the same pose twice). The free hand stays relaxed, fingers slightly curled. Treat every flow and life warning as something to avoid.",
+  "clock": {
+    "duration_ticks": 32,
+    "game_duration_ticks": 16
+  },
+  "timing": {
+    "fixed": [
+      "a seamless loop from tick 0 that plays for the whole zip (up to 24 game ticks, varying)",
+      "boots first toward the fighter ahead, both hands on the rope, the rope from the right fist",
+      "the kick starts from this pose"
+    ],
+    "adjustable": [
+      "the recline angle (50-70 degrees asked) and the flutter's size and speed"
+    ]
+  },
+  "keys": [
+    0,
+    8,
+    16,
+    24,
+    32
+  ],
+  "review_ticks": [
+    0,
+    8,
+    16,
+    24,
+    32
+  ],
+  "snap_degrees_per_tick": 8,
+  "targets": [
+    {
+      "name": "tick 0: left boot ahead (m)",
+      "kind": "ahead",
+      "a": "LeftFoot",
+      "b": "Hips",
+      "tick": 0,
+      "min": 0.28,
+      "max": 0.44
+    },
+    {
+      "name": "tick 0: right boot ahead (m)",
+      "kind": "ahead",
+      "a": "RightFoot",
+      "b": "Hips",
+      "tick": 0,
+      "min": 0.28,
+      "max": 0.44
+    },
+    {
+      "name": "tick 0: left boot a little below hip level (m)",
+      "kind": "char",
+      "a": "LeftFoot",
+      "axis": "up",
+      "tick": 0,
+      "min": -0.22,
+      "max": 0.0
+    },
+    {
+      "name": "tick 0: right boot a little below hip level (m)",
+      "kind": "char",
+      "a": "RightFoot",
+      "axis": "up",
+      "tick": 0,
+      "min": -0.22,
+      "max": 0.0
+    },
+    {
+      "name": "tick 0: left knee cocked (m)",
+      "kind": "distance",
+      "a": "LeftUpLeg",
+      "b": "LeftFoot",
+      "tick": 0,
+      "min": 0.34,
+      "max": 0.42
+    },
+    {
+      "name": "tick 0: right knee cocked (m)",
+      "kind": "distance",
+      "a": "RightUpLeg",
+      "b": "RightFoot",
+      "tick": 0,
+      "min": 0.34,
+      "max": 0.42
+    },
+    {
+      "name": "tick 0: boots together-ish (m)",
+      "kind": "distance",
+      "a": "LeftFoot",
+      "b": "RightFoot",
+      "tick": 0,
+      "min": 0.1,
+      "max": 0.22
+    },
+    {
+      "name": "tick 0: reclined, head behind the hips (m)",
+      "kind": "ahead",
+      "a": "Head",
+      "b": "Hips",
+      "tick": 0,
+      "max": -0.08
+    },
+    {
+      "name": "tick 0: both fists on the rope (m)",
+      "kind": "distance",
+      "a": "LeftHandMiddle1",
+      "b": "RightHandMiddle1",
+      "tick": 0,
+      "min": 0.06,
+      "max": 0.18
+    },
+    {
+      "name": "tick 0: left fist further along the rope (m)",
+      "kind": "ahead",
+      "a": "LeftHandMiddle1",
+      "b": "RightHandMiddle1",
+      "tick": 0,
+      "min": 0.03
+    },
+    {
+      "name": "tick 0: tail streams behind (m)",
+      "kind": "ahead",
+      "a": "Tail5",
+      "b": "Hips",
+      "tick": 0,
+      "max": -0.2
+    },
+    {
+      "name": "tick 16: left boot ahead (m)",
+      "kind": "ahead",
+      "a": "LeftFoot",
+      "b": "Hips",
+      "tick": 16,
+      "min": 0.28,
+      "max": 0.44
+    },
+    {
+      "name": "tick 16: right boot ahead (m)",
+      "kind": "ahead",
+      "a": "RightFoot",
+      "b": "Hips",
+      "tick": 16,
+      "min": 0.28,
+      "max": 0.44
+    },
+    {
+      "name": "tick 16: left boot a little below hip level (m)",
+      "kind": "char",
+      "a": "LeftFoot",
+      "axis": "up",
+      "tick": 16,
+      "min": -0.22,
+      "max": 0.0
+    },
+    {
+      "name": "tick 16: right boot a little below hip level (m)",
+      "kind": "char",
+      "a": "RightFoot",
+      "axis": "up",
+      "tick": 16,
+      "min": -0.22,
+      "max": 0.0
+    },
+    {
+      "name": "tick 16: left knee cocked (m)",
+      "kind": "distance",
+      "a": "LeftUpLeg",
+      "b": "LeftFoot",
+      "tick": 16,
+      "min": 0.34,
+      "max": 0.42
+    },
+    {
+      "name": "tick 16: right knee cocked (m)",
+      "kind": "distance",
+      "a": "RightUpLeg",
+      "b": "RightFoot",
+      "tick": 16,
+      "min": 0.34,
+      "max": 0.42
+    },
+    {
+      "name": "tick 16: boots together-ish (m)",
+      "kind": "distance",
+      "a": "LeftFoot",
+      "b": "RightFoot",
+      "tick": 16,
+      "min": 0.1,
+      "max": 0.22
+    },
+    {
+      "name": "tick 16: reclined, head behind the hips (m)",
+      "kind": "ahead",
+      "a": "Head",
+      "b": "Hips",
+      "tick": 16,
+      "max": -0.08
+    },
+    {
+      "name": "tick 16: both fists on the rope (m)",
+      "kind": "distance",
+      "a": "LeftHandMiddle1",
+      "b": "RightHandMiddle1",
+      "tick": 16,
+      "min": 0.06,
+      "max": 0.18
+    },
+    {
+      "name": "tick 16: left fist further along the rope (m)",
+      "kind": "ahead",
+      "a": "LeftHandMiddle1",
+      "b": "RightHandMiddle1",
+      "tick": 16,
+      "min": 0.03
+    },
+    {
+      "name": "tick 16: tail streams behind (m)",
+      "kind": "ahead",
+      "a": "Tail5",
+      "b": "Hips",
+      "tick": 16,
+      "max": -0.2
+    },
+    {
+      "name": "tail ripples (tip, m)",
+      "kind": "range",
+      "a": "Tail5",
+      "axis": "right",
+      "window": [
+        0,
+        32
+      ],
+      "min": 0.03,
+      "max": 0.14
+    }
+  ],
+  "preview_views": [
+    "profile",
+    "three-quarter-right"
+  ]
+}

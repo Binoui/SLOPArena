@@ -155,6 +155,8 @@ namespace SlopArena.Shared
             public bool ShieldSurface;
             public bool ProtectedByShield;
             public bool RuntimeSolid;
+            /// <summary>A shared objective: the one-hit-per-tick limit applies per attacker, so rivals never eat each other's hits.</summary>
+            public bool HitPerAttacker;
             public bool Active;
             /// <summary>Continuous sphere path; null retains the ordinary fighter path.</summary>
             public IReadOnlyList<SphereMotionSegment>? MotionPath;
@@ -806,6 +808,9 @@ namespace SlopArena.Shared
             }
         }
 
+        private static (ulong Target, ulong Attacker) HitKey(in EntityData entity, in Hitbox hb)
+            => (entity.Id, entity.HitPerAttacker ? hb.OwnerId : 0UL);
+
         /// <summary>
         /// Process one tick: move projectiles, check collisions, age hitboxes.
         /// Returns all hits this tick (one per entity, first hitbox to connect wins).
@@ -819,7 +824,7 @@ namespace SlopArena.Shared
             IReadOnlyDictionary<ulong, CharacterState>? fighters = null)
         {
             var results = new List<HitResult>();
-            var hitThisTick = new HashSet<ulong>();
+            var hitThisTick = new HashSet<(ulong Target, ulong Attacker)>();
             _lastTickChecked.Clear();
             _perchedThisTick.Clear();
             if (orderMovingTargetContacts) OrderMovingTargetContacts(entities);
@@ -904,7 +909,7 @@ namespace SlopArena.Shared
                         && (!fighters.TryGetValue(hb.OwnerId, out var owner)
                             || MathF.Sin(victim.FacingYaw) * (owner.PX - victim.PX)
                                 + MathF.Cos(victim.FacingYaw) * (owner.PZ - victim.PZ) <= 0f)) continue;
-                    if (hitThisTick.Contains(entity.Id)) continue;
+                    if (hitThisTick.Contains(HitKey(in entity, in hb))) continue;
                     // Mayhem host hazards fail a contestant whatever its dodge or move invincibility.
                     if (entity.InvincibilityTicks > 0 && hb.OwnerId != ServerSimulation.MayhemHostEntityId) continue;
                     // One-hit-per-opponent: skip entities this hitbox already tagged.
@@ -960,7 +965,7 @@ namespace SlopArena.Shared
                 foreach (var collision in _contacts)
                 {
                     var entity = collision.Entity;
-                    if (hitThisTick.Contains(entity.Id)) continue;
+                    if (hitThisTick.Contains(HitKey(in entity, in hb))) continue;
                     if (hb.HitsMultipleOpponents && hb.HitEntities!.Contains(entity.Id)) continue;
                     var contact = collision.Pose;
                     float dist = collision.Distance, dx = collision.DX, dy = collision.DY, dz = collision.DZ;
@@ -1028,7 +1033,7 @@ namespace SlopArena.Shared
                         HitPresentationId = hb.SourceEvent.HitPresentationId,
                     });
 
-                    hitThisTick.Add(entity.Id);
+                    hitThisTick.Add(HitKey(in entity, in hb));
                     if (hb.HitsMultipleOpponents)
                     {
                         hb.HitEntities!.Add(entity.Id);

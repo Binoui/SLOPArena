@@ -42,7 +42,7 @@ public readonly record struct MayhemEvent(uint MatchTick, ushort Episode, byte L
     /// <summary>Range checks shared by the World Frame codec and the rollback ledger.</summary>
     public static bool IsValid(in MayhemEvent e, ulong hostId)
     {
-        if (e.Kind > MayhemEventKind.Impact || e.Lane > MaxLane) return false;
+        if (e.Kind > MayhemEnumLimits.Event || e.Lane > MaxLane) return false;
         bool show = e.Kind is MayhemEventKind.Intro or MayhemEventKind.SpeedUp or MayhemEventKind.Ended;
         if (show ? e.Episode != ShowEpisode : e.Episode >= MayhemShowTuning.Episodes) return false;
         return e.Kind switch
@@ -61,7 +61,7 @@ public readonly record struct MayhemEvent(uint MatchTick, ushort Episode, byte L
             MayhemEventKind.Pass => IsFighterId(e.Subject, hostId) && e.Operation == 0 && e.Lane == 0
                 && e.Value == MayhemShowPlan.Award(e.Episode),
             MayhemEventKind.Fail => IsFighterId(e.Subject, hostId) && e.Operation == 0 && e.Lane == 0
-                && (e.Value & 0xFF) <= (int)FailCause.BoardsRemain && e.Value >> 8 <= (int)SplatStyle.Fallen,
+                && (e.Value & 0xFF) <= (int)MayhemEnumLimits.Failure && e.Value >> 8 <= (int)MayhemEnumLimits.Splat,
         };
     }
 

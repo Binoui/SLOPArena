@@ -558,6 +558,11 @@ namespace SlopArena.Shared.Replays
         {
             Kind = "mayhem-show";
         }
+        public string TwistCopyKey { get; internal set; } = "";
+        // a solo airing's twist; the next three are a PRIME TIME! remix's pair and child twists, empty otherwise
+        public string PairCopyKey { get; internal set; } = "";
+        public string GoalTwistCopyKey { get; internal set; } = "";
+        public string HazardTwistCopyKey { get; internal set; } = "";
         public uint Seed { get; internal set; } = 0;
         // the plan, cursor and deadlines are a function of the seed and the tick
         public int Episode { get; internal set; } = -1;
@@ -596,6 +601,7 @@ namespace SlopArena.Shared.Replays
         public uint LaunchTick { get; internal set; } = 0;
         public uint ImpactTick { get; internal set; } = 0;
         public float BlastRadius { get; internal set; } = 0;
+        public string BombKindId { get; internal set; } = "aimed";
     }
     public sealed class ReplayMayhemShockwave : ReplayModeObject // Kind="mayhem-shockwave", MayhemView.Scene.Rings
     {
@@ -618,6 +624,11 @@ namespace SlopArena.Shared.Replays
         {
             Kind = "mayhem-zone";
         }
+        public ReplayVector EndCenter { get; internal set; } = default;
+        public float EndRadius { get; internal set; } = 0f;
+        public float HalfDepth { get; internal set; } = 0f;
+        public float EndHalfDepth { get; internal set; } = 0f;
+        public uint ArmedFrom { get; internal set; } = 0;
         public byte Lane { get; internal set; } = 0;
         public ushort Ordinal { get; internal set; } = 0;
         public string ZoneId { get; internal set; } = "unknown";
@@ -632,11 +643,29 @@ namespace SlopArena.Shared.Replays
         {
             Kind = "mayhem-watch";
         }
+        public string CopyKey { get; internal set; } = "";
+        public string WatchKindId { get; internal set; } = "look";
         public byte Lane { get; internal set; } = 0;
         public ushort Ordinal { get; internal set; } = 0;
         public uint WarningTick { get; internal set; } = 0;
         public uint StartTick { get; internal set; } = 0;
         public uint EndTick { get; internal set; } = 0;
+    }
+    public sealed class ReplayMayhemCarry : ReplayModeObject
+    {
+        internal ReplayMayhemCarry() { Kind = "mayhem-carry"; }
+        public byte Lane { get; internal set; } = 0;
+        public ushort Ordinal { get; internal set; } = 0;
+        public byte HolderSeat { get; internal set; } = 0;
+        public uint FuseEnd { get; internal set; } = 0;
+        public byte LastGiver { get; internal set; } = 255;
+    }
+    public sealed class ReplayMayhemHitProgress : ReplayModeObject
+    {
+        internal ReplayMayhemHitProgress() { Kind = "mayhem-hit-progress"; }
+        public byte Seat { get; internal set; } = 0;
+        public byte Hits { get; internal set; } = 0;
+        public byte Quota { get; internal set; } = 0;
     }
     public sealed class ReplayMayhemTarget : ReplayModeObject // Kind="mayhem-target", MayhemView.Scene.Targets
     {
@@ -647,6 +676,8 @@ namespace SlopArena.Shared.Replays
         public byte Lane { get; internal set; } = 0;
         public ushort Ordinal { get; internal set; } = 0;
         public string TargetId { get; internal set; } = "unknown";
+        public uint ActiveFrom { get; internal set; } = 0;
+        public uint ActiveUntil { get; internal set; } = uint.MaxValue;
         public ulong EntityId { get; internal set; } = 0;
         public ulong OwnerId { get; internal set; } = 0;
         public ReplayVector Center { get; internal set; } = default;

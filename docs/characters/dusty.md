@@ -12,32 +12,39 @@
 
 ## Status
 
-The identity and the specials were settled on 2026-11-04, before any more animation. Most of what the package plays
+The identity and the specials were settled on 2026-11-04, before any more animation. On 2026-11-05 the owner remade
+the model without the poncho and swapped the Sombrero Copter for the Lasso Grapple. Most of what the package plays
 today predates that: the specials still use the 2026-10-27 shapes, and the aerials are stand-ins.
 
 | Piece | State | Where |
 | --- | --- | --- |
 | Identity and name | Picked 2026-11-04 | This page |
-| Look | Tiger salamander, approved 2026-10-26; unchanged | [Model render](../design/references/dusty/dusty-model.jpg) |
-| Kit | Specials locked 2026-11-04 (below) | This page |
+| Look | Remade by the owner in Tripo 2026-11-05: vest and neckerchief, no poncho, steel spurs added in the build. Installed live at FightGuy's height. Training check #75 | Below; the [old model render](../design/references/dusty/dusty-model.jpg) shows the poncho |
+| Kit | Specials locked 2026-11-04; E changed to Lasso Grapple 2026-11-05 (below) | This page |
 | Move concepts | Board made 2026-11-04, verdict pending | [Move concepts](../design/references/dusty/dusty-moves.jpg) |
-| Rig | Body rest rebuilt 2026-11-04 by forward skinning, installed and cooked valid. Training check #71 pending | [salamander_rig](../../tools/blender/salamander_rig/README.md) |
+| Lasso Grapple concepts | Approved 2026-11-05 | [Grapple concepts](../design/references/dusty/dusty-grapple.jpg) |
+| Rig | Rebuilt for the v2 model 2026-11-05: scaled to FightGuy's head height (1.33 m), per-finger chains, own tail, hat, mustache, straw and spur bones. Installed and cooked valid | [salamander_rig](../../tools/blender/salamander_rig/README.md) |
 | Package | `salamander`, admitted 2026-10-27, shown with the WIP badge | `client/Unity/Assets/CharacterPackages/salamander/` |
 | Ground normals | His own clips; cadence GOOD on 2026-10-29 | `Animations/salamander_g*.anim` |
 | Specials | Not built in the shapes below. The package still plays camera-aimed Finger Guns, Tumbleweed and the old Big Iron | `character.json` |
 
 ## Look
 
-He is lanky, about FightGuy's and Wibou's height. His skin is yellow and dark brown in tiger-salamander blotches. He
-wears a tall brown hat with a red band and a wide brim, an orange-red poncho with dark stripes near the hem, patched
-blue jeans with a hole for his tail, and brown boots with spurs. A black curly fake mustache sits on his snout and a
-straw sits in the corner of his mouth. His hands have a thumb and three fingers, and his finger gun is two fingers
-together with the ring finger curled.
+He is lanky, about FightGuy's and Wibou's height. His skin is orange-yellow with dark brown blotches. He wears a wide
+brown cowboy hat with an orange band, an orange neckerchief, a cropped brown leather vest over a cream shirt, a belt
+with a holster, blue jeans and big brown boots. A black curly fake mustache sits on his snout and a wheat straw sits in
+the corner of his mouth. Each hand has a thumb and four fingers; his finger gun is the index and middle finger
+together with the other two curled.
+
+The owner remade the model in Tripo on 2026-11-05. The first model's poncho never hung right on him, in spite of a
+rebuilt rig, cloth springs and a re-draped version, and the new one has no poncho. Its boots had no spurs, so the build
+adds a steel spur to each heel for Spur Kick and Spur Stomp.
 
 ## Kit
 
 Dusty is a mid-range pest who drags people in. Finger guns poke from range and make the target move. The lasso pulls
-a fighter to his feet for a close hit or a throw. Big Iron is the payoff and doubles as a second recovery.
+a fighter to his feet for a close hit or a throw. Big Iron is the payoff and doubles as a second recovery. The rope
+does both of his pulls: R pulls a fighter to him, E pulls him to the stage or to a fighter.
 
 Four owner rules shaped the kit:
 
@@ -68,11 +75,12 @@ and a slightly floaty fall that finger-gun shots slow further. The package still
 | Slot | Move | What happens |
 | --- | --- | --- |
 | A | Finger Guns | Tap for one shot at his current target, or straight ahead with no target. After six shots he plays the reload gag on his own: blow the smoke, twirl, holster. The gag is his weak moment. Shots in the air slow his fall. The shot is a plain cartoon bullet. |
-| E | Sombrero Copter | He holds his hat overhead by the brim and it spins like rotor blades, lifting him with his boots dangling. He steers while rising. His recovery. |
+| E | Lasso Grapple | He throws the loop up toward the nearest stage edge in reach. It catches, he hauls himself up the rope and pops over the edge onto the stage. If the loop meets a fighter first, he yanks himself to them boots first and kicks them. On a miss the loop flops and he keeps falling, with Big Iron's recoil as his backup. His recovery. |
 | R | Lasso | He throws a rope loop at his current target. On a catch he reels them in, swings them overhead rodeo style and throws them where the stick points. On a miss the loop flops on the floor and he coils it back. Moving off the line dodges it. R cancels the reload gag. |
 | F | Big Iron | He presses both hands together into the biggest finger gun he can make and fires one huge shot at his current target. The recoil throws him backward, which makes it a second recovery, and blows his mustache off. |
 
-The owner rejected two earlier specials on 2026-11-04. A tongue lasso lost to a real rope ("a lasso would be
+The owner dropped the Sombrero Copter on 2026-11-05 for a recovery built on the lasso. It also repeated Nyx's Ring
+Light Rise, where something spinning overhead lifts her. The owner rejected two earlier specials on 2026-11-04. A tongue lasso lost to a real rope ("a lasso would be
 easier"), and Tail Drop, a thrown tail that kept thrashing, was "unsure". The 2026-10-27 Tumbleweed rolled along an
 aimed line, the pattern that failed on Bashie's Shell Slide, and is gone.
 
@@ -85,7 +93,8 @@ hitbox.
 
 ## Open questions
 
-- **Copter arms.** Holding the hat overhead puts his arms straight up, and on his model raised arms pass through the
-  wide brim. The clip brief has to keep his hands on the brim's edge.
+- **Grapple anchors.** Which surfaces the loop can catch (stage edges only, or walls and platforms too), and what it
+  does on a stage without a clear edge. Ledge grabs are off in this game, so the haul ends with a hop onto the top,
+  not a ledge hang. Bashie's tether already detects its ring hitting the stage; today that counts as a miss.
 - **Big Iron as a recovery.** The recoil distance needs a feel check in play.
 - **Movement.** His own movement values have not had a pass.

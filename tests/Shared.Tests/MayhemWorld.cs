@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Reflection;
 using SlopArena.Shared.AI;
 using SlopArena.Shared.Mayhem;
 using Xunit;
@@ -51,8 +52,11 @@ internal static class MayhemWorld
     internal static void Step(ServerSimulation sim, int ticks = 1)
     { for (int t = 0; t < ticks; t++) sim.Tick(new()); }
 
-    /// <summary>The first seed whose show airs <paramref name="channel"/> in <paramref name="act"/>, with its episode.</summary>
-    internal static (uint Seed, int Episode) SeedWith(ChannelId channel, int act)
+    /// <summary>
+    /// The first seed whose show airs <paramref name="channel"/> in <paramref name="act"/>, with its episode. PRIME TIME!
+    /// means the classic remix on both children's first twists.
+    /// </summary>
+    internal static (uint Seed, int Episode) SeedWith(ChannelId channel, int act, TwistId? twist = null)
     {
         for (uint seed = 1; seed < 100_000; seed++)
         {
@@ -60,10 +64,82 @@ internal static class MayhemWorld
             for (int i = 0; i < MayhemShowTuning.EpisodesPerAct; i++)
             {
                 int episode = act * MayhemShowTuning.EpisodesPerAct + i;
-                if (plan.ChannelAt(episode) == channel) return (seed, episode);
+                if (plan.ChannelAt(episode) != channel) continue;
+                if (plan.AiringAt(episode) is SoloAiring solo ? solo.Draw.Twist == (twist ?? new TwistId(1))
+                    : Matches((RemixAiring)plan.AiringAt(episode), PrimePairs.BreakOutDodge, new(1), new(1)))
+                    return (seed, episode);
             }
         }
         throw new InvalidOperationException($"No seed airs {channel} in act {act}.");
+    }
+
+    private static bool Matches(RemixAiring remix, PrimePairId pair, TwistId goal, TwistId hazard)
+        => remix.Pair == pair && remix.Goal.Twist == goal && remix.Hazard.Twist == hazard;
+
+    /// <summary>The first <paramref name="count"/> (seed, boss episode) pairs that air this remix, skipping <paramref name="skip"/>.</summary>
+    internal static IEnumerable<(uint Seed, int Episode)> SeedsWithRemix(PrimePairId pair, TwistId goal, TwistId hazard, int count, int skip = 0)
+    {
+        for (uint seed = 1; seed < 100_000 && count > 0; seed++)
+        {
+            var plan = MayhemShowPlan.For(seed);
+            for (int act = 0; act < MayhemShowTuning.Acts && count > 0; act++)
+            {
+                int episode = act * MayhemShowTuning.EpisodesPerAct + MayhemShowTuning.RegularPerAct;
+                if (plan.AiringAt(episode) is not RemixAiring remix || !Matches(remix, pair, goal, hazard)) continue;
+                if (skip-- > 0) continue;
+                count--;
+                yield return (seed, episode);
+            }
+        }
+        if (count > 0) throw new InvalidOperationException($"Too few seeds air pair {pair.Value} with twists {goal.Value}/{hazard.Value}.");
+    }
+
+    /// <summary>A show positioned so its next tick calls this remix.</summary>
+    internal static (ServerSimulation Sim, int Episode) Remix(PrimePairId pair, TwistId goal, TwistId hazard, int count = 4,
+        CharacterClass[]? roster = null, bool reverse = false, int skip = 0)
+    {
+        var (seed, episode) = SeedsWithRemix(pair, goal, hazard, 1, skip).Single();
+        var sim = NewShow(seed, count: count, reverse: reverse, roster: roster);
+        SkipToCall(sim, episode);
+        return (sim, episode);
+    }
+
+    /// <summary>Every allowed pair with every goal twist and every hazard twist.</summary>
+    internal static IEnumerable<(PrimePairEntry Pair, TwistId Goal, TwistId Hazard)> RemixCombinations()
+    {
+        foreach (var pair in PrimePairs.All)
+            foreach (var goal in MayhemChannels.Find(pair.Goal).Twists)
+                foreach (var hazard in MayhemChannels.Find(pair.Hazard).Twists)
+                    yield return (pair, goal.Id, hazard.Id);
+    }
+
+    /// <summary>
+    /// Airs <paramref name="airing"/> in <paramref name="episode"/> of a begun show whose clock has not reached that call,
+    /// retiming the episode and shifting every later one. It keeps a found case reproducible when the plan's draws change.
+    /// </summary>
+    internal static void Pin(ServerSimulation sim, int episode, MayhemAiring airing)
+    {
+        var plan = Plan(sim);
+        if (sim.CurrentTick >= plan.CallStart(episode)) throw new InvalidOperationException("Pin before the call.");
+        T Field<T>(string name) => (T)typeof(MayhemShowPlan).GetField(name, BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(plan)!;
+        var calls = Field<ushort[]>("_callTicks");
+        var plays = Field<ushort[]>("_playTicks");
+        var starts = Field<uint[]>("_callStart");
+        var tier = MayhemShowPlan.TierOf(episode);
+        int shift = MayhemSpeed.Call(airing.Timing, tier) + MayhemSpeed.Play(airing.Timing, tier) - calls[episode] - plays[episode];
+        Field<MayhemAiring[]>("_airings")[episode] = airing;
+        calls[episode] = MayhemSpeed.Call(airing.Timing, tier);
+        plays[episode] = MayhemSpeed.Play(airing.Timing, tier);
+        for (int e = episode + 1; e < starts.Length; e++) starts[e] = (uint)(starts[e] + shift);
+        typeof(MayhemShowPlan).GetField("<EndTick>k__BackingField", BindingFlags.Instance | BindingFlags.NonPublic)!.SetValue(plan, (uint)(plan.EndTick + shift));
+    }
+
+    /// <summary>The airing <paramref name="seed"/>'s plan would give this remix's children, with their own channel seeds.</summary>
+    internal static RemixAiring RemixAt(uint seed, int episode, PrimePairId pair, TwistId goal, TwistId hazard)
+    {
+        var row = PrimePairs.Find(pair);
+        return new RemixAiring(pair, new(row.Goal, goal, MayhemMath.ChannelSeed(seed, episode, 0)),
+            new(row.Hazard, hazard, MayhemMath.ChannelSeed(seed, episode, 1)));
     }
 
     /// <summary>Moves the show to the tick before <paramref name="episode"/>'s call; the next tick starts it.</summary>
@@ -71,10 +147,10 @@ internal static class MayhemWorld
 
     /// <summary>A show positioned so its next tick calls <paramref name="channel"/> at <paramref name="tier"/>.</summary>
     internal static (ServerSimulation Sim, int Episode) Airing(ChannelId channel, SpeedTier tier, int count = 4,
-        CharacterClass[]? roster = null, FriendlyFireMode fire = FriendlyFireMode.Shoves, bool reverse = false)
+        CharacterClass[]? roster = null, FriendlyFireMode fire = FriendlyFireMode.Shoves, bool reverse = false, TwistId? twist = null)
     {
-        int act = MayhemChannels.Find(channel).Role == ChannelRole.Boss ? MayhemShowTuning.Acts - 1 : (int)tier;
-        var (seed, episode) = SeedWith(channel, act);
+        int act = channel == MayhemChannels.PrimeTime ? 0 : MayhemChannels.Find(channel).Role == ChannelRole.Boss ? MayhemShowTuning.Acts - 1 : (int)tier;
+        var (seed, episode) = SeedWith(channel, act, twist);
         var sim = NewShow(seed, fire, count, reverse, roster);
         SkipToCall(sim, episode);
         return (sim, episode);

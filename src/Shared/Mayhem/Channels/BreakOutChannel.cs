@@ -3,13 +3,17 @@ using System.Collections.Generic;
 
 namespace SlopArena.Shared.Mayhem;
 
+internal enum BreakOutTwist : byte { CrackedWall = 1, AnyWall = 2, DoubleCage = 3 }
+
 /// <summary>BREAK OUT! tuning. Cage geometry lives in <see cref="RuntimeSolidTuning"/>. Provisional.</summary>
 public static class BreakOutTuning
 {
+    public static readonly ChannelTiming DoubleCageTiming = new(90, 480);
     /// <summary>The cage bomb's flight, by tier; it lands just before the deadline.</summary>
     public static readonly ushort[] FlightTicks = { 80, 70, 60 };
     public const float BlastRadius = 3.6f;
     public const ushort EndMarginTicks = 6;
+    public const float OuterHalfSize = 3.1f, SideBombOffset = 1.9f;
     public const int MaxCages = 4;
     /// <summary>How far in front of the cracked wall the CPU stands to swing.</summary>
     public const float CpuStandOff = .35f;
@@ -38,6 +42,7 @@ internal sealed class BreakOutChannel : IMayhemChannel
 
     private const int AcceptedPerWall = RuntimeSolidTuning.WallHits;
 
+    private readonly BreakOutTwist _twist;
     private readonly byte _lane;
     private readonly SpeedTier _tier;
     private readonly uint _launchTick;
@@ -47,16 +52,17 @@ internal sealed class BreakOutChannel : IMayhemChannel
     /// <summary>Activations already counted per wall slot, so one swing counts once however many hitboxes it has.</summary>
     private readonly ulong[] _accepted;
 
-    private BreakOutChannel(byte lane, SpeedTier tier, uint launchTick, MankiMayhemDefinition stage, Cage[] cages,
+    private BreakOutChannel(BreakOutTwist twist, byte lane, SpeedTier tier, uint launchTick, MankiMayhemDefinition stage, Cage[] cages,
         RuntimeSolidSet walls, ulong[] accepted)
     {
-        _lane = lane; _tier = tier; _launchTick = launchTick; _stage = stage; _cages = cages; _walls = walls; _accepted = accepted;
+        _twist = twist; _lane = lane; _tier = tier; _launchTick = launchTick; _stage = stage; _cages = cages; _walls = walls; _accepted = accepted;
     }
 
     private ushort Flight => BreakOutTuning.FlightTicks[(int)_tier];
 
     internal static BreakOutChannel Start(ChannelSetup setup)
     {
+        var twist = (BreakOutTwist)setup.Draw.Twist.Value;
         var stage = setup.Stage;
         float cx = MayhemMath.CenterX(stage), cz = MayhemMath.CenterZ(stage);
         var cages = new Cage[Math.Min(setup.OnAir.Count, BreakOutTuning.MaxCages)];
@@ -66,11 +72,14 @@ internal sealed class BreakOutChannel : IMayhemChannel
             var seat = setup.OnAir[i];
             byte cracked = CrackedSide(stage, seat, setup.OnAir);
             cages[i] = new Cage { Seat = seat.Seat, EntityId = seat.EntityId, X = seat.Start.X, Z = seat.Start.Z, CrackedSide = cracked };
-            walls.AddCage(seat.EntityId, new ArcadePoint(seat.Start.X, stage.DeckTop, seat.Start.Z), stage.DeckTop, i, cracked);
+            walls.AddCage(seat.EntityId, new ArcadePoint(seat.Start.X, stage.DeckTop, seat.Start.Z), stage.DeckTop, i, cracked, allCracked: twist == BreakOutTwist.AnyWall);
+            if (twist == BreakOutTwist.DoubleCage)
+                walls.AddCage(seat.EntityId, new ArcadePoint(seat.Start.X, stage.DeckTop, seat.Start.Z), stage.DeckTop,
+                    i + BreakOutTuning.MaxCages, cracked, BreakOutTuning.OuterHalfSize);
         }
         ushort flight = BreakOutTuning.FlightTicks[(int)setup.Tier];
         uint launch = setup.Deadline - BreakOutTuning.EndMarginTicks - MayhemHazardTuning.BlastTicks - 2u - flight;
-        return new BreakOutChannel(setup.Lane, setup.Tier, Math.Max(setup.PlayStart, launch), stage, cages, walls,
+        return new BreakOutChannel(twist, setup.Lane, setup.Tier, Math.Max(setup.PlayStart, launch), stage, cages, walls,
             new ulong[RuntimeSolidSet.MaximumCount * AcceptedPerWall]);
     }
 
@@ -98,14 +107,6 @@ internal sealed class BreakOutChannel : IMayhemChannel
 
     private static float EscapeReach(float capsuleRadius) => BreakOutTuning.BlastRadius + capsuleRadius + BreakOutTuning.CpuClearance;
 
-    /// <summary>Each cage bomb's footprint as a CPU sees it.</summary>
-    internal void AddDangers(List<MayhemDanger> dangers, float capsuleRadius)
-    {
-        foreach (var cage in _cages) dangers.Add(new MayhemDanger(cage.X, cage.Z, EscapeReach(capsuleRadius) - .3f));
-    }
-
-    internal bool HasLane(byte lane) => _lane == lane;
-
     public void Tick(in ChannelTick tick, MayhemHazards hazards)
     {
         if (tick.Moment != ChannelMoment.BeforeActions) return;
@@ -118,7 +119,7 @@ internal sealed class BreakOutChannel : IMayhemChannel
             var cage = _cages[i];
             if (cage.Launched) continue;
             cage.Launched = true;
-            hazards.Bomb(_lane, (ushort)i, new ArcadePoint(cage.X, _stage.DeckTop, cage.Z), Flight, BreakOutTuning.BlastRadius);
+            hazards.Bomb(_lane, (ushort)i, BombLanding(cage), Flight, BreakOutTuning.BlastRadius);
         }
     }
 
@@ -167,16 +168,25 @@ internal sealed class BreakOutChannel : IMayhemChannel
             ? MayhemJudgement.Incomplete(FailCause.StillCaged) : MayhemJudgement.Ready;
     }
 
-    private static bool Inside(Cage cage, float x, float z)
-        => MathF.Abs(x - cage.X) < RuntimeSolidTuning.CageHalfSize && MathF.Abs(z - cage.Z) < RuntimeSolidTuning.CageHalfSize;
+    private float CageSize => _twist switch
+    {
+        BreakOutTwist.CrackedWall or BreakOutTwist.AnyWall => RuntimeSolidTuning.CageHalfSize,
+        BreakOutTwist.DoubleCage => BreakOutTuning.OuterHalfSize,
+    };
+    private bool Inside(Cage cage, float x, float z)
+        => MathF.Abs(x - cage.X) < CageSize && MathF.Abs(z - cage.Z) < CageSize;
+    private ArcadePoint BombLanding(Cage cage)
+    {
+        var (dx, dz) = RuntimeSolidSet.SideDirection(cage.CrackedSide);
+        float offset = _twist == BreakOutTwist.AnyWall ? BreakOutTuning.SideBombOffset : 0;
+        return new(cage.X - dx * offset, _stage.DeckTop, cage.Z - dz * offset);
+    }
 
     private Cage? CageOf(byte seat)
     {
         foreach (var cage in _cages) if (cage.Seat == seat) return cage;
         return null;
     }
-
-    internal bool Escaped(byte seat, float x, float z) => CageOf(seat) is not { } cage || !Inside(cage, x, z);
 
     /// <summary>Where the contestant is safe from its own cage bomb: out through the cracked side, past the blast.</summary>
     internal (float X, float Z) EscapePoint(byte seat, float capsuleRadius)
@@ -197,18 +207,23 @@ internal sealed class BreakOutChannel : IMayhemChannel
         var (dx, dz) = RuntimeSolidSet.SideDirection(side);
         if (Inside(cage, self.PX, self.PZ))
         {
-            ulong wallId = WallId(side, Array.IndexOf(_cages, cage));
-            bool blocked = false;
-            foreach (var wall in _walls.Walls) if (wall.EntityId == wallId && wall.Blocks) blocked = true;
-            if (blocked)
+            int cageIndex = Array.IndexOf(_cages, cage);
+            ulong wallId = WallId(side, cageIndex);
+            RuntimeSolid? blocking = null;
+            foreach (var wall in _walls.Walls) if (wall.EntityId == wallId && wall.Blocks) blocking = wall;
+            if (blocking == null && _twist == BreakOutTwist.DoubleCage)
+                foreach (var wall in _walls.Walls)
+                    if (wall.EntityId == WallId(side, cageIndex + BreakOutTuning.MaxCages) && wall.Blocks) blocking = wall;
+            if (blocking is { } wallToBreak)
             {
-                float stand = RuntimeSolidTuning.CageHalfSize - RuntimeSolidTuning.WallHalfThickness
+                float wallSize = MathF.Max(MathF.Abs(wallToBreak.Center.X - cage.X), MathF.Abs(wallToBreak.Center.Z - cage.Z));
+                float stand = wallSize - RuntimeSolidTuning.WallHalfThickness
                     - probe.Self.Definition.CapsuleRadius - BreakOutTuning.CpuStandOff;
                 float sx = cage.X + dx * stand, sz = cage.Z + dz * stand;
                 float off = MathF.Sqrt(MayhemMath.DistanceSquared(self.PX, self.PZ, sx, sz));
                 return off > .3f
                     ? new(CpuAction.Move, sx, sz)
-                    : new(CpuAction.Normal, cage.X + dx * RuntimeSolidTuning.CageHalfSize, cage.Z + dz * RuntimeSolidTuning.CageHalfSize,
+                    : new(CpuAction.Normal, wallToBreak.Center.X, wallToBreak.Center.Z,
                         AbilitySlots.Normal1, Face: true);
             }
         }
@@ -223,7 +238,7 @@ internal sealed class BreakOutChannel : IMayhemChannel
     {
         var bombs = new BombCue[_cages.Length];
         for (int i = 0; i < _cages.Length; i++)
-            bombs[i] = new BombCue(_lane, (ushort)i, _cages[i].Launched, _cages[i].Exploded ? _cages[i].Impact : new ArcadePoint(_cages[i].X, _stage.DeckTop, _cages[i].Z),
+            bombs[i] = new BombCue(_lane, (ushort)i, _cages[i].Launched, _cages[i].Exploded ? _cages[i].Impact : BombLanding(_cages[i]),
                 _launchTick, _cages[i].Exploded ? _cages[i].ImpactTick : ImpactTick, BreakOutTuning.BlastRadius, _cages[i].Exploded);
         return ChannelScene.Empty with { Bombs = bombs, Solids = _walls.Walls };
     }
@@ -252,7 +267,7 @@ internal sealed class BreakOutChannel : IMayhemChannel
         var tier = (SpeedTier)r.ReadByte();
         uint launch = r.ReadUInt();
         int count = r.ReadByte();
-        if (lane > MayhemEvent.MaxLane || tier > SpeedTier.Three || count > BreakOutTuning.MaxCages || count > context.Roster.Count
+        if (lane != context.Lane || tier != context.Tier || count > BreakOutTuning.MaxCages || count > context.Roster.Count
             || launch < context.PlayStart || launch >= context.Deadline)
             throw SnapshotReader.Malformed("BREAK OUT! state");
         byte seen = 0;
@@ -279,6 +294,6 @@ internal sealed class BreakOutChannel : IMayhemChannel
         var accepted = new ulong[RuntimeSolidSet.MaximumCount * AcceptedPerWall];
         if (used > accepted.Length) throw SnapshotReader.Malformed("BREAK OUT! hits");
         for (int i = 0; i < used; i++) accepted[i] = r.ReadULong();
-        return new BreakOutChannel(lane, tier, launch, context.Stage, cages, walls, accepted);
+        return new BreakOutChannel((BreakOutTwist)context.Draw.Twist.Value, lane, tier, launch, context.Stage, cages, walls, accepted);
     }
 }

@@ -6,7 +6,8 @@ the three-card survival show selected on 2026-10-27. That show is built and stay
 until the first channel slice replaces it. No tuning value is selected: channel lengths,
 act sizes, ratings and speeds below are "not selected" or provisional.
 [ADR-0061](../adr/0061-manki-mayhem-channels.md) records the architecture, and the
-[implementation plan](manki-mayhem-implementation.md) orders the work.
+[implementation plan](manki-mayhem-implementation.md) orders the work. The [variety pass](#variety-pass)
+of 2026-11-05 adds seven channels, PRIME TIME! remixes, the GET HIM! finale and twists.
 
 Manki runs a pirate TV game show out of a warehouse, and tonight's contestants are
 whoever is standing on his stage. The show is a run of **channels**. Each channel is one
@@ -146,23 +147,132 @@ your own hits break your own stack of boards.
 - At top speed, BREAK OUT! cages rise while DODGE! bombs fall.
 - Pass: both objectives met. A boss pays more.
 
+## Variety pass
+
+Selected 2026-11-05. The first slice repeated itself: six regular channels filled twelve regular
+slots, PRIME TIME! closed every act, and each airing differed from the last only in positions and
+speed. The maintainer picked all seven new regular channels below, PRIME TIME! remixes plus a new
+boss GET HIM!, and seeded twists for every channel. The rules below are the proposal of
+2026-11-05. [ADR-0063](../adr/0063-manki-mayhem-variety.md) records the architecture. Every length,
+count, size and speed is not selected.
+
+### A show without repeats
+
+- Thirteen regular channels fill the twelve regular slots from one shuffled deck. A regular
+  channel airs at most once per show, and one channel sits out.
+- Acts one and two close with a PRIME TIME! remix, each with a different pair. Act three closes
+  with GET HIM!, the finale where the contestants finally get their hands on the host.
+- Every airing draws one twist of its channel. The call card shows the twist under the title, for
+  example DODGE! with "bomb rain" underneath. A twist changes the pattern, never the channel's verb.
+
+### New regular channels
+
+**BONK!** · *guest star Sir Bonk · bonk a cardboard head before it ducks*
+
+- Cardboard Manki heads pop out of the deck a few at a time and duck back down after a moment.
+  Sir Bonk referees from the edge.
+- Hit a head with any normal and it's yours. A head counts for the first contestant to hit it.
+- Fewer heads are up than contestants still looking, in two quick waves, so somebody can miss out.
+- Pass: you bonked a head.
+- Twists: **Whack** (heads pop anywhere). **Decoys** (some heads are lit bombs in a cardboard
+  mask; bonk one and you're TOASTED).
+
+**SMILE!** · *guest star Nyxxie · be in the selfie frame when the flash pops*
+
+- Nyxxie's selfie frame lands on the deck big enough for everyone, then shrinks.
+- At the flash, everyone inside the frame is in the shot. Shoving is allowed. Only the flash
+  counts, so you can step out and back in.
+- Pass: inside the frame at the flash. Stamp: OUT OF FRAME.
+- Twists: **Squeeze** (shrinks in place). **Pan** (slides across the deck while it shrinks).
+
+**SUMO!** · *stay in the ring*
+
+- One ring rises around the contestants and shrinks until not everyone fits.
+- Step out once and you're out on the spot, in the air or not. Shoving rivals out is the game.
+- Pass: still in the ring at the buzzer. Stamp: OUT OF THE RING.
+- Twists: **Shrink** (shrinks in place). **Drift** (wanders while it shrinks).
+
+**GLITCH!** · *guest star Wibou · panels glitch, then blink out*
+
+- The deck shows a grid of panels. Some glitch green, then blink out for a moment. Anyone standing
+  on a blinking panel drops through: GLITCHED. Anyone in the air over it is safe.
+- The floor never changes. Zones judge the verdict.
+- Three rounds of glitches, the last ones faster.
+- Pass: never on a blinking panel.
+- Twists: **Scatter** (random panels). **Sweep** (a band crosses the deck; find the gap).
+  **Checker** (the deck flips like a checkerboard).
+
+**QUICK DRAW!** · *Manki hosts until Dusty joins the roster · wait for DRAW!, then hit*
+
+- Everyone stands ready. Manki holds the sign. At a random moment it flips to DRAW!.
+- Swing any normal after DRAW! and you pass. Swing before it and you MISFIRE, cancelled on the
+  spot. Never swing and you're TOO SLOW at the buzzer. Moving is allowed.
+- Twists: **Showdown** (one DRAW!). **Fake-out** (near-miss words such as DRAWER! come first;
+  swinging on one is a misfire). **Duel** (the slowest drawer is cancelled too, unless everyone
+  drew on the same tick).
+
+**HOT POTATO!** · *the bomb sticks to whoever holds it*
+
+- Manki drops a lit bomb on one contestant. It sticks over their head with a fuse.
+- The holder passes it by bumping into another contestant. Under Shoves, the holder's shove passes
+  it too. A shove on the holder only shoves. Whoever just passed it can't take it straight back for a
+  moment.
+- At the bang the holder is TOASTED. Everyone else passes. A holder who leaves just before the bang
+  takes the bomb with them, so nobody else pays for it.
+- Twists: **One potato**. **Two potatoes** (with three or more contestants, two bombs on two
+  different holders; one bomb goes out if only two contestants are left).
+
+**BLOCK!** · *teaches Shield · bombs from every side, hold shield*
+
+- The first channel that switches on shield. The call shows the shield button.
+- Manki's barrage covers the whole deck, so there is nowhere to run. A contestant who is shielding
+  when a blast lands is safe. Anyone else is TOASTED.
+- Twists: **Barrage** (one wave). **Waves** (a few waves with a pause between). **Block or jump**
+  (shockwave rings mixed in; a shield doesn't stop a ring, so jump those).
+
+### Bosses
+
+**PRIME TIME!** · *boss · two channels at once*
+
+- Each airing pairs one goal channel with one hazard channel, both at top speed, on one clock and
+  with one verdict.
+- Goals: SPOT!, SUMO!, SMILE!, BREAK OUT!, BREAK THE BOARDS!, BONK! and QUICK DRAW!. Hazards:
+  DODGE!, JUMP! and GLITCH!.
+- Only pairs on an allowed list air. A pair joins the list when careful CPUs pass it with every
+  twist combination and it reads well in play. The classic BREAK OUT! plus DODGE! stays.
+- Both children draw their own twist.
+- Pass: both objectives met.
+- Never paired: NO RUNNING! (standing still under falling bombs needs its own design), HOT POTATO!
+  (its fail is one holder by design) and BLOCK! (the shield already answers bombs).
+
+**GET HIM!** · *boss · finale · Manki is down, land your hits before he wakes*
+
+- Manki tumbles out of the booth onto the middle of the deck, dizzy, stars circling. Everyone
+  piles in.
+- Each contestant must land their own quota of hits before he wakes. One swing counts once.
+- When he wakes he lashes out. Getting caught cancels you even with your hits done.
+- Pass: quota landed and not caught.
+- Twists: **Slam** (a shockwave slam; jump it). **Tantrum** (bombs around him; run).
+
+### Twists for the first-slice channels
+
+| Channel | Twists |
+| --- | --- |
+| DODGE! | **Aimed** (bombs near contestants, as today). **Bomb rain** (rows of rings cross the deck, each with one gap). **Big one** (one huge bomb; get out of its ring). |
+| JUMP! | **Rings** (as today). **Crossfire** (two slam points; the rings cross). **Tall wave** (one tall ring that needs a double jump). |
+| BREAK OUT! | **Cracked wall** (as today). **Any wall** (every wall breaks, but the bomb lands on one side; leave the other way). **Double cage** (an outer ring of walls; break two). |
+| SPOT! | **Still** (as today). **Drifting** (the spotlights wander). **Musical** (the spotlights jump to new places mid-channel; only the last places count). |
+| NO RUNNING! | **Looks** (as today). **Fake-out** (Bashie starts to turn, then doesn't). **Rapid** (short, quick looks). |
+| BREAK THE BOARDS! | **Your stack** (as today). **Scattered** (stacks stand around the deck; find the one in your colour). |
+
 ### Later
 
 | Channel | Pattern | Teaches or guest |
 | --- | --- | --- |
-| HOT POTATO! | A lit bomb sticks to whoever touches it. Tag someone to pass it on. The holder at the bang fails. | |
 | HIDE! | Manki's bazooka sweeps the deck from one side. Get behind a crate. Needs hazards that stop at crates. | |
-| SUMO! | The light shrinks to one small ring. Be inside at the buzzer. | |
-| BLOCK! | Bombs from every side at once. Hold shield. | Shield |
-| DOUBLE JUMP! | One tall shockwave. Jump, then jump again. | Double jump |
 | SHOW OFF! | An applause meter on the deck. Light it with your special. | Specials |
 | BEELINE! | Targets pop up across the deck. Beeline to one and hit it. Needs Beeline to lock onto targets. | Beeline |
 | TOSS IT! | A cardboard Manki for each contestant. Grab it and throw it in the bin. Needs grabbable objects. | Grab |
-| BONK! | Cardboard heads pop out of the deck panels. Bonk one before it ducks. | Sir Bonk |
-| SMILE! | Nyxxie's selfie frame shrinks on the deck. Be in it when the flash pops. | Nyx |
-| GLITCH! | Deck panels glitch green, then blink out. Anyone still on one fails. Judged by zones; the floor never changes. | Wibou |
-| QUICK DRAW! | Wait for DRAW!, then hit. Firing early is a misfire. | Salamander, once admitted |
-| GET HIM! | Boss: Manki falls dizzy onto the deck. Land your hits before he wakes. Needs Manki as a hittable object. | Manki |
 
 ## Presentation
 
@@ -205,12 +315,14 @@ your own hits break your own stack of boards.
 
 Each fighter on the roster gets a guest channel, so a newcomer meets them all in one show:
 Bashie's whistle, FightGuy's boards, Sir Bonk's cardboard heads, Nyxxie's selfie frame,
-Wibou's glitching panels and, once admitted, Salamander's quick draw.
+Wibou's glitching panels and Manki's GET HIM! finale. QUICK DRAW! becomes Dusty's once he is
+admitted; Manki hosts it until then.
 
 ## Out of scope for now
 
 More than four players, teams, CPUs in online Rooms, leaderboards, booth hecklers (they
-belonged to the Last TV Standing option, which was not chosen) and Manki's favourite.
+belonged to the Last TV Standing option, which was not chosen), Manki's favourite, and twists
+weighted by act.
 
 ## References
 
