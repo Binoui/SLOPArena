@@ -48,7 +48,7 @@ packaged join-to-rematch smoke.
 | `client/Unity/Assets/Scripts/Editor/EditorDevelopmentContentProvider.cs`, runtime `ClientSession.cs`, `Content/LocalContentResolver.cs` | Use existing local iteration | Editor Training compiles source in memory through the same Shared catalog seam; publishing is not required for each tuning attempt. See `docs/testing.md`. |
 | `src/Server/MatchControlServer.cs`, `MultiMatchOrchestrator.cs`, `MatchContentCatalogProvider.cs` | Keep / freeze | Already own match startup and content admission; prove remote play before redesigning. |
 | `src/Shared/BuiltInContentResolver.cs`, server/client catalog-loading variants | Defer consolidation | Similar code has different roots, failure contracts and runtime duties. No deletion without callsite and behavior proof. |
-| Workshop capability generalization, expanded stage/asset tooling | Freeze expansion | Retain working infrastructure; no new platform features unless a demo move or observed bug requires them. Nilus compatibility was removed on 2026-10-02. |
+| Workshop capability generalization, expanded stage/asset tooling | Freeze expansion | Retain working infrastructure; no new platform features unless a demo move or observed bug requires them. Nilus compatibility was removed on 2026-10-02. The owner lifted this freeze for Workshop work on 2026-11-10; see the [Workshop roadmap](2026-11-10-workshop-roadmap.md). |
 
 No new abstraction, event bus, registry, content format, or networking rewrite is part of this reset. Profile actual frame/network problems before optimizing speculative hot paths.
 

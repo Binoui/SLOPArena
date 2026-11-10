@@ -129,6 +129,7 @@ an implementation or authoring guide.
 | [Unity contributor setup](contributing/unity-setup.md) | Dependency owners, local inputs and offline catalog preflight |
 | [Unity dependency ownership](plans/2026-10-13-unity-dependency-ownership.md) | Implemented managed dependency consolidation and proposed Pipeline fork route |
 | [Workshop creator/reference target](plans/2026-10-13-public-reference-kit.md) | Deferred Editor-first authoring, Ability Lab/Training and package publication scope |
+| [Workshop roadmap](plans/2026-11-10-workshop-roadmap.md) | Phase 0 started 2026-11-10: current state against the Workshop ADRs, Rivals and Steam evidence, the owner's decisions, and five phases to shippable Workshop support |
 | [Repository contributing guide](../CONTRIBUTING.md) | Setup, rules, verification, and pull requests |
 | [Code of Conduct](../CODE_OF_CONDUCT.md) | Community standards |
 
