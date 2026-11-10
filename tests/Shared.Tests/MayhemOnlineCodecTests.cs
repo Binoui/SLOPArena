@@ -15,35 +15,39 @@ public class MayhemOnlineCodecTests
     [Fact]
     public void SeededShowFramesCarryEveryEventKindAndStayWithinTheFrameBudget()
     {
-        var sim = MayhemWorld.NewShow(41, roster: MayhemWorld.Four);
-        var cpus = MayhemWorld.Cpus(sim, 6);
-        var history = new WorldFrameHistory();
         var kinds = new HashSet<MayhemEventKind>();
         int maxSnapshot = 0, maxFrame = 0, frames = 0, maxEvents = 0;
-        uint fall = MayhemWorld.Plan(sim).PlayStart(0) + 10;
-        while (!sim.EvaluateMatch().IsEnded && sim.CurrentTick < 20000)
+        foreach (uint seed in new[] { 41u, MayhemWorld.SeedWith(MayhemChannels.NoRunning, 0).Seed,
+            MayhemWorld.SeedWith(MayhemChannels.BreakBoards, 0).Seed, MayhemWorld.SeedWith(MayhemChannels.BreakOut, 0).Seed }.Distinct())
         {
-            if (sim.CurrentTick == fall) MayhemWorld.Ko(sim, 2, -5f);
-            MayhemWorld.StepCpus(sim, cpus);
-            history.Record(sim.CurrentTick, sim.GetPresentationEvents(true), sim.LastTickHits, mayhemEvents: sim.LastTickMayhemEvents);
-            var frame = new WorldFramePacket(MatchState.Playing, sim.CaptureSnapshot(), Array.Empty<RelayedInput>(),
-                history.EventsForFrame(sim.CurrentTick), history.HitsForFrame(sim.CurrentTick),
-                mayhemEvents: history.MayhemEventsForFrame(sim.CurrentTick));
-            var bytes = frame.Serialize();
-            var decoded = WorldFramePacket.Deserialize(bytes);
-            Assert.Equal(frame.MayhemEvents, decoded.MayhemEvents);
-            Assert.Equal(frame.MayhemEvents.Count, frame.MayhemEvents.Select(e => e.Key).Distinct().Count());
-            foreach (var evt in decoded.MayhemEvents) kinds.Add(evt.Kind);
-            maxEvents = Math.Max(maxEvents, frame.MayhemEvents.Count);
-            maxSnapshot = Math.Max(maxSnapshot, frame.Snapshot.Data.Length);
-            maxFrame = Math.Max(maxFrame, bytes.Length); frames++;
+            var history = new WorldFrameHistory();
+            var sim = MayhemWorld.NewShow(seed, roster: MayhemWorld.Four);
+            var cpus = MayhemWorld.Cpus(sim, 6);
+            uint fall = MayhemWorld.Plan(sim).PlayStart(0) + 10;
+            while (!sim.EvaluateMatch().IsEnded && sim.CurrentTick < 20000)
+            {
+                if (sim.CurrentTick == fall) MayhemWorld.Ko(sim, 2, -5f);
+                MayhemWorld.StepCpus(sim, cpus);
+                history.Record(sim.CurrentTick, sim.GetPresentationEvents(true), sim.LastTickHits, mayhemEvents: sim.LastTickMayhemEvents);
+                var frame = new WorldFramePacket(MatchState.Playing, sim.CaptureSnapshot(), Array.Empty<RelayedInput>(),
+                    history.EventsForFrame(sim.CurrentTick), history.HitsForFrame(sim.CurrentTick),
+                    mayhemEvents: history.MayhemEventsForFrame(sim.CurrentTick));
+                var bytes = frame.Serialize();
+                var decoded = WorldFramePacket.Deserialize(bytes);
+                Assert.Equal(frame.MayhemEvents, decoded.MayhemEvents);
+                Assert.Equal(frame.MayhemEvents.Count, frame.MayhemEvents.Select(e => e.Key).Distinct().Count());
+                foreach (var evt in decoded.MayhemEvents) kinds.Add(evt.Kind);
+                maxEvents = Math.Max(maxEvents, frame.MayhemEvents.Count);
+                maxSnapshot = Math.Max(maxSnapshot, frame.Snapshot.Data.Length);
+                maxFrame = Math.Max(maxFrame, bytes.Length); frames++;
+            }
+            Assert.True(sim.EvaluateMatch().IsEnded);
         }
-        Assert.True(sim.EvaluateMatch().IsEnded);
         Assert.True(Enum.GetValues<MayhemEventKind>().All(kinds.Contains),
             "missing " + string.Join(",", Enum.GetValues<MayhemEventKind>().Where(k => !kinds.Contains(k))));
         Assert.True(maxFrame < WorldFramePacket.MaxBodyBytes);
         Assert.True(maxEvents < WorldFramePacket.MaxMayhemEvents);
-        _output.WriteLine($"four CPUs, seed 41: {frames} frames, max snapshot {maxSnapshot} bytes, max frame {maxFrame} bytes, max events {maxEvents}");
+        _output.WriteLine($"four CPUs, fixed seed corpus: {frames} frames, max snapshot {maxSnapshot} bytes, max frame {maxFrame} bytes, max events {maxEvents}");
     }
 
     [Fact]

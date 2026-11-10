@@ -39,15 +39,19 @@ public partial class ServerSimulation : IMayhemWorld
     /// <summary>The gate the next tick applies to <paramref name="id"/>; null outside Mayhem.</summary>
     public MayhemControls? MayhemControlsFor(ulong id) => _mayhem?.ControlsFor(id, _tick + 1);
 
-    /// <summary>The channel's intent for a CPU contestant, planned <paramref name="lookaheadTicks"/> ahead.</summary>
-    public MayhemCpuIntent MayhemCpuIntentFor(ulong id, int lookaheadTicks, int slipPercent = 0)
-        => _mayhem?.CpuIntent(id, _tick, this, lookaheadTicks, slipPercent) ?? MayhemCpuIntent.Wait;
+    /// <summary>
+    /// The channel's intent for a CPU contestant, planned <paramref name="lookaheadTicks"/> ahead. <paramref name="planned"/> is
+    /// what that CPU planned on the tick before.
+    /// </summary>
+    public MayhemCpuIntent MayhemCpuIntentFor(ulong id, int lookaheadTicks, int slipPercent = 0, MayhemCpuIntent planned = default)
+        => _mayhem?.CpuIntent(id, _tick, this, lookaheadTicks, slipPercent, planned) ?? MayhemCpuIntent.Wait;
 
     private bool IsMayhemShove(ulong owner, ulong target)
         => _rule is MankiMayhemMatchRule { FriendlyFire: FriendlyFireMode.Shoves }
             && owner != target && _states.ContainsKey(owner) && _states.ContainsKey(target);
 
     ArenaDefinition IMayhemWorld.Arena => _arena;
+    FriendlyFireMode IMayhemWorld.FriendlyFire => ((MankiMayhemMatchRule)_rule).FriendlyFire;
     SpellResolver IMayhemWorld.Resolver => _spellResolver;
     CharacterState IMayhemWorld.Fighter(ulong id) => _states[id];
     CharacterDefinition IMayhemWorld.Definition(ulong id) => Def(id);
@@ -136,13 +140,35 @@ public partial class ServerSimulation : IMayhemWorld
         var scene = _mayhem!.Scene;
         foreach (var wall in RuntimeSolidSet.CollisionTargets(scene.Solids)) yield return wall;
         foreach (var target in scene.Targets)
+        {
+            if (!target.ActiveAt(_tick)) continue;
             yield return new SpellResolver.EntityData
             {
-                Id = target.EntityId, Active = true, RuntimeSolid = true, Shape = HitboxShape.Capsule,
+                Id = target.EntityId, Active = true, RuntimeSolid = true, HitPerAttacker = true, Shape = HitboxShape.Capsule,
                 PosX = target.Center.X, PosY = target.Center.Y - target.HalfHeight + target.Radius, PosZ = target.Center.Z,
                 EndX = target.Center.X, EndY = target.Center.Y + target.HalfHeight - target.Radius, EndZ = target.Center.Z,
                 Radius = target.Radius,
             };
+        }
+    }
+
+    /// <summary>What a swing may turn toward before any rival: a target it can score on, never a decoy or another seat's boards.</summary>
+    private IEnumerable<ulong> MayhemAimTargets(ulong id)
+    {
+        if (_mayhem == null) yield break;
+        int seat = _mayhem.SeatOf(id);
+        foreach (var target in _mayhem.Scene.Targets)
+            if (target.ActiveAt(_tick) && target.HitsLeft > 0 && target.Kind != MayhemTargetKind.DecoyHead
+                && (target.OwnerSeat is not { } owner || owner == seat))
+                yield return target.EntityId;
+    }
+
+    private bool TryGetMayhemTargetPosition(ulong id, out ArcadePoint position)
+    {
+        foreach (var target in _mayhem!.Scene.Targets)
+            if (target.EntityId == id && target.ActiveAt(_tick)) { position = target.Center; return true; }
+        position = default;
+        return false;
     }
 
     private void CaptureMayhemPositions()
@@ -181,7 +207,7 @@ public partial class ServerSimulation : IMayhemWorld
             MayhemHazards.TryDecode(hit.ActivationId, out _, out byte lane, out ushort ordinal);
             if (_states.ContainsKey(hit.TargetEntityId))
                 _mayhem!.Contact(new MayhemContact(MayhemContactKind.HazardBody, lane, ordinal, MayhemHostEntityId,
-                    hit.TargetEntityId, _mayhem.SeatOf(hit.TargetEntityId), hit.ActivationId), _tick, this);
+                    hit.TargetEntityId, _mayhem.SeatOf(hit.TargetEntityId), hit.ActivationId, AttackSlot: (byte)hit.AttackSlot), _tick, this);
             return true;
         }
         if (RuntimeSolidSet.IsWallId(hit.TargetEntityId) || MayhemEvent.IsTargetId(hit.TargetEntityId))
@@ -191,6 +217,15 @@ public partial class ServerSimulation : IMayhemWorld
         }
         if (IsMayhemShove(hit.OwnerEntityId, hit.TargetEntityId))
         {
+            var target = _states[hit.TargetEntityId];
+            if (target.State == ActionState.Shielding && !hit.Unblockable)
+            {
+                var attacker = _states[hit.OwnerEntityId];
+                ResolveShieldBlock(in hit, ref target, ref attacker, attackerExists: true);
+                return true;
+            }
+            _mayhem.Contact(new MayhemContact(MayhemContactKind.FighterHit, 0, 0, hit.OwnerEntityId, hit.TargetEntityId,
+                _mayhem.SeatOf(hit.TargetEntityId), hit.ActivationId), _tick, this);
             ApplyMayhemShove(in hit);
             return true;
         }
@@ -206,7 +241,7 @@ public partial class ServerSimulation : IMayhemWorld
         if (damage > 0)
         {
             _mayhem!.Contact(new MayhemContact(MayhemContactKind.SolidHit, 0, 0, hit.OwnerEntityId, hit.TargetEntityId, -1,
-                hit.ActivationId), _tick, this);
+                hit.ActivationId, AttackSlot: (byte)hit.AttackSlot), _tick, this);
             ushort freeze = ComputeHitstopTicks(damage);
             if (hit.FreezesOwner) owner.HitstopTicks = freeze;
             var accepted = hit; accepted.MatchTick = _tick; accepted.Damage = damage; accepted.HitstopTicks = freeze;

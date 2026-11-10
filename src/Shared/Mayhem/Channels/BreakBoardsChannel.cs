@@ -2,11 +2,15 @@ using System;
 
 namespace SlopArena.Shared.Mayhem;
 
+internal enum BreakBoardsTwist : byte { YourStack = 1, Scattered = 2 }
+
 /// <summary>BREAK THE BOARDS! tuning, indexed by speed tier. Provisional.</summary>
 public static class BreakBoardsTuning
 {
+    public static readonly ChannelTiming ScatteredTiming = new(90, 420);
     public static readonly byte[] Hits = { 3, 3, 3 };
     /// <summary>The stack stands this far in front of the start, toward the deck centre.</summary>
+    public const float ScatteredRadius = 6f, ScatterJitter = .3f;
     public const float Distance = 1.6f;
     public const float Radius = .45f, HalfHeight = .8f;
     public const float CpuStandOff = .3f;
@@ -27,6 +31,7 @@ internal sealed class BreakBoardsChannel : IMayhemChannel
         public ulong LastActivation;
     }
 
+    private uint _from, _until;
     private readonly byte _lane;
     private readonly MankiMayhemDefinition _stage;
     private readonly Stack[] _stacks;
@@ -43,14 +48,24 @@ internal sealed class BreakBoardsChannel : IMayhemChannel
         {
             var seat = setup.OnAir[i];
             float yaw = MayhemMath.YawTo(seat.Start.X, seat.Start.Z, MayhemMath.CenterX(stage), MayhemMath.CenterZ(stage));
+            var position = ((BreakBoardsTwist)setup.Draw.Twist.Value) switch
+            {
+                BreakBoardsTwist.YourStack => new ArcadePoint(seat.Start.X + MathF.Sin(yaw) * BreakBoardsTuning.Distance,
+                    stage.DeckTop, seat.Start.Z + MathF.Cos(yaw) * BreakBoardsTuning.Distance),
+                BreakBoardsTwist.Scattered => MayhemMath.Clamp(stage,
+                    MayhemMath.CenterX(stage) + MathF.Sin(i * MathF.PI * 2 / Math.Max(1, stacks.Length)
+                        + MayhemMath.Signed(MayhemMath.Sample(setup.Seed, 0x8500, 0)) * BreakBoardsTuning.ScatterJitter) * BreakBoardsTuning.ScatteredRadius,
+                    MayhemMath.CenterZ(stage) + MathF.Cos(i * MathF.PI * 2 / Math.Max(1, stacks.Length)
+                        + MayhemMath.Signed(MayhemMath.Sample(setup.Seed, 0x8500, 0)) * BreakBoardsTuning.ScatterJitter) * BreakBoardsTuning.ScatteredRadius,
+                    MayhemShowTuning.PlacementMargin),
+            };
             stacks[i] = new Stack
             {
                 Seat = seat.Seat, Owner = seat.EntityId, Hits = hits, HitsLeft = hits,
-                X = seat.Start.X + MathF.Sin(yaw) * BreakBoardsTuning.Distance,
-                Z = seat.Start.Z + MathF.Cos(yaw) * BreakBoardsTuning.Distance,
+                X = position.X, Z = position.Z,
             };
         }
-        return new BreakBoardsChannel(setup.Lane, stage, stacks);
+        return new BreakBoardsChannel(setup.Lane, stage, stacks) { _from = setup.CallStart, _until = setup.Deadline };
     }
 
     private static ulong TargetId(int index) => MayhemEvent.FirstTargetEntityId + (ulong)index;
@@ -109,14 +124,14 @@ internal sealed class BreakBoardsChannel : IMayhemChannel
             var stack = _stacks[i];
             targets[i] = new TargetCue(_lane, (ushort)i, MayhemTargetKind.BoardStack, TargetId(i), stack.Seat,
                 new ArcadePoint(stack.X, _stage.DeckTop + BreakBoardsTuning.HalfHeight, stack.Z),
-                BreakBoardsTuning.Radius, BreakBoardsTuning.HalfHeight, stack.HitsLeft, stack.Hits);
+                BreakBoardsTuning.Radius, BreakBoardsTuning.HalfHeight, stack.HitsLeft, stack.Hits, _from, _until);
         }
         return ChannelScene.Empty with { Targets = targets };
     }
 
     public void WriteSnapshot(SnapshotWriter w)
     {
-        w.WriteByte(_lane);
+        w.WriteByte(_lane); w.WriteUInt(_from); w.WriteUInt(_until);
         w.WriteByte((byte)_stacks.Length);
         foreach (var stack in _stacks)
         {
@@ -128,8 +143,10 @@ internal sealed class BreakBoardsChannel : IMayhemChannel
     internal static BreakBoardsChannel Read(SnapshotReader r, ChannelRestore context)
     {
         byte lane = r.ReadByte();
+        uint from = r.ReadUInt(), until = r.ReadUInt();
+        if (from >= context.PlayStart || until != context.Deadline) throw SnapshotReader.Malformed("Board window");
         int count = r.ReadByte();
-        if (lane > MayhemEvent.MaxLane || count > context.Roster.Count || count > MayhemEvent.MaxTargets)
+        if (lane != context.Lane || count > context.Roster.Count || count > MayhemEvent.MaxTargets)
             throw SnapshotReader.Malformed("BREAK THE BOARDS! state");
         byte seen = 0;
         var stacks = new Stack[count];
@@ -147,6 +164,6 @@ internal sealed class BreakBoardsChannel : IMayhemChannel
             seen |= (byte)(1 << stack.Seat);
         }
         if (seen != context.OnAir) throw SnapshotReader.Malformed("Missing channel objective");
-        return new BreakBoardsChannel(lane, context.Stage, stacks);
+        return new BreakBoardsChannel(lane, context.Stage, stacks) { _from = from, _until = until };
     }
 }

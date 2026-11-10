@@ -187,6 +187,7 @@ namespace SlopArena.Shared
                 position = _arena.Arcade!.Course!.Targets[index].Position;
                 return true;
             }
+            if (_mayhem != null && TryGetMayhemTargetPosition(id, out position)) return true;
             position = default;
             return false;
         }

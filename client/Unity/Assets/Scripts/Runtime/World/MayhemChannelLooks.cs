@@ -32,6 +32,14 @@ namespace SlopArena.Client.World
             ["mayhem.channel.spot"] = new(Hex(0x4A385C), Hex(0x685637), Hex(0x3E3449), Hex(0xEAC6FF), Hex(0xFFD77B), MayhemFloorPattern.Checker, MayhemBulbChase.Alternating, MayhemFloorDecal.Star),
             ["mayhem.channel.no-running"] = new(Hex(0x23676E), Hex(0x397D81), Hex(0x285B65), Hex(0x93E4DF), Hex(0x75DDE5), MayhemFloorPattern.Checker, MayhemBulbChase.Forward, MayhemFloorDecal.PoolRules),
             ["mayhem.channel.break-boards"] = new(Hex(0x79504B), Hex(0xAC8059), Hex(0x493D46), Hex(0xFFD49A), Hex(0xFFD08A), MayhemFloorPattern.Stripes, MayhemBulbChase.Forward, MayhemFloorDecal.Star),
+            ["mayhem.channel.sumo"] = new(Hex(0x77503D), Hex(0xAD8659), Hex(0x483B30), Hex(0xFFD89A), Hex(0xFF7B39), MayhemFloorPattern.Rings, MayhemBulbChase.Outward, MayhemFloorDecal.Target),
+            ["mayhem.channel.smile"] = new(Hex(0x743E71), Hex(0xB8679C), Hex(0x43304E), Hex(0xFFB6ED), Hex(0xEAC6FF), MayhemFloorPattern.Stripes, MayhemBulbChase.Alternating, MayhemFloorDecal.Star),
+            ["mayhem.channel.glitch"] = new(Hex(0x15352E), Hex(0x265546), Hex(0x10271F), Hex(0x78FF85), Hex(0x4CFFB3), MayhemFloorPattern.Checker, MayhemBulbChase.Alternating, MayhemFloorDecal.Target),
+            ["mayhem.channel.bonk"] = new(Hex(0x8A663C), Hex(0xB5884F), Hex(0x47382C), Hex(0xFFE18B), Hex(0xFFB55A), MayhemFloorPattern.Target, MayhemBulbChase.Forward, MayhemFloorDecal.Star),
+            ["mayhem.channel.get-him"] = new(Hex(0x682C44), Hex(0xAB4D39), Hex(0x35283F), Hex(0xFF753F), Hex(0xFFB55A), MayhemFloorPattern.Target, MayhemBulbChase.Outward, MayhemFloorDecal.Star),
+            ["mayhem.channel.quick-draw"] = new(Hex(0x8A663C), Hex(0xB5884F), Hex(0x47382C), Hex(0xFFEEAF), Hex(0xFFB55A), MayhemFloorPattern.Stripes, MayhemBulbChase.Alternating, MayhemFloorDecal.Star),
+            ["mayhem.channel.hot-potato"] = new(Hex(0x743E32), Hex(0xB36436), Hex(0x3C2C2A), Hex(0xFF6538), Hex(0xFFB55A), MayhemFloorPattern.Checker, MayhemBulbChase.Forward, MayhemFloorDecal.Star),
+            ["mayhem.channel.block"] = new(Hex(0x294C68), Hex(0x497995), Hex(0x223340), Hex(0x94DFFF), Hex(0xFFB55A), MayhemFloorPattern.Rings, MayhemBulbChase.Outward, MayhemFloorDecal.Star),
             ["mayhem.channel.prime-time"] = new(Hex(0x704E87), Hex(0x96524F), Hex(0x433455), Hex(0xFFD36A), Hex(0xDB9AFF), MayhemFloorPattern.Target, MayhemBulbChase.Outward, MayhemFloorDecal.Star),
         };
         public static ChannelLook For(ChannelEntry channel) => Looks[channel?.CopyKey ?? "mayhem.channel.spot"];
@@ -49,6 +57,7 @@ namespace SlopArena.Client.World
                 for (int i = 0; i < view.Scene.Watches.Count; i++)
                 {
                     var watch = view.Scene.Watches[i];
+                    if (watch.Kind == MayhemWatchKind.FakeLook) continue;
                     if (view.Tick >= watch.StartTick && view.Tick < watch.EndTick) return MayhemDeckBeat.Watching;
                     if (view.Tick >= watch.WarningTick && view.Tick < watch.StartTick) return MayhemDeckBeat.Warning;
                 }

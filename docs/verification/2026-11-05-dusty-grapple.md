@@ -1,6 +1,6 @@
 # Dusty grapple engine verification — 2026-11-05
 
-Engine-only implementation of accepted ADR-0063. No Unity Editor or gateway operation was performed.
+Engine-only implementation of the accepted lasso grapple decision, recorded as ADR-0064 after main took ADR-0063 for Mayhem variety. No Unity Editor or gateway operation was performed.
 
 ## Automated evidence
 

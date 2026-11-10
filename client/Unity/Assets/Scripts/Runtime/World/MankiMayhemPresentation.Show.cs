@@ -83,7 +83,9 @@ namespace SlopArena.Client.World
                     if (_showSounds.Remove(e.Key, out var sound)) Object.Destroy(sound);
             foreach (var e in events)
             {
-                AudioClip clip = e.Kind == MayhemEventKind.Call ? _callSting
+                if (e.Kind == MayhemEventKind.WatchStart && _sim.MayhemView.Scene.Watches.Any(w =>
+                    w.Lane == e.Lane && w.Ordinal == e.Operation && w.Kind == MayhemWatchKind.FakeLook)) continue;
+                AudioClip clip = e.Kind == MayhemEventKind.Call ? (_sim.MayhemView.Channel?.Id == MayhemChannels.GetHim ? _bonusSting : _callSting)
                     : e.Kind == MayhemEventKind.WatchStart ? Resources.Load<AudioClip>("Audio/SFX/Bashie/bashie_whistle_tweet")
                     : e.Kind == MayhemEventKind.Slam ? _slamSting
                     : e.Kind == MayhemEventKind.Ended || e.Kind == MayhemEventKind.SpeedUp ? _bonusSting : null;
@@ -141,18 +143,25 @@ namespace SlopArena.Client.World
             var c = view.Cursor;
             UISFX.SetMayhemMusicAct(c.Act);
             string title = c.Phase == MayhemPhase.Intro ? "YOU'RE ON AIR!" : c.Phase == MayhemPhase.SpeedUp ? "SPEED UP!" : c.Phase == MayhemPhase.Ended ? "THAT'S THE SHOW!" : MankiMayhemView.CardTitle(view.Channel);
-            string subtitle = view.Scene.Watches.Count>0 ? MankiMayhemView.WatchText(view) : MankiMayhemView.CardSubtitle(view.Channel);
+            bool watching = view.Scene.Watches.Any(w => w.Kind == MayhemWatchKind.Look || w.Kind == MayhemWatchKind.FakeLook);
+            bool drawing = view.Channel?.Id == MayhemChannels.QuickDraw && c.Phase == MayhemPhase.Play;
+            if (drawing) title = MankiMayhemView.DrawWord(view);
+            string subtitle = watching ? MankiMayhemView.WatchText(view) : MankiMayhemView.CardLine(view);
             foreach (var crt in _screens)
             {
-                var guest = view.Channel?.Id == MayhemChannels.NoRunning ? CharacterClass.Bashie : view.Channel?.Id == MayhemChannels.BreakBoards ? CharacterClass.FightGuy : CharacterClass.None;
+                var guest = MankiMayhemView.GuestFor(view.Channel);
                 crt.Guest.gameObject.SetActive(guest != CharacterClass.None);
                 if(guest != CharacterClass.None) crt.GuestMaterial.SetTexture("_BaseMap",Resources.Load<Texture2D>($"UI/Portraits/{guest}"));
+                crt.Guest.transform.localRotation = Quaternion.Euler(0, MankiMayhemView.FakeTurn(view) * 55, 0);
                 crt.Header.text = $"MANKI MAYHEM / ACT {c.Act+1} / {Math.Max(0,c.Episode+1):00}";
                 crt.Title.text = title;
                 crt.Title.characterSize = (title.Length>14?.62f:1.1f)*.1f;
-                crt.Subtitle.text = subtitle.Replace(". ",".\n") + "\n" + ((Label)HUDManager.MayhemChip(SlopArena.Client.Input.HumanInputActions.LastUsedGamepad?"MoveStick":"MoveUp","Move")).text + "\n" + ((Label)HUDManager.MayhemChip("Jump","Jump")).text + "   " + ((Label)HUDManager.MayhemChip("Normal1","Hit")).text;
+                crt.Subtitle.text = (watching ? MankiMayhemView.TwistLine(view) + "\n" : "") + subtitle.Replace(". ",".\n") + "\n" + ((Label)HUDManager.MayhemChip(SlopArena.Client.Input.HumanInputActions.LastUsedGamepad?"MoveStick":"MoveUp","Move")).text + "\n" + ((Label)HUDManager.MayhemChip("Jump","Jump")).text + "   " + ((Label)HUDManager.MayhemChip("Normal1","Hit")).text;
+                if (view.Airing?.Extra == ExtraVerb.Shield)
+                    crt.Subtitle.text += "\n" + ((Label)HUDManager.MayhemChip("Shield", "Shield")).text;
                 crt.Subtitle.characterSize = .045f;
-                crt.Title.color = view.Scene.Watches.Count>0 ? (subtitle=="NOT LOOKING"?Color.green:Color.red) : MayhemChannelLooks.For(view.Channel).Accent;
+                crt.Title.color = watching ? (subtitle=="NOT LOOKING"?Color.green:Color.red) : MayhemChannelLooks.For(view.Channel).Accent;
+                if (drawing) crt.Title.color = title == "DRAW!" ? new Color(.25f, 1, .4f) : new Color(1, .6f, .1f);
                 crt.Raster.gameObject.SetActive(!ClientSettingsService.Instance.ReducedFlashing);
                 crt.Raster.localPosition = Vector3.up*(3f-view.Tick%180/30f);
             }

@@ -25,24 +25,24 @@ public static class RuntimeSolidTuning
 public sealed class RuntimeSolidSet
 {
     public const ulong FirstEntityId = 1UL << 44;
-    public const int MaximumCount = 16;
+    public const int MaximumCount = 32;
     private readonly List<RuntimeSolid> _walls = new();
     public IReadOnlyList<RuntimeSolid> Walls => _walls.AsReadOnly();
     public static bool IsWallId(ulong id) => id >= FirstEntityId && id < FirstEntityId + MaximumCount;
     public bool Contains(ulong id) => _walls.Any(w => w.EntityId == id);
     internal void Clear() => _walls.Clear();
     /// <summary>Four walls around <paramref name="center"/>; side 0 faces +Z, 1 +X, 2 -Z, 3 -X. The cracked side breaks first.</summary>
-    internal void AddCage(ulong fighter, ArcadePoint center, float top, int cageIndex, int crackedSide)
+    internal void AddCage(ulong fighter, ArcadePoint center, float top, int cageIndex, int crackedSide, float halfSize = RuntimeSolidTuning.CageHalfSize, bool allCracked = false)
     {
         for (int side = 0; side < 4; side++)
         {
             float yaw = side % 2 == 0 ? 0 : MathF.PI * .5f;
             var (dx, dz) = SideDirection(side);
-            byte budget = side == crackedSide ? RuntimeSolidTuning.CrackedWallHits : RuntimeSolidTuning.WallHits;
+            byte budget = allCracked || side == crackedSide ? RuntimeSolidTuning.CrackedWallHits : RuntimeSolidTuning.WallHits;
             _walls.Add(new(FirstEntityId + (ulong)(cageIndex * 4 + side), fighter, center,
-                new(center.X + dx * RuntimeSolidTuning.CageHalfSize, top + RuntimeSolidTuning.WallHeight * .5f,
-                    center.Z + dz * RuntimeSolidTuning.CageHalfSize),
-                new(RuntimeSolidTuning.CageHalfSize + RuntimeSolidTuning.WallHalfThickness,
+                new(center.X + dx * halfSize, top + RuntimeSolidTuning.WallHeight * .5f,
+                    center.Z + dz * halfSize),
+                new(halfSize + RuntimeSolidTuning.WallHalfThickness,
                     RuntimeSolidTuning.WallHeight * .5f, RuntimeSolidTuning.WallHalfThickness),
                 yaw, budget, budget, RuntimeSolidPhase.Rising, 0));
         }
@@ -187,6 +187,30 @@ public sealed class RuntimeSolidSet
         return enter <= leave && leave >= 0;
     }
 
+    /// <summary>Whether a body of <paramref name="radius"/> walking straight between two deck points meets a blocking wall.</summary>
+    internal static bool Crosses(IReadOnlyList<RuntimeSolid> walls, float x0, float z0, float x1, float z1, float radius)
+    {
+        foreach (var wall in walls)
+        {
+            if (!wall.Blocks) continue;
+            Local(wall, x0, z0, out float ax, out float az);
+            Local(wall, x1, z1, out float bx, out float bz);
+            float hx = wall.HalfExtents.X + radius, hz = wall.HalfExtents.Z + radius;
+            float enter = 0f, exit = 1f;
+            if (Slab(ax, bx - ax, hx, ref enter, ref exit) && Slab(az, bz - az, hz, ref enter, ref exit)) return true;
+        }
+        return false;
+    }
+
+    private static bool Slab(float start, float delta, float half, ref float enter, ref float exit)
+    {
+        if (MathF.Abs(delta) < 1e-6f) return MathF.Abs(start) <= half;
+        float t0 = (-half - start) / delta, t1 = (half - start) / delta;
+        if (t0 > t1) (t0, t1) = (t1, t0);
+        enter = MathF.Max(enter, t0); exit = MathF.Min(exit, t1);
+        return enter <= exit;
+    }
+
     private static void Local(in RuntimeSolid wall, float x, float z, out float lx, out float lz)
     {
         float c = MathF.Cos(wall.Yaw), s = MathF.Sin(wall.Yaw);
@@ -227,7 +251,7 @@ public sealed class RuntimeSolidSet
             if (!IsWallId(wall.EntityId) || !ids.Add(wall.EntityId) || !fighters.Contains(wall.CageEntityId)
                 || !wall.CageCenter.IsFinite || !wall.Center.IsFinite || !wall.HalfExtents.IsFinite || !float.IsFinite(wall.Yaw)
                 || wall.HalfExtents.X <= 0 || wall.HalfExtents.Y <= 0 || wall.HalfExtents.Z <= 0
-                || wall.HitBudget == 0 || wall.HitsLeft > wall.HitBudget || wall.Phase > RuntimeSolidPhase.Sinking
+                || wall.HitBudget == 0 || wall.HitsLeft > wall.HitBudget || wall.Phase > Mayhem.MayhemEnumLimits.Wall
                 || wall.Phase == RuntimeSolidPhase.Broken && wall.HitsLeft != 0)
                 throw SnapshotReader.Malformed("Mayhem solid");
         }

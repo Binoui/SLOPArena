@@ -589,6 +589,13 @@ decoder rebuilds them; the display world shows the recorded scene and never reru
 | 3 | Episode / `int` | `-1` | MayhemView.Cursor.Episode |
 | 4 | PhaseId / `string` | `"unknown"` | MayhemView.Cursor.Phase explicit switch |
 | 5 | ChannelId / `string` | `""` | MayhemView.Channel.CopyKey; empty outside an episode |
+| 6 | TwistCopyKey / `string` | `""` | solo airing's twist; empty for remixes and outside an episode |
+| 7 | PairCopyKey / `string` | `""` | remix pair; empty for solo airings and outside an episode |
+| 8 | GoalTwistCopyKey / `string` | `""` | remix goal child's twist |
+| 9 | HazardTwistCopyKey / `string` | `""` | remix hazard child's twist |
+
+The decoder validates all four airing keys against the seed's plan. Remixes keep PRIME TIME! as ChannelId.
+Solo and remix children share each channel's twist cycle.
 
 ### ReplayMayhemContestant
 
@@ -612,11 +619,13 @@ decoder rebuilds them; the display world shows the recorded scene and never reru
 | 1 | Kind / string | `mayhem-bomb` | closed variant identity |
 | 2 | Lane / `byte` | `0` | MayhemView.Scene.Bombs |
 | 3 | Ordinal / `ushort` | `0` | MayhemView.Scene.Bombs |
-| 4 | Launched / `bool` | `false` | landing is known once launched |
+| 4 | Launched / `bool` | `false` | launch state; pending cage bombs already publish their landing |
 | 5 | Landing / `ReplayVector` | `default` | telegraph ring centre |
 | 6 | LaunchTick / `uint` | `0` | MayhemView.Scene.Bombs |
 | 7 | ImpactTick / `uint` | `0` | MayhemView.Scene.Bombs |
 | 8 | BlastRadius / `float` | `0` | MayhemView.Scene.Bombs |
+| 9 | Exploded / `bool` | `false` | published impact state |
+| 10 | BombKindId / `string` | `"aimed"` | `aimed` or deck-wide `barrage` |
 
 ### ReplayMayhemShockwave
 
@@ -644,6 +653,17 @@ decoder rebuilds them; the display world shows the recorded scene and never reru
 | 6 | Radius / `float` | `0` | MayhemView.Scene.Zones |
 | 7 | ActiveFrom / `uint` | `0` | MayhemView.Scene.Zones |
 | 8 | ActiveUntil / `uint` | `0` | MayhemView.Scene.Zones |
+| 9 | EndCenter / `ReplayVector` | `default` | endpoint of linear motion during the active window |
+| 10 | EndRadius / `float` | `0` | radius at the active window's end |
+| 11 | ArmedFrom / `uint` | `0` | scoring, flash, or panel blink tick |
+| 12 | HalfDepth / `float` | `0` | rectangular half depth along Z |
+| 13 | EndHalfDepth / `float` | `0` | half depth at the active window's end |
+
+The display world reconstructs `CenterAt`, `RadiusAt` and `HalfDepthAt` from endpoints and active ticks.
+Centers and rectangle dimensions interpolate linearly. `sumo-ring` radius uses quadratic ease-out progress `t * (2 - t)`.
+Zone identities are `spotlight`, `sumo-ring`, `selfie-frame` and `glitch-panel`.
+For rectangles, Radius is the X half width. Selfie frame edges are inclusive. Glitch panels exclude maximum edges.
+Active windows include their start and exclude their end. A selfie frame is judged once at ArmedFrom.
 
 ### ReplayMayhemWatch
 
@@ -655,6 +675,38 @@ decoder rebuilds them; the display world shows the recorded scene and never reru
 | 4 | WarningTick / `uint` | `0` | whistle and turn |
 | 5 | StartTick / `uint` | `0` | watch starts |
 | 6 | EndTick / `uint` | `0` | watch ends (exclusive) |
+| 7 | WatchKindId / `string` | `"look"` | `look`, `fake-look`, `draw` or `fake-draw` |
+
+| 8 | CopyKey / `string` | `""` | draw word key; visible only during `[StartTick, EndTick)` |
+
+DRAW!, DRAWER! and DRAWL! use `mayhem.draw.draw`, `mayhem.draw.drawer` and `mayhem.draw.drawl`.
+Scheduled future words are hidden. Barrage warnings start at LaunchTick and blast the entire deck at ImpactTick,
+even though BlastRadius is zero. Aimed bombs keep their recorded radius.
+
+### ReplayMayhemCarry
+
+| Tag | Field/type | Default | Source |
+|---:|---|---|---|
+| 1 | Kind / `string` | `mayhem-carry` | closed variant identity |
+| 2 | Lane / `byte` | `0` | Scene.Carries |
+| 3 | Ordinal / `ushort` | `0` | potato identity within lane |
+| 4 | HolderSeat / `byte` | `0` | current holder |
+| 5 | FuseEnd / `uint` | `0` | absolute fuse end |
+| 6 | LastGiver / `byte` | `255` | return lock seat; 255 decodes to null |
+
+A retired potato leaves Carries before FuseEnd. LastGiver clears when the timed lock expires.
+
+### ReplayMayhemHitProgress
+
+| Tag | Field/type | Default | Source |
+|---:|---|---|---|
+| 1 | Kind / `string` | `mayhem-hit-progress` | closed variant identity |
+| 2 | Seat / `byte` | `0` | contestant seat |
+| 3 | Hits / `byte` | `0` | accepted unique normal activations |
+| 4 | Quota / `byte` | `0` | required hits |
+
+The shared `dizzy-host` target stays active until its wake tick regardless of per-seat quota completion.
+Its HitsLeft is a lifecycle value, not aggregate progress. Failure identities add `he-got-up`, `misfire` and `too-slow`.
 
 ### ReplayMayhemTarget
 
@@ -665,12 +717,22 @@ decoder rebuilds them; the display world shows the recorded scene and never reru
 | 3 | Ordinal / `ushort` | `0` | MayhemView.Scene.Targets |
 | 4 | TargetId / `string` | `"unknown"` | target kind explicit switch |
 | 5 | EntityId / `ulong` | `0` | focused target identity |
-| 6 | OwnerId / `ulong` | `0` | the only contestant whose hits count |
+| 6 | OwnerId / `ulong` | `0` | board owner; zero means a shared target and decodes to null OwnerSeat |
 | 7 | Center / `ReplayVector` | `default` | MayhemView.Scene.Targets |
 | 8 | Radius / `float` | `0` | MayhemView.Scene.Targets |
 | 9 | HalfHeight / `float` | `0` | MayhemView.Scene.Targets |
 | 10 | HitsLeft / `byte` | `0` | MayhemView.Scene.Targets |
 | 11 | Hits / `byte` | `0` | MayhemView.Scene.Targets |
+| 12 | ActiveFrom / `uint` | `0` | pop tick, inclusive |
+| 13 | ActiveUntil / `uint` | `uint.MaxValue` | duck tick, exclusive |
+
+Target identities are `board-stack`, `cardboard-head`, `decoy-head` and `dizzy-host`. Heads require positive HitsLeft and an active window
+for collision. Boards retain full-episode collision lifetime after their progress reaches zero. BONK! reuses entity IDs
+between waves, so Ordinal identifies the current head. Presenters refresh its pose, kind and window when Ordinal changes.
+
+Failure semantic IDs also include `out-of-ring`, `out-of-frame`, `glitched` and `no-bonk`.
+World Snapshot format 31 stores the channel state, board windows, per-seat finale activations and timed potato return locks. World Frame remains 11 and SimulationProtocol
+remains 38 pending the coordinated release bump.
 
 ### ReplayCooldown
 

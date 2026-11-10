@@ -44,6 +44,7 @@ namespace SlopArena.EditorTools
             [CliArg("seed", "Nonzero Shared director seed.")] uint seed = 41,
             [CliArg("couch", "Replace CPU seats with spare connected pads; the current menu pad stays P1.")] bool couch = false)
         {
+            MankiMayhemView.ValidateCopy();
             if (cpus < 1 || cpus > 3 || seed == 0 || !Enum.TryParse(fighter, true, out CharacterClass selected) || selected == CharacterClass.None)
                 throw new ArgumentException("Expected 1–3 CPUs, nonzero seed, and an admitted fighter name.");
             if (!string.IsNullOrEmpty(SessionState.GetString(Key, ""))) throw new InvalidOperationException("Restore the preceding Mayhem session first.");
@@ -118,6 +119,7 @@ namespace SlopArena.EditorTools
         public static object LookCheck()
         {
             MayhemChannelLooks.Validate();
+            MankiMayhemView.ValidateCopy();
             return new { success = true, channels = MayhemChannels.All.Select(c => new {
                 c.CopyKey, pattern = MayhemChannelLooks.For(c).Pattern.ToString(),
                 chase = MayhemChannelLooks.For(c).Chase.ToString() }).ToArray() };

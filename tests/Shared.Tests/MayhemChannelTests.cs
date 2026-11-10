@@ -16,17 +16,18 @@ public class MayhemChannelTests
 
     private static readonly SpeedTier[] Tiers = { SpeedTier.One, SpeedTier.Two, SpeedTier.Three };
 
-    private static IEnumerable<(ChannelId Channel, SpeedTier Tier)> Cases()
+    private static IEnumerable<(ChannelId Channel, SpeedTier Tier, TwistId Twist)> Cases()
     {
         foreach (var entry in MayhemChannels.All)
             foreach (var tier in Tiers)
-                if (entry.Role == ChannelRole.Regular || tier == SpeedTier.Three) yield return (entry.Id, tier);
+                foreach (var twist in entry.Twists)
+                    if (entry.Role == ChannelRole.Regular || tier == SpeedTier.Three) yield return (entry.Id, tier, twist.Id);
     }
 
-    public static TheoryData<ushort, SpeedTier> ChannelTiers()
+    public static TheoryData<ushort, SpeedTier, byte> ChannelTiers()
     {
-        var data = new TheoryData<ushort, SpeedTier>();
-        foreach (var (channel, tier) in Cases()) data.Add(channel.Value, tier);
+        var data = new TheoryData<ushort, SpeedTier, byte>();
+        foreach (var (channel, tier, twist) in Cases()) data.Add(channel.Value, tier, twist.Value);
         return data;
     }
 
@@ -38,8 +39,12 @@ public class MayhemChannelTests
             var spawn = MatchFormat.MankiMayhem.StartFor(arena, i, 2);
             return new ChannelSeat((byte)i, (ulong)i + 1, new MayhemPose(spawn.X, .85f, spawn.Z, spawn.Yaw), .4f, 1.7f);
         }).ToArray();
-        return new ChannelSetup(5, 0, 0, SpeedTier.One, 100, 190, 490, stage, seats);
+        return new ChannelSetup(new SoloAiring(new(new(1), new(1), 5)), 0, 0, SpeedTier.One, 100, 190, 490, stage, seats);
     }
+
+    private static MayhemAiring SampleAiring(ChannelEntry entry) => entry.Id == MayhemChannels.PrimeTime
+        ? new RemixAiring(PrimePairs.BreakOutDodge, new(MayhemChannels.BreakOut, new(1), 5), new(MayhemChannels.Dodge, new(1), 7))
+        : new SoloAiring(new(entry.Id, entry.Twists[0].Id, 5));
 
     [Fact]
     public void EveryConcreteChannelIsRegisteredExactlyOnce()
@@ -47,7 +52,7 @@ public class MayhemChannelTests
         var stage = MayhemWorld.Arena().Arcade!.Mayhem!;
         var concrete = typeof(IMayhemChannel).Assembly.GetTypes()
             .Where(t => typeof(IMayhemChannel).IsAssignableFrom(t) && !t.IsAbstract && !t.IsInterface).ToHashSet();
-        var registered = MayhemChannels.All.Select(e => e.Create(SampleSetup(stage)).GetType()).ToList();
+        var registered = MayhemChannels.All.Select(e => e.Create(SampleSetup(stage) with { Airing = SampleAiring(e) }).GetType()).ToList();
         Assert.Equal(concrete.OrderBy(t => t.Name), registered.Distinct().OrderBy(t => t.Name));
         Assert.Equal(registered.Count, registered.Distinct().Count());
         Assert.Equal(MayhemChannels.All.Count, MayhemChannels.All.Select(e => e.Id).Distinct().Count());
@@ -58,11 +63,42 @@ public class MayhemChannelTests
 
     [Theory]
     [MemberData(nameof(ChannelTiers))]
-    public void RestoringAtEveryTickEqualsTheContinuousEpisode(ushort channelId, SpeedTier tier)
+    public void RestoringAtEveryTickEqualsTheContinuousEpisode(ushort channelId, SpeedTier tier, byte twistId)
     {
         var channel = new ChannelId(channelId);
-        var (continuous, episode) = MayhemWorld.Airing(channel, tier, roster: MayhemWorld.Four);
-        var (restored, _) = MayhemWorld.Airing(channel, tier, roster: MayhemWorld.Four, reverse: true);
+        var (continuous, episode) = MayhemWorld.Airing(channel, tier, roster: MayhemWorld.Four, twist: new(twistId));
+        var (restored, _) = MayhemWorld.Airing(channel, tier, roster: MayhemWorld.Four, reverse: true, twist: new(twistId));
+        AssertRestoringAtEveryTickEqualsTheContinuousEpisode(continuous, restored, episode, $"{MayhemChannels.Find(channel).CopyKey} tier {tier}");
+    }
+
+    /// <summary>Each pair once per child twist: goal twist k with hazard twist k, wrapping the shorter list.</summary>
+    public static TheoryData<byte, byte, byte> RemixTwistCover()
+    {
+        var data = new TheoryData<byte, byte, byte>();
+        foreach (var pair in PrimePairs.All)
+        {
+            var goals = MayhemChannels.Find(pair.Goal).Twists;
+            var hazards = MayhemChannels.Find(pair.Hazard).Twists;
+            for (int k = 0; k < Math.Max(goals.Count, hazards.Count); k++)
+                data.Add(pair.Id.Value, goals[k % goals.Count].Id.Value, hazards[k % hazards.Count].Id.Value);
+        }
+        return data;
+    }
+
+    [Theory]
+    [MemberData(nameof(RemixTwistCover))]
+    public void RestoringARemixAtEveryTickEqualsTheContinuousEpisode(byte pair, byte goalTwist, byte hazardTwist)
+    {
+        var (continuous, episode) = MayhemWorld.Remix(new(pair), new(goalTwist), new(hazardTwist), roster: MayhemWorld.Four);
+        var (restored, _) = MayhemWorld.Remix(new(pair), new(goalTwist), new(hazardTwist), roster: MayhemWorld.Four, reverse: true);
+        Assert.IsType<RemixAiring>(MayhemWorld.Plan(continuous).AiringAt(episode));
+        AssertRestoringAtEveryTickEqualsTheContinuousEpisode(continuous, restored, episode,
+            $"{PrimePairs.Find(new(pair)).CopyKey} twists {goalTwist}/{hazardTwist}");
+    }
+
+    private static void AssertRestoringAtEveryTickEqualsTheContinuousEpisode(ServerSimulation continuous, ServerSimulation restored,
+        int episode, string label)
+    {
         var cpus = MayhemWorld.Cpus(continuous, 6);
         MayhemWorld.StepCpus(continuous, cpus);
         uint end = MayhemWorld.Plan(continuous).Deadline(episode) + 3;
@@ -74,8 +110,13 @@ public class MayhemChannelTests
             var inputs = new Dictionary<ulong, InputState>();
             foreach (var (id, cpu) in cpus) inputs[id] = cpu.Decide(continuous, id);
             continuous.Tick(new(inputs)); restored.Tick(new(inputs));
-            Assert.True(continuous.CaptureSnapshot().ContentEquals(restored.CaptureSnapshot()),
-                $"{MayhemChannels.Find(channel).CopyKey} tier {tier} diverged at tick {continuous.CurrentTick}");
+            Assert.True(continuous.CaptureSnapshot().ContentEquals(restored.CaptureSnapshot()), $"{label} diverged at tick {continuous.CurrentTick}");
+            Assert.Equal(MayhemWorld.View(continuous).Scene.Zones, MayhemWorld.View(restored).Scene.Zones);
+            Assert.Equal(MayhemWorld.View(continuous).Scene.Targets, MayhemWorld.View(restored).Scene.Targets);
+            Assert.Equal(MayhemWorld.View(continuous).Scene.Carries, MayhemWorld.View(restored).Scene.Carries);
+            Assert.Equal(MayhemWorld.View(continuous).Scene.HitProgress, MayhemWorld.View(restored).Scene.HitProgress);
+            Assert.Equal(MayhemWorld.View(continuous).Scene.Bombs, MayhemWorld.View(restored).Scene.Bombs);
+            Assert.Equal(MayhemWorld.View(continuous).Scene.Watches, MayhemWorld.View(restored).Scene.Watches);
             Assert.Equal(continuous.LastTickMayhemEvents, restored.LastTickMayhemEvents);
             Assert.Equal(continuous.GetPresentationEvents(), restored.GetPresentationEvents());
             events += continuous.LastTickMayhemEvents.Count;
@@ -92,14 +133,14 @@ public class MayhemChannelTests
     {
         var cast = new[] { fighter };
         var failures = new List<string>();
-        foreach (var (channel, tier) in Cases())
+        foreach (var (channel, tier, twist) in Cases())
         {
-            var (sim, episode) = MayhemWorld.Airing(channel, tier, count: 2, roster: cast);
+            var (sim, episode) = MayhemWorld.Airing(channel, tier, count: 2, roster: cast, twist: twist);
             var cpus = MayhemWorld.Cpus(sim, 0);
-            if (channel == MayhemChannels.Spot) cpus.Remove(2);
+            if (MayhemChannels.Find(channel).ContestFor(twist) == ChannelContest.Scarce) cpus.Remove(2);
             var passed = MayhemWorld.RunEpisode(sim, episode, s => MayhemWorld.StepCpus(s, cpus));
-            if (channel == MayhemChannels.Spot ? !passed[0] : !passed.All(p => p))
-                failures.Add($"{MayhemChannels.Find(channel).CopyKey} tier {tier}: " + string.Join(", ",
+            if (MayhemChannels.Find(channel).ContestFor(twist) == ChannelContest.Scarce ? !passed[0] : !passed.All(p => p))
+                failures.Add($"{MayhemChannels.Find(channel).CopyKey} twist {twist.Value} tier {tier}: " + string.Join(", ",
                     MayhemWorld.View(sim).Contestants.Where(c => c.Failure != null).Select(c => $"{c.EntityId} {c.Failure!.Value.Cause}@{c.Failure.Value.Tick}")));
         }
         foreach (var (channel, cause) in new[] { (MayhemChannels.Spot, FailCause.OutsideSpot),
@@ -326,7 +367,7 @@ public class MayhemChannelTests
                 {
                     if (e.Kind == MayhemEventKind.Call) Array.Clear(hits);
                     if (e.Kind is MayhemEventKind.TargetHit or MayhemEventKind.TargetBroken)
-                        hits[MayhemWorld.View(sim).Scene.Targets.Single(t => t.EntityId == e.Subject).OwnerSeat]++;
+                        hits[MayhemWorld.View(sim).Scene.Targets.Single(t => t.EntityId == e.Subject).OwnerSeat!.Value]++;
                     if (e.Kind is MayhemEventKind.Pass or MayhemEventKind.Fail)
                     {
                         int seat = sim.MayhemShow.SeatOf(e.Subject);

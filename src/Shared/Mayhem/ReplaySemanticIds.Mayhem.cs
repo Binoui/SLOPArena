@@ -8,7 +8,7 @@ namespace SlopArena.Shared.Replays;
 /// </summary>
 internal static partial class ReplaySemanticIds
 {
-    internal static string Id(MayhemPhase v) => v > MayhemPhase.Ended ? "unknown" : v switch
+    internal static string Id(MayhemPhase v) => v > MayhemEnumLimits.Phase ? "unknown" : v switch
     {
         MayhemPhase.Intro => "intro",
         MayhemPhase.Call => "call",
@@ -18,7 +18,7 @@ internal static partial class ReplaySemanticIds
         MayhemPhase.Ended => "ended",
     };
 
-    internal static string Id(MayhemEventKind v) => v > MayhemEventKind.Impact ? "unknown" : v switch
+    internal static string Id(MayhemEventKind v) => v > MayhemEnumLimits.Event ? "unknown" : v switch
     {
         MayhemEventKind.Intro => "intro",
         MayhemEventKind.Call => "call",
@@ -41,7 +41,7 @@ internal static partial class ReplaySemanticIds
         MayhemEventKind.Impact => "impact",
     };
 
-    internal static string Id(FailCause v) => v > FailCause.BoardsRemain ? "unknown" : v switch
+    internal static string Id(FailCause v) => v > MayhemEnumLimits.Failure ? "unknown" : v switch
     {
         FailCause.Hazard => "hazard",
         FailCause.Fell => "fell",
@@ -49,9 +49,16 @@ internal static partial class ReplaySemanticIds
         FailCause.OutsideSpot => "outside-spot",
         FailCause.Caught => "caught",
         FailCause.BoardsRemain => "boards-remain",
+        FailCause.OutOfRing => "out-of-ring",
+        FailCause.OutOfFrame => "out-of-frame",
+        FailCause.Glitched => "glitched",
+        FailCause.NoBonk => "no-bonk",
+        FailCause.HeGotUp => "he-got-up",
+        FailCause.Misfire => "misfire",
+        FailCause.TooSlow => "too-slow",
     };
 
-    internal static string Id(SplatStyle v) => v > SplatStyle.Fallen ? "unknown" : v switch
+    internal static string Id(SplatStyle v) => v > MayhemEnumLimits.Splat ? "unknown" : v switch
     {
         SplatStyle.Toasted => "toasted",
         SplatStyle.Flattened => "flattened",
@@ -59,13 +66,29 @@ internal static partial class ReplaySemanticIds
         SplatStyle.Fallen => "fallen",
     };
 
-    internal static string Id(MayhemZoneKind v) => v > MayhemZoneKind.Spotlight ? "unknown" : v switch
+    internal static string Id(MayhemZoneKind v) => v > MayhemEnumLimits.Zone ? "unknown" : v switch
     {
         MayhemZoneKind.Spotlight => "spotlight",
+        MayhemZoneKind.SumoRing => "sumo-ring",
+        MayhemZoneKind.SelfieFrame => "selfie-frame",
+        MayhemZoneKind.GlitchPanel => "glitch-panel",
     };
 
-    internal static string Id(MayhemTargetKind v) => v > MayhemTargetKind.BoardStack ? "unknown" : v switch
+    internal static string Id(MayhemTargetKind v) => v > MayhemEnumLimits.Target ? "unknown" : v switch
     {
         MayhemTargetKind.BoardStack => "board-stack",
+        MayhemTargetKind.CardboardHead => "cardboard-head",
+        MayhemTargetKind.DecoyHead => "decoy-head",
+        MayhemTargetKind.DizzyHost => "dizzy-host",
+    };
+    internal static string Id(MayhemBombKind v) => v > MayhemEnumLimits.BombKind ? "unknown" : v switch
+    { MayhemBombKind.Aimed => "aimed", MayhemBombKind.Barrage => "barrage" };
+
+    internal static string Id(MayhemWatchKind v) => v > MayhemEnumLimits.Watch ? "unknown" : v switch
+    {
+        MayhemWatchKind.Look => "look",
+        MayhemWatchKind.FakeLook => "fake-look",
+        MayhemWatchKind.Draw => "draw",
+        MayhemWatchKind.FakeDraw => "fake-draw",
     };
 }

@@ -1,7 +1,7 @@
 using System;
 namespace SlopArena.Shared.Abilities;
 
-/// <summary>ADR-0063: a loop catch followed by a self-haul or a fighter zip and kick.</summary>
+/// <summary>ADR-0064: a loop catch followed by a self-haul or a fighter zip and kick.</summary>
 public sealed class GrappleAbility : ServerAbility, ITetherCatch, IRecoveryTurnCapability, ILandingContinuationCapability
 {
     private enum Phase : byte { Windup, Out, Haul, Pop, Zip, Kick, Miss, Done }

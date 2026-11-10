@@ -3,6 +3,8 @@ using System.Collections.Generic;
 
 namespace SlopArena.Shared.Mayhem;
 
+internal enum NoRunningTwist : byte { Looks = 1, FakeOut = 2, Rapid = 3 }
+
 /// <summary>NO RUNNING! tuning, indexed by speed tier. Provisional.</summary>
 public static class NoRunningTuning
 {
@@ -10,6 +12,7 @@ public static class NoRunningTuning
     public static readonly ushort[] WarningTicks = { 45, 38, 32 };
     public static readonly ushort[] WatchTicks = { 70, 60, 54 };
     public static readonly ushort[] CalmTicks = { 50, 40, 32 };
+    public const ushort FakeTurnTicks = 12, RapidWarningTicks = 24, RapidWatchTicks = 24, RapidCalmTicks = 24;
     public const ushort CalmJitterTicks = 24;
     public const ushort FirstWarningTicks = 40;
     public const ushort EndMarginTicks = 6;
@@ -42,15 +45,21 @@ internal sealed class NoRunningChannel : IMayhemChannel
 
     internal static NoRunningChannel Start(ChannelSetup setup)
     {
-        int tier = (int)setup.Tier;
+        var twist = (NoRunningTwist)setup.Draw.Twist.Value;
+        var lengths = twist switch
+        {
+            NoRunningTwist.Looks or NoRunningTwist.FakeOut => (Warning: NoRunningTuning.WarningTicks[(int)setup.Tier], Watch: NoRunningTuning.WatchTicks[(int)setup.Tier], Calm: NoRunningTuning.CalmTicks[(int)setup.Tier]),
+            NoRunningTwist.Rapid => (Warning: NoRunningTuning.RapidWarningTicks, Watch: NoRunningTuning.RapidWatchTicks, Calm: NoRunningTuning.RapidCalmTicks),
+        };
         var watches = new List<WatchCue>();
         uint warning = setup.PlayStart + NoRunningTuning.FirstWarningTicks;
         for (int i = 0; i < NoRunningTuning.MaxWatches; i++)
         {
-            uint start = warning + NoRunningTuning.WarningTicks[tier], end = start + NoRunningTuning.WatchTicks[tier];
+            bool fake = twist == NoRunningTwist.FakeOut && i % 2 == 0;
+            uint start = warning + (fake ? NoRunningTuning.FakeTurnTicks : lengths.Warning), end = fake ? start : start + lengths.Watch;
             if (end + NoRunningTuning.EndMarginTicks > setup.Deadline) break;
-            watches.Add(new WatchCue(setup.Lane, (ushort)i, warning, start, end));
-            warning = end + NoRunningTuning.CalmTicks[tier]
+            watches.Add(new WatchCue(setup.Lane, (ushort)i, warning, start, end, fake ? MayhemWatchKind.FakeLook : MayhemWatchKind.Look));
+            warning = end + lengths.Calm
                 + MayhemMath.Sample(setup.Seed, setup.Lane, (uint)i) % (NoRunningTuning.CalmJitterTicks + 1u);
         }
         return new NoRunningChannel(setup.Lane, setup.Seed, watches.ToArray(), setup.Stage, new uint[4]);
@@ -58,7 +67,7 @@ internal sealed class NoRunningChannel : IMayhemChannel
 
     private bool Watched(uint tick)
     {
-        foreach (var watch in _watches) if (tick >= watch.StartTick && tick < watch.EndTick) return true;
+        foreach (var watch in _watches) if (watch.Kind == MayhemWatchKind.Look && tick >= watch.StartTick && tick < watch.EndTick) return true;
         return false;
     }
 
@@ -97,7 +106,9 @@ internal sealed class NoRunningChannel : IMayhemChannel
     public MayhemCpuIntent Cpu(in CpuProbe probe)
     {
         var self = probe.Self.State;
-        if (probe.Slip && _watches.Length > 0 && probe.Seen >= _watches[0].WarningTick && probe.Seen < _watches[0].StartTick + 8)
+        WatchCue? firstLook = null;
+        foreach (var watch in _watches) if (watch.Kind == MayhemWatchKind.Look) { firstLook = watch; break; }
+        if (probe.Slip && firstLook is { } first && probe.Seen >= first.WarningTick && probe.Seen < first.StartTick + 8)
             return new(CpuAction.Move, self.PX < MayhemMath.CenterX(_stage) ? _stage.MaxX - 2 : _stage.MinX + 2, self.PZ);
         foreach (var watch in _watches)
             if (probe.Seen + 6 >= watch.WarningTick && probe.Tick < watch.EndTick + 2) return new(CpuAction.Brake, self.PX, self.PZ);
@@ -116,7 +127,7 @@ internal sealed class NoRunningChannel : IMayhemChannel
     {
         w.WriteByte(_lane); w.WriteUInt(_seed);
         w.WriteByte((byte)_watches.Length);
-        foreach (var watch in _watches) { w.WriteUInt(watch.WarningTick); w.WriteUInt(watch.StartTick); w.WriteUInt(watch.EndTick); }
+        foreach (var watch in _watches) { w.WriteUInt(watch.WarningTick); w.WriteUInt(watch.StartTick); w.WriteUInt(watch.EndTick); w.WriteByte((byte)watch.Kind); }
         foreach (uint until in _exemptUntil) w.WriteUInt(until);
     }
 
@@ -125,13 +136,14 @@ internal sealed class NoRunningChannel : IMayhemChannel
         byte lane = r.ReadByte();
         uint seed = r.ReadUInt();
         int count = r.ReadByte();
-        if (lane > MayhemEvent.MaxLane || count > NoRunningTuning.MaxWatches) throw SnapshotReader.Malformed("NO RUNNING! state");
+        if (lane != context.Lane || seed != context.Seed || count > NoRunningTuning.MaxWatches) throw SnapshotReader.Malformed("NO RUNNING! state");
         var watches = new WatchCue[count];
         for (int i = 0; i < count; i++)
         {
-            watches[i] = new WatchCue(lane, (ushort)i, r.ReadUInt(), r.ReadUInt(), r.ReadUInt());
+            watches[i] = new WatchCue(lane, (ushort)i, r.ReadUInt(), r.ReadUInt(), r.ReadUInt(), (MayhemWatchKind)r.ReadByte());
             var watch = watches[i];
-            if (watch.WarningTick < context.PlayStart || watch.StartTick <= watch.WarningTick || watch.EndTick <= watch.StartTick
+            if (watch.WarningTick < context.PlayStart || watch.StartTick <= watch.WarningTick || watch.Kind > MayhemEnumLimits.Watch
+                || (watch.Kind == MayhemWatchKind.Look ? watch.EndTick <= watch.StartTick : watch.EndTick != watch.StartTick)
                 || watch.EndTick > context.Deadline || i > 0 && watch.WarningTick < watches[i - 1].EndTick)
                 throw SnapshotReader.Malformed("NO RUNNING! watch");
         }

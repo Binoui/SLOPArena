@@ -63,7 +63,7 @@ fit her last and agree the input window first.
 It assigns vertices by their dominant skin bone and fits the 85th percentile of their distances
 from each segment. Left and right segments share a region but use the nearest side.
 It includes Manki's weighted arm deform bones and tail chains on both tailed fighters.
-It excludes skirt, cape, coat, and hat bones. Bashie's shell can add a dedicated capsule.
+It excludes skirt, cape, coat, hat and spur bones (Dusty's boot spurs ride their own `LeftSpur`/`RightSpur` bones). Bashie's shell can add a dedicated capsule.
 Missing hand-end mappings use the hand itself. The head uses a world-up end offset.
 
 The writer re-reads `character.json` and replaces only its `hurtboxBoneDefs` array.
@@ -75,7 +75,7 @@ The asset import and explicit native package cook run in the same owned batch.
 resolves semantic animation aliases, and calls `ServerSimulation.BuildEntitiesFromState`.
 It rejects missing runtime shapes and cooked/live bone errors above 0.1 mm.
 It reports both whole-mesh and hittable-body coverage.
-Body totals exclude cloth and hats. Per-region results still show those excluded surfaces.
+Body totals exclude cloth, hats and spurs. Per-region results still show those excluded surfaces.
 `hurtbox_sphere_baseline.json` retains the original seven-sphere definitions and scales for comparison.
 Surface area comes from the mesh triangles, not vertex counts. Coverage is not a hit-rate score.
 

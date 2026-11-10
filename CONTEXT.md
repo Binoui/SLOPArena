@@ -266,6 +266,15 @@ _Avoid_: card, round
 **Episode**:
 One airing of a Channel in the show: Call (frozen at the starts, telegraphs shown), Play (start inclusive, deadline exclusive) and Verdict. SPEED UP! beats open acts two and three. The show's cursor is a function of the seed and the tick.
 
+**Airing**:
+The immutable Mayhem episode draw. A SoloAiring has one ChannelDraw with a channel, twist and pattern seed. A RemixAiring has a pair and two child draws. Timing and the extra verb come from the airing.
+
+**Twist**:
+A named variation in a channel's registry. A seeded cycle counts solo airings and remix children together and uses every twist before repeating one.
+
+**Remix**:
+A PRIME TIME! airing with a goal channel in lane 0 and a hazard channel in lane 1. The allowed pairs are BREAK OUT! + DODGE! and SPOT! + JUMP!, each child with its own twist. Acts one and two use different pairs. Act three cannot repeat an earlier pair with both of the same twists. Both children must pass for the contestant to pass.
+
 **Verdict**:
 A contestant's result for one Episode: a pass bit, or the Episode's failure with its cause, splat style and anchor pose. The director is the only writer. A failure latches at once; a pass is committed only at the deadline.
 
@@ -647,5 +656,5 @@ A landed hit that opens the existing command hold, with a CommandGrabbed victim 
 Unlike Capture, it is blocked by Shield and does not hold armoured, paired, CutHeld or Swept fighters.
 Joust's scoop deals small damage, carries through the post-movement pair pass and releases as an ordinary credited fling.
 
-- **Grapple:** a lasso capability that pulls its owner to a standable lip, or holds a caught fighter while its owner zips in and kicks (ADR-0063). It spends an ordinary slot cooldown without landing/hit refresh.
+- **Grapple:** a lasso capability that pulls its owner to a standable lip, or holds a caught fighter while its owner zips in and kicks (ADR-0064). It spends an ordinary slot cooldown without landing/hit refresh.
 - **Lip:** the boundary of an upward-facing standable surface, found deterministically at the grapple throw. Walls, moving objects and hazards are not grapple anchors.

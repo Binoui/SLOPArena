@@ -12,7 +12,7 @@ namespace SlopArena.Client.World
     {
         private Mesh _starMesh, _propCone;
         private Transform _bombTemplateHolder;
-        private Material _cardboard, _tape, _wood, _concrete, _dust, _tile, _stencilText;
+        private Material _cardboard, _tape, _wood, _concrete, _dust, _tile, _stencilText, _selfiePink, _glitchGreen, _voidPanel;
         private readonly MaterialPropertyBlock _propTint = new();
         private readonly Dictionary<ulong, BoardStack> _boardStacks = new();
         private readonly Dictionary<int, StarSpot> _starSpots = new();
@@ -29,6 +29,9 @@ namespace SlopArena.Client.World
         {
             public Transform Root;
             public Renderer Pad, Beam;
+            public float InitialRadius;
+            public LineRenderer Boundary;
+            public TextMesh Label;
         }
         private sealed class BombTarget
         {
@@ -42,6 +45,9 @@ namespace SlopArena.Client.World
         }
         private void CreatePropMaterials()
         {
+            _selfiePink = Material(new Color(1, .35f, .78f));
+            _glitchGreen = Material(new Color(.12f, 1, .27f));
+            _voidPanel = Material(new Color(.005f, .008f, .006f));
             _starMesh = StarMesh(); _propCone = BeamMesh();
             _deckMeshes.Add(_starMesh); _deckMeshes.Add(_propCone);
             _cardboard = Glow(new Color(.78f, .57f, .32f), .12f);
@@ -158,6 +164,14 @@ namespace SlopArena.Client.World
         {
             _expiredWaves.Clear();
             foreach (var pair in _groundWaves) _expiredWaves.Add(pair.Key);
+            for (int i = 0; i < view.Scene.Rings.Count; i++)
+            {
+                var cue = view.Scene.Rings[i];
+                var marker = Prop("Slam origin " + cue.Lane + "/" + cue.Ordinal, PrimitiveType.Cylinder, _hot);
+                marker.position = new Vector3(cue.Center.X, _deckTop + .06f, cue.Center.Z);
+                marker.localScale = new Vector3(1.8f, .04f, 1.8f);
+                marker.gameObject.SetActive(view.Cursor.Gameplay && (long)view.Tick >= (long)cue.SlamTick - 30 && view.Tick < cue.SlamTick + 12);
+            }
             for (int ringIndex = 0; ringIndex < view.Scene.Rings.Count; ringIndex++)
             {
                 var cue = view.Scene.Rings[ringIndex];
@@ -181,7 +195,7 @@ namespace SlopArena.Client.World
                     var other = view.Scene.Rings[otherIndex];
                     if (other.SlamTick != cue.SlamTick && System.Math.Abs((long)other.SlamTick - cue.SlamTick) < 60) { paired = true; break; }
                 }
-                float crest = cue.HalfHeight * (cue.Ordinal % 2 == 0 ? .75f : 1.35f);
+                float crest = cue.HalfHeight * 2;
                 for (int i = 0; i < wave.Tiles.Length; i++)
                 {
                     float a = i * Mathf.PI * 2 / wave.Tiles.Length;
@@ -233,13 +247,148 @@ namespace SlopArena.Client.World
             }
             return stack;
         }
+        private sealed class VarietyZone
+        {
+            public Transform Root, Fill, Camera;
+            public LineRenderer Edge;
+            public TextMesh Label;
+        }
+        private sealed class BonkHead
+        {
+            public Transform Root;
+            public ushort Ordinal;
+            public MayhemTargetKind Kind;
+        }
+        private readonly Dictionary<int, VarietyZone> _varietyZones = new();
+        private readonly Dictionary<ulong, BonkHead> _bonkHeads = new();
+        private Transform _glitchGrid;
+        private void UpdateVarietyZone(ZoneCue cue, MayhemShowView view)
+        {
+            int key = cue.Lane * 256 + cue.Ordinal;
+            if (!_varietyZones.TryGetValue(key, out var prop))
+            {
+                var root = PropRoot(cue.Kind.ToString());
+                prop = new VarietyZone { Root = root, Edge = Line(root, "Cue boundary", _gold, .16f) };
+                prop.Fill = Part(root, "Panel face", _tile, Vector3.zero, Vector3.one);
+                prop.Label = Lettering(root, "Cue instruction", new Vector3(0, .18f, 0), .7f, Color.white);
+                prop.Label.transform.localRotation = Quaternion.Euler(70, 0, 0);
+                if (cue.Kind == MayhemZoneKind.SelfieFrame)
+                {
+                    prop.Camera = new GameObject("Nyx selfie camera").transform;
+                    prop.Camera.SetParent(root, false);
+                    Part(prop.Camera, "Pink camera body", _selfiePink, Vector3.zero, new Vector3(.9f, .6f, .3f));
+                    DeckObject(prop.Camera, "Camera lens", _sphereMesh, _ink, new Vector3(0, 0, -.2f), Vector3.one * .35f);
+                    Part(prop.Camera, "Flash bulb", _gold, new Vector3(.3f, .3f, -.15f), Vector3.one * .2f);
+                }
+                _varietyZones.Add(key, prop);
+            }
+            bool selfie = cue.Kind == MayhemZoneKind.SelfieFrame;
+            bool ring = cue.Kind == MayhemZoneKind.SumoRing;
+            long flashAge = (long)view.Tick - cue.ArmedFrom;
+            bool flash = selfie && flashAge >= 0 && flashAge < 8;
+            prop.Root.gameObject.SetActive(view.Cursor.Gameplay && (cue.ActiveAt(view.Tick) || flash));
+            var center = cue.CenterAt(view.Tick);
+            prop.Root.position = new Vector3(center.X, _deckTop + .12f, center.Z);
+            float width = cue.RadiusAt(view.Tick), depth = cue.HalfDepthAt(view.Tick);
+            bool armed = cue.ArmedAt(view.Tick);
+            prop.Edge.sharedMaterial = ring ? (cue.ActiveUntil <= view.Tick + 90 ? _hot : _wood)
+                : selfie ? (flash ? _gold : _selfiePink) : armed ? _hot : _glitchGreen;
+            prop.Edge.startWidth = prop.Edge.endWidth = ring ? .22f : selfie ? .24f : .12f;
+            if (ring) SetCircle(prop.Edge, 1, width);
+            else
+            {
+                prop.Edge.positionCount = 5;
+                prop.Edge.SetPositions(new[] { new Vector3(-width, 0, -depth), new Vector3(-width, 0, depth),
+                    new Vector3(width, 0, depth), new Vector3(width, 0, -depth), new Vector3(-width, 0, -depth) });
+            }
+            if (prop.Camera != null) prop.Camera.localPosition = new Vector3(width, .5f, -depth);
+            prop.Fill.gameObject.SetActive(!ring && (!selfie || flash));
+            prop.Fill.GetComponent<Renderer>().sharedMaterial = selfie ? _gold : armed ? _voidPanel : _glitchGreen;
+            prop.Fill.localScale = new Vector3(width * 2 - .08f, .025f, depth * 2 - .08f);
+            var tint = selfie ? Color.white : armed ? new Color(.005f, .008f, .006f) : new Color(.12f, 1, .27f);
+            if (!selfie && !armed && !ClientSettingsService.Instance.ReducedFlashing)
+                tint *= .65f + .35f * Mathf.Sin(view.Tick * .35f + cue.Ordinal);
+            _propTint.SetColor("_BaseColor", tint);
+            _propTint.SetColor("_EmissionColor", Color.black);
+            prop.Fill.GetComponent<Renderer>().SetPropertyBlock(_propTint);
+            prop.Label.transform.localPosition = new Vector3(0, .18f, ring ? -width - .5f : -depth - .45f);
+            prop.Label.text = ring ? "STAY IN!" : selfie ? (flashAge >= 0 ? "SNAP!" : "SMILE! " + Mathf.CeilToInt((cue.ArmedFrom - view.Tick) / 60f)) : armed ? "GONE!" : "JUMP OR MOVE!";
+            prop.Label.color = ring && cue.ActiveUntil <= view.Tick + 90 ? new Color(1, .3f, .1f)
+                : selfie ? new Color(1, .55f, .87f) : Color.green;
+        }
+        private void UpdateBonkHead(TargetCue cue, MayhemShowView view)
+        {
+            if (_bonkHeads.TryGetValue(cue.EntityId, out var head) && (head.Ordinal != cue.Ordinal || head.Kind != cue.Kind))
+            {
+                Object.Destroy(head.Root.gameObject); _bonkHeads.Remove(cue.EntityId); head = null;
+            }
+            if (head == null)
+            {
+                head = new BonkHead { Root = PropRoot("Cardboard Manki head"), Ordinal = cue.Ordinal, Kind = cue.Kind };
+                Part(head.Root, "Cardboard face", _cardboard, Vector3.zero, new Vector3(1.25f, 1.35f, .18f));
+                for (int side = -1; side <= 1; side += 2)
+                {
+                    DeckObject(head.Root, "Round cardboard ear", _sphereMesh, _cardboard, new Vector3(side * .72f, .12f, 0), new Vector3(.4f, .5f, .18f));
+                    Part(head.Root, "Painted eye", _ink, new Vector3(side * .25f, .25f, -.11f), new Vector3(.13f, .2f, .03f));
+                }
+                Part(head.Root, "Grin", _ink, new Vector3(0, -.22f, -.11f), new Vector3(.8f, .25f, .03f));
+                Part(head.Root, "Teeth", _wood, new Vector3(0, -.18f, -.14f), new Vector3(.65f, .08f, .02f));
+                Part(head.Root, "Wooden pop-up stick", _wood, new Vector3(0, -.8f, .06f), new Vector3(.16f, .5f, .15f));
+                if (cue.Kind == MayhemTargetKind.DecoyHead)
+                {
+                    var fuse = Line(head.Root, "Lit decoy fuse", _hot, .1f); fuse.positionCount = 3;
+                    fuse.SetPositions(new[] { new Vector3(0, .65f, 0), new Vector3(.1f, 1, 0), new Vector3(.4f, 1.15f, 0) });
+                    DeckObject(head.Root, "Burning fuse", _sphereMesh, _hot, new Vector3(.4f, 1.15f, 0), Vector3.one * .25f);
+                    var label = Lettering(head.Root, "Decoy warning", new Vector3(0, .75f, -.2f), .65f, new Color(1, .3f, .1f)); label.text = "BOMB!";
+                }
+                _bonkHeads.Add(cue.EntityId, head);
+            }
+            bool claimed = cue.HitsLeft == 0;
+            head.Root.gameObject.SetActive(view.Cursor.Gameplay && view.Tick >= cue.ActiveFrom && view.Tick < cue.ActiveUntil);
+            float rise = Mathf.Clamp01(((long)view.Tick - cue.ActiveFrom) / 8f);
+            float duck = Mathf.Clamp01(((long)cue.ActiveUntil - view.Tick) / 8f);
+            head.Root.position = new Vector3(cue.Center.X, claimed ? _deckTop + .12f : _deckTop + .8f * Mathf.Min(rise, duck), cue.Center.Z);
+            head.Root.localScale = claimed ? new Vector3(1.3f, .12f, 1) : new Vector3(1, Mathf.Max(.08f, Mathf.Min(rise, duck)), 1);
+            head.Root.localRotation = claimed ? Quaternion.Euler(75, 0, 0) : Quaternion.identity;
+        }
+        private void UpdateVarietyProps(MayhemShowView view)
+        {
+            foreach (var zone in _varietyZones.Values) zone.Root.gameObject.SetActive(false);
+            foreach (var head in _bonkHeads.Values) head.Root.gameObject.SetActive(false);
+            bool glitch = view.Channel?.Id == MayhemChannels.Glitch;
+            if (glitch && _glitchGrid == null)
+            {
+                _glitchGrid = PropRoot("Glitch deck grid");
+                for (int i = 0; i <= 4; i++)
+                {
+                    float x = Mathf.Lerp(_deckMinX, _deckMaxX, i / 4f), z = Mathf.Lerp(_deckMinZ, _deckMaxZ, i / 4f);
+                    var column = Line(_glitchGrid, "Grid column", _tile, .08f); column.positionCount = 2;
+                    column.SetPositions(new[] { new Vector3(x, _deckTop + .08f, _deckMinZ), new Vector3(x, _deckTop + .08f, _deckMaxZ) });
+                    var row = Line(_glitchGrid, "Grid row", _tile, .08f); row.positionCount = 2;
+                    row.SetPositions(new[] { new Vector3(_deckMinX, _deckTop + .08f, z), new Vector3(_deckMaxX, _deckTop + .08f, z) });
+                }
+            }
+            if (_glitchGrid != null) _glitchGrid.gameObject.SetActive(glitch && view.Cursor.Gameplay);
+            foreach (var cue in view.Scene.Zones)
+                if (cue.Kind != MayhemZoneKind.Spotlight) UpdateVarietyZone(cue, view);
+            foreach (var cue in view.Scene.Targets)
+                if (cue.Kind == MayhemTargetKind.CardboardHead || cue.Kind == MayhemTargetKind.DecoyHead) UpdateBonkHead(cue, view);
+        }
         private void UpdateCraftProps(MayhemShowView view)
         {
+            UpdateVarietyProps(view);
+            UpdateFinalChannels(view);
             for (int targetIndex = 0; targetIndex < view.Scene.Targets.Count; targetIndex++)
             {
                 var target = view.Scene.Targets[targetIndex];
+                if (target.Kind != MayhemTargetKind.BoardStack) continue;
                 if (!_boardStacks.TryGetValue(target.EntityId, out var stack)) { stack = CreateBoards(target); _boardStacks.Add(target.EntityId, stack); }
                 stack.Root.position = Point(target.Center);
+                var colour = Color.white;
+                if (target.OwnerSeat is byte seat && seat < view.Contestants.Count)
+                    colour = SeatColours.For(_view.Find(view.Contestants[seat].EntityId).PlayerNumber);
+                _propTint.SetColor("_BaseColor", colour);
+                foreach (var half in stack.Halves) half.GetComponent<Renderer>().SetPropertyBlock(_propTint);
                 for (int i = 0; i < target.Hits; i++)
                 {
                     bool broken = i >= target.HitsLeft;
@@ -258,11 +407,12 @@ namespace SlopArena.Client.World
             for (int zoneIndex = 0; zoneIndex < view.Scene.Zones.Count; zoneIndex++)
             {
                 var zone = view.Scene.Zones[zoneIndex];
+                if (zone.Kind != MayhemZoneKind.Spotlight) continue;
                 int key = zone.Lane * 256 + zone.Ordinal;
                 if (!_starSpots.TryGetValue(key, out var spot))
                 {
                     var root = PropRoot("Star spotlight");
-                    Circle(root, "Exact scoring boundary", _wood, .10f, 1, zone.Radius);
+                    var boundary = Circle(root, "Exact scoring boundary", _wood, .10f, 1, zone.Radius);
                     var mesh = _starMesh;
                     var pad = DeckObject(root, "Silver scoring star", mesh, _wood, new Vector3(0, .025f, 0), Vector3.one * zone.Radius * .94f);
                     for (int i = 0; i < 10; i++)
@@ -273,16 +423,25 @@ namespace SlopArena.Client.World
                     var cone = DeckObject(root, "Theatrical cone", _propCone, _beamMaterial, Vector3.up * 8, new Vector3(zone.Radius, zone.Radius, 8));
                     cone.localRotation = Quaternion.Euler(90, 0, 0);
                     DeckObject(root, "Overhead lamp", _sphereMesh, _tape, Vector3.up * 8, new Vector3(.7f, .45f, .7f));
-                    spot = new StarSpot { Root = root, Pad = pad.GetComponent<Renderer>(), Beam = cone.GetComponent<Renderer>() }; _starSpots.Add(key, spot);
+                    var label = Lettering(root, "Spotlight scoring window", new Vector3(0, .05f, -zone.Radius - .4f), .45f, Color.white);
+                    label.transform.localRotation = Quaternion.Euler(90, 0, 0);
+                    spot = new StarSpot { Root = root, Pad = pad.GetComponent<Renderer>(), Beam = cone.GetComponent<Renderer>(), InitialRadius = zone.Radius, Boundary = boundary, Label = label }; _starSpots.Add(key, spot);
                 }
-                spot.Root.position = Point(zone.Center) + Vector3.up * .08f;
+                spot.Root.gameObject.SetActive(zone.ActiveAt(view.Tick) && view.Cursor.Gameplay);
+                var center = zone.CenterAt(view.Tick);
+                float radius = zone.RadiusAt(view.Tick);
+                spot.Root.position = Point(center) + Vector3.up * .08f;
+                spot.Root.localScale = new Vector3(radius / spot.InitialRadius, 1, radius / spot.InitialRadius);
+                spot.Boundary.startWidth = spot.Boundary.endWidth = zone.ArmedAt(view.Tick) ? .24f : .07f;
+                spot.Boundary.sharedMaterial = zone.ArmedAt(view.Tick) ? _gold : _wood;
+                spot.Label.text = zone.ArmedAt(view.Tick) ? "COUNTS AT BUZZER" : "KEEP MOVING";
                 Color colour = new Color(.74f, .79f, .84f); float nearest = float.MaxValue; int seat = int.MaxValue;
                 foreach (var contestant in view.Contestants)
                 {
                     if (!contestant.ObjectiveMet || contestant.Withdrawn) continue;
                     var state = _sim.GetState(contestant.EntityId);
-                    float dx = state.PX - zone.Center.X, dz = state.PZ - zone.Center.Z, distance = dx * dx + dz * dz;
-                    if (distance > zone.Radius * zone.Radius || distance > nearest || distance == nearest && contestant.Seat >= seat) continue;
+                    float dx = state.PX - center.X, dz = state.PZ - center.Z, distance = dx * dx + dz * dz;
+                    if (distance > radius * radius || distance > nearest || distance == nearest && contestant.Seat >= seat) continue;
                     nearest = distance; seat = contestant.Seat; colour = SeatColours.For(_view.Find(contestant.EntityId).PlayerNumber);
                 }
                 _propTint.SetColor("_BaseColor", colour); spot.Pad.SetPropertyBlock(_propTint);
@@ -305,7 +464,10 @@ namespace SlopArena.Client.World
             for (int bombIndex = 0; bombIndex < view.Scene.Bombs.Count; bombIndex++)
             {
                 var bomb = view.Scene.Bombs[bombIndex];
-                if (!bomb.Launched) continue;
+                if (bomb.Kind == MayhemBombKind.Barrage) continue;
+                bool cage = view.Airing is SoloAiring solo && solo.Channel == MayhemChannels.BreakOut
+                    || view.Airing is RemixAiring remix && remix.Goal.Channel == MayhemChannels.BreakOut && bomb.Lane == 0;
+                if (!bomb.Launched && !cage) continue;
                 int key = bomb.Lane * 256 + bomb.Ordinal;
                 if (!_bombTargets.TryGetValue(key, out var target))
                 {
@@ -335,14 +497,21 @@ namespace SlopArena.Client.World
                 var camera = _camera();
                 var landing = camera.WorldToViewportPoint(Point(bomb.Landing));
                 var marker = new Vector3(Mathf.Clamp(landing.x, .06f, .94f), .72f, landing.z);
+                target.Incoming.gameObject.SetActive(bomb.Launched);
+                target.Shadow.gameObject.SetActive(bomb.Launched);
                 target.Incoming.position = camera.ViewportToWorldPoint(marker);
                 target.Incoming.rotation = camera.transform.rotation;
+                target.Incoming.localScale = Vector3.one * Mathf.Max(1f, bomb.BlastRadius / DodgeTuning.BlastRadius);
                 target.Rim.startWidth = target.Rim.endWidth = .19f * pulse;
                 target.Shadow.localScale = new Vector3(1, .006f, 1) * Mathf.Lerp(.2f, bomb.BlastRadius * 1.3f, progress);
             }
         }
         private void ResetCraftProps()
         {
+            ResetFinalChannels();
+            foreach (var p in _varietyZones.Values) Object.Destroy(p.Root.gameObject); _varietyZones.Clear();
+            foreach (var p in _bonkHeads.Values) Object.Destroy(p.Root.gameObject); _bonkHeads.Clear();
+            if (_glitchGrid != null) Object.Destroy(_glitchGrid.gameObject); _glitchGrid = null;
             foreach (var p in _boardStacks.Values) Object.Destroy(p.Root.gameObject); _boardStacks.Clear();
             foreach (var p in _starSpots.Values) Object.Destroy(p.Root.gameObject); _starSpots.Clear();
             foreach (var p in _bombTargets.Values) Object.Destroy(p.Root.gameObject); _bombTargets.Clear();
@@ -352,7 +521,7 @@ namespace SlopArena.Client.World
         {
             ResetCraftProps();
             Object.Destroy(_bombTemplateHolder.gameObject);
-            foreach (var material in new[] { _cardboard, _tape, _wood, _concrete, _dust, _tile, _stencilText }) Object.Destroy(material);
+            foreach (var material in new[] { _cardboard, _tape, _wood, _concrete, _dust, _tile, _stencilText, _selfiePink, _glitchGreen, _voidPanel }) Object.Destroy(material);
         }
     }
 }

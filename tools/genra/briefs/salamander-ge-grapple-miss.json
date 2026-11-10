@@ -1,0 +1,247 @@
+{
+  "name": "salamander-ge-grapple-miss",
+  "purpose": "special",
+  "rigpack": "artifacts/genra-rigpacks/salamander-unity-moves",
+  "character": "Dusty, the tiger-salamander cowboy (package salamander). His model and rig were rebuilt on 2026-11-05: 63 joints, a Humanoid body with Mixamo names; each hand has a thumb and FOUR fingers (Thumb, Index, Middle, Ring and Pinky chains). The game makes Pinky1-3 copy Ring1-3 (a RotationConstraint), so always curl the pinky exactly like the ring finger. Five tail joints Tail1-Tail5 hang under Hips. Three rigid joints sit under Head: Hat (his wide cowboy hat; the joint is at the crown's centre, 3 cm under his skull top), Mustache (the fake mustache glued on his snout) and Straw (a wheat straw in his mouth). A rigid steel spur sits on each boot heel (LeftSpur, RightSpur, children of the feet that no clip animates). Measured on this rig pack (2026-11-05): upper arm 0.133 m, forearm 0.118 m, wrist to middle knuckle 0.065 m, so shoulder to middle knuckle is at most 0.32 m; thigh 0.214 m, shin 0.224 m (hip to ankle 0.44 m straight); shoulder joints 0.20 m apart. In his showdown idle his hip joints stand about 0.50 m above the floor, the Head joint 0.23 m above the hips, the Hat joint 0.34 m and the hat's crown top 0.48 m. The hat brim is about 0.50 m across (0.25 m from the Hat joint to its edge) at about the Hat joint's height. The game draws him 1.8 times bigger. He wears a cropped brown leather vest over a cream shirt, an orange neckerchief, a belt with a holster and a coiled rope hanging on his right hip (part of the body mesh), blue jeans and big brown boots. There is no poncho and no cloth simulation: everything you see is in the rig. A thick spotted tail hangs behind him from the seat of his jeans.",
+  "references": {
+    "showdown": "references/showdown.usda",
+    "idle": "references/idle.usda",
+    "fall": "references/fall.usda"
+  },
+  "entry": {
+    "reference": "showdown",
+    "tick": 0,
+    "match": false
+  },
+  "exit": {
+    "from_tick": 40,
+    "reference": "fall",
+    "tick": 0
+  },
+  "views": [
+    "gameplay",
+    "profile",
+    "front",
+    "three-quarter-right"
+  ],
+  "images": [
+    "../../../tmp/dusty-model-v2/new-model.jpg",
+    "../../../tmp/dusty-grapple/05-miss.png",
+    "images/fall-entry.png"
+  ],
+  "image_notes": "1: Dusty's real model (T-pose front, three-quarter, side and back, and a face close-up); his identity and proportions are authoritative. 2: the owner-approved concept for the miss: the empty loop flopping off his raised right fist, eyes wide, hat jumping up off his head, the left arm and the legs flailing. 3: his fall pose on this rig, this clip's end pose. In the concept the hat leaves his head; in the rig it can only tip up (see THE HAT HERE). The concept frames are owner-approved for pose energy and silhouette, not measured data: their limbs are longer than his real ones, so match the shapes within his reach. The stage, the rope and other fighters in them are drawn by the game, not the rig.",
+  "notes": "Dusty E (planned anim.salamander.ge-miss), Lasso Grapple, clip 7 of 7, engine phase Miss: the loop missed (no edge, the stage blocked it, or a shield stopped it). The flop is one presentation event the game draws from the right hand; he falls with gravity for missRecoveryTicks (first guess 20 game ticks), then he is free (Big Iron is his backup). Authored 40 ticks, about double. Tick 0 repeats the out pose's targets (entry.match false until the throw keys are approved); tick 40 is his fall pose. The hat can only rotate (joint translations are frozen by the checks and the hat is in the Head skin region), so its 'lift' is a tip up and back, kept out of his head.",
+  "description": "Dusty's E, Lasso Grapple: the miss. The rope goes slack, the loop flops, and for one beat the legend of the West flails in mid-air with his hat jumping off his head, then pats it back down and drops, dignity bruised. The joke is on his dignity.\n\nWho he is. Dusty (image 1, his real model) is a small-time tiger salamander who wants to be a legend of the West: orange-yellow skin with dark brown blotches, a smug half-lidded look, a fake curly mustache glued on his snout, a wheat straw in his mouth, a wide brown hat with an orange band, an orange neckerchief, a cropped leather vest over a cream shirt, jeans, big brown boots with steel spurs. He can't afford a gun. He is proud, scrappy and genuinely good with a rope: the joke is on his dignity, never on him failing. This is a special, so it can carry personality.\n\nThe move. His E, the Lasso Grapple, is his recovery. Knocked off the stage, he throws his rope loop up at the nearest stage edge. It catches, a quick two-hand yank slingshots him up, and he pops over the edge onto the top (there is no ledge hang). If the loop meets a fighter first, he zips to them boots first along the taut rope and kicks them. On a miss the loop flops and he flails as he falls. The game plays one clip per phase: throw, out (loop), yank, pop, zip (loop), kick, miss. This brief is one of them.\n\nHow the game plays it. The game turns him to face the edge or the fighter (straight ahead, `front`) and moves him itself: the fighter does not travel in the clip. The match camera sits straight behind him and a little above, so the action must read from behind: arms up or out to the sides, elbows out past his sides, never hidden in front of his chest. The game crossfades between phase clips over about 0.1 s.\n\nTHE ROPE. The rope and its loop are NOT in the rig. The game draws the rope from his RIGHT hand (the fist between joint RightHand and RightHandMiddle1) to the flying loop, the stage edge or the caught fighter. So pose his body and hands exactly as if a real, heavy rope were there. The RIGHT hand holds the rope in every clip of this move. A hand on the rope is a loose fist around a 3 cm rope: index, middle, ring and pinky fingers curled 60-80 percent around it, the thumb closed over them, never a flat hand; the fist's thumb-and-index side faces along the rope toward where it runs, so the rope runs straight through it. Where this brief puts the left hand on the rope too, it closes the same way further along the same rope line.\n\nHAT, MUSTACHE, STRAW AND TAIL. These joints are outside Unity's Humanoid; the game plays their keyed local rotations as they are, as in his existing clips. Only ever ROTATE them: the checks fail any joint translation except the hips'. The Hat turns about its crown-centre joint; tip it a few degrees with the head's fast moves (2-5 degrees of lag, settling after), and more only where this brief says. On this rig the hat is part of the Head skin region, so a hand on the brim reports as a hand-Head clearance warning: expected where this brief puts a hand on the brim, but a hand or forearm must never go into the crown, the face or the snout, and a tipped hat must not sink into his head. Mustache and Straw stay rigid at their bind rotation. The tail has no spring in the game: all of its motion is what you key.\n\nThe character frame is his showdown idle (reference `showdown`, tick 0), used only as a frame: origin at its hips, front his facing, up world up. The floor is at up = -0.51 m; with a flat boot the toe joint (ToeBase) sits about 1.5 cm above it. Tick 0 is free (entry.match false): the game crossfades into it from whatever came before.\n\nTHE OUT POSE (the rope taut from his right fist up to the loop or the edge). His right arm reaches up and forward along the rope, about 40-55 degrees above level, elbow soft but long (shoulder to wrist at least 0.22 m), the right fist ahead of and above his head: middle knuckle 0.14-0.28 m in front of the hips, 0.28-0.42 m above them, 0 to 0.14 m right of his centre line, thumb side pointing up the rope. His LEFT hand holds his hat down on his head (concept image 2), as a cowboy does in a wind: fingers on top of the brim's front-left edge (middle knuckle within 0.26 m of the Hat joint, at about its height), elbow out to his left, forearm clear of his face. His body hangs from the rope arm: the chest turned 10-20 degrees to his left so the right shoulder leads up the rope, a slight lean back, head up, eyes up the rope with a confident squint. The legs hang loose below him, knees soft: the left boot a little forward, the right boot a little back with its toe pointing down, both toe joints between up = -0.50 and -0.40. So on the ground the left boot stands and the right toe touches, and in the air the boots dangle. The tail hangs down and back behind him in a loose S curve. This clip starts from it.\n\nTHE HAT HERE. The concept's hat leaps off his head; the rig can only tip it about its crown-centre joint. On the double take, tip it up and back 12-20 degrees so the front brim lifts off his brow, as far as it goes without the brim or crown sinking into his head (check the renders), hold it tipped through the flail with a little wobble, and seat it back to its bind rotation by tick 30 when his left hand pats it down.\n\nThe move (40 ticks, played once at about double speed):\n- Tick 0: the out pose.\n- Tick 4, SLACK: the rope goes slack: the right arm sags (the fist drops 6-12 cm, middle knuckle 0.18-0.34 m above the hips), the body sinks a little; a blank blink.\n- Tick 10, DOUBLE TAKE: he jerks his head up at the empty rope, eyes wide, chin up; the left hand jumps off the hat (knuckle at least 0.15 m from the Hat joint) and the hat tips up and back; shoulders hunch up toward his ears.\n- Tick 16, FLAIL: he drops: the left arm flung up and out to his left, open hand, fingers splayed; the right fist still clutching the useless rope, arm up and out to his right (concept image 2); the legs kick apart, left knee up (hip to ankle 0.30 m or less), right leg long below (0.38 m or more); the tail whips up behind him.\n- Tick 22, FLAIL 2: the arms windmill on (the left arm circling down and forward, the right swinging out), the legs swap (right knee up, left leg long), the hat still tipped and wobbling.\n- Tick 28, DISMAY: a beat: the arms drop, shoulders slump, head drops forward, mouth turned down; the left hand slaps the hat back down onto his head (knuckle within 0.26 m of the Hat joint), and the hat seats back to its bind rotation by tick 30.\n- Tick 34: recovering toward his fall pose, the right fist reeling the slack rope in at his hip, a sheepish glance to the side (did anybody see that?).\n- Tick 40: his fall pose exactly (image 3).\nSecondary motion: the tail whips up on the drop and lashes side to side with the flail (tip travel 10 cm or more), then droops on the dismay; the head trails the shoulders on every flail.\n\nFlow (the owner's rules). Overlap and follow-through everywhere: the hips lead every change, the chest trails them by 1-3 ticks, the head, arms and legs trail 2-4 ticks, the tail trails the most, rolling down the chain one to two ticks per joint (Tail1 about 4-8 degrees, Tail3 8-15, Tail5 15-28 on big moves). No two body parts arrive on the same tick, and every hold is a moving hold (key its end 2-5 degrees on from its start, never the same pose twice). The free hand stays relaxed, fingers slightly curled. Treat every flow and life warning as something to avoid.",
+  "clock": {
+    "duration_ticks": 40,
+    "game_duration_ticks": 20
+  },
+  "timing": {
+    "fixed": [
+      "played once over the engine's Miss (first guess missRecoveryTicks 20 game ticks), authored 40",
+      "tick 0 is the out pose; tick 40 is his fall pose exactly",
+      "the right fist keeps the rope (the game draws the flop from it); the hat only rotates and is back on by tick 30"
+    ],
+    "adjustable": [
+      "missRecoveryTicks and the clip's stage length",
+      "the size of the gag: how far the hat tips, how many flails (two asked), the dismay beat's length"
+    ]
+  },
+  "keys": [
+    0,
+    4,
+    10,
+    16,
+    22,
+    28,
+    34,
+    40
+  ],
+  "review_ticks": [
+    0,
+    4,
+    10,
+    16,
+    22,
+    28,
+    34,
+    40
+  ],
+  "fast_windows": [
+    [
+      8,
+      24
+    ]
+  ],
+  "strike": [
+    "RightHand"
+  ],
+  "targets": [
+    {
+      "name": "tick 0 out pose: right fist ahead of the hips, up the rope (m)",
+      "kind": "ahead",
+      "a": "RightHandMiddle1",
+      "b": "Hips",
+      "tick": 0,
+      "min": 0.14,
+      "max": 0.28
+    },
+    {
+      "name": "tick 0 out pose: right fist above his head (m)",
+      "kind": "char",
+      "a": "RightHandMiddle1",
+      "axis": "up",
+      "tick": 0,
+      "min": 0.28,
+      "max": 0.42
+    },
+    {
+      "name": "tick 0 out pose: right fist near his centre line (m)",
+      "kind": "char",
+      "a": "RightHandMiddle1",
+      "axis": "right",
+      "tick": 0,
+      "min": 0.0,
+      "max": 0.14
+    },
+    {
+      "name": "tick 0 out pose: right arm long (shoulder to wrist, m)",
+      "kind": "distance",
+      "a": "RightArm",
+      "b": "RightHand",
+      "tick": 0,
+      "min": 0.22
+    },
+    {
+      "name": "tick 0 out pose: left hand on the hat brim (knuckle to Hat joint, m)",
+      "kind": "distance",
+      "a": "LeftHandMiddle1",
+      "b": "Hat",
+      "tick": 0,
+      "max": 0.26
+    },
+    {
+      "name": "tick 0 out pose: left hand at the brim's height (m)",
+      "kind": "below",
+      "a": "LeftHandMiddle1",
+      "b": "Hat",
+      "tick": 0,
+      "min": -0.06,
+      "max": 0.08
+    },
+    {
+      "name": "tick 0 out pose: left toe above the floor (m)",
+      "kind": "char",
+      "a": "LeftToeBase",
+      "axis": "up",
+      "tick": 0,
+      "min": -0.5,
+      "max": -0.4
+    },
+    {
+      "name": "tick 0 out pose: right toe above the floor (m)",
+      "kind": "char",
+      "a": "RightToeBase",
+      "axis": "up",
+      "tick": 0,
+      "min": -0.5,
+      "max": -0.4
+    },
+    {
+      "name": "slack: right fist sags (m)",
+      "kind": "char",
+      "a": "RightHandMiddle1",
+      "axis": "up",
+      "tick": 4,
+      "min": 0.18,
+      "max": 0.34
+    },
+    {
+      "name": "double take: left hand off the hat (m)",
+      "kind": "distance",
+      "a": "LeftHandMiddle1",
+      "b": "Hat",
+      "tick": 10,
+      "min": 0.15
+    },
+    {
+      "name": "flail: arms flung wide (m)",
+      "kind": "distance",
+      "a": "LeftHandMiddle1",
+      "b": "RightHandMiddle1",
+      "tick": 16,
+      "min": 0.55
+    },
+    {
+      "name": "flail: left hand up (m)",
+      "kind": "char",
+      "a": "LeftHandMiddle1",
+      "axis": "up",
+      "tick": 16,
+      "min": 0.15
+    },
+    {
+      "name": "flail: left hand out to his left (m)",
+      "kind": "char",
+      "a": "LeftHandMiddle1",
+      "axis": "right",
+      "tick": 16,
+      "max": -0.25
+    },
+    {
+      "name": "flail: left knee up (m)",
+      "kind": "distance",
+      "a": "LeftUpLeg",
+      "b": "LeftFoot",
+      "tick": 16,
+      "max": 0.3
+    },
+    {
+      "name": "flail: right leg long (m)",
+      "kind": "distance",
+      "a": "RightUpLeg",
+      "b": "RightFoot",
+      "tick": 16,
+      "min": 0.38
+    },
+    {
+      "name": "flail 2: right knee up (m)",
+      "kind": "distance",
+      "a": "RightUpLeg",
+      "b": "RightFoot",
+      "tick": 22,
+      "max": 0.3
+    },
+    {
+      "name": "flail 2: left leg long (m)",
+      "kind": "distance",
+      "a": "LeftUpLeg",
+      "b": "LeftFoot",
+      "tick": 22,
+      "min": 0.36
+    },
+    {
+      "name": "dismay: left hand pats the hat down (m)",
+      "kind": "distance",
+      "a": "LeftHandMiddle1",
+      "b": "Hat",
+      "tick": 28,
+      "max": 0.26
+    },
+    {
+      "name": "flail: tail lashes (tip, m)",
+      "kind": "range",
+      "a": "Tail5",
+      "axis": "up",
+      "window": [
+        8,
+        26
+      ],
+      "min": 0.1
+    }
+  ],
+  "preview_views": [
+    "profile",
+    "three-quarter-right"
+  ]
+}

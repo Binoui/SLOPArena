@@ -58,6 +58,7 @@ namespace SlopArena.Client.World
         private void CreateDeck(MankiMayhemDefinition stage)
         {
             MayhemChannelLooks.Validate();
+            MankiMayhemView.ValidateCopy();
             _deckRoot = new GameObject("Show deck world space").transform;
             _deckRoot.SetParent(_root, true);
             _deckTop = stage.DeckTop; _deckMinX = stage.MinX; _deckMaxX = stage.MaxX;
@@ -196,6 +197,7 @@ namespace SlopArena.Client.World
                 _poolTitle.characterSize = beat == MayhemDeckBeat.Warning ? .14f : .18f;
                 _poolTitle.text = beat == MayhemDeckBeat.Warning ? "TURNING! STOP!" : "NO RUNNING!";
                 _poolState.text = beat == MayhemDeckBeat.Watching ? "POOL RULES / BASHIE IS WATCHING" : beat == MayhemDeckBeat.Warning ? "POOL RULES / EYES OPENING" : "POOL RULES / NOT LOOKING";
+                _poolSign.localRotation = Quaternion.Euler(0, MankiMayhemView.FakeTurn(view) * 40, 0);
                 _eye.localScale = new Vector3(1, beat == MayhemDeckBeat.Warning ? .45f : beat == MayhemDeckBeat.Watching ? 1 : .12f, 1);
                 foreach (var spot in _spots) spot.color = red ? Color.red : beat == MayhemDeckBeat.Warning ? new Color(1, .45f, .02f) : look.Spot;
                 Color beam = red ? Color.red : beat == MayhemDeckBeat.Warning ? sign : look.Spot;

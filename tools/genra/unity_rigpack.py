@@ -32,8 +32,9 @@ can for F, the way always-visible weapons are attached, so the model sees it, th
 `unity_clip.py render` draws it. `--meshes A,B` (with `--label`) shows only those skinned meshes on the temporary
 instance and records only them, for a rig with one body per form (Nyx); mapping.json keeps the list, so unity_clip.py
 writes and renders with the same meshes. Unity space is left-handed and Y-up;
-the pack mirrors x into a right-handed Y-up space. Constraint-driven copy bones (Manki's
-skin fingers) are bound to their source joints; weapons become fixed joints under their bone.
+the pack mirrors x into a right-handed Y-up space. Constraint-driven copy bones that share their source's position
+(Manki's skin fingers) are bound to their source joints; copies elsewhere (Dusty's pinky) stay joints of their own,
+listed in mapping.json's constrainedCopies. Weapons become fixed joints under their bone.
 """
 from __future__ import annotations
 
@@ -70,9 +71,10 @@ CHARACTERS = {  # package -> {reference label: catalog semantic id}
     'nyx': {'idle': 'anim.nyx.idle', 'run': 'anim.nyx.run', 'jump': 'anim.nyx.jump', 'fall': 'anim.nyx.fall'},
 }
 # Skinned meshes the game simulates as cloth rather than animates: left out of the pack, so the animator poses the body
-# under them and the checks don't treat them as limbs (the salamander's poncho, 2026-10-27). Nyx's real dress was Cloth
-# until its v3 (2026-10-29), which is skinned to spring chains under Hips like a cape, so the pack carries it.
-CLOTH_MESHES = {'salamander': {'Salamander_Poncho'}}
+# under them and the checks don't treat them as limbs (the salamander's poncho until his Tripo v2 model, 2026-11-05,
+# which has none). Nyx's real dress was Cloth until its v3 (2026-10-29), which is skinned to spring chains under Hips
+# like a cape, so the pack carries it.
+CLOTH_MESHES = {}
 SLOTS = {'E': 4, 'R': 5, 'F': 6, 'A': 11}  # AbilitySlots numbers of the letter keys, as weapon configs store them
 BAKE_FRAMES = [0, 10, -1]  # -1 = last frame
 MIRROR = np.diag([-1.0, 1.0, 1.0])
@@ -209,12 +211,21 @@ def build(package: str, snap_path: Path | None = None, out_dir: Path | None = No
     bones = data['bones']
     path_index = {b['path']: i for i, b in enumerate(bones)}
 
-    # Constraint-driven copies (single active source) are bound to their source joints.
-    remap = {}
+    # Constraint-driven copies (single active source) are bound to their source joints when they share its rest
+    # position, like Manki's skin fingers. A copy elsewhere (Dusty's pinky follows his ring finger's rotation from its
+    # own knuckle, 2026-11-05) stays its own joint: binding its skin to the source would conflict with the source's bind
+    # pose. The game's constraint still drives it; the pack lists it under constrainedCopies.
+    remap, kept = {}, {}
+    world_of_path = {b['path']: to_row(b['world']) for b in bones}
     for c in data['constraints']:
         live = [s for s in c['sources'] if s['path'] and s['weight'] > 0]
         if c['active'] and c['weight'] > 0 and len(live) == 1:
-            remap[c['path']] = live[0]['path']
+            src = live[0]['path']
+            a, b = world_of_path.get(c['path']), world_of_path.get(src)
+            if a is not None and b is not None and np.abs(a[3, :3] - b[3, :3]).max() > 1e-4:
+                kept[c['path']] = src
+            else:
+                remap[c['path']] = src
 
     def resolve(path):
         seen = set()
@@ -477,7 +488,7 @@ def build(package: str, snap_path: Path | None = None, out_dir: Path | None = No
                'coordinates': 'right-handed Y-up metres: Unity x mirrored', 'skeletonScale': scale,
                'actorRootWorld': bones[0]['world'], 'joints': {
                    j: next((bones[i]['path'] for i in order if joint_of[i] == j), None) for j in joints},
-               'remappedConstraintCopies': remap, 'meshes': mesh_names, 'textures': textures,
+               'remappedConstraintCopies': remap, 'constrainedCopies': kept, 'meshes': mesh_names, 'textures': textures,
                'weapons': [{k: w[k] for k in ('config', 'slot', 'bone', 'prefab', 'positionOffset', 'rotationOffset')}
                            for w in data['weapons']],
                'slotProps': [{k: w[k] for k in ('config', 'slot', 'bone', 'prefab', 'positionOffset', 'rotationOffset')}

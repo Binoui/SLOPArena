@@ -4,6 +4,8 @@
 [feature brief](../design/manki-mayhem.md) ("this sounds really good. lets go for it"). The
 shape below comes from an architect arena: two runners (one class per channel, and channels as
 data recipes), a Codex cross-judge, and a synthesis. Tuning values are provisional.
+**Amended by:** [ADR-0063](0063-manki-mayhem-variety.md) (2026-11-05): decision 3's per-act draw and decision 10's
+fixed PRIME TIME! pair.
 **Supersedes:** decision 3 of [ADR-0044](0044-manki-mayhem-hazard-director.md) (the round
 cursor, benching and survival scoring), its "hazards are ordinary hits" consequence, and the
 Mayhem part of its decision 6 (friendly fire On).

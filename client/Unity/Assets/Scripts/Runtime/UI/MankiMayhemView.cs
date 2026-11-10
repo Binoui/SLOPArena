@@ -22,19 +22,121 @@ namespace SlopArena.Client.UI
         private bool _gamepad;
         private static readonly Dictionary<string, (string Title, string Line)> Copy = new()
         {
+            ["mayhem.channel.get-him"] = ("GET HIM!", "Land two hits on Manki. Dodge his wake-up!"),
+            ["mayhem.channel.quick-draw"] = ("QUICK DRAW!", "Wait for DRAW! Then hit a normal!"),
+            ["mayhem.channel.hot-potato"] = ("HOT POTATO!", "Bump to pass the bomb. Do not hold it at the bang!"),
+            ["mayhem.channel.block"] = ("BLOCK!", "Hold Shield when the barrage hits!"),
+            ["mayhem.pair.smile-jump"] = ("Pose + jump", ""),
+            ["mayhem.twist.get-him.slam"] = ("slam", "Land your hits, then jump his slam!"),
+            ["mayhem.twist.get-him.tantrum"] = ("tantrum", "Land your hits, then run from his bombs!"),
+            ["mayhem.twist.quick-draw.showdown"] = ("showdown", ""),
+            ["mayhem.twist.quick-draw.fake-out"] = ("fake-out", "Only DRAW! counts. Read the whole word!"),
+            ["mayhem.twist.quick-draw.duel"] = ("duel", "Wait for DRAW! The slowest drawer loses too!"),
+            ["mayhem.twist.hot-potato.one-potato"] = ("one potato", ""),
+            ["mayhem.twist.hot-potato.two-potatoes"] = ("two potatoes", "Two bombs. Pass yours to an empty hand!"),
+            ["mayhem.twist.block.barrage"] = ("barrage", ""),
+            ["mayhem.twist.block.waves"] = ("waves", "Hold Shield for EVERY blast!"),
+            ["mayhem.twist.block.block-or-jump"] = ("block or jump", "Shield the bombs. Jump the rings!"),
+            ["mayhem.draw.draw"] = ("DRAW!", ""),
+            ["mayhem.draw.drawer"] = ("DRAWER!", ""),
+            ["mayhem.draw.drawl"] = ("DRAWL!", ""),
             ["mayhem.channel.dodge"] = ("DODGE!", "Stay out of the bomb rings."),
             ["mayhem.channel.jump"] = ("JUMP!", "Jump over the shockwaves."),
             ["mayhem.channel.break-out"] = ("BREAK OUT!", "Hit the cracked wall. Get out before the bomb!"),
             ["mayhem.channel.spot"] = ("SPOT!", "Be in the spotlight at the buzzer."),
             ["mayhem.channel.no-running"] = ("NO RUNNING!", "Move only when Bashie is not looking."),
             ["mayhem.channel.break-boards"] = ("BREAK THE BOARDS!", "Hit all your wooden boards."),
-            ["mayhem.channel.prime-time"] = ("PRIME TIME!", "Break out AND dodge the bombs!")
+            ["mayhem.channel.sumo"] = ("SUMO!", "Stay inside the shrinking ring!"),
+            ["mayhem.channel.smile"] = ("SMILE!", "Be in the frame at the flash!"),
+            ["mayhem.channel.glitch"] = ("GLITCH!", "Green panels vanish. Move or jump!"),
+            ["mayhem.channel.bonk"] = ("BONK!", "Hit a Manki head before it ducks!"),
+            ["mayhem.twist.sumo.shrink"] = ("shrink", ""),
+            ["mayhem.twist.sumo.drift"] = ("drift", "Follow the moving ring!"),
+            ["mayhem.twist.smile.squeeze"] = ("squeeze", ""),
+            ["mayhem.twist.smile.pan"] = ("pan", "Follow the frame. Pose at the flash!"),
+            ["mayhem.twist.glitch.scatter"] = ("scatter", ""),
+            ["mayhem.twist.glitch.sweep"] = ("sweep", "Find safe panels or jump!"),
+            ["mayhem.twist.glitch.checker"] = ("checker", ""),
+            ["mayhem.twist.bonk.whack"] = ("whack", ""),
+            ["mayhem.twist.bonk.decoys"] = ("decoys", "Hit heads. Avoid the lit fuses!"),
+            ["mayhem.channel.prime-time"] = ("PRIME TIME!", "Two channels. One verdict."),
+            ["mayhem.twist.dodge.aimed"] = ("aimed", ""),
+            ["mayhem.twist.dodge.bomb-rain"] = ("bomb rain", ""),
+            ["mayhem.twist.dodge.big-one"] = ("big one", ""),
+            ["mayhem.twist.jump.rings"] = ("rings", ""),
+            ["mayhem.twist.jump.crossfire"] = ("crossfire", ""),
+            ["mayhem.twist.jump.tall-wave"] = ("tall wave", "Jump TWICE over the tall wave!"),
+            ["mayhem.twist.break-out.cracked-wall"] = ("cracked wall", ""),
+            ["mayhem.twist.break-out.any-wall"] = ("any wall", "Hit any wall. Get out before the bomb!"),
+            ["mayhem.twist.break-out.double-cage"] = ("double cage", "Break through BOTH cages!"),
+            ["mayhem.twist.spot.still"] = ("still", ""),
+            ["mayhem.twist.spot.drifting"] = ("drifting", ""),
+            ["mayhem.twist.spot.musical"] = ("musical", "Only the LAST spotlight counts!"),
+            ["mayhem.twist.no-running.looks"] = ("looks", ""),
+            ["mayhem.twist.no-running.fake-out"] = ("fake-out", ""),
+            ["mayhem.twist.no-running.rapid"] = ("rapid", ""),
+            ["mayhem.twist.break-boards.your-stack"] = ("your stack", ""),
+            ["mayhem.twist.break-boards.scattered"] = ("scattered", ""),
+            ["mayhem.pair.break-out-dodge"] = ("Escape + dodge", ""),
+            ["mayhem.pair.spot-jump"] = ("Hold spots + jump", ""),
         };
+        private static readonly IReadOnlyDictionary<string, CharacterClass> Guests = new Dictionary<string, CharacterClass>
+        {
+            ["mayhem.channel.no-running"] = CharacterClass.Bashie,
+            ["mayhem.channel.break-boards"] = CharacterClass.FightGuy,
+            ["mayhem.channel.bonk"] = CharacterClass.Bonk,
+            ["mayhem.channel.smile"] = CharacterClass.Nyx,
+            ["mayhem.channel.glitch"] = CharacterClass.Wibou,
+        };
+        public static CharacterClass GuestFor(ChannelEntry channel)
+            => channel != null && Guests.TryGetValue(channel.CopyKey, out var guest) ? guest : CharacterClass.None;
+        public static void ValidateCopy()
+        {
+            var keys = MayhemChannels.All.SelectMany(c => new[] { c.CopyKey }.Concat(c.Twists.Select(t => t.CopyKey)))
+                .Concat(PrimePairs.All.Select(p => p.CopyKey))
+                .Concat(new[] { "mayhem.draw.draw", "mayhem.draw.drawer", "mayhem.draw.drawl" }).ToArray();
+            foreach (var key in keys)
+                if (!Copy.TryGetValue(key, out var row) || string.IsNullOrWhiteSpace(row.Title))
+                    throw new InvalidOperationException("Missing Mayhem copy for " + key);
+            foreach (var channel in MayhemChannels.All)
+                if (string.IsNullOrWhiteSpace(Copy[channel.CopyKey].Line))
+                    throw new InvalidOperationException("Missing Mayhem subtitle for " + channel.CopyKey);
+            if (keys.Length != Copy.Count) throw new InvalidOperationException("Mayhem copy has an unregistered key.");
+        }
         public static string CardTitle(ChannelEntry channel) => channel == null ? "MANKI MAYHEM" : Copy[channel.CopyKey].Title;
         public static string CardSubtitle(ChannelEntry channel) => channel == null ? "Pass each channel to earn ratings." : Copy[channel.CopyKey].Line;
+        public static string TwistLine(MayhemShowView view) => view.Airing is SoloAiring solo ? Copy[solo.TwistCopyKey].Title : "";
+        public static string CardLine(MayhemShowView view)
+        {
+            if (view.Airing is RemixAiring remix)
+                return Copy[remix.PairCopyKey].Title + "\n"
+                    + CardTitle(MayhemChannels.Find(remix.Goal.Channel)) + " " + Copy[remix.GoalTwistCopyKey].Title + "\n"
+                    + CardTitle(MayhemChannels.Find(remix.Hazard.Channel)) + " " + Copy[remix.HazardTwistCopyKey].Title;
+            if (view.Airing is not SoloAiring solo) return CardSubtitle(view.Channel);
+            var row = Copy[solo.TwistCopyKey];
+            return row.Title + "\n" + (row.Line.Length > 0 ? row.Line : CardSubtitle(view.Channel));
+        }
+        public static string DrawWord(MayhemShowView view)
+        {
+            foreach (var cue in view.Scene.Watches)
+                if ((cue.Kind == MayhemWatchKind.Draw || cue.Kind == MayhemWatchKind.FakeDraw)
+                    && view.Tick >= cue.StartTick && view.Tick < cue.EndTick)
+                    return Copy[cue.CopyKey].Title;
+            return "WAIT...";
+        }
+        public static float FakeTurn(MayhemShowView view)
+        {
+            foreach (var cue in view.Scene.Watches)
+                if (cue.Kind == MayhemWatchKind.FakeLook && view.Tick >= cue.WarningTick && view.Tick < cue.EndTick)
+                    return Mathf.Sin(Mathf.PI * (view.Tick - cue.WarningTick) / Mathf.Max(1f, cue.EndTick - cue.WarningTick));
+            return 0;
+        }
         public static string FailureText(MayhemFailure failure) => failure.Cause switch
         {
             FailCause.Fell => "FELL OFF", FailCause.StillCaged => "STILL CAGED", FailCause.OutsideSpot => "NO SPOT",
+            FailCause.OutOfRing => "OUT OF THE RING", FailCause.OutOfFrame => "OUT OF FRAME",
+            FailCause.HeGotUp => "HE GOT UP", FailCause.Misfire => "MISFIRE", FailCause.TooSlow => "TOO SLOW",
+            FailCause.Glitched => "GLITCHED", FailCause.NoBonk => "NO BONK",
             FailCause.Caught => "WRITTEN UP", FailCause.BoardsRemain => "BOARDS STILL UP",
             _ => failure.Style == SplatStyle.Flattened ? "FLATTENED" : failure.Style == SplatStyle.Dizzy ? "DIZZY" : "TOASTED"
         };
@@ -42,6 +144,7 @@ namespace SlopArena.Client.UI
         {
             foreach (var w in view.Scene.Watches)
             {
+                if (w.Kind != MayhemWatchKind.Look) continue;
                 if (view.Tick >= w.StartTick && view.Tick < w.EndTick) return "WATCHING";
                 if (view.Tick >= w.WarningTick && view.Tick < w.StartTick) return "TURNING! STOP!";
             }
@@ -49,6 +152,7 @@ namespace SlopArena.Client.UI
         }
         public MankiMayhemView(VisualElement hud, IReadOnlyList<HUDManager.HudPlayer> players, FriendlyFireMode friendlyFire = FriendlyFireMode.Shoves)
         {
+            ValidateCopy();
             _players = players; _friendlyFire = friendlyFire;
             _root = new VisualElement { name = "mayhem-hud", pickingMode = PickingMode.Ignore };
             _root.style.position = Position.Absolute;
@@ -70,6 +174,11 @@ namespace SlopArena.Client.UI
             }
             var banner = new VisualElement(); banner.AddToClassList("mayhem-call");
             banner.style.left = Length.Percent(27); banner.style.right = Length.Percent(27);
+            _root.RegisterCallback<GeometryChangedEvent>(evt =>
+            {
+                var inset = evt.newRect.width < 600 ? new StyleLength(12) : new StyleLength(Length.Percent(27));
+                banner.style.left = banner.style.right = inset;
+            });
             _guest = new Image { scaleMode = ScaleMode.ScaleToFit }; _guest.style.height = 54; banner.Add(_guest);
             _banner = Text("", "mayhem-call-title"); banner.Add(_banner);
             _subtitle = Text("", "mayhem-call-line"); _subtitle.style.fontSize = 18; banner.Add(_subtitle);
@@ -91,24 +200,28 @@ namespace SlopArena.Client.UI
             _round.text = $"ACT {c.Act + 1} / 3 · CHANNEL {(c.HasEpisode ? c.Episode + 1 : 0)} / {MayhemShowTuning.Episodes}\n{_friendlyFire.ToWire().ToUpperInvariant()}";
             if(c.Phase==MayhemPhase.Ended) _round.text="FINAL RATINGS";
             _banner.text = c.Phase == MayhemPhase.Intro ? "YOU'RE ON AIR!" : c.Phase == MayhemPhase.SpeedUp ? "SPEED UP!" : c.Phase == MayhemPhase.Ended ? "THAT'S THE SHOW!" : CardTitle(view.Channel);
-            _subtitle.text = c.Phase == MayhemPhase.SpeedUp ? $"ACT {c.Act + 1} · FASTER CHANNELS!" : CardSubtitle(view.Channel);
-            bool watch = view.Scene.Watches.Count > 0;
-            if (watch) _subtitle.text = WatchText(view) + " · " + CardSubtitle(view.Channel);
+            _subtitle.text = c.Phase == MayhemPhase.SpeedUp ? $"ACT {c.Act + 1} · FASTER CHANNELS!" : CardLine(view);
+            bool draw = view.Channel?.Id == MayhemChannels.QuickDraw && c.Phase == MayhemPhase.Play;
+            if (draw) _banner.text = DrawWord(view);
+            _banner.style.color = draw ? (DrawWord(view) == "DRAW!" ? new Color(0, .38f, .08f) : new Color(.55f, .12f, 0)) : new Color(.12f, .06f, .07f);
+            bool watch = view.Scene.Watches.Any(w => w.Kind == MayhemWatchKind.Look || w.Kind == MayhemWatchKind.FakeLook);
+            if (watch) _subtitle.text = WatchText(view) + " · " + CardLine(view);
             _subtitle.style.opacity = watch && WatchText(view)=="TURNING! STOP!" && !ClientSettingsService.Instance.ReducedFlashing ? .65f+.35f*Mathf.Sin(view.Tick*1.2f) : 1f;
             _subtitle.style.color = watch ? (WatchText(view) == "NOT LOOKING" ? new Color(0,.4f,.12f) : new Color(.7f,0,0)) : new Color(.12f,.06f,.07f);
-            var guest = view.Channel?.Id == MayhemChannels.NoRunning ? CharacterClass.Bashie : view.Channel?.Id == MayhemChannels.BreakBoards ? CharacterClass.FightGuy : CharacterClass.None;
+            var guest = GuestFor(view.Channel);
             _guest.image = guest == CharacterClass.None ? null : Resources.Load<Texture2D>($"UI/Portraits/{guest}");
             _guest.style.display = guest == CharacterClass.None ? DisplayStyle.None : DisplayStyle.Flex;
             _banner.parent.style.display = c.Phase == MayhemPhase.Ended ? DisplayStyle.None : DisplayStyle.Flex;
             _fuse.style.width = Length.Percent(c.Phase == MayhemPhase.Play ? 100f * (c.Deadline - Math.Min(view.Tick,c.Deadline)) / Math.Max(1u,c.Deadline-c.PlayStart) : 100);
             bool gamepad = SlopArena.Client.Input.HumanInputActions.LastUsedGamepad;
             int revision = SlopArena.Client.Input.HumanInputActions.BindingRevision;
-            if (_extra != view.Controls.Extra || revision != _bindingRevision || gamepad != _gamepad)
+            var extra = view.Airing?.Extra ?? ExtraVerb.None;
+            if (_extra != extra || revision != _bindingRevision || gamepad != _gamepad)
             {
-                _extra = view.Controls.Extra; _bindingRevision = revision; _gamepad = gamepad; _chips.Clear();
+                _extra = extra; _bindingRevision = revision; _gamepad = gamepad; _chips.Clear();
                 _chips.Add(HUDManager.MayhemChip(gamepad ? "MoveStick" : "MoveUp", "Move")); _chips.Add(HUDManager.MayhemChip("Jump", "Jump"));
                 _chips.Add(HUDManager.MayhemChip("Normal1", "Hit"));
-                if (view.Controls.Extra != ExtraVerb.None) _chips.Add(HUDManager.MayhemChip(view.Controls.Extra == ExtraVerb.Specials ? "SlotA" : view.Controls.Extra == ExtraVerb.Beeline ? "Dash" : view.Controls.Extra.ToString(), view.Controls.Extra.ToString()));
+                if (extra != ExtraVerb.None) _chips.Add(HUDManager.MayhemChip(extra == ExtraVerb.Specials ? "SlotA" : extra == ExtraVerb.Beeline ? "Dash" : extra.ToString(), extra.ToString()));
             }
             _scores.style.display = c.Phase == MayhemPhase.Ended ? DisplayStyle.None : DisplayStyle.Flex;
             var occupied = new List<Rect>();
@@ -116,6 +229,8 @@ namespace SlopArena.Client.UI
             {
                 var identity = Find(player.EntityId);
                 string status = player.Withdrawn ? "DISCONNECTED" : player.Verdict == MayhemVerdict.Passed ? "ON AIR!" : player.Failure is { } f ? "CANCELLED · " + FailureText(f) : player.ObjectiveMet ? "✓ READY" : "ON DECK";
+                foreach (var progress in view.Scene.HitProgress)
+                    if (progress.Seat == player.Seat) status += $" · HITS {progress.Hits}/{progress.Quota}";
                 var stamp=_stamps[player.EntityId];
                 stamp.text=player.Failure is {} failure ? "CANCELLED · "+FailureText(failure) : player.Verdict==MayhemVerdict.Passed?"ON AIR!":"";
                 var point=camera==null?Vector3.zero:camera.WorldToViewportPoint(position(player.EntityId)+Vector3.up*2f);

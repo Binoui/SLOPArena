@@ -932,7 +932,7 @@ public sealed record CookedMankiKamikazeCapabilityParameters(
     float SelfPushSpeed,
     string ExplosionPresentationId) : CookedCapabilityParameters;
 
-/// <summary>Dusty's lasso self-pull (ADR-0063), runtime API 1.23.0.</summary>
+/// <summary>Dusty's lasso self-pull (ADR-0064), runtime API 1.23.0.</summary>
 public sealed record CookedGrappleCapabilityParameters(
     ushort ThrowTick,
     float AnchorReach,

@@ -321,7 +321,8 @@ public class ReplayWorldTests
         [MatchFormat.CourseRace] = new(() => RecordBots(new[] { CharacterClass.FightGuy, CharacterClass.Nyx }, 1800, format: MatchFormat.CourseRace)),
         [MatchFormat.CourseCoop] = new(() => RecordBots(new[] { CharacterClass.Wibou, CharacterClass.Bashie }, 1800, format: MatchFormat.CourseCoop)),
         [MatchFormat.CourseScramble] = new(() => RecordBots(new[] { CharacterClass.FightGuy, CharacterClass.Manki, CharacterClass.Bonk }, 1800, format: MatchFormat.CourseScramble)),
-        [MatchFormat.MankiMayhem] = new(() => RecordBots(new[] { CharacterClass.FightGuy, CharacterClass.Nyx, CharacterClass.Bashie, CharacterClass.Bonk }, 1800, seed: MayhemSeed, format: MatchFormat.MankiMayhem)),
+        [MatchFormat.MankiMayhem] = new(() => RecordBots(new[] { CharacterClass.FightGuy, CharacterClass.Nyx, CharacterClass.Bashie, CharacterClass.Bonk },
+            (int)MayhemShowPlan.For((uint)MayhemSeed).PlayStart(MayhemShowTuning.RegularPerAct) + 60, seed: MayhemSeed, format: MatchFormat.MankiMayhem)),
     };
 
     /// <summary>
@@ -369,6 +370,19 @@ public class ReplayWorldTests
         string coverage = string.Join(", ", kinds.OrderBy(k => k.Key).Select(k => $"{k.Key} x{k.Value}"));
         Assert.True(kinds.Keys.Any(k => !k.Contains(':')) && kinds.Keys.Any(k => k.Contains(':')), coverage);
         Console.WriteLine($"{format} {choice}: {coverage}");
+    }
+
+    /// <summary>The recording reaches act one's PRIME TIME!, so its pair and both child twists travel through the View.</summary>
+    [Fact]
+    public void MayhemRecordingCarriesTheRemixPairAndBothChildTwists()
+    {
+        var remix = (RemixAiring)MayhemShowPlan.For((uint)MayhemSeed).AiringAt(MayhemShowTuning.RegularPerAct);
+        var shows = Modes[MatchFormat.MankiMayhem].Value.Views.SelectMany(v => v.ModeObjects.OfType<ReplayMayhemShow>()).ToArray();
+        var aired = shows.Where(s => s.Episode == MayhemShowTuning.RegularPerAct && s.ChannelId.Length > 0).ToArray();
+        Assert.NotEmpty(aired);
+        Assert.All(aired, s => Assert.Equal((remix.PairCopyKey, remix.GoalTwistCopyKey, remix.HazardTwistCopyKey, ""),
+            (s.PairCopyKey, s.GoalTwistCopyKey, s.HazardTwistCopyKey, s.TwistCopyKey)));
+        Assert.Contains(shows, s => s.Episode == 0 && s.TwistCopyKey.Length > 0 && s.PairCopyKey.Length == 0);
     }
 
     /// <summary>A Mayhem show whose first channel is BREAK OUT!, so a short recording has cage walls.</summary>

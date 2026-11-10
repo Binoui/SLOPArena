@@ -10,7 +10,7 @@ positions (they do; their bone axes differ). Per frame and side it measures
           pose is applied, i.e. rib skin carried by the arm;
   stretch: the longest armpit/torso-side edge's posed length over its rest length;
   folds: armpit edges whose two faces meet at more than 120 degrees (skin folded over itself).
-With regions.json (from rebuild_rest.py) the rib vertices and armpit edges come from the authored A-pose and stretch
+With regions.json (written by the v1 rebuild_rest.py, removed 2026-11-05; see git history) the rib vertices and armpit edges come from the authored A-pose and stretch
 is measured against authored edge lengths; the FBX rest alone misses rib skin a bad rest has flung out with the arm.
 Writes metrics.json, or metrics-<clips>.json with clips= (one clip per process keeps Blender's memory low): each
 clip's maximum per side, its worst frames, and every number for the frames picked, so the file is reusable as the next

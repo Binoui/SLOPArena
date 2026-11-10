@@ -19,6 +19,8 @@ public sealed class MayhemCpu
     internal static bool Slips(uint channelSeed, byte seat, int percent)
         => MayhemMath.Sample(channelSeed, 0xC001, seat) % 100 < percent;
     private readonly Queue<MayhemCpuIntent> _pending = new();
+    private MayhemCpuIntent _planned = MayhemCpuIntent.Wait;
+    private ushort _lastPressToken;
     private CpuAction _lastAction = CpuAction.Wait;
 
     public MayhemCpu(CpuDifficulty difficulty) : this(BotDifficultyProfile.ForDifficulty(difficulty).ReactionDelayTicks)
@@ -34,10 +36,12 @@ public sealed class MayhemCpu
     public InputState Decide(ServerSimulation sim, ulong id)
     {
         if (sim.MayhemControlsFor(id) is not { } gate) return default;
-        _pending.Enqueue(sim.MayhemCpuIntentFor(id, _delay, _slipPercent));
+        _planned = sim.MayhemCpuIntentFor(id, _delay, _slipPercent, _planned);
+        _pending.Enqueue(_planned);
         var due = _pending.Count > _delay ? _pending.Dequeue() : MayhemCpuIntent.Wait;
         var input = ToInput(due, sim.GetState(id));
         _lastAction = due.Action;
+        _lastPressToken = due.PressToken;
         return gate.Filter(input);
     }
 
@@ -53,7 +57,7 @@ public sealed class MayhemCpu
                 Steer(ref input, self, intent.X, intent.Z);
                 break;
             case CpuAction.Jump:
-                input.Jump = _lastAction != CpuAction.Jump;
+                input.Jump = _lastAction != CpuAction.Jump || intent.PressToken != _lastPressToken;
                 input.JumpHeld = true;
                 Steer(ref input, self, intent.X, intent.Z);
                 break;

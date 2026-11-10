@@ -1,0 +1,19 @@
+{
+  "style": "tape",
+  "size": [1170, 240],
+  "clipSize": [1170, 360],
+  "shots": "~/Downloads/sloparena/newart/steam/screenshots",
+  "paper": "~/Downloads/sloparena/newart/steam/store/page_background_english.png",
+  "sections": [
+    {"id": "brawl", "label": "BRAWL", "headline": "Rack up damage. Launch them.", "shot": "02-splash-deck-bonk.png", "focus": [0.62, 0.42],
+     "clip": {"spec": "scenarios/social/specs/02-splash-deck-home-run.json", "camera": "q3w", "fov": 30, "presses": {"3": "2", "4": "3"},
+              "capture": [120, 460], "window": [150, 340]}},
+    {"id": "fighters", "label": "FIGHTERS", "headline": "Five fighters. More coming.", "shot": "03-slop-pit-four-way.png", "focus": [0.55, 0.5]},
+    {"id": "stages", "label": "STAGES", "headline": "Seven stages to fall off", "shot": "04-last-stop-jetpack.png", "focus": [0.66, 0.36]},
+    {"id": "online", "label": "ONLINE", "headline": "Rollback netplay", "shot": "10-slop-pit-fist-of-fury.png", "focus": [0.6, 0.32],
+     "clip": {"spec": "scenarios/social/specs/10-slop-pit-fist-of-fury.json", "camera": "q4", "fov": 34, "presses": {"3": "2", "4": "3"},
+              "capture": [0, 360], "window": [10, 318]}},
+    {"id": "modes", "label": "MODES", "headline": "Slopball, races, training", "shot": "07-slopball-bazooka.png", "focus": [0.45, 0.42]},
+    {"id": "free", "label": "FREE + OPEN SOURCE", "headline": "Free. Open source. Yours.", "shot": "06-table-manners-slam.png", "focus": [0.6, 0.42], "zoom": 1.3}
+  ]
+}

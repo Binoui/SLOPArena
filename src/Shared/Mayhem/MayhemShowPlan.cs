@@ -1,4 +1,6 @@
 using System;
+using System.Linq;
+using System.Collections.Generic;
 
 namespace SlopArena.Shared.Mayhem;
 
@@ -27,12 +29,15 @@ public static class MayhemSpeed
 
 /// <summary>
 /// The show for one seed: which channel airs in each episode and when each phase starts. Three acts of four
-/// regular channels drawn without repeats, each closed by a boss at the top tier. It never depends on the cast,
-/// so a withdrawal cannot move a deadline, and the World Snapshot stores only the seed.
+/// regular slots dealt from one deck, each act closed by its boss at the top tier. Acts one and two close with two
+/// different PRIME TIME! pairs from one shuffled pair deck; GET HIM! closes act three. Each channel cycles
+/// through its twists once per show, counting solo airings and remix children alike, so it shows every twist before
+/// it repeats one, and no remix reruns an earlier remix's pair and both twists. It never depends on the cast, so a
+/// withdrawal cannot move a deadline, and the World Snapshot stores only the seed.
 /// </summary>
 public sealed class MayhemShowPlan
 {
-    private readonly ChannelId[] _channels = new ChannelId[MayhemShowTuning.Episodes];
+    private readonly MayhemAiring[] _airings = new MayhemAiring[MayhemShowTuning.Episodes];
     private readonly uint[] _callStart = new uint[MayhemShowTuning.Episodes];
     private readonly ushort[] _callTicks = new ushort[MayhemShowTuning.Episodes];
     private readonly ushort[] _playTicks = new ushort[MayhemShowTuning.Episodes];
@@ -46,26 +51,47 @@ public sealed class MayhemShowPlan
         Seed = seed;
         var regulars = MayhemChannels.Regulars;
         var bosses = MayhemChannels.Bosses;
-        if (regulars.Count < MayhemShowTuning.RegularPerAct + 1 || bosses.Count == 0)
-            throw new InvalidOperationException("The show needs five regular channels and a boss.");
-        ChannelId previous = ChannelId.None;
-        for (int act = 0; act < MayhemShowTuning.Acts; act++)
+        if (regulars.Count < MayhemShowTuning.RegularPerAct + 1 || bosses.Count == 0 || PrimePairs.All.Count < 2)
+            throw new InvalidOperationException("The show needs five regular channels, a boss and two PRIME TIME! pairs.");
+        var dealt = Deal(seed, regulars.Select(e => e.Id).ToArray());
+        var pairs = PrimePairs.All.Select(p => p.Id).OrderBy(id => id.Value).ToArray();
+        MayhemMath.Shuffle(pairs, seed, MayhemMath.PairStream);
+        var airings = new Dictionary<ChannelId, int>();
+        var remixes = new HashSet<(PrimePairId, TwistId, TwistId)>();
+        ChannelDraw Next(ChannelId channel, int episode, byte lane)
         {
-            var deck = new ChannelId[regulars.Count];
-            for (int i = 0; i < deck.Length; i++) deck[i] = regulars[i].Id;
-            MayhemMath.Shuffle(deck, seed, MayhemMath.DeckStream + (uint)act);
-            if (deck[0] == previous) (deck[0], deck[1]) = (deck[1], deck[0]);
-            int first = act * MayhemShowTuning.EpisodesPerAct;
-            for (int i = 0; i < MayhemShowTuning.RegularPerAct; i++) _channels[first + i] = deck[i];
-            previous = deck[MayhemShowTuning.RegularPerAct - 1];
-            _channels[first + MayhemShowTuning.RegularPerAct] =
-                bosses[(int)(MayhemMath.Sample(seed, MayhemMath.BossStream + (uint)act, 0) % (uint)bosses.Count)].Id;
+            var twists = MayhemChannels.Find(channel).Twists;
+            airings.TryGetValue(channel, out int airing);
+            airings[channel] = airing + 1;
+            int basis = (int)(MayhemMath.Sample(seed, MayhemMath.TwistStream, channel.Value) % (uint)twists.Count);
+            return new(channel, twists[(basis + airing) % twists.Count].Id, MayhemMath.ChannelSeed(seed, episode, lane));
+        }
+        for (int episode = 0, slot = 0; episode < MayhemShowTuning.Episodes; episode++)
+        {
+            var channel = IsBoss(episode) ? MayhemChannels.BossByAct[ActOf(episode)] : dealt[slot++];
+            if (channel != MayhemChannels.PrimeTime)
+            {
+                _airings[episode] = new SoloAiring(Next(channel, episode, 0));
+                continue;
+            }
+            int act = ActOf(episode);
+            var pair = PrimePairs.Find(act < MayhemShowTuning.Acts - 1 ? pairs[act]
+                : pairs[(int)(MayhemMath.Sample(seed, MayhemMath.PairStream + 1, (uint)act) % (uint)pairs.Length)]);
+            var goal = Next(pair.Goal, episode, 0);
+            var hazard = Next(pair.Hazard, episode, 1);
+            // A rerun repeats both children's twists, which their cycles allow only once they have shown every twist.
+            if (!remixes.Add((pair.Id, goal.Twist, hazard.Twist)))
+            {
+                hazard = Next(pair.Hazard, episode, 1);
+                remixes.Add((pair.Id, goal.Twist, hazard.Twist));
+            }
+            _airings[episode] = new RemixAiring(pair.Id, goal, hazard);
         }
         uint t = 1u + MayhemShowTuning.IntroTicks;
         for (int episode = 0; episode < MayhemShowTuning.Episodes; episode++)
         {
             if (episode > 0 && episode % MayhemShowTuning.EpisodesPerAct == 0) t += MayhemShowTuning.SpeedUpTicks;
-            var timing = MayhemChannels.Find(_channels[episode]).Timing;
+            var timing = _airings[episode].Timing;
             var tier = TierOf(episode);
             _callStart[episode] = t;
             _callTicks[episode] = MayhemSpeed.Call(timing, tier);
@@ -79,7 +105,28 @@ public sealed class MayhemShowPlan
     public static MayhemShowPlan For(uint seed)
         => seed == 0 ? throw new ArgumentOutOfRangeException(nameof(seed)) : new MayhemShowPlan(seed);
 
-    public ChannelId ChannelAt(int episode) => _channels[episode];
+    public MayhemAiring AiringAt(int episode) => _airings[episode];
+    public ChannelId ChannelAt(int episode) => _airings[episode].Channel;
+
+    internal static ChannelId[] Deal(uint seed, ChannelId[] regulars)
+    {
+        if (regulars.Length < 2) throw new ArgumentException("A deal needs at least two regulars.");
+        var result = new ChannelId[MayhemShowTuning.Acts * MayhemShowTuning.RegularPerAct];
+        var deck = regulars.OrderBy(id => id.Value).ToArray();
+        int at = deck.Length;
+        uint round = 0;
+        for (int i = 0; i < result.Length; i++)
+        {
+            if (at == deck.Length)
+            {
+                MayhemMath.Shuffle(deck, seed, MayhemMath.DeckStream + round++);
+                if (i > 0 && deck[0] == result[i - 1]) (deck[0], deck[1]) = (deck[1], deck[0]);
+                at = 0;
+            }
+            result[i] = deck[at++];
+        }
+        return result;
+    }
     public static byte ActOf(int episode) => (byte)(episode / MayhemShowTuning.EpisodesPerAct);
     public static bool IsBoss(int episode) => episode % MayhemShowTuning.EpisodesPerAct == MayhemShowTuning.RegularPerAct;
     public static SpeedTier TierOf(int episode) => IsBoss(episode) ? SpeedTier.Three : (SpeedTier)ActOf(episode);

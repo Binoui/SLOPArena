@@ -29,35 +29,62 @@ public class MayhemShowReportTests
         foreach (var difficulty in new[] { CpuDifficulty.Easy, CpuDifficulty.Normal, CpuDifficulty.Hard })
         {
             int sharedWins = 0;
-            var passes = new Dictionary<(ChannelId, SpeedTier), (int Pass, int Total)>();
+            var passes = new Dictionary<(string Row, SpeedTier Tier), (int Pass, int Total)>();
+            var remixes = new StringBuilder("| Seed | Act | Pair | Goal twist | Hazard twist | Passed |\n| ---: | ---: | --- | --- | --- | ---: |\n");
             var causes = new Dictionary<(ChannelId, FailCause), int>();
             var report = new StringBuilder();
             report.AppendLine($"## {difficulty}, ten seeded four-CPU shows");
             report.AppendLine();
             report.AppendLine("| Seed | Cast | Show ticks | Ratings | Winner |");
             report.AppendLine("| ---: | --- | ---: | --- | --- |");
+            var schedules = new StringBuilder();
+            schedules.AppendLine("| Seed | Episode | Channel | Twist |\n| ---: | ---: | --- | --- |");
             for (int show = 0; show < 10; show++)
             {
                 uint seed = (uint)(101 + show * 7919);
                 var cast = Casts[show % Casts.Length];
                 var sim = MayhemWorld.NewShow(seed, roster: cast);
                 var plan = MayhemWorld.Plan(sim);
+                var dealt = new HashSet<ChannelId>();
+                Assert.Equal(MayhemChannels.GetHim, plan.ChannelAt(14));
+                ChannelId previous = ChannelId.None;
+                for (int episode = 0; episode < MayhemShowTuning.Episodes; episode++)
+                {
+                    var airing = plan.AiringAt(episode);
+                    schedules.AppendLine(airing is RemixAiring r
+                        ? $"| {seed} | {episode + 1} | {r.PairCopyKey} | {r.GoalTwistCopyKey} + {r.HazardTwistCopyKey} |"
+                        : $"| {seed} | {episode + 1} | {MayhemChannels.Find(airing.Channel).CopyKey} | {((SoloAiring)airing).TwistCopyKey} |");
+                    if (!MayhemShowPlan.IsBoss(episode))
+                    {
+                        Assert.True(dealt.Add(airing.Channel));
+                        Assert.NotEqual(previous, airing.Channel);
+                        previous = airing.Channel;
+                    }
+                }
                 var cpus = sim.MayhemShow!.Roster.ToDictionary(id => id, _ => new MayhemCpu(difficulty));
+                var bossPasses = new int[MayhemShowTuning.Acts];
                 while (!sim.EvaluateMatch().IsEnded && sim.CurrentTick < plan.EndTick + 10)
                 {
                     MayhemWorld.StepCpus(sim, cpus);
                     foreach (var e in sim.LastTickMayhemEvents)
                     {
                         if (e.Kind is not (MayhemEventKind.Pass or MayhemEventKind.Fail)) continue;
-                        var key = (plan.ChannelAt(e.Episode), MayhemShowPlan.TierOf(e.Episode));
+                        var aired = plan.AiringAt(e.Episode);
+                        var key = (aired is RemixAiring remix ? remix.PairCopyKey : ((SoloAiring)aired).TwistCopyKey, MayhemShowPlan.TierOf(e.Episode));
                         passes.TryGetValue(key, out var tally);
                         passes[key] = (tally.Pass + (e.Kind == MayhemEventKind.Pass ? 1 : 0), tally.Total + 1);
+                        if (e.Kind == MayhemEventKind.Pass && MayhemShowPlan.IsBoss(e.Episode)) bossPasses[MayhemShowPlan.ActOf(e.Episode)]++;
                         if (e.Kind == MayhemEventKind.Fail)
                         {
-                            var cause = (key.Item1, e.FailCause);
+                            var cause = (aired.Channel, e.FailCause);
                             causes[cause] = causes.TryGetValue(cause, out int n) ? n + 1 : 1;
                         }
                     }
+                }
+                for (int act = 0; act < MayhemShowTuning.Acts - 1; act++)
+                {
+                    var r = (RemixAiring)plan.AiringAt(act * MayhemShowTuning.EpisodesPerAct + MayhemShowTuning.RegularPerAct);
+                    remixes.AppendLine($"| {seed} | {act + 1} | {r.PairCopyKey} | {r.GoalTwistCopyKey} | {r.HazardTwistCopyKey} | {bossPasses[act]}/{cast.Length} |");
                 }
                 var outcome = sim.EvaluateMatch();
                 Assert.True(outcome.IsEnded, $"seed {seed} did not end");
@@ -86,12 +113,16 @@ public class MayhemShowReportTests
             report.AppendLine();
             report.AppendLine("| Channel | Tier 1 | Tier 2 | Tier 3 |");
             report.AppendLine("| --- | ---: | ---: | ---: |");
-            foreach (var entry in MayhemChannels.All)
+            foreach (string row in MayhemChannels.All.SelectMany(e => e.Twists).Select(t => t.CopyKey).Concat(PrimePairs.All.Select(p => p.CopyKey)))
             {
-                string Cell(SpeedTier tier) => passes.TryGetValue((entry.Id, tier), out var t) && t.Total > 0
+                string Cell(SpeedTier tier) => passes.TryGetValue((row, tier), out var t) && t.Total > 0
                     ? $"{100.0 * t.Pass / t.Total:F0}% ({t.Pass}/{t.Total})" : "—";
-                report.AppendLine($"| {entry.CopyKey} | {Cell(SpeedTier.One)} | {Cell(SpeedTier.Two)} | {Cell(SpeedTier.Three)} |");
+                report.AppendLine($"| {row} | {Cell(SpeedTier.One)} | {Cell(SpeedTier.Two)} | {Cell(SpeedTier.Three)} |");
             }
+            report.AppendLine();
+            report.AppendLine("### PRIME TIME! remixes in acts one and two");
+            report.AppendLine();
+            report.Append(remixes);
             report.AppendLine();
             report.AppendLine("### Failure causes");
             report.AppendLine();
@@ -101,6 +132,7 @@ public class MayhemShowReportTests
             report.AppendLine($"\nOverall pass rate {passed}/{total} ({100.0 * passed / total:F1}%). Shared wins {sharedWins}/10 ({sharedWins * 10}%).");
             if (difficulty == CpuDifficulty.Normal) Assert.True((double)passed / total < .90, "Normal CPUs must lose channels");
             allReports.AppendLine(report.ToString());
+            allReports.AppendLine(schedules.ToString());
         }
         string text = allReports.ToString();
         _output.WriteLine(text);

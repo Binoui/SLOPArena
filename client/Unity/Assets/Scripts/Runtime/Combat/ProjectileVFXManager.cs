@@ -250,6 +250,10 @@ namespace SlopArena.Client.Combat
                         : .12f * Mathf.Sin(_sim.CurrentTick / 60f * Mathf.Lerp(26f, 8f, fraction));
                     vis.transform.localScale = Vector3.one * hazard.Scale * (1f + pulse);
                 }
+                if (hb.OwnerId == ServerSimulation.MayhemHostEntityId && hb.ContactExplosion && hb.Explosion.HasValue
+                    && _hazardVisuals.TryGetValue(hb.OwnerId, out var hostVisual))
+                    vis.transform.localScale = Vector3.one * hostVisual.Scale
+                        * Mathf.Max(1f, hb.Explosion.Value.Radius / SlopArena.Shared.Mayhem.DodgeTuning.BlastRadius);
                 if (hb.Perch.HasValue)
                 {
                     PlacePerch(vis.transform, hb);

@@ -113,6 +113,10 @@ public sealed partial class ReplayCapture
             a.Add(new ReplayMayhemShow
             {
                 Seed = show.Seed,
+                TwistCopyKey = (show.Airing as SlopArena.Shared.Mayhem.SoloAiring)?.TwistCopyKey ?? "",
+                PairCopyKey = (show.Airing as SlopArena.Shared.Mayhem.RemixAiring)?.PairCopyKey ?? "",
+                GoalTwistCopyKey = (show.Airing as SlopArena.Shared.Mayhem.RemixAiring)?.GoalTwistCopyKey ?? "",
+                HazardTwistCopyKey = (show.Airing as SlopArena.Shared.Mayhem.RemixAiring)?.HazardTwistCopyKey ?? "",
                 Episode = show.Cursor.Episode,
                 PhaseId = ReplaySemanticIds.Id(show.Cursor.Phase),
                 ChannelId = show.Channel?.CopyKey ?? ""
@@ -139,6 +143,7 @@ public sealed partial class ReplayCapture
                 Landing = V(bomb.Landing),
                 LaunchTick = bomb.LaunchTick,
                 ImpactTick = bomb.ImpactTick,
+                BombKindId = ReplaySemanticIds.Id(bomb.Kind),
                 BlastRadius = bomb.BlastRadius
             });
             foreach (var r in scene.Rings) a.Add(new ReplayMayhemShockwave
@@ -160,28 +165,37 @@ public sealed partial class ReplayCapture
                 Center = V(z.Center),
                 Radius = z.Radius,
                 ActiveFrom = z.ActiveFrom,
-                ActiveUntil = z.ActiveUntil
+                ActiveUntil = z.ActiveUntil,
+                EndCenter = V(z.EndCenter),
+                EndRadius = z.EndRadius,
+                ArmedFrom = z.ArmedFrom,
+                HalfDepth = z.HalfDepth, EndHalfDepth = z.EndHalfDepth
             });
             foreach (var w in scene.Watches) a.Add(new ReplayMayhemWatch
             {
                 Lane = w.Lane,
                 Ordinal = w.Ordinal,
                 WarningTick = w.WarningTick,
+                WatchKindId = ReplaySemanticIds.Id(w.Kind), CopyKey = w.CopyKey,
                 StartTick = w.StartTick,
                 EndTick = w.EndTick
             });
+            foreach (var carry in scene.Carries) a.Add(new ReplayMayhemCarry { Lane = carry.Lane, Ordinal = carry.Ordinal,
+                HolderSeat = carry.HolderSeat, FuseEnd = carry.FuseEnd, LastGiver = carry.LastGiver ?? 255 });
+            foreach (var h in scene.HitProgress) a.Add(new ReplayMayhemHitProgress { Seat = h.Seat, Hits = h.Hits, Quota = h.Quota });
             foreach (var t in scene.Targets) a.Add(new ReplayMayhemTarget
             {
                 Lane = t.Lane,
                 Ordinal = t.Ordinal,
                 TargetId = ReplaySemanticIds.Id(t.Kind),
                 EntityId = t.EntityId,
-                OwnerId = t.OwnerSeat < show.Contestants.Count ? show.Contestants[t.OwnerSeat].EntityId : 0,
+                OwnerId = t.OwnerSeat is { } owner && owner < show.Contestants.Count ? show.Contestants[owner].EntityId : 0,
                 Center = V(t.Center),
                 Radius = t.Radius,
                 HalfHeight = t.HalfHeight,
                 HitsLeft = t.HitsLeft,
-                Hits = t.Hits
+                Hits = t.Hits,
+                ActiveFrom = t.ActiveFrom, ActiveUntil = t.ActiveUntil
             });
             foreach (var w in scene.Solids) a.Add(new ReplayMayhemWall
             {

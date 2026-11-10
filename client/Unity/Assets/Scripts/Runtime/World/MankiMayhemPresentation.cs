@@ -253,6 +253,7 @@ namespace SlopArena.Client.World
             static void Remove(Transform t) { if (t == null) return; t.gameObject.SetActive(false); Object.Destroy(t.gameObject); }
             foreach (var ring in _rings) Remove(ring.Root);
             _rings.Clear(); ResetCraftProps(); _round = -2;
+            foreach (var prop in _props.Values) Remove(prop); _props.Clear();
             foreach (var wave in _waves.Values) Remove(wave);
             _waves.Clear();
             foreach (var wall in _walls.Values) Remove(wall);

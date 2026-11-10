@@ -28,6 +28,8 @@ namespace SlopArena.Shared.Replays
             var coursePlayers = new List<ReplayCoursePlayer>();
             var targets = new List<ReplayCourseTarget>();
             var contestants = new List<ReplayMayhemContestant>();
+            var carries = new List<CarryCue>();
+            var progress = new List<HitProgressCue>();
             var bombs = new List<BombCue>();
             var rings = new List<RingCue>();
             var zones = new List<ZoneCue>();
@@ -46,15 +48,17 @@ namespace SlopArena.Shared.Replays
                     case ReplayMayhemShow x: show = x; break;
                     case ReplayMayhemContestant x: contestants.Add(x); break;
                     case ReplayMayhemBomb x:
-                        bombs.Add(new BombCue(x.Lane, x.Ordinal, x.Launched, P(x.Landing), x.LaunchTick, x.ImpactTick, x.BlastRadius, x.Exploded));
+                        bombs.Add(new BombCue(x.Lane, x.Ordinal, x.Launched, P(x.Landing), x.LaunchTick, x.ImpactTick, x.BlastRadius, x.Exploded, SemanticParse.BombKind(x.BombKindId) ?? throw SnapshotReader.Malformed("Replay bomb kind")));
                         break;
                     case ReplayMayhemShockwave x:
                         rings.Add(new RingCue(x.Lane, x.Ordinal, P(x.Center), x.SlamTick, x.Speed, x.HalfWidth, x.HalfHeight, x.LifetimeTicks));
                         break;
                     case ReplayMayhemZone x when SemanticParse.ZoneKind(x.ZoneId) is { } zone:
-                        zones.Add(new ZoneCue(x.Lane, x.Ordinal, zone, P(x.Center), x.Radius, x.ActiveFrom, x.ActiveUntil));
+                        zones.Add(new ZoneCue(x.Lane, x.Ordinal, zone, P(x.Center), x.Radius, x.ActiveFrom, x.ActiveUntil, P(x.EndCenter), x.EndRadius, x.ArmedFrom, x.HalfDepth, x.EndHalfDepth));
                         break;
-                    case ReplayMayhemWatch x: watches.Add(new WatchCue(x.Lane, x.Ordinal, x.WarningTick, x.StartTick, x.EndTick)); break;
+                    case ReplayMayhemWatch x: watches.Add(new WatchCue(x.Lane, x.Ordinal, x.WarningTick, x.StartTick, x.EndTick, SemanticParse.WatchKind(x.WatchKindId) ?? throw SnapshotReader.Malformed("Replay watch kind"), x.CopyKey)); break;
+                    case ReplayMayhemCarry x: carries.Add(new(x.Lane, x.Ordinal, x.HolderSeat, x.FuseEnd, x.LastGiver == 255 ? null : x.LastGiver)); break;
+                    case ReplayMayhemHitProgress x: progress.Add(new(x.Seat, x.Hits, x.Quota)); break;
                     case ReplayMayhemTarget x: mayhemTargets.Add(x); break;
                     // The View has no hit budget: 0 marks it unrecorded, and the presenter draws such a wall neutrally.
                     case ReplayMayhemWall x:
@@ -69,7 +73,7 @@ namespace SlopArena.Shared.Replays
                 shell.OnlineCourse is { } running && arena.Arcade?.Course is { } definition
                     ? Course(course ?? new ReplayCourse(), coursePlayers, targets, definition, cast, running.Format == CourseFormat.Scramble) : null,
                 shell.IsMankiMayhem && show is { Seed: not 0 } && contestants.Count is >= 2 and <= 4
-                    ? Show(show, view.Tick, contestants, new ChannelScene(bombs, rings, zones, watches, walls, Array.Empty<TargetCue>()),
+                    ? Show(show, view.Tick, contestants, new ChannelScene(bombs, rings, zones, watches, walls, Array.Empty<TargetCue>()) { Carries = carries, HitProgress = progress },
                         mayhemTargets)
                     : null);
         }
@@ -94,9 +98,21 @@ namespace SlopArena.Shared.Replays
             }
             var cues = new List<TargetCue>();
             foreach (var t in targets)
-                if (SemanticParse.TargetKind(t.TargetId) is { } kind && Array.IndexOf(roster, t.OwnerId) is var owner and >= 0)
-                    cues.Add(new TargetCue(t.Lane, t.Ordinal, kind, t.EntityId, (byte)owner, P(t.Center), t.Radius, t.HalfHeight, t.HitsLeft, t.Hits));
-            var cursor = MayhemShowPlan.For(show.Seed).At(tick);
+                if (SemanticParse.TargetKind(t.TargetId) is { } kind && (t.OwnerId == 0 || Array.IndexOf(roster, t.OwnerId) >= 0))
+                    cues.Add(new TargetCue(t.Lane, t.Ordinal, kind, t.EntityId, t.OwnerId == 0 ? null : (byte)Array.IndexOf(roster, t.OwnerId), P(t.Center), t.Radius, t.HalfHeight, t.HitsLeft, t.Hits, t.ActiveFrom, t.ActiveUntil));
+            var plan = MayhemShowPlan.For(show.Seed);
+            var cursor = plan.At(tick);
+            if (cursor.HasEpisode && show.ChannelId.Length > 0
+                && (show.ChannelId != MayhemChannels.Find(plan.ChannelAt(cursor.Episode)).CopyKey
+                    || plan.AiringAt(cursor.Episode) switch
+                    {
+                        SoloAiring solo => show.TwistCopyKey != solo.TwistCopyKey || show.PairCopyKey.Length > 0
+                            || show.GoalTwistCopyKey.Length > 0 || show.HazardTwistCopyKey.Length > 0,
+                        RemixAiring remix => show.TwistCopyKey.Length > 0 || show.PairCopyKey != remix.PairCopyKey
+                            || show.GoalTwistCopyKey != remix.GoalTwistCopyKey || show.HazardTwistCopyKey != remix.HazardTwistCopyKey,
+                        _ => true,
+                    }))
+                throw SnapshotReader.Malformed("Replay Mayhem airing");
             int episode = cursor.Phase is MayhemPhase.Call or MayhemPhase.Play or MayhemPhase.Verdict ? cursor.Episode : -1;
             return new MayhemShow.Snapshot(show.Seed, roster, rows.Select(c => c.Withdrawn).ToArray(), onAir,
                 rows.Select(c => c.PassMask & MayhemShowPlan.AllEpisodesMask).ToArray(), failures, new MayhemPose[rows.Length],

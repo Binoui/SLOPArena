@@ -8,6 +8,7 @@ namespace SlopArena.Shared.Mayhem;
 internal interface IMayhemWorld
 {
     ArenaDefinition Arena { get; }
+    FriendlyFireMode FriendlyFire { get; }
     SpellResolver Resolver { get; }
     CharacterState Fighter(ulong id);
     CharacterDefinition Definition(ulong id);
@@ -26,7 +27,7 @@ public sealed record MayhemContestantView(ulong EntityId, byte Seat, bool OnAir,
 
 /// <summary>Everything Unity, replays and CPUs read about the show at one tick. Presentation cannot write through it.</summary>
 public sealed record MayhemShowView(uint Tick, MayhemCursor Cursor, ChannelEntry? Channel, MayhemControls Controls,
-    ChannelScene Scene, IReadOnlyList<MayhemContestantView> Contestants, MatchOutcome Outcome, uint Seed);
+    ChannelScene Scene, IReadOnlyList<MayhemContestantView> Contestants, MatchOutcome Outcome, uint Seed, MayhemAiring? Airing);
 
 /// <summary>
 /// The show director and the only writer of verdicts. It holds the roster fixed at Begin, withdrawals, one pass
@@ -103,7 +104,7 @@ internal sealed class MayhemShow
         if (_plan == null || seat < 0 || _channel == null || !IsLive(seat)) return MayhemControls.Frozen;
         var now = _plan.At(tick);
         return now.Phase == MayhemPhase.Play && now.Episode == _channelEpisode
-            ? MayhemControls.Playing(MayhemChannels.Find(_plan.ChannelAt(now.Episode)).Extra) : MayhemControls.Frozen;
+            ? MayhemControls.Playing(_plan.AiringAt(now.Episode).Extra) : MayhemControls.Frozen;
     }
 
     public MatchOutcome Outcome(uint tick)
@@ -221,16 +222,16 @@ internal sealed class MayhemShow
         return true;
     }
 
-    public MayhemCpuIntent CpuIntent(ulong id, uint tick, IMayhemWorld world, int lookaheadTicks, int slipPercent)
+    public MayhemCpuIntent CpuIntent(ulong id, uint tick, IMayhemWorld world, int lookaheadTicks, int slipPercent, MayhemCpuIntent planned)
     {
         int seat = SeatOf(id);
         if (_plan == null || _channel == null || seat < 0 || !IsLive(seat)) return MayhemCpuIntent.Wait;
         var now = _plan.At(tick);
         if (!now.Gameplay || now.Episode != _channelEpisode) return MayhemCpuIntent.Wait;
         var frame = Frame(tick, world);
-        var controls = MayhemControls.Playing(MayhemChannels.Find(_plan.ChannelAt(now.Episode)).Extra);
+        var controls = MayhemControls.Playing(_plan.AiringAt(now.Episode).Extra);
         return _channel.Cpu(new CpuProbe(frame.Fighters[seat], frame, controls, now.PlayStart, now.Deadline, lookaheadTicks,
-            MayhemCpu.Slips(MayhemMath.ChannelSeed(_plan.Seed, now.Episode, 0), (byte)seat, slipPercent)));
+            MayhemCpu.Slips(_plan.AiringAt(now.Episode).SlipSeed, (byte)seat, slipPercent), planned));
     }
 
     public MayhemShowView? View(uint tick, IMayhemWorld world)
@@ -251,9 +252,9 @@ internal sealed class MayhemShow
             contestants[seat] = new(_roster[seat], (byte)seat, OnAir(seat), _withdrawn[seat], verdict, _failures[seat], met,
                 _passMasks[seat], MayhemShowPlan.Ratings(_passMasks[seat]));
         }
-        var controls = cursor.Phase == MayhemPhase.Play && entry != null ? MayhemControls.Playing(entry.Extra) : MayhemControls.Frozen;
+        var controls = cursor.Phase == MayhemPhase.Play && entry != null ? MayhemControls.Playing(_plan.AiringAt(cursor.Episode).Extra) : MayhemControls.Frozen;
         return new MayhemShowView(tick, cursor, entry, controls, !current ? ChannelScene.Empty : _channel?.Observe() ?? _display!,
-            contestants, Outcome(tick), _plan.Seed);
+            contestants, Outcome(tick), _plan.Seed, current ? _plan.AiringAt(cursor.Episode) : null);
     }
 
     /// <summary>The current channel's scene for collision: solids that block and targets that take hits.</summary>
@@ -282,7 +283,7 @@ internal sealed class MayhemShow
             seats.Add(new ChannelSeat((byte)seat, id, start, definition.CapsuleRadius, definition.CapsuleHeight));
         }
         var entry = MayhemChannels.Find(_plan!.ChannelAt(now.Episode));
-        _channel = entry.Create(new ChannelSetup(MayhemMath.ChannelSeed(_plan.Seed, now.Episode, 0), now.Episode, 0,
+        _channel = entry.Create(new ChannelSetup(_plan.AiringAt(now.Episode), now.Episode, 0,
             now.Tier, now.PhaseStart, now.PlayStart, now.Deadline, _stage, seats));
         _channelEpisode = now.Episode;
         Emit(tick, (ushort)now.Episode, MayhemEventKind.Call, HostEntityId);
@@ -332,7 +333,7 @@ internal sealed class MayhemShow
         for (int seat = 0; seat < _roster.Length; seat++)
             fighters[seat] = new((byte)seat, _roster[seat], world.Fighter(_roster[seat]), world.Definition(_roster[seat]),
                 OnAir(seat), IsLive(seat));
-        return new MayhemFrame(tick, _stage, fighters);
+        return new MayhemFrame(tick, _stage, fighters, world.FriendlyFire);
     }
 
     private void Emit(uint tick, ushort episode, MayhemEventKind kind, ulong subject, ushort value = 0)
@@ -431,7 +432,7 @@ internal sealed class MayhemShow
                 uint failTick = r.ReadUInt();
                 var anchor = ReadPose(r, "Mayhem splat anchor");
                 bool lastPassed = cursor.Phase == MayhemPhase.Verdict && (passMasks[seat] >> cursor.Episode & 1) != 0;
-                if (!failuresAllowed || cause > FailCause.BoardsRemain || style > SplatStyle.Fallen || failTick > tick
+                if (!failuresAllowed || cause > MayhemEnumLimits.Failure || style > MayhemEnumLimits.Splat || failTick > tick
                     || (onAir >> seat & 1) == 0 || lastPassed)
                     throw SnapshotReader.Malformed("Mayhem failure");
                 failures[seat] = new MayhemFailure(cause, style, failTick, anchor);
@@ -448,7 +449,7 @@ internal sealed class MayhemShow
             if (!channelExpected || channelEpisode != cursor.Episode || plan.ChannelAt(channelEpisode) != channelId
                 || !MayhemChannels.TryFind(channelId, out var entry))
                 throw SnapshotReader.Malformed("Mayhem channel");
-            channel = entry.Read(r, new ChannelRestore(channelId, channelEpisode, 0, _stage, roster,
+            channel = entry.Read(r, new ChannelRestore(plan.AiringAt(channelEpisode), channelEpisode, 0, MayhemShowPlan.TierOf(channelEpisode), _stage, roster,
                 plan.PlayStart(channelEpisode), plan.Deadline(channelEpisode), onAir));
         }
         else if (channelExpected)
