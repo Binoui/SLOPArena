@@ -247,6 +247,20 @@ what happens to published items when the cooked schema changes. Attach the evide
 - 2026-11-11. Phase 1 started on the owner's word. Steps 1.1 and 1.2 run in parallel in their own
   worktrees: the item manifest and a GLB pre-check in Shared, and the importer with the swap in
   the real fighter path.
+- 2026-11-11. Step 1.1 landed (PR #346): `WorkshopItemManifest` and `WorkshopGlbPrecheck` in
+  Shared. The owner confirmed the default limits: 30 MB, 250,000 triangles, 250 bones, 4096 px
+  textures, 20 materials, 16 images.
+- 2026-11-11. Steps 1.2 and 1.3 built. A player wears a creator's GLB over a built-in fighter in
+  a real match through `PlayerRenderer`; see [model swaps](../systems/model-swaps.md). FightGuy,
+  Sir Bonk, Wibou, Manki, and Dusty accept a swap. Bashie and Nyx refuse with a reason. Swap
+  textures shrink to 1024 px on a worker thread, so a mid-match import's worst frame fell from
+  358 ms to about 30 ms. A cross-model review found four defects (a node cycle that hangs the
+  importer, reads before the size check, a second PNG header, and an unstyled model after
+  take-off). All four are fixed, with tests or a player-build run for each. The roster was
+  recooked in a disposable project, and only hashes and pins changed, so the match content hash
+  changes with this step. For now a swap comes from the `-modelSwap` launch option or the
+  `ModelSwaps` folder. Not done: the Steam Deck frame time, the Workshop screen (1.4), Fighter
+  Select (1.5), and online (1.6).
 
 ## Phase 1. Ship model swaps
 
