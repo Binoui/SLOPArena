@@ -45,7 +45,7 @@ namespace SlopArena.Client.UI
             _root.style.paddingLeft = _root.style.paddingRight = 20;
             _root.style.paddingTop = _root.style.paddingBottom = 12;
             host.Add(_root); _root.BringToFront();
-            UiModalState.Push(); context.SetModalAction(HandleBack);
+            UiModalState.Push(); context.SetModalAction(HandleBack); context.AddReleaseAction(Close);
             var title = Text("WORKSHOP / MODEL SWAPS"); title.style.fontSize = 28; _root.Add(title);
             var tabs = new VisualElement(); tabs.style.flexDirection = FlexDirection.Row; _root.Add(tabs);
             _tabs[View.Local] = Button(tabs, "LOCAL LIBRARY", Local);
