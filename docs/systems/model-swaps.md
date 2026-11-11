@@ -148,7 +148,8 @@ base fighter. Launch arguments fill seats without a Workshop choice for testing.
 
 `WorkshopLibrary.Verify` reads bounded files and checks the manifest, hashes and GLB
 precheck in that order. The importer then checks the avatar before an item is accepted
-or offered to wear. A refusal displays the named diagnostic and offers no wear action.
+or offered to wear. An importer refusal displays its explanation sentence and offers no wear action.
+Diagnostic codes remain in runtime logs.
 Item folders contain only the manifest and its declared payloads.
 
 `SteamWorkshopClient` contains no Unity types. Its host initializes Steam and pumps
