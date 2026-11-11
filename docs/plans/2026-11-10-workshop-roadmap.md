@@ -181,12 +181,37 @@ what happens to published items when the cooked schema changes. Attach the evide
   The wall-clock guard covers the Match and not the loading call, so a load that never returns
   would stall the test run. The tick budget is wall-clock time and may fail on a busy CI runner.
   Fix the last two before the tests merge.
-- 2026-11-10. Step 0.1 started on Opus in an isolated worktree after the owner authorized commits.
-  It builds through the isolated builder (`scripts/build-playtest-local.py`) and never pushes. The
-  step 0.4 tests are committed on the local branch `t3/test-cooked-package-loader` (`24d6bd15`).
+- 2026-11-10. Step 0.1 passed. A Win64 player with no Editor and no generated catalog loaded
+  `fightguy.glb` from `StreamingAssets` through glTFast 6.18.0 in 111 to 123 ms. Path A, the
+  GLB's own clips set as joint transforms, stays within 0.085 mm of the built-in fighter on every
+  tick of five clips, except 0.454 mm on the idle loop's last tick. Path B, a Humanoid avatar
+  built at runtime playing the built-in clips, matches the body within 0.05 mm and is off by up to
+  30 mm at the thumbs, because the GLB's rest pose is not the avatar's reference pose. Model swaps
+  through path B work for `bonk.glb` and `bashie.glb`. `wibou.glb` rests in an A-pose and its arms
+  sit about 43 degrees low. Each added fighter costs 0.02 to 0.25 ms of frame time, inside the
+  run-to-run spread. Path A serves custom fighters and path B serves model swaps. A GLB for path B
+  needs a T-pose rest pose with fingers, a map that names Hips, and a fit to the base fighter's
+  height. Unproven: game weapon attachment, effects, sound, tails, shells, forms, `PlayerRenderer`
+  states, Steam Deck, memory, and GLBs that Unity did not export. The spike is on the local branch
+  `t3/runtime-glb-fighter-prototype` (`aa6daf0a`), and its report and captures are in
+  `tmp/workshop-spikes/glb-runtime/`. The step 0.4 tests are on `t3/test-cooked-package-loader`
+  (`24d6bd15`).
+- 2026-11-10. Found by step 0.1, outside Workshop. Player builds do not contain the
+  `SLOPArena/GraphicCharacter` shader. Nothing references it and it is not in Always Included
+  Shaders, so `Shader.Find` returns null in the player and `MatchVisualStyle` leaves fighters on
+  URP Lit. The spike used a copy under `Resources`. Main is not changed.
+- 2026-11-10. Builder note from step 0.1. The cook source hash tracks `Packages/manifest.json`, so
+  adding any client package marks all seven cooks stale. Phase 1 must recook when it adds the
+  importer.
 - 2026-11-10. The owner enabled the Workshop on the store app in Steamworks, with a Steam Cloud
-  quota of 1 GB and 1,000 files per user. Step 0.3 can run once the owner agrees to the creation
-  of one hidden test item on their account.
+  quota of 1 GB and 1,000 files per user.
+- 2026-11-10. Step 0.3, two of three legs pass. A private test item (3837402870) uploaded from a
+  small tool as the owner's account, and the same account downloaded it with equal SHA-256 on
+  every file. The anonymous game-server download failed with `k_EResultFail`. Two causes are
+  still mixed: the Workshop setting "Enable anonymous game servers to download workshop items",
+  and the item being private in a Workshop that is visible to developers only. Evidence is in
+  `tmp/workshop-spikes/steam-roundtrip/`. The first attempts returned `k_EResultBusy` because the
+  settings had been made on the Playtest app.
 
 ## Phase 1. Ship model swaps
 
@@ -423,8 +448,14 @@ What the numbers support.
 
 What the numbers do not support.
 
-- They do not show that the Rivals 2 Workshop raised its player count. January, April, and August
-  2026 each had a major update (2026-01-06, 2026-04-07, 2026-08-04), and the 1.0 month moved 4%.
+- They show a launch bump for the Rivals 2 Workshop 1.0 and not yet a lasting rise. Daily peak
+  players were 517 to 595 on 2026-10-01 to 2026-10-05 and 711 to 877 on 2026-10-06 to 2026-10-13.
+  The mean daily peak was 621 over the 30 days before 1.0, 783 over the first two weeks after,
+  and 641 from 2026-10-20 to 2026-11-09 (SteamCharts daily data, read 2026-11-10). The monthly
+  average hid this: October moved 4% over September. January, April, and August 2026 each had a
+  major update too (2026-01-06, 2026-04-07, 2026-08-04), so the 2026 level cannot be credited to
+  the Workshop beta alone. Steam counts players per app, so the share playing Workshop content
+  is not public.
 - The Rivals 1 rise after March 2020 overlaps with lockdowns and with the Definitive Edition in
   September 2020. The five months before lockdowns still average 2.6 times the earlier level.
 

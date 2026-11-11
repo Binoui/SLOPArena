@@ -10,18 +10,46 @@ namespace SlopArena.Client.World
 {
     /// <summary>
     /// Applies the shared graphic-stylized presentation after a match has spawned its stage
-    /// and character models. This is deliberately presentation-only: stage collision and
-    /// simulation state remain untouched.
+    /// and character models: the fighter shader, and the stage's look (<see cref="StageLook"/>) as the grade of
+    /// the picture, the light and ink on fighters and the stage's own lamps. This is deliberately
+    /// presentation-only: stage collision and simulation state remain untouched.
     /// </summary>
     public sealed class MatchVisualStyle : MonoBehaviour
     {
+        // The ink line keeps between these two widths on the fighter, and its hull sits this far behind the body.
+        private const float InkMinMetres = 0.012f, InkMaxMetres = 0.024f, InkDepthPush = 0.14f;
+
+        private static readonly int FighterFillId = Shader.PropertyToID("_FighterFill");
+        private static readonly int KickColorAId = Shader.PropertyToID("_FighterKickColorA");
+        private static readonly int KickDirAId = Shader.PropertyToID("_FighterKickDirA");
+        private static readonly int KickColorBId = Shader.PropertyToID("_FighterKickColorB");
+        private static readonly int KickDirBId = Shader.PropertyToID("_FighterKickDirB");
+        private static readonly int KickPowerId = Shader.PropertyToID("_FighterKickPower");
+        private static readonly int LiftId = Shader.PropertyToID("_FighterLift");
+        private static readonly int LampCapId = Shader.PropertyToID("_FighterLampCap");
+        private static readonly int InkColorId = Shader.PropertyToID("_FighterInkColor");
+        private static readonly int InkId = Shader.PropertyToID("_FighterInk");
+
         private readonly List<Material> _runtimeMaterials = new();
-        private VolumeProfile _runtimeProfile;
+        private readonly List<(UniversalAdditionalCameraData data, bool postProcessing, bool dithering)> _cameras = new();
+        private VolumeProfile? _runtimeProfile;
+        private StageLookSettings _look = StageLookSettings.Default;
+        private Bloom? _bloom;
+        private DepthOfField? _farBlur;
+        private int _qualityLevel = -1;
+        private int _cameraCount = -1;
+        private bool _applied;
 
         public void Apply()
         {
+            var stage = FindFirstObjectByType<StageLook>();
+            _look = stage != null ? stage.Settings : StageLookSettings.Default;
+            StageLook.Active = _look;
             ApplyAtmosphere();
+            ApplyCameras();
             ApplyCharacterMaterials();
+            gameObject.AddComponent<StageLookLights>().SetPools(_look.Pools, stage != null ? stage.transform : null);
+            _applied = true;
         }
 
         /// <summary>Resting silhouette rim applied to every fighter material.</summary>
@@ -47,39 +75,95 @@ namespace SlopArena.Client.World
             volume.isGlobal = true;
             volume.priority = 100f;
 
-            _runtimeProfile = ScriptableObject.CreateInstance<VolumeProfile>();
-            _runtimeProfile.name = "SLOPArena Runtime Visual Grade";
-            volume.profile = _runtimeProfile;
+            var profile = ScriptableObject.CreateInstance<VolumeProfile>();
+            profile.name = "SLOPArena Runtime Visual Grade";
+            volume.profile = profile;
+            _runtimeProfile = profile;
 
-            var tonemapping = _runtimeProfile.Add<Tonemapping>(true);
-            tonemapping.mode.Override(TonemappingMode.ACES);
+            // No tonemapping keeps the colours stages and fighters were authored in; a stage built on glow asks for
+            // Neutral. ACES, which this volume used to carry without ever drawing, shifted hues and bleached emission.
+            var grade = _look.Grade;
+            var tonemapping = profile.Add<Tonemapping>(true);
+            tonemapping.mode.Override(grade.NeutralTonemap ? TonemappingMode.Neutral : TonemappingMode.None);
 
-            var color = _runtimeProfile.Add<ColorAdjustments>(true);
-            color.postExposure.Override(0.12f);
-            color.contrast.Override(14f);
-            color.saturation.Override(8f);
-            color.colorFilter.Override(new Color(1f, 0.97f, 0.92f));
+            var color = profile.Add<ColorAdjustments>(true);
+            color.contrast.Override(grade.Contrast);
+            color.saturation.Override(grade.Saturation);
+            color.colorFilter.Override(grade.Filter);
 
-            var bloom = _runtimeProfile.Add<Bloom>(true);
-            bloom.threshold.Override(1.05f);
-            bloom.intensity.Override(0.18f);
-            bloom.scatter.Override(0.55f);
+            _bloom = profile.Add<Bloom>(true);
+            _bloom.threshold.Override(grade.BloomThreshold);
+            _bloom.intensity.Override(grade.BloomIntensity);
+            _bloom.scatter.Override(grade.BloomScatter);
 
-            var vignette = _runtimeProfile.Add<Vignette>(true);
-            vignette.color.Override(new Color(0.04f, 0.025f, 0.07f));
-            vignette.intensity.Override(0.16f);
-            vignette.smoothness.Override(0.48f);
+            var vignette = profile.Add<Vignette>(true);
+            vignette.color.Override(grade.VignetteColor);
+            vignette.intensity.Override(grade.Vignette);
+            vignette.smoothness.Override(0.45f);
+
+            if (grade.SplitToning)
+            {
+                var split = profile.Add<SplitToning>(true);
+                split.shadows.Override(grade.SplitShadows);
+                split.highlights.Override(grade.SplitHighlights);
+                split.balance.Override(grade.SplitBalance);
+            }
+
+            if (_look.FarBlur.Enabled)
+            {
+                _farBlur = profile.Add<DepthOfField>(true);
+                _farBlur.mode.Override(DepthOfFieldMode.Gaussian);
+                _farBlur.gaussianStart.Override(_look.FarBlur.Start);
+                _farBlur.gaussianEnd.Override(_look.FarBlur.End);
+                _farBlur.gaussianMaxRadius.Override(_look.FarBlur.Radius);
+                _farBlur.highQualitySampling.Override(true);
+            }
+            ApplyQuality();
+        }
+
+        // Low keeps the grade with a plain bloom; the far blur and the finer bloom filter are for the other levels.
+        private void ApplyQuality()
+        {
+            _qualityLevel = QualitySettings.GetQualityLevel();
+            var names = QualitySettings.names;
+            bool low = _qualityLevel >= 0 && _qualityLevel < names.Length && names[_qualityLevel].Contains("Low");
+            if (_bloom != null) _bloom.highQualityFiltering.Override(!low);
+            if (_farBlur != null) _farBlur.active = !low;
+        }
+
+        // The grade only draws on cameras that render post-processing; scene cameras ship with it off.
+        private void ApplyCameras()
+        {
+            _cameraCount = UnityEngine.Camera.allCamerasCount;
+            foreach (var camera in UnityEngine.Camera.allCameras)
+            {
+                if (camera.cameraType != CameraType.Game || camera.targetTexture != null) continue;
+                var data = camera.GetUniversalAdditionalCameraData();
+                if (data.renderType != CameraRenderType.Base || (data.renderPostProcessing && data.dithering)) continue;
+                _cameras.Add((data, data.renderPostProcessing, data.dithering));
+                data.renderPostProcessing = true;
+                data.dithering = true;
+            }
+        }
+
+        private void Update()
+        {
+            if (!_applied) return;
+            if (QualitySettings.GetQualityLevel() != _qualityLevel) ApplyQuality();
+            // A camera that joins the match later (a replay or photo camera) takes the grade too.
+            if (UnityEngine.Camera.allCamerasCount != _cameraCount) ApplyCameras();
         }
 
         private void ApplyCharacterMaterials()
         {
-            var shader = Shader.Find("SLOPArena/GraphicCharacter");
+            var shader = Resources.Load<Shader>("Shaders/GraphicCharacter");
             if (shader == null)
             {
                 Debug.LogWarning("[MatchVisualStyle] SLOPArena/GraphicCharacter shader not found.");
                 return;
             }
-            Shader.SetGlobalFloat("_FighterFill", FighterFill);
+            Shader.SetGlobalFloat(FighterFillId, FighterFill);
+            ApplyFighterLook();
 
             foreach (var player in FindObjectsByType<PlayerRenderer>(FindObjectsSortMode.None))
             {
@@ -87,7 +171,7 @@ namespace SlopArena.Client.World
 
                 foreach (var modelRenderer in player.GetComponentsInChildren<Renderer>(true))
                 {
-                    if (modelRenderer is not SkinnedMeshRenderer)
+                    if (modelRenderer is not SkinnedMeshRenderer skin)
                         continue;
 
                     var originals = modelRenderer.sharedMaterials;
@@ -121,8 +205,44 @@ namespace SlopArena.Client.World
                         _runtimeMaterials.Add(material);
                     }
                     modelRenderer.sharedMaterials = styled;
+                    if (_look.Fighters.Ink > 0f) FighterInk.Apply(skin);
                 }
             }
+        }
+
+        // The stage's light on every fighter: two kick lights on the edges, a lift, the lamp cap and the ink line.
+        private void ApplyFighterLook()
+        {
+            var fighters = _look.Fighters;
+            Color kickA = fighters.KickA, kickB = fighters.KickB;
+            Vector3 directionA = fighters.KickADirection, directionB = fighters.KickBDirection;
+            var key = fighters.KicksFromKeyLight ? KeyLight() : null;
+            if (key != null)
+            {
+                // A stage without its own kicks: its key light on the fighter's edge, answered from the far side.
+                Color.RGBToHSV(key.color, out float hue, out float saturation, out _);
+                kickA = Color.HSVToRGB(hue, saturation, 1f);
+                directionA = -key.transform.forward;
+                directionB = new Vector3(-directionA.x, Mathf.Max(directionA.y * 0.5f, 0.2f), -directionA.z);
+            }
+            Shader.SetGlobalColor(KickColorAId, new Color(kickA.r, kickA.g, kickA.b, fighters.KickAStrength));
+            Shader.SetGlobalVector(KickDirAId, directionA.normalized);
+            Shader.SetGlobalColor(KickColorBId, new Color(kickB.r, kickB.g, kickB.b, fighters.KickBStrength));
+            Shader.SetGlobalVector(KickDirBId, directionB.normalized);
+            Shader.SetGlobalFloat(KickPowerId, fighters.KickPower);
+            Shader.SetGlobalFloat(LiftId, fighters.Lift);
+            Shader.SetGlobalFloat(LampCapId, fighters.LampCap);
+            Shader.SetGlobalColor(InkColorId, fighters.InkColor);
+            Shader.SetGlobalVector(InkId, new Vector4(fighters.Ink, InkMinMetres, InkMaxMetres, InkDepthPush));
+        }
+
+        private static Light? KeyLight()
+        {
+            Light? key = null;
+            foreach (var light in FindObjectsByType<Light>(FindObjectsSortMode.None))
+                if (light.isActiveAndEnabled && light.type == LightType.Directional && (key == null || light.intensity > key.intensity))
+                    key = light;
+            return key;
         }
 
         private void OnDestroy()
@@ -132,6 +252,21 @@ namespace SlopArena.Client.World
                     Destroy(material);
             if (_runtimeProfile != null)
                 Destroy(_runtimeProfile);
+            if (!_applied) return;
+
+            foreach (var (data, postProcessing, dithering) in _cameras)
+            {
+                if (data == null) continue;
+                data.renderPostProcessing = postProcessing;
+                data.dithering = dithering;
+            }
+            // Fighters drawn outside a match (none today) fall back to the plain shader look.
+            Shader.SetGlobalColor(KickColorAId, Color.clear);
+            Shader.SetGlobalColor(KickColorBId, Color.clear);
+            Shader.SetGlobalFloat(LiftId, 0f);
+            Shader.SetGlobalFloat(LampCapId, 0f);
+            Shader.SetGlobalVector(InkId, Vector4.zero);
+            if (StageLook.Active == _look) StageLook.Active = StageLookSettings.Default;
         }
     }
 }

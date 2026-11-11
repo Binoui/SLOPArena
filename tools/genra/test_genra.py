@@ -500,6 +500,86 @@ class GenraTests(unittest.TestCase):
             self.assertEqual(len(back), len(clip))
             self.assertLess(np.abs(back.world() - clip.world()).max(), 1e-5)
 
+    def test_contact_in_an_authored_first_pose_is_reported(self):
+        class Touching:  # the blade on the shin in every pose, as in Wibou's first air pose
+            def clearances(self, world):
+                return {'Weapon-RightLeg': 0.004}
+        clip = Clip.from_keys({0: self.entry, 10: self.entry}, 11)
+        spec = {'face': False, 'arm_gap': False, 'life': False, 'flow': False}
+        free = check_clip(clip, spec, skin=Touching())
+        inherited = check_clip(clip, spec | {'entry': self.entry}, skin=Touching())
+        self.assertIn('Weapon-RightLeg', {w.get('pair') for w in free['warnings'] if w['check'] == 'clearance'})
+        self.assertNotIn('Weapon-RightLeg', {w.get('pair') for w in inherited['warnings'] if w['check'] == 'clearance'})
+
+    def test_yaw_range_and_swing_targets_measure_turns(self):
+        from genra.checks import measure
+        turned = self.entry.copy().rotate('Spine', [0, 0, 1], 20)  # the chest turns 20 degrees about up
+        arm_dir = self.entry.pos('RightForeArm') - self.entry.pos('RightArm')
+        across = np.cross(arm_dir, [0, 0, 1])  # square to the upper arm, so the elbow sweeps the full 30 degrees
+        swung = self.entry.copy().rotate('RightArm', across / np.linalg.norm(across), 30)
+        clip = Clip.from_keys({0: self.entry, 5: turned, 10: self.entry, 15: swung, 20: self.entry}, 21)
+        shoulders = {'kind': 'yaw_range', 'a': 'RightArm', 'b': 'LeftArm', 'window': [0, 10]}
+        self.assertAlmostEqual(measure(clip, shoulders), 20, delta=0.5)
+        self.assertLess(measure(clip, {**shoulders, 'minus': ['LeftArm', 'RightArm']}), 1e-6)
+        hips = {**shoulders, 'minus': ['LeftUpLeg', 'RightUpLeg']}  # the hips stay put: counter-rotation = the chest
+        self.assertAlmostEqual(measure(clip, hips), 20, delta=0.5)
+        arm = {'kind': 'swing', 'a': 'RightForeArm', 'b': 'RightArm'}
+        self.assertAlmostEqual(measure(clip, {**arm, 'window': [10, 20]}), 30, delta=0.5)
+        self.assertLess(measure(clip, {**arm, 'window': [0, 0]}), 1e-3)
+        palm = measure(clip, {'kind': 'palm', 'side': 'Left', 'axis': 'up', 'tick': 0})
+        self.assertAlmostEqual(palm, float(self.entry.palm_normal('Left')[2]), places=6)
+
+    def test_yaw_lag_side_dip_and_axis_targets(self):
+        from genra.checks import measure
+        keys = {}
+        for t in range(0, 33, 2):  # the pelvis turns 10 degrees each way; the shoulders counter-turn 2 ticks late
+            phase = 2 * np.pi * t / 32
+            p = self.entry.copy().rotate('Hips', [0, 0, 1], 10 * np.sin(phase))
+            keys[t] = p.rotate('Spine', [0, 0, 1], -10 * np.sin(phase) - 15 * np.sin(phase - 2 * np.pi * 2 / 32))
+        clip = Clip.from_keys(keys, 33, cycle=(0, 32))
+        lag = {'kind': 'yaw_lag', 'a': 'RightArm', 'b': 'LeftArm', 'lead': ['LeftUpLeg', 'RightUpLeg'], 'window': [0, 31]}
+        self.assertEqual(measure(clip, {**lag, 'opposite': True}), 2)
+        self.assertEqual(abs(measure(clip, lag)), 14)  # same sense: half a cycle off, less the two ticks
+        p = clip.pose(0)
+        d = p.pos('RightHand') - p.pos('RightForeArm')
+        dip = measure(clip, {'kind': 'side_dip', 'a': 'RightHand', 'b': 'RightForeArm', 'tick': 0})
+        self.assertAlmostEqual(dip, float(np.degrees(np.arctan2(-d[2], -d[1]))), places=5)
+        axis = {'kind': 'axis', 'a': 'RightHand', 'local': [0, 1, 0], 'toward': 'up', 'tick': 0}
+        u = p.axis('RightHand', [0, 1, 0])
+        self.assertAlmostEqual(measure(clip, axis), float(u[2] / np.linalg.norm(u)), places=6)
+        self.assertAlmostEqual(measure(clip, {**axis, 'toward': [0, 0, -2], 'abs': True}), abs(float(u[2] / np.linalg.norm(u))), places=6)
+
+    def test_gap_target_measures_skin_between_regions(self):
+        from genra.checks import measure, _skin
+        from genra.skin import Skin
+        hug = self.entry.copy()
+        clip = Clip.from_keys({0: self.entry, 4: hug}, 5)
+        hand = {'kind': 'gap', 'a': 'LeftHand', 'b': ['Torso'], 'tick': 0}
+        self.assertAlmostEqual(measure(clip, hand), Skin(clip.rig).clearances(clip.world()[0])['LeftHand-Torso'], places=6)
+        both = measure(clip, {**hand, 'a': ['LeftForeArm', 'LeftHand']})
+        self.assertLessEqual(both, measure(clip, hand) + 1e-9)  # more skin on one side can only come closer
+        self.assertIs(_skin(clip.rig), _skin(clip.rig))  # built once per rig
+        with self.assertRaises(ValueError):
+            measure(clip, {**hand, 'b': 'Coat'})
+
+    def test_authored_reference_is_an_exact_hand_off(self):
+        from genra.rigpack import add_reference, make_rigpack, verify_rigpack
+        take = self.brief.reference('jump')
+        take.set_pose(0, take.pose(len(take) - 1))  # an authored first pose that no Unity clip has
+        with tempfile.TemporaryDirectory() as tmp:
+            pack = Path(tmp) / 'pack'
+            make_rigpack(pack, self.brief.file('rig.usda'), {'fall': self.brief.file(self.brief['references']['fall'])})
+            add_reference(pack, 'newfall', take, source='test')
+            verify_rigpack(pack)
+            data = dict(json.loads(BRIEF.read_text()), rigpack=str(pack), exit={'from_tick': 30, 'reference': 'newfall', 'tick': 0})
+            (Path(tmp) / 'brief.json').write_text(json.dumps(data))
+            exit_pose = Brief(Path(tmp) / 'brief.json').exit_pose
+            self.assertLess(np.abs(exit_pose.world() - take.pose(0).world()).max(), 1e-5)
+            with self.assertRaises(FileExistsError):
+                add_reference(pack, 'newfall', self.brief.reference('fall'))
+            with self.assertRaises(ValueError):
+                add_reference(pack, 'New-Fall', take)
+
     def test_skinning_matches_usd(self):
         from pxr import UsdSkel, Vt
         rig = Rig(self.brief.file(self.brief['references']['fall']))
@@ -960,6 +1040,35 @@ class UnityJobTests(unittest.TestCase):
                 path = Path(tmp) / f'{name}.json'
                 path.write_text(json.dumps(data))
                 self.assertEqual(write_flags(Brief(path)), flags, name)
+
+    def test_authored_entry_reference_needs_the_clip_that_plays_it(self):
+        from genra.unity_clip import entry_reference
+        mapping = {'references': {'idle': {'name': 'wibou_idle_2', 'semanticId': 'anim.wibou.idle'}}}
+        self.assertEqual(entry_reference(mapping, {'reference': 'idle', 'tick': 0}),
+                         {'semanticId': 'anim.wibou.idle', 'tick': 0})
+        with self.assertRaisesRegex(SystemExit, '--entry-clip'):
+            entry_reference(mapping, {'reference': 'newidle', 'tick': 0})
+        self.assertEqual(entry_reference(mapping, {'reference': 'newidle', 'tick': 0}, 'Assets/X/idle.anim'),
+                         {'asset': 'Assets/X/idle.anim', 'tick': 0})
+
+    def test_timeline_clearance_finds_the_floor_under_him(self):
+        from genra.unity_clip import floor_clearance
+        floors = [[0.0, -5.0, 20.0, 0.0, 10.0], [-11.6, 18.0, 40.0, 0.0, 10.0]]
+        probe = [[0, 0.0, 1.0, 0.02, 0.3],      # standing on the ledge
+                 [5, 19.0, -10.0, -11.4, -11.0],  # landed below the ledge's end, which still covers his travel
+                 [6, 19.0, -10.0, -11.75, None],  # the foot dips 15 cm into the lower floor; no weapon shown
+                 [7, 50.0, -10.0, -11.6, -11.0]]  # past every runway
+        out = floor_clearance(probe, floors)
+        self.assertEqual(out['floor'], [0.0, -11.6, -11.6, None])
+        self.assertEqual(out['body'][:3], [0.02, 0.2, -0.15])
+        self.assertEqual(out['weapon'], [0.3, 0.6, None, None])
+
+    def test_timeline_floor_is_one_runway_or_pieces(self):
+        from genra.unity_clip import floor_slabs
+        self.assertEqual(floor_slabs({}), [])
+        self.assertEqual(floor_slabs({'floor': -1.975, 'ticks': 110}), [[-1.975, -30.0, 30.0, 0.0, 110.0]])
+        self.assertEqual(floor_slabs({'floor': [[0, -5, 20, 0, 290], [-11.6, 18, 40]], 'ticks': 400}),
+                         [[0.0, -5.0, 20.0, 0.0, 290.0], [-11.6, 18.0, 40.0, 0.0, 400.0]])
 
     def test_timeline_events_name_assets_or_bound_clips(self):
         from genra.unity_clip import timeline_rows

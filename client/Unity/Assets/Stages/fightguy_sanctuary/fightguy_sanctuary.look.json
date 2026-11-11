@@ -1,0 +1,83 @@
+{
+ "grade": {
+  "bloomThreshold": 1.0,
+  "bloomIntensity": 0.4,
+  "bloomScatter": 0.6,
+  "contrast": 8,
+  "saturation": 6,
+  "filter": [
+   1.0,
+   0.985,
+   0.96
+  ],
+  "vignette": 0.14,
+  "vignetteColor": [
+   0.04,
+   0.06,
+   0.1
+  ]
+ },
+ "farBlur": {
+  "start": 95,
+  "end": 420,
+  "radius": 0.8
+ },
+ "tints": {
+  "Backdrop Peaks": [
+   0.9,
+   0.92,
+   0.96
+  ],
+  "Backdrop Spires": [
+   0.9,
+   0.92,
+   0.96
+  ],
+  "Cloud Sea": [
+   0.94,
+   0.95,
+   0.97
+  ],
+  "Mountain Floor": [
+   0.9,
+   0.92,
+   0.96
+  ]
+ },
+ "fighters": {
+  "kickA": {
+   "color": [
+    1.0,
+    0.92,
+    0.76
+   ],
+   "direction": [
+    0.27,
+    0.77,
+    -0.58
+   ],
+   "strength": 1.2
+  },
+  "kickB": {
+   "color": [
+    0.62,
+    0.8,
+    1.0
+   ],
+   "direction": [
+    -0.6,
+    0.3,
+    0.6
+   ],
+   "strength": 0.9
+  },
+  "kickPower": 2.6,
+  "lift": 0.04,
+  "contactShadow": 0.3,
+  "contactShadowColor": [
+   0.1,
+   0.11,
+   0.18
+  ]
+ }
+}

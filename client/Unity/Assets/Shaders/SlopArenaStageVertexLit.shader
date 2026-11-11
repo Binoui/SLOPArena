@@ -29,6 +29,7 @@ Shader "SLOPArena/StageVertexLit"
         HLSLINCLUDE
         #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
         #include "SlopArenaStageCutaway.hlsl"
+        #include "SlopArenaStageLights.hlsl"
 
         CBUFFER_START(UnityPerMaterial)
             float4 _BaseMap_ST;
@@ -143,7 +144,9 @@ Shader "SLOPArena/StageVertexLit"
                     + SAMPLE_TEXTURE2D(_DetailMap, sampler_DetailMap, p.xy).r * blend.z;
                 albedo *= lerp(1.0h, detail * 2.0h, _DetailStrength * input.color.a);
 
-                Light mainLight = GetMainLight(TransformWorldToShadowCoord(input.positionWS));
+                // The overload with a position fades shadows out at the quality level's shadow distance. Without it a
+                // level with one cascade (Medium) reads past its shadow map and draws a false shadow beyond 20 m.
+                Light mainLight = GetMainLight(TransformWorldToShadowCoord(input.positionWS), input.positionWS, half4(1, 1, 1, 1));
                 half shadowed = mainLight.shadowAttenuation;
                 #if defined(_RECEIVE_SHADOWS_OFF)
                 shadowed = 1.0h;
@@ -160,6 +163,10 @@ Shader "SLOPArena/StageVertexLit"
                     direct += Diffuse(light, normalWS, light.shadowAttenuation);
                 }
                 #endif
+                // The stage's own pools of light and the flash of a hit, on every quality level.
+                half3 lookPools, lookFlashes;
+                StageLookLights(input.positionWS, normalWS, _Wrap, lookPools, lookFlashes);
+                direct += lookPools;
 
                 half3 color = albedo * (ambient + direct);
                 if (_Specular > 0.0h)
@@ -171,6 +178,7 @@ Shader "SLOPArena/StageVertexLit"
                     color += mainLight.color * albedo * (highlight * 2.0h) + albedo * ambient * rim;
                 }
                 color += albedo * _Emission;
+                color = StageLookFlash(color, albedo, lookFlashes);
                 color = MixFog(color, input.fogFactor);
                 return half4(StageCutawayApplyRim(color, sightRim), 1.0h);
             }

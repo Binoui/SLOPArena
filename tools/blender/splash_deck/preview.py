@@ -3,7 +3,7 @@
 The PvP camera orbits the fighter at up to 15 m (radius 10 x 1.5 zoom), pitched
 10-30 degrees down, with a 40 degree vertical FOV. These renders are quick agent
 review aids only: the water here is a plain glossy stand-in for SLOPArena/StageWater,
-and the match camera's ACES grade and bloom decide how colour and glints read, so
+and the match camera's grade and bloom decide how colour and glints read, so
 Unity gameplay captures remain the reference.
 """
 from __future__ import annotations

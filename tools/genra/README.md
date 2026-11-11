@@ -241,6 +241,17 @@ deliver the hit (`RightHand`, or `bladeEnd` for a weapon); a left-side strike mo
 review view behind the left shoulder. Targets should restate the
 creative text, not add new requirements.
 
+Target kinds are listed in `checks.measure`. Locomotion briefs can hold amplitudes, not only positions (Wibou's round-2
+run, 2026-11-10, after a run with locked arms passed every positional target): `yaw_range` turns the heading of a line
+seen from above (shoulders, or shoulders minus pelvis with `minus` for counter-rotation), `swing` the arc a direction
+sweeps (an arm pump, a blade's swing), and `palm` the way a palm faces (an off hand that must not read as a wave). Round 3
+added `yaw_lag` (the chest trailing the pelvis by so many ticks), `side_dip` (a blade's angle in the side view, where
+round 2's hung steeply past the feet) and `axis` (a joint's own axis against a direction: the blade's flat facing the
+match camera, which a fix pass had turned edge-on). Round 4 (2026-11-11) added `gap`: the skin distance between body
+regions, such as the off forearm and hand against the `Torso` region, which holds the coat's skirt at its bind
+rotation, so a brief can fail on it. The gait's `arm_gap` check is a warning: round 3's left forearm sat 2-6 mm from
+the torso and coat on every tick, the warning fired, the take shipped, and the owner saw the arm clip.
+
 Clips that are not attacks leave out the contact, active and IASA ticks. A looping clip
 (`loop.from_tick`) plays a one-shot build-up and then cycles from that tick to the end; the
 model keys it with `Clip.from_keys(..., cycle=...)` and the check fails a seam that does not
@@ -277,6 +288,10 @@ $PY tools/genra/unity_clip.py render --brief BRIEF.json --result RESULT.json \
   compares joints and skinned vertices with the toolkit. Nothing is saved unless `--save` or
   `--asset` names a new path (default `Assets/Art/Experiments/GenRA/<package>/<name>.anim`),
   and nothing is bound.
+- An entry reference authored into the pack (`python -m genra.rigpack reference`) has no Unity clip in `mapping.json`.
+  `write --entry-clip Assets/...anim` names the clip that plays it, usually that take's written candidate: Wibou's
+  jump enters on `newidle`, played from the idle candidate in Experiments (2026-11-10). Without the flag `write` stops
+  and says so.
 - Judge written clips with `render`, `timeline`, the Ability Lab or Training, not Unity's Inspector preview.
   For grounded locomotion, set `"grounding": "reference-sole"` in the brief. The writer
   measures the lowest foot-weighted skinned vertex on the entry reference, then changes
@@ -318,6 +333,8 @@ toolkit's review views and framing into `real.mp4` (a row per clip, real speed t
 quarter speed) and `real-sheet.png`. Pass the bound clip the candidate would replace as a
 second `--clip` to compare them on the same clock. Nothing in the project changes.
 
+- **Helpers and skirts:** `PartialFollowBones` helpers (Sir Bonk's knee guards and pauldrons) are posed after
+  every sample, and `SkirtBoneSpring` (Nyx's dress, Wibou's coat) steps once per tick like the chains below.
 - **Springs:** `BoneChainSpring` chains (Manki's tail, Sir Bonk's cape) step once per tick as
   they do in Play Mode. A looping clip runs one silent cycle first, so the spring is already
   swinging at tick 0. `--no-springs` keeps them at rest.
@@ -345,6 +362,13 @@ charge loop, then the release into the dash at its 6.4 m travel; it showed a 3-t
 up into the dash clip's upright first frame. Sir Bonk's E drop review (2026-11-01) rises
 6 m, hangs, and drops onto the floor along the game's path: before that, a timeline could
 only move forward and had no ground.
+With a floor, each row of the report carries `probe` (per tick: travel, root height, lowest skinned body vertex, lowest
+weapon vertex, as Unity played it) and `clearance` (body and weapon heights above the floor under him), so a landing's
+foot dip or a blade near the floor during a fade is a measured number rather than a judgement by eye.
+`floor` can also be a list of `[height, from, to]` runway pieces (metres up, and along the travel from the start),
+each with an optional `first tick, last tick` it shows. Wibou's locomotion timeline (2026-11-10) runs on a ledge and
+lands 13 m below it, so the fall loops 1.5 times; the ledge hides once he drops below it, or it blocks the cameras
+behind and above him.
 
 `promote SOURCE --over Assets/CharacterPackages/<pkg>/Animations/<name>.anim` makes an accepted clip live:
 
@@ -383,6 +407,9 @@ Normals get a plain, short recovery; personality can live in the move itself. Sp
 Use `run.py BRIEF --revise RUN --owner-file direction.md` with the
 [owner direction template](briefs/OWNER-DIRECTION.md). Markdown is passed verbatim; JSON strings and objects also work.
 `--owner "text"` remains available. The two direction flags are mutually exclusive.
+On a first take (no `--revise`) the direction is appended to the prompt after the approved keys, for known issues the
+owner already named at the keys stage. Before 2026-11-10 a first take recorded it in `run-config.json` and the model
+never saw it.
 
 The director is an opt-in diagnostic. Calling `review.py` explicitly opts in.
 For automated rounds, add `--director` to `loop.py`.
@@ -701,7 +728,9 @@ python3 tools/genra/receipts.py dry-run RUN --target Assets/CharacterPackages/fi
 Verdict accepts an exact target path or an unambiguous move name, with `good`, `redo`, or `rejected`.
 The summary counts unique linked keys, takes, and revisions. Cost uses the ledger's recorded
 list-price parser and traverses both `keys` and `revise` links without double-counting.
-Missing cost or provenance makes the total `UNKNOWN` or partial, even when known costs sum to zero.
+Missing cost or provenance makes the total `UNKNOWN` or partial, even when known costs sum to zero. A job the runner
+stopped (plateau, stall) has no CLI cost; `ledger.py` then shows a lower-bound estimate from the event stream next to
+UNKNOWN (it read 58-67% of the recorded cost on completed runs).
 It excludes unlinked experiments and director-review costs.
 First-take acceptance requires a `good` verdict and exactly one full take in the recorded chain.
 Flow passes count full takes with recorded flow metrics, passing checks, and no flow warnings or failures.

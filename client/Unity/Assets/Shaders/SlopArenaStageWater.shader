@@ -144,7 +144,8 @@ Shader "SLOPArena/StageWater"
                 half3 normalWS = normalize(half3(-swell.y + (r1.x + r2.x) * k, 1.0h, -swell.z + (r1.z + r2.z) * k));
 
                 half3 albedo = input.color.rgb * _BaseColor.rgb;
-                Light mainLight = GetMainLight(TransformWorldToShadowCoord(p));
+                // With a position, so shadows fade at the quality level's shadow distance (see StageVertexLit).
+                Light mainLight = GetMainLight(TransformWorldToShadowCoord(p), p, half4(1, 1, 1, 1));
                 half shadowed = mainLight.shadowAttenuation;
                 half3 viewDir = SafeNormalize(GetWorldSpaceViewDir(p));
                 half ndl = saturate(dot(normalWS, mainLight.direction));

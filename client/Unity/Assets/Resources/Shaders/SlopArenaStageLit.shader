@@ -174,6 +174,7 @@ Shader "SLOPArena/StageLit"
             #include "Packages/com.unity.render-pipelines.universal/Shaders/LitInput.hlsl"
             #include "Packages/com.unity.render-pipelines.universal/Shaders/LitForwardPass.hlsl"
             #include "Assets/Shaders/SlopArenaStageCutaway.hlsl"
+            #include "Assets/Shaders/SlopArenaStageLights.hlsl"
 
             void StageLitPassFragment(Varyings input, out half4 outColor : SV_Target0
             #ifdef _WRITE_RENDERING_LAYERS
@@ -188,6 +189,14 @@ Shader "SLOPArena/StageLit"
                     , outRenderingLayers
             #endif
                 );
+                // The stage's own pools of light and the flash of a hit, on the surface's base colour.
+                if (_StageLookLightCount > 0.5)
+                {
+                    half3 lookPools, lookFlashes;
+                    StageLookLights(input.positionWS, normalize(input.normalWS), 0.3h, lookPools, lookFlashes);
+                    half3 lookAlbedo = SampleAlbedoAlpha(input.uv, TEXTURE2D_ARGS(_BaseMap, sampler_BaseMap)).rgb * _BaseColor.rgb;
+                    outColor.rgb = StageLookFlash(outColor.rgb + lookAlbedo * lookPools, lookAlbedo, lookFlashes);
+                }
                 outColor.rgb = StageCutawayApplyRim(outColor.rgb, sightRim);
             }
             ENDHLSL

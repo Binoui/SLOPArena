@@ -8,7 +8,7 @@
 // job["rows"] (timeline) instead plays clip sequences the way PlayerRenderer drives them: each event crossfades to a
 // clip at a tick (fade seconds, start time, speed or `ticks` to stretch it like an ability), the clock advances one
 // 60 Hz tick per frame, and `moves` carry the fighter forward (and up or down) so a dash or a leap travels; the cameras
-// follow it. job["floor"] draws a floor slab at that height, so a landing reads against the ground.
+// follow it. job["floors"] draws floor slabs (height, from, to, ticks shown), so a landing reads against the ground.
 var job = Newtonsoft.Json.Linq.JObject.Parse(System.IO.File.ReadAllText("{{JOB}}"));
 var output = "{{OUTPUT}}";
 if (UnityEditor.EditorApplication.isPlaying) throw new System.Exception("genra render requires Edit Mode");
@@ -92,14 +92,25 @@ try {
   // preview shows them as the game does (job["springs"] false keeps them at rest). job["travel"] carries a single clip
   // forward (metres per tick, the run's ground speed) so a spring trails as it does while the fighter moves.
   var springs = actor.GetComponentsInChildren<SlopArena.Client.Entities.BoneChainSpring>(true);
+  // Skirt and coat springs (Nyx's dress, Wibou's coat) step the same way. Edit Mode never runs their Awake, so step
+  // them once here in the prefab's own pose: the Clearance model reads its rest frame before any clip poses the body.
+  var skirts = actor.GetComponentsInChildren<SlopArena.Client.Entities.SkirtBoneSpring>(true);
+  foreach (var s in skirts) { s.Step(1f / 60f); s.ResetSimulation(); }
+  // Helper bones of rigid parts (Sir Bonk's knee guards and pauldrons) follow their joints after the pose.
+  var followers = actor.GetComponentsInChildren<SlopArena.Client.Entities.PartialFollowBones>(true);
   bool simulate = job["springs"]?.Type != Newtonsoft.Json.Linq.JTokenType.Boolean || (bool)job["springs"];
   float travel = job["travel"] != null && job["travel"].Type != Newtonsoft.Json.Linq.JTokenType.Null ? (float)job["travel"] : 0f;
   // The rig pack was snapshotted with the prefab at its own root transform (Bonk's sits 1 m down), so review cameras
   // are placed relative to that pose: they follow only the fighter's travel away from it.
   var basePosition = actor.transform.position;
   float travelled = 0f;
-  void StepSprings() { if (simulate) foreach (var s in springs) s.Step(1f / 60f); }
-  void ResetSprings() { foreach (var s in springs) s.ResetSimulation(); }
+  void StepSprings() {
+    foreach (var f in followers) f.Step();
+    if (!simulate) return;
+    foreach (var s in springs) s.Step(1f / 60f);
+    foreach (var s in skirts) s.Step(1f / 60f);
+  }
+  void ResetSprings() { foreach (var s in springs) s.ResetSimulation(); foreach (var s in skirts) s.ResetSimulation(); }
 
   // Runtime weapon attachments (WeaponAttach): bone.TransformPoint(PositionOffset), bone.rotation * Euler(RotationOffset).
   // A weapon's `shown` tick windows (the brief's props_shown, or a timeline row's) hide it outside them, as the game's hide
@@ -149,6 +160,24 @@ try {
     }
   }
 
+  // Heights as the game shows them, for handoff numbers (unity_clip.floor_clearance): the lowest skinned body vertex and
+  // the lowest weapon vertex, world metres, every tick of a timeline row. Wibou's run-to-jump fade and landing dip were
+  // judged by eye in round 1 (2026-11-10).
+  float Lowest(System.Collections.Generic.IEnumerable<(UnityEngine.Transform transform, UnityEngine.Mesh mesh)> parts) {
+    float m = float.PositiveInfinity;
+    foreach (var (transform, mesh) in parts) {
+      if (mesh == null || !transform.gameObject.activeInHierarchy) continue;
+      var matrix = transform.localToWorldMatrix;
+      foreach (var v in mesh.vertices) m = UnityEngine.Mathf.Min(m, matrix.MultiplyPoint3x4(v).y);
+    }
+    return m;
+  }
+  System.Collections.Generic.IEnumerable<(UnityEngine.Transform, UnityEngine.Mesh)> BodyParts() { foreach (var c in copies) yield return (c.copy.transform, c.mesh); }
+  System.Collections.Generic.IEnumerable<(UnityEngine.Transform, UnityEngine.Mesh)> WeaponParts() {
+    foreach (var w in weapons) foreach (var f in w.weapon.GetComponentsInChildren<UnityEngine.MeshFilter>()) yield return (f.transform, f.sharedMesh);
+  }
+  object Rounded(float v) => float.IsInfinity(v) ? null : (object)System.Math.Round(v, 4);
+
   void Rest() { for (int i = 0; i < all.Length; i++) { all[i].localPosition = restT[i]; all[i].localRotation = restR[i]; all[i].localScale = restS[i]; } }
   void Pose(UnityEngine.AnimationClip clip, float time) {
     Rest();
@@ -189,10 +218,16 @@ try {
   var fill = Add(new UnityEngine.GameObject("genra_render_fill")).AddComponent<UnityEngine.Light>();
   fill.type = UnityEngine.LightType.Directional; fill.intensity = 0.55f; fill.shadows = UnityEngine.LightShadows.None;
 
-  if (job["floor"] != null && job["floor"].Type != Newtonsoft.Json.Linq.JTokenType.Null) {
+  // job["floors"]: runway pieces [height, from, to, first tick, last tick] (metres up, and along the travel from the
+  // start), so a run on a ledge and the landing far below both read; the ledge hides once he has dropped below it,
+  // where it would stand between him and the cameras behind and above (unity_clip.floor_slabs).
+  var floorPieces = new System.Collections.Generic.List<(UnityEngine.GameObject slab, float first, float last)>();
+  void ShowFloors(int tick) { foreach (var f in floorPieces) f.slab.SetActive(tick >= f.first && tick <= f.last); }
+  foreach (var piece in job["floors"]?.ToObject<float[][]>() ?? new float[0][]) {
     var floor = Add(UnityEngine.GameObject.CreatePrimitive(UnityEngine.PrimitiveType.Cube));
-    floor.transform.position = new UnityEngine.Vector3(basePosition.x, (float)job["floor"] - 0.05f, basePosition.z);
-    floor.transform.localScale = new UnityEngine.Vector3(4f, 0.1f, 60f);  // a 4 m runway: a side view sees its edge, not a 60 m deck
+    floor.transform.position = new UnityEngine.Vector3(basePosition.x, piece[0] - 0.05f, basePosition.z + (piece[1] + piece[2]) / 2f);
+    floor.transform.localScale = new UnityEngine.Vector3(4f, 0.1f, piece[2] - piece[1]);  // a 4 m runway: a side view sees its edge, not a deck
+    floorPieces.Add((floor, piece[3], piece[4]));
     var floorRenderer = floor.GetComponent<UnityEngine.MeshRenderer>();
     var floorMaterial = new UnityEngine.Material(floorRenderer.sharedMaterial); temporary.Add(floorMaterial);
     var floorColor = new UnityEngine.Color(0.42f, 0.45f, 0.5f);
@@ -252,6 +287,7 @@ try {
     animancer.Stop();
     ResetSprings();
     var played = new System.Collections.Generic.List<object>();
+    var probe = new System.Collections.Generic.List<object>();  // [tick, travel z, root y, lowest body y, lowest weapon y]
     for (int tick = 0; tick <= ticks; tick++) {
       // As in the game, a clip starts on the tick its state changes and that frame already advances one tick.
       if (events.TryGetValue(tick, out var e)) {
@@ -270,9 +306,12 @@ try {
       StepSprings();
       Settle();
       ShowWeapons(tick, row["props_shown"]);
+      ShowFloors(tick);
+      probe.Add(new object[] { tick, Rounded(actor.transform.position.z - basePosition.z), Rounded(actor.transform.position.y),
+                               Rounded(Lowest(BodyParts())), Rounded(Lowest(WeaponParts())) });
       Capture(label, tick);
     }
-    receipts.Add(new { label, events = played, travelMetres = actor.transform.position.z - basePosition.z });
+    receipts.Add(new { label, events = played, travelMetres = actor.transform.position.z - basePosition.z, probe });
   }
   camera.targetTexture = null;
   var data = new { package, prefab = UnityEditor.AssetDatabase.GetAssetPath(prefab), ticks, size, frames, clips = receipts,

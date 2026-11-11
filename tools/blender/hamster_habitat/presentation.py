@@ -64,3 +64,18 @@ PRESENTATION = {
                   'ambientIntensity':1,'fog':True,'fogColor':[.03,.04,.10],'fogStart':50,'fogEnd':260},
     'cameras':CAMERAS,
 }
+
+# The stage's look (owner 2026-11-11: every stage gets one). Fields: stagekit/presentation.py.
+# Night in the bedroom: the desk lamp carries the cage, the room behind it goes quiet and blue.
+BEDROOM = [0.70, 0.70, 0.78]
+PRESENTATION["look"] = {
+    "grade": {"tonemap": "neutral", "bloomThreshold": 0.9, "bloomIntensity": 0.9, "bloomScatter": 0.65, "contrast": 12,
+              "saturation": 6, "splitShadows": [0.44, 0.47, 0.62], "splitHighlights": [0.60, 0.52, 0.42], "splitBalance": 0,
+              "vignette": 0.26, "vignetteColor": [0.02, 0.02, 0.05]},
+    "farBlur": {"start": 45, "end": 120, "radius": 1.0},
+    "tints": {"Bedroom": BEDROOM, "Bedroom Clutter": BEDROOM, "Bedroom Posters": BEDROOM},
+    # Lamp light on one edge, moonlight on the other.
+    "fighters": {"kickA": {"color": [1.0, 0.78, 0.50], "direction": [-0.23, 0.88, 0.41], "strength": 1.5},
+                 "kickB": {"color": [0.50, 0.62, 1.0], "direction": [0.30, 0.47, 0.83], "strength": 1.2},
+                 "kickPower": 2.6, "lift": 0.07, "contactShadow": 0.45, "contactShadowColor": [0.05, 0.04, 0.09]},
+}

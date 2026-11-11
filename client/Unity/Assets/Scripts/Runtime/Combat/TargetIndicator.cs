@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using SlopArena.Shared;
 using SlopArena.Client.Entities;
 using SlopArena.Client.UI;
+using SlopArena.Client.World;
 using UnityEngine;
 
 namespace SlopArena.Client.Combat
@@ -24,17 +25,19 @@ namespace SlopArena.Client.Combat
             public readonly ulong EntityId;
             public readonly Transform Transform;
             public readonly MeshRenderer Mesh;
+            public readonly MeshRenderer Shadow;
             public readonly LineRenderer DropLine;
             public readonly Color Accent;
             public readonly Color CampColor;
 
-            public Ring(PlayerRenderer renderer, Transform transform, MeshRenderer mesh,
+            public Ring(PlayerRenderer renderer, Transform transform, MeshRenderer mesh, MeshRenderer shadow,
                 LineRenderer dropLine, Color accent, Color campColor)
             {
                 Renderer = renderer;
                 EntityId = renderer != null ? renderer.EntityId : 0;
                 Transform = transform;
                 Mesh = mesh;
+                Shadow = shadow;
                 DropLine = dropLine;
                 Accent = accent;
                 CampColor = campColor;
@@ -72,6 +75,8 @@ namespace SlopArena.Client.Combat
         private MaterialPropertyBlock _markerProperties;
         private Material _dropLineMaterial;
         private MaterialPropertyBlock _dropLineProperties;
+        private Material _shadowMaterial;
+        private MaterialPropertyBlock _shadowProperties;
         private UnityEngine.Camera _camera;
 
         // Per-ring indicator state, indexed identically to _rings.
@@ -91,6 +96,8 @@ namespace SlopArena.Client.Combat
             _markerProperties = new MaterialPropertyBlock();
             _dropLineMaterial = new Material(Resources.Load<Shader>("Shaders/FighterDropLine"));
             _dropLineProperties = new MaterialPropertyBlock();
+            _shadowMaterial = new Material(Resources.Load<Shader>("Shaders/FighterContactShadow"));
+            _shadowProperties = new MaterialPropertyBlock();
 
             _rings = new Ring[renderers?.Length ?? 0];
             _arcPoints = new List<(Vector3, char)>[_rings.Length];
@@ -117,9 +124,25 @@ namespace SlopArena.Client.Combat
                     ? new Color(.22f, .9f, .85f) : new Color(1f, .55f, .35f);
                 var courseColour = renderer != null ? colourOf?.Invoke(renderer.EntityId) : null;
                 if (courseColour.HasValue) campColor = courseColour.Value;
-                _rings[i] = new Ring(renderer, ringGO.transform, mr, CreateDropLine(), accent, campColor);
+                _rings[i] = new Ring(renderer, ringGO.transform, mr, CreateContactShadow(ringGO.transform), CreateDropLine(), accent, campColor);
                 ringGO.SetActive(false);
             }
+        }
+
+        // The stage look's soft shadow under the fighter: a child of the ground marker, so it follows the same floor.
+        private MeshRenderer CreateContactShadow(Transform ring)
+        {
+            var shadowGO = GameObject.CreatePrimitive(PrimitiveType.Quad);
+            shadowGO.name = "FighterContactShadow";
+            Destroy(shadowGO.GetComponent<MeshCollider>());
+            shadowGO.transform.SetParent(ring, false);
+            // The marker quad lies flat with its local +Z pointing down: sit just under it.
+            shadowGO.transform.localPosition = new Vector3(0f, 0f, 0.01f);
+            var shadow = shadowGO.GetComponent<MeshRenderer>();
+            shadow.sharedMaterial = _shadowMaterial;
+            shadow.receiveShadows = false;
+            shadow.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+            return shadow;
         }
 
         private LineRenderer CreateDropLine()
@@ -183,13 +206,31 @@ namespace SlopArena.Client.Combat
                 _markerProperties.SetColor(AccentProperty, ring.Accent);
                 _markerProperties.SetColor(CampColorProperty, ring.CampColor);
                 ring.Mesh.SetPropertyBlock(_markerProperties);
+                UpdateContactShadow(ring, airborne);
                 UpdateDropLine(ring, ring.Transform.position, floorY + heightAboveFloor, airborne);
                 UpdateLaunchArc(i, ring, state);
             }
         }
 
+        // Strongest and widest with the fighter on the floor; it thins and tightens as the fighter leaves it.
+        private void UpdateContactShadow(in Ring ring, float airborne)
+        {
+            var look = StageLook.Active.Fighters;
+            bool shown = look.ContactShadow > 0.001f;
+            if (ring.Shadow.enabled != shown) ring.Shadow.enabled = shown;
+            if (!shown) return;
+            float size = look.ContactShadowSize * Mathf.Lerp(1f, 0.75f, airborne) / Mathf.Max(ring.Transform.localScale.x, 0.001f);
+            ring.Shadow.transform.localScale = new Vector3(size, size, 1f);
+            Color color = look.ContactShadowColor;
+            color.a = look.ContactShadow * Mathf.Lerp(1f, 0.4f, airborne);
+            _shadowProperties.SetColor(ColorProperty, color);
+            ring.Shadow.SetPropertyBlock(_shadowProperties);
+        }
+
         private void OnDestroy()
         {
+            if (_shadowMaterial != null)
+                Destroy(_shadowMaterial);
             if (_markerMaterial != null)
                 Destroy(_markerMaterial);
             if (_dropLineMaterial != null)

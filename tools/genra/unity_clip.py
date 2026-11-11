@@ -197,6 +197,21 @@ def write_flags(brief) -> dict:
     return flags
 
 
+def entry_reference(mapping, entry, entry_clip=None) -> dict:
+    """The Unity clip and tick the entry pose plays from: the pack reference's bound clip or asset, or `entry_clip` (an
+    Assets/... .anim or a semantic id). A reference authored into the pack (`python -m genra.rigpack reference`) has no
+    Unity clip until its take is written, so it needs `entry_clip`: Wibou's jump enters on his new idle's tick 0
+    (newidle), which plays from the idle candidate in Experiments (2026-11-10)."""
+    tick = {'tick': int(entry['tick'])}
+    if entry_clip:
+        return clip_source(entry_clip) | tick
+    source = mapping['references'].get(entry['reference'])
+    if source is None:
+        raise SystemExit(f"entry reference {entry['reference']!r} has no Unity clip in mapping.json (an authored pack "
+                         'reference): pass --entry-clip with the clip that plays it, e.g. its written candidate')
+    return {k: source[k] for k in ('semanticId', 'asset') if k in source} | tick
+
+
 def phase_check(clip, brief, ticks=None, retime=None) -> dict:
     """The motion checks again on a phase cut (`ticks`) or time-warped (`retime`) out of an authored result: a squeezed
     section turns faster than the authored clip did, so it can snap or flip where the run's own check passed. The
@@ -225,11 +240,13 @@ def phase_check(clip, brief, ticks=None, retime=None) -> dict:
             'maxDegreesPerTick': round(report['metrics']['maxDegreesPerTick'], 1)}
 
 
-def write(result: Path, brief_path: Path, asset: str | None, name: str | None, ticks=None, retime=None) -> dict:
+def write(result: Path, brief_path: Path, asset: str | None, name: str | None, ticks=None, retime=None,
+          entry_clip: str | None = None) -> dict:
     """`ticks` (first, last) writes one phase of the result as its own clip (a leap's flight or its landing); a phase
     that starts after tick 0 keeps the toolkit's origin. `retime` is Clip.retime's (source tick, new tick) anchors,
     counted from the phase's first tick: a section can play slower without regenerating anything. A cut or warped phase
-    is checked again (phase_check) and its failures are printed and reported as phaseCheck."""
+    is checked again (phase_check) and its failures are printed and reported as phaseCheck. `entry_clip` names the
+    Unity clip that plays the entry reference when the pack has none (entry_reference)."""
     from genra.brief import Brief
     from genra.clip import Clip
     brief = Brief(brief_path)
@@ -243,9 +260,7 @@ def write(result: Path, brief_path: Path, asset: str | None, name: str | None, t
     if checked and not checked['passed']:
         print('warning: the written phase fails checks: ' + '; '.join(checked['failures']), file=sys.stderr)
     paths, local, intended = unity_pose(brief.rig, clip.world(), mapping)
-    entry = brief['entry']
-    source = mapping['references'][entry['reference']]  # a bound clip, or a clip asset (an unbound aim loop)
-    reference = {k: source[k] for k in ('semanticId', 'asset') if k in source} | {'tick': int(entry['tick'])}
+    reference = entry_reference(mapping, brief['entry'], entry_clip)
     name = name or brief['name']
     run_dir = OUT / f'{time.strftime("%Y%m%d-%H%M%S")}-{name}'
     flags = write_flags(brief)
@@ -430,6 +445,39 @@ def timeline_rows(spec: dict) -> list[dict]:
             for row in spec['rows']]
 
 
+def floor_slabs(spec: dict) -> list[list[float]]:
+    """A timeline spec's `floor` as runway pieces [height, from, to, first tick, last tick]: metres up in the rig pack,
+    metres along the travel from the start, and the ticks it shows. A number is one 60 m runway centred on the start,
+    always shown; a list gives pieces, with an optional tick window, so a run on a ledge and a landing 11 m below both
+    read and the ledge hides once he has dropped below it, where it hid him from the cameras behind and above (Wibou's
+    jump and 1.5-loop fall, 2026-11-10)."""
+    floor = spec.get('floor')
+    if floor is None:
+        return []
+    always = [0.0, float(spec.get('ticks', 1e6))]
+    if isinstance(floor, (int, float)):
+        return [[float(floor), -30.0, 30.0, *always]]
+    return [[float(v) for v in piece[:3]] + ([float(t) for t in piece[3:5]] if len(piece) >= 5 else always)
+            for piece in floor]
+
+
+def floor_clearance(probe: list, floors: list[list[float]], reach=0.5) -> dict:
+    """Per-tick heights above the ground from a timeline row's probe ([tick, travel z, root y, lowest body y, lowest
+    weapon y], world metres, as Unity played it): the floor under the fighter is the highest runway piece that covers
+    his travel and the tick and lies at most `reach` metres above his lowest body point, so a dip into the floor still
+    finds the floor he stands on, not the ledge above him. Ticks with no floor under him read None."""
+    out = {'tick': [], 'floor': [], 'body': [], 'weapon': []}
+    for tick, z, _root, body, weapon in probe:
+        under = [p[0] for p in floors if p[1] <= (z or 0) <= p[2] and p[3] <= tick <= p[4] and body is not None
+                 and p[0] <= body + reach]
+        floor = max(under) if under else None
+        out['tick'].append(tick)
+        out['floor'].append(floor)
+        out['body'].append(None if floor is None or body is None else round(body - floor, 4))
+        out['weapon'].append(None if floor is None or weapon is None else round(weapon - floor, 4))
+    return out
+
+
 def timeline(spec_path: Path, brief_path: Path, result: Path | None = None, views=('gameplay', 'three-quarter-right', 'front'),
              size=300, slow=4, name=None, margin=1.9, springs=True) -> dict:
     """Play clip sequences on the actual prefab as PlayerRenderer drives them, a row per variant: the handoffs a
@@ -438,7 +486,8 @@ def timeline(spec_path: Path, brief_path: Path, result: Path | None = None, view
     "moves": [[first tick, last tick, metres per tick forward, optional metres per tick up]], "events": [{"tick", "clip"
     (an Assets/... .anim or a bound semantic id), "fade" (seconds), "time" (seconds), "speed", or "ticks" to stretch the
     clip over that many stage ticks as an ability does}], "props_shown": {"Weapon<k>": [[first tick, last tick]]}}],
-    "floor": optional floor height in rig-pack metres (up), drawn as a slab so a landing or a stuck weapon reads}. The
+    "floor": optional floor height in rig-pack metres (up), drawn as a slab so a landing or a stuck weapon reads, or a
+    list of [height, from, to] runway pieces with an optional [first tick, last tick] they show (floor_slabs)}. The
     brief and toolkit result frame the views; the cameras follow the travel, up and down too."""
     from PIL import Image, ImageDraw
     from genra.brief import Brief
@@ -453,7 +502,7 @@ def timeline(spec_path: Path, brief_path: Path, result: Path | None = None, view
     run_dir = OUT / f'{time.strftime("%Y%m%d-%H%M%S")}-timeline-{name}'
     job = {'package': mapping['package'], 'prefab': pack_prefab(mapping), 'meshes': pack_meshes(mapping), 'rows': rows, 'ticks': ticks, 'size': size * 2, 'frames': str(run_dir / 'frames'),
            'background': [c / 255 for c in BACKGROUND], 'views': review_cameras(brief, result, views, margin),
-           'weapons': weapon_attachments(mapping), 'springs': springs, 'floor': spec.get('floor')}
+           'weapons': weapon_attachments(mapping), 'springs': springs, 'floors': floor_slabs(spec)}
     data = run_unity(job, run_dir, 'render_clip')
     header, font, small = 28, _font(16), _font(13)
     def cell(label, view, tick):
@@ -478,6 +527,9 @@ def timeline(spec_path: Path, brief_path: Path, result: Path | None = None, view
             ImageDraw.Draw(image).text((6, 4), f't{tick}', fill=(235, 238, 242), font=small)
             sheet.paste(image, (200 * k, 200 * r))
     sheet.save(run_dir / 'timeline-sheet.png')
+    for row in data['clips']:  # heights above the ground, for handoff numbers (a landing's dip, a blade near the floor)
+        if row.get('probe') and job['floors']:
+            row['clearance'] = floor_clearance(row['probe'], job['floors'])
     report = {'package': mapping['package'], 'name': name, 'rows': data['clips'], 'views': list(views), 'ticks': ticks,
               'unitySeconds': data['seconds'], 'video': str(video), 'sheet': str(run_dir / 'timeline-sheet.png'),
               'evidence': str(run_dir.relative_to(REPO))}
@@ -501,6 +553,8 @@ def main(argv=None):
     target = out.add_mutually_exclusive_group()
     target.add_argument('--save', action='store_true', help='save to Assets/Art/Experiments/GenRA/<package>/<name>.anim')
     target.add_argument('--asset', help='save to this new Assets/... .anim path')
+    out.add_argument('--entry-clip', help='the Unity clip (Assets/... .anim or semantic id) that plays the entry reference, '
+                     'for a reference authored into the pack (e.g. newidle -> the written idle candidate)')
     show = sub.add_parser('render', help='render clips on the actual prefab as the game plays them, side by side')
     show.add_argument('--brief', required=True)
     show.add_argument('--clip', action='append', required=True, metavar='LABEL=SOURCE',
@@ -562,7 +616,7 @@ def main(argv=None):
         asset = args.asset or (f'Assets/Art/Experiments/GenRA/{package}/{name}.anim' if args.save else None)
         ticks = tuple(int(x) for x in args.ticks.split('-')) if args.ticks else None
         retime = [tuple(int(v) for v in pair.split(':')) for pair in args.retime.split(',')] if args.retime else None
-        report = write(Path(args.result), Path(args.brief), asset, name, ticks, retime)
+        report = write(Path(args.result), Path(args.brief), asset, name, ticks, retime, args.entry_clip)
     print(json.dumps(report, indent=2))
     return 0
 

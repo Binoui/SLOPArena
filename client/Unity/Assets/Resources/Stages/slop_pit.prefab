@@ -140,7 +140,7 @@ Light:
   serializedVersion: 11
   m_Type: 1
   m_Color: {r: 1, g: 0.92, b: 0.8, a: 1}
-  m_Intensity: 1.05
+  m_Intensity: 0.79
   m_Range: 10
   m_SpotAngle: 30
   m_InnerSpotAngle: 21.80208
@@ -334,7 +334,7 @@ Light:
   serializedVersion: 11
   m_Type: 2
   m_Color: {r: 1, g: 0.86, b: 0.66, a: 1}
-  m_Intensity: 28
+  m_Intensity: 16.8
   m_Range: 26
   m_SpotAngle: 30
   m_InnerSpotAngle: 21.80208
@@ -398,6 +398,7 @@ GameObject:
   m_Component:
   - component: {fileID: 4144340752231017055}
   - component: {fileID: 3442047755114793306}
+  - component: {fileID: 114999198129997030}
   m_Layer: 0
   m_Name: slop_pit
   m_TagString: Untagged
@@ -435,13 +436,109 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   _background: {r: 0.035, g: 0.022, b: 0.016, a: 1}
-  _ambientSky: {r: 0.36, g: 0.3, b: 0.26, a: 1}
-  _ambientGround: {r: 0.1, g: 0.08, b: 0.07, a: 1}
+  _ambientSky: {r: 0.324, g: 0.27, b: 0.234, a: 1}
+  _ambientGround: {r: 0.09, g: 0.072, b: 0.063, a: 1}
   _ambientIntensity: 1
   _fog: 1
   _fogColor: {r: 0.14, g: 0.085, b: 0.05, a: 1}
   _fogStart: 24
   _fogEnd: 130
+--- !u!114 &114999198129997030
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6541607797586841244}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a1052d1f8041ddbb5b2844f2087e85d0, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  _settings:
+    Grade:
+      NeutralTonemap: 1
+      BloomThreshold: 0.9
+      BloomIntensity: 0.9
+      BloomScatter: 0.65
+      Contrast: 12
+      Saturation: 6
+      Filter: {r: 1, g: 0.97, b: 0.93, a: 1}
+      SplitToning: 1
+      SplitShadows: {r: 0.5, g: 0.47, b: 0.44, a: 1}
+      SplitHighlights: {r: 0.56, g: 0.52, b: 0.46, a: 1}
+      SplitBalance: 0
+      Vignette: 0.26
+      VignetteColor: {r: 0.03, g: 0.02, b: 0.01, a: 1}
+    FarBlur:
+      Enabled: 1
+      Start: 36
+      End: 90
+      Radius: 1
+    Tints:
+    - Objects: Stands
+      Color: {r: 0.72, g: 0.7, b: 0.68, a: 1}
+    - Objects: Crowd
+      Color: {r: 0.72, g: 0.7, b: 0.68, a: 1}
+    - Objects: Fences
+      Color: {r: 0.72, g: 0.7, b: 0.68, a: 1}
+    - Objects: Banners
+      Color: {r: 0.72, g: 0.7, b: 0.68, a: 1}
+    - Objects: Pit
+      Color: {r: 0.72, g: 0.7, b: 0.68, a: 1}
+    - Objects: Venue Glow
+      Color: {r: 0.9, g: 0.9, b: 0.9, a: 1}
+    - Objects: Haze
+      Color: {r: 0.85, g: 0.85, b: 0.85, a: 1}
+    - Objects: Ringside Floor
+      Color: {r: 0.95, g: 0.93, b: 0.91, a: 1}
+    Pools:
+    - Position: {x: 0, y: 20, z: 0}
+      Direction: {x: 0, y: -1, z: 0}
+      Color: {r: 1, g: 0.9, b: 0.72, a: 1}
+      Intensity: 430
+      Range: 40
+      Angle: 56
+      InnerAngle: 30
+    Shafts:
+    - Top: {x: -3, y: 22, z: 2}
+      Bottom: {x: -1.5, y: 1.2, z: 1}
+      TopRadius: 0.7
+      BottomRadius: 4.2
+      Color: {r: 1, g: 0.9, b: 0.7, a: 0.16}
+    - Top: {x: 3.5, y: 22, z: -1}
+      Bottom: {x: 2, y: 1.2, z: -0.5}
+      TopRadius: 0.7
+      BottomRadius: 4.4
+      Color: {r: 1, g: 0.9, b: 0.7, a: 0.14}
+    - Top: {x: 0.5, y: 22, z: 5}
+      Bottom: {x: 0.5, y: 1.2, z: 3.5}
+      TopRadius: 0.7
+      BottomRadius: 4
+      Color: {r: 1, g: 0.9, b: 0.7, a: 0.12}
+    Dust:
+      Count: 420
+      Center: {x: 0, y: 7, z: 0}
+      Size: {x: 16, y: 11, z: 16}
+      Color: {r: 1, g: 0.92, b: 0.75, a: 0.7}
+      SizeMin: 0.04
+      SizeMax: 0.09
+    Fighters:
+      KicksFromKeyLight: 0
+      KickA: {r: 1, g: 0.84, b: 0.58, a: 1}
+      KickADirection: {x: -0.4, y: 1, z: -0.3}
+      KickAStrength: 1.5
+      KickB: {r: 0.55, g: 1, b: 0.35, a: 1}
+      KickBDirection: {x: 0.8, y: -0.1, z: 0.6}
+      KickBStrength: 1
+      KickPower: 2.6
+      Lift: 0.06
+      LampCap: 1
+      Ink: 1.6
+      InkColor: {r: 0.09, g: 0.094, b: 0.078, a: 1}
+      ContactShadow: 0.45
+      ContactShadowColor: {r: 0.1, g: 0.06, b: 0.03, a: 1}
+      ContactShadowSize: 1.5
 --- !u!1 &7472005333454208854
 GameObject:
   m_ObjectHideFlags: 0

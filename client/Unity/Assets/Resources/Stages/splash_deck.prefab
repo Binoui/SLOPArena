@@ -204,6 +204,7 @@ GameObject:
   m_Component:
   - component: {fileID: 7025868424606268323}
   - component: {fileID: 2580716889516521470}
+  - component: {fileID: 5233924601897074516}
   m_Layer: 0
   m_Name: splash_deck
   m_TagString: Untagged
@@ -248,6 +249,100 @@ MonoBehaviour:
   _fogColor: {r: 0.8, g: 0.87, b: 0.92, a: 1}
   _fogStart: 170
   _fogEnd: 1500
+--- !u!114 &5233924601897074516
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5062618507811790780}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a1052d1f8041ddbb5b2844f2087e85d0, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  _settings:
+    Grade:
+      NeutralTonemap: 1
+      BloomThreshold: 1
+      BloomIntensity: 0.35
+      BloomScatter: 0.6
+      Contrast: 8
+      Saturation: 6
+      Filter: {r: 1, g: 0.985, b: 0.96, a: 1}
+      SplitToning: 1
+      SplitShadows: {r: 0.46, g: 0.5, b: 0.56, a: 1}
+      SplitHighlights: {r: 0.56, g: 0.52, b: 0.46, a: 1}
+      SplitBalance: 0
+      Vignette: 0.14
+      VignetteColor: {r: 0.04, g: 0.06, b: 0.1, a: 1}
+    FarBlur:
+      Enabled: 1
+      Start: 70
+      End: 260
+      Radius: 0.8
+    Tints:
+    - Objects: Hills
+      Color: {r: 0.9, g: 0.92, b: 0.96, a: 1}
+    - Objects: Clouds
+      Color: {r: 0.9, g: 0.92, b: 0.96, a: 1}
+    - Objects: Far Islands
+      Color: {r: 0.9, g: 0.92, b: 0.96, a: 1}
+    - Objects: Trees
+      Color: {r: 0.9, g: 0.92, b: 0.96, a: 1}
+    - Objects: Rocks
+      Color: {r: 0.9, g: 0.92, b: 0.96, a: 1}
+    - Objects: Sailboats
+      Color: {r: 0.9, g: 0.92, b: 0.96, a: 1}
+    - Objects: Harbour Boats
+      Color: {r: 0.9, g: 0.92, b: 0.96, a: 1}
+    - Objects: Village
+      Color: {r: 0.9, g: 0.92, b: 0.96, a: 1}
+    - Objects: Awnings
+      Color: {r: 0.9, g: 0.92, b: 0.96, a: 1}
+    - Objects: Quay
+      Color: {r: 0.9, g: 0.92, b: 0.96, a: 1}
+    - Objects: Breakwater
+      Color: {r: 0.9, g: 0.92, b: 0.96, a: 1}
+    - Objects: Laundry
+      Color: {r: 0.9, g: 0.92, b: 0.96, a: 1}
+    - Objects: Church
+      Color: {r: 0.9, g: 0.92, b: 0.96, a: 1}
+    - Objects: Lighthouse*
+      Color: {r: 0.9, g: 0.92, b: 0.96, a: 1}
+    - Objects: Beach
+      Color: {r: 0.9, g: 0.92, b: 0.96, a: 1}
+    - Objects: Market
+      Color: {r: 0.9, g: 0.92, b: 0.96, a: 1}
+    - Objects: Chapel
+      Color: {r: 0.9, g: 0.92, b: 0.96, a: 1}
+    - Objects: Gulls
+      Color: {r: 0.9, g: 0.92, b: 0.96, a: 1}
+    Pools: []
+    Shafts: []
+    Dust:
+      Count: 0
+      Center: {x: 0, y: 7, z: 0}
+      Size: {x: 16, y: 11, z: 16}
+      Color: {r: 1, g: 0.92, b: 0.75, a: 0.7}
+      SizeMin: 0.04
+      SizeMax: 0.09
+    Fighters:
+      KicksFromKeyLight: 0
+      KickA: {r: 1, g: 0.93, b: 0.78, a: 1}
+      KickADirection: {x: 0.75, y: 0.59, z: -0.3}
+      KickAStrength: 1.2
+      KickB: {r: 0.62, g: 0.8, b: 1, a: 1}
+      KickBDirection: {x: -0.7, y: 0.3, z: 0.4}
+      KickBStrength: 0.9
+      KickPower: 2.6
+      Lift: 0.04
+      LampCap: 0
+      Ink: 1.6
+      InkColor: {r: 0.09, g: 0.094, b: 0.078, a: 1}
+      ContactShadow: 0.3
+      ContactShadowColor: {r: 0.1, g: 0.12, b: 0.22, a: 1}
+      ContactShadowSize: 1.5
 --- !u!1 &7867133298977422176
 GameObject:
   m_ObjectHideFlags: 0

@@ -136,7 +136,8 @@ Shader "SlopArena/StageHazardKraken"
                 half3 normalWS = normalize(input.normalWS);
                 half3 albedo = input.color.rgb * _BaseColor.rgb;
 
-                Light mainLight = GetMainLight(TransformWorldToShadowCoord(input.positionWS));
+                // With a position, so shadows fade at the quality level's shadow distance (see StageVertexLit).
+                Light mainLight = GetMainLight(TransformWorldToShadowCoord(input.positionWS), input.positionWS, half4(1, 1, 1, 1));
                 half shadowed = mainLight.shadowAttenuation;
                 half3 direct = Diffuse(mainLight, normalWS, shadowed);
                 half lit = saturate(dot(direct, half3(0.333h, 0.333h, 0.334h)) / max(0.05h, dot(mainLight.color, half3(0.333h, 0.333h, 0.334h))));

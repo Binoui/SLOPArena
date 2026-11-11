@@ -53,3 +53,17 @@ for yaw in range(0,360,45):
     a=math.radians(yaw)
     camera_x=-8 if yaw in (0,180) else math.sin(a)*27
     PRESENTATION['cameras'].append({'name':f'ravine-{yaw:03d}','position':[camera_x,2,35+math.cos(a)*10],'target':[3,6,35],'fov':68})
+
+# The stage's look (owner 2026-11-11: every stage gets one). Fields: stagekit/presentation.py.
+# Moonlight and candles: the lanterns glow, the sea and the far scenery sit back.
+PRESENTATION["look"] = {
+    "grade": {"tonemap": "neutral", "bloomThreshold": 0.9, "bloomIntensity": 1.0, "bloomScatter": 0.68, "contrast": 10,
+              "saturation": 8, "splitShadows": [0.44, 0.46, 0.62], "splitHighlights": [0.60, 0.52, 0.50], "splitBalance": 0,
+              "vignette": 0.24, "vignetteColor": [0.02, 0.02, 0.06]},
+    "farBlur": {"start": 90, "end": 320, "radius": 0.9},
+    "tints": {"Outside Blast Scenery": [0.74, 0.74, 0.84], "Moonlit Sea": [0.80, 0.80, 0.88]},
+    # The dream house's pink on one edge, the moon on the other.
+    "fighters": {"kickA": {"color": [1.0, 0.32, 0.58], "direction": [0, 0.35, -1], "strength": 1.4},
+                 "kickB": {"color": [0.62, 0.74, 1.0], "direction": [-0.29, 0.82, -0.5], "strength": 1.3},
+                 "kickPower": 2.6, "lift": 0.07, "lampCap": 1.6, "contactShadow": 0.45, "contactShadowColor": [0.04, 0.04, 0.10]},
+}

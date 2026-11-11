@@ -362,5 +362,110 @@
   ],
   "fogStart": 90,
   "fogEnd": 720
+ },
+ "look": {
+  "grade": {
+   "tonemap": "neutral",
+   "bloomThreshold": 0.9,
+   "bloomIntensity": 1.0,
+   "bloomScatter": 0.68,
+   "contrast": 10,
+   "saturation": 6,
+   "splitShadows": [
+    0.46,
+    0.42,
+    0.58
+   ],
+   "splitHighlights": [
+    0.62,
+    0.52,
+    0.42
+   ],
+   "splitBalance": 0,
+   "vignette": 0.24,
+   "vignetteColor": [
+    0.05,
+    0.03,
+    0.04
+   ]
+  },
+  "farBlur": {
+   "start": 60,
+   "end": 240,
+   "radius": 1.0
+  },
+  "tints": {
+   "Far Forest": [
+    0.74,
+    0.7,
+    0.76
+   ],
+   "Trees": [
+    0.74,
+    0.7,
+    0.76
+   ],
+   "Canopy": [
+    0.74,
+    0.7,
+    0.76
+   ],
+   "Forest Floor": [
+    0.74,
+    0.7,
+    0.76
+   ],
+   "Undergrowth": [
+    0.74,
+    0.7,
+    0.76
+   ],
+   "Camp": [
+    0.88,
+    0.85,
+    0.86
+   ],
+   "Sky": [
+    0.94,
+    0.92,
+    0.94
+   ]
+  },
+  "fighters": {
+   "kickA": {
+    "color": [
+     1.0,
+     0.66,
+     0.38
+    ],
+    "direction": [
+     -0.88,
+     0.37,
+     -0.29
+    ],
+    "strength": 1.5
+   },
+   "kickB": {
+    "color": [
+     0.58,
+     0.56,
+     1.0
+    ],
+    "direction": [
+     0.85,
+     0.35,
+     0.3
+    ],
+    "strength": 1.1
+   },
+   "kickPower": 2.6,
+   "lift": 0.05,
+   "contactShadow": 0.4,
+   "contactShadowColor": [
+    0.12,
+    0.07,
+    0.06
+   ]
+  }
  }
 }

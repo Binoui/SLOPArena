@@ -1,0 +1,431 @@
+{
+  "name": "wibou-run-sprint",
+  "purpose": "locomotion",
+  "notes": "2026-11-10 round 2, after the owner rejected the first Unity takes (verdict and direction: tmp/wibou-locomotion/motion/round2-owner.md; measurements: tmp/wibou-locomotion/motion2/measure.md). Replaces the rejected 'Ninja run' (wibou-run-ninja.json, kept). The vendor run measured on his body is the amplitude bar only; no image of it is attached on purpose. review.travel 0.177 as round 1.",
+  "rigpack": "artifacts/genra-rigpacks/wibou-unity-loco",
+  "character": "Wibou (45 joints in the wibou-unity-loco pack, rebuilt from the current Wibou.prefab on 2026-11-10: a Humanoid body with Mixamo names, index fingers and thumbs; the open coat's skirt on four two-joint chains under Hips (Coat_FL_1/2, Coat_FR_1/2, Coat_BL_1/2, Coat_BR_1/2) that BoneChainSpring drives in the game, so leave them at their bind rotation; a 1.52 m katana fixed to the right hand as joint Weapon0, bladeHilt at the guard and bladeEnd at the tip. The black fedora is part of the body mesh and rides the Head joint)",
+  "description": "Wibou's run: the clip he plays while moving on the ground. He is one of the fastest runners in the roster.\n\nWho he is. Wibou is an ironic mall-ninja weeaboo: a cringe Neo from The Matrix with a katana, a black fedora, a dark open coat, black trousers and white sneakers (images 1-2, the real character in the game). He takes himself completely seriously, which is the joke, so play every pose sincerely, never winking. In the fight he is a quick, light spacing duelist who wins at the edge of his blade's reach and then chases opponents into the air. He holds the katana in his right hand. His arms are short (upper arm 0.22 m, forearm 0.24 m), the katana is long (1.52 m of blade from a guard that sits 0.22 m from the wrist joint), and his legs are long (thigh 0.47 m, shin 0.41 m).\n\nHow the game plays it. The run loops: ticks 0-32 are 0.53 s and two steps, wrapping from 32 back to 0. He does not move in the clip; the game carries him at up to 10.6 m/s, so the feet cycle under the body as on a treadmill. The game plays the clip at his speed divided by 10.6, never below 0.35: a walk plays it at 0.4x, the first steps at 0.6x. Every pose must still read in slow motion. The game crossfades into the run from the idle (0.1 s) and out of it into the idle, the jump (0.05 s, from any tick) and attacks. The match camera sits straight behind him.\n\nRound 1 (image 3: rows match camera, three-quarter rear, side) was the 'ninja run': both arms locked straight back, the blade level and frozen, the chest and head barely moving while the legs cycled. The owner: \"run is too robotic + his arms are fucked. difference between vendor and ours is huge\". Measured on round 1: shoulders turned 9.5 degrees, the upper arms swung 6-15 degrees, the elbows stayed straight (3 degrees), the blade moved through 2.5 degrees. Drop that direction entirely.\n\nThis take: a real sprint. Same clock, speed, stride and foot timing as round 1, a new upper body.\n- Legs. The left foot strikes at tick 0 and the right at tick 16. Each foot lands under or a little ahead of the hips on the ball of the foot, stays planted 6-7 ticks while it travels about 1.1-1.3 m back under the body, then the heel lifts, the toes bend as it pushes off, the knee drives up fast in front and the foot swings through. A short flight between steps. Long strides, light and quick. On the vendor idle frame a flat foot puts the toe joint at about up = -0.98 m: never push a foot through it. The sword side lands a touch heavier than the left so the two steps are not mirror copies.\n- Lean and head. Forward lean from the hips (head 0.35-0.55 m ahead of the hips), the head up looking ahead, the hat tilted with the lean.\n- Bounce. The hips drop 10-15 cm into each contact (lowest 2-4 ticks after the strike) and rise in the push-off (highest in the flight); they shift 2-5 cm over the stance foot. The head bobs 4-9 cm, 2-3 ticks after the hips, and the hat nods 2-4 degrees.\n- Torso counter-rotation. The pelvis turns 8-18 degrees in all, toward the forward leg; the shoulders turn the other way, 30-48 degrees in all, so the shoulders against the pelvis cover 35-60 degrees. The hips lead; the chest arrives 1-3 ticks later, the shoulders after it, the head stays on target.\n- Arms pump in opposition to the legs, swinging from the shoulder with the elbows bent: the sword arm is forward when the left leg is forward (around tick 0) and back around tick 16; the off arm the opposite.\n  - Off (left) arm: a big pump. The upper arm sweeps 70-115 degrees, the elbow stays bent 45-125 degrees (about 90 in the middle of the swing, opening a little behind him, closing in front), the hand travels 0.40-0.75 m front to back, forward to about chest height, never above the chin, and never crossing more than 5 cm past the body's centre line. A loose fist: fingers curled, thumb resting on the index, never a stiff flat palm.\n  - Sword (right) arm: a smaller pump that still reads. The upper arm sweeps 35-65 degrees, the elbow bends 20-80 degrees, the fist travels 0.22-0.45 m front to back beside the right hip (0.18-0.45 m right of the hips' centre, so the blade clears the right leg). The katana swings with the arm: the blade sweeps through 20-40 degrees (round 1: 2.5) and lags the fist 2-3 ticks. Its tip always trails back and down: at least 0.45 m behind the hilt (so from the side it slants back, never hangs straight down), 5-34 degrees below level, the right part of its direction at least 0.55, the tip at least 0.26 m above the floor and clear of both legs.\n- The amplitude bar is the vendor run measured on his own body: shoulders 38 degrees, pelvis 4, shoulders against pelvis 38, hips bob 14 cm, head bob 10 cm, head 0.5 m ahead of the hips, off arm 108 degrees with the hand travelling 0.67 m, sword arm 24 degrees, blade 11 degrees. Reach it; do not copy its poses (it is the artist's work, no image of it is given on purpose). The sword arm and blade should beat it.\n\nNo props other than the katana, no spins, no attack.\n\nSecondary motion, with numbers:\n- Coat: the hips bob 10-15 cm, turn 8-18 degrees and shift 2-5 cm; the springs flap from that.\n- Hat: the head bobs 4-9 cm, 2-3 ticks after the hips, and pitches 2-4 degrees with each landing.\n- Fingers: the off-hand fist tightens 5-12 degrees at the end of each forward pump and loosens on the back swing, 1-2 ticks after the hand; the sword hand stays closed on the grip.\n- Sword: the tip lags the fist 2-3 ticks and overshoots the end of each swing a little before it turns.\n\nFlow, not pose-to-pose. The hips lead, the chest trails them 1-3 ticks, the shoulders, head and arms trail more, the hands trail their forearms 1-3 ticks, the sword hand trails its forearm 2-4 ticks so the blade settles after the body (Clip.overlap()), and the fingers trail the hands. Holds are moving holds, never a repeated pose. Arcs, not straight lines, for hands and the blade tip. Cartoony and readable, not mocap. Treat every flow, life and chatter warning in `./genra check` as a failure to fix in this take, not as advisory. The coat chains are in the pack, but a spring drives them in the game: leave them at their bind rotation, and give the hips and spine real motion for the springs to follow. Keep each hand in line with its forearm (wrists under 35 degrees wherever the brief allows). The blade never passes through the head, the hat, the body or the legs, and it is never pointed straight at the match camera behind him: it always keeps a clear sideways part so its length reads. Fast motion belongs only to the fast windows; elsewhere no joint turns more than about 25 degrees a tick.",
+  "references": {
+    "idle": "references/idle.usda",
+    "run": "references/run.usda",
+    "jump": "references/jump.usda",
+    "fall": "references/fall.usda"
+  },
+  "entry": {
+    "reference": "idle",
+    "tick": 0,
+    "match": false
+  },
+  "clock": {
+    "duration_ticks": 32
+  },
+  "loop": {
+    "from_tick": 0
+  },
+  "timing": {
+    "fixed": [
+      "it loops at full speed; the game scales its playback by speed / 10.6 m/s with a 0.35x floor (walk 0.4x, start 0.6x)",
+      "the jump starts from any tick of it with a 0.05 s crossfade",
+      "left strike tick 0, right strike tick 16 (round 1, kept)"
+    ],
+    "adjustable": [
+      "how far each arm swings inside the ranges"
+    ]
+  },
+  "images": [
+    "../../../tmp/wibou-locomotion/img/real-idle.png",
+    "../../../tmp/wibou-locomotion/motion2/img/rejected-run.jpg"
+  ],
+  "image_notes": "1: today's vendor idle on the real character with the coat (it shows the model, the coat and the katana; not a pose to copy). 2: the rejected round-1 ninja run in Unity (rows: match camera, three-quarter rear, side): what not to do.",
+  "review_ticks": [
+    0,
+    4,
+    8,
+    12,
+    16,
+    20,
+    24,
+    28,
+    32
+  ],
+  "keys": [
+    0,
+    4,
+    8,
+    12,
+    16,
+    20,
+    24,
+    28,
+    32
+  ],
+  "review": {
+    "reference": "run",
+    "travel": 0.177
+  },
+  "targets": [
+    {
+      "name": "left toe on the floor just after the left strike, tick 2 (m)",
+      "kind": "char",
+      "a": "LeftToeBase",
+      "axis": "up",
+      "tick": 2,
+      "min": -1.0,
+      "max": -0.93
+    },
+    {
+      "name": "right toe on the floor just after the right strike, tick 18 (m)",
+      "kind": "char",
+      "a": "RightToeBase",
+      "axis": "up",
+      "tick": 18,
+      "min": -1.0,
+      "max": -0.93
+    },
+    {
+      "name": "no foot through the floor (m)",
+      "kind": "char",
+      "a": "LeftToeBase",
+      "axis": "up",
+      "each_tick": [
+        0,
+        31
+      ],
+      "min": -1.005
+    },
+    {
+      "name": "no right foot through the floor (m)",
+      "kind": "char",
+      "a": "RightToeBase",
+      "axis": "up",
+      "each_tick": [
+        0,
+        31
+      ],
+      "min": -1.005
+    },
+    {
+      "name": "left stride front to back (m)",
+      "kind": "range",
+      "a": "LeftToeBase",
+      "axis": "front",
+      "window": [
+        0,
+        31
+      ],
+      "min": 1.0,
+      "max": 1.45
+    },
+    {
+      "name": "right stride front to back (m)",
+      "kind": "range",
+      "a": "RightToeBase",
+      "axis": "front",
+      "window": [
+        0,
+        31
+      ],
+      "min": 1.0,
+      "max": 1.45
+    },
+    {
+      "name": "hips bob 10-15 cm (m)",
+      "kind": "range",
+      "a": "Hips",
+      "axis": "up",
+      "window": [
+        0,
+        31
+      ],
+      "min": 0.1,
+      "max": 0.15
+    },
+    {
+      "name": "head bob 4-9 cm (m)",
+      "kind": "range",
+      "a": "Head",
+      "axis": "up",
+      "window": [
+        0,
+        31
+      ],
+      "min": 0.04,
+      "max": 0.09
+    },
+    {
+      "name": "pelvis shifts over the stance foot (m)",
+      "kind": "range",
+      "a": "Hips",
+      "axis": "right",
+      "window": [
+        0,
+        31
+      ],
+      "min": 0.02,
+      "max": 0.05
+    },
+    {
+      "name": "lean: head ahead of the hips, tick 8 (m)",
+      "kind": "ahead",
+      "a": "Head",
+      "b": "Hips",
+      "tick": 8,
+      "min": 0.35,
+      "max": 0.55
+    },
+    {
+      "name": "lean: head ahead of the hips, tick 24 (m)",
+      "kind": "ahead",
+      "a": "Head",
+      "b": "Hips",
+      "tick": 24,
+      "min": 0.35,
+      "max": 0.55
+    },
+    {
+      "name": "pelvis turns 8-18 degrees",
+      "kind": "yaw_range",
+      "a": "RightUpLeg",
+      "b": "LeftUpLeg",
+      "window": [
+        0,
+        31
+      ],
+      "min": 8,
+      "max": 18
+    },
+    {
+      "name": "shoulders turn 30-48 degrees",
+      "kind": "yaw_range",
+      "a": "RightArm",
+      "b": "LeftArm",
+      "window": [
+        0,
+        31
+      ],
+      "min": 30,
+      "max": 48
+    },
+    {
+      "name": "shoulders against the pelvis: counter-rotation 35-60 degrees",
+      "kind": "yaw_range",
+      "a": "RightArm",
+      "b": "LeftArm",
+      "minus": [
+        "LeftUpLeg",
+        "RightUpLeg"
+      ],
+      "window": [
+        0,
+        31
+      ],
+      "min": 35,
+      "max": 60
+    },
+    {
+      "name": "off arm pumps: upper arm sweeps 70-115 degrees",
+      "kind": "swing",
+      "a": "LeftForeArm",
+      "b": "LeftArm",
+      "window": [
+        0,
+        31
+      ],
+      "min": 70,
+      "max": 115
+    },
+    {
+      "name": "sword arm pumps: upper arm sweeps 35-65 degrees",
+      "kind": "swing",
+      "a": "RightForeArm",
+      "b": "RightArm",
+      "window": [
+        0,
+        31
+      ],
+      "min": 35,
+      "max": 65
+    },
+    {
+      "name": "blade swings 20-40 degrees",
+      "kind": "swing",
+      "a": "bladeEnd",
+      "b": "bladeHilt",
+      "window": [
+        0,
+        31
+      ],
+      "min": 20,
+      "max": 40
+    },
+    {
+      "name": "off hand travels front to back (m)",
+      "kind": "range",
+      "a": "LeftHand",
+      "axis": "front",
+      "window": [
+        0,
+        31
+      ],
+      "min": 0.4,
+      "max": 0.75
+    },
+    {
+      "name": "sword fist travels front to back (m)",
+      "kind": "range",
+      "a": "RightHand",
+      "axis": "front",
+      "window": [
+        0,
+        31
+      ],
+      "min": 0.22,
+      "max": 0.45
+    },
+    {
+      "name": "off elbow bent 45-125 degrees",
+      "kind": "bend",
+      "a": "LeftArm",
+      "b": "LeftForeArm",
+      "c": "LeftHand",
+      "each_tick": [
+        0,
+        31
+      ],
+      "min": 45,
+      "max": 125
+    },
+    {
+      "name": "sword elbow bent 20-80 degrees",
+      "kind": "bend",
+      "a": "RightArm",
+      "b": "RightForeArm",
+      "c": "RightHand",
+      "each_tick": [
+        0,
+        31
+      ],
+      "min": 20,
+      "max": 80
+    },
+    {
+      "name": "opposition: off hand forward at the right strike, tick 16 (m)",
+      "kind": "ahead",
+      "a": "LeftHand",
+      "b": "Hips",
+      "tick": 16,
+      "min": 0.15
+    },
+    {
+      "name": "opposition: off hand back at the left strike, tick 0 (m)",
+      "kind": "ahead",
+      "a": "LeftHand",
+      "b": "Hips",
+      "tick": 0,
+      "max": -0.1
+    },
+    {
+      "name": "opposition: sword fist forward at the left strike, tick 0 (m)",
+      "kind": "ahead",
+      "a": "RightHand",
+      "b": "Hips",
+      "tick": 0,
+      "min": -0.08
+    },
+    {
+      "name": "opposition: sword fist back at the right strike, tick 16 (m)",
+      "kind": "ahead",
+      "a": "RightHand",
+      "b": "Hips",
+      "tick": 16,
+      "max": -0.2
+    },
+    {
+      "name": "off fist never above the chin (m)",
+      "kind": "below",
+      "a": "LeftHand",
+      "b": "Head",
+      "each_tick": [
+        0,
+        31
+      ],
+      "min": 0.0
+    },
+    {
+      "name": "off fist never far across the centre line (m)",
+      "kind": "char",
+      "a": "LeftHand",
+      "axis": "right",
+      "each_tick": [
+        0,
+        31
+      ],
+      "max": 0.05
+    },
+    {
+      "name": "sword fist beside the right hip (m)",
+      "kind": "char",
+      "a": "RightHand",
+      "axis": "right",
+      "each_tick": [
+        0,
+        31
+      ],
+      "min": 0.18,
+      "max": 0.45
+    },
+    {
+      "name": "blade out to the right: right part of its direction",
+      "kind": "direction",
+      "a": "bladeEnd",
+      "b": "bladeHilt",
+      "axis": "right",
+      "each_tick": [
+        0,
+        31
+      ],
+      "min": 0.55
+    },
+    {
+      "name": "blade trails: tip at least 0.45 m behind the hilt (m)",
+      "kind": "ahead",
+      "a": "bladeEnd",
+      "b": "bladeHilt",
+      "each_tick": [
+        0,
+        31
+      ],
+      "max": -0.45
+    },
+    {
+      "name": "blade 5-34 degrees below level: up part of its direction",
+      "kind": "direction",
+      "a": "bladeEnd",
+      "b": "bladeHilt",
+      "axis": "up",
+      "each_tick": [
+        0,
+        31
+      ],
+      "min": -0.56,
+      "max": -0.09
+    },
+    {
+      "name": "tip at least 0.26 m above the floor (m)",
+      "kind": "char",
+      "a": "bladeEnd",
+      "axis": "up",
+      "each_tick": [
+        0,
+        31
+      ],
+      "min": -0.72
+    }
+  ],
+  "views": [
+    "profile",
+    "front",
+    "three-quarter-right",
+    "gameplay"
+  ]
+}

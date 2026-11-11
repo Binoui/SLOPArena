@@ -172,6 +172,20 @@ class ReceiptTests(unittest.TestCase):
         (run / 'summary.json').unlink()
         self.assertIn('UNKNOWN', ledger.table([ledger.row(run)]))
 
+    def test_ledger_estimates_a_stopped_job_from_its_events(self):
+        run = self.run_dir('stopped', None)
+        self.assertIsNone(ledger.estimated_cost(run))
+        usage = {'input_tokens': 2, 'output_tokens': 1000, 'cache_read_input_tokens': 1_000_000,
+                 'cache_creation_input_tokens': 100_000}
+        lines = [{'type': 'assistant', 'message': {'id': 'a', 'usage': dict(usage, output_tokens=8)}},
+                 {'type': 'assistant', 'message': {'id': 'a', 'usage': usage}},  # the same message, streamed on
+                 {'type': 'user', 'message': {'content': []}}, 'not json']
+        (run / 'claude-events.jsonl').write_text('\n'.join(l if isinstance(l, str) else json.dumps(l) for l in lines))
+        expected = (2 * 4.0 + 1000 * 20.0 + 1_000_000 * 0.20 + 100_000 * 5.0) / 1e6
+        self.assertAlmostEqual(ledger.estimated_cost(run), expected)
+        self.assertIsNone(ledger.recorded_cost(run))
+        self.assertIn(f'UNKNOWN (events: at least ~{expected:.2f})', ledger.table([ledger.row(run)]))
+
     @unittest.skipUnless(find_spec('numpy') and find_spec('scipy'), 'GenRA environment unavailable')
     def test_promote_writes_receipt_from_actual_target_without_unity(self):
         sys.path.insert(0, str(Path(__file__).resolve().parent.parent))

@@ -236,6 +236,14 @@ _Avoid_: attack recovery, RecoveryMove (when referring to the whole return)
 Attacks against an offstage opponent from the stage or a ledge, without pursuing that opponent beyond the stage edge.
 _Avoid_: offstage pursuit
 
+**Stage Look**:
+What a stage gives a match beyond its art: the grade of the picture, quieter scenery, its own pools of light, and the edge light, ink line and contact shadow on fighters. Presentation only. A stage authors it as the `look` of its presentation; a stage without one gets the default look (ADR-0066).
+_Avoid_: filter, post-processing profile, skin
+
+**Look Light**:
+A light of the Stage Look that the stage and fighter shaders work out themselves: a stage's pool, or the flash of a hit. It is not a URP light, so it shows on every quality level and on a floor that already carries the renderer's light limit.
+_Avoid_: point light, spot light (those name URP lights of the Stage Lights rig)
+
 **CPU Difficulty**:
 One of three named CPU skill tiers: Easy, Normal, and Hard. All tiers retain the full functional character move repertoire; reaction speed, move selection, spacing, and follow-up reliability distinguish them.
 _Avoid_: CPU level, 1–9 scale

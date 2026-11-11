@@ -359,5 +359,95 @@
   ],
   "fogStart": 70,
   "fogEnd": 600
+ },
+ "look": {
+  "grade": {
+   "tonemap": "neutral",
+   "bloomThreshold": 0.88,
+   "bloomIntensity": 1.1,
+   "bloomScatter": 0.68,
+   "contrast": 10,
+   "saturation": 8,
+   "splitShadows": [
+    0.44,
+    0.42,
+    0.6
+   ],
+   "splitHighlights": [
+    0.62,
+    0.52,
+    0.44
+   ],
+   "splitBalance": 0,
+   "vignette": 0.22,
+   "vignetteColor": [
+    0.05,
+    0.03,
+    0.07
+   ]
+  },
+  "farBlur": {
+   "start": 75,
+   "end": 320,
+   "radius": 0.9
+  },
+  "tints": {
+   "Headlands": [
+    0.74,
+    0.72,
+    0.82
+   ],
+   "Town": [
+    0.74,
+    0.72,
+    0.82
+   ],
+   "Clouds": [
+    0.86,
+    0.84,
+    0.9
+   ],
+   "Sky": [
+    0.94,
+    0.92,
+    0.95
+   ]
+  },
+  "fighters": {
+   "kickA": {
+    "color": [
+     1.0,
+     0.66,
+     0.42
+    ],
+    "direction": [
+     -0.95,
+     0.28,
+     -0.13
+    ],
+    "strength": 1.5
+   },
+   "kickB": {
+    "color": [
+     0.55,
+     0.6,
+     1.0
+    ],
+    "direction": [
+     0.9,
+     0.3,
+     0.2
+    ],
+    "strength": 1.2
+   },
+   "kickPower": 2.6,
+   "lift": 0.06,
+   "contactShadow": 0.4,
+   "contactShadowColor": [
+    0.1,
+    0.07,
+    0.12
+   ]
+  }
  }
 }

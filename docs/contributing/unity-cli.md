@@ -43,6 +43,14 @@ rotates the log: the live Editor keeps writing to `~/.config/unity3d/Editor-prev
 older log is lost. Moving `Editor-prev.log` back to `Editor.log` restores the live log's usual
 path. This happened on 2026-10-29.
 
+An Editor opened from an agent's shell belongs to that agent's session. Under T3 Code the
+session is a systemd scope, and stopping the thread stops every process in it: on 2026-11-10
+the shared Editor quit under every thread that way, seconds after another thread's batch. So
+the owner opens the shared Editor from the desktop or the Hub. An agent that must open it
+starts it in a scope of its own (`systemd-run --user --scope unity open client/Unity`), and
+needs the owner's display for that. When a gateway call fails with `ECONNREFUSED`, check the
+Editor process and `journalctl --user | grep -i scope` before blaming the last batch.
+
 ### Gateway baseline and upgrades
 
 The shipped [ownership gateway](../../scripts/unity-editor-gateway.ts) uses the

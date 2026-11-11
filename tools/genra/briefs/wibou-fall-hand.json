@@ -1,0 +1,497 @@
+{
+  "name": "wibou-fall-hand",
+  "purpose": "loop",
+  "notes": "2026-11-10 round 3: the owner on round 2, \"the left hand is still a bit weird\" (tmp/wibou-locomotion/motion2/round3-owner.md). In the shared air pose the off wrist was bent back 18 degrees (flexion -18 against the forearm, the wrist check 18) with the fingers hooked flat (index knuckle 23, middle 22). A scripted joint edit (tmp/wibou-locomotion/motion3/tools/hand_fix.py), not a model run: the left hand and its fingers turn by one constant local correction on every fall tick (wrist +4 degrees toward the palm, in line; a loose curl, fist amount 0.45, thumb 0.4), the arm untouched. The fall with it is reference newair4. Source clip: run 20261110-171106-wibou-fall-balance.",
+  "rigpack": "artifacts/genra-rigpacks/wibou-unity-loco",
+  "character": "Wibou (45 joints in the wibou-unity-loco pack, rebuilt from the current Wibou.prefab on 2026-11-10: a Humanoid body with Mixamo names, index fingers and thumbs; the open coat's skirt on four two-joint chains under Hips (Coat_FL_1/2, Coat_FR_1/2, Coat_BL_1/2, Coat_BR_1/2) that BoneChainSpring drives in the game, so leave them at their bind rotation; a 1.52 m katana fixed to the right hand as joint Weapon0, bladeHilt at the guard and bladeEnd at the tip. The black fedora is part of the body mesh and rides the Head joint)",
+  "description": "Wibou's fall: the loop he plays in the air on the way down, after a jump, a double jump or an aerial attack, until he lands. Its tick 0 is his shared air pose: the jump ends on it, and every aerial attack will start from it.\n\nWho he is. Wibou is an ironic mall-ninja weeaboo: a cringe Neo from The Matrix with a katana, a black fedora, a dark open coat, black trousers and white sneakers (images 1-2, the real character in the game). He takes himself completely seriously, which is the joke, so play every pose sincerely, never winking. In the fight he is a quick, light spacing duelist who wins at the edge of his blade's reach and then chases opponents into the air. He holds the katana in his right hand. His arms are short (upper arm 0.22 m, forearm 0.24 m), the katana is long (1.52 m of blade from a guard that sits 0.22 m from the wrist joint), and his legs are long (thigh 0.47 m, shin 0.41 m).\n\nHow the game plays it. The fall loops: ticks 0-48 are 0.8 s, wrapping from 48 back to 0. The game crossfades into it over 0.15 s at the top of every jump and after aerials, out of it into the idle or the run on landing (0.1 s), and into aerial attacks (0.05 s). He does not move in the clip: the game carries him. The match camera sits behind and a little above him.\n\nRound 1 (reference 'fallr1', image 3: rows match camera, three-quarter rear, side). The owner: \"fall: feet are fine, arms meh\". Its arms hung by his sides the whole loop, the sword hand low by the hip, the off hand low behind, with almost no motion (measured: upper arms swung 4-7 degrees, shoulders 1, blade 1.6). Keep its legs; give the arms life.\n\nThe air pose, tick 0 (new; the contract every aerial enters from):\n- Legs and hips: exactly the round-1 fall's (reference 'fallr1', the owner: \"feet are fine\"): hips 11 cm below the idle hips; the left knee up in front (knee joint 0.48 m ahead of the hips and 0.26 m below them, foot below and a little behind the knee); the right leg, on the sword side, hangs long and slightly behind (knee bent 20-40 degrees), toes pointed; feet apart, shins never crossing. Copy them from 'fallr1' (load it with brief.reference('fallr1') and copy the Hips translation and the leg joints' local rotations, tick for tick) rather than re-solving them.\nArms, new, out from the body for balance so the match camera behind him reads both of them against the sky:\n- Sword arm: the hand out to the right of the hip and a little behind it (0.38-0.52 m right of the hips' centre, 0.05-0.25 m behind, from 4 cm below to 26 cm above the hips), the elbow softly bent 20-40 degrees, the wrist in line. The blade points out to the right and back, 20-35 degrees below level (right part of its direction at least 0.6), the tip far outside the right knee and foot; the blade and hilt at least 5 cm clear of the right thigh, shin and foot.\n- Off (left) arm: out to the side and a little forward, angled down 25-45 degrees from the shoulder, the hand 0.48-0.62 m left of the hips' centre, between 6 cm and 30 cm above the hips (at least 12 cm below the left shoulder), 0.1 m behind to 0.15 m ahead of the hips; the elbow soft (bent 15-35 degrees); the hand relaxed, fingers loosely curled 15-35 degrees and pointing out along the arm or down.\n- HARD PROHIBITIONS on the off hand (the owner rejected a \"waving hand\" in round 1): no raised forearm (the hand never above its elbow), no open palm facing out (to his left or back toward the camera), no fingers pointing up. Never a wave, a question or a stop sign; it is a balancing arm.\n- Torso: lean 5-12 degrees forward, head up, looking ahead and a little down, the hat level.\n\nThe motion: in the air on purpose, alive and balancing, not a flail.\n- Legs: as 'fallr1' at the same tick: the hanging right leg treads slowly forward (front-most about tick 12) and back (back-most about tick 36), the raised left knee bobs on its own timing. Small hip yaw or sway for the coat is welcome if the feet stay within 3 cm of 'fallr1' at every tick.\n- The arms move with the treading legs, in opposition: as the right leg treads forward the off arm drifts back and down a little and the chest turns a few degrees toward the sword side; as it treads back, the off arm drifts forward and up a little and the chest turns back. Small balance adjustments on top: the off hand dips and catches itself once per loop (ease in, ease out), the fingers open and close a little after it.\n- Amplitudes: shoulders turn 4-10 degrees over the loop; the off upper arm sweeps 10-22 degrees (never more: this is not windmilling), its hand travels 6-14 cm; the sword upper arm sweeps 5-12 degrees and the blade 5-12 degrees, the tip rising and falling 4-10 cm, 2-4 ticks after the chest; the hips bob 2-4 cm.\n- Give the parts different timings so they never all peak together. Eases and short moving holds, not one plain sine per joint.\n\nToday's aerials will start from this pose: references a1 (Air Slash), a2 (Air Up Slash) and a3 (Air Heavy Down Slash); `./genra sheet reference:a2` shows one. Each needs a full arc in front of the blade, which the low-back blade gives them.\n\nNo spins, no attack, no props other than the katana.\n\nSecondary motion, with numbers:\n- Coat: the hips bob 2-4 cm and sway 1-3 degrees over the 48 ticks, so the coat springs keep swinging.\n- Hat: the head trails the chest by 3-5 ticks and nods 1-3 degrees; the fedora stays within 5 degrees of level.\n- Fingers: the off hand's fingers curl and uncurl 8-15 degrees over the loop, 2-3 ticks after the hand.\n- Sword: the tip rocks 4-10 cm, 2-4 ticks after the chest, and its direction stays within 12 degrees of the air pose's.\n\nFlow, not pose-to-pose. The hips lead, the chest trails them 1-3 ticks, the shoulders, head and arms trail more, the hands trail their forearms 1-3 ticks, the sword hand trails its forearm 2-4 ticks so the blade settles after the body (Clip.overlap()), and the fingers trail the hands. Holds are moving holds, never a repeated pose. Arcs, not straight lines, for hands and the blade tip. Cartoony and readable, not mocap. Treat every flow, life and chatter warning in `./genra check` as a failure to fix in this take, not as advisory. The coat chains are in the pack, but a spring drives them in the game: leave them at their bind rotation, and give the hips and spine real motion for the springs to follow. Keep each hand in line with its forearm (wrists under 35 degrees wherever the brief allows). The blade never passes through the head, the hat, the body or the legs, and it is never pointed straight at the match camera behind him: it always keeps a clear sideways part so its length reads.",
+  "references": {
+    "idle": "references/idle.usda",
+    "run": "references/run.usda",
+    "jump": "references/jump.usda",
+    "fall": "references/fall.usda",
+    "fallr1": "references/fallr1.usda",
+    "newfall2": "references/newfall2.usda",
+    "a1": "references/a1.usda",
+    "a2": "references/a2.usda",
+    "a3": "references/a3.usda",
+    "newair4": "references/newair4.usda"
+  },
+  "entry": {
+    "reference": "idle",
+    "tick": 0,
+    "match": false
+  },
+  "clock": {
+    "duration_ticks": 48
+  },
+  "loop": {
+    "from_tick": 0
+  },
+  "timing": {
+    "fixed": [
+      "it loops in the air until he lands; crossfades in at the top of each jump (0.15 s) and after aerials, out on landing (0.1 s) and into aerials (0.05 s)",
+      "tick 0 is the air pose the jump ends on and every future aerial starts from"
+    ],
+    "adjustable": [
+      "the loop length (48 ticks, as round 1)"
+    ]
+  },
+  "images": [
+    "../../../tmp/wibou-locomotion/img/real-idle.png",
+    "../../../tmp/wibou-locomotion/img/real-run.png",
+    "../../../tmp/wibou-locomotion/motion2/img/rejected-fall.jpg"
+  ],
+  "image_notes": "1: today's vendor idle on the real character with the coat, match camera then three-quarter view, ticks 0-40 (the clip being replaced; it shows the model, the coat and the katana). 2: today's vendor run, same views. Neither is a pose to copy: the owner does not want the artist's work reproduced. 3: the round-1 fall in Unity (rows: match camera, three-quarter rear, side): legs kept, arms rejected.",
+  "review_ticks": [
+    0,
+    6,
+    12,
+    18,
+    24,
+    30,
+    36,
+    42,
+    48
+  ],
+  "keys": [
+    0,
+    12,
+    24,
+    36,
+    48
+  ],
+  "review": {
+    "reference": "fall",
+    "travel": 0.0
+  },
+  "targets": [
+    {
+      "name": "hips 11 cm below the idle hips, as fallr1 (m)",
+      "kind": "char",
+      "a": "Hips",
+      "axis": "up",
+      "tick": 0,
+      "min": -0.125,
+      "max": -0.1
+    },
+    {
+      "name": "fallr1 legs: left knee ahead of the hips, tick 0 (m)",
+      "kind": "ahead",
+      "a": "LeftLeg",
+      "b": "Hips",
+      "tick": 0,
+      "min": 0.45,
+      "max": 0.51
+    },
+    {
+      "name": "fallr1 legs: left toe, tick 0 (m)",
+      "kind": "char",
+      "a": "LeftToeBase",
+      "axis": "front",
+      "tick": 0,
+      "min": 0.33,
+      "max": 0.39
+    },
+    {
+      "name": "fallr1 legs: right toe height, tick 0 (m)",
+      "kind": "char",
+      "a": "RightToeBase",
+      "axis": "up",
+      "tick": 0,
+      "min": -1.21,
+      "max": -1.16
+    },
+    {
+      "name": "fallr1 legs: right toe front, tick 0 (m)",
+      "kind": "char",
+      "a": "RightToeBase",
+      "axis": "front",
+      "tick": 0,
+      "min": -0.345,
+      "max": -0.285
+    },
+    {
+      "name": "fallr1 legs: right toe front, tick 12 (m)",
+      "kind": "char",
+      "a": "RightToeBase",
+      "axis": "front",
+      "tick": 12,
+      "min": -0.225,
+      "max": -0.165
+    },
+    {
+      "name": "fallr1 legs: right toe front, tick 36 (m)",
+      "kind": "char",
+      "a": "RightToeBase",
+      "axis": "front",
+      "tick": 36,
+      "min": -0.43,
+      "max": -0.37
+    },
+    {
+      "name": "fallr1 legs: left toe front, tick 24 (m)",
+      "kind": "char",
+      "a": "LeftToeBase",
+      "axis": "front",
+      "tick": 24,
+      "min": 0.326,
+      "max": 0.386
+    },
+    {
+      "name": "forward lean: head a little ahead of the hips (m)",
+      "kind": "ahead",
+      "a": "Head",
+      "b": "Hips",
+      "tick": 0,
+      "min": 0.05,
+      "max": 0.3
+    },
+    {
+      "name": "sword hand out to the right of the hips (m)",
+      "kind": "char",
+      "a": "RightHand",
+      "axis": "right",
+      "min": 0.38,
+      "max": 0.52,
+      "tick": 0
+    },
+    {
+      "name": "sword hand a little behind the hips (m)",
+      "kind": "ahead",
+      "a": "RightHand",
+      "b": "Hips",
+      "min": -0.25,
+      "max": -0.05,
+      "tick": 0
+    },
+    {
+      "name": "sword hand near hip height (m)",
+      "kind": "below",
+      "a": "Hips",
+      "b": "RightHand",
+      "min": -0.04,
+      "max": 0.26,
+      "tick": 0
+    },
+    {
+      "name": "sword elbow soft: bent 20-40 degrees",
+      "kind": "bend",
+      "a": "RightArm",
+      "b": "RightForeArm",
+      "c": "RightHand",
+      "min": 20,
+      "max": 40,
+      "tick": 0
+    },
+    {
+      "name": "blade 20-35 degrees below level: tip 0.5-0.87 m below the hilt (m)",
+      "kind": "below",
+      "a": "bladeEnd",
+      "b": "bladeHilt",
+      "min": 0.5,
+      "max": 0.87,
+      "tick": 0
+    },
+    {
+      "name": "blade points back: tip behind the hilt (m)",
+      "kind": "ahead",
+      "a": "bladeEnd",
+      "b": "bladeHilt",
+      "min": -1.0,
+      "max": -0.3,
+      "tick": 0
+    },
+    {
+      "name": "blade reads from behind: right part of its direction",
+      "kind": "direction",
+      "a": "bladeEnd",
+      "b": "bladeHilt",
+      "axis": "right",
+      "min": 0.6,
+      "tick": 0
+    },
+    {
+      "name": "tip clear of the right foot (m)",
+      "kind": "distance",
+      "a": "bladeEnd",
+      "b": "RightFoot",
+      "min": 0.45,
+      "tick": 0
+    },
+    {
+      "name": "tip clear of the right knee (m)",
+      "kind": "distance",
+      "a": "bladeEnd",
+      "b": "RightLeg",
+      "min": 0.5,
+      "tick": 0
+    },
+    {
+      "name": "off hand out to the left (m)",
+      "kind": "char",
+      "a": "LeftHand",
+      "axis": "right",
+      "min": -0.62,
+      "max": -0.48,
+      "tick": 0
+    },
+    {
+      "name": "off hand above the hips (m)",
+      "kind": "below",
+      "a": "Hips",
+      "b": "LeftHand",
+      "min": 0.06,
+      "max": 0.3,
+      "tick": 0
+    },
+    {
+      "name": "off hand beside the hips, front to back (m)",
+      "kind": "ahead",
+      "a": "LeftHand",
+      "b": "Hips",
+      "min": -0.1,
+      "max": 0.15,
+      "tick": 0
+    },
+    {
+      "name": "off elbow soft: bent 15-35 degrees",
+      "kind": "bend",
+      "a": "LeftArm",
+      "b": "LeftForeArm",
+      "c": "LeftHand",
+      "min": 15,
+      "max": 35,
+      "tick": 0
+    },
+    {
+      "name": "off hand in line with the forearm: bent at most 25 degrees",
+      "kind": "bend",
+      "a": "LeftForeArm",
+      "b": "LeftHand",
+      "c": "LeftHandIndex1",
+      "max": 25,
+      "tick": 0
+    },
+    {
+      "name": "off hand at least 12 cm below the left shoulder (m)",
+      "kind": "below",
+      "a": "LeftHand",
+      "b": "LeftArm",
+      "min": 0.12,
+      "each_tick": [
+        0,
+        48
+      ]
+    },
+    {
+      "name": "no raised forearm: off hand below its elbow (up part of the forearm)",
+      "kind": "direction",
+      "a": "LeftHand",
+      "b": "LeftForeArm",
+      "axis": "up",
+      "max": -0.1,
+      "each_tick": [
+        0,
+        48
+      ]
+    },
+    {
+      "name": "no fingers pointing up (up part of the left index)",
+      "kind": "direction",
+      "a": "LeftHandIndex3",
+      "b": "LeftHandIndex1",
+      "axis": "up",
+      "max": 0.0,
+      "each_tick": [
+        0,
+        48
+      ]
+    },
+    {
+      "name": "no palm facing out to his left (right part of the left palm normal)",
+      "kind": "palm",
+      "side": "Left",
+      "axis": "right",
+      "min": -0.4,
+      "each_tick": [
+        0,
+        48
+      ]
+    },
+    {
+      "name": "no palm facing the camera behind him (front part of the left palm normal)",
+      "kind": "palm",
+      "side": "Left",
+      "axis": "front",
+      "min": -0.5,
+      "each_tick": [
+        0,
+        48
+      ]
+    },
+    {
+      "name": "shoulders turn 4-10 degrees over the loop",
+      "kind": "yaw_range",
+      "a": "RightArm",
+      "b": "LeftArm",
+      "window": [
+        0,
+        48
+      ],
+      "min": 4,
+      "max": 10
+    },
+    {
+      "name": "off upper arm sweeps 10-22 degrees",
+      "kind": "swing",
+      "a": "LeftForeArm",
+      "b": "LeftArm",
+      "window": [
+        0,
+        48
+      ],
+      "min": 10,
+      "max": 22
+    },
+    {
+      "name": "sword upper arm sweeps 5-12 degrees",
+      "kind": "swing",
+      "a": "RightForeArm",
+      "b": "RightArm",
+      "window": [
+        0,
+        48
+      ],
+      "min": 5,
+      "max": 12
+    },
+    {
+      "name": "blade sweeps 5-12 degrees",
+      "kind": "swing",
+      "a": "bladeEnd",
+      "b": "bladeHilt",
+      "window": [
+        0,
+        48
+      ],
+      "min": 5,
+      "max": 12
+    },
+    {
+      "name": "blade tip rises and falls 4-10 cm (m)",
+      "kind": "range",
+      "a": "bladeEnd",
+      "axis": "up",
+      "window": [
+        0,
+        48
+      ],
+      "min": 0.04,
+      "max": 0.1
+    },
+    {
+      "name": "off hand moves up and down (m)",
+      "kind": "range",
+      "a": "LeftHand",
+      "axis": "up",
+      "window": [
+        0,
+        48
+      ],
+      "min": 0.04,
+      "max": 0.12
+    },
+    {
+      "name": "off hand moves front to back (m)",
+      "kind": "range",
+      "a": "LeftHand",
+      "axis": "front",
+      "window": [
+        0,
+        48
+      ],
+      "min": 0.05,
+      "max": 0.14
+    },
+    {
+      "name": "hips bob 2-4 cm (m)",
+      "kind": "range",
+      "a": "Hips",
+      "axis": "up",
+      "window": [
+        0,
+        48
+      ],
+      "min": 0.02,
+      "max": 0.04
+    },
+    {
+      "name": "off hand stays out to the side, every tick (m)",
+      "kind": "char",
+      "a": "LeftHand",
+      "axis": "right",
+      "each_tick": [
+        0,
+        48
+      ],
+      "max": -0.42
+    },
+    {
+      "name": "blade stays readable, every tick",
+      "kind": "direction",
+      "a": "bladeEnd",
+      "b": "bladeHilt",
+      "axis": "right",
+      "each_tick": [
+        0,
+        48
+      ],
+      "min": 0.6
+    },
+    {
+      "name": "off wrist in line with the forearm: at most 15 degrees",
+      "kind": "bend",
+      "a": "LeftForeArm",
+      "b": "LeftHand",
+      "c": "LeftHandIndex1",
+      "max": 15,
+      "each_tick": [
+        0,
+        47
+      ]
+    },
+    {
+      "name": "off fingers loosely curled: index knuckle 25-50 degrees",
+      "kind": "bend",
+      "a": "LeftHand",
+      "b": "LeftHandIndex1",
+      "c": "LeftHandIndex2",
+      "min": 25,
+      "max": 50,
+      "each_tick": [
+        0,
+        47
+      ]
+    },
+    {
+      "name": "off fingers loosely curled: index middle joint 25-55 degrees",
+      "kind": "bend",
+      "a": "LeftHandIndex1",
+      "b": "LeftHandIndex2",
+      "c": "LeftHandIndex3",
+      "min": 25,
+      "max": 55,
+      "each_tick": [
+        0,
+        47
+      ]
+    }
+  ],
+  "views": [
+    "profile",
+    "front",
+    "three-quarter-right",
+    "gameplay"
+  ]
+}

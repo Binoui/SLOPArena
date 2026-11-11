@@ -456,6 +456,10 @@ These Persuade surfaces may use the highest texture, overlap, cropping, and typo
 
 Translate the attitude rather than pasting UI onto the world. A clear fighting space sits inside one memorable, improvised premise: rooftops, industrial junk, strange pools, night cities, or a child's tabletop can all belong. Curate landmarks, scale, lighting, and background contrast around the fighters. Strong character colors need not make the world cute or cozy. Signs, cheap materials, playful sponsorships, and specific jokes may support the premise; generic graffiti, random props, grime, or anarchy symbols are not substitutes for one.
 
+### Match look
+
+**The Fight First Rule.** In a match the fight is the brightest, sharpest and most saturated thing on screen; the stage supports it. Each stage carries a look ([ADR-0066](../adr/0066-stage-look.md)): a grade that lets its lamps and neon glow, scenery a step quieter and softer than the playfield, and at most two lamps of its own over the floor. Fighters take the stage's colours on their edges, a thin dark ink line around the silhouette and a soft contact shadow, so a low-poly model reads as a drawn figure on any background. A hit throws a short flash of light in the colour of its impact graphic; Reduced Flashing removes it. The ink line is the match shader's work: character art needs no outline of its own, and menus and portraits show the model as authored. Tune a look from gameplay captures with fighters in frame and show options as close-ups; Slop Pit, After Hours and Splash Deck carry the first three (picked 2026-11-10).
+
 ## What SLOPArena is not
 
 - cyberpunk neon;

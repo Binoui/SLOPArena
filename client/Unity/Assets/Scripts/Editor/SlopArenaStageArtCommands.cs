@@ -20,10 +20,12 @@ namespace SlopArena.EditorTools
     /// <summary>
     /// Applies a stage's generated presentation (tools/blender/&lt;stage&gt;) to its Resources
     /// prefab from the generator's &lt;Stem&gt;.presentation.json: texture imports, materials, the
-    /// FBX, shadow flags, the Stage Lights rig, atmosphere and optional poster faces. A stage needs
+    /// FBX, shadow flags, the Stage Lights rig, atmosphere, the optional look and poster faces. A stage needs
     /// data, not a command of its own. Presentation only: the source scene and baked arena are
-    /// verified against the generator stamp and never written. Existing objects are updated in
-    /// place, so re-applying unchanged data saves an identical prefab.
+    /// never written, and a model is installed only when its generator stamp matches them. An
+    /// apply that brings no model still updates materials, lights, atmosphere and look on a stage
+    /// whose stamp is stale, and says so. Existing objects are updated in place, so re-applying
+    /// unchanged data saves an identical prefab.
     /// </summary>
     public static class SlopArenaStageArtCommands
     {
@@ -63,9 +65,14 @@ namespace SlopArena.EditorTools
             string sourceScene = "Assets/Stages/" + stage + "/" + stage + ".unity";
             string sourceHash = Sha256(sourceScene);
             string arenaHash = Sha256(Path.Combine(repository, "data", "arenas", stage + ".arena"));
-            if (!string.Equals(sourceHash, (string)stamp["sourceSha256"], StringComparison.OrdinalIgnoreCase)
-                || !string.Equals(arenaHash, (string)stamp["arenaSha256"], StringComparison.OrdinalIgnoreCase))
-                throw new InvalidOperationException("The generated art was built from a different source scene or arena. Regenerate it with tools/blender/" + stage + "/build.py.");
+            // A model built from another source scene or arena may no longer fit the collision, so it is never
+            // installed. Materials, lights, atmosphere and look do not depend on that: an apply that brings no
+            // model goes ahead on the one already in place and reports the stale stamp.
+            bool staleStamp = !string.Equals(sourceHash, (string)stamp["sourceSha256"], StringComparison.OrdinalIgnoreCase)
+                || !string.Equals(arenaHash, (string)stamp["arenaSha256"], StringComparison.OrdinalIgnoreCase);
+            string staleMessage = "The generated art was built from a different source scene or arena. Regenerate it with tools/blender/" + stage + "/build.py.";
+            if (staleStamp && (createPrefab || (sourceDirectory != null && File.Exists(Path.Combine(sourceDirectory, spec.model)))))
+                throw new InvalidOperationException(staleMessage);
 
             var copied = sourceDirectory == null ? new List<string>() : CopyChanged(sourceDirectory, folder, Files(spec, specPath));
             foreach (string file in Files(spec, specPath))
@@ -96,6 +103,7 @@ namespace SlopArena.EditorTools
             var removed = new List<string>();
             var objects = new Dictionary<string, int>();
             var posters = new List<object>();
+            Dictionary<string, string[]> tinted = null;
             try
             {
                 foreach (string name in spec.supersededRoots ?? Array.Empty<string>())
@@ -117,6 +125,7 @@ namespace SlopArena.EditorTools
                 var art = KeepOne(root.transform, spec.root, child => PrefabUtility.GetCorrespondingObjectFromSource(child.gameObject) == model, removed);
                 if (art == null)
                 {
+                    if (staleStamp) throw new InvalidOperationException(staleMessage);
                     art = ((GameObject)PrefabUtility.InstantiatePrefab(model, root.transform)).transform;
                     art.name = spec.root;
                 }
@@ -168,13 +177,15 @@ namespace SlopArena.EditorTools
                     marker.localRotation = Quaternion.Euler(surface.rotation[0], surface.rotation[1], surface.rotation[2]);
                     marker.localScale = new Vector3(surface.size[0], surface.size[1], 1f);
                 }
+                tinted = ApplyLook(root, spec.look);
                 PrefabUtility.SaveAsPrefabAsset(root, prefabPath);
             }
             finally { PrefabUtility.UnloadPrefabContents(root); }
 
             int pruned = PruneOrphanedSubAssets(prefabPath);
             return new { success = true, stage, prefab = prefabPath, createdPrefab = createPrefab, presentation = specPath, root = spec.root, model = modelPath, sourceHash, arenaHash,
-                copied, reimported, triangles = objects.Values.Sum(), objects, lights = spec.lights.Length, posters, removedRoots = removed,
+                staleStamp, staleStampNote = staleStamp ? "The model in place was built from an older source scene or arena; only presentation data was applied. Rebuild before installing new art." : null,
+                copied, reimported, triangles = objects.Values.Sum(), objects, lights = spec.lights.Length, posters, look = spec.look != null, tinted, removedRoots = removed,
                 prunedSubAssets = pruned, gameplay = "unchanged; presentation only" };
         }
 
@@ -193,6 +204,8 @@ namespace SlopArena.EditorTools
             public AtmosphereSpec atmosphere;
             public PosterSpec[] posters = Array.Empty<PosterSpec>();
             public SurfaceSpec[] surfaces = Array.Empty<SurfaceSpec>();
+            /// <summary>Optional: the stage's look (see StageLookSettings and stagekit/presentation.py).</summary>
+            public JObject look;
         }
 
         private sealed class SurfaceSpec
@@ -474,6 +487,213 @@ namespace SlopArena.EditorTools
                 light.shadowStrength = spec.shadowStrength ?? 1f;
                 light.renderMode = LightRenderMode.ForcePixel;
             }
+        }
+
+        // ------------------------------------------------------------------ look
+
+        [CliCommand("sloparena.stage.look-apply",
+            "Write a stage's look file (Assets/Stages/<stage>/<stage>.look.json) into a StageLook on its Resources prefab. For a stage without a generated presentation; a generated stage keeps its look in presentation.py.",
+            MainThreadRequired = true, Tags = new[] { "authoring/stage" })]
+        public static object ApplyLookFile(
+            [CliArg("stage", "Lowercase snake_case stage key with a Resources prefab and a look file.", Required = true)] string stage)
+        {
+            if (!Regex.IsMatch(stage ?? "", "^[a-z][a-z0-9_]{0,99}$")) throw new ArgumentException("Invalid stage key.");
+            if (EditorApplication.isPlayingOrWillChangePlaymode || SceneManager.GetActiveScene().isDirty)
+                throw new InvalidOperationException("Apply a stage look in stopped Edit Mode with the current scene saved.");
+            string prefabPath = "Assets/Resources/Stages/" + stage + ".prefab";
+            if (!File.Exists(prefabPath)) throw new InvalidOperationException("Missing " + prefabPath + ".");
+            if (Directory.Exists(ArtRoot(stage)) && Directory.GetFiles(ArtRoot(stage), "*.presentation.json", SearchOption.AllDirectories).Length > 0)
+                throw new InvalidOperationException("This stage has a generated presentation: put the look in tools/blender/" + stage + "/presentation.py and run sloparena.stage.art-apply.");
+            string lookPath = "Assets/Stages/" + stage + "/" + stage + ".look.json";
+            if (!File.Exists(lookPath)) throw new InvalidOperationException("Missing " + lookPath + ".");
+            var look = JObject.Parse(File.ReadAllText(lookPath));
+            Dictionary<string, string[]> tinted;
+            var root = PrefabUtility.LoadPrefabContents(prefabPath);
+            try
+            {
+                tinted = ApplyLook(root, look);
+                PrefabUtility.SaveAsPrefabAsset(root, prefabPath);
+            }
+            finally { PrefabUtility.UnloadPrefabContents(root); }
+            return new { success = true, stage, prefab = prefabPath, look = lookPath, tinted, gameplay = "unchanged; presentation only" };
+        }
+
+        /// <summary>
+        /// Write a "look" into a StageLook on the prefab root, or remove the component when there is none.
+        /// Every tint must name scenery that exists, so a renamed object fails here and not silently in a
+        /// match. Returns the objects each tint pattern matched.
+        /// </summary>
+        private static Dictionary<string, string[]> ApplyLook(GameObject root, JObject look)
+        {
+            if (look == null)
+            {
+                if (root.TryGetComponent<StageLook>(out var stale)) Object.DestroyImmediate(stale);
+                return null;
+            }
+            var settings = ReadLook(look);
+            // A tint names a renderer or an object above it (below the stage root).
+            var names = new HashSet<string>();
+            foreach (var renderer in root.GetComponentsInChildren<MeshRenderer>(true))
+                for (var current = renderer.transform; current != null && current != root.transform; current = current.parent)
+                    names.Add(current.name);
+            var tinted = new Dictionary<string, string[]>();
+            foreach (var tint in settings.Tints)
+            {
+                var matched = names.Where(n => StageLookSettings.Matches(tint.Objects, n)).OrderBy(n => n, StringComparer.Ordinal).ToArray();
+                if (matched.Length == 0) throw new InvalidOperationException("look.tints: no scenery is named '" + tint.Objects + "'.");
+                tinted[tint.Objects] = matched.Length > 8 ? matched.Take(8).Append("… " + (matched.Length - 8) + " more").ToArray() : matched;
+            }
+            var component = root.TryGetComponent<StageLook>(out var existing) ? existing : root.AddComponent<StageLook>();
+            component.Configure(settings);
+            return tinted;
+        }
+
+        private static StageLookSettings ReadLook(JObject look)
+        {
+            var settings = new StageLookSettings();
+            Known(look, "look", "grade", "farBlur", "tints", "pools", "shafts", "dust", "fighters");
+            if (look["grade"] is JObject grade)
+            {
+                Known(grade, "look.grade", "tonemap", "bloomThreshold", "bloomIntensity", "bloomScatter", "contrast", "saturation", "filter",
+                    "splitShadows", "splitHighlights", "splitBalance", "vignette", "vignetteColor");
+                var g = settings.Grade;
+                string tonemap = (string)grade["tonemap"] ?? "none";
+                if (tonemap != "none" && tonemap != "neutral") throw new InvalidOperationException("look.grade: tonemap is none or neutral.");
+                g.NeutralTonemap = tonemap == "neutral";
+                g.BloomThreshold = Number(grade, "bloomThreshold", g.BloomThreshold);
+                g.BloomIntensity = Number(grade, "bloomIntensity", g.BloomIntensity);
+                g.BloomScatter = Number(grade, "bloomScatter", g.BloomScatter);
+                g.Contrast = Number(grade, "contrast", g.Contrast);
+                g.Saturation = Number(grade, "saturation", g.Saturation);
+                g.Filter = Colour(grade, "filter", g.Filter);
+                g.SplitToning = grade["splitShadows"] != null || grade["splitHighlights"] != null;
+                g.SplitShadows = Colour(grade, "splitShadows", g.SplitShadows);
+                g.SplitHighlights = Colour(grade, "splitHighlights", g.SplitHighlights);
+                g.SplitBalance = Number(grade, "splitBalance", g.SplitBalance);
+                g.Vignette = Number(grade, "vignette", g.Vignette);
+                g.VignetteColor = Colour(grade, "vignetteColor", g.VignetteColor);
+            }
+            if (look["farBlur"] is JObject blur)
+            {
+                Known(blur, "look.farBlur", "start", "end", "radius");
+                var b = settings.FarBlur;
+                b.Enabled = true;
+                b.Start = Number(blur, "start", b.Start);
+                b.End = Number(blur, "end", b.End);
+                b.Radius = Number(blur, "radius", b.Radius);
+                if (!(b.End > b.Start) || b.Start < 0f) throw new InvalidOperationException("look.farBlur: end must be beyond start.");
+            }
+            if (look["tints"] is JObject tints)
+                foreach (var tint in tints)
+                {
+                    if (string.IsNullOrWhiteSpace(tint.Key) || tint.Key == "*") throw new InvalidOperationException("look.tints: a tint names a renderer or a prefix ending in '*'.");
+                    settings.Tints.Add(new StageLookSettings.TintLook { Objects = tint.Key, Color = Colour(tints, tint.Key, Color.white) });
+                }
+            foreach (var token in look["pools"] as JArray ?? new JArray())
+            {
+                var pool = (JObject)token;
+                Known(pool, "look.pools", "position", "direction", "color", "intensity", "range", "angle", "innerAngle");
+                var p = new StageLookSettings.PoolLook();
+                p.Position = Vector(pool, "position", p.Position);
+                p.Direction = Vector(pool, "direction", p.Direction);
+                p.Color = Colour(pool, "color", p.Color);
+                p.Intensity = Number(pool, "intensity", p.Intensity);
+                p.Range = Number(pool, "range", p.Range);
+                p.Angle = Number(pool, "angle", p.Angle);
+                p.InnerAngle = Number(pool, "innerAngle", p.InnerAngle);
+                if (p.Direction.sqrMagnitude < 1e-6f || !(p.Range > 0f) || !(p.Angle > 0f)) throw new InvalidOperationException("look.pools: a pool needs a direction, a range and an angle.");
+                settings.Pools.Add(p);
+            }
+            if (settings.Pools.Count > 2) throw new InvalidOperationException("look.pools: a stage has at most two pools.");
+            foreach (var token in look["shafts"] as JArray ?? new JArray())
+            {
+                var shaft = (JObject)token;
+                Known(shaft, "look.shafts", "top", "bottom", "topRadius", "bottomRadius", "color", "strength");
+                var h = new StageLookSettings.ShaftLook();
+                h.Top = Vector(shaft, "top", h.Top);
+                h.Bottom = Vector(shaft, "bottom", h.Bottom);
+                h.TopRadius = Number(shaft, "topRadius", h.TopRadius);
+                h.BottomRadius = Number(shaft, "bottomRadius", h.BottomRadius);
+                var tone = Colour(shaft, "color", h.Color);
+                h.Color = new Color(tone.r, tone.g, tone.b, Number(shaft, "strength", h.Color.a));
+                settings.Shafts.Add(h);
+            }
+            if (look["dust"] is JObject dust)
+            {
+                Known(dust, "look.dust", "count", "center", "size", "color", "sizeMin", "sizeMax");
+                var d = settings.Dust;
+                d.Count = Mathf.RoundToInt(Number(dust, "count", d.Count));
+                d.Center = Vector(dust, "center", d.Center);
+                d.Size = Vector(dust, "size", d.Size);
+                d.Color = Colour(dust, "color", d.Color);
+                d.SizeMin = Number(dust, "sizeMin", d.SizeMin);
+                d.SizeMax = Number(dust, "sizeMax", d.SizeMax);
+                if (d.Count < 0 || d.Count > 2000) throw new InvalidOperationException("look.dust: count is 0 to 2000.");
+            }
+            if (look["fighters"] is JObject fighters)
+            {
+                Known(fighters, "look.fighters", "kickA", "kickB", "kickPower", "lift", "lampCap", "ink", "inkColor",
+                    "contactShadow", "contactShadowColor", "contactShadowSize");
+                var f = settings.Fighters;
+                if ((fighters["kickA"] == null) != (fighters["kickB"] == null)) throw new InvalidOperationException("look.fighters: give both kickA and kickB, or neither to take them from the key light.");
+                if (fighters["kickA"] is JObject kickA && fighters["kickB"] is JObject kickB)
+                {
+                    Known(kickA, "look.fighters.kickA", "color", "direction", "strength");
+                    Known(kickB, "look.fighters.kickB", "color", "direction", "strength");
+                    f.KicksFromKeyLight = false;
+                    f.KickA = Colour(kickA, "color", f.KickA);
+                    f.KickADirection = Vector(kickA, "direction", f.KickADirection);
+                    f.KickAStrength = Number(kickA, "strength", f.KickAStrength);
+                    f.KickB = Colour(kickB, "color", f.KickB);
+                    f.KickBDirection = Vector(kickB, "direction", f.KickBDirection);
+                    f.KickBStrength = Number(kickB, "strength", f.KickBStrength);
+                    if (f.KickADirection.sqrMagnitude < 1e-6f || f.KickBDirection.sqrMagnitude < 1e-6f) throw new InvalidOperationException("look.fighters: a kick needs a direction.");
+                }
+                f.KickPower = Number(fighters, "kickPower", f.KickPower);
+                f.Lift = Number(fighters, "lift", f.Lift);
+                f.LampCap = Number(fighters, "lampCap", f.LampCap);
+                f.Ink = Number(fighters, "ink", f.Ink);
+                f.InkColor = Colour(fighters, "inkColor", f.InkColor);
+                f.ContactShadow = Number(fighters, "contactShadow", f.ContactShadow);
+                f.ContactShadowColor = Colour(fighters, "contactShadowColor", f.ContactShadowColor);
+                f.ContactShadowSize = Number(fighters, "contactShadowSize", f.ContactShadowSize);
+            }
+            return settings;
+        }
+
+        private static void Known(JObject section, string path, params string[] keys)
+        {
+            foreach (var property in section.Properties())
+                if (Array.IndexOf(keys, property.Name) < 0)
+                    throw new InvalidOperationException(path + ": unknown field '" + property.Name + "'. Known: " + string.Join(", ", keys) + ".");
+        }
+
+        private static float Number(JObject section, string key, float fallback)
+        {
+            var token = section[key];
+            if (token == null) return fallback;
+            if (token.Type != JTokenType.Float && token.Type != JTokenType.Integer) throw new InvalidOperationException("'" + key + "' must be a number.");
+            float value = (float)token;
+            if (float.IsNaN(value) || float.IsInfinity(value)) throw new InvalidOperationException("'" + key + "' must be finite.");
+            return value;
+        }
+
+        private static float[] Numbers(JObject section, string key)
+        {
+            var values = section[key] as JArray ?? throw new InvalidOperationException("'" + key + "' must be a list of numbers.");
+            return values.Select(v => v.Type == JTokenType.Float || v.Type == JTokenType.Integer
+                ? (float)v : throw new InvalidOperationException("'" + key + "' must be a list of numbers.")).ToArray();
+        }
+
+        private static Color Colour(JObject section, string key, Color fallback)
+            => section[key] == null ? fallback : ToColor(Numbers(section, key));
+
+        private static Vector3 Vector(JObject section, string key, Vector3 fallback)
+        {
+            if (section[key] == null) return fallback;
+            var values = Numbers(section, key);
+            if (values.Length != 3) throw new InvalidOperationException("'" + key + "' needs three components.");
+            return new Vector3(values[0], values[1], values[2]);
         }
 
         /// <summary>

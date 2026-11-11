@@ -537,5 +537,93 @@
    ],
    "fov": 50
   }
- ]
+ ],
+ "look": {
+  "grade": {
+   "bloomThreshold": 1.0,
+   "bloomIntensity": 0.35,
+   "bloomScatter": 0.6,
+   "contrast": 8,
+   "saturation": 6,
+   "filter": [
+    1.0,
+    0.985,
+    0.96
+   ],
+   "vignette": 0.14,
+   "vignetteColor": [
+    0.04,
+    0.06,
+    0.1
+   ]
+  },
+  "farBlur": {
+   "start": 70,
+   "end": 280,
+   "radius": 0.8
+  },
+  "tints": {
+   "City Far": [
+    0.9,
+    0.92,
+    0.96
+   ],
+   "City Near": [
+    0.9,
+    0.92,
+    0.96
+   ],
+   "Street": [
+    0.9,
+    0.92,
+    0.96
+   ],
+   "Traffic": [
+    0.9,
+    0.92,
+    0.96
+   ],
+   "Clouds": [
+    0.9,
+    0.92,
+    0.96
+   ]
+  },
+  "fighters": {
+   "kickA": {
+    "color": [
+     1.0,
+     0.94,
+     0.8
+    ],
+    "direction": [
+     0.52,
+     0.85,
+     -0.09
+    ],
+    "strength": 1.2
+   },
+   "kickB": {
+    "color": [
+     0.62,
+     0.8,
+     1.0
+    ],
+    "direction": [
+     -0.7,
+     0.3,
+     0.4
+    ],
+    "strength": 0.9
+   },
+   "kickPower": 2.6,
+   "lift": 0.04,
+   "contactShadow": 0.3,
+   "contactShadowColor": [
+    0.1,
+    0.12,
+    0.22
+   ]
+  }
+ }
 }

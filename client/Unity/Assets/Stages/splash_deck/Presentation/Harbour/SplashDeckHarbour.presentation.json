@@ -500,5 +500,170 @@
   ],
   "fogStart": 170,
   "fogEnd": 1500
+ },
+ "look": {
+  "grade": {
+   "tonemap": "neutral",
+   "bloomThreshold": 1.0,
+   "bloomIntensity": 0.35,
+   "bloomScatter": 0.6,
+   "contrast": 8,
+   "saturation": 6,
+   "filter": [
+    1.0,
+    0.985,
+    0.96
+   ],
+   "splitShadows": [
+    0.46,
+    0.5,
+    0.56
+   ],
+   "splitHighlights": [
+    0.56,
+    0.52,
+    0.46
+   ],
+   "splitBalance": 0,
+   "vignette": 0.14,
+   "vignetteColor": [
+    0.04,
+    0.06,
+    0.1
+   ]
+  },
+  "farBlur": {
+   "start": 70,
+   "end": 260,
+   "radius": 0.8
+  },
+  "tints": {
+   "Hills": [
+    0.9,
+    0.92,
+    0.96
+   ],
+   "Clouds": [
+    0.9,
+    0.92,
+    0.96
+   ],
+   "Far Islands": [
+    0.9,
+    0.92,
+    0.96
+   ],
+   "Trees": [
+    0.9,
+    0.92,
+    0.96
+   ],
+   "Rocks": [
+    0.9,
+    0.92,
+    0.96
+   ],
+   "Sailboats": [
+    0.9,
+    0.92,
+    0.96
+   ],
+   "Harbour Boats": [
+    0.9,
+    0.92,
+    0.96
+   ],
+   "Village": [
+    0.9,
+    0.92,
+    0.96
+   ],
+   "Awnings": [
+    0.9,
+    0.92,
+    0.96
+   ],
+   "Quay": [
+    0.9,
+    0.92,
+    0.96
+   ],
+   "Breakwater": [
+    0.9,
+    0.92,
+    0.96
+   ],
+   "Laundry": [
+    0.9,
+    0.92,
+    0.96
+   ],
+   "Church": [
+    0.9,
+    0.92,
+    0.96
+   ],
+   "Lighthouse*": [
+    0.9,
+    0.92,
+    0.96
+   ],
+   "Beach": [
+    0.9,
+    0.92,
+    0.96
+   ],
+   "Market": [
+    0.9,
+    0.92,
+    0.96
+   ],
+   "Chapel": [
+    0.9,
+    0.92,
+    0.96
+   ],
+   "Gulls": [
+    0.9,
+    0.92,
+    0.96
+   ]
+  },
+  "fighters": {
+   "kickA": {
+    "color": [
+     1.0,
+     0.93,
+     0.78
+    ],
+    "direction": [
+     0.75,
+     0.59,
+     -0.3
+    ],
+    "strength": 1.2
+   },
+   "kickB": {
+    "color": [
+     0.62,
+     0.8,
+     1.0
+    ],
+    "direction": [
+     -0.7,
+     0.3,
+     0.4
+    ],
+    "strength": 0.9
+   },
+   "kickPower": 2.6,
+   "lift": 0.04,
+   "contactShadow": 0.3,
+   "contactShadowColor": [
+    0.1,
+    0.12,
+    0.22
+   ]
+  }
  }
 }

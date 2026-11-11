@@ -54,6 +54,18 @@ namespace SlopArena.Client.Entities
         [SerializeField] private float _maxHemTravel = .2f;
         [SerializeField] private float _fabricClearance = .04f;
         [SerializeField] private float _teleportDistance = 1.5f;
+        [Tooltip("LegPose only: the thigh elevation, in degrees above level, where chains facing it start to lift.")]
+        [SerializeField] private float _legLiftFrom = -20f;
+        [Tooltip("LegPose only: the thigh elevation where that lift is full. A long skirt (the defaults) lets a thigh move inside it before the hem lifts; a short coat lies on the thigh and starts near -75.")]
+        [SerializeField] private float _legLiftFull = 15f;
+        [Tooltip("LegPose only: the full lift, in degrees. Past 90 the fabric folds up against the body, as a coat front does over a knee drawn to the chest.")]
+        [SerializeField, Range(0f, 150f)] private float _legLift = 80f;
+        [Tooltip("LegPose only: 0 lets a raised thigh lift every chain facing it, as one closed skirt does. Above 0, in rig metres, it lifts only chains whose pivot is within this distance to either side of its hip joint, fading to nothing at twice that: each panel of an open coat lies on its own thigh.")]
+        [SerializeField] private float _legLiftWidth;
+        [Tooltip("How far fabric swings back toward straight down when the body leans: 0 keeps the rest shape square to the hips, 1 hangs plumb. Only fabric the lean swings away from the body hangs; the rest stays on the body.")]
+        [SerializeField, Range(0f, 1f)] private float _hang;
+        [Tooltip("The largest hang swing, in degrees, so a tumbling body does not wrap its coat around itself.")]
+        [SerializeField, Range(0f, 90f)] private float _maxHang = 40f;
 
         private Quaternion[][] _restRotation;
         private Quaternion[][] _restHipsRotation;
@@ -69,6 +81,8 @@ namespace SlopArena.Client.Entities
         private Vector3 _restUpHips;
         private bool _reset = true;
         private float[] _lastLift;
+        private bool _hanging;
+        private Quaternion _hangSwing = Quaternion.identity;
         private Quaternion[] _lastLiftRotation;
         private Quaternion[][] _skinFrom, _skinCorrection;
         private static readonly float[] SwingTurns = { 0f, -40f, 40f };
@@ -89,10 +103,11 @@ namespace SlopArena.Client.Entities
         private Vector3[,] _contactPush;
         private float[,] _contactDepth;
 
-        // Clearance reads its rest frame before any clip poses the body; LegPose keeps reading it at the first step.
+        // Clearance and hanging fabric read their rest frame before any clip poses the body: a lean in the first
+        // pose would become the fabric's idea of upright. LegPose without hang keeps reading it at the first step.
         private void Awake()
         {
-            if (_liftModel == LiftModel.Clearance) Initialize();
+            if (_liftModel == LiftModel.Clearance || _hang > 0f) Initialize();
         }
 
         private void OnEnable() => _reset = true;
@@ -215,6 +230,8 @@ namespace SlopArena.Client.Entities
                 Vector3 radial = Vector3.ProjectOnPlane(pivot - _hips.position, up).normalized;
                 Vector3 liftAxis = Vector3.Cross(up, radial);
                 float lift = 0f;
+                // Clearance measures its lift from the hanging line, so the hang comes first and both add up.
+                _hanging = _hang > 0f && _liftModel == LiftModel.Clearance && HangSwing(up, radial, 0f, out _hangSwing);
                 if (_liftModel == LiftModel.Clearance) lift = ClearanceLift(c, pivot, up, radial, scale, out liftAxis);
                 for (int leg = 0; _liftModel == LiftModel.LegPose && leg < Mathf.Min(2, _capsules.Length); leg++)
                 {
@@ -223,7 +240,13 @@ namespace SlopArena.Client.Entities
                     Vector3 direction = (thigh.End.position - thigh.Start.position).normalized;
                     float elevation = Mathf.Asin(Mathf.Clamp(Vector3.Dot(direction, up), -1f, 1f)) * Mathf.Rad2Deg;
                     float alignment = Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(-.2f, .7f, Vector3.Dot(radial, Vector3.ProjectOnPlane(direction, up).normalized)));
-                    float legLift = Mathf.InverseLerp(-20f, 15f, elevation) * 80f;
+                    if (_legLiftWidth > 0f)
+                    {
+                        Vector3 across = Vector3.Cross(up, Vector3.ProjectOnPlane(direction, up)).normalized;
+                        float apart = Mathf.Abs(Vector3.Dot(pivot - thigh.Start.position, across)) / scale;
+                        alignment *= 1f - Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(_legLiftWidth, 2f * _legLiftWidth, apart));
+                    }
+                    float legLift = Mathf.InverseLerp(_legLiftFrom, _legLiftFull, elevation) * _legLift;
                     if (crouching) legLift = Mathf.Max(legLift, 50f);
                     lift = Mathf.Max(lift, legLift * alignment * alignment);
                     if (_capsules.Length <= leg + 2 || _capsules[leg + 2].End == null) continue;
@@ -240,6 +263,9 @@ namespace SlopArena.Client.Entities
                     float footLift = Mathf.Clamp(Mathf.Atan2(reach, drop) * Mathf.Rad2Deg - restAngle + 4f, 0f, 85f);
                     lift = Mathf.Max(lift, footLift * footAlignment * footAlignment);
                 }
+                // LegPose lifts from the rest line: a chain a raised thigh already carries forward hangs only the rest
+                // of the way, or a sprint's knee drive and its lean would add up and throw the front panel over his chest.
+                if (_hang > 0f && _liftModel == LiftModel.LegPose) _hanging = HangSwing(up, radial, lift, out _hangSwing);
                 Quaternion poseLift = Quaternion.AngleAxis(-lift, liftAxis);
                 Quaternion previousLift = Quaternion.AngleAxis(-_lastLift[c], Vector3.Cross(up, radial));
                 if (_liftModel == LiftModel.Clearance)
@@ -255,8 +281,13 @@ namespace SlopArena.Client.Entities
                 {
                     bones[j].localRotation = _restRotation[c][j];
                     Vector3 target = pivot + poseLift * (_hips.TransformPoint(_restTipHips[c][j]) - pivot);
-                    _target[c][j] = target;
                     _poseRotation[c][j] = poseLift * _hips.rotation * _restHipsRotation[c][j];
+                    if (_hanging)
+                    {
+                        target = pivot + poseLift * (_hangSwing * (_hips.TransformPoint(_restTipHips[c][j]) - pivot));
+                        _poseRotation[c][j] = poseLift * _hangSwing * _hips.rotation * _restHipsRotation[c][j];
+                    }
+                    _target[c][j] = target;
                     if (_reset) _position[c][j] = _previous[c][j] = target;
                     else
                     {
@@ -340,6 +371,27 @@ namespace SlopArena.Client.Entities
             _reset = false;
         }
 
+        /// <summary>The swing that lets a chain hang when the body leans: its rest line turns from the hips' own
+        /// down toward straight down, by <see cref="_hang"/> of the lean and at most <see cref="_maxHang"/>. A real
+        /// coat's front falls away from a leaning chest while its back lies on the body, so only a chain the swing
+        /// carries outward gets it; one it would press into the body keeps its rest line. <paramref name="taken"/> is
+        /// the part of the swing, in degrees, a lift already made. False when there is no swing left.</summary>
+        private bool HangSwing(Vector3 up, Vector3 radial, float taken, out Quaternion swing)
+        {
+            swing = Quaternion.identity;
+            float lean = Vector3.Angle(up, Vector3.up);
+            if (lean < .5f) return false;
+            Vector3 axis = Vector3.Cross(up, Vector3.up).normalized;
+            float angle = Mathf.Min(lean * _hang, _maxHang);
+            Vector3 carried = Quaternion.AngleAxis(angle, axis) * -up + up;
+            float outward = Vector3.Dot(carried.normalized, radial);
+            float share = Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(-.2f, .5f, outward));
+            float left = angle * share - taken;
+            if (left <= 0f) return false;
+            swing = Quaternion.AngleAxis(left, axis);
+            return true;
+        }
+
         /// <summary>The smallest swing, in degrees, that lifts chain <paramref name="c"/>'s rest line clear of every
         /// limb under it, and the axis it turns about; no swing when nothing within the limit clears them.</summary>
         private float ClearanceLift(int c, Vector3 pivot, Vector3 up, Vector3 radial, float scale, out Vector3 axis)
@@ -369,6 +421,7 @@ namespace SlopArena.Client.Entities
             int n = _chains[c].Bones.Length;
             if (_restLine.Length != n) _restLine = new Vector3[n];
             for (int j = 0; j < n; j++) _restLine[j] = _hips.TransformPoint(_restTipHips[c][j]);
+            if (_hanging) for (int j = 0; j < n; j++) _restLine[j] = pivot + _hangSwing * (_restLine[j] - pivot);
             float hem = Vector3.Dot(pivot - _restLine[n - 1], up);
             Vector3 hang = (_restLine[n - 1] - pivot).normalized;
             foreach (var capsule in _capsules)

@@ -78,6 +78,7 @@ namespace SlopArena.Client.Combat
                 var attackerColour = attacker != null ? MatchVisualStyle.RimColorFor(attacker) : new Color(0.18f, 0.78f, 1f);
                 if (_renderers.TryGetValue(hit.TargetEntityId, out var victim) && victim != null)
                     victim.HitFeel?.ReceiveHit(in hit, tier, attackerColour);
+                StageLookLights.Flash(new Vector3(hit.HitX, hit.HitY, hit.HitZ), tier, hit.HitstopTicks);
                 if (attacker != null)
                     _sfx.Play(tier, attacker.PresentationCatalog);
                 else if (_hosts.TryGetValue(hit.OwnerEntityId, out var hostCatalog))

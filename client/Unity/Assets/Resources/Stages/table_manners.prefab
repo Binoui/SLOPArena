@@ -434,6 +434,7 @@ GameObject:
   m_Component:
   - component: {fileID: 8407304393407023857}
   - component: {fileID: 3849221003805279174}
+  - component: {fileID: 1267934008538404086}
   m_Layer: 0
   m_Name: table_manners
   m_TagString: Untagged
@@ -478,6 +479,84 @@ MonoBehaviour:
   _fogColor: {r: 0.8, g: 0.88, b: 0.97, a: 1}
   _fogStart: 400
   _fogEnd: 3600
+--- !u!114 &1267934008538404086
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3855542138679530228}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a1052d1f8041ddbb5b2844f2087e85d0, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  _settings:
+    Grade:
+      NeutralTonemap: 0
+      BloomThreshold: 1
+      BloomIntensity: 0.4
+      BloomScatter: 0.6
+      Contrast: 8
+      Saturation: 6
+      Filter: {r: 1, g: 0.985, b: 0.96, a: 1}
+      SplitToning: 0
+      SplitShadows: {r: 0.5, g: 0.5, b: 0.5, a: 1}
+      SplitHighlights: {r: 0.5, g: 0.5, b: 0.5, a: 1}
+      SplitBalance: 0
+      Vignette: 0.16
+      VignetteColor: {r: 0.1, g: 0.07, b: 0.06, a: 1}
+    FarBlur:
+      Enabled: 1
+      Start: 45
+      End: 160
+      Radius: 0.9
+    Tints:
+    - Objects: Room Walls
+      Color: {r: 0.88, g: 0.89, b: 0.93, a: 1}
+    - Objects: Room Floor
+      Color: {r: 0.88, g: 0.89, b: 0.93, a: 1}
+    - Objects: Ceiling
+      Color: {r: 0.88, g: 0.89, b: 0.93, a: 1}
+    - Objects: Art Corner
+      Color: {r: 0.88, g: 0.89, b: 0.93, a: 1}
+    - Objects: Bunk Corner
+      Color: {r: 0.88, g: 0.89, b: 0.93, a: 1}
+    - Objects: Play Corner
+      Color: {r: 0.88, g: 0.89, b: 0.93, a: 1}
+    - Objects: Wall Decals
+      Color: {r: 0.88, g: 0.89, b: 0.93, a: 1}
+    - Objects: Toy Train
+      Color: {r: 0.88, g: 0.89, b: 0.93, a: 1}
+    - Objects: Garden
+      Color: {r: 0.9, g: 0.92, b: 0.96, a: 1}
+    - Objects: Garden Far
+      Color: {r: 0.9, g: 0.92, b: 0.96, a: 1}
+    Pools: []
+    Shafts: []
+    Dust:
+      Count: 0
+      Center: {x: 0, y: 7, z: 0}
+      Size: {x: 16, y: 11, z: 16}
+      Color: {r: 1, g: 0.92, b: 0.75, a: 0.7}
+      SizeMin: 0.04
+      SizeMax: 0.09
+    Fighters:
+      KicksFromKeyLight: 0
+      KickA: {r: 1, g: 0.92, b: 0.76, a: 1}
+      KickADirection: {x: -0.12, y: 0.88, z: 0.45}
+      KickAStrength: 1.2
+      KickB: {r: 0.7, g: 0.82, b: 1, a: 1}
+      KickBDirection: {x: 0.3, y: 0.3, z: -0.85}
+      KickBStrength: 0.9
+      KickPower: 2.6
+      Lift: 0.04
+      LampCap: 0
+      Ink: 1.6
+      InkColor: {r: 0.09, g: 0.094, b: 0.078, a: 1}
+      ContactShadow: 0.35
+      ContactShadowColor: {r: 0.16, g: 0.1, b: 0.08, a: 1}
+      ContactShadowSize: 1.5
 --- !u!1 &6352950156322540413
 GameObject:
   m_ObjectHideFlags: 0

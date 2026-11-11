@@ -1,0 +1,386 @@
+{
+  "name": "wibou-jump-tuck",
+  "purpose": "locomotion",
+  "notes": "2026-11-10 round 2, after the owner rejected the first Unity takes (verdict and direction: tmp/wibou-locomotion/motion/round2-owner.md; measurements: tmp/wibou-locomotion/motion2/measure.md). Replaces the round-1 scissor kick-off (wibou-jump-scissor.json, kept). Entry = the new idle's tick 0 (newidle2), exit = the new fall's tick 0 (newair3), both carried from round-2 runs with python -m genra.rigpack reference.",
+  "rigpack": "artifacts/genra-rigpacks/wibou-unity-loco",
+  "character": "Wibou (45 joints in the wibou-unity-loco pack, rebuilt from the current Wibou.prefab on 2026-11-10: a Humanoid body with Mixamo names, index fingers and thumbs; the open coat's skirt on four two-joint chains under Hips (Coat_FL_1/2, Coat_FR_1/2, Coat_BL_1/2, Coat_BR_1/2) that BoneChainSpring drives in the game, so leave them at their bind rotation; a 1.52 m katana fixed to the right hand as joint Weapon0, bladeHilt at the guard and bladeEnd at the tip. The black fedora is part of the body mesh and rides the Head joint)",
+  "description": "Wibou's jump: the clip he plays when he jumps, from the jump squat through the take-off to the air pose, where the game crossfades into his fall loop. A double jump plays the same clip again in mid-air. Every aerial attack and his fall start from where this jump takes him.\n\nWho he is. Wibou is an ironic mall-ninja weeaboo: a cringe Neo from The Matrix with a katana, a black fedora, a dark open coat, black trousers and white sneakers (images 1-2, the real character in the game). He takes himself completely seriously, which is the joke, so play every pose sincerely, never winking. In the fight he is a quick, light spacing duelist who wins at the edge of his blade's reach and then chases opponents into the air. He holds the katana in his right hand. His arms are short (upper arm 0.22 m, forearm 0.24 m), the katana is long (1.52 m of blade from a guard that sits 0.22 m from the wrist joint), and his legs are long (thigh 0.47 m, shin 0.41 m).\n\nHow the game plays it. Ticks 0-30 at 60 Hz, played once. Tick 0 is his new idle's pose (reference 'newidle2', tick 0, the entry); the game crossfades into the jump from the idle or the run over 0.05 s. Ticks 0-4 are the squat on the ground (a full jump holds it to tick 5) and the game launches him at tick 4-5. A short hop and a double jump reach their top at about tick 18, a full jump at about tick 27; then the game crossfades over 0.15 s into the fall. So by tick 18 he must be most of the way into the air pose, and from tick 26 to 30 he holds the air pose exactly (reference 'newair3', tick 0, the exit: the new fall's first pose). That last pose can be held for any length.\n\nTwo jobs for the first ticks. On the ground, ticks 0-4 are the squat. On a double jump the game plays the same ticks from 0 while he is already rising in mid-air, with no floor under him. So the squat is a gather that reads in both places: the hips drop, the knees bend, the arms draw in and back, the head stays up.\n\nRound 1 (image 3: rows match camera, three-quarter rear, side) was the scissor kick-off. The owner: \"jump is still when jump before was cool. we can dropped the air crossed legs but still needs more movement\". From the match camera he crouched a little, then stood upright in the air with one foot lifted (measured: upper arms swung about 50 degrees, the blade 26). Drop the crossed legs; this jump moves.\n\nThe jump, a tuck:\n- Ticks 0-4, the gather: faster and deeper than round 1. The hips drop 12-16 cm below the idle hips by tick 4, both knees bend 50-75 degrees, the chest folds 12-20 degrees forward, the head stays up. The left fist leaves the hip and the arm swings down and back past the hip; the sword hand drops back and the blade draws back and down behind him (still on his right, never toward the legs).\n- Ticks 4-8, the explosive extension: the legs drive straight (both knees bent 25 degrees or less by tick 7, toes pointed down), the chest opens (lean back to upright), the chin lifts, and both arms swing up and out: the off arm sweeps forward, up and out to the side to about shoulder height with the fingers trailing along the arm, never pointing up; the sword arm swings up and out to the right, lifting the blade.\n- Ticks 8-14, the tuck: both knees pull up hard toward the chest (both knees bent 95-130 degrees and both knee joints at least 0.25 m ahead of the hips by tick 12, the feet under the hips, the shins never crossing), the back rounds a little and the head dips 2-3 ticks after the knees arrive. The off arm flings out wide to the side (hand at least 0.6 m left of the hips' centre around ticks 10-13, at or a little below shoulder height). The blade swings round in a big arc that reads from behind: up and out to the right around tick 10-12 (tip above the hilt, far out to his right, a long diagonal against the sky from the match camera), then over and down. It stays clear of the body, the head and the legs the whole way.\n- Ticks 14-18, the unfold: the right leg drops long, the left knee stays up in front, the arms settle into balance and the blade comes down and back to the air pose's angle, overshooting it by 3-8 degrees once before it settles (ticks 18-24). At tick 18 he is at least 70% of the way into the air pose.\n- Ticks 18-26: ease the last of the way and arrive exactly on the air pose at 26; hold it, as a moving hold, to 30 (the last key equals the exit).\n\nThe air pose he lands in (reference 'newair3', tick 0, shared with the fall):\n- Legs and hips: exactly the round-1 fall's (reference 'fallr1', the owner: \"feet are fine\"): hips 11 cm below the idle hips; the left knee up in front (knee joint 0.48 m ahead of the hips and 0.26 m below them, foot below and a little behind the knee); the right leg, on the sword side, hangs long and slightly behind (knee bent 20-40 degrees), toes pointed; feet apart, shins never crossing.\nArms, new, out from the body for balance so the match camera behind him reads both of them against the sky:\n- Sword arm: the hand out to the right of the hip and a little behind it (0.38-0.52 m right of the hips' centre, 0.05-0.25 m behind, from 4 cm below to 26 cm above the hips), the elbow softly bent 20-40 degrees, the wrist in line. The blade points out to the right and back, 20-35 degrees below level (right part of its direction at least 0.6), the tip far outside the right knee and foot; the blade and hilt at least 5 cm clear of the right thigh, shin and foot.\n- Off (left) arm: out to the side and a little forward, angled down 25-45 degrees from the shoulder, the hand 0.48-0.62 m left of the hips' centre, between 6 cm and 30 cm above the hips (at least 12 cm below the left shoulder), 0.1 m behind to 0.15 m ahead of the hips; the elbow soft (bent 15-35 degrees); the hand relaxed, fingers loosely curled 15-35 degrees and pointing out along the arm or down.\n- HARD PROHIBITIONS on the off hand (the owner rejected a \"waving hand\" in round 1): no raised forearm (the hand never above its elbow), no open palm facing out (to his left or back toward the camera), no fingers pointing up. Never a wave, a question or a stop sign; it is a balancing arm.\n- Torso: lean 5-12 degrees forward, head up, looking ahead and a little down, the hat level.\n\nJudge it from the match camera first (the 'gameplay' view, straight behind him): the gather, the extension, the tuck and the blade's arc must all be obvious from behind. The fighter does not move in the clip: the game carries him. Keep the hips between 21 cm below and 8 cm above the idle hips (the air pose sits 18 cm below this taller idle) through the whole clip. No spins, no flips, no attack.\n\nSecondary motion, with numbers:\n- Coat: the hips drop 12-16 cm into the gather and rise at least 15 cm out of it through the extension; that throw is what lifts the coat.\n- Hat: the head dips 2-4 ticks after the chest in the gather and lifts 2-4 ticks after the chest in the extension, pitching 3-6 degrees, and the hat is level again by tick 22.\n- Fingers: the off hand opens from the fist as it swings up (fingers along the arm), curls a little in the tuck, and relaxes into the air pose's loose curl, each change 1-3 ticks after the hand.\n- Sword: the blade drags 15-30 degrees behind the forearm through the extension, catches up 2-4 ticks after the forearm stops, and overshoots the air pose's angle once before it settles.\n\nFlow, not pose-to-pose. The hips lead, the chest trails them 1-3 ticks, the shoulders, head and arms trail more, the hands trail their forearms 1-3 ticks, the sword hand trails its forearm 2-4 ticks so the blade settles after the body (Clip.overlap()), and the fingers trail the hands. Holds are moving holds, never a repeated pose. Arcs, not straight lines, for hands and the blade tip. Cartoony and readable, not mocap. Treat every flow, life and chatter warning in `./genra check` as a failure to fix in this take, not as advisory. The coat chains are in the pack, but a spring drives them in the game: leave them at their bind rotation, and give the hips and spine real motion for the springs to follow. Keep each hand in line with its forearm (wrists under 35 degrees wherever the brief allows). The blade never passes through the head, the hat, the body or the legs, and it is never pointed straight at the match camera behind him: it always keeps a clear sideways part so its length reads. Fast motion belongs only to the fast windows; elsewhere no joint turns more than about 25 degrees a tick.",
+  "references": {
+    "idle": "references/idle.usda",
+    "run": "references/run.usda",
+    "jump": "references/jump.usda",
+    "fall": "references/fall.usda",
+    "newidle2": "references/newidle2.usda",
+    "newair3": "references/newair3.usda",
+    "fallr1": "references/fallr1.usda"
+  },
+  "entry": {
+    "reference": "newidle2",
+    "tick": 0
+  },
+  "clock": {
+    "duration_ticks": 30
+  },
+  "exit": {
+    "from_tick": 26,
+    "reference": "newair3",
+    "tick": 0
+  },
+  "fast_windows": [
+    [
+      3,
+      14
+    ]
+  ],
+  "timing": {
+    "fixed": [
+      "the squat is ticks 0-4 (5 for a full jump) and the game launches him there",
+      "the game crossfades into the fall at the top: about tick 18 for a short hop or double jump, about tick 27 for a full jump",
+      "a double jump replays the clip from tick 0 in mid-air",
+      "from tick 26 the clip holds the air pose (fall tick 0) exactly"
+    ],
+    "adjustable": [
+      "the clip length (30 ticks)",
+      "where inside 8-18 the tuck peaks and the blade arc crests"
+    ]
+  },
+  "images": [
+    "../../../tmp/wibou-locomotion/img/real-idle.png",
+    "../../../tmp/wibou-locomotion/img/real-run.png",
+    "../../../tmp/wibou-locomotion/motion2/img/rejected-jump.jpg"
+  ],
+  "image_notes": "1: today's vendor idle on the real character with the coat, match camera then three-quarter view, ticks 0-40 (the clip being replaced; it shows the model, the coat and the katana). 2: today's vendor run, same views. Neither is a pose to copy: the owner does not want the artist's work reproduced. 3: the round-1 scissor jump in Unity (rows: match camera, three-quarter rear, side): rejected as still.",
+  "review_ticks": [
+    0,
+    2,
+    4,
+    6,
+    8,
+    11,
+    14,
+    18,
+    22,
+    26,
+    30
+  ],
+  "keys": [
+    0,
+    4,
+    7,
+    11,
+    14,
+    18,
+    26,
+    30
+  ],
+  "review": {
+    "reference": "jump",
+    "travel": 0.0
+  },
+  "targets": [
+    {
+      "name": "gather: hips 12-16 cm below the idle hips at tick 4 (m)",
+      "kind": "char",
+      "a": "Hips",
+      "axis": "up",
+      "tick": 4,
+      "min": -0.16,
+      "max": -0.12
+    },
+    {
+      "name": "gather: left knee bent 50-75 degrees at tick 4",
+      "kind": "bend",
+      "a": "LeftUpLeg",
+      "b": "LeftLeg",
+      "c": "LeftFoot",
+      "tick": 4,
+      "min": 50,
+      "max": 75
+    },
+    {
+      "name": "gather: right knee bent 50-75 degrees at tick 4",
+      "kind": "bend",
+      "a": "RightUpLeg",
+      "b": "RightLeg",
+      "c": "RightFoot",
+      "tick": 4,
+      "min": 50,
+      "max": 75
+    },
+    {
+      "name": "gather: head ahead of the hips at tick 4 (m)",
+      "kind": "ahead",
+      "a": "Head",
+      "b": "Hips",
+      "tick": 4,
+      "min": 0.08
+    },
+    {
+      "name": "gather: off hand back past the hip at tick 4 (m)",
+      "kind": "ahead",
+      "a": "LeftHand",
+      "b": "Hips",
+      "tick": 4,
+      "max": -0.05
+    },
+    {
+      "name": "extension: left knee straight at tick 7",
+      "kind": "bend",
+      "a": "LeftUpLeg",
+      "b": "LeftLeg",
+      "c": "LeftFoot",
+      "tick": 7,
+      "max": 25
+    },
+    {
+      "name": "extension: right knee straight at tick 7",
+      "kind": "bend",
+      "a": "RightUpLeg",
+      "b": "RightLeg",
+      "c": "RightFoot",
+      "tick": 7,
+      "max": 25
+    },
+    {
+      "name": "extension: off hand swung up, at most 15 cm below the left shoulder at tick 8 (m)",
+      "kind": "below",
+      "a": "LeftHand",
+      "b": "LeftArm",
+      "tick": 8,
+      "min": -0.1,
+      "max": 0.15
+    },
+    {
+      "name": "tuck: left knee up in front at tick 12 (m)",
+      "kind": "ahead",
+      "a": "LeftLeg",
+      "b": "Hips",
+      "tick": 12,
+      "min": 0.25
+    },
+    {
+      "name": "tuck: right knee up in front at tick 12 (m)",
+      "kind": "ahead",
+      "a": "RightLeg",
+      "b": "Hips",
+      "tick": 12,
+      "min": 0.25
+    },
+    {
+      "name": "tuck: left knee bent 95-130 degrees at tick 12",
+      "kind": "bend",
+      "a": "LeftUpLeg",
+      "b": "LeftLeg",
+      "c": "LeftFoot",
+      "tick": 12,
+      "min": 95,
+      "max": 130
+    },
+    {
+      "name": "tuck: right knee bent 95-130 degrees at tick 12",
+      "kind": "bend",
+      "a": "RightUpLeg",
+      "b": "RightLeg",
+      "c": "RightFoot",
+      "tick": 12,
+      "min": 95,
+      "max": 130
+    },
+    {
+      "name": "tuck: right knee high, at most 0.2 m below the hips at tick 12 (m)",
+      "kind": "below",
+      "a": "RightLeg",
+      "b": "Hips",
+      "tick": 12,
+      "max": 0.2
+    },
+    {
+      "name": "tuck: off arm flung out at tick 11 (m)",
+      "kind": "char",
+      "a": "LeftHand",
+      "axis": "right",
+      "tick": 11,
+      "max": -0.6
+    },
+    {
+      "name": "tuck: blade up and out, tip above the hilt at tick 11 (m)",
+      "kind": "below",
+      "a": "bladeEnd",
+      "b": "bladeHilt",
+      "tick": 11,
+      "max": -0.2
+    },
+    {
+      "name": "tuck: blade far out to the right at tick 11 (m)",
+      "kind": "char",
+      "a": "bladeEnd",
+      "axis": "right",
+      "tick": 11,
+      "min": 1.2
+    },
+    {
+      "name": "the blade swings round: arc over ticks 0-18",
+      "kind": "swing",
+      "a": "bladeEnd",
+      "b": "bladeHilt",
+      "window": [
+        0,
+        18
+      ],
+      "min": 70
+    },
+    {
+      "name": "the off arm swings: upper arm arc over ticks 0-18",
+      "kind": "swing",
+      "a": "LeftForeArm",
+      "b": "LeftArm",
+      "window": [
+        0,
+        18
+      ],
+      "min": 80
+    },
+    {
+      "name": "hips stay within 21 cm below and 8 cm above the idle hips (m)",
+      "kind": "char",
+      "a": "Hips",
+      "axis": "up",
+      "each_tick": [
+        0,
+        30
+      ],
+      "min": -0.21,
+      "max": 0.08
+    },
+    {
+      "name": "hips throw: rise out of the gather (m)",
+      "kind": "range",
+      "a": "Hips",
+      "axis": "up",
+      "window": [
+        4,
+        12
+      ],
+      "min": 0.15
+    },
+    {
+      "name": "by tick 18: right leg hangs, toe far below the hips (m)",
+      "kind": "below",
+      "a": "RightToeBase",
+      "b": "Hips",
+      "tick": 18,
+      "min": 0.75
+    },
+    {
+      "name": "by tick 18: left knee up in front (m)",
+      "kind": "ahead",
+      "a": "LeftLeg",
+      "b": "Hips",
+      "tick": 18,
+      "min": 0.3
+    },
+    {
+      "name": "by tick 18: off hand out to the left (m)",
+      "kind": "char",
+      "a": "LeftHand",
+      "axis": "right",
+      "tick": 18,
+      "max": -0.42
+    },
+    {
+      "name": "by tick 18: blade below the hilt (m)",
+      "kind": "below",
+      "a": "bladeEnd",
+      "b": "bladeHilt",
+      "tick": 18,
+      "min": 0.35
+    },
+    {
+      "name": "fingers never point up, every tick",
+      "kind": "direction",
+      "a": "LeftHandIndex3",
+      "b": "LeftHandIndex1",
+      "axis": "up",
+      "max": 0.2,
+      "each_tick": [
+        0,
+        30
+      ]
+    },
+    {
+      "name": "off hand never above its elbow by more than a little, ticks 0-17",
+      "kind": "direction",
+      "a": "LeftHand",
+      "b": "LeftForeArm",
+      "axis": "up",
+      "max": 0.3,
+      "each_tick": [
+        0,
+        17
+      ]
+    },
+    {
+      "name": "off hand at least 12 cm below the left shoulder (m)",
+      "kind": "below",
+      "a": "LeftHand",
+      "b": "LeftArm",
+      "min": 0.12,
+      "each_tick": [
+        18,
+        30
+      ]
+    },
+    {
+      "name": "no raised forearm: off hand below its elbow (up part of the forearm)",
+      "kind": "direction",
+      "a": "LeftHand",
+      "b": "LeftForeArm",
+      "axis": "up",
+      "max": -0.1,
+      "each_tick": [
+        18,
+        30
+      ]
+    },
+    {
+      "name": "no fingers pointing up (up part of the left index)",
+      "kind": "direction",
+      "a": "LeftHandIndex3",
+      "b": "LeftHandIndex1",
+      "axis": "up",
+      "max": 0.0,
+      "each_tick": [
+        18,
+        30
+      ]
+    },
+    {
+      "name": "no palm facing out to his left (right part of the left palm normal)",
+      "kind": "palm",
+      "side": "Left",
+      "axis": "right",
+      "min": -0.4,
+      "each_tick": [
+        18,
+        30
+      ]
+    },
+    {
+      "name": "no palm facing the camera behind him (front part of the left palm normal)",
+      "kind": "palm",
+      "side": "Left",
+      "axis": "front",
+      "min": -0.5,
+      "each_tick": [
+        18,
+        30
+      ]
+    }
+  ],
+  "views": [
+    "profile",
+    "front",
+    "three-quarter-right",
+    "gameplay"
+  ]
+}

@@ -6,7 +6,7 @@ using UnityEditor.SceneManagement;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
-/// <summary>SkirtBoneSpring's Clearance lift on a synthetic ring of hanging chains and one limb capsule.</summary>
+/// <summary>SkirtBoneSpring's Clearance lift and its hang on a synthetic ring of hanging chains and one limb capsule.</summary>
 public static class SkirtBoneSpringSelfTest
 {
     private const int Chains = 8, Segments = 3;
@@ -61,9 +61,61 @@ public static class SkirtBoneSpringSelfTest
             rig.Settle();
             Require(Vector3.Distance(rig.Hem(0), rig.RestHem(0)) < 1e-3f, "a limb in front of the fabric moved it");
         }
+        // Hang: the body leans 30 degrees toward chain 0. That chain falls away from the body and hangs plumb; the
+        // chain on the far side would swing into the body, so it keeps its rest line in the leaning frame.
+        var far = new Vector3(2f, 0f, 2f);
+        using (var rig = new Rig(far, far + Vector3.up * .5f, hang: 1f))
+        {
+            rig.Settle();
+            rig.Lean(30f);
+            rig.Settle();
+            float offPlumb = Vector3.Angle(rig.Hem(0) - rig.PivotOf(0), Vector3.down);
+            Require(offPlumb < 2f, $"the chain on the low side hangs {offPlumb:0.0} degrees off plumb");
+            Require(Vector3.Distance(rig.Hem(Chains / 2), rig.LeaningRestHem(Chains / 2)) < 1e-3f, "the chain on the high side left the body");
+        }
+        // A body lying flat: the swing stops at the 40-degree limit instead of wrapping the fabric around it.
+        using (var rig = new Rig(far, far + Vector3.up * .5f, hang: 1f))
+        {
+            rig.Settle();
+            rig.Lean(90f);
+            rig.Settle();
+            float swing = Vector3.Angle(rig.Hem(0) - rig.PivotOf(0), rig.LeaningRestHem(0) - rig.PivotOf(0));
+            Require(Mathf.Abs(swing - 40f) < 2f, $"a flat body's low chain swings {swing:0.0} degrees, not the 40-degree limit");
+        }
+        // No hang set: a lean carries every chain with the frame, as before the option existed.
+        using (var rig = new Rig(far, far + Vector3.up * .5f))
+        {
+            rig.Settle();
+            rig.Lean(30f);
+            rig.Settle();
+            for (int c = 0; c < Chains; c++)
+                Require(Vector3.Distance(rig.Hem(c), rig.LeaningRestHem(c)) < 1e-3f, $"chain {c} hangs with no hang set");
+        }
+        // LegPose with a short coat's values: a thigh under chain 0, raised level toward it, lifts that chain about
+        // (0 + 80) / 125 * 150 = 96 degrees. Chain 1 faces the thigh too but hangs 10.6 cm to its side: a closed
+        // skirt lifts it as well, an open coat's panel width (5 cm here) leaves it down. The far side never moves.
+        foreach (float width in new[] { 0f, .05f })
+            using (var rig = new Rig(new Vector3(.02f, Pivot - .05f, 0f), new Vector3(.42f, Pivot - .05f, 0f), configure: settings =>
+            {
+                settings.FindProperty("_liftModel").enumValueIndex = (int)SkirtBoneSpring.LiftModel.LegPose;
+                settings.FindProperty("_legLiftFrom").floatValue = -80f;
+                settings.FindProperty("_legLiftFull").floatValue = 45f;
+                settings.FindProperty("_legLift").floatValue = 150f;
+                settings.FindProperty("_legLiftWidth").floatValue = width;
+            }))
+            {
+                rig.Settle();
+                float front = Vector3.Angle(rig.Hem(0) - rig.PivotOf(0), Vector3.down);
+                float beside = Vector3.Angle(rig.Hem(1) - rig.PivotOf(1), Vector3.down);
+                Require(front > 80f && front < 112f, $"a level thigh lifts its chain {front:0.0} degrees, not about 96 (width {width})");
+                Require(width > 0f ? beside < 25f : beside > 60f, $"the chain 10.6 cm beside the thigh lifts {beside:0.0} degrees at panel width {width}");
+                Require(Vector3.Distance(rig.Hem(Chains / 2), rig.RestHem(Chains / 2)) < 1e-3f, "the far chain left its rest under a raised thigh");
+            }
         Debug.Log("[SkirtBoneSpringSelfTest] Passed: chains rest with no limb near, swing just clear of a limb under " +
             "them without moving the far side or mapped bones, and are only pushed by a limb beside their pivot or " +
-            "hanging along them, never by one in front of them.");
+            "hanging along them, never by one in front of them. With hang, the low side of a leaning body hangs " +
+            "plumb up to the limit and the high side stays on the body. With LegPose's coat values a level thigh " +
+            "lifts its own chain about 96 degrees and, at a panel width, not the chain beside it.");
     }
 
     private static void Require(bool condition, string message)
@@ -87,11 +139,11 @@ public static class SkirtBoneSpringSelfTest
         private readonly Scene _scene;
         private readonly Mesh _mesh;
         private readonly Transform[][] _chains = new Transform[Chains][];
-        private readonly Vector3[] _restHem = new Vector3[Chains], _hemLocal = new Vector3[Chains];
+        private readonly Vector3[] _restHem = new Vector3[Chains], _hemLocal = new Vector3[Chains], _restHemFrame = new Vector3[Chains];
         private readonly SkirtBoneSpring _spring;
         public readonly Transform Root, Frame, LimbStart, LimbEnd;
 
-        public Rig(Vector3 limbStart, Vector3 limbEnd)
+        public Rig(Vector3 limbStart, Vector3 limbEnd, float hang = 0f, Action<SerializedObject> configure = null)
         {
             _scene = EditorSceneManager.NewPreviewScene();
             Root = new GameObject("Skirt spring rig").transform;
@@ -113,6 +165,7 @@ public static class SkirtBoneSpringSelfTest
                 // The spring extends the last bone by its parent's length; the hem rides that bone.
                 _restHem[c] = parent.position + Vector3.down * Segment;
                 _hemLocal[c] = parent.InverseTransformPoint(_restHem[c]);
+                _restHemFrame[c] = Frame.InverseTransformPoint(_restHem[c]);
             }
             var fabric = new GameObject("Fabric");
             fabric.transform.SetParent(Root, false);
@@ -146,6 +199,8 @@ public static class SkirtBoneSpringSelfTest
             settings.FindProperty("_liftModel").enumValueIndex = (int)SkirtBoneSpring.LiftModel.Clearance;
             settings.FindProperty("_fabricClearance").floatValue = 0f;
             settings.FindProperty("_liftReach").floatValue = .03f;
+            settings.FindProperty("_hang").floatValue = hang;
+            configure?.Invoke(settings);
             settings.ApplyModifiedPropertiesWithoutUndo();
         }
 
@@ -169,6 +224,14 @@ public static class SkirtBoneSpringSelfTest
         public Vector3 Hem(int c) => _chains[c][Segments - 1].TransformPoint(_hemLocal[c]);
 
         public Vector3 RestHem(int c) => _restHem[c];
+
+        /// <summary>Tips the frame toward chain 0 (+X), as a body leaning that way.</summary>
+        public void Lean(float degrees) => Frame.localRotation = Quaternion.AngleAxis(-degrees, Vector3.forward);
+
+        public Vector3 PivotOf(int c) => _chains[c][0].position;
+
+        /// <summary>Where the chain's hem is when it keeps its rest line in the leaning frame.</summary>
+        public Vector3 LeaningRestHem(int c) => Frame.TransformPoint(_restHemFrame[c]);
 
         public string[] MappedPose() => new[] { Frame, LimbStart, LimbEnd }
             .Select(t => $"{t.name} {t.localPosition:F6} {t.localRotation:F6}").ToArray();

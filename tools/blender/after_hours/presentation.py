@@ -1,7 +1,8 @@
 """After Hours in Unity: materials, lights, atmosphere and the fight-night billboard for sloparena.stage.art-apply.
 
 Nothing casts or receives shadows: the roof reads through neon edges and the moonlight.
-A lighting change needs no Blender run: see tools/blender/stagekit/presentation.py.
+The look lets the club's neon glow and keeps the city behind it quiet.
+A lighting or look change needs no Blender run: see tools/blender/stagekit/presentation.py.
 """
 from stagekit.presentation import CULL_BACK, CULL_OFF, LIT, NEON
 
@@ -37,7 +38,7 @@ PRESENTATION = {
                     "_Emission": 0, "_Wind": 0, "_Cull": CULL_BACK, "_ReceiveShadowsOff": 1},
          "colors": {"_ShadowTint": [0.55, 0.5, 0.75]},
          "keywords": {"_RECEIVE_SHADOWS_OFF": True}},
-        # Glow stays near 1.4 so neon keeps its hue under the match's ACES grade.
+        # Glow stays near 1.4 so neon keeps its hue under the match's bloom.
         {"slot": "AH_Night", **night("AfterHoursNight", 1.4, 1)},
         {"slot": "AH_Far", **night("AfterHoursFar", 1.6, 0.45)},
         {"slot": "AH_Sky", "asset": "AfterHoursSky", "shader": NEON, "baseMap": "AfterHoursAtlas.png", "baseColor": [1, 1, 1, 1],
@@ -46,15 +47,31 @@ PRESENTATION = {
     "shadows": {"cast": False, "receive": False},
     "lights": [
         {"name": "Moonlight", "type": "directional", "rotation": [52, 155, 0], "color": [0.66, 0.70, 1], "intensity": 0.3},
-        {"name": "DJ Violet", "type": "point", "position": [10.5, 4, 0], "color": [0.62, 0.38, 1], "intensity": 4, "range": 14},
-        {"name": "Bar Pink", "type": "point", "position": [-10.5, 4, 0], "color": [1, 0.38, 0.68], "intensity": 4, "range": 14},
-        {"name": "Dance Floor Glow", "type": "point", "position": [0, 3.5, 0], "color": [1, 0.45, 0.8], "intensity": 2.5, "range": 12},
+        # The club's own lights are strong enough to pool on the roof and bloom (owner pick 2026-11-10);
+        # the look's lampCap keeps them from bleaching a fighter.
+        {"name": "DJ Violet", "type": "point", "position": [10.5, 4, 0], "color": [0.62, 0.38, 1], "intensity": 8, "range": 14},
+        {"name": "Bar Pink", "type": "point", "position": [-10.5, 4, 0], "color": [1, 0.38, 0.68], "intensity": 8, "range": 14},
+        {"name": "Dance Floor Glow", "type": "point", "position": [0, 3.5, 0], "color": [1, 0.45, 0.8], "intensity": 5, "range": 12},
         {"name": "Neon Row Spill", "type": "point", "position": [0, 10, 30], "color": [1, 0.72, 0.48], "intensity": 3, "range": 45},
         {"name": "River Spill", "type": "point", "position": [0, 10, -30], "color": [0.45, 0.78, 1], "intensity": 2, "range": 45},
     ],
     # Neon night: violet ambient, magenta haze that swallows the far skyline.
     "atmosphere": {"background": [0.06, 0.045, 0.12], "ambientSky": [0.42, 0.36, 0.62], "ambientGround": [0.10, 0.08, 0.14],
                    "ambientIntensity": 1, "fog": True, "fogColor": [0.22, 0.10, 0.24], "fogStart": 30, "fogEnd": 650},
+    # Neon that glows, a skyline that stays behind the fight (owner pick 2026-11-10).
+    "look": {
+        "grade": {"tonemap": "neutral", "bloomThreshold": 0.85, "bloomIntensity": 1.6, "bloomScatter": 0.70, "contrast": 10, "saturation": 8,
+                  "splitShadows": [0.44, 0.44, 0.60], "splitHighlights": [0.58, 0.52, 0.48], "splitBalance": -10,
+                  "vignette": 0.24, "vignetteColor": [0.03, 0.02, 0.06]},
+        "farBlur": {"start": 58, "end": 150, "radius": 1.1},
+        "tints": {"City *": [0.50, 0.47, 0.58], "City Near": [0.68, 0.65, 0.74], "Sky": [0.8, 0.78, 0.86],
+                  "After Hours Fight Night Billboard": [0.68, 0.65, 0.74]},
+        # Bar pink from one side, river blue from the other.
+        "fighters": {"kickA": {"color": [1.0, 0.36, 0.82], "direction": [-1, 0.25, 0.1], "strength": 1.7},
+                     "kickB": {"color": [0.45, 0.62, 1.0], "direction": [1, 0.25, -0.1], "strength": 1.4},
+                     "kickPower": 2.6, "lift": 0.08, "lampCap": 1.6,
+                     "contactShadow": 0.5, "contactShadowColor": [0.03, 0.02, 0.07]},
+    },
     "posters": [{
         # The arena_tonight cell in textures.py: a 256 px screen at (1024,256) in the 2048 atlas,
         # with its authored two-texel UV inset. Only those two triangles get the poster face.

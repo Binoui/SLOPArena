@@ -34,6 +34,20 @@
 - [ ] Skin a long skirt or dress to spring bone chains (`BoneChainSpring`) with leg capsules,
       not Unity Cloth. Two Cloth attempts on Nyx's dress rested as a lampshade, collapsed
       between the legs and swung the hem 1.6 m on turns.
+- [ ] Skin every rigid costume part (armour plate, knee guard, pauldron, buckle) to one bone. A part
+      that must sit on a joint gets its own helper bone driven by `PartialFollowBones`, never a
+      blend of the joint's two bones: a blend of two rotations shrinks and tilts the part as the
+      joint bends. Sir Bonk's knee guards shrank to 58% in a crouch until 2026-11-11.
+- [ ] Delete body geometry hidden under clothes, and end tucked clothes just inside what covers
+      them. Skin under pants shows through at a bent knee, and pants run down inside a boot come
+      out through its shaft when the ankle bends.
+- [ ] Look at the skinned model in bent poses (arms down, a run stride, a deep crouch) before it
+      goes to Unity, and again on real clips with `tools/genra/unity_clip.py render`. Parts fitted in
+      the rest pose only were the cause of every defect above.
+- [ ] A coat that ends above the knees uses `SkirtBoneSpring` with `_hang`, so it falls away from
+      a leaning body instead of standing square to the hips, and LegPose's short-coat values so each
+      panel lies on its own raised thigh (Wibou's coat). Measure it on the bound clips with
+      `tools/blender/wibou_coat/coat_probe.eval.cs`; judging stills missed thighs through the panels.
 - [ ] Bind every required semantic animation ID to its exact intended imported clip.
 - [ ] Set **Import Materials** to None on animation-only FBX sources. Otherwise Unity resolves their embedded texture names against unrelated project textures, and the cook source hash differs between your Editor and the isolated release import.
 - [ ] Assign one unique deterministic pose-track ID to each semantic binding.

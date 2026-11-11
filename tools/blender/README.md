@@ -43,6 +43,8 @@ error, and a reused `--out` folder still holds the previous run's export, which 
 Character rigs follow the same rule: [manki_rig](manki_rig/README.md) rebuilds
 Manki's Unity rig from a Mixamo-rigged FBX.
 [wibou_coat](wibou_coat/README.md) fits, skins and binds Wibou's coat.
+`refit_check.py` proves that a re-exported character FBX kept its rest pose and vertices; run it
+after any script that edits a shipped rig (Sir Bonk's `refit_parts.py`, the coat's `refit_coat.py`).
 [bashie_rig](bashie_rig/README.md) makes Bashie's Mixamo rig Unity-ready.
 [salamander_rig](salamander_rig/README.md) dresses the salamander gunslinger's Tripo kit, fits his poncho and
 jeans and makes his Mixamo rig Unity-ready.

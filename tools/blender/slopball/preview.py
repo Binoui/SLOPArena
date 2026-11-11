@@ -4,7 +4,7 @@ The Arcade camera orbits the fighter at about 8 m, 15 degrees down with a 40 deg
 vertical FOV (the fighter starts at z = -6 facing the sender wall). Materials mimic the
 Unity shaders: NC_Night (StageNeon) is unlit vertex colour x atlas x LIGHT_SCALE plus
 glow, NC_Court (StageVertexLit) is lit by a stand-in key, NC_Beam is additive. These
-renders are agent review aids only; Unity captures with the match camera's ACES grade
+renders are agent review aids only; Unity captures with the match camera's grade
 and bloom remain the reference for exposure, colour and emission.
 """
 from __future__ import annotations

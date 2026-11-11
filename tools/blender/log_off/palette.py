@@ -6,7 +6,7 @@ colours are amber and cyan: keep large cyan and amber areas off the stump top.
 """
 
 # Cut stump top (stump-top texture)
-# Calibrated in the normal gameplay camera and ACES grade. Pale Eevee values wash
+# Calibrated in the normal gameplay camera. Pale Eevee values wash
 # out the rings and shelf bands there.
 EARLYWOOD = (0.70, 0.55, 0.37)
 LATEWOOD = (0.50, 0.33, 0.20)

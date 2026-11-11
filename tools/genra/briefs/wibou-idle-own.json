@@ -1,0 +1,281 @@
+{
+  "name": "wibou-idle-own",
+  "purpose": "idle",
+  "notes": "2026-11-10 round 2, after the owner rejected the first Unity takes (verdict and direction: tmp/wibou-locomotion/motion/round2-owner.md; measurements: tmp/wibou-locomotion/motion2/measure.md). Replaces the round-1 'Too cool' pose (wibou-idle-too-cool.json, kept for reproduction) with his own pose; same calm loop and single brim gesture. Its tick 0 becomes the jump's entry (references/newidle2.usda).",
+  "rigpack": "artifacts/genra-rigpacks/wibou-unity-loco",
+  "character": "Wibou (45 joints in the wibou-unity-loco pack, rebuilt from the current Wibou.prefab on 2026-11-10: a Humanoid body with Mixamo names, index fingers and thumbs; the open coat's skirt on four two-joint chains under Hips (Coat_FL_1/2, Coat_FR_1/2, Coat_BL_1/2, Coat_BR_1/2) that BoneChainSpring drives in the game, so leave them at their bind rotation; a 1.52 m katana fixed to the right hand as joint Weapon0, bladeHilt at the guard and bladeEnd at the tip. The black fedora is part of the body mesh and rides the Head joint)",
+  "description": "Wibou's idle: the clip he plays whenever he stands in a fight, between moves, while waiting and after landing.\n\nWho he is. Wibou is an ironic mall-ninja weeaboo: a cringe Neo from The Matrix with a katana, a black fedora, a dark open coat, black trousers and white sneakers (images 1-2, the real character in the game). He takes himself completely seriously, which is the joke, so play every pose sincerely, never winking. In the fight he is a quick, light spacing duelist who wins at the edge of his blade's reach and then chases opponents into the air. He holds the katana in his right hand. His arms are short (upper arm 0.22 m, forearm 0.24 m), the katana is long (1.52 m of blade from a guard that sits 0.22 m from the wrist joint), and his legs are long (thigh 0.47 m, shin 0.41 m).\n\nHow the game plays it. The idle loops: ticks 0-360 are 6 s, wrapping from 360 back to 0. The run, every ground move and the jump start from it (0.05-0.1 s crossfades), and every landing settles into it over 0.1-0.15 s. The jump's tick 0 will be this clip's tick 0. The match camera sits straight behind and a little above him.\n\nRound 1 (image 3, top row the match camera, then three-quarter rear, then side) was fine as motion but held the vendor idle's tick 0 within 2 cm (image 1), and the owner said: \"idle: fine, maybe a bit too close to original, dont want artist to complain\". That constraint is gone. This idle must read at a glance, from the match camera, as his own pose: the stance, the weight, the sword carry and the blade angle all change visibly.\n\nThe pose, his own, too cool to try:\n- Stance: narrower and more square to the camera than the vendor's wide fencing split. The hips turn only 35-55 degrees off the facing (the vendor's turn 77). Feet 0.3-0.55 m apart front to back (the vendor's 0.9 m) and 0.25-0.45 m apart side to side, both soles flat on the floor, the left foot in front with its toe turned out a little.\n- Weight: on the right (back) leg, the hips shifted 3-8 cm over the right foot, that knee nearly straight (bent 5-15 degrees); the left leg relaxed, knee soft (bent 12-25 degrees), heel light.\n- Torso and head: upright, the chest a touch back (3-6 degrees) and turned 15-30 degrees further toward the facing than the hips, so the shoulders read wider from behind. The head turns to look along the facing (at the opponent), chin up a few degrees.\n- Left hand: a loose fist resting on the left hip, the elbow out to the side and a little back (the elbow at least 0.28 m left of the hips' centre; the fist sits on the top of the pelvis at his left side, 13-26 cm from the hips joint), so the match camera sees a clear triangle of daylight between the arm and the body.\n- Sword carry: the katana held low and loose in the right hand, the arm hanging almost straight (elbow bent 10-25 degrees), the fist by the right thigh at hip height (0.18-0.35 m right of the hips' centre, from 12 cm below to 4 cm above the hips). The blade points back and out to the right and slants down 14-26 degrees (the vendor's is nearly level, 5 degrees, and points more sideways): right part of its direction 0.55-0.8, the tip 0.6-1.0 m behind the hilt and at least 0.3 m above the floor, clear of the right leg by at least 0.25 m.\n\nKeep it calm. An idle is a bit of life while the player presses nothing, not a performance. Measured on the vendor idle: body joints turn 8.7 degrees per second on average and the hands move 0.08 body lengths a second against the hips. Stay at or below that outside the one gesture.\n\nThe loop:\n- One slow breath per loop: inhale over about ticks 0-150, the chest rising 1.5-4 cm and the shoulders lifting a little, then a long exhale. The hips drift 1-3 cm with the weight, never more.\n- The blade tip sinks and lifts 3-8 cm, 3-6 ticks after the chest, as the wrist lets it hang.\n- One slow gesture, ticks about 180-265: the left fist leaves the hip, the hand opens on the way up, thumb and forefinger find the front of the hat brim at about tick 220 and tip it down a few degrees, and the hand drifts back down and closes onto the hip again by about tick 265. The head dips into the touch and comes back 6-10 ticks after the hand leaves. Slow and sure, never a flick.\n- Offset everything so nothing peaks on the same tick: chest first, shoulders and head later, the blade last.\n- The feet stay planted the whole time. No steps, no spins, no attack.\n\nSecondary motion, with numbers (all inside the calm budget):\n- Coat: the hips drift 1-3 cm and turn 1-3 degrees with the weight over the loop; that swings the coat springs.\n- Hat: the head trails the chest by 4-8 ticks and nods or tilts 1-3 degrees with the breath; in the gesture the brim dips 4-8 degrees.\n- Fingers: the resting fist loosens and tightens 5-10 degrees with the breath, 4-8 ticks after the chest; the sword fingers stay closed on the grip.\n- Sword: after the gesture the tip settles with one small overshoot (under 1 cm), never a wobble.\n\nFlow, not pose-to-pose. The hips lead, the chest trails them 1-3 ticks, the shoulders, head and arms trail more, the hands trail their forearms 1-3 ticks, the sword hand trails its forearm 2-4 ticks so the blade settles after the body (Clip.overlap()), and the fingers trail the hands. Holds are moving holds, never a repeated pose. Arcs, not straight lines, for hands and the blade tip. Cartoony and readable, not mocap. Treat every flow, life and chatter warning in `./genra check` as a failure to fix in this take, not as advisory. The coat chains are in the pack, but a spring drives them in the game: leave them at their bind rotation, and give the hips and spine real motion for the springs to follow. Keep each hand in line with its forearm (wrists under 35 degrees wherever the brief allows). The blade never passes through the head, the hat, the body or the legs, and it is never pointed straight at the match camera behind him: it always keeps a clear sideways part so its length reads.",
+  "references": {
+    "idle": "references/idle.usda",
+    "run": "references/run.usda",
+    "jump": "references/jump.usda",
+    "fall": "references/fall.usda"
+  },
+  "entry": {
+    "reference": "idle",
+    "tick": 0,
+    "match": false
+  },
+  "clock": {
+    "duration_ticks": 360
+  },
+  "loop": {
+    "from_tick": 0
+  },
+  "timing": {
+    "fixed": [
+      "it loops; the game crossfades into it from every move and landing and out of it into the run, the jump and every attack",
+      "the jump starts on its tick 0"
+    ],
+    "adjustable": [
+      "the loop length (360 ticks, 6 s)",
+      "when the brim tip falls (ticks 180-265 proposed)"
+    ]
+  },
+  "planted": [
+    "LeftFoot",
+    "LeftToeBase",
+    "RightFoot",
+    "RightToeBase"
+  ],
+  "grounding": "reference-sole",
+  "snap_degrees_per_tick": 12,
+  "images": [
+    "../../../tmp/wibou-locomotion/img/real-idle.png",
+    "../../../tmp/wibou-locomotion/img/real-run.png",
+    "../../../tmp/wibou-locomotion/motion2/img/rejected-idle.jpg"
+  ],
+  "image_notes": "1: today's vendor idle on the real character with the coat, match camera then three-quarter view, ticks 0-40 (the clip being replaced; it shows the model, the coat and the katana). 2: today's vendor run, same views. Neither is a pose to copy: the owner does not want the artist's work reproduced. 3: the round-1 idle in Unity (rows: match camera, three-quarter rear, side), which the owner found too close to image 1.",
+  "review_ticks": [
+    0,
+    90,
+    180,
+    220,
+    265,
+    300,
+    360
+  ],
+  "keys": [
+    0,
+    150,
+    180,
+    220,
+    265,
+    360
+  ],
+  "targets": [
+    {
+      "name": "hips turned 35-55 degrees off the facing: front part of the hip line",
+      "kind": "direction",
+      "a": "RightUpLeg",
+      "b": "LeftUpLeg",
+      "axis": "front",
+      "tick": 0,
+      "min": -0.82,
+      "max": -0.57
+    },
+    {
+      "name": "feet 0.3-0.55 m apart front to back (m)",
+      "kind": "ahead",
+      "a": "LeftFoot",
+      "b": "RightFoot",
+      "tick": 0,
+      "min": 0.3,
+      "max": 0.55
+    },
+    {
+      "name": "left foot left of the hips (m)",
+      "kind": "char",
+      "a": "LeftFoot",
+      "axis": "right",
+      "tick": 0,
+      "max": -0.1
+    },
+    {
+      "name": "right foot right of the hips (m)",
+      "kind": "char",
+      "a": "RightFoot",
+      "axis": "right",
+      "tick": 0,
+      "min": 0.1
+    },
+    {
+      "name": "weight over the right foot: hips shifted right (m)",
+      "kind": "char",
+      "a": "Hips",
+      "axis": "right",
+      "tick": 0,
+      "min": 0.03,
+      "max": 0.1
+    },
+    {
+      "name": "left fist on the hip: near the pelvis (m)",
+      "kind": "distance",
+      "a": "LeftHand",
+      "b": "Hips",
+      "tick": 0,
+      "min": 0.13,
+      "max": 0.26
+    },
+    {
+      "name": "left fist on the hip: at the top of the pelvis (m)",
+      "kind": "below",
+      "a": "Hips",
+      "b": "LeftHand",
+      "tick": 0,
+      "min": -0.04,
+      "max": 0.14
+    },
+    {
+      "name": "left fist on his left side (m)",
+      "kind": "char",
+      "a": "LeftHand",
+      "axis": "right",
+      "tick": 0,
+      "max": -0.12
+    },
+    {
+      "name": "left elbow out to the side (m)",
+      "kind": "char",
+      "a": "LeftForeArm",
+      "axis": "right",
+      "tick": 0,
+      "max": -0.28
+    },
+    {
+      "name": "sword fist by the right thigh: right of the hips (m)",
+      "kind": "char",
+      "a": "RightHand",
+      "axis": "right",
+      "tick": 0,
+      "min": 0.18,
+      "max": 0.35
+    },
+    {
+      "name": "sword fist at hip height (m)",
+      "kind": "below",
+      "a": "RightHand",
+      "b": "Hips",
+      "tick": 0,
+      "min": -0.04,
+      "max": 0.12
+    },
+    {
+      "name": "sword arm almost straight: elbow bent 10-25 degrees",
+      "kind": "bend",
+      "a": "RightArm",
+      "b": "RightForeArm",
+      "c": "RightHand",
+      "tick": 0,
+      "min": 10,
+      "max": 25
+    },
+    {
+      "name": "blade slants down 14-26 degrees: up part of its direction",
+      "kind": "direction",
+      "a": "bladeEnd",
+      "b": "bladeHilt",
+      "axis": "up",
+      "tick": 0,
+      "min": -0.44,
+      "max": -0.24
+    },
+    {
+      "name": "blade out to the right: right part of its direction",
+      "kind": "direction",
+      "a": "bladeEnd",
+      "b": "bladeHilt",
+      "axis": "right",
+      "tick": 0,
+      "min": 0.55,
+      "max": 0.8
+    },
+    {
+      "name": "blade points back: tip behind the hilt (m)",
+      "kind": "ahead",
+      "a": "bladeEnd",
+      "b": "bladeHilt",
+      "tick": 0,
+      "min": -1.0,
+      "max": -0.6
+    },
+    {
+      "name": "tip at least 0.3 m above the floor (m)",
+      "kind": "char",
+      "a": "bladeEnd",
+      "axis": "up",
+      "each_tick": [
+        0,
+        360
+      ],
+      "min": -0.72
+    },
+    {
+      "name": "tip clear of the right knee (m)",
+      "kind": "distance",
+      "a": "bladeEnd",
+      "b": "RightLeg",
+      "tick": 0,
+      "min": 0.6
+    },
+    {
+      "name": "chest rises with the breath (m)",
+      "kind": "range",
+      "a": "Spine2",
+      "axis": "up",
+      "window": [
+        0,
+        360
+      ],
+      "min": 0.015,
+      "max": 0.05
+    },
+    {
+      "name": "hips stay calm (m)",
+      "kind": "range",
+      "a": "Hips",
+      "axis": "up",
+      "window": [
+        0,
+        360
+      ],
+      "min": 0.005,
+      "max": 0.035
+    },
+    {
+      "name": "brim touch: left hand at the head at tick 220 (m)",
+      "kind": "distance",
+      "a": "LeftHand",
+      "b": "Head",
+      "tick": 220,
+      "max": 0.22
+    },
+    {
+      "name": "fist back on the hip by tick 270 (m)",
+      "kind": "distance",
+      "a": "LeftHand",
+      "b": "Hips",
+      "tick": 270,
+      "min": 0.13,
+      "max": 0.26
+    },
+    {
+      "name": "blade tip drifts with the breath (m)",
+      "kind": "range",
+      "a": "bladeEnd",
+      "axis": "up",
+      "window": [
+        0,
+        360
+      ],
+      "min": 0.03,
+      "max": 0.1
+    }
+  ],
+  "views": [
+    "profile",
+    "front",
+    "three-quarter-right",
+    "gameplay"
+  ]
+}

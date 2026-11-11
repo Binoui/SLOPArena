@@ -66,7 +66,7 @@ def check_clip(clip: Clip, spec: dict | None = None, skin=None, *, mode: str = '
         risks = check_clip(clip, s | {'stage': 'full'}, mode='fast')
         poses = s | {'stage': 'full', 'pose_ticks': ticks, 'motion': False,
                      'clearance_ticks': ticks, 'face': False, 'life': False, 'flow': False,
-                     'targets': [t for t in s.get('targets', []) if t.get('tick') in ticks]}
+                     'targets': [t for t in s.get('targets', []) if t.get('tick') in ticks or 'each_tick' in t]}
         report = check_clip(clip, poses, skin, mode=mode)
         report.update(stage='keys', keyTicks=ticks, transitionRisks=risks['failures'])
         report['warnings'] += half_turns(clip, ticks)
@@ -276,7 +276,10 @@ def check_clip(clip: Clip, spec: dict | None = None, skin=None, *, mode: str = '
                 if pair not in closest or d < closest[pair][0]:
                     closest[pair] = (d, tick)
         metrics['closestMetres'] = {k: [round(v[0], 4), v[1]] for k, v in closest.items()}
-        start = {k: v for k, v in skin.clearances(world[0]).items()}
+        # Only contacts inherited from a matched entry pose are excused. An authored tick 0 (a free entry, such as a
+        # loop) is checked like any other tick: Wibou's fall keys hid the blade on the right shin in the shared air
+        # pose, which the jump ending on it then reported (2026-11-10).
+        start = skin.clearances(entry.world()) if entry is not None else {}
         for pair, (d, tick) in closest.items():
             if d < s['clearance_metres'] and start.get(pair, 1) >= s['clearance_metres']:
                 warn('clearance', f'{pair} within {d * 100:.1f} cm at tick {tick} (touching or intersecting)', pair=pair, tick=tick)
@@ -421,12 +424,23 @@ def check_clip(clip: Clip, spec: dict | None = None, skin=None, *, mode: str = '
 
     # Brief-specific numeric targets.
     for t in s.get('targets', []):
-        value = measure(clip, t)
-        metrics[t['name']] = value
         lo, hi = t.get('min'), t.get('max')
+        at = ''
+        if 'each_tick' in t:
+            first, last = t['each_tick']
+            ticks = [int(k) for k in checked if first <= k <= last]
+            if not ticks:
+                continue
+            values = np.array([measure(clip, {**t, 'tick': k}) for k in ticks])
+            miss = np.maximum(lo - values if lo is not None else -np.inf, values - hi if hi is not None else -np.inf)
+            worst = int(np.argmax(miss))
+            value, at = float(values[worst]), f' at tick {ticks[worst]}'
+        else:
+            value = measure(clip, t)
+        metrics[t['name']] = value
         if (lo is not None and value < lo) or (hi is not None and value > hi):
             bound = ' and '.join(x for x in [f'>= {lo}' if lo is not None else '', f'<= {hi}' if hi is not None else ''] if x)
-            fail('target', f"{t['name']} = {value:.3f}; wanted {bound}", target=t['name'])
+            fail('target', f"{t['name']} = {value:.3f}{at}; wanted {bound}", target=t['name'])
 
     return {'mode': mode, 'skipped': skipped, 'passed': not failures,
             'failures': failures, 'warnings': warnings, 'metrics': metrics}
@@ -632,17 +646,59 @@ def flow_checks(clip: Clip, warn, metrics: dict, spec: dict) -> None:
                      'twice) and let the settle give', window=list(window))
 
 
+def _headings(clip: Clip, b, a) -> np.ndarray:
+    """Heading of the horizontal line b -> a at every tick, degrees about up (char frame, 0 = the right axis)."""
+    d = clip.positions(a) - clip.positions(b)
+    return np.degrees(np.arctan2(d[:, 1], d[:, 0]))
+
+
+_SKINS: dict = {}
+
+
+def _skin(rig):
+    """One Skin per rig for the `gap` target (building it reads the meshes and their weights)."""
+    if id(rig) not in _SKINS:
+        from .skin import Skin
+        _SKINS[id(rig)] = (rig, Skin(rig))
+    return _SKINS[id(rig)][1]
+
+
 def measure(clip: Clip, t: dict) -> float:
     """Evaluate one target. Kinds (char-frame metres, ticks):
     distance: |a - b| at tick           ahead: a ahead of b (front axis) at tick
     below: b above a (up axis) at tick  char: component ('right'|'front'|'up') of a at tick
+    direction: component ('right'|'front'|'up') of the unit direction from b to a at tick
+    bend: degrees the chain a-b-c bends at b at tick (0 = straight), e.g. LeftArm, LeftForeArm, LeftHand
+    palm: component ('right'|'front'|'up') of the `side` ('Left'|'Right') palm normal at tick: the way the palm
+      faces, e.g. left palm 'right' >= -0.4 keeps an open hand from facing out (Wibou's rejected "waving hand")
+    each_tick: [first, last] instead of tick holds a tick kind on every checked tick in the window (the key ticks
+      at the keys stage); the reported value is the worst tick's
     fastest_drop: tick ending a's fastest downward step within [first, last]
     range: how far a travels along an axis ('right'|'front'|'up') within window [first, last]
+    yaw_range: degrees the heading of the line b -> a (seen from above) turns within window [first, last], e.g.
+      LeftArm -> RightArm for the shoulders; `minus: [c, d]` subtracts the heading of c -> d first, so
+      shoulders minus hips (LeftUpLeg -> RightUpLeg) is a run's counter-rotation
+    swing: the arc the direction b -> a sweeps within window [first, last]: the largest angle between two of its
+      ticks, e.g. RightArm -> RightForeArm for an arm pump or bladeHilt -> bladeEnd for a blade's swing
+    yaw_lag: ticks the heading of b -> a trails the heading of the `lead` line [c, d] within window [first, last]
+      (circular, for a loop; + = late), e.g. the shoulders trailing the pelvis with `opposite: true` because they
+      counter-rotate; best match of the two mean-removed curves
+    side_dip: degrees the line b -> a dips below level seen from the side (in the front/up plane) at tick: 0 = level
+      pointing back, 90 = straight down, past 90 = its far end ahead of b, below 0 = above level; a run's trailing
+      blade (bladeHilt -> bladeEnd) hanging steeply past the feet reads as 40 or more (Wibou's round-2 run)
+    axis: component of joint a's `local` direction (its own axes, normalised) along `toward` ('right'|'front'|'up' or
+      a char-frame vector) at tick, `abs: true` for its size: e.g. the blade's flat normal against the match camera
+      ([0, -0.94, 0.34]), so the edge never turns toward it (Wibou's round-2 take B: 0.12)
     arc: how many defender positions a weapon normal's capsule touches over window [first, last] (hitarc.py: the
       report's Arc grid, behind to ahead and 0-3 m up), with `radius` (move data), `report` (a HitReliabilityReport
       JSON with the defenders' volumes, repo-relative), `defender` ('FightGuy' or 'Manki'), `side` ('all', 'ahead'
       or 'behind'), `calibration` (hitarc.CALIBRATION, e.g. 'bonk') and `joints` (the hitbox line, default the weapon's
       bladeHilt and bladeEnd; a kick's foot is ['RightFoot', 'RightToeBase'])
+    gap: the smallest skin distance in metres between body regions `a` and `b` (each a region name or a list of them,
+      genra.skin.region_of: 'Torso' holds the hips, spine, collarbones and every helper chain under them, such as a
+      coat's skirt at its bind rotation; 'LeftForeArm', 'LeftHand', 'Weapon', ...) at tick: e.g. a run's off forearm
+      and hand at least 0.05 off the torso and coat (Wibou's round-3 run: 2-6 mm on every tick, "his left arm is
+      still clipping")
     """
     kind, tick = t['kind'], t.get('tick')
     a = t.get('a')
@@ -661,6 +717,47 @@ def measure(clip: Clip, t: dict) -> float:
         z = clip.positions(a)[:, 2]
         step = np.diff(z)[first:last]
         return float(first + int(np.argmin(step)) + 1)
+    if kind == 'yaw_range':
+        first, last = t.get('window', [0, len(clip) - 1])
+        heading = _headings(clip, b, a)[first:last + 1]
+        if t.get('minus'):
+            heading = heading - _headings(clip, *t['minus'])[first:last + 1]
+        heading = np.degrees(np.unwrap(np.radians(heading)))
+        return float(np.ptp(heading))
+    if kind == 'swing':
+        first, last = t.get('window', [0, len(clip) - 1])
+        d = (clip.positions(a) - clip.positions(b))[first:last + 1]
+        d = d / np.linalg.norm(d, axis=1)[:, None]
+        return float(np.degrees(np.arccos(np.clip(d @ d.T, -1, 1).min())))
+    if kind == 'palm':
+        return float(clip.pose(tick).palm_normal(t['side'])[{'right': 0, 'front': 1, 'up': 2}[t['axis']]])
+    if kind == 'yaw_lag':
+        first, last = t.get('window', [0, len(clip) - 1])
+        follow = np.unwrap(np.radians(_headings(clip, b, a)[first:last + 1]))
+        lead = np.unwrap(np.radians(_headings(clip, *t['lead'])[first:last + 1])) * (-1 if t.get('opposite') else 1)
+        follow, lead = follow - follow.mean(), lead - lead.mean()
+        n = len(follow)
+        return float(max(range(-(n // 2), n - n // 2), key=lambda k: float(lead @ np.roll(follow, -k))))
+    if kind == 'gap':
+        from scipy.spatial import cKDTree
+        regions = _skin(clip.rig).regions(clip.world()[tick])
+        sets = []
+        for side in (a, b):
+            names = [side] if isinstance(side, str) else list(side)
+            unknown = [r for r in names if r not in _skin(clip.rig).region_names]
+            if unknown:
+                raise ValueError(f'gap target: unknown region(s) {unknown}; regions: {_skin(clip.rig).region_names}')
+            present = [regions[r] for r in names if r in regions]
+            sets.append(np.concatenate(present) if present else np.empty((0, 3)))
+        if not len(sets[0]) or not len(sets[1]):
+            return float('inf')
+        return float(cKDTree(sets[1]).query(sets[0])[0].min())
+    if kind == 'axis':
+        d = clip.pose(tick).axis(a, t['local'])
+        toward = t['toward']
+        toward = np.eye(3)[{'right': 0, 'front': 1, 'up': 2}[toward]] if isinstance(toward, str) else np.asarray(toward, float)
+        value = float(d @ toward / np.linalg.norm(d) / np.linalg.norm(toward))
+        return abs(value) if t.get('abs') else value
     pa = clip.positions(a)[tick]
     pb = clip.positions(b)[tick] if b else None
     if kind == 'distance':
@@ -671,6 +768,13 @@ def measure(clip: Clip, t: dict) -> float:
         return float(pb[2] - pa[2])
     if kind == 'char':
         return float(pa[{'right': 0, 'front': 1, 'up': 2}[t['axis']]])
+    if kind == 'bend':
+        u, v = pb - pa, clip.positions(t['c'])[tick] - pb
+        return float(np.degrees(np.arccos(np.clip(u @ v / np.linalg.norm(u) / np.linalg.norm(v), -1, 1))))
+    if kind == 'direction':
+        return float((pa - pb)[{'right': 0, 'front': 1, 'up': 2}[t['axis']]] / np.linalg.norm(pa - pb))
+    if kind == 'side_dip':
+        return float(np.degrees(np.arctan2(pb[2] - pa[2], pb[1] - pa[1])))
     raise ValueError(f'Unknown target kind {kind}')
 
 

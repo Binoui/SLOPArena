@@ -111,6 +111,40 @@ Then, through the gateway (`eval_file`, absolute paths), in this order:
    Assets/CharacterPackages/bonk/Presentation/SirBonkV2Rig.prefab --weapon-config
    Assets/CharacterPackages/bonk/BonkWeaponAttachConfig.asset`.
 
+### Refit: rigid parts on helper bones (2026-11-11)
+
+`build_rig.py` skinned each rigid part with one fixed blend of two bones (knee guards on thigh and shin, the colander
+on upper arm and forearm, the pot lid 85% on the upper arm). A blend of two rotations is not a rotation, so in game the
+knee guards shrank to 58-70% in a bent knee and floated off it, the colander shrank to 77%, and the lids slid onto the
+biceps with the arms down. The body's thighs also showed through the pants at a bent knee, and the pants, which ran
+down to the ankle on the shin bone, came out through the back of the boot shafts whenever an ankle bent.
+
+`v2/refit_parts.py` fixes the shipped FBX (the kit and the Mixamo rig it was built from are gone):
+
+```bash
+B="blender -b --factory-startup --python-exit-code 1"
+$B --python v2/refit_parts.py -- client/Unity/Assets/Art/Characters/bonk/Models/sir_bonk_v2.fbx <refit_dir>
+$B --python ../refit_check.py -- client/Unity/Assets/Art/Characters/bonk/Models/sir_bonk_v2.fbx <refit_dir>/SirBonk.fbx
+# then, through the gateway, with Src and Backup set in the file (back up the live FBX first):
+#   eval_file v2_refit_import.eval.cs ; sloparena.character.verify --target bonk
+```
+
+- **Helper bones:** `KneeGuard_Left/Right` (50% of the knee), `ElbowCap_Right` (50% of the elbow) and
+  `Pauldron_Left/Right` (30% of the upper arm). Each is a sibling of its driver with the driver's rest frame, and
+  carries its part alone. `PartialFollowBones` on the rig prefab turns them every frame; without it a helper stays
+  rigid on its parent. `Pauldron_Left` has no skin: Q's shoulder lid attaches to it in `BonkWeaponAttachConfig`
+  (it was on `mixamorig:LeftArm`, with the same offsets).
+- **Hidden body:** the two thigh-and-knee skin islands under the pants are deleted, and the pants end 4 cm inside
+  the boots. Boot cuffs and the tucked pants carry no thigh weight.
+- **What must not change:** `refit_check.py` fails unless every existing bone keeps its rest matrix and every
+  remaining vertex its position; `v2_refit_import.eval.cs` repeats that in Unity (rest transforms, bind poses, human
+  scale) and puts the old FBX back otherwise. The FBX round trip moves baked poses by at most 1.6 micrometres, which
+  still changes `poses.bin`'s bytes and the package hash.
+- **Offline renders:** `tools/genra/unity/render_clip.cs.template` calls `PartialFollowBones.Step()` after each pose.
+  The pose bake and the Ability Lab leave the helpers at rest.
+- **Rule for the next kit:** a rigid part gets one bone, or one helper like these. Never a blend across a joint
+  that bends far. Look at every build in bent poses before it goes to Unity.
+
 What the kit needed:
 - **Glitches and caps:** Tripo added an extra head and a long grey stick. It also capped every tube end: the wraps
   are closed solids, and the pants and boot shafts are capped. `assemble.py` cuts the caps.

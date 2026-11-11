@@ -107,6 +107,7 @@ GameObject:
   m_Component:
   - component: {fileID: 115877909249870278}
   - component: {fileID: 9133690327792935280}
+  - component: {fileID: 5927650767925373519}
   m_Layer: 0
   m_Name: training
   m_TagString: Untagged
@@ -151,6 +152,80 @@ MonoBehaviour:
   _fogColor: {r: 0.36, g: 0.4, b: 0.44, a: 1}
   _fogStart: 45
   _fogEnd: 160
+--- !u!114 &5927650767925373519
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6282954799285840631}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a1052d1f8041ddbb5b2844f2087e85d0, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  _settings:
+    Grade:
+      NeutralTonemap: 0
+      BloomThreshold: 0.95
+      BloomIntensity: 0.5
+      BloomScatter: 0.6
+      Contrast: 8
+      Saturation: 6
+      Filter: {r: 1, g: 1, b: 1, a: 1}
+      SplitToning: 0
+      SplitShadows: {r: 0.5, g: 0.5, b: 0.5, a: 1}
+      SplitHighlights: {r: 0.5, g: 0.5, b: 0.5, a: 1}
+      SplitBalance: 0
+      Vignette: 0.14
+      VignetteColor: {r: 0.03, g: 0.03, b: 0.05, a: 1}
+    FarBlur:
+      Enabled: 1
+      Start: 45
+      End: 130
+      Radius: 0.8
+    Tints:
+    - Objects: Test Hall
+      Color: {r: 0.86, g: 0.88, b: 0.92, a: 1}
+    - Objects: Control Room
+      Color: {r: 0.86, g: 0.88, b: 0.92, a: 1}
+    - Objects: Dummy Mezzanine
+      Color: {r: 0.86, g: 0.88, b: 0.92, a: 1}
+    - Objects: Dummy Parts Rack
+      Color: {r: 0.86, g: 0.88, b: 0.92, a: 1}
+    - Objects: Roller Door
+      Color: {r: 0.86, g: 0.88, b: 0.92, a: 1}
+    - Objects: Crash Sled
+      Color: {r: 0.86, g: 0.88, b: 0.92, a: 1}
+    - Objects: East Service Apron
+      Color: {r: 0.86, g: 0.88, b: 0.92, a: 1}
+    - Objects: High Speed Camera
+      Color: {r: 0.86, g: 0.88, b: 0.92, a: 1}
+    Pools: []
+    Shafts: []
+    Dust:
+      Count: 0
+      Center: {x: 0, y: 7, z: 0}
+      Size: {x: 16, y: 11, z: 16}
+      Color: {r: 1, g: 0.92, b: 0.75, a: 0.7}
+      SizeMin: 0.04
+      SizeMax: 0.09
+    Fighters:
+      KicksFromKeyLight: 1
+      KickA: {r: 1, g: 0.93, b: 0.78, a: 1}
+      KickADirection: {x: -0.6, y: 0.5, z: -0.3}
+      KickAStrength: 1.2
+      KickB: {r: 0.62, g: 0.8, b: 1, a: 1}
+      KickBDirection: {x: 0.7, y: 0.3, z: 0.4}
+      KickBStrength: 0.9
+      KickPower: 2.6
+      Lift: 0.04
+      LampCap: 0
+      Ink: 1.6
+      InkColor: {r: 0.09, g: 0.094, b: 0.078, a: 1}
+      ContactShadow: 0.3
+      ContactShadowColor: {r: 0.05, g: 0.05, b: 0.08, a: 1}
+      ContactShadowSize: 1.5
 --- !u!1 &6355129335119123394
 GameObject:
   m_ObjectHideFlags: 0

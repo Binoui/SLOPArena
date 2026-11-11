@@ -73,6 +73,8 @@ namespace SlopArena.EditorTools
             {
                 OnMatchStart();
                 gameObject.AddComponent<MatchVisualStyle>().Apply();
+                // Like the fighters' own hit flash below: a review shows the full effect.
+                if (TryGetComponent<StageLookLights>(out var lookLights)) lookLights.IgnoreReducedFlashing = true;
                 StartCoroutine(CaptureFrames());
             }
             catch (Exception error)

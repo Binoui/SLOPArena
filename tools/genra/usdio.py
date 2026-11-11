@@ -9,17 +9,18 @@ from pxr import Gf, Usd, UsdSkel, Vt
 from .clip import Clip
 
 
-def write_usd(clip: Clip, out_path) -> Path:
-    """Copy the rig's USD next to `out_path` and replace its skeleton animation with `clip`.
+def write_usd(clip: Clip, out_path, template=None) -> Path:
+    """Copy the rig's USD (or `template`, a skeleton-only reference of the same rig) to `out_path` and replace its
+    skeleton animation with `clip`.
 
-    A sibling `textures/` folder is copied too, because the materials use relative paths.
+    With the rig's USD, a sibling `textures/` folder is copied too, because the materials use relative paths.
     """
     rig = clip.rig
     out = Path(out_path)
     out.parent.mkdir(parents=True, exist_ok=True)
-    shutil.copyfile(rig.path, out)
+    shutil.copyfile(template or rig.path, out)
     textures = rig.path.parent / 'textures'
-    if textures.is_dir() and not (out.parent / 'textures').exists():
+    if template is None and textures.is_dir() and not (out.parent / 'textures').exists():
         shutil.copytree(textures, out.parent / 'textures')
     stage = Usd.Stage.Open(str(out))
     skel = UsdSkel.Skeleton(stage.GetPrimAtPath(rig.skeleton.GetPrim().GetPath()))

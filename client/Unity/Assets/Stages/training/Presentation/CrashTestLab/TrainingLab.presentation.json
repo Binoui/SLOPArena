@@ -409,5 +409,70 @@
    ],
    "fov": 84
   }
- ]
+ ],
+ "look": {
+  "grade": {
+   "bloomThreshold": 0.95,
+   "bloomIntensity": 0.5,
+   "bloomScatter": 0.6,
+   "contrast": 8,
+   "saturation": 6,
+   "vignette": 0.14,
+   "vignetteColor": [
+    0.03,
+    0.03,
+    0.05
+   ]
+  },
+  "farBlur": {
+   "start": 45,
+   "end": 130,
+   "radius": 0.8
+  },
+  "tints": {
+   "Test Hall": [
+    0.86,
+    0.88,
+    0.92
+   ],
+   "Control Room": [
+    0.86,
+    0.88,
+    0.92
+   ],
+   "Dummy Mezzanine": [
+    0.86,
+    0.88,
+    0.92
+   ],
+   "Dummy Parts Rack": [
+    0.86,
+    0.88,
+    0.92
+   ],
+   "Roller Door": [
+    0.86,
+    0.88,
+    0.92
+   ],
+   "Crash Sled": [
+    0.86,
+    0.88,
+    0.92
+   ],
+   "East Service Apron": [
+    0.86,
+    0.88,
+    0.92
+   ],
+   "High Speed Camera": [
+    0.86,
+    0.88,
+    0.92
+   ]
+  },
+  "fighters": {
+   "lift": 0.04
+  }
+ }
 }

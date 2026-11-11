@@ -247,7 +247,7 @@
     0.92,
     0.8
    ],
-   "intensity": 1.05,
+   "intensity": 0.79,
    "shadows": "soft",
    "shadowStrength": 0.62
   },
@@ -264,7 +264,7 @@
     0.86,
     0.66
    ],
-   "intensity": 28,
+   "intensity": 16.8,
    "range": 26
   },
   {
@@ -307,14 +307,14 @@
    0.016
   ],
   "ambientSky": [
-   0.36,
-   0.3,
-   0.26
+   0.324,
+   0.27,
+   0.234
   ],
   "ambientGround": [
-   0.1,
-   0.08,
-   0.07
+   0.09,
+   0.072,
+   0.063
   ],
   "ambientIntensity": 1,
   "fog": true,
@@ -325,6 +325,228 @@
   ],
   "fogStart": 24,
   "fogEnd": 130
+ },
+ "look": {
+  "grade": {
+   "tonemap": "neutral",
+   "bloomThreshold": 0.9,
+   "bloomIntensity": 0.9,
+   "bloomScatter": 0.65,
+   "contrast": 12,
+   "saturation": 6,
+   "filter": [
+    1.0,
+    0.97,
+    0.93
+   ],
+   "splitShadows": [
+    0.5,
+    0.47,
+    0.44
+   ],
+   "splitHighlights": [
+    0.56,
+    0.52,
+    0.46
+   ],
+   "splitBalance": 0,
+   "vignette": 0.26,
+   "vignetteColor": [
+    0.03,
+    0.02,
+    0.01
+   ]
+  },
+  "farBlur": {
+   "start": 36,
+   "end": 90,
+   "radius": 1.0
+  },
+  "tints": {
+   "Stands": [
+    0.72,
+    0.7,
+    0.68
+   ],
+   "Crowd": [
+    0.72,
+    0.7,
+    0.68
+   ],
+   "Fences": [
+    0.72,
+    0.7,
+    0.68
+   ],
+   "Banners": [
+    0.72,
+    0.7,
+    0.68
+   ],
+   "Pit": [
+    0.72,
+    0.7,
+    0.68
+   ],
+   "Venue Glow": [
+    0.9,
+    0.9,
+    0.9
+   ],
+   "Haze": [
+    0.85,
+    0.85,
+    0.85
+   ],
+   "Ringside Floor": [
+    0.95,
+    0.93,
+    0.91
+   ]
+  },
+  "pools": [
+   {
+    "position": [
+     0,
+     20,
+     0
+    ],
+    "direction": [
+     0,
+     -1,
+     0
+    ],
+    "color": [
+     1.0,
+     0.9,
+     0.72
+    ],
+    "intensity": 430,
+    "range": 40,
+    "angle": 56,
+    "innerAngle": 30
+   }
+  ],
+  "shafts": [
+   {
+    "top": [
+     -3,
+     22,
+     2
+    ],
+    "bottom": [
+     -1.5,
+     1.2,
+     1
+    ],
+    "topRadius": 0.7,
+    "bottomRadius": 4.2,
+    "color": [
+     1.0,
+     0.9,
+     0.7
+    ],
+    "strength": 0.16
+   },
+   {
+    "top": [
+     3.5,
+     22,
+     -1
+    ],
+    "bottom": [
+     2,
+     1.2,
+     -0.5
+    ],
+    "topRadius": 0.7,
+    "bottomRadius": 4.4,
+    "color": [
+     1.0,
+     0.9,
+     0.7
+    ],
+    "strength": 0.14
+   },
+   {
+    "top": [
+     0.5,
+     22,
+     5
+    ],
+    "bottom": [
+     0.5,
+     1.2,
+     3.5
+    ],
+    "topRadius": 0.7,
+    "bottomRadius": 4.0,
+    "color": [
+     1.0,
+     0.9,
+     0.7
+    ],
+    "strength": 0.12
+   }
+  ],
+  "dust": {
+   "count": 420,
+   "center": [
+    0,
+    7,
+    0
+   ],
+   "size": [
+    16,
+    11,
+    16
+   ],
+   "color": [
+    1.0,
+    0.92,
+    0.75,
+    0.7
+   ],
+   "sizeMin": 0.04,
+   "sizeMax": 0.09
+  },
+  "fighters": {
+   "kickA": {
+    "color": [
+     1.0,
+     0.84,
+     0.58
+    ],
+    "direction": [
+     -0.4,
+     1,
+     -0.3
+    ],
+    "strength": 1.5
+   },
+   "kickB": {
+    "color": [
+     0.55,
+     1.0,
+     0.35
+    ],
+    "direction": [
+     0.8,
+     -0.1,
+     0.6
+    ],
+    "strength": 1.0
+   },
+   "kickPower": 2.6,
+   "lift": 0.06,
+   "lampCap": 1.0,
+   "contactShadow": 0.45,
+   "contactShadowColor": [
+    0.1,
+    0.06,
+    0.03
+   ]
+  }
  },
  "cameras": [
   {

@@ -1,7 +1,7 @@
 """Splash Deck in Unity: materials, shadows, lights and atmosphere for sloparena.stage.art-apply.
 
 Sky, distant or emissive objects neither cast nor receive shadows; the sea only receives.
-The sun shines from bay.py's sun disc. A lighting change needs no Blender run: see
+The sun shines from bay.py's sun disc. A lighting or look change needs no Blender run: see
 tools/blender/stagekit/presentation.py.
 """
 from stagekit.presentation import CULL_BACK, CULL_OFF, LIT, NEON, WATER
@@ -9,6 +9,11 @@ from stagekit.presentation import CULL_BACK, CULL_OFF, LIT, NEON, WATER
 import bay as BAY
 
 UNSHADOWED = ("Sky", "Clouds", "Gulls", "Far Islands", "Lighthouse Lamp")
+
+# Everything around the boat: a touch paler than the deck, so the fight reads first.
+SHORE = ("Hills", "Clouds", "Far Islands", "Trees", "Rocks", "Sailboats", "Harbour Boats", "Village", "Awnings", "Quay",
+         "Breakwater", "Laundry", "Church", "Lighthouse*", "Beach", "Market", "Chapel", "Gulls")
+SHORE_TINT = [0.90, 0.92, 0.96]
 
 
 def lit(asset, base_map, tint, detail_strength, detail_scale, wrap, specular, wind, wind_frequency, cull):
@@ -76,4 +81,17 @@ PRESENTATION = {
     # Clear morning: blue sky light, warm ground bounce, pale sea haze towards the horizon.
     "atmosphere": {"background": [0.62, 0.78, 0.94], "ambientSky": [0.70, 0.80, 0.95], "ambientGround": [0.56, 0.50, 0.42],
                    "ambientIntensity": 1, "fog": True, "fogColor": [0.80, 0.87, 0.92], "fogStart": 170, "fogEnd": 1500},
+    # A bright stage changes little (owner pick 2026-11-10): a light grade, the bay a touch paler and softer
+    # than the boat, sun and sky on the fighters' edges.
+    "look": {
+        "grade": {"tonemap": "neutral", "bloomThreshold": 1.0, "bloomIntensity": 0.35, "bloomScatter": 0.6, "contrast": 8, "saturation": 6,
+                  "filter": [1.0, 0.985, 0.96], "splitShadows": [0.46, 0.50, 0.56], "splitHighlights": [0.56, 0.52, 0.46],
+                  "splitBalance": 0, "vignette": 0.14, "vignetteColor": [0.04, 0.06, 0.10]},
+        "farBlur": {"start": 70, "end": 260, "radius": 0.8},
+        "tints": {name: SHORE_TINT for name in SHORE},
+        "fighters": {"kickA": {"color": [1.0, 0.93, 0.78], "direction": [0.75, 0.59, -0.3], "strength": 1.2},
+                     "kickB": {"color": [0.62, 0.80, 1.0], "direction": [-0.7, 0.3, 0.4], "strength": 0.9},
+                     "kickPower": 2.6, "lift": 0.04,
+                     "contactShadow": 0.3, "contactShadowColor": [0.10, 0.12, 0.22]},
+    },
 }

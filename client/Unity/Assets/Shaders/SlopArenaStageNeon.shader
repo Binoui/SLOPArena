@@ -29,6 +29,7 @@ Shader "SLOPArena/StageNeon"
         HLSLINCLUDE
         #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
         #include "SlopArenaStageCutaway.hlsl"
+        #include "SlopArenaStageLights.hlsl"
 
         CBUFFER_START(UnityPerMaterial)
             float4 _BaseMap_ST;
@@ -166,6 +167,10 @@ Shader "SLOPArena/StageNeon"
                 half3 base = _Base * lerp(1.0h, facing, _Shade) + max(SampleSH(normalWS), half3(0, 0, 0)) * _Ambient;
                 half glow = input.color.a * tex.a;
                 half3 color = albedo * base + albedo * (glow * _Glow * input.anim);
+                // Self-lit: the stage's lamps do not change it, the flash of a hit does.
+                half3 lookPools, lookFlashes;
+                StageLookLights(input.positionWS, normalWS, 0.3h, lookPools, lookFlashes);
+                color = StageLookFlash(color, albedo, lookFlashes);
                 color = lerp(color, MixFog(color, input.fogFactor), _FogAmount);
                 return half4(StageCutawayApplyRim(color, sightRim), 1.0h);
             }

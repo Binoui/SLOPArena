@@ -296,6 +296,19 @@ Sir Bonk's identity and normals were approved in October 2026.
 The November 1 Training prototype replaces the first Joust and cursor leap under ADR-0059.
 Training feel, avatar poses and the final effects remain human acceptance work.
 
+## Rigid armour on helper bones — 2026-11-11
+
+His knee guards, the colander on his right elbow and both pot lids each ride one helper bone
+(`KneeGuard_Left/Right`, `ElbowCap_Right`, `Pauldron_Left/Right`), turned every frame by
+`PartialFollowBones` on `SirBonkV2Rig.prefab`: half the knee's or elbow's bend, 30% of the upper
+arm's swing. Until then each was skinned to both bones of its joint, so the knee guards shrank
+to 58-70% in a bent knee and the lids slid onto his biceps with the arms down. Q's shoulder
+lid attaches to `Pauldron_Left` in `BonkWeaponAttachConfig`. The skin under his pants is gone
+and the pants end 4 cm inside the boots, so neither shows through. Gameplay data is untouched:
+`character.runtime.json` is byte-identical and baked poses moved by at most 1.6 micrometres.
+[tools/blender/bonk_rig](../../tools/blender/bonk_rig/README.md#refit-rigid-parts-on-helper-bones-2026-11-11)
+has the steps. The lid-catch gleam still snaps to `mixamorig:LeftArm`.
+
 ## Size and floor contact — 2026-10-17
 
 Bonk is now the biggest fighter in the [roster size](adding-a-new-character.md#roster-size)

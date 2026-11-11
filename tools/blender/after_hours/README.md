@@ -16,9 +16,9 @@ FBX and an apply command. Two parts are specific to this stage:
 - `SLOPArena/StageNeon` is an unlit night shader with a glow mask and per-vertex
   animation channels exported as extra UV maps (`stagekit/geo.py` documents them):
   blinking, pulsing, chasing and flickering signs, slow window changes and looping
-  traffic. Nothing animated needs a script. The match camera's ACES grade and bloom
-  (threshold 1.05) turn strong emission white, so glow stays near 1.4 and is judged
-  in Unity captures, not Eevee previews.
+  traffic. Nothing animated needs a script. The match camera's bloom comes from the
+  stage's look (`presentation.py`) and turns strong emission white, so glow stays near
+  1.4 and is judged in Unity captures, not Eevee previews.
 
 Modules: `layout.py` (approved shell and arena check), `palette.py`,
 `font.py` (original monoline sign font), `signs.py` (neon text, blade signs,

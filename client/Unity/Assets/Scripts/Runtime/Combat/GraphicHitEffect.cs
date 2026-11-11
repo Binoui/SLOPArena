@@ -198,20 +198,23 @@ namespace SlopArena.Client.Combat
             return launch.sqrMagnitude > 0.001f ? launch.normalized : Vector3.forward;
         }
 
+        /// <summary>The colour that names an impact tier: the core of its graphic and the flash of light it throws.</summary>
+        public static Color CoreColor(ImpactTier tier) => tier switch
+        {
+            ImpactTier.Light => new Color(1f, 0.96f, 0.72f, 0.95f),
+            ImpactTier.Medium => new Color(1f, 0.76f, 0.24f, 0.98f),
+            ImpactTier.Heavy => new Color(1f, 0.33f, 0.08f, 1f),
+            ImpactTier.Block => new Color(0.25f, 0.8f, 1f, 0.9f),
+            _ => new Color(1f, 0.18f, 0.08f, 1f),
+        };
+
         private void BuildMesh(ImpactTier tier, Vector2 launch)
         {
             _vertices.Clear();
             _colors.Clear();
             _triangles.Clear();
 
-            Color core = tier switch
-            {
-                ImpactTier.Light => new Color(1f, 0.96f, 0.72f, 0.95f),
-                ImpactTier.Medium => new Color(1f, 0.76f, 0.24f, 0.98f),
-                ImpactTier.Heavy => new Color(1f, 0.33f, 0.08f, 1f),
-                ImpactTier.Block => new Color(0.25f, 0.8f, 1f, 0.9f),
-                _ => new Color(1f, 0.18f, 0.08f, 1f),
-            };
+            Color core = CoreColor(tier);
             Color pale = new(1f, 0.98f, 0.88f, 0.92f);
             Vector2 incoming = -launch;
 

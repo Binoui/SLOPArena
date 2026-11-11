@@ -73,6 +73,14 @@ are unchanged, so hurtboxes and hitboxes are too. The coat's art is local and ig
 until it is force-added. [tools/blender/wibou_coat](../../tools/blender/wibou_coat/README.md)
 rebuilds and rebinds it. In-game look and sway are awaiting the owner's verdict.
 
+Since 2026-11-11 the coat is tapered (80% of its radius at the hem) and hangs from one
+`SkirtBoneSpring` instead of the four `BoneChainSpring`s: each front panel lifts with its
+own thigh and lies on it, and `_hang` lets the front fall away from a leaning chest while
+the back stays on the body. In R's lunge the knee meets his belt and the thigh still
+overlaps the coat there. Before that the hem stood 6-15 cm off his hips and stuck out
+behind him in every lean. `poses.bin` is still unchanged. The refit steps are in the same
+README.
+
 ## Size — 2026-10-17
 
 Wibou was the tallest-looking fighter: his model is about 20% bigger than FightGuy's (idle

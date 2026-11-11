@@ -89,3 +89,17 @@ PRESENTATION = {
         {"name": "thumbnail", "position": [-14.0, 21.0, -26.0], "target": [5.0, 0.5, 2.0], "fov": 50},
     ],
 }
+
+# The stage's look (owner 2026-11-11: every stage gets one). Fields: stagekit/presentation.py.
+# A bright roof changes little: the city a touch paler and softer than the deck.
+CITY = [0.90, 0.92, 0.96]
+PRESENTATION["look"] = {
+    "grade": {"bloomThreshold": 1.0, "bloomIntensity": 0.35, "bloomScatter": 0.6, "contrast": 8, "saturation": 6,
+              "filter": [1.0, 0.985, 0.96], "vignette": 0.14, "vignetteColor": [0.04, 0.06, 0.10]},
+    "farBlur": {"start": 70, "end": 280, "radius": 0.8},
+    "tints": {"City Far": CITY, "City Near": CITY, "Street": CITY, "Traffic": CITY, "Clouds": CITY},
+    # Afternoon sun on one edge, sky on the other.
+    "fighters": {"kickA": {"color": [1.0, 0.94, 0.80], "direction": [0.52, 0.85, -0.09], "strength": 1.2},
+                 "kickB": {"color": [0.62, 0.80, 1.0], "direction": [-0.7, 0.3, 0.4], "strength": 0.9},
+                 "kickPower": 2.6, "lift": 0.04, "contactShadow": 0.3, "contactShadowColor": [0.10, 0.12, 0.22]},
+}

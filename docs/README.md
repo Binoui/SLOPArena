@@ -154,6 +154,7 @@ Accepted records for current gameplay, runtime and content decisions include:
 - [ADR-0038: Editor play without installed animation clips](adr/0038-editor-play-without-installed-clips.md)
 - [ADR-0046: Slop Rally courses are racing maps for every fighter](adr/0046-courses-open-to-every-fighter.md)
 - [ADR-0062: Stage hazards: one switch, typed hazard families and baked anchors](adr/0062-stage-hazards.md)
+- [ADR-0066: Match look: a look per stage, lights outside URP's limit and an ink line on fighters](adr/0066-stage-look.md)
 
 Older accepted ADRs remain the decision record for the mechanics they cover. If a living guide conflicts with an accepted ADR or current code, update the living guide; do not rewrite the historical decision.
 

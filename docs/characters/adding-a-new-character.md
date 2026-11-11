@@ -76,6 +76,11 @@ Avatar before binding clips. Reject invalid orientation, scale, root motion, req
 or non-finite-pose diagnostics. Do not remap a bad rig at runtime or own a standalone
 skeleton binary.
 
+Enable **Read/Write** on the body model's import. The match draws an ink line around every
+fighter from smoothed normals that `FighterInk` works out when the fighter spawns
+([ADR-0066](../adr/0066-stage-look.md)); a mesh that is not readable gets no line and logs one
+warning. The setting is part of the model's `.meta`, so changing it recooks the package.
+
 Bind each required semantic animation ID to the exact imported clip in
 `CharacterAssetCatalog.asset`. Assign one unique deterministic pose-track ID per semantic
 ID. Confirm catalog package ID, schema version, sample rate, rig, and binding paths. Do not

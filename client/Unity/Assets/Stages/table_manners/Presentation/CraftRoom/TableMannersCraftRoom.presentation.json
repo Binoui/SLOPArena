@@ -308,5 +308,118 @@
   ],
   "fogStart": 400,
   "fogEnd": 3600
+ },
+ "look": {
+  "grade": {
+   "bloomThreshold": 1.0,
+   "bloomIntensity": 0.4,
+   "bloomScatter": 0.6,
+   "contrast": 8,
+   "saturation": 6,
+   "filter": [
+    1.0,
+    0.985,
+    0.96
+   ],
+   "vignette": 0.16,
+   "vignetteColor": [
+    0.1,
+    0.07,
+    0.06
+   ]
+  },
+  "farBlur": {
+   "start": 45,
+   "end": 160,
+   "radius": 0.9
+  },
+  "tints": {
+   "Room Walls": [
+    0.88,
+    0.89,
+    0.93
+   ],
+   "Room Floor": [
+    0.88,
+    0.89,
+    0.93
+   ],
+   "Ceiling": [
+    0.88,
+    0.89,
+    0.93
+   ],
+   "Art Corner": [
+    0.88,
+    0.89,
+    0.93
+   ],
+   "Bunk Corner": [
+    0.88,
+    0.89,
+    0.93
+   ],
+   "Play Corner": [
+    0.88,
+    0.89,
+    0.93
+   ],
+   "Wall Decals": [
+    0.88,
+    0.89,
+    0.93
+   ],
+   "Toy Train": [
+    0.88,
+    0.89,
+    0.93
+   ],
+   "Garden": [
+    0.9,
+    0.92,
+    0.96
+   ],
+   "Garden Far": [
+    0.9,
+    0.92,
+    0.96
+   ]
+  },
+  "fighters": {
+   "kickA": {
+    "color": [
+     1.0,
+     0.92,
+     0.76
+    ],
+    "direction": [
+     -0.12,
+     0.88,
+     0.45
+    ],
+    "strength": 1.2
+   },
+   "kickB": {
+    "color": [
+     0.7,
+     0.82,
+     1.0
+    ],
+    "direction": [
+     0.3,
+     0.3,
+     -0.85
+    ],
+    "strength": 0.9
+   },
+   "kickPower": 2.6,
+   "lift": 0.04,
+   "contactShadow": 0.35,
+   "contactShadowColor": [
+    0.16,
+    0.1,
+    0.08
+   ]
+  }
  }
 }

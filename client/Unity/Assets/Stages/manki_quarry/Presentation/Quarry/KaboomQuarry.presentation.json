@@ -328,5 +328,73 @@
   ],
   "fogStart": 80,
   "fogEnd": 650
+ },
+ "look": {
+  "grade": {
+   "bloomThreshold": 1.0,
+   "bloomIntensity": 0.4,
+   "bloomScatter": 0.6,
+   "contrast": 8,
+   "saturation": 6,
+   "filter": [
+    1.0,
+    0.985,
+    0.96
+   ],
+   "vignette": 0.14,
+   "vignetteColor": [
+    0.08,
+    0.06,
+    0.04
+   ]
+  },
+  "farBlur": {
+   "start": 85,
+   "end": 320,
+   "radius": 0.8
+  },
+  "tints": {
+   "Quarry Walls": [
+    0.9,
+    0.9,
+    0.94
+   ]
+  },
+  "fighters": {
+   "kickA": {
+    "color": [
+     1.0,
+     0.92,
+     0.74
+    ],
+    "direction": [
+     -0.32,
+     0.83,
+     -0.46
+    ],
+    "strength": 1.2
+   },
+   "kickB": {
+    "color": [
+     0.6,
+     0.85,
+     1.0
+    ],
+    "direction": [
+     0.6,
+     0.2,
+     0.7
+    ],
+    "strength": 0.9
+   },
+   "kickPower": 2.6,
+   "lift": 0.04,
+   "contactShadow": 0.3,
+   "contactShadowColor": [
+    0.14,
+    0.11,
+    0.08
+   ]
+  }
  }
 }

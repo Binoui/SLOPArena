@@ -48,7 +48,7 @@ MonoBehaviour:
     TrailHiltAnchor: 
     TrailTipAnchor: 
   - AttackSlot: 0
-    BoneName: mixamorig:LeftArm
+    BoneName: Pauldron_Left
     Prefab: {fileID: 110122871996679997, guid: f9912002aaf6b94f59d14f01aea2477c, type: 3}
     PositionOffset: {x: 0.01429392, y: 0.013715848, z: -0.043779984}
     HasFirePhaseOverride: 0

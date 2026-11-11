@@ -2,7 +2,7 @@
 
 The PvP camera orbits the fighter at up to 15 m (radius 10 x 1.5 zoom), pitched
 0-45 degrees down (15 by default), with a 40 degree vertical FOV. These renders are
-agent review aids only; Unity captures with the match camera's ACES grade and bloom
+agent review aids only; Unity captures with the match camera's grade and bloom
 remain the reference for exposure, colour and emission.
 """
 from __future__ import annotations

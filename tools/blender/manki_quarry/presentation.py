@@ -87,3 +87,16 @@ PRESENTATION = {
     "atmosphere": {"background": [0.84, 0.77, 0.64], "ambientSky": [0.74, 0.78, 0.84], "ambientGround": [0.64, 0.53, 0.40],
                    "ambientIntensity": 1, "fog": True, "fogColor": [0.88, 0.80, 0.67], "fogStart": 80, "fogEnd": 650},
 }
+
+# The stage's look (owner 2026-11-11: every stage gets one). Fields: stagekit/presentation.py.
+# A bright day changes little: the quarry walls a touch paler and softer than the route.
+PRESENTATION["look"] = {
+    "grade": {"bloomThreshold": 1.0, "bloomIntensity": 0.4, "bloomScatter": 0.6, "contrast": 8, "saturation": 6,
+              "filter": [1.0, 0.985, 0.96], "vignette": 0.14, "vignetteColor": [0.08, 0.06, 0.04]},
+    "farBlur": {"start": 85, "end": 320, "radius": 0.8},
+    "tints": {"Quarry Walls": [0.90, 0.90, 0.94]},
+    # Dusty sun on one edge, the water's light on the other.
+    "fighters": {"kickA": {"color": [1.0, 0.92, 0.74], "direction": [-0.32, 0.83, -0.46], "strength": 1.2},
+                 "kickB": {"color": [0.60, 0.85, 1.0], "direction": [0.6, 0.2, 0.7], "strength": 0.9},
+                 "kickPower": 2.6, "lift": 0.04, "contactShadow": 0.3, "contactShadowColor": [0.14, 0.11, 0.08]},
+}

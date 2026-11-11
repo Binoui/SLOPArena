@@ -86,3 +86,18 @@ PRESENTATION = {
     "atmosphere": {"background": [0.40, 0.30, 0.48], "ambientSky": [0.56, 0.50, 0.74], "ambientGround": [0.36, 0.26, 0.24],
                    "ambientIntensity": 1, "fog": True, "fogColor": [0.66, 0.46, 0.56], "fogStart": 70, "fogEnd": 600},
 }
+
+# The stage's look (owner 2026-11-11: every stage gets one). Fields: stagekit/presentation.py.
+# Fair lights at dusk: bulbs glow, the town and headlands sit back. The blur starts far, so the route ahead stays sharp.
+FAR = [0.74, 0.72, 0.82]
+PRESENTATION["look"] = {
+    "grade": {"tonemap": "neutral", "bloomThreshold": 0.88, "bloomIntensity": 1.1, "bloomScatter": 0.68, "contrast": 10,
+              "saturation": 8, "splitShadows": [0.44, 0.42, 0.60], "splitHighlights": [0.62, 0.52, 0.44], "splitBalance": 0,
+              "vignette": 0.22, "vignetteColor": [0.05, 0.03, 0.07]},
+    "farBlur": {"start": 75, "end": 320, "radius": 0.9},
+    "tints": {"Headlands": FAR, "Town": FAR, "Clouds": [0.86, 0.84, 0.90], "Sky": [0.94, 0.92, 0.95]},
+    # The dusk sun on one edge, the blue hour on the other.
+    "fighters": {"kickA": {"color": [1.0, 0.66, 0.42], "direction": [-0.95, 0.28, -0.13], "strength": 1.5},
+                 "kickB": {"color": [0.55, 0.60, 1.0], "direction": [0.9, 0.3, 0.2], "strength": 1.2},
+                 "kickPower": 2.6, "lift": 0.06, "contactShadow": 0.4, "contactShadowColor": [0.10, 0.07, 0.12]},
+}

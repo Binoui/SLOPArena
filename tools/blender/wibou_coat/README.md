@@ -32,6 +32,49 @@ cd tools && ../artifacts/genra-20261014/.venv/bin/python genra/unity_clip.py ren
   --brief genra/briefs/wibou-r-charge-loop-b.json --clip run=anim.wibou.run --travel 0.12 --margin 1.8
 ```
 
+## Refit: taper and hang (2026-11-11)
+
+The first fit read as a stiff bell. Scaling the Tripo coat 1.65x left the hem 6-15 cm off his hips, his hands sat
+inside it with the arms down, and `BoneChainSpring` only pulled each chain back to its rest shape in the hips'
+frame: the hem stuck out behind him whenever he leaned, and a raised thigh went through the front panel.
+
+```bash
+B="blender -b --factory-startup --python-exit-code 1"
+W=client/Unity/Assets/Art/Characters/wibou/Models
+$B --python tools/blender/wibou_coat/refit_coat.py -- $W/wibou.fbx $W/wibou_coat.fbx <refit_dir> --hem 0.8
+$B --python tools/blender/refit_check.py -- $W/wibou_coat.fbx <refit_dir>/WibouCoat.fbx moved=1 skip=Coat_
+# then, through the gateway, with SrcFbx and Backup set in the file (back up the live coat first):
+#   eval_file unity_refit.eval.cs ; sloparena.character.verify --target wibou
+```
+
+- **Taper** (`refit_coat.py`, on the shipped coat because the Tripo source is gone): below 0.25 m the cloth moves
+  toward the body axis, easing to 80% of its radius at the hem, never closer than 15 mm to the body (arms excluded).
+  The four chains move to the tapered cloth. Weights and UVs are unchanged.
+- **Spring** (`unity_refit.eval.cs`): the four `BoneChainSpring`s are replaced by one `SkirtBoneSpring` on the coat
+  renderer, the component Nyx's dress uses, in its LegPose model with values for a short open coat:
+  - a thigh raised 10 degrees starts to lift the chains in front of it, 1.2 degrees per degree up to a knee at the
+    chest (`_legLiftFrom` -80, `_legLiftFull` 45, `_legLift` 150). The chain pivots sit 14 cm above the hip joint,
+    so the fabric turns a little further than the thigh to lie on it;
+  - each front panel follows its own thigh only (`_legLiftWidth` 0.11);
+  - thigh capsules only (0.085; his pants measure 0.116, but the coat rests 11 cm from the thigh bone and must not
+    be pushed at rest). With shin capsules LegPose also lifts the hem over a raised foot and in a crouch, which
+    flipped this hip-length coat up his back.
+  The first try used the Clearance model. QA (check #81) found his thighs through the front panels in the jump,
+  ground 3, R and the run, and a 4-5 degree step of one chain in idle where Clearance switched swing direction.
+- **Hang** (new `_hang` and `_maxHang` on `SkirtBoneSpring`, 0.8 and 40 degrees here): when the hips lean, a chain's
+  rest line turns back toward straight down. Only chains the lean carries away from the body hang; the others stay
+  on the body, as a coat's back does. A chain a thigh already lifts hangs only the rest of the way. With `_hang` 0
+  and the default leg-lift values the spring is the old one bit for bit:
+  `tools/blender/salamander_rig/skirt_spring_identity.eval.cs` proves it on Nyx's dress, and
+  `Tools/SLOPArena/Tests/Skirt Bone Spring Clearance` covers the hang and the leg lift.
+- **Measuring it:** `coat_probe.eval.cs` plays his bound clips on the prefab and counts skirt vertices inside the
+  thigh surface. On 2026-11-11 (idle scores about 40 by itself): jump 519 with Clearance, 104 now; ground 3 327,
+  111; air 1 560, 70; run 317, 187; R 343, 377. In R's lunge the thigh is drawn 135 degrees up and meets his belt,
+  where the coat is rigid to the torso; no spring setting clears that.
+- **Renders:** `unity_clip.py render` now steps `SkirtBoneSpring` once per tick, like `BoneChainSpring`.
+
+The sections below describe the first build; its Sway bullet is superseded by the spring above.
+
 ## Why it looks like this
 
 - **One coat out of three.** Tripo turned the turnaround sheet into three coats side by

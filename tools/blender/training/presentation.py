@@ -47,3 +47,16 @@ PRESENTATION={
         {'name':'thumbnail','position':[15,21,-30],'target':[-3,-2,0],'fov':84},
     ],
 }
+
+# The stage's look (owner 2026-11-11: every stage gets one). Fields: stagekit/presentation.py.
+# The lab stays plain and readable: the hall behind the platforms is a touch quieter and softer.
+HALL = [0.86, 0.88, 0.92]
+PRESENTATION["look"] = {
+    "grade": {"bloomThreshold": 0.95, "bloomIntensity": 0.5, "bloomScatter": 0.6, "contrast": 8, "saturation": 6,
+              "vignette": 0.14, "vignetteColor": [0.03, 0.03, 0.05]},
+    "farBlur": {"start": 45, "end": 130, "radius": 0.8},
+    "tints": {"Test Hall": HALL, "Control Room": HALL, "Dummy Mezzanine": HALL, "Dummy Parts Rack": HALL,
+              "Roller Door": HALL, "Crash Sled": HALL, "East Service Apron": HALL, "High Speed Camera": HALL},
+    # Kick lights come from the overhead key.
+    "fighters": {"lift": 0.04},
+}

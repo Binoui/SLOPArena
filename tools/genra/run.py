@@ -231,6 +231,14 @@ chasing a score or an imperceptible pose difference. Exact locking applies only 
 for it; report any conflict with its machine constraints instead of silently changing the contract."""
 
 
+FIRST_TAKE_DIRECTION = """
+
+## The owner's direction for this take
+
+This is the first take, not a revision. The owner wants these points handled in it, together with the brief:
+{owner}"""
+
+
 def key_sheets(brief: Brief, clip, run_dir: Path, skin) -> list[Path]:
     """The blocking stage's evidence for the owner: the key poses from the gameplay, side and front views, and with the
     brief's video beats each beat's video frame over the key pose it maps to (toolkit renders, no Unity)."""
@@ -499,6 +507,8 @@ def author(brief_path, name=None, model='claude-opus-5-5', effort='medium', time
                                                         for t, label in brief.key_beats.items()))
         if brief.get('approved_keys'):
             prompt += APPROVED_KEYS.format(ticks=', '.join(map(str, brief['approved_keys']['ticks'])))
+        if owner and not revise:
+            prompt += FIRST_TAKE_DIRECTION.format(owner=owner)
     if revise:
         previous = scratch / 'previous'
         previous.mkdir()
@@ -634,7 +644,8 @@ def main(argv=None):
     parser.add_argument('--round', type=int, default=1, help='revision number, for the prompt')
     direction = parser.add_mutually_exclusive_group()
     direction.add_argument('--owner-file', help='Markdown or JSON owner direction; see briefs/OWNER-DIRECTION.md')
-    direction.add_argument('--owner', help="the owner's direction for a revision, ahead of the director's review")
+    direction.add_argument('--owner', help="the owner's direction: for a revision, ahead of the director's review; for a first take, "
+                           'appended to the prompt')
     parser.add_argument('--skip', default='', help='review issue numbers (from 1) the owner set aside, e.g. 2,5')
     parser.add_argument('--stage', choices=['full', 'keys'], default='full',
                         help='keys: author only the key poses (Brief.key_beats) for the owner to approve first')

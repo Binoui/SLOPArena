@@ -2,7 +2,7 @@
 
 Each stage keeps a presentation.py beside its build.py with one PRESENTATION dict:
 texture imports, materials (shader properties by name), shadow flags per object, the
-Stage Lights rig, atmosphere, optional poster faces, named surface markers and the review cameras that
+Stage Lights rig, atmosphere, the optional look, optional poster faces, named surface markers and the review cameras that
 sloparena.stage.views.cameras captures ("thumbnail" is the stage-select card). build.py
 writes it on export as
 <Stem>.presentation.json next to the FBX. A lighting or material change needs no Blender
@@ -15,6 +15,42 @@ run and no C#: write the JSON alone, then apply it from that directory.
 Optional `surfaces` name direct-child Transform markers with Unity `position`, Euler
 `rotation` and positive `size` (width, height). They add no meshes or collision.
 Runtime presenters use their transforms to place content on existing art.
+
+Optional `look` is what the stage gives a match beyond its art (the StageLook component on the
+prefab; a stage without one gets the defaults in StageLookSettings). A stage without a generator
+keeps the same object in client/Unity/Assets/Stages/<stage>/<stage>.look.json and applies it with
+sloparena.stage.look-apply --stage <stage>. Every part is optional:
+
+    "look": {
+        # The picture: bloom, contrast, colour. Split toning is on when either tone is given. "tonemap" is
+        # "none" (default: the brightness the stage was authored at) or "neutral" (highlights roll off
+        # instead of clipping, for a stage built on glow; a bright stage comes out a few percent darker).
+        "grade": {"tonemap": "neutral", "bloomThreshold": 0.9, "bloomIntensity": 0.9, "bloomScatter": 0.65, "contrast": 12, "saturation": 6,
+                  "filter": [1, 0.97, 0.93], "splitShadows": [...], "splitHighlights": [...], "splitBalance": 0,
+                  "vignette": 0.26, "vignetteColor": [...]},
+        # A soft blur on scenery beyond the playfield, in metres from the camera. Low quality drops it.
+        "farBlur": {"start": 36, "end": 90, "radius": 1.0},
+        # Quieter scenery: a tint per object, by exact name or by prefix ending in '*'. A name is a
+        # renderer or an object above it, and the nearest named object wins; an exact name beats a
+        # prefix. art-apply rejects a name that matches nothing.
+        "tints": {"Stands": [0.72, 0.70, 0.68], "City *": [0.5, 0.47, 0.58]},
+        # Lamps over the playfield (at most two). Not URP lights: they light the stage's surfaces and the
+        # fighters on every quality level, whatever lights the floor already carries. Fighters take at
+        # most `fighters.lampCap` from all lamps together, so a strong one does not bleach them.
+        "pools": [{"position": [0, 20, 0], "direction": [0, -1, 0], "color": [1, 0.9, 0.72],
+                   "intensity": 430, "range": 40, "angle": 56, "innerAngle": 30}],
+        # Visible shafts in the air below a lamp, and motes drifting in its light.
+        "shafts": [{"top": [-3, 22, 2], "bottom": [-1.5, 1.2, 1], "topRadius": 0.7, "bottomRadius": 4.2,
+                    "color": [1, 0.9, 0.7], "strength": 0.16}],
+        "dust": {"count": 420, "center": [0, 7, 0], "size": [16, 11, 16], "color": [1, 0.92, 0.75, 0.7],
+                 "sizeMin": 0.04, "sizeMax": 0.09},
+        # Fighters on this stage: two edge lights in the stage's colours (leave both out to take them
+        # from the key light), a brightness lift, the ink line (pixels at 1080p) and the soft shadow
+        # under their feet.
+        "fighters": {"kickA": {"color": [...], "direction": [-1, 0.25, 0.1], "strength": 1.7}, "kickB": {...},
+                     "kickPower": 2.6, "lift": 0.08, "lampCap": 1.6, "ink": 1.6, "inkColor": [...],
+                     "contactShadow": 0.5, "contactShadowColor": [...], "contactShadowSize": 1.5},
+    }
 
 Colours are Unity Color values (0..1, alpha optional); rotations are Euler degrees; a
 directional light may give `sun` (azimuth clockwise from north, elevation) instead, to
@@ -36,6 +72,7 @@ NEON = "SLOPArena/StageNeon"
 WATER = "SLOPArena/StageWater"
 CULL_OFF, CULL_FRONT, CULL_BACK = 0.0, 1.0, 2.0
 LIGHT_TYPES = ("directional", "point", "spot")
+LOOK_SECTIONS = ("grade", "farBlur", "tints", "pools", "shafts", "dust", "fighters")
 
 
 def stem(presentation):
@@ -74,6 +111,7 @@ def validate(p):
     for c in p.get("cameras") or []:
         if len(c.get("position", ())) != 3 or len(c.get("target", ())) != 3:
             raise ValueError("review camera %s needs a position and a target" % c["name"])
+    validate_look(p.get("look"))
     surfaces = p.get("surfaces") or []
     if len({s["name"] for s in surfaces}) != len(surfaces):
         raise ValueError("surface names must be unique")
@@ -86,6 +124,23 @@ def validate(p):
                 raise ValueError("surface %s needs finite %s" % (s["name"], field))
         if not all(v > 0 for v in s["size"]):
             raise ValueError("surface sizes must be positive")
+
+
+def validate_look(look):
+    """The shape of an optional `look`; sloparena.stage.art-apply checks every field and the tint names."""
+    if look is None:
+        return
+    unknown = sorted(set(look) - set(LOOK_SECTIONS))
+    if unknown:
+        raise ValueError("look: unknown part %s; known: %s" % (", ".join(unknown), ", ".join(LOOK_SECTIONS)))
+    for pattern, colour in (look.get("tints") or {}).items():
+        if not pattern or pattern == "*" or len(colour) not in (3, 4):
+            raise ValueError("look.tints: %r needs an object name (or prefix ending in '*') and a colour" % pattern)
+    if len(look.get("pools") or []) > 2:
+        raise ValueError("look.pools: a stage has at most two pools")
+    fighters = look.get("fighters") or {}
+    if ("kickA" in fighters) != ("kickB" in fighters):
+        raise ValueError("look.fighters: give both kickA and kickB, or neither")
 
 
 def document(p):

@@ -1,4 +1,4 @@
-"""Optional Eevee massing aid; gameplay captures and ACES remain the review authority."""
+"""Optional Eevee massing aid; gameplay captures with the match grade remain the review authority."""
 import os
 from stagekit.preview import B, gameplay_camera, render_views
 

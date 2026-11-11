@@ -531,6 +531,7 @@ GameObject:
   m_Component:
   - component: {fileID: 4768111215151898315}
   - component: {fileID: 5984435607955455168}
+  - component: {fileID: 1116495243240641151}
   m_Layer: 0
   m_Name: log_off
   m_TagString: Untagged
@@ -575,6 +576,78 @@ MonoBehaviour:
   _fogColor: {r: 0.66, g: 0.5, b: 0.5, a: 1}
   _fogStart: 90
   _fogEnd: 720
+--- !u!114 &1116495243240641151
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8670709388457453754}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a1052d1f8041ddbb5b2844f2087e85d0, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  _settings:
+    Grade:
+      NeutralTonemap: 1
+      BloomThreshold: 0.9
+      BloomIntensity: 1
+      BloomScatter: 0.68
+      Contrast: 10
+      Saturation: 6
+      Filter: {r: 1, g: 1, b: 1, a: 1}
+      SplitToning: 1
+      SplitShadows: {r: 0.46, g: 0.42, b: 0.58, a: 1}
+      SplitHighlights: {r: 0.62, g: 0.52, b: 0.42, a: 1}
+      SplitBalance: 0
+      Vignette: 0.24
+      VignetteColor: {r: 0.05, g: 0.03, b: 0.04, a: 1}
+    FarBlur:
+      Enabled: 1
+      Start: 60
+      End: 240
+      Radius: 1
+    Tints:
+    - Objects: Far Forest
+      Color: {r: 0.74, g: 0.7, b: 0.76, a: 1}
+    - Objects: Trees
+      Color: {r: 0.74, g: 0.7, b: 0.76, a: 1}
+    - Objects: Canopy
+      Color: {r: 0.74, g: 0.7, b: 0.76, a: 1}
+    - Objects: Forest Floor
+      Color: {r: 0.74, g: 0.7, b: 0.76, a: 1}
+    - Objects: Undergrowth
+      Color: {r: 0.74, g: 0.7, b: 0.76, a: 1}
+    - Objects: Camp
+      Color: {r: 0.88, g: 0.85, b: 0.86, a: 1}
+    - Objects: Sky
+      Color: {r: 0.94, g: 0.92, b: 0.94, a: 1}
+    Pools: []
+    Shafts: []
+    Dust:
+      Count: 0
+      Center: {x: 0, y: 7, z: 0}
+      Size: {x: 16, y: 11, z: 16}
+      Color: {r: 1, g: 0.92, b: 0.75, a: 0.7}
+      SizeMin: 0.04
+      SizeMax: 0.09
+    Fighters:
+      KicksFromKeyLight: 0
+      KickA: {r: 1, g: 0.66, b: 0.38, a: 1}
+      KickADirection: {x: -0.88, y: 0.37, z: -0.29}
+      KickAStrength: 1.5
+      KickB: {r: 0.58, g: 0.56, b: 1, a: 1}
+      KickBDirection: {x: 0.85, y: 0.35, z: 0.3}
+      KickBStrength: 1.1
+      KickPower: 2.6
+      Lift: 0.05
+      LampCap: 0
+      Ink: 1.6
+      InkColor: {r: 0.09, g: 0.094, b: 0.078, a: 1}
+      ContactShadow: 0.4
+      ContactShadowColor: {r: 0.12, g: 0.07, b: 0.06, a: 1}
+      ContactShadowSize: 1.5
 --- !u!1001 &180312113565335551
 PrefabInstance:
   m_ObjectHideFlags: 0

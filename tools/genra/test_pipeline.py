@@ -27,7 +27,7 @@ REPO = TOOLS.parent
 sys.path.insert(0, str(TOOLS))
 
 from genra.brief import Brief, resolved_brief_path
-from genra.checks import check_clip, format_report
+from genra.checks import check_clip, format_report, measure
 from genra.clip import Clip
 from genra.run import author, capture_checkpoint, prepare_brief, seed_candidate
 
@@ -266,6 +266,29 @@ class PipelineTests(unittest.TestCase):
         self.assertEqual([f['target'] for f in report['failures'] if f['check'] == 'target'], ['key target'])
         self.assertIn('KEY POSES', format_report(report))
 
+    def test_each_tick_target_fails_on_its_worst_tick_and_keys_check_only_key_ticks(self):
+        raised = self.entry.copy().aim('LeftArm', 'LeftForeArm', [-0.3, 0, 1])
+        clip = Clip.from_keys({0: self.entry, 6: self.entry, 12: self.entry}, 13)
+        clip.set_pose(3, raised)
+        hand = {'name': 'left hand below the shoulder', 'kind': 'below', 'a': 'LeftHand', 'b': 'LeftArm',
+                'each_tick': [1, 12], 'min': 0.0}
+        fingers = {'name': 'fingers not up', 'kind': 'direction', 'a': 'LeftHandIndex3', 'b': 'LeftHandIndex1',
+                   'axis': 'up', 'each_tick': [1, 12], 'max': 0.2}
+        lifted = check_clip(clip, {'clearance': False, 'face': False, 'targets': [hand, fingers]}, mode='fast')
+        failed = {f['target']: f['message'] for f in lifted['failures'] if f['check'] == 'target'}
+        self.assertIn('at tick 3', failed['left hand below the shoulder'])
+        self.assertLess(lifted['metrics']['left hand below the shoulder'], -0.2)
+        self.assertIn('fingers not up', lifted['metrics'])
+        straight = self.entry.copy().aim('LeftArm', 'LeftForeArm', [-1, 0, 0]).aim('LeftForeArm', 'LeftHand', [-1, 0, 0])
+        elbow = {'name': 'elbow', 'kind': 'bend', 'a': 'LeftArm', 'b': 'LeftForeArm', 'c': 'LeftHand', 'tick': 0}
+        self.assertLess(measure(Clip.from_keys({0: straight, 1: straight}, 2), elbow), 0.5)
+        bent = straight.copy().rotate('LeftForeArm', [0, 0, 1], 60)
+        self.assertAlmostEqual(measure(Clip.from_keys({0: bent, 1: bent}, 2), elbow), 60, delta=0.5)
+        spec = Brief(self.source).check_spec(stage='keys') | {'key_ticks': [0, 6, 12], 'targets': [hand]}
+        keys = check_clip(clip, spec, mode='fast')
+        self.assertNotIn('target', {f['check'] for f in keys['failures']})
+        self.assertIn('left hand below the shoulder', keys['metrics'])
+
     def test_key_stage_does_not_lose_a_bad_key_when_worst_humanoid_sample_is_between_keys(self):
         from scipy.spatial.transform import Rotation
         clip = Clip.from_keys({0: self.entry, 12: self.entry}, 13)
@@ -352,6 +375,18 @@ class PipelineTests(unittest.TestCase):
         self.assertTrue(summary['recoveredCheckpoint'])
         self.assertFalse(summary['checkpointOnly'])
         self.assertEqual((run / 'scratch/result.json').read_bytes(), (run / 'checkpoint-result.json').read_bytes())
+
+    def test_owner_direction_reaches_a_first_take_prompt(self):
+        with patch('genra.run.build_prompt', return_value='Test'), \
+                patch('genra.run.verify_rigpack', return_value={'files': {}}), \
+                contextlib.redirect_stdout(io.StringIO()):
+            _, run = author(self.source, name='first-take-owner', out_root=self.root / 'runs', dry_run=True,
+                            keys=self.keys, owner='Lift the toe off the floor at tick 2.')
+        self.addCleanup(__import__('shutil').rmtree, Path('/tmp/genra-runs') / run.name)
+        prompt = (run / 'prompt.txt').read_text()
+        self.assertIn("The owner's direction for this take", prompt)
+        self.assertIn('Lift the toe off the floor at tick 2.', prompt)
+        self.assertLess(prompt.index('Approved key poses'), prompt.index("The owner's direction for this take"))
 
     def test_chatter_warning_does_not_add_a_hard_failure(self):
         sample = {'channel': 'Left knee bend', 'ticks': [2, 10], 'reversals': 6, 'maxStepDegrees': 15.0}

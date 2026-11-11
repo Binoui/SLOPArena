@@ -76,7 +76,7 @@ Every step has a typed command; a stage needs data and Python, not Unity C# of i
 - **Let the gateway handle the Editor.** It compiles scripts edited since the last
   compile before running a batch, and agent `editor_play` skips the domain reload. A
   `blocked` lease still means stop and ask; do not improvise Play Mode or refresh steps.
-- **Judge exposure from numbers too.** The ACES grade and bloom hide clipping; run
+- **Judge exposure from numbers too.** The grade and bloom hide clipping; run
   `capture_exposure.py`, and compare passes with `--against` when lighting differs.
 
 Read [`docs/design/stage-concepts.md`](../../docs/design/stage-concepts.md) before substantive work. That canonical page exists and is required input for topology, readability, and balance intent.
@@ -339,8 +339,8 @@ Work in this order; each step prevents a mistake made in an earlier pass:
    needs level of detail and culling from the start, not afterwards.
 2. **Rough pass, then Unity.** After the first massing-and-lighting build, apply it
    and capture gameplay views before detailing. Eevee previews (about the gameplay
-   orbit, 40° FOV) are for quick fixes only: the match camera's ACES grade and bloom
-   turn strong emission white and shift colour, so judge in Unity.
+   orbit, 40° FOV) are for quick fixes only: the match camera's grade and bloom come
+   from the stage's look and decide how emission reads, so judge in Unity.
 3. **Capture without Play Mode stalls.** Use the `sloparena.stage.views.*` batch
    below for PvP stages and the Slopball court, and the [course replay runner](../../docs/testing/course-replay.md)
    for courses. Both disable domain reload before Play Mode and restore the Editor
@@ -365,12 +365,18 @@ bun scripts/unity-editor-gateway.ts --project-path client/Unity -- \
 whose source-scene or arena hash differs, copies only files that changed (the FBX and its
 stamp travel together), imports exactly those files, configures texture and model
 importers, materials by shader property name, per-object shadow flags, the `Stage Lights`
-rig, `ArenaAtmosphere` and optional poster faces, and updates existing prefab objects in
-place: unchanged data saves an identical prefab, so committed prefabs only change when
-the art does. Without `--from` it re-applies the files already in the art folder. A
-material or light tweak needs no Blender run: rewrite the JSON with
-`python3 tools/blender/stagekit/presentation.py <key> --out /tmp/<key>-generated` and apply
-again. For side-by-side options, apply each variant, capture it and keep the chosen one.
+rig, `ArenaAtmosphere`, the optional [look](#stage-look) and optional poster faces, and
+updates existing prefab objects in place: unchanged data saves an identical prefab, so
+committed prefabs only change when the art does. Without `--from` it re-applies the files
+already in the art folder. A material, light or look tweak needs no Blender run: rewrite
+the JSON with `python3 tools/blender/stagekit/presentation.py <key> --out /tmp/<key>-generated`
+and apply again. For side-by-side options, apply each variant, capture it and keep the
+chosen one.
+
+A model is only installed when its stamp matches the source scene and arena. An apply that
+brings no model still goes through on a stale stamp and returns `staleStamp: true`: a
+gameplay change (a hazard, a rebake) makes the stamp stale without touching the art, and
+lights or look must stay editable. Rebuild the art before installing a new model.
 
 ```json
 {"commands": [
@@ -422,11 +428,48 @@ the match switches off the scene's own directional lights (Training's Key 0.7, F
 and Rim 0.3; Arena_PvP has none), so one pass covers both. Without a rig, capture both
 and compare them with `capture_exposure.py <scene-pass> --against <pvp-pass>`. URP limits
 extra lights per renderer (Ultra 4, High 2, Medium 1), so carry the look with the key
-light, ambient and baked AO.
+light, ambient and baked AO. A lamp that must show on the floor whatever lights it already
+carries goes in the look's `pools`.
 
 The gateway recompiles scripts edited since the last compile before it runs a batch, so
 another thread's C# no longer reloads the Editor in the middle of yours; see the
 [reload hazard](../../docs/contributing/unity-cli.md#live-c-evaluation).
+
+#### Stage look
+
+A presentation may carry a `look`: what the stage gives a match beyond its art
+([ADR-0066](../../docs/adr/0066-stage-look.md)). `art-apply` writes it into a `StageLook`
+on the prefab root, and `MatchVisualStyle` reads it when a match starts. A stage without
+one gets the defaults in `StageLookSettings`: a light grade that keeps its brightness, the
+ink line, a contact shadow, and kick lights taken from the key light. The fields, with an
+example, are in [`stagekit/presentation.py`](../../tools/blender/stagekit/presentation.py).
+
+- **`grade`** is the picture: tonemapping, bloom, contrast, colour, vignette. `"tonemap":
+  "neutral"` rolls highlights off for a stage built on glow and darkens a bright stage by 6
+  to 9%; the default `"none"` keeps the authored brightness. Bloom starts softly at half its
+  threshold, so a bright floor glows before a lamp does; check a bright stage for haze.
+- **`farBlur`** softens scenery beyond the playfield. Start it behind the farthest platform.
+  Low quality drops it.
+- **`tints`** quiet scenery by object name or by a prefix ending in `*`. A name is a renderer or
+  an object above it, so a hand-built stage quiets a whole group in one line. `art-apply`
+  rejects a name that matches nothing and returns what each one matched.
+- **`pools`** are lamps over the playfield, at most two. They are not URP lights: stage
+  shaders and the fighter shader work them out, so they show on every quality level.
+  `shafts` and `dust` are the visible air under them.
+- **`fighters`** sets the two kick lights (leave both out to take them from the key light),
+  the lift, `lampCap` and the contact shadow. Raise a stage light for glow and a fighter under
+  it bleaches; `lampCap` is the most light a fighter takes from all lamps together.
+
+Every rostered stage carries a look (2026-11-11). A stage without a generator (Last Stop,
+the Slopball court, the Sanctuary) keeps the same object in
+`client/Unity/Assets/Stages/<key>/<key>.look.json` and applies it with
+`sloparena.stage.look-apply --stage <key>`. A bright stage keeps `"tonemap": "none"` and only
+quiets its scenery; a dusk or night stage takes `"neutral"` and more bloom. Keep the far blur
+behind anything a player must read: a course's route ahead, Mayhem's screens and host booth.
+
+Tune a look as you tune art: apply a variant, capture the same views and compare. Fighters
+are about 150 px tall at the gameplay camera, so judge them in a 3× crop. Show the owner
+the options as labelled close-ups; their pick is binding.
 
 ### 4. Bake and inspect
 

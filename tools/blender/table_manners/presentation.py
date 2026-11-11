@@ -67,3 +67,19 @@ PRESENTATION = {
     "atmosphere": {"background": [0.62, 0.78, 0.96], "ambientSky": [0.80, 0.86, 0.96], "ambientGround": [0.62, 0.52, 0.42],
                    "ambientIntensity": 0.9, "fog": True, "fogColor": [0.80, 0.88, 0.97], "fogStart": 400, "fogEnd": 3600},
 }
+
+# The stage's look (owner 2026-11-11: every stage gets one). Fields: stagekit/presentation.py.
+# The room sits back a touch; the table stays the brightest thing in it.
+ROOM = [0.88, 0.89, 0.93]
+PRESENTATION["look"] = {
+    "grade": {"bloomThreshold": 1.0, "bloomIntensity": 0.4, "bloomScatter": 0.6, "contrast": 8, "saturation": 6,
+              "filter": [1.0, 0.985, 0.96], "vignette": 0.16, "vignetteColor": [0.10, 0.07, 0.06]},
+    "farBlur": {"start": 45, "end": 160, "radius": 0.9},
+    "tints": {"Room Walls": ROOM, "Room Floor": ROOM, "Ceiling": ROOM, "Art Corner": ROOM, "Bunk Corner": ROOM,
+              "Play Corner": ROOM, "Wall Decals": ROOM, "Toy Train": ROOM, "Garden": [0.90, 0.92, 0.96],
+              "Garden Far": [0.90, 0.92, 0.96]},
+    # Window sun on one edge, the room's cool fill on the other.
+    "fighters": {"kickA": {"color": [1.0, 0.92, 0.76], "direction": [-0.12, 0.88, 0.45], "strength": 1.2},
+                 "kickB": {"color": [0.70, 0.82, 1.0], "direction": [0.3, 0.3, -0.85], "strength": 0.9},
+                 "kickPower": 2.6, "lift": 0.04, "contactShadow": 0.35, "contactShadowColor": [0.16, 0.10, 0.08]},
+}

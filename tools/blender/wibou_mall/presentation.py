@@ -95,3 +95,16 @@ PRESENTATION = {
     "atmosphere": {"background": [0.05, 0.06, 0.12], "ambientSky": [0.46, 0.47, 0.58], "ambientGround": [0.36, 0.30, 0.26],
                    "ambientIntensity": 1, "fog": True, "fogColor": [0.10, 0.11, 0.20], "fogStart": 70, "fogEnd": 260},
 }
+
+# The stage's look (owner 2026-11-11: every stage gets one). Fields: stagekit/presentation.py.
+# Neon after closing time: signs glow, the vault and walls sit back. No far blur: the whole mall is the route.
+PRESENTATION["look"] = {
+    "grade": {"tonemap": "neutral", "bloomThreshold": 0.85, "bloomIntensity": 1.3, "bloomScatter": 0.70, "contrast": 10,
+              "saturation": 8, "splitShadows": [0.44, 0.44, 0.60], "splitHighlights": [0.58, 0.52, 0.48], "splitBalance": -10,
+              "vignette": 0.24, "vignetteColor": [0.03, 0.02, 0.06]},
+    "tints": {"Vault": [0.80, 0.80, 0.88], "Walls": [0.86, 0.86, 0.92]},
+    # Arcade cyan on one edge, shopfront amber on the other.
+    "fighters": {"kickA": {"color": [0.50, 0.85, 1.0], "direction": [0.6, 0.4, 0.6], "strength": 1.4},
+                 "kickB": {"color": [1.0, 0.80, 0.58], "direction": [-0.6, 0.5, -0.6], "strength": 1.3},
+                 "kickPower": 2.6, "lift": 0.07, "lampCap": 1.6, "contactShadow": 0.45, "contactShadowColor": [0.04, 0.04, 0.09]},
+}

@@ -78,3 +78,23 @@ PRESENTATION = {
                   'fog':True,'fogColor':[.095,.060,.034],'fogStart':35,'fogEnd':155},
     'cameras':CAMERAS,
 }
+
+# The stage's look (owner 2026-11-11: every stage gets one). Fields: stagekit/presentation.py.
+# The broadcast deck under its own lamp, as in the Slop Pit: the warehouse and the audience sit back.
+# The CRT walls and the host booth stay sharp and untinted, because the show reads from them.
+QUIET = [0.72, 0.70, 0.68]
+PRESENTATION["look"] = {
+    "grade": {"tonemap": "neutral", "bloomThreshold": 0.9, "bloomIntensity": 0.9, "bloomScatter": 0.65, "contrast": 12,
+              "saturation": 6, "filter": [1.0, 0.97, 0.93], "splitShadows": [0.50, 0.47, 0.44],
+              "splitHighlights": [0.56, 0.52, 0.46], "splitBalance": 0, "vignette": 0.26, "vignetteColor": [0.03, 0.02, 0.01]},
+    "farBlur": {"start": 58, "end": 140, "radius": 0.9},
+    "tints": {"Audience": QUIET, "Audience Fences": QUIET, "Scaffold Stands": QUIET, "Warehouse": QUIET,
+              "Side Identities": [0.85, 0.84, 0.83], "Venue Backlight": [0.9, 0.9, 0.9], "Warehouse Light Pools": [0.9, 0.9, 0.9]},
+    "pools": [{"position": [0, 20, 0], "direction": [0, -1, 0], "color": [1.0, 0.9, 0.72],
+               "intensity": 300, "range": 40, "angle": 52, "innerAngle": 28}],
+    "dust": {"count": 300, "center": [0, 6, 0], "size": [14, 10, 14], "color": [1.0, 0.92, 0.75, 0.6]},
+    # Tungsten from above, the cold light of the screens from behind.
+    "fighters": {"kickA": {"color": [1.0, 0.84, 0.58], "direction": [-0.4, 1, -0.3], "strength": 1.5},
+                 "kickB": {"color": [0.55, 0.85, 1.0], "direction": [0.6, 0.1, 0.8], "strength": 1.0},
+                 "kickPower": 2.6, "lift": 0.06, "lampCap": 1.0, "contactShadow": 0.45, "contactShadowColor": [0.08, 0.06, 0.04]},
+}
