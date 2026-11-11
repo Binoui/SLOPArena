@@ -26,6 +26,7 @@ namespace SlopArena.Client.Workshop
         private PlayerRenderer _renderer = null!;
         private string _packageId = "";
         private bool _pending;
+        private int _selection;
         private CancellationTokenSource? _cancel;
         private ImportedSwapModel? _worn;
 
@@ -39,6 +40,7 @@ namespace SlopArena.Client.Workshop
         /// <summary>Called whenever a renderer is (re)configured for a fighter; the swap follows on the next frame.</summary>
         public static void Track(PlayerRenderer renderer, string packageId)
         {
+            ModelSwapLaunchOptions.Refresh();
             var swap = renderer.GetComponent<FighterModelSwap>() ?? renderer.gameObject.AddComponent<FighterModelSwap>();
             swap.Restart(renderer, packageId);
         }
@@ -46,7 +48,8 @@ namespace SlopArena.Client.Workshop
         private void Restart(PlayerRenderer renderer, string packageId)
         {
             bool unchanged = Phase == ModelSwapPhase.Worn && _worn?.Root != null && renderer.IsWearing(_worn.Root)
-                && packageId == _packageId;
+                && packageId == _packageId
+                && ReferenceEquals(ModelSwapLibrary.ChoiceFor(renderer.PlayerNumber), Choice);
             _renderer = renderer;
             _packageId = packageId;
             if (unchanged) return;
@@ -65,8 +68,14 @@ namespace SlopArena.Client.Workshop
             }
             if (!_pending) return;
             _pending = false;
-            if (MatchConfig.ModelSwaps.TryGetValue(_renderer.PlayerNumber, out var choice))
-                Begin(choice);
+            SelectChoice();
+        }
+
+        private async void SelectChoice()
+        {
+            int selection = _selection;
+            await ModelSwapLibrary.Ready;
+            if (selection == _selection && this != null && ModelSwapLibrary.ChoiceFor(_renderer.PlayerNumber) is { } choice) Begin(choice);
         }
 
         // A swap must never throw into the match: anything unexpected becomes a refusal.
@@ -89,6 +98,7 @@ namespace SlopArena.Client.Workshop
             Choice = choice;
             Refusal = null;
             Stats = null;
+            if (choice.BasePackageId != null && choice.BasePackageId != _packageId) return;
             if (!ModelSwapBases.Accepts(_packageId, out string notReady))
             {
                 Refuse(ModelSwapRefusalReason.BaseFighterNotReady, notReady, clock);
@@ -108,7 +118,7 @@ namespace SlopArena.Client.Workshop
             {
                 var token = cancel.Token;
                 var (glb, boneMap) = await Task.Run(() => Read(choice, token), token);
-                result = await ModelSwapImporter.ImportAsync(glb, boneMap, target, token);
+                result = await ModelSwapImporter.ImportAsync(glb, boneMap, target, token, filePrechecked: choice.BasePackageId != null);
             }
             catch (OperationCanceledException)
             {
@@ -119,7 +129,7 @@ namespace SlopArena.Client.Workshop
                 if (cancel == _cancel) Refuse(ModelSwapRefusalReason.FileLimits, tooLarge.Message, clock);
                 return;
             }
-            catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or ArgumentException or NotSupportedException)
+            catch (Exception exception) when (exception is IOException or InvalidDataException or UnauthorizedAccessException or ArgumentException or NotSupportedException)
             {
                 if (cancel == _cancel) Refuse(ModelSwapRefusalReason.FileUnreadable, exception.Message, clock);
                 return;
@@ -166,6 +176,7 @@ namespace SlopArena.Client.Workshop
         // Runs on a worker thread. Sizes are checked before a byte is read, and a dropped swap stops the read.
         private static async Task<(byte[] Glb, string? BoneMap)> Read(ModelSwapChoice choice, CancellationToken cancel)
         {
+            if (choice.BasePackageId != null) return WorkshopLibrary.Verify(Path.GetDirectoryName(choice.GlbPath)!).Payload(choice.BasePackageId);
             byte[] glb = await ReadCapped(choice.GlbPath, WorkshopGlbLimits.Default.MaxFileBytes, "glb.limit.file-bytes", cancel);
             string? boneMap = null;
             if (choice.BoneMapPath is { } path)
@@ -209,6 +220,7 @@ namespace SlopArena.Client.Workshop
         /// <summary>Stop any import and give the fighter its built-in model back.</summary>
         public void Drop()
         {
+            _selection++;
             _pending = false;
             _cancel?.Cancel();
             _cancel = null;
@@ -224,6 +236,7 @@ namespace SlopArena.Client.Workshop
 
         private void OnDestroy()
         {
+            _selection++;
             _cancel?.Cancel();
             _cancel = null;
             if (_worn == null) return;

@@ -24,7 +24,7 @@ flag, and for a model swap the base fighter's package ID. A strict codec refuses
 missing fields, and wrong hashes with a named diagnostic. The hash map also goes into the item's
 Steam metadata, which queries return without a download.
 
-- **`model-swap`** holds `item.json` and one GLB. It names the base fighter by package ID only,
+- **`model-swap`** holds `item.json`, one GLB, and an optional `humanoid.json` bone map. It names the base fighter by package ID only,
   because it never reaches the simulation.
 - **`fighter`** holds the four cooked files, one GLB, a portrait, and the editable source. Its
   bindings use a new schema that names GLB clips and `slop.*` IDs.

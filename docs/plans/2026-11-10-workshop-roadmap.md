@@ -261,6 +261,19 @@ what happens to published items when the cooked schema changes. Attach the evide
   changes with this step. For now a swap comes from the `-modelSwap` launch option or the
   `ModelSwaps` folder. Not done: the Steam Deck frame time, the Workshop screen (1.4), Fighter
   Select (1.5), and online (1.6).
+- 2026-11-11. Step 1.4 built: a Workshop screen on Home, described in
+  [model swaps](../systems/model-swaps.md). A player imports a GLB into a local library,
+  previews it in Training, wears it across launches, publishes or updates it on Steam, and lists
+  published and subscribed items. The Steam calls sit in `SteamWorkshopClient`, which has no
+  Unity types; a console program drove it against real Steam to publish, update, list, download,
+  and verify one private item. A model swap item may now carry an optional `humanoid.json`. A
+  cross-model review found ten defects, among them a preview that leaked into later matches, a
+  saved choice that followed entity 1 online, hashing on the main thread, and updates that could
+  widen an item's visibility. All ten are fixed with a test or a player-build run. In a Playtest
+  build the Steam parts say the Workshop is not available, because the Workshop lives on the
+  store app. The owner chose to merge the screen with its plain look and restyle it with Fighter
+  Select in step 1.5. Not verified: publishing from the Windows build, controller and Steam Deck
+  input, a long upload, the legal-agreement prompt, and the second-account check.
 
 ## Phase 1. Ship model swaps
 

@@ -12,6 +12,7 @@ namespace SlopArena.Client.UI
         private FrontendPageContext _context = null!;
         private VisualElement? _artworkColumn;
         private ReplayListOverlay? _replays;
+        private WorkshopOverlay? _workshop;
         private VisualElement? _artwork;
 
 
@@ -22,6 +23,7 @@ namespace SlopArena.Client.UI
 
         private void OnEnable()
         {
+            Workshop.ModelSwapLibrary.EndPreview();
             MatchConfig.Reset();
             if (_context == null)
             {
@@ -42,6 +44,16 @@ namespace SlopArena.Client.UI
             _context.AddReleaseAction(() => discordButton.clicked -= OpenDiscord);
             MenuNavigation.Configure(_context, tutorialDone ? _context.Q<Button>("menu-training") : tutorial, ReturnToMainMenu);
             AddReplaysButton();
+            var workshop = new Button(() =>
+            {
+                if (_workshop is { IsOpen: true }) return;
+                VisualElement? host = _context.Q<Button>("menu-online");
+                while (host?.parent?.parent != null) host = host.parent;
+                if (host != null) _workshop = new WorkshopOverlay(host, _context);
+            }) { name = "menu-workshop", text = "WORKSHOP" };
+            workshop.AddToClassList("menu-action");
+            _context.Q<Button>("menu-online")?.parent.Add(workshop);
+            _context.AddReleaseAction(() => { workshop.RemoveFromHierarchy(); _workshop?.Close(); });
             _artworkColumn = _context.Q<VisualElement>("menu-artwork-column");
             _artwork = _context.Q<VisualElement>("menu-artwork");
             _artworkColumn?.RegisterCallback<GeometryChangedEvent>(FitArtwork);

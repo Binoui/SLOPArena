@@ -38,6 +38,26 @@ public class WorkshopItemManifestTests
     [Fact] public void InvalidJsonIsRefused() => Assert.Contains(WorkshopItemManifestCodec.Read(Encoding.UTF8.GetBytes("{" )).Diagnostics, x => x.Code == "item.json");
     [Fact] public void NonObjectIsRefused() => Assert.Contains(WorkshopItemManifestCodec.Read(Encoding.UTF8.GetBytes("[]")).Diagnostics, x => x.Code == "item.type");
     [Fact] public void EmptyVersionIsRefused() { var o = Valid(); o["itemVersion"] = ""; Refuses(o, "item.version.invalid"); }
+    [Fact] public void BoneMapTravelsWithModelAndIsVerified()
+    {
+        var o = Valid();
+        var map = Encoding.UTF8.GetBytes("{bone map}");
+        o["payloads"]!["humanoid.json"] = WorkshopItemManifestCodec.HashPayload(map);
+        var m = Read(o).Manifest!;
+        Assert.NotNull(m);
+        Assert.Equal(2, WorkshopItemManifestCodec.Read(WorkshopItemManifestCodec.Write(m)).Manifest!.Payloads.Count);
+        var files = new Dictionary<string, byte[]> { ["model.glb"] = new byte[] { 1, 2 }, ["humanoid.json"] = map };
+        Assert.Empty(WorkshopItemManifestCodec.Verify(m, files));
+        files["humanoid.json"] = Array.Empty<byte>();
+        Assert.Contains(WorkshopItemManifestCodec.Verify(m, files), x => x.Code == "item.payload.mismatch");
+        files.Remove("humanoid.json");
+        Assert.Contains(WorkshopItemManifestCodec.Verify(m, files), x => x.Code == "item.payload.missing");
+    }
+    [Theory] [InlineData("other.json")] [InlineData("Humanoid.json")]
+    public void OnlyCanonicalBoneMapNameIsAccepted(string name)
+    { var o = Valid(); o["payloads"]![name] = new string('a', 64); Refuses(o, "item.payload.shape"); }
+    [Fact] public void BoneMapWithoutModelIsRefused()
+    { var o = Valid(); o["payloads"] = new JsonObject { ["humanoid.json"] = new string('a', 64) }; Refuses(o, "item.payload.shape"); }
     [Fact] public void MultiplePayloadsAreRefused() { var o = Valid(); o["payloads"]!["second.glb"] = new string('a', 64); Refuses(o, "item.payload.shape"); }
     [Fact] public void NonGlbPayloadIsRefused() { var o = Valid(); o["payloads"] = new JsonObject { ["model.png"] = new string('a', 64) }; Refuses(o, "item.payload.shape"); }
     [Fact] public void MissingPayloadIsRefused() => Assert.Contains(WorkshopItemManifestCodec.Verify(Read(Valid()).Manifest!, new Dictionary<string, byte[]>()), x => x.Code == "item.payload.missing");

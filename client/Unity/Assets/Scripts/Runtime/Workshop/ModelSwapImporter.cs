@@ -156,9 +156,9 @@ namespace SlopArena.Client.Workshop
         public static int TextureMaxSide = 1024;
 
         public static async Task<ModelSwapImportResult> ImportAsync(
-            byte[] glb, string? boneMapJson, ModelSwapTarget target, CancellationToken cancel)
+            byte[] glb, string? boneMapJson, ModelSwapTarget target, CancellationToken cancel, bool filePrechecked = false)
         {
-            if (FilePrecheck(glb) is { } limits)
+            if (!filePrechecked && await Task.Run(() => FilePrecheck(glb), cancel) is { } limits)
                 return ModelSwapImportResult.Refuse(ModelSwapRefusalReason.FileLimits, limits);
             var model = new ImportedSwapModel();
             try
