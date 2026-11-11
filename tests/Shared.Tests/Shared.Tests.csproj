@@ -44,5 +44,7 @@
     <Compile Include="../../client/Unity/Assets/Scripts/Runtime/Workshop/WorkshopLibrary.cs" Link="Workshop/WorkshopLibrary.cs" />
     <Compile Include="../../client/Unity/Assets/Scripts/Runtime/Workshop/ModelSwapBases.cs" Link="Workshop/ModelSwapBases.cs" />
     <Compile Include="../../client/Unity/Assets/Scripts/Runtime/Workshop/WorkshopPublishEdits.cs" Link="Workshop/WorkshopPublishEdits.cs" />
+    <Compile Include="../../client/Unity/Assets/Scripts/Runtime/UI/UiModalState.cs" Link="UI/UiModalState.cs" />
+    <Compile Include="../../client/Unity/Assets/Scripts/Runtime/UI/MenuChoice.cs" Link="UI/MenuChoice.cs" />
   </ItemGroup>
 </Project>
