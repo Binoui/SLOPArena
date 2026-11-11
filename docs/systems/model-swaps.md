@@ -123,3 +123,47 @@ Shared coverage is `HumanoidBoneMapTests`, `PngShrinkTests` and
 `WorkshopGlbPrecheckTests`. Swaps only run in a Unity player or the Editor, so the
 step 1.3 check is a player build that wears a model on each accepted fighter in a
 real match beside an unswapped one.
+
+## Workshop screen and local library
+
+Home's **Workshop** button opens a controller-focusable overlay. **Import from disk**
+lists GLBs from `Workshop/Import` under `Application.persistentDataPath`, opens that
+folder, or accepts a typed path. Each text field has a controller keyboard button
+that calls Steam's gamepad keyboard when Steam is available.
+
+Import chooses an admitted base fighter from `ModelSwapBases`, checks the GLB through
+the runtime importer, and saves `Workshop/Items/<local-id>/item.json`, `model.glb`,
+and an optional `humanoid.json`. The manifest hashes both payloads. Title defaults
+to the source filename. Creator defaults to the Steam persona. License, attribution,
+and the AI-assisted flag are set during import. The screen renders a 512-pixel
+portrait from the imported model. The portrait and publish settings sit beside the
+item folder, outside its hashed payload.
+
+**Preview in Training** starts the base fighter with player 1 wearing the item.
+**Wear on player 1** persists the choice. **Take off player 1 model** removes it.
+`ModelSwapLibrary.Wear(player, item)` and `WorkshopLibrary.Worn(player)` are the
+per-player API for later Fighter Select and Room integration. A saved item is checked
+again at launch and before the fighter imports it. A choice only dresses its declared
+base fighter. Launch arguments still override saved choices for testing.
+
+`WorkshopLibrary.Verify` reads bounded files and checks the manifest, hashes and GLB
+precheck in that order. The importer then checks the avatar before an item is accepted
+or offered to wear. A refusal displays the named diagnostic and offers no wear action.
+Item folders contain only the manifest and its declared payloads.
+
+`SteamWorkshopClient` contains no Unity types. Its host initializes Steam and pumps
+callbacks. In the player, `ChatSession` owns both. Workshop uses app 5324910 only.
+A Playtest or offline build keeps local import, preview and wear, and explains that
+Steam Workshop is unavailable. It does not attempt cross-app publishing.
+
+Publishing creates an item once, remembers its ID as soon as Steam returns it, then
+updates that ID. Uploads include title, description, visibility, type and base tags,
+the compact hash map, the AI-assisted tag when selected, and the rendered portrait.
+The screen shows Steam upload status and byte progress. If Steam requests acceptance
+of its Workshop legal agreement, the item's Steam page opens. The content guidelines
+appear before publishing. The screen defaults to private visibility.
+
+**My items** and **Subscribed** query Steam with pagination and show install state.
+**Download and verify** downloads the selected item, verifies its folder and imports
+its avatar before offering wear and Training. Items that fail show the refusal.
+The item's page and the game's Workshop page open in Steam's overlay.

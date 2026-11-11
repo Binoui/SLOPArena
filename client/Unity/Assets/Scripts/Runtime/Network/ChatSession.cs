@@ -91,6 +91,7 @@ namespace SlopArena.Client.Network
         private Guid _roomTitleId;
         private string _roomTitleName = string.Empty;
         public static ChatSession? Instance => _instance;
+        public bool SteamAvailable => _ownsSteamApi && !_destroyed;
         public event Action? Changed;
         public event Action? AccountChanged;
 

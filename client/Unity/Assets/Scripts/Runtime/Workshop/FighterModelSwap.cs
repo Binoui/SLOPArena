@@ -89,6 +89,7 @@ namespace SlopArena.Client.Workshop
             Choice = choice;
             Refusal = null;
             Stats = null;
+            if (choice.BasePackageId != null && choice.BasePackageId != _packageId) return;
             if (!ModelSwapBases.Accepts(_packageId, out string notReady))
             {
                 Refuse(ModelSwapRefusalReason.BaseFighterNotReady, notReady, clock);
@@ -166,6 +167,7 @@ namespace SlopArena.Client.Workshop
         // Runs on a worker thread. Sizes are checked before a byte is read, and a dropped swap stops the read.
         private static async Task<(byte[] Glb, string? BoneMap)> Read(ModelSwapChoice choice, CancellationToken cancel)
         {
+            if (choice.BasePackageId != null) WorkshopLibrary.Verify(Path.GetDirectoryName(choice.GlbPath)!);
             byte[] glb = await ReadCapped(choice.GlbPath, WorkshopGlbLimits.Default.MaxFileBytes, "glb.limit.file-bytes", cancel);
             string? boneMap = null;
             if (choice.BoneMapPath is { } path)

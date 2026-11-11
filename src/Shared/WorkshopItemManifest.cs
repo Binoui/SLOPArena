@@ -97,8 +97,9 @@ public static class WorkshopItemManifestCodec
                 if (!MatchContentCatalogBuilder.IsSha(hash)) d.Add(Error("item.payload.hash", p.Name, "Expected 64 lowercase hexadecimal SHA-256 characters."));
                 payloads[p.Name] = hash;
             }
-            if (payloads.Count != 1 || payloads.Keys.Any(x => !x.EndsWith(".glb", StringComparison.OrdinalIgnoreCase)))
-                d.Add(Error("item.payload.shape", "payloads", "Model swap requires exactly one .glb payload."));
+            if (payloads.Keys.Count(x => x.EndsWith(".glb", StringComparison.OrdinalIgnoreCase)) != 1 ||
+                payloads.Keys.Any(x => !x.EndsWith(".glb", StringComparison.OrdinalIgnoreCase) && x != "humanoid.json"))
+                d.Add(Error("item.payload.shape", "payloads", "Model swap requires one .glb and optionally humanoid.json."));
             return new(d.Count == 0 ? new WorkshopItemManifest(version, type, itemVersion, payloads, creator, license, attribution, ai.ValueKind == JsonValueKind.True, baseId) : null, d.AsReadOnly());
         }
         catch (JsonException ex) { return Fail("item.json", "item.json", ex.Message); }

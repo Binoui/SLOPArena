@@ -13,7 +13,8 @@ namespace SlopArena.Client.Workshop
     /// </summary>
     public sealed class ModelSwapChoice
     {
-        public ModelSwapChoice(string glbPath) => GlbPath = glbPath;
+        public ModelSwapChoice(string glbPath, string? basePackageId = null) { GlbPath = glbPath; BasePackageId = basePackageId; }
+        public string? BasePackageId { get; }
 
         public string GlbPath { get; }
 
@@ -47,6 +48,7 @@ namespace SlopArena.Client.Workshop
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
         private static void Apply()
         {
+            ModelSwapLibrary.Fill(MatchConfig.ModelSwaps);
             Fill(MatchConfig.ModelSwaps, Environment.GetCommandLineArgs(), FolderPath);
             foreach (var pair in MatchConfig.ModelSwaps)
                 Debug.Log($"[ModelSwap] P{pair.Key} will wear {pair.Value.GlbPath}");
