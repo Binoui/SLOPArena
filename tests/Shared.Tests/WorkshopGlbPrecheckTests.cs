@@ -9,12 +9,13 @@ namespace SlopArena.Shared.Tests;
 public class WorkshopGlbPrecheckTests
 {
     private static JsonObject Valid() => JsonNode.Parse("""
-        {"asset":{"version":"2.0"},"buffers":[{"byteLength":36}],"bufferViews":[{"buffer":0,"byteLength":36}],
-        "accessors":[{"count":3}],"meshes":[{"primitives":[{"attributes":{"POSITION":0}}]}],
+        {"asset":{"version":"2.0"},"buffers":[{"byteLength":72}],"bufferViews":[{"buffer":0,"byteLength":36},{"buffer":0,"byteOffset":36,"byteLength":36}],
+        "accessors":[{"bufferView":1,"componentType":5126,"type":"VEC3","count":3}],"meshes":[{"primitives":[{"attributes":{"POSITION":0}}]}],
         "nodes":[{"mesh":0,"skin":0}],"skins":[{"joints":[0]}],"materials":[{}],"images":[{"bufferView":0,"mimeType":"image/png"}]}
         """)!.AsObject();
     private static byte[] Png(int w = 16, int h = 8) { var b = new byte[36]; new byte[] { 137,80,78,71,13,10,26,10,0,0,0,13,73,72,68,82 }.CopyTo(b, 0); BinaryPrimitives.WriteInt32BigEndian(b.AsSpan(16), w); BinaryPrimitives.WriteInt32BigEndian(b.AsSpan(20), h); return b; }
-    private static byte[] Glb(JsonObject? o = null, byte[]? bin = null) => Container(Encoding.UTF8.GetBytes((o ?? Valid()).ToJsonString()), bin ?? Png());
+    // The BIN chunk holds the 36-byte image (buffer view 0) and three float positions (buffer view 1).
+    private static byte[] Glb(JsonObject? o = null, byte[]? bin = null) => Container(Encoding.UTF8.GetBytes((o ?? Valid()).ToJsonString()), (bin ?? Png()).Concat(new byte[36]).ToArray());
     private static byte[] Container(byte[] json, byte[] bin)
     {
         int j = (json.Length + 3) & ~3, b = (bin.Length + 3) & ~3;
@@ -25,7 +26,7 @@ public class WorkshopGlbPrecheckTests
     }
     private static void Refuses(byte[] b, string code, WorkshopGlbLimits? limits = null) { var r = WorkshopGlbPrecheck.Check(b, limits ?? WorkshopGlbLimits.Default); Assert.False(r.IsAccepted); Assert.Contains(r.Diagnostics, x => x.Code == code); }
     [Fact] public void MeasuresValidSkinnedGlb() { var r = WorkshopGlbPrecheck.Check(Glb(), WorkshopGlbLimits.Default); Assert.True(r.IsAccepted, string.Join(",", r.Diagnostics)); Assert.Equal(1, r.Measurements.Triangles); Assert.Equal(3, r.Measurements.Vertices); Assert.Equal(1, r.Measurements.Nodes); Assert.Equal(1, r.Measurements.MaxJoints); Assert.Equal(1, r.Measurements.Materials); Assert.Equal(1, r.Measurements.Images); Assert.Equal(new WorkshopGlbImageSize(16, 8), Assert.Single(r.Measurements.ImageSizes)); }
-    [Fact] public void IndexedPrimitiveUsesIndexCount() { var o = Valid(); o["accessors"]!.AsArray().Add(new JsonObject { ["count"] = 12 }); o["meshes"]![0]!["primitives"]![0]!["indices"] = 1; var r = WorkshopGlbPrecheck.Check(Glb(o), WorkshopGlbLimits.Default); Assert.True(r.IsAccepted); Assert.Equal(4, r.Measurements.Triangles); Assert.Equal(3, r.Measurements.Vertices); }
+    [Fact] public void IndexedPrimitiveUsesIndexCount() { var o = Valid(); o["accessors"]!.AsArray().Add(new JsonObject { ["bufferView"] = 1, ["componentType"] = 5123, ["type"] = "SCALAR", ["count"] = 12 }); o["meshes"]![0]!["primitives"]![0]!["indices"] = 1; var r = WorkshopGlbPrecheck.Check(Glb(o), WorkshopGlbLimits.Default); Assert.True(r.IsAccepted); Assert.Equal(4, r.Measurements.Triangles); Assert.Equal(3, r.Measurements.Vertices); }
     [Theory] [InlineData(5)] [InlineData(6)] public void StripAndFanTrianglesAreCounted(int mode) { var o = Valid(); o["accessors"]![0]!["count"] = 8; o["meshes"]![0]!["primitives"]![0]!["mode"] = mode; Assert.Equal(6, WorkshopGlbPrecheck.Check(Glb(o), WorkshopGlbLimits.Default).Measurements.Triangles); }
     [Fact] public void BadMagicIsRefused() { var b = Glb(); b[0] = 0; Refuses(b, "glb.container"); }
     [Fact] public void BadVersionIsRefused() { var b = Glb(); b[4] = 1; Refuses(b, "glb.container"); }
@@ -51,7 +52,7 @@ public class WorkshopGlbPrecheckTests
     [Theory] [InlineData("buffers", "file.bin")] [InlineData("buffers", "data:application/octet-stream;base64,AA==")] [InlineData("images", "file.png")] [InlineData("images", "data:image/png;base64,AA==")]
     public void ResourceUrisAreRefused(string array, string uri) { var o = Valid(); o[array]![0]!["uri"] = uri; Refuses(Glb(o), "glb.uri"); }
     [Fact] public void BufferOutsideFileIsRefused() { var o = Valid(); o["buffers"]![0]!["byteLength"] = 1000; Refuses(Glb(o), "glb.buffer.bounds"); }
-    [Fact] public void ImageViewOutsideFileIsRefused() { var o = Valid(); o["bufferViews"]![0]!["byteOffset"] = 35; Refuses(Glb(o), "glb.buffer.bounds"); }
+    [Fact] public void ImageViewOutsideFileIsRefused() { var o = Valid(); o["bufferViews"]![0]!["byteOffset"] = 71; Refuses(Glb(o), "glb.buffer.bounds"); }
     [Fact] public void UnsupportedImageFormatIsRefused() => Refuses(Glb(bin: new byte[36]), "glb.image.format");
     [Fact] public void MimeMismatchIsRefused() { var o = Valid(); o["images"]![0]!["mimeType"] = "image/ktx2"; Refuses(Glb(o), "glb.image.format"); }
     [Theory] [InlineData("KHR_draco_mesh_compression")] [InlineData("EXT_meshopt_compression")] [InlineData("KHR_texture_basisu")]
@@ -95,4 +96,48 @@ public class WorkshopGlbPrecheckTests
         var json = Valid().ToJsonString().Replace("\"asset\":", "\"asset\":{},\"asset\":");
         Refuses(Container(Encoding.UTF8.GetBytes(json), Png()), "glb.structure");
     }
+
+    // A node graph must be a forest: glTFast follows parent links and recurses through children without bounds.
+    private static JsonObject WithNodes(string nodes, string? scenes = null)
+    {
+        var o = Valid();
+        o["nodes"] = JsonNode.Parse(nodes);
+        if (scenes != null) o["scenes"] = JsonNode.Parse(scenes);
+        return o;
+    }
+    [Fact] public void ATreeOfNodesIsAccepted() { var r = WorkshopGlbPrecheck.Check(Glb(WithNodes("""[{"children":[1,2]},{"mesh":0,"skin":0},{"children":[3]},{}]""", """[{"nodes":[0]}]""")), WorkshopGlbLimits.Default); Assert.True(r.IsAccepted, string.Join(",", r.Diagnostics)); }
+    [Fact] public void ChildOutOfRangeIsRefused() => Refuses(Glb(WithNodes("""[{"mesh":0,"skin":0,"children":[5]}]""")), "glb.nodes.forest");
+    [Fact] public void NodeWithTwoParentsIsRefused() => Refuses(Glb(WithNodes("""[{"mesh":0,"skin":0,"children":[2]},{"children":[2]},{}]""")), "glb.nodes.forest");
+    [Fact] public void NodeThatIsItsOwnChildIsRefused() => Refuses(Glb(WithNodes("""[{"mesh":0,"skin":0,"children":[0]}]""")), "glb.nodes.forest");
+    [Fact] public void TwoNodeCycleIsRefused() => Refuses(Glb(WithNodes("""[{"mesh":0,"skin":0,"children":[1]},{"children":[0]}]""")), "glb.nodes.forest");
+    [Fact] public void SceneRootThatIsAChildIsRefused() => Refuses(Glb(WithNodes("""[{"mesh":0,"skin":0,"children":[1]},{}]""", """[{"nodes":[0,1]}]""")), "glb.nodes.forest");
+    [Fact] public void SceneListingARootTwiceIsRefused() => Refuses(Glb(WithNodes("""[{"mesh":0,"skin":0}]""", """[{"nodes":[0,0]}]""")), "glb.nodes.forest");
+    [Fact] public void SceneRootOutOfRangeIsRefused() => Refuses(Glb(WithNodes("""[{"mesh":0,"skin":0}]""", """[{"nodes":[3]}]""")), "glb.nodes.forest");
+    [Fact] public void DefaultSceneOutOfRangeIsRefused() { var o = WithNodes("""[{"mesh":0,"skin":0}]""", """[{"nodes":[0]}]"""); o["scene"] = 1; Refuses(Glb(o), "glb.structure"); }
+    [Fact] public void SkeletonOutOfRangeIsRefused() { var o = Valid(); o["skins"]![0]!["skeleton"] = 9; Refuses(Glb(o), "glb.structure"); }
+    [Fact] public void InstancedNodeIsRefused() { var o = Valid(); o["nodes"]![0]!["extensions"] = JsonNode.Parse("""{"EXT_mesh_gpu_instancing":{"attributes":{}}}"""); Refuses(Glb(o), "glb.extension.instancing"); }
+    [Fact] public void ALongChainIsAcceptedAndALongCycleRefused()
+    {
+        var chain = new JsonArray();
+        for (int i = 0; i < 299; i++) chain.Add(new JsonObject { ["children"] = new JsonArray(i + 1) });
+        chain.Add(new JsonObject { ["mesh"] = 0, ["skin"] = 0 });
+        var o = Valid(); o["nodes"] = chain;
+        Assert.True(WorkshopGlbPrecheck.Check(Glb(o), WorkshopGlbLimits.Default).IsAccepted);
+        chain[299]!["children"] = new JsonArray(0);
+        Refuses(Glb(o), "glb.nodes.forest");
+    }
+
+    // glTFast sizes allocations from accessor counts, including animation accessors it loads with clips off.
+    [Fact] public void AccessorPastItsViewIsRefused() { var o = Valid(); o["accessors"]![0]!["count"] = 4; Refuses(Glb(o), "glb.accessor.bounds"); }
+    [Fact] public void AccessorOffsetPastItsViewIsRefused() { var o = Valid(); o["accessors"]![0]!["byteOffset"] = 4; Refuses(Glb(o), "glb.accessor.bounds"); }
+    [Fact] public void AccessorWithoutAViewIsRefused() { var o = Valid(); o["accessors"]![0]!.AsObject().Remove("bufferView"); Refuses(Glb(o), "glb.accessor.bounds"); }
+    [Fact] public void UnknownComponentTypeIsRefused() { var o = Valid(); o["accessors"]![0]!["componentType"] = 5124; Refuses(Glb(o), "glb.accessor.bounds"); }
+    [Fact] public void UnknownAccessorTypeIsRefused() { var o = Valid(); o["accessors"]![0]!["type"] = "VEC5"; Refuses(Glb(o), "glb.accessor.bounds"); }
+    [Fact] public void StrideNarrowerThanTheElementIsRefused() { var o = Valid(); o["bufferViews"]![1]!["byteStride"] = 4; Refuses(Glb(o), "glb.accessor.bounds"); }
+    [Fact] public void StridedAccessorIsMeasuredByItsStride() { var o = Valid(); o["bufferViews"]![1]!["byteStride"] = 16; Refuses(Glb(o), "glb.accessor.bounds"); o["accessors"]![0]!["count"] = 2; o["meshes"]![0]!["primitives"]![0]!["mode"] = 0; Assert.True(WorkshopGlbPrecheck.Check(Glb(o), WorkshopGlbLimits.Default).IsAccepted); }
+    [Fact] public void AnimationAccessorPastItsViewIsRefused() { var o = Valid(); o["accessors"]!.AsArray().Add(new JsonObject { ["bufferView"] = 1, ["componentType"] = 5126, ["type"] = "SCALAR", ["count"] = 100000000 }); Refuses(Glb(o), "glb.accessor.bounds"); }
+    [Fact] public void SparseAccessorIsRefused() { var o = Valid(); o["accessors"]![0]!["sparse"] = JsonNode.Parse("""{"count":1}"""); Refuses(Glb(o), "glb.accessor.sparse"); }
+    [Fact] public void MorphTargetsAreRefused() { var o = Valid(); o["meshes"]![0]!["primitives"]![0]!["targets"] = JsonNode.Parse("""[{"POSITION":0}]"""); Refuses(Glb(o), "glb.morph-targets"); }
+    [Fact] public void AttributeCountingOtherVerticesIsRefused() { var o = Valid(); o["accessors"]!.AsArray().Add(new JsonObject { ["bufferView"] = 1, ["componentType"] = 5126, ["type"] = "VEC3", ["count"] = 2 }); o["meshes"]![0]!["primitives"]![0]!["attributes"]!["NORMAL"] = 1; Refuses(Glb(o), "glb.accessor.count"); }
+    [Fact] public void InverseBindMatricesMustMatchTheJoints() { var o = Valid(); o["accessors"]!.AsArray().Add(new JsonObject { ["bufferView"] = 1, ["componentType"] = 5121, ["type"] = "MAT4", ["count"] = 2 }); o["skins"]![0]!["inverseBindMatrices"] = 1; Refuses(Glb(o), "glb.skin.inverse-bind"); }
 }
