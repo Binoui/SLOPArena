@@ -47,7 +47,8 @@ namespace SlopArena.Client.Workshop
         private void Restart(PlayerRenderer renderer, string packageId)
         {
             bool unchanged = Phase == ModelSwapPhase.Worn && _worn?.Root != null && renderer.IsWearing(_worn.Root)
-                && packageId == _packageId;
+                && packageId == _packageId
+                && MatchConfig.ModelSwaps.TryGetValue(renderer.PlayerNumber, out var current) && ReferenceEquals(current, Choice);
             _renderer = renderer;
             _packageId = packageId;
             if (unchanged) return;
