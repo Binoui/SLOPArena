@@ -55,7 +55,7 @@ public static class AuthoringReference
             var kind = arm.Pattern.DescendantNodesAndSelf().OfType<LiteralExpressionSyntax>().FirstOrDefault()?.Token.ValueText;
             if (kind == null) continue;
             text.AppendLine($"#### `{kind}`\n");
-            
+
             var parseOps = codec.DescendantNodes().OfType<MethodDeclarationSyntax>().Single(x => x.Identifier.Text == "ParseOperations");
             var section = parseOps.DescendantNodes().OfType<SwitchSectionSyntax>().First(x => x.Labels.Any(l => l.ToString().Contains("\"" + kind + "\"")));
             var sourceType = section.DescendantNodes().OfType<ObjectCreationExpressionSyntax>().First().Type.ToString();
