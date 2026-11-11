@@ -291,6 +291,66 @@ declarations are compatibility support, not the current compiler baseline.
 Semantic animation IDs and pose-track IDs are distinct namespaces: validated client
 bindings map loaded pose tracks to runtime semantic lookup IDs.
 
+### Workshop model swap files
+
+A model swap uses `item.json` plus one GLB, separately from the four cooked files.
+[`WorkshopItemManifestCodec`](../../src/Shared/WorkshopItemManifest.cs) reads schema 1.
+Its required fields are `schemaVersion` (integer), `itemType` (`model-swap`),
+`itemVersion` (nonempty string), `payloads` (file name to lowercase SHA-256 object),
+`creator`, `license`, `attribution`, `aiAssisted` (boolean), and
+`baseFighterPackageId` (stable package ID). All text fields are strings.
+`fighter` and `stage` are unsupported. Unknown, duplicate, missing, or incorrectly
+typed fields fail with named diagnostics. The manifest limit is 16,384 bytes;
+text and file names are limited to 1,024 UTF-16 code units. Payload names have no
+separators, colons, control characters, or `..`.
+
+`Read` returns an immutable manifest only on acceptance. `Write` emits compact
+canonical UTF-8 in fixed field order, with ordinal payload ordering. `Verify`
+checks the actual payload map for missing files, extra files, and hash mismatches.
+`HashPayload` computes a payload SHA-256. `TryWriteSteamMetadata` emits the compact
+payload hash object and refuses output of 5,000 UTF-8 bytes or more.
+
+[`WorkshopGlbPrecheck.Check`](../../src/Shared/WorkshopGlbPrecheck.cs) returns
+`IsAccepted`, `CharacterDiagnostic` entries, and `Measurements`. Measurements count
+vertices and triangles per mesh primitive, including repeated accessor references.
+Triangle lists use count divided by three; strips and fans use count minus two.
+Points and lines contribute no triangles. Nodes, materials, and images are array
+lengths; joints are the largest skin's joint array length. A node must reference
+both a mesh and a nonempty skin. PNG IHDR and JPEG frame headers supply each image's
+width and height without image decoding. The check does not establish Humanoid
+compatibility or replace the importer's complete glTF validation.
+
+All buffers and images must be embedded, with bounded buffer views. Every
+`extensionsRequired` entry is refused by name. Container lengths, JSON syntax,
+duplicate JSON properties, depth, indices used by this check, and count arithmetic
+are checked before use. No allocation uses a declared binary count. JSON has a
+configurable size and depth cap, with hard ceilings of 16 MB and depth 128.
+Limit diagnostics include the maximum and measured value. A structurally refused
+file can have partial measurements.
+
+`WorkshopGlbLimits.Default` keeps all defaults in one type. Measurements below
+came from running the check on 2026-11-11 against the seven reference exports and
+the read-only Tripo spike. No model files are included in the tests.
+
+| GLB | File bytes | Triangles | Vertices | Nodes | Largest skin | Materials | Images | Largest image | JSON bytes |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- | ---: |
+| fightguy | 1,683,400 | 8,695 | 23,032 | 45 | 41 | 1 | 1 | 1024 × 1024 | 232,496 |
+| manki | 3,863,948 | 64,250 | 67,398 | 116 | 100 | 9 | 5 | 1024 × 1024 | 453,532 |
+| wibou | 2,138,428 | 38,080 | 37,934 | 60 | 53 | 3 | 3 | 1024 × 1024 | 202,468 |
+| bonk | 4,034,316 | 69,847 | 85,753 | 57 | 45 | 3 | 3 | 1024 × 1024 | 243,004 |
+| bashie | 3,647,016 | 50,627 | 45,957 | 75 | 59 | 7 | 7 | 1024 × 1024 | 328,180 |
+| salamander | 2,575,064 | 31,612 | 29,408 | 75 | 65 | 3 | 3 | 1024 × 1024 | 324,784 |
+| nyx | 7,316,868 | 112,331 | 126,416 | 134 | 116 | 5 | 5 | 1024 × 1024 | 528,816 |
+| dusty (Tripo) | 27,926,692 | 49,274 | 48,813 | 43 | 41 | 1 | 1 | 4096 × 4096 | 38,352 |
+| Default limit | 30,000,000 | 250,000 | 260,000 | 300 | 250 | 20 | 16 | 4096 × 4096 | 1,200,000 |
+
+The pixel limit per image is 16,777,216, and JSON depth defaults to 64.
+Defaults round up near twice the built-in maxima, except file size and texture
+size, which admit the Tripo file. The Tripo file passes. All seven built-in
+exports meet these numerical limits but fail `glb.extension.required` because
+they declare `KHR_mesh_quantization`. Workshop submissions currently need exports
+without required extensions. The defaults remain provisional for owner review.
+
 ## 6. Admit exact content
 
 For new admission, require a successful cook, complete presentation assets, and kit
