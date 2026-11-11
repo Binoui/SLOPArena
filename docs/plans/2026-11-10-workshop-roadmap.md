@@ -63,6 +63,9 @@ No agent can settle these by running something. The owner answered D1, D4, D5, a
 | D5 | Content rules. In Rivals 2, 21 of the 30 most subscribed items are other companies' characters, by my reading of their names. | Decided 2026-11-10: guidelines, not rules. The game has no monetization. Publish short guidelines, add an "AI assisted" tag as Rivals 2 has, and leave rights claims to Steam's takedown process. |
 | D6 | Where Workshop fighters may play online. Nothing checks their balance. | The default stands: only in Rooms whose leader turned Workshop on. |
 | D7 | A glTF importer dependency for the Unity client. `AGENTS.md` requires approval before tools are installed. | Approved for the spike. Check 0.1 picks the package. |
+| D8 | What a made fighter is at first: a remix of an existing kit, a kit built from the engine's parts, or a fully original fighter with its own animations. | Decided 2026-11-11: built from parts. A creator's model with moves assembled from the public building blocks. A remix is the same thing started from a copy. |
+| D9 | How a creator writes moves. | Decided 2026-11-11: a text file first. The goal is that people author either with an editor UI (the Ability Lab, later in the game) or with AI agents working from a reference. Both write the same source file. |
+| D10 | Where a Workshop fighter's animations come from. | Decided 2026-11-11: both the clips in the creator's GLB and a shared library of the game's own clips. Which built-in clips may enter the library depends on who made them and is still open. |
 
 ## Phase 0. Prove four unknowns
 
@@ -274,6 +277,15 @@ what happens to published items when the cooked schema changes. Attach the evide
   store app. The owner chose to merge the screen with its plain look and restyle it with Fighter
   Select in step 1.5. Not verified: publishing from the Windows build, controller and Steam Deck
   input, a long upload, the legal-agreement prompt, and the second-account check.
+- 2026-11-11. QA on the Workshop screen failed on two points, both fixed in PR #349: the menu's
+  modal state now resets at every Play, and the screen's pickers and navigation work with a
+  controller. A real controller and the Steam Deck are still untested.
+- 2026-11-11. Phase 1 is parked after step 1.4 on the owner's word. Steps 1.5 to 1.7 polish
+  skins and do not bring the creator tool closer, which is the point of the Workshop. Step 1.8
+  waits with them. Skins work from the Workshop screen as they are.
+- 2026-11-11. Phase 2 starts with decisions D8 to D10 and one proof before any screen is
+  designed: one custom fighter built from parts, made by hand and taken into a player build, to
+  list what is missing. It is a throwaway and does not merge.
 
 ## Phase 1. Ship model swaps
 
