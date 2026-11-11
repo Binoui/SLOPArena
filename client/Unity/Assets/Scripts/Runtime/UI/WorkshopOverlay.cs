@@ -163,7 +163,11 @@ namespace SlopArena.Client.UI
         private static async Task<ImportedSwapModel> Load(byte[] bytes, string? map)
         {
             var result = await ModelSwapImporter.ImportAsync(bytes, map, new ModelSwapTarget(1, Color.white, AnimatorCullingMode.AlwaysAnimate), CancellationToken.None);
-            if (result.Model == null) throw new InvalidDataException(result.Refusal!.Message);
+            if (result.Model == null)
+            {
+                var check = SlopArena.Shared.WorkshopGlbPrecheck.Check(bytes, SlopArena.Shared.WorkshopGlbLimits.Default);
+                throw new InvalidDataException(check.IsAccepted ? result.Refusal!.Message : string.Join(" ", check.Diagnostics.Select(d => d.Message)));
+            }
             return result.Model;
         }
         private string PreviewPath(WorkshopLibraryItem item) => Path.Combine(_library.Root, Path.GetFileName(item.Folder) + ".png");
