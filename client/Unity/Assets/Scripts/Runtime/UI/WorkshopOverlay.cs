@@ -69,7 +69,7 @@ namespace SlopArena.Client.UI
             if (popup != null) { popup.RemoveFromHierarchy(); FocusBody(); return; }
             var focused = panel?.focusController.focusedElement as VisualElement;
             foreach (var pair in _editButtons)
-                if (focused != null && pair.Key.Contains(focused)) { pair.Key.Blur(); pair.Value.Focus(); return; }
+                if (focused != null && (ReferenceEquals(pair.Key, focused) || pair.Key.Contains(focused))) { pair.Key.Blur(); pair.Value.Focus(); return; }
             Close();
         }
         public void Close()
