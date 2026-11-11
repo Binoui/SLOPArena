@@ -61,6 +61,20 @@ namespace SlopArena.Client.World
         /// <summary>Fighter silhouette colour follows camp, course or seat identity.</summary>
         public static Color RimColorFor(PlayerRenderer renderer) => SeatColours.ForFighter(renderer.EntityId, renderer.PlayerNumber);
 
+        /// <summary>The fighter shader; null when the build lacks it.</summary>
+        public static Shader? FighterShader => Resources.Load<Shader>("Shaders/GraphicCharacter");
+
+        /// <summary>A fighter material with the match's shadow tint and resting rim; callers copy the model's own map, colour and culling.</summary>
+        public static Material CreateFighterMaterial(Shader shader, string name, Color rim)
+        {
+            var material = new Material(shader) { name = name };
+            material.SetColor("_ShadowColor", new Color(0.16f, 0.18f, 0.28f));
+            material.SetColor("_RimColor", rim);
+            material.SetFloat("_RimPower", RimPower);
+            material.SetFloat("_RimStrength", RimStrength);
+            return material;
+        }
+
         private void ApplyAtmosphere()
         {
             RenderSettings.ambientMode = AmbientMode.Trilight;
@@ -156,7 +170,7 @@ namespace SlopArena.Client.World
 
         private void ApplyCharacterMaterials()
         {
-            var shader = Resources.Load<Shader>("Shaders/GraphicCharacter");
+            var shader = FighterShader;
             if (shader == null)
             {
                 Debug.LogWarning("[MatchVisualStyle] SLOPArena/GraphicCharacter shader not found.");
@@ -182,10 +196,7 @@ namespace SlopArena.Client.World
                         if (original == null)
                             continue;
 
-                        var material = new Material(shader)
-                        {
-                            name = original.name + "_GraphicRuntime",
-                        };
+                        var material = CreateFighterMaterial(shader, original.name + "_GraphicRuntime", rimColor);
                         if (original.HasProperty("_BaseMap"))
                         {
                             material.SetTexture("_BaseMap", original.GetTexture("_BaseMap"));
@@ -196,11 +207,6 @@ namespace SlopArena.Client.World
                             material.SetColor("_BaseColor", original.GetColor("_BaseColor"));
                         if (original.HasProperty("_Cull"))
                             material.SetFloat("_Cull", original.GetFloat("_Cull"));
-
-                        material.SetColor("_ShadowColor", new Color(0.16f, 0.18f, 0.28f));
-                        material.SetColor("_RimColor", rimColor);
-                        material.SetFloat("_RimPower", RimPower);
-                        material.SetFloat("_RimStrength", RimStrength);
                         styled[i] = material;
                         _runtimeMaterials.Add(material);
                     }

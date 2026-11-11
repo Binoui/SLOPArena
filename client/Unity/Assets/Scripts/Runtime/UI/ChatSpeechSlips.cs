@@ -205,7 +205,8 @@ namespace SlopArena.Client.UI
             if (!renderer.isActiveAndEnabled || !renderer.gameObject.activeInHierarchy)
                 return false;
 
-            if (!_heads.TryGetValue(entityId, out var head))
+            // A model swap replaces the fighter's model mid-match; its old head is then destroyed.
+            if (!_heads.TryGetValue(entityId, out var head) || head == null)
                 _heads[entityId] = head = renderer.ResolvePresentationBone("bone.head");
             // Just over the presented head; the capsule top is only a fallback.
             Vector3 top = head != null

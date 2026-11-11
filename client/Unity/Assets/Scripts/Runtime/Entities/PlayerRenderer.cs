@@ -417,13 +417,6 @@ namespace SlopArena.Client.Entities
 
         private void ReplaceModel(GameObject instance, AnimancerComponent animancer)
         {
-            _flightUpperLayer = null;
-            if (_flightUpperMask != null)
-            {
-                if (Application.isPlaying) Destroy(_flightUpperMask);
-                else DestroyImmediate(_flightUpperMask);
-                _flightUpperMask = null;
-            }
             HideShield();
             _projectileVFX?.ClearHeldVisual(_entityId);
             for (int i = transform.childCount - 1; i >= 0; i--)
@@ -436,7 +429,19 @@ namespace SlopArena.Client.Entities
                 else
                     DestroyImmediate(child);
             }
+            _weaponSockets = null;
+            AdoptModel(instance, animancer);
+        }
 
+        private void AdoptModel(GameObject instance, AnimancerComponent animancer)
+        {
+            _flightUpperLayer = null;
+            if (_flightUpperMask != null)
+            {
+                if (Application.isPlaying) Destroy(_flightUpperMask);
+                else DestroyImmediate(_flightUpperMask);
+                _flightUpperMask = null;
+            }
             _modelInstance = instance;
             _forms = instance != null ? instance.GetComponentInChildren<FormPresentation>(true) : null;
             _animancer = animancer;
@@ -447,6 +452,124 @@ namespace SlopArena.Client.Entities
             _weaponHips = animator.isHuman
                 ? animator.GetBoneTransform(HumanBodyBones.Hips)
                 : FindBone("mixamorig:Hips");
+        }
+
+        // ── Model swap (ADR-0065): a creator's model plays this fighter's clips; gameplay never sees it ──
+
+        /// <summary>Weapon sockets on a worn model swap by built-in bone name; null while the built-in model shows.</summary>
+        private Dictionary<string, Transform>? _weaponSockets;
+
+        public bool WearsModelSwap => _weaponSockets != null;
+
+        public bool IsWearing(GameObject model) => model != null && _modelInstance == model;
+
+        /// <summary>The socket a weapon on <paramref name="boneName"/> rides while a model swap is worn.</summary>
+        public Transform? WeaponSocket(string boneName)
+            => _weaponSockets != null && _weaponSockets.TryGetValue(boneName, out var socket) ? socket : null;
+
+        /// <summary>
+        /// Wear an imported humanoid model instead of the built-in one. The current clip carries over, weapons move
+        /// to sockets on the new rig, and every presentation the renderer drives follows the new model.
+        /// </summary>
+        public bool WearModel(GameObject model, AnimancerComponent animancer, out string error)
+        {
+            error = "";
+            if (_modelInstance == null || _animancer == null || _charDef == null)
+            {
+                error = "The fighter has no built-in model to replace yet.";
+                return false;
+            }
+            if (animancer == null || animancer.Animator == null || !animancer.Animator.isHuman || !_animancer.Animator.isHuman)
+            {
+                error = "Both models need a humanoid avatar.";
+                return false;
+            }
+            var live = LiveClip();
+            model.transform.SetParent(_modelInstance.transform.parent, false);
+            model.transform.localScale = Vector3.one * _modelVisualScale;
+            _weaponAttach ??= GetComponent<WeaponAttach>();
+            Dictionary<string, Transform> sockets;
+            _hitFeel?.SuspendDeformation();
+            try
+            {
+                _modelInstance.transform.localRotation = Quaternion.identity;
+                _modelInstance.transform.localPosition = Vector3.zero;
+                if (TryGetAnimation(_charDef.IdleAnim, out var idle, out _))
+                {
+                    HoldPose(_animancer, idle);
+                    HoldPose(animancer, idle);
+                }
+                sockets = Workshop.ModelSwapSockets.Build(_animancer.Animator, animancer.Animator,
+                    _weaponAttach != null ? _weaponAttach.BoneNames : Array.Empty<string>());
+            }
+            finally { _hitFeel?.ResumeDeformation(); }
+            DiscardModel(_modelInstance);
+            _weaponSockets = sockets;
+            AdoptModel(model, animancer);
+            ResumeClip(live);
+            return true;
+        }
+
+        /// <summary>Take a worn model swap off and show the built-in model again; the renderer destroys the swap's object.</summary>
+        public void TakeOffModel()
+        {
+            if (!WearsModelSwap || _modelPrefab == null) return;
+            if (!TryCreateModel(_modelPrefab, out var instance, out var animancer, out var error))
+            {
+                Debug.LogError($"[PlayerRenderer] {error}");
+                return;
+            }
+            var live = LiveClip();
+            instance.transform.SetParent(_modelInstance.transform.parent, false);
+            DiscardModel(_modelInstance);
+            _weaponSockets = null;
+            AdoptModel(instance, animancer);
+            ResumeClip(live);
+        }
+
+        private static void HoldPose(AnimancerComponent animancer, AnimationClip clip)
+        {
+            var animator = animancer.Animator;
+            var culling = animator.cullingMode;
+            animator.cullingMode = AnimatorCullingMode.AlwaysAnimate;
+            var state = animancer.Play(clip, 0f);
+            state.Time = 0f;
+            state.Speed = 0f;
+            animancer.Evaluate(0f);
+            animator.cullingMode = culling;
+        }
+
+        private (AnimationClip Clip, float Time, float Speed)? LiveClip()
+            => _animancer != null && _animancer.States.Current is { Clip: { } clip } state
+                ? (clip, state.Time, state.Speed) : null;
+
+        private void ResumeClip((AnimationClip Clip, float Time, float Speed)? live)
+        {
+            _currentAnimState = null;
+            _activeExtrapolator = null;
+            _currentExtrapolationMode = ExtrapolationMode.None;
+            _attackPoseModelOffset = Vector3.zero;
+            ClearTumble();
+            if (live is { } clip)
+            {
+                var state = _animancer.Play(clip.Clip, 0f);
+                state.Time = clip.Time;
+                state.Speed = clip.Speed;
+            }
+            else if (_charDef != null && TryGetAnimation(_charDef.IdleAnim, out var idle, out _))
+                _animancer.Play(idle, 0f);
+            EvaluateScrubbedPose();
+            if (_hasAppliedState) ApplyAttackPoseModel(_lastState);
+            _weaponAttach ??= GetComponent<WeaponAttach>();
+            _weaponAttach?.Rebind();
+        }
+
+        // Out of the hierarchy at once, so this frame's child searches (weapons, x-ray, death blink) find the new model.
+        private static void DiscardModel(GameObject model)
+        {
+            model.transform.SetParent(null, false);
+            model.SetActive(false);
+            Destroy(model);
         }
 
         private void ApplyModelSettings()
@@ -2208,7 +2331,8 @@ namespace SlopArena.Client.Entities
             {
                 float currentTime = (float)_currentAnimState.Time;
                 float clipLength = (float)_currentAnimState.Length;
-                if (currentTime > clipLength)
+                // The extrapolator writes the built-in rig's own bone positions, which a model swap does not share.
+                if (currentTime > clipLength && !WearsModelSwap)
                 {
                     float extraTime = currentTime - clipLength;
                     Transform rootBone = FindBone("mixamorig:Hips");

@@ -65,7 +65,8 @@ namespace SlopArena.Client.Combat
             if (_root == null) return;
             _showDamage = true;
             _objectTarget = null;
-            if (target != _target)
+            // A model swap replaces the target's model mid-match; its old head is then destroyed.
+            if (target != _target || target != null && _targetHead == null)
             {
                 _targetHead = target != null ? target.ResolvePresentationBone("bone.head") : null;
                 _targetRenderers = target != null ? target.GetComponentsInChildren<Renderer>(true)
