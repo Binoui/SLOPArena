@@ -1,6 +1,6 @@
 # ADR-0027: Open-Source ModKit and Installed-Game Preview
 
-**Status:** Accepted — 2026-08-21  
+**Status:** Accepted — 2026-08-21. Amended on 2026-11-11 by [ADR-0064](0064-workshop-creator-route.md): the installed game, not the Unity Editor, is the creator tool.  
 **Deciders:** @Binoui  
 **Related:** ADR-0022 (Workshop-First Content Architecture), ADR-0024 (Creator Gameplay Primitives), ADR-0025 (Workshop Packages)
 
