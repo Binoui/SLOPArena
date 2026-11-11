@@ -321,7 +321,8 @@ width and height without image decoding. The check does not establish Humanoid
 compatibility or replace the importer's complete glTF validation.
 
 All buffers and images must be embedded, with bounded buffer views. Every
-`extensionsRequired` entry is refused by name. Container lengths, JSON syntax,
+`extensionsRequired` entry is refused by name, except `KHR_mesh_quantization`,
+which the importer reads without an extra package. Container lengths, JSON syntax,
 duplicate JSON properties, depth, indices used by this check, and count arithmetic
 are checked before use. No allocation uses a declared binary count. JSON has a
 configurable size and depth cap, with hard ceilings of 16 MB and depth 128.
@@ -346,10 +347,9 @@ the read-only Tripo spike. No model files are included in the tests.
 
 The pixel limit per image is 16,777,216, and JSON depth defaults to 64.
 Defaults round up near twice the built-in maxima, except file size and texture
-size, which admit the Tripo file. The Tripo file passes. All seven built-in
-exports meet these numerical limits but fail `glb.extension.required` because
-they declare `KHR_mesh_quantization`. Workshop submissions currently need exports
-without required extensions. The defaults remain provisional for owner review.
+size, which admit the Tripo file. All eight files pass. The seven built-in
+exports declare `KHR_mesh_quantization`. The owner confirmed these defaults on
+2026-11-11.
 
 ## 6. Admit exact content
 

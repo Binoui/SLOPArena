@@ -74,8 +74,10 @@ public static class WorkshopGlbPrecheck
             var root = doc.RootElement;
             ValidateObjects(root);
             Require(root.ValueKind == JsonValueKind.Object && root.TryGetProperty("asset", out var asset) && asset.ValueKind == JsonValueKind.Object && asset.TryGetProperty("version", out var version) && version.ValueKind == JsonValueKind.String && version.GetString() == "2.0", "glb.structure", "Expected glTF asset version 2.0.");
+            // The importer reads quantized meshes without an extra package, and the game's own exports require them.
             foreach (var extension in Array(root, "extensionsRequired").EnumerateArray())
-                d.Add(MatchContentCatalogBuilder.Error("glb.extension.required", "extensionsRequired", "Unsupported required extension: " + extension.ToString()));
+                if (extension.ValueKind != JsonValueKind.String || extension.GetString() != "KHR_mesh_quantization")
+                    d.Add(MatchContentCatalogBuilder.Error("glb.extension.required", "extensionsRequired", "Unsupported required extension: " + extension.ToString()));
             var buffers = Array(root, "buffers");
             Require(buffers.GetArrayLength() <= 1, "glb.buffer.bounds", "GLB may contain only its embedded buffer.");
             long bufferLength = 0;

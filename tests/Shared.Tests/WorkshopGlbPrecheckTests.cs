@@ -56,6 +56,7 @@ public class WorkshopGlbPrecheckTests
     [Fact] public void MimeMismatchIsRefused() { var o = Valid(); o["images"]![0]!["mimeType"] = "image/ktx2"; Refuses(Glb(o), "glb.image.format"); }
     [Theory] [InlineData("KHR_draco_mesh_compression")] [InlineData("EXT_meshopt_compression")] [InlineData("KHR_texture_basisu")]
     public void RequiredExtensionsAreRefusedByName(string name) { var o = Valid(); o["extensionsRequired"] = new JsonArray(name); var r = WorkshopGlbPrecheck.Check(Glb(o), WorkshopGlbLimits.Default); Assert.Contains(r.Diagnostics, x => x.Code == "glb.extension.required" && x.Message.Contains(name)); }
+    [Fact] public void MeshQuantizationIsTheOneAcceptedRequiredExtension() { var o = Valid(); o["extensionsRequired"] = new JsonArray("KHR_mesh_quantization"); Assert.True(WorkshopGlbPrecheck.Check(Glb(o), WorkshopGlbLimits.Default).IsAccepted); }
     [Fact] public void InvalidAccessorIndexIsRefused() { var o = Valid(); o["meshes"]![0]!["primitives"]![0]!["indices"] = long.MaxValue; Refuses(Glb(o), "glb.structure"); }
     [Fact] public void WrongArrayTypeIsRefused() { var o = Valid(); o["meshes"] = true; Refuses(Glb(o), "glb.structure"); }
     [Fact] public void NegativeCountIsRefused() { var o = Valid(); o["accessors"]![0]!["count"] = -1; Refuses(Glb(o), "glb.structure"); }
