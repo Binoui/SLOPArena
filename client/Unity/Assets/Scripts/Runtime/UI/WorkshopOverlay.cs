@@ -38,6 +38,7 @@ namespace SlopArena.Client.UI
         {
             _context = context;
             _root = new VisualElement { name = "workshop-screen" };
+            _root.styleSheets.Add(Resources.Load<StyleSheet>("UI/Workshop"));
             _root.style.position = Position.Absolute;
             _root.style.left = _root.style.right = 35;
             _root.style.top = _root.style.bottom = 35;

@@ -39,6 +39,7 @@ namespace SlopArena.Client.Workshop
         /// <summary>Called whenever a renderer is (re)configured for a fighter; the swap follows on the next frame.</summary>
         public static void Track(PlayerRenderer renderer, string packageId)
         {
+            ModelSwapLaunchOptions.Refresh();
             var swap = renderer.GetComponent<FighterModelSwap>() ?? renderer.gameObject.AddComponent<FighterModelSwap>();
             swap.Restart(renderer, packageId);
         }

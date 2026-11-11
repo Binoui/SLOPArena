@@ -17,7 +17,7 @@ MatchConfig.ModelSwaps[player 1-4]       (Workshop library or launch option; Fig
 
 `MatchConfig.ModelSwaps` maps a player number to a `ModelSwapChoice`, a GLB path.
 Two players on the same fighter can wear different models. The Workshop library restores
-saved choices at launch. `ModelSwapLaunchOptions` can override them from `-modelSwap 2=C:\models\dusty.glb`
+saved choices at launch. `ModelSwapLaunchOptions` supplies choices for seats without a player choice from `-modelSwap 2=C:\models\dusty.glb`
 (repeatable, or pairs joined by `;`), or, when no choice exists, from `p1.glb` to `p4.glb` in the
 `ModelSwaps` folder under the player's data folder. A bone map file sits beside the
 GLB as `<name>.humanoid.json`, or as `humanoid.json` in a Workshop item folder.
@@ -144,7 +144,7 @@ item folder, outside its hashed payload.
 `ModelSwapLibrary.Wear(player, item)` and `WorkshopLibrary.Worn(player)` are the
 per-player API for later Fighter Select and Room integration. A saved item is checked
 again at launch and before the fighter imports it. A choice only dresses its declared
-base fighter. Launch arguments still override saved choices for testing.
+base fighter. Launch arguments fill seats without a Workshop choice for testing.
 
 `WorkshopLibrary.Verify` reads bounded files and checks the manifest, hashes and GLB
 precheck in that order. The importer then checks the avatar before an item is accepted
@@ -172,3 +172,11 @@ The item's page and the game's Workshop page open in Steam's overlay.
 items remembered after download. Each call verifies the files again. Missing or
 changed downloads disappear from that result. This API does not perform a Unity
 avatar import. The Workshop screen performs that check before remembering a download.
+
+Launch-option and folder entries carry their source. `ModelSwapChoiceSources.Fill`
+removes and rebuilds those entries each time, while keeping player choices. It scans
+every unchosen seat independently, so one launch option does not hide another seat's
+folder model. Refresh runs before scene load, after each scene load, and whenever a
+fighter renderer is configured. This also covers consecutive Editor Plays with script
+reload disabled. `ModelSwapChoiceSourcesTests` covers repeated fills after adding,
+changing and deleting files, changing launch arguments, and preserving Workshop choices.

@@ -37,4 +37,8 @@
     <None Include="Fixtures/FightGuyAuthoring/cooked.expected.hex" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Compile Include="../../client/Unity/Assets/Scripts/Runtime/Workshop/ModelSwapChoice.cs" Link="Workshop/ModelSwapChoice.cs" />
+    <Compile Include="../../client/Unity/Assets/Scripts/Runtime/Workshop/ModelSwapChoiceSources.cs" Link="Workshop/ModelSwapChoiceSources.cs" />
+  </ItemGroup>
 </Project>
