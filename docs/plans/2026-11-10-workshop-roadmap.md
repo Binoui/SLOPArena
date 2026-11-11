@@ -57,7 +57,7 @@ No agent can settle these by running something. The owner answered D1, D4, D5, a
 | # | Decision | State on 2026-11-10 |
 | --- | --- | --- |
 | D1 | Lift the expansion freeze for Workshop work. `AGENTS.md` gave priority to the friends demo over platform expansion, and [the demo reset](2026-09-05-playable-demo-reset.md) says "Freeze expansion" for Workshop generalization (line 51). | Lifted. The owner did not know why the rule was still there. `AGENTS.md` no longer carries it, and the demo reset plan notes the change. |
-| D2 | The creator route. ADR-0027 and the 2026-10-13 plan chose the Unity Editor as the ModKit. | The default stands: the installed game plus open formats, with Unity as a second exporter for contributors. Step 0.5 still records it as an ADR amendment for approval. |
+| D2 | The creator route. ADR-0027 and the 2026-10-13 plan chose the Unity Editor as the ModKit. | Approved on 2026-11-11 as [ADR-0064](../adr/0064-workshop-creator-route.md): the installed game plus open formats, with Unity as a second exporter for contributors. |
 | D3 | The first content type. | The default stands: model swaps, then fighters, then stages. |
 | D4 | The Steam app that hosts the Workshop. The game ships through the Playtest app (5325920) today, and the store app (5324910) is unreleased. | The store app. The game leaves the Playtest when Workshop support is ready. The owner decides when that is. |
 | D5 | Content rules. In Rivals 2, 21 of the 30 most subscribed items are other companies' characters, by my reading of their names. | Decided 2026-11-10: guidelines, not rules. The game has no monetization. Publish short guidelines, add an "AI assisted" tag as Rivals 2 has, and leave rights claims to Steam's takedown process. |
@@ -212,6 +212,31 @@ what happens to published items when the cooked schema changes. Attach the evide
   and the item being private in a Workshop that is visible to developers only. Evidence is in
   `tmp/workshop-spikes/steam-roundtrip/`. The first attempts returned `k_EResultBusy` because the
   settings had been made on the Playtest app.
+- 2026-11-11. Step 0.3, server leg retried after the owner enabled anonymous game-server
+  downloads. It still returns `k_EResultFail`. The setting is no longer the suspect if the change
+  was published in Steamworks. What remains is the item being private, the Workshop being visible
+  to developers only, or the change not yet published. The next check is the same download with
+  the item set to unlisted.
+- 2026-11-11. Step 0.1b started on the owner's word: Dusty's raw Tripo export goes into the spike
+  build as a model swap on FightGuy's moves, with no Unity step for the creator. Its verdict
+  decides between the GLB route in ADR-0064 and a Unity modkit as the first creator route.
+- 2026-11-11. Step 0.1b passed with two creator requirements. The raw Tripo file, converted to GLB
+  by Blender at default settings, played five FightGuy clips in a player build with no hand fix.
+  Its body joints stay within 24 mm of the shipped Dusty, which is built from the same Tripo
+  file. The game needs four rules that read only the file: a bone map from Mixamo names, an
+  upright rule, a size rule and a palm rule. Loaded as-is the model lies on the floor, because
+  Tripo stores its rest pose face down. Creators must supply Mixamo bone names or a bone-map
+  file, and a T-pose rest. The tail and mitten hands are worse than the shipped Dusty and only a
+  creator can fix them. The 4096 px texture costs about 64 MB and a 250 ms frame at load, so the
+  item rules need a texture budget. Not tested: Tripo's own GLB export, other models, an A-pose
+  rest, and the real fighter path through `PlayerRenderer`. Evidence is in
+  `tmp/workshop-spikes/tripo-swap/`; the code is on branch `t3/tripo-glb-model-swap`.
+- 2026-11-11. Step 0.5 done. The owner approved
+  [ADR-0064](../adr/0064-workshop-creator-route.md) and
+  [ADR-0065](../adr/0065-workshop-item-format.md) after step 0.1b. ADR-0065 now carries its three
+  corrections: no bone-map file for Mixamo names, fingers optional, and a texture budget. The
+  `interrogate` review of the ADR text was skipped. Phase 0 is closed except for the server leg
+  of step 0.3, which does not change the item format. Phase 1 may start.
 
 ## Phase 1. Ship model swaps
 

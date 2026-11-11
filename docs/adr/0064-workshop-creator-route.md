@@ -1,6 +1,7 @@
 # ADR-0064: The installed game is the Workshop creator tool
 
-**Status:** Proposed — 2026-11-10
+**Status:** Accepted 2026-11-11. The owner agreed ("i agree with it") after step 0.1b put a raw
+Tripo model through the route.
 **Deciders:** @Binoui
 **Amends:** [ADR-0027](0027-open-source-modkit-preview.md). It replaces "Unity is the preferred
 authoring environment for the official ModKit" and the Unity box at the top of its workflow.
@@ -36,6 +37,11 @@ Phase 0 tested whether the game can do without it.
   FightGuy, Wibou, and Bonk. A port of the capsule fit landed within 0.6 mm. A five-minute bot Match
   gave the same hit events with both pose files: 61 in the mirror Match and 510 in the four-fighter
   Match (`tmp/workshop-spikes/pose-bake/results.txt`).
+- **Step 0.1b.** The owner asked for one test before choosing: a file straight from a creator tool.
+  Dusty's raw Tripo export, converted to GLB by Blender at default settings, played five FightGuy
+  clips in a player build as a model swap with no hand fix. Its body joints stayed within 24 mm of
+  the shipped Dusty, which is built from the same Tripo file
+  (`tmp/workshop-spikes/tripo-swap/report.html`).
 
 The gameplay half needs no Editor already. `CharacterPackageCompiler` is plain Shared code with a
 `Workshop` profile, and the web demo loads the same four cooked files without Unity.
@@ -89,9 +95,9 @@ Humanoid is the default and not a universal requirement.
   D7), and step 0.1 used glTFast 6.18.0. Approving this ADR approves shipping it. The cook source
   hash tracks `Packages/manifest.json`, so adding it marks all seven cooks stale, and Phase 1
   recooks them.
-- Player builds do not contain the `SLOPArena/GraphicCharacter` shader, so `MatchVisualStyle`
-  leaves fighters on URP Lit (found by step 0.1). A GLB fighter only gets the game's look once this
-  is fixed.
+- Step 0.1 found that player builds did not contain the `SLOPArena/GraphicCharacter` shader, so
+  `MatchVisualStyle` left fighters on URP Lit. The shader moved under `Resources/Shaders` on
+  2026-11-11, and the step 0.1b player found it by name and drew the GLB fighter with it.
 - Workshop fighters look plainer than built-in fighters at first. Six of the seven built-in
   fighters use bespoke presentation scripts.
 - Two exporters can drift. A check should export each built-in fighter through the GLB route and
@@ -101,8 +107,10 @@ Humanoid is the default and not a universal requirement.
 
 ### What stays unproven
 
-- Every GLB in Phase 0 came from Unity. Clips that never went through Unity's humanoid solve, and
-  GLBs from Blender or other tools, are untested.
+- One model from outside Unity has passed, as a model swap: a Tripo character through Blender's
+  default GLB export (step 0.1b). Tripo's own GLB export, other models and rigs, and an A-pose rest
+  are untested. So are clips that never went through Unity's humanoid solve, which a `fighter`
+  item needs.
 - Tails, shells, forms, game weapon attachment, effects, sound, `PlayerRenderer` states, Steam Deck
   frame time, and memory are untested (step 0.1 and 0.2 reports).
 - The bake that passed is a throwaway. A C# port inside the game is not written.
