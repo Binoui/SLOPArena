@@ -41,6 +41,17 @@ namespace SlopArena.Client.Entities
             return true;
         }
 
+        /// <summary>Destroy the inked copy made for <paramref name="source"/>, for meshes that leave mid-match (a model swap).</summary>
+        public static void Release(Mesh source)
+        {
+            if (source == null) return;
+            int id = source.GetInstanceID();
+            Refused.Remove(id);
+            if (!Inked.Remove(id, out var copy) || copy == null) return;
+            Copies.Remove(copy.GetInstanceID());
+            Object.Destroy(copy);
+        }
+
         private static Mesh? For(Mesh source)
         {
             int id = source.GetInstanceID();

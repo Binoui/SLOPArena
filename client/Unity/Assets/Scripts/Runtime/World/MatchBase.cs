@@ -276,6 +276,7 @@ namespace SlopArena.Client.World
                     : Resources.Load<WeaponAttachConfig>($"WeaponConfigs/{def.Class}");
             var weapon = renderer.GetComponent<WeaponAttach>() ?? renderer.gameObject.AddComponent<WeaponAttach>();
             weapon.Init(renderer, weaponConfig);
+            Workshop.FighterModelSwap.Track(renderer, entry.Identity.PackageId);
             _weapons[entityId] = weapon;
             _fighters[entityId] = renderer;
             _fighterArena = arena;

@@ -148,6 +148,8 @@ namespace SlopArena.Client.UI
             => SlopArena.Shared.StageHazards.StageHazardFamilies.IsAvailable(arena);
         public static Dictionary<ulong, SlopballCamp> Camps = new();
         public static Dictionary<ulong, byte> Colours = new();
+        /// <summary>The model each player (1-4) wears over their fighter, presentation only (ADR-0065). Kept between matches.</summary>
+        public static readonly Dictionary<int, SlopArena.Client.Workshop.ModelSwapChoice> ModelSwaps = new();
 
         public static void ClearActiveMatch()
         {

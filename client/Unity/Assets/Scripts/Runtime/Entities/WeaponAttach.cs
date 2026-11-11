@@ -58,6 +58,25 @@ namespace SlopArena.Client.Entities
             return null;
         }
 
+        /// <summary>The built-in rig bones the configured props ride, for model swap sockets.</summary>
+        public IEnumerable<string> BoneNames
+        {
+            get
+            {
+                if (_entries == null) yield break;
+                foreach (var entry in _entries)
+                    if (entry != null && !string.IsNullOrEmpty(entry.BoneName)) yield return entry.BoneName;
+            }
+        }
+
+        /// <summary>Find the bones again after the owner's model changed (a model swap worn or taken off).</summary>
+        public void Rebind()
+        {
+            var owner = _owner;
+            var config = _config;
+            if (owner != null) Init(owner, config);
+        }
+
         public void Init(PlayerRenderer owner, WeaponAttachConfig config)
         {
             Cleanup();
@@ -384,8 +403,9 @@ namespace SlopArena.Client.Entities
                 bool shownYet = entry.ShowFromTicks <= 0 || !isAttacking || elapsedTicks >= entry.ShowFromTicks;
                 bool takenAway = entry.HiddenBySlot != 0 && (returningSlot == entry.HiddenBySlot
                     || isAttacking && slot == entry.HiddenBySlot && elapsedTicks >= entry.HiddenBySlotFromTicks);
+                // A prop whose bone this rig lacks has nowhere to be held, so it stays hidden.
                 bool visible = (entrySlot == 0 || (isAttacking || isAiming) && slot == entrySlot)
-                    && withinHold && shownYet && !takenAway;
+                    && withinHold && shownYet && !takenAway && _bones[i] != null;
                 if (go.activeSelf != visible)
                     go.SetActive(visible);
                 if ((visible || _hitboxTrailActive) && _bones[i] != null)
@@ -452,6 +472,7 @@ namespace SlopArena.Client.Entities
                 foreach (var go in _instances)
                 {
                     if (go == null) continue;
+                    go.SetActive(false);
                     if (Application.isPlaying) Destroy(go);
                     else DestroyImmediate(go);
                 }
@@ -479,6 +500,7 @@ namespace SlopArena.Client.Entities
 
         private Transform FindBone(string boneName)
         {
+            if (_owner != null && _owner.WeaponSocket(boneName) is { } socket) return socket;
             if (_skin == null) return null;
             foreach (var bone in _skin.bones)
                 if (bone != null && bone.name == boneName)

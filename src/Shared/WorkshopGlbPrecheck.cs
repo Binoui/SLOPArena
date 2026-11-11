@@ -139,12 +139,124 @@ public static class WorkshopGlbPrecheck
             Limit("triangles", m.Triangles, limits.MaxTriangles); Limit("vertices", m.Vertices, limits.MaxVertices);
             Limit("nodes", m.Nodes, limits.MaxNodes); Limit("joints", m.MaxJoints, limits.MaxJoints);
             Limit("materials", m.Materials, limits.MaxMaterials); Limit("images", m.Images, limits.MaxImages);
+            RequireNodeForest(root, nodes, meshes, skins);
+            RequireAccessorsInBounds(accessors, views, meshes, skins);
         }
         catch (Refusal ex) { d.Add(MatchContentCatalogBuilder.Error(ex.Code, "glb", ex.Message)); }
         catch (JsonException ex) { d.Add(MatchContentCatalogBuilder.Error("glb.json", "glb", ex.Message)); }
         catch (InvalidOperationException ex) { d.Add(MatchContentCatalogBuilder.Error("glb.json", "glb", ex.Message)); }
         catch (OverflowException) { d.Add(MatchContentCatalogBuilder.Error("glb.structure", "glb", "Measured counts overflow 64-bit range.")); }
         return Result();
+    }
+
+    /// <summary>
+    /// glTFast walks parent links to find a skin's skeleton root and recurses through children when it builds the
+    /// scene, so a node graph that is not a forest of trees can hang or overflow the client. The walk here is
+    /// iterative and visits each node once.
+    /// </summary>
+    private static void RequireNodeForest(JsonElement root, JsonElement nodes, JsonElement meshes, JsonElement skins)
+    {
+        const string forest = "glb.nodes.forest";
+        int count = nodes.GetArrayLength();
+        var parent = new int[count];
+        for (int i = 0; i < count; i++) parent[i] = -1;
+        for (int i = 0; i < count; i++)
+        {
+            var node = nodes[i];
+            if (node.TryGetProperty("mesh", out _)) At(meshes, Number(node, "mesh"));
+            if (node.TryGetProperty("skin", out _)) At(skins, Number(node, "skin"));
+            Require(!(node.TryGetProperty("extensions", out var extensions) && extensions.ValueKind == JsonValueKind.Object
+                && extensions.TryGetProperty("EXT_mesh_gpu_instancing", out _)), "glb.extension.instancing",
+                $"Node {i} uses EXT_mesh_gpu_instancing; a model swap draws one fighter.");
+            foreach (var entry in Array(node, "children").EnumerateArray())
+            {
+                long child = Integer(entry);
+                Require(child < count, forest, $"Node {i} lists child {child}, which does not exist.");
+                Require(parent[child] < 0, forest, $"Node {child} has two parents, nodes {parent[child]} and {i}.");
+                parent[child] = i;
+            }
+        }
+        // 0: not reached yet, 1: on the walk being followed, 2: known to reach a root.
+        var state = new byte[count];
+        var walk = new List<int>();
+        for (int i = 0; i < count; i++)
+        {
+            int n = i;
+            walk.Clear();
+            while (n >= 0 && state[n] == 0)
+            {
+                state[n] = 1;
+                walk.Add(n);
+                n = parent[n];
+            }
+            Require(n < 0 || state[n] == 2, forest, $"Node {n} is its own ancestor.");
+            foreach (int visited in walk) state[visited] = 2;
+        }
+        var scenes = Array(root, "scenes");
+        if (root.TryGetProperty("scene", out _)) At(scenes, Number(root, "scene"));
+        foreach (var scene in scenes.EnumerateArray())
+        {
+            var roots = new HashSet<long>();
+            foreach (var entry in Array(scene, "nodes").EnumerateArray())
+            {
+                long n = Integer(entry);
+                Require(n < count, forest, $"A scene lists node {n}, which does not exist.");
+                Require(parent[n] < 0, forest, $"Scene root {n} is also a child of node {parent[n]}.");
+                Require(roots.Add(n), forest, $"A scene lists node {n} twice.");
+            }
+        }
+        foreach (var skin in skins.EnumerateArray())
+            if (skin.TryGetProperty("skeleton", out _)) At(nodes, Number(skin, "skeleton"));
+    }
+
+    private static readonly Dictionary<long, int> ComponentBytes = new() { [5120] = 1, [5121] = 1, [5122] = 2, [5123] = 2, [5125] = 4, [5126] = 4 };
+    private static readonly Dictionary<string, int> ComponentCount = new(StringComparer.Ordinal)
+    { ["SCALAR"] = 1, ["VEC2"] = 2, ["VEC3"] = 3, ["VEC4"] = 4, ["MAT2"] = 4, ["MAT3"] = 9, ["MAT4"] = 16 };
+
+    /// <summary>
+    /// glTFast sizes what it allocates from each accessor's count, including animation accessors it loads even with
+    /// clips off. Every accessor must fit inside its buffer view, every attribute of a primitive must count as many
+    /// vertices as POSITION, and the features a model swap never needs are refused: sparse accessors and morph targets.
+    /// </summary>
+    private static void RequireAccessorsInBounds(JsonElement accessors, JsonElement views, JsonElement meshes, JsonElement skins)
+    {
+        int index = 0;
+        foreach (var accessor in accessors.EnumerateArray())
+        {
+            int a = index++;
+            Require(!accessor.TryGetProperty("sparse", out _), "glb.accessor.sparse", $"Accessor {a} is sparse; a model swap needs none.");
+            Require(accessor.TryGetProperty("bufferView", out _), "glb.accessor.bounds", $"Accessor {a} has no buffer view.");
+            var view = At(views, Number(accessor, "bufferView"));
+            Require(ComponentBytes.TryGetValue(Number(accessor, "componentType"), out int bytes), "glb.accessor.bounds", $"Accessor {a} has an unknown component type.");
+            int components = 0;
+            Require(accessor.TryGetProperty("type", out var type) && type.ValueKind == JsonValueKind.String
+                && ComponentCount.TryGetValue(type.GetString()!, out components), "glb.accessor.bounds", $"Accessor {a} has an unknown type.");
+            long count = Number(accessor, "count");
+            Require(count >= 1, "glb.accessor.bounds", $"Accessor {a} is empty.");
+            long element = (long)bytes * components;
+            long stride = Number(view, "byteStride", 0);
+            if (stride == 0) stride = element;
+            Require(stride >= element, "glb.accessor.bounds", $"Accessor {a} is wider than its buffer view's stride.");
+            long end = checked(Number(accessor, "byteOffset", 0) + (count - 1) * stride + element);
+            Require(end <= Number(view, "byteLength"), "glb.accessor.bounds", $"Accessor {a} reads past the end of its buffer view.");
+        }
+        foreach (var mesh in meshes.EnumerateArray()) foreach (var primitive in Array(mesh, "primitives").EnumerateArray())
+        {
+            Require(!primitive.TryGetProperty("targets", out _), "glb.morph-targets", "Morph targets are not supported in a model swap.");
+            var attributes = primitive.GetProperty("attributes");
+            long vertices = Number(At(accessors, Number(attributes, "POSITION")), "count");
+            foreach (var attribute in attributes.EnumerateObject())
+                Require(Number(At(accessors, Integer(attribute.Value)), "count") == vertices, "glb.accessor.count",
+                    $"Attribute {attribute.Name} counts a different number of vertices than POSITION.");
+        }
+        foreach (var skin in skins.EnumerateArray())
+            if (skin.TryGetProperty("inverseBindMatrices", out _))
+            {
+                var matrices = At(accessors, Number(skin, "inverseBindMatrices"));
+                Require(Number(matrices, "count") == Array(skin, "joints").GetArrayLength()
+                    && matrices.GetProperty("type").GetString() == "MAT4", "glb.skin.inverse-bind",
+                    "A skin's inverse bind matrices must be one MAT4 per joint.");
+            }
     }
 
     private static WorkshopGlbImageSize ImageSize(ReadOnlySpan<byte> b)
