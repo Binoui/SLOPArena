@@ -27,6 +27,13 @@ public sealed class WorkshopMenuTests : IDisposable
         choice.Move(-1); Assert.Equal(3, choice.Index);
     }
     [Fact]
+    public void OnePadPressWithNativeAndBridgeActivationsAdvancesOnce()
+    {
+        var choice = new MenuChoice(5);
+        Assert.True(choice.Submit(10)); Assert.False(choice.Submit(10.1)); Assert.Equal(1, choice.Index);
+        Assert.True(choice.Submit(10.3)); Assert.Equal(2, choice.Index);
+    }
+    [Fact]
     public void EmptyPickerHasNoSelection()
     { var choice = new MenuChoice(0); choice.Move(1); Assert.Equal(-1, choice.Index); }
     [Theory] [InlineData(0, -1, 3)] [InlineData(3, 1, 0)] [InlineData(-1, 1, 0)] [InlineData(-1, -1, 3)]

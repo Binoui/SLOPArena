@@ -118,7 +118,7 @@ namespace SlopArena.Client.UI
             Button? button = null;
             void UpdateText() => button!.text = label + ": " + (choice.Index < 0 ? "None available" : options[choice.Index]) + " (A: next, Left/Right: change)";
             void Move(int step) { choice.Move(step); UpdateText(); }
-            button = Button(_body, "", () => Move(1)); button.name = label == "Base fighter" ? "workshop-base-choice" : "workshop-visibility-choice";
+            button = Button(_body, "", () => { if (choice.Submit(Time.unscaledTime)) UpdateText(); }); button.name = label == "Base fighter" ? "workshop-base-choice" : "workshop-visibility-choice";
             button.SetEnabled(choice.Count > 0); _choices[button] = Move; UpdateText(); return choice;
         }
         private string RowText(WorkshopLibraryItem item, WorkshopPublishSettings settings)
