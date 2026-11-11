@@ -22,6 +22,9 @@ namespace SlopArena.Client.UI
         private static float _lastSubmitTime = float.NegativeInfinity;
         private static float _lastCancelTime = float.NegativeInfinity;
 
+        internal static void ResetForPlaySession()
+        { _lastSubmitTime = _lastCancelTime = float.NegativeInfinity; }
+
         /// <summary>Poll the current gamepad and dispatch submit/cancel
         /// navigation events for the panel's focused element.</summary>
         public static void Pump(IPanel? panel, bool cancel = true)

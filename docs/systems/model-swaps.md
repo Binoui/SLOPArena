@@ -220,7 +220,7 @@ as a new item. It never creates a replacement automatically.
 
 Each view restores controller focus after rebuilding and after busy work completes.
 The selected tab is independent of focus. Text fields return to their edit button
-with Up, Down or Back. Back closes a dropdown before closing Workshop. Titles are
+with Up, Down or Back. Base and visibility selections use cycle buttons with no popup. Titles are
 plain text. Invalid publish settings fall back to local defaults, and a missing or
 ambiguous base fighter refuses Training before closing the screen. Library rows show
 title, base display name, creator, worn state and published state.
@@ -229,3 +229,22 @@ The shared import folder pairs a GLB only with `<name>.humanoid.json`. A generic
 `humanoid.json` is read only from a folder that also contains `item.json`, where the
 manifest defines which GLB it belongs to. Preview and publish sidecar names use the
 canonical item-folder identity, including when Steam returns a trailing separator.
+
+## Workshop controller QA fixes
+
+Base fighter and Visibility use cycle buttons instead of dropdowns. A advances the
+selection. Left and Right step backward and forward. Up and Down move focus to the
+other controls. Navigation wraps within Workshop, including while the body is busy,
+so D-pad movement cannot reach Home actions behind the screen. Text editing keeps
+horizontal navigation in the field and returns to its edit button with Up, Down or Back.
+
+Take off refreshes the existing library rows as soon as persistence completes. Opening
+an item ends with a ready message instead of leaving the busy status on screen.
+
+`UiModalState._depth` is reset by `UiModalStateBootstrap` at Unity's
+`SubsystemRegistration` phase before every Play session. This runs when domain reload
+is disabled as well as in a player. The same boundary resets the shared gamepad A/B
+debounce timestamps, because Unity's play clock starts over. Settings and Feedback
+normally balance their modal push in `OnDestroy`. Replay list does not use the modal
+counter. The shared reset covers any modal left unbalanced when the previous Play
+stopped; it does not depend on an individual overlay's teardown succeeding.

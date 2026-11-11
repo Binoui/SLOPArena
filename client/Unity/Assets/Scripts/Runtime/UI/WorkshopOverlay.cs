@@ -27,6 +27,8 @@ namespace SlopArena.Client.UI
         private readonly CancellationTokenSource _cancel = new();
         private readonly Dictionary<View, Button> _tabs = new();
         private readonly Dictionary<TextField, Button> _editButtons = new();
+        private readonly Dictionary<Button, Action<int>> _choices = new();
+        private readonly Dictionary<Button, (WorkshopLibraryItem Item, WorkshopPublishSettings Settings)> _libraryRows = new();
         private bool _busy;
         private bool _closed;
         private View _view;
@@ -54,8 +56,10 @@ namespace SlopArena.Client.UI
             _tabs[View.Subscribed] = Button(tabs, "SUBSCRIBED", () => Run(() => SteamList(false)));
             Button(tabs, "STEAM PAGE", () => { if (SteamReady) SteamWorkshopClient.OpenPage(); else Status(SteamWorkshopClient.Unavailable); });
             Button(tabs, "CLOSE", Close);
-            _status = Text(""); _root.Add(_status);
+            _status = Text(""); _status.name = "workshop-status"; _root.Add(_status);
             _body = new ScrollView(); _body.style.flexGrow = 1; _root.Add(_body);
+            _root.RegisterCallback<NavigationMoveEvent>(Navigate, TrickleDown.TrickleDown);
+            _tabs[View.Local].Focus();
             Local();
             _root.schedule.Execute(() =>
             {
@@ -65,13 +69,6 @@ namespace SlopArena.Client.UI
         private void HandleBack()
         {
             var panel = _root.panel;
-            var popup = panel?.visualTree.Q(className: GenericDropdownMenu.ussClassName);
-            if (popup != null)
-            {
-                var target = popup.Q<ScrollView>()?.contentContainer ?? popup;
-                using var cancel = NavigationCancelEvent.GetPooled(); cancel.target = target; target.SendEvent(cancel);
-                FocusBody(); return;
-            }
             var focused = panel?.focusController.focusedElement as VisualElement;
             foreach (var pair in _editButtons)
                 if (focused != null && (ReferenceEquals(pair.Key, focused) || pair.Key.Contains(focused))) { pair.Key.Blur(); pair.Value.Focus(); return; }
@@ -92,10 +89,45 @@ namespace SlopArena.Client.UI
         }
         private void BeginView(View view)
         {
-            _view = view; _body.Clear(); _editButtons.Clear();
+            _view = view; ClearBody();
             foreach (var tab in _tabs) tab.Value.EnableInClassList("workshop-tab--selected", tab.Key == view);
         }
-        private void ClearBody() { _body.Clear(); _editButtons.Clear(); }
+        private void ClearBody() { _body.Clear(); _editButtons.Clear(); _choices.Clear(); _libraryRows.Clear(); }
+        private void Navigate(NavigationMoveEvent evt)
+        {
+            if (!IsOpen || evt.direction == NavigationMoveEvent.Direction.None) return;
+            var focused = _root.panel?.focusController.focusedElement as VisualElement;
+            bool horizontal = evt.direction == NavigationMoveEvent.Direction.Left || evt.direction == NavigationMoveEvent.Direction.Right;
+            int step = evt.direction == NavigationMoveEvent.Direction.Up || evt.direction == NavigationMoveEvent.Direction.Left ? -1 : 1;
+            foreach (var pair in _editButtons)
+            {
+                if (focused == null || (!ReferenceEquals(pair.Key, focused) && !pair.Key.Contains(focused))) continue;
+                if (horizontal) { evt.PreventDefault(); evt.StopImmediatePropagation(); return; }
+                evt.PreventDefault(); evt.StopImmediatePropagation(); pair.Value.Focus(); return;
+            }
+            evt.PreventDefault(); evt.StopImmediatePropagation();
+            if (focused is Button choice && horizontal && _choices.TryGetValue(choice, out var move)) { move(step); return; }
+            var controls = _root.Query<VisualElement>().ToList().Where(e => (e is Button || e is Toggle) && e.focusable && e.tabIndex >= 0 && GamepadUIBridge.IsAvailable(e)).ToList();
+            int index = controls.FindIndex(e => ReferenceEquals(e, focused) || focused != null && e.Contains(focused));
+            int next = MenuChoice.NextIndex(index, controls.Count, step);
+            if (next >= 0) controls[next].Focus();
+        }
+        private MenuChoice Choice(string label, IReadOnlyList<string> options, int selected = 0)
+        {
+            var choice = new MenuChoice(options.Count, selected);
+            Button? button = null;
+            void UpdateText() => button!.text = label + ": " + (choice.Index < 0 ? "None available" : options[choice.Index]) + " (A: next, Left/Right: change)";
+            void Move(int step) { choice.Move(step); UpdateText(); }
+            button = Button(_body, "", () => { if (choice.Submit(Time.unscaledTime)) UpdateText(); }); button.name = label == "Base fighter" ? "workshop-base-choice" : "workshop-visibility-choice";
+            button.SetEnabled(choice.Count > 0); _choices[button] = Move; UpdateText(); return choice;
+        }
+        private string RowText(WorkshopLibraryItem item, WorkshopPublishSettings settings)
+        {
+            bool worn = MatchConfig.ModelSwaps.TryGetValue(1, out var choice) && string.Equals(choice.GlbPath, item.GlbPath, StringComparison.OrdinalIgnoreCase);
+            return $"{settings.Title} / {BaseName(item.Manifest.BaseFighterPackageId)} / {item.Manifest.Creator} / {(worn ? "WORN" : "NOT WORN")} / {(settings.Id == 0 ? "LOCAL" : "PUBLISHED " + settings.Id)}";
+        }
+        private void RefreshRows()
+        { foreach (var row in _libraryRows) row.Key.text = RowText(row.Value.Item, row.Value.Settings); }
         private void FocusBody()
         {
             if (!IsOpen) return;
@@ -142,7 +174,7 @@ namespace SlopArena.Client.UI
         private async void Run(Func<Task> action)
         {
             if (_busy || !IsOpen) return;
-            _busy = true; _body.SetEnabled(false); Status("Working...");
+            _busy = true; _tabs[_view].Focus(); _body.SetEnabled(false); Status("Working...");
             try { await action(); }
             catch (OperationCanceledException) { }
             catch (Exception e) { if (IsOpen) { Status(e.Message); Debug.LogWarning("[Workshop] Refused: " + e.Message); } }
@@ -172,15 +204,14 @@ namespace SlopArena.Client.UI
                 });
                 await ModelSwapLibrary.Ready;
                 if (!IsOpen) return;
-                Button(_body, "TAKE OFF PLAYER 1 MODEL", () => Run(async () => { await ModelSwapLibrary.Wear(1, null); Status("Player 1 wears the built-in model."); }));
+                Button(_body, "TAKE OFF PLAYER 1 MODEL", () => Run(async () => { await ModelSwapLibrary.Wear(1, null); RefreshRows(); Status("Player 1 wears the built-in model."); }));
                 if (rows.Count == 0) _body.Add(Text("Your library is empty. Import a rigged GLB to start."));
                 foreach (var row in rows)
                 {
                     if (row.Item == null) { _body.Add(Text(row.Error)); continue; }
                     var item = row.Item; var settings = row.Settings!;
-                    bool worn = MatchConfig.ModelSwaps.TryGetValue(1, out var choice) && string.Equals(choice.GlbPath, item.GlbPath, StringComparison.OrdinalIgnoreCase);
-                    string label = $"{settings.Title} / {BaseName(item.Manifest.BaseFighterPackageId)} / {item.Manifest.Creator} / {(worn ? "WORN" : "NOT WORN")} / {(settings.Id == 0 ? "LOCAL" : "PUBLISHED " + settings.Id)}";
-                    Button(_body, label, () => Run(() => Details(item)));
+                    var button = Button(_body, RowText(item, settings), () => Run(() => Details(item)));
+                    _libraryRows[button] = (item, settings);
                 }
                 Status((SteamReady ? "Local models keep the base fighter's moves and hitboxes." : SteamWorkshopClient.Unavailable)
                     + (_steam.LastOperation.Length > 0 ? " / " + _steam.LastOperation : ""));
@@ -198,15 +229,15 @@ namespace SlopArena.Client.UI
                 Button(_body, "OPEN IMPORT FOLDER", () => Application.OpenURL(new Uri(_library.ImportFolder + Path.DirectorySeparatorChar).AbsoluteUri));
                 var path = Field("GLB path", ""); foreach (var file in files) Button(_body, Path.GetFileName(file), () => path.value = file);
                 var bases = MenuRoster.Classes.Where(c => ModelSwapBases.Accepts(MenuRoster.PackageId(c) ?? "", out _)).ToArray();
-                var fighter = new DropdownField("Base fighter", bases.Select(MenuRoster.Name).ToList(), bases.Length == 0 ? -1 : 0); _body.Add(fighter);
+                var fighter = Choice("Base fighter", bases.Select(MenuRoster.Name).ToList());
                 var title = Field("Title", ""); var creator = Field("Creator", ChatSession.Instance?.SteamAvailable == true ? SteamFriends.GetPersonaName() : "Creator");
                 var license = Field("License", "All rights reserved"); var attribution = Field("Attribution", ""); var ai = new Toggle("AI assisted"); _body.Add(ai);
                 Button(_body, "IMPORT AND CHECK", () => Run(async () =>
                 {
-                    if (fighter.index < 0 || fighter.index >= bases.Length) throw new InvalidOperationException("No admitted fighter accepts model swaps.");
+                    if (fighter.Index < 0 || fighter.Index >= bases.Length) throw new InvalidOperationException("No admitted fighter accepts model swaps.");
                     if (!path.value.EndsWith(".glb", StringComparison.OrdinalIgnoreCase)) throw new InvalidDataException("Choose a .glb file.");
                     string source = path.value;
-                    string baseId = MenuRoster.PackageId(bases[fighter.index])!;
+                    string baseId = MenuRoster.PackageId(bases[fighter.Index])!;
                     string creatorValue = creator.value, licenseValue = license.value, attributionValue = attribution.value;
                     bool aiValue = ai.value;
                     var payload = await Task.Run(() => (Glb: WorkshopLibrary.ReadCapped(Path.GetFullPath(source), SlopArena.Shared.WorkshopGlbLimits.Default.MaxFileBytes), BoneMap: WorkshopLibrary.ImportBoneMap(Path.GetFullPath(source))));
@@ -272,7 +303,7 @@ namespace SlopArena.Client.UI
             string beforeTitle = current?.Title ?? settings.Title, beforeDescription = current?.Description ?? settings.Description;
             int beforeVisibility = current?.Visibility ?? settings.Visibility;
             var title = Field("Title", beforeTitle); var description = Field("Description", beforeDescription);
-            var visibility = new DropdownField("Visibility", new List<string> { "Public", "Friends only", "Private", "Unlisted" }, beforeVisibility); _body.Add(visibility);
+            var visibility = Choice("Visibility", new List<string> { "Public", "Friends only", "Private", "Unlisted" }, beforeVisibility);
             Button(_body, "WEAR ON PLAYER 1", () => Run(async () => { await ModelSwapLibrary.Wear(1, item); Status("Player 1 will wear this model on " + BaseName(item.Manifest.BaseFighterPackageId) + ". Saved for next launch."); }));
             Button(_body, "PREVIEW IN TRAINING", () => Run(async () =>
             {
@@ -284,6 +315,7 @@ namespace SlopArena.Client.UI
                 MatchConfig.PlayerPackageId = item.Manifest.BaseFighterPackageId; MatchConfig.PlayerClass = matches[0];
                 ModelSwapLibrary.Preview(item); Close(); SceneManager.LoadScene("Arena_Offline");
             }));
+            Status("Ready. Wear this model or preview it in Training.");
             if (!_library.IsCreatorItem(item)) return;
             if (orphaned) { OfferNew(item, settings); return; }
             var guidelines = new Toggle("I have read the content guidelines");
@@ -298,9 +330,9 @@ namespace SlopArena.Client.UI
                     await Details(item); Status("The published item changed while this view was open. Review its current fields before updating."); return;
                 }
                 if (!IsOpen) return;
-                var edits = settings.Id == 0 ? new WorkshopPublishEdits(title.value, description.value, visibility.index)
-                    : WorkshopPublishEdits.Changed(beforeTitle, beforeDescription, beforeVisibility, title.value, description.value, visibility.index);
-                settings.Title = title.value; settings.Description = description.value; settings.Visibility = visibility.index;
+                var edits = settings.Id == 0 ? new WorkshopPublishEdits(title.value, description.value, visibility.Index)
+                    : WorkshopPublishEdits.Changed(beforeTitle, beforeDescription, beforeVisibility, title.value, description.value, visibility.Index);
+                settings.Title = title.value; settings.Description = description.value; settings.Visibility = visibility.Index;
                 string statePath = await Task.Run(() => { SaveSettings(item, settings); return _library.StatePath(item); });
                 string preview = PreviewPath(item);
                 bool exists = await Task.Run(() => File.Exists(preview));
