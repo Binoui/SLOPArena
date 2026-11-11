@@ -83,5 +83,5 @@ public sealed class WorkshopLibraryTests : IDisposable
     { string file = Path.Combine(Path.GetTempPath(), "workshop-block-" + Guid.NewGuid().ToString("N")); File.WriteAllText(file, "blocked"); try { var library = new WorkshopLibrary(Path.Combine(file, "child")); Assert.ThrowsAny<IOException>(() => library.EnsureDirectories()); } finally { File.Delete(file); } }
     [Fact]
     public void SnapshotUploadContainsTheOriginalVerifiedBoneMap()
-    { var item = Item(); string folder = Path.Combine(_root, "upload"); Directory.CreateDirectory(folder); item.WriteSnapshot(folder); Assert.Empty(WorkshopItemManifestCodec.Verify(item.Manifest, Directory.GetFiles(folder).Where(f => Path.GetFileName(f) != "item.json").ToDictionary(Path.GetFileName, File.ReadAllBytes)!)); }
+    { var item = Item(); string folder = Path.Combine(_root, "upload"); Directory.CreateDirectory(folder); item.WriteSnapshot(folder); Assert.Empty(WorkshopItemManifestCodec.Verify(item.Manifest, Directory.GetFiles(folder).Where(f => Path.GetFileName(f) != "item.json").ToDictionary(f => Path.GetFileName(f)!, File.ReadAllBytes))); }
 }
