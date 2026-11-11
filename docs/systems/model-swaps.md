@@ -141,7 +141,7 @@ item folder, outside its hashed payload.
 
 **Preview in Training** starts the base fighter with player 1 wearing the item.
 **Wear on player 1** persists the choice. **Take off player 1 model** removes it.
-`ModelSwapLibrary.Wear(player, item)` and `WorkshopLibrary.Worn(player)` are the
+`await ModelSwapLibrary.Wear(player, item)` and `WorkshopLibrary.Worn(player)` are the
 per-player API for later Fighter Select and Room integration. A saved item is checked
 again at launch and before the fighter imports it. A choice only dresses its declared
 base fighter. Launch arguments fill seats without a Workshop choice for testing.
@@ -170,7 +170,7 @@ its avatar before offering wear and Training. Items that fail show the refusal.
 The item's page and the game's Workshop page open in Steam's overlay.
 
 `WorkshopLibrary.WearableItems()` returns verified local items and installed Steam
-items remembered after download. Each call verifies the files again. Missing or
+items remembered after download. Each call checks file sizes and write times on a worker. Unchanged items reuse verified payload snapshots. Missing or
 changed downloads disappear from that result. This API does not perform a Unity
 avatar import. The Workshop screen performs that check before remembering a download.
 
@@ -181,3 +181,51 @@ folder model. Refresh runs before scene load, after each scene load, and wheneve
 fighter renderer is configured. This also covers consecutive Editor Plays with script
 reload disabled. `ModelSwapChoiceSourcesTests` covers repeated fills after adding,
 changing and deleting files, changing launch arguments, and preserving Workshop choices.
+
+## Review follow-up
+
+A verified library item owns the GLB and bone-map bytes that passed the manifest,
+hash and GLB checks. The importer consumes those bytes directly. A stored choice pins
+its base fighter, and a manifest naming a different base is refused. Verification
+runs on a worker. A bounded cache keeps up to eight verified snapshots and checks
+file names, lengths and timestamps before reuse. Concurrent checks share the cache
+lock. File-manager metadata (`.directory`, `Thumbs.db`, `desktop.ini`) is ignored.
+Other unexpected payloads still fail verification.
+
+Library scans, saving, wear persistence, startup restoration, download verification
+and upload staging run on workers. The screen disables its body and shows a busy
+message during these operations. `ModelSwapLibrary.Ready` lets a fighter await startup
+restoration. An unavailable data folder produces a warning without preventing the
+refresh hooks from registering.
+
+Training preview is a temporary session choice. Returning Home or entering another
+mode restores the previous worn choice. Starting another Editor Play also ends the
+preview, including when scripts do not reload. Until Room swaps are implemented,
+online matches apply the saved player-1 choice only to the local entity. Local and
+couch matches continue to use seats 1 through 4.
+
+Closing or releasing the screen always removes it and balances `UiModalState`.
+Imports are cancelled. Steam operations belong to the shared service for the lifetime
+of the Steam session, and continue after the screen closes. Their callbacks and
+terminal results stay alive. Uploads are serialized, duplicate requests share the
+same operation, and no three-minute timer discards an upload or download result.
+Already-current installs are verified immediately without requiring a download
+callback. Progress updates the status label without writing to the player log.
+
+Opening a published local item queries its current Steam title, description and
+visibility. Updating sends only fields changed from those displayed values. Steam
+edits are preserved when the player leaves a field alone. A missing or foreign ID
+shows a recovery action that clears the local ID after the player chooses to publish
+as a new item. It never creates a replacement automatically.
+
+Each view restores controller focus after rebuilding and after busy work completes.
+The selected tab is independent of focus. Text fields return to their edit button
+with Up, Down or Back. Back closes a dropdown before closing Workshop. Titles are
+plain text. Invalid publish settings fall back to local defaults, and a missing or
+ambiguous base fighter refuses Training before closing the screen. Library rows show
+title, base display name, creator, worn state and published state.
+
+The shared import folder pairs a GLB only with `<name>.humanoid.json`. A generic
+`humanoid.json` is read only from a folder that also contains `item.json`, where the
+manifest defines which GLB it belongs to. Preview and publish sidecar names use the
+canonical item-folder identity, including when Steam returns a trailing separator.

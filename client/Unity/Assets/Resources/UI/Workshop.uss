@@ -23,3 +23,8 @@
 }
 #workshop-screen .unity-base-field__label { min-width: 140px; color: rgb(240, 238, 232); }
 #workshop-screen .unity-toggle__label { color: rgb(240, 238, 232); }
+#workshop-screen Button.workshop-tab--selected {
+    background-color: rgb(27, 26, 24);
+    color: rgb(255, 204, 34);
+    border-color: rgb(255, 204, 34);
+}

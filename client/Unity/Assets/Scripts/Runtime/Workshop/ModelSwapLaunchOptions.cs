@@ -16,12 +16,16 @@ namespace SlopArena.Client.Workshop
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
         private static void Apply()
         {
-            ModelSwapLibrary.Fill(MatchConfig.ModelSwaps);
-            Refresh();
             SceneManager.sceneLoaded -= OnSceneLoaded;
             SceneManager.sceneLoaded += OnSceneLoaded;
+            ModelSwapLibrary.Restore();
+            Refresh();
         }
-        private static void OnSceneLoaded(Scene scene, LoadSceneMode mode) => Refresh();
+        private static void OnSceneLoaded(Scene scene, LoadSceneMode mode)
+        {
+            if (scene.name != "Arena_Offline" || MatchConfig.Mode != GameMode.Training) ModelSwapLibrary.EndPreview();
+            Refresh();
+        }
         public static void Refresh() => Fill(MatchConfig.ModelSwaps, Environment.GetCommandLineArgs(), FolderPath);
         public static void Fill(IDictionary<int, ModelSwapChoice> swaps, IReadOnlyList<string> args, string folder)
             => ModelSwapChoiceSources.Fill(swaps, args, folder);

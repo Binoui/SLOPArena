@@ -23,6 +23,7 @@ namespace SlopArena.Client.UI
 
         private void OnEnable()
         {
+            Workshop.ModelSwapLibrary.EndPreview();
             MatchConfig.Reset();
             if (_context == null)
             {
