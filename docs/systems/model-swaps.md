@@ -22,6 +22,11 @@ Two players on the same fighter can wear different models. Until the screens exi
 `ModelSwaps` folder under the player's data folder. A bone map file sits beside the
 GLB as `<name>.humanoid.json`, or as `humanoid.json` in a Workshop item folder.
 
+`FighterModelSwap` reads the GLB on a worker thread after checking its length against
+`WorkshopGlbLimits.MaxFileBytes`, and `humanoid.json` against 64 KB, so an oversized
+file is refused before a byte is read. Dropping the swap or destroying the fighter
+cancels the read.
+
 `MatchBase.SetupRenderer` calls `FighterModelSwap.Track` for every fighter. On the
 next frame the component reads its player's choice, so the player number is final.
 A later `SetupRenderer` for the same renderer (Training's fighter change) drops the
@@ -36,14 +41,23 @@ runs in its own frame, so a match never waits on it.
 1. The file-level precheck runs first (`FilePrecheck`). It calls
    `WorkshopGlbPrecheck.Check` in Shared with `WorkshopGlbLimits.Default`, which
    refuses a file outside the limits for file size, triangles, bones and texture
-   size before glTFast reads it. The refusal reason is `FileLimits`.
+   size before glTFast reads it. It also refuses what glTFast would trust without
+   bounds: a node graph that is not a forest (a missing child, a node with two
+   parents, a cycle, a scene root that is also a child), an accessor that reads past
+   its buffer view, attributes that count different vertices, and the features a
+   swap never needs (sparse accessors, morph targets, GPU instancing). The refusal
+   reason is `FileLimits`.
 2. glTFast loads the GLB with no clips and no external downloads. A swap file must
    embed its buffers and images.
 3. Textures shrink to `TextureMaxSide` (1024 px) with mipmaps and DXT1 where the GPU
    takes it. Fighters draw opaque, so alpha is dropped. Unity decodes PNG on the main
    thread, so `ModelSwapTextures.PngLoader` decodes and box-shrinks PNGs on a worker
-   thread instead. JPEG and the PNG kinds it does not read use Unity's decoder and a
-   GPU shrink.
+   thread with `PngShrink` in Shared. It refuses a header that is not first or
+   appears twice, and dimensions outside the precheck's limits, so a PNG cannot
+   show the precheck one size and the decoder another. A malformed PNG refuses the
+   file (`ImageUnreadable`). JPEG and valid PNG kinds it does not read (interlaced,
+   packed samples) use Unity's decoder and a GPU shrink. The loader owns every
+   texture it makes, so a failed or dropped import frees them.
 4. The bone map comes from Mixamo node names, with any `prefix:` ignored
    (`HumanoidBoneMap` in Shared), or from `humanoid.json`, which wins. Missing
    required human bones refuse the file.
@@ -63,13 +77,16 @@ runs in its own frame, so a match never waits on it.
 
 `ImportedSwapModel` owns the glTFast import, avatar, materials, textures and inked
 mesh copies, and `Dispose` frees them. The renderer destroys the model object it
-takes off.
+takes off. If wearing fails after the built-in model was discarded, the renderer
+builds the built-in model again and the import is disposed.
 
 ## Wearing it
 
 `PlayerRenderer.WearModel` poses both models on the idle clip, builds weapon
 sockets, swaps the model under the hit-feel pivots, carries the current clip over
-and rebinds `WeaponAttach`. `TakeOffModel` brings the built-in model back. Everything
+and rebinds `WeaponAttach`. `TakeOffModel` builds the built-in model again and
+gives it the look every fighter got at the match start
+(`MatchVisualStyle.StyleModel`: fighter shader, seat rim, ink line). Everything
 that reads the renderer's model follows: hit flash, x-ray silhouette and prop queue,
 death blink, seat rim, air-dodge and homing-dash ghosts, attack pitch, presentation
 bones by human name, Manki's flight layer and the baked sword trail.
@@ -79,7 +96,9 @@ space. A creator's bones roll and scale differently, so `ModelSwapSockets` gives
 weapon bone a socket under the matching human bone, turned and scaled as the
 built-in bone is in the same pose. A helper bone that is not a human bone, such as
 Sir Bonk's pauldron, keeps its offset from the nearest human bone above it. A prop
-whose bone the rig lacks stays hidden.
+whose bone the rig lacks stays hidden. No built-in weapon config has such a prop:
+the player builds log a warning for an unresolved weapon bone, and no run logged
+one for any built-in fighter.
 
 ## Which fighters accept a swap
 
@@ -100,6 +119,7 @@ their own body. A fighter missing from the table refuses until someone checks it
 
 ## Verifying
 
-Shared coverage is `HumanoidBoneMapTests`. Swaps only run in a Unity player or the
-Editor, so the step 1.3 check is a player build that wears a model on each accepted
-fighter in a real match beside an unswapped one.
+Shared coverage is `HumanoidBoneMapTests`, `PngShrinkTests` and
+`WorkshopGlbPrecheckTests`. Swaps only run in a Unity player or the Editor, so the
+step 1.3 check is a player build that wears a model on each accepted fighter in a
+real match beside an unswapped one.
