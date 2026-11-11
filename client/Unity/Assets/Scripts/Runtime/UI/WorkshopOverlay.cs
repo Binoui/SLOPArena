@@ -181,7 +181,7 @@ namespace SlopArena.Client.UI
             {
                 camera.cullingMask = 1 << 30; camera.clearFlags = CameraClearFlags.SolidColor; camera.backgroundColor = new Color(.12f, .14f, .19f);
                 camera.orthographic = true; camera.orthographicSize = Mathf.Max(bounds.extents.y, bounds.extents.x) * 1.25f;
-                camera.transform.position = bounds.center + new Vector3(0, .1f, -5); camera.transform.LookAt(bounds.center);
+                camera.transform.position = bounds.center + new Vector3(0, .1f, 5); camera.transform.LookAt(bounds.center);
                 camera.targetTexture = target; camera.Render(); RenderTexture.active = target;
                 image.ReadPixels(new Rect(0, 0, 512, 512), 0, 0); image.Apply(); File.WriteAllBytes(path, image.EncodeToPNG());
             }
