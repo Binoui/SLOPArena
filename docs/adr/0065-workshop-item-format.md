@@ -130,10 +130,12 @@ on (decision D6).
 1. **Can an anonymous game server download items before the Workshop is public?** The owner's
    account round-tripped item 3837402870 with equal SHA-256. The anonymous server, run on the
    owner's workstation and not the VPS, got `k_EResultFail`, as a made-up ID does.
-   The owner turned the anonymous-download setting on, and a retry on 2026-11-11 failed the same
-   way. The private item and the developers-only Workshop remain as causes. Options are (a) retry
-   with the item unlisted, then from the VPS, or (b) wait for Phase 1 to make the Workshop public.
-   Recommendation: (a). The answer does not change the format.
+   The owner turned the anonymous-download setting on and published it. Retries on 2026-11-11
+   failed the same way with the item private, unlisted, and public, so the item's visibility is
+   not the cause. The developers-only Workshop on an unreleased app remains. Options are (a)
+   retest when Phase 1 opens the Workshop, or (b) log the GameServer in with a game-server login
+   token. Recommendation: (a), then (b) if it still fails. Model swaps do not need this, and the
+   answer does not change the format.
 2. **Why did world snapshots differ in step 0.2?** They differed on 2,598 of 18,000 ticks, with
    equal hits, damage, stocks, positions, and velocities. Options are (a) find the fields before
    Phase 2 relies on the GLB bake, or (b) accept it, since peers load the same bytes.

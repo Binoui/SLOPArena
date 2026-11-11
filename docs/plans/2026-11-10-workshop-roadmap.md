@@ -237,6 +237,16 @@ what happens to published items when the cooked schema changes. Attach the evide
   corrections: no bone-map file for Mixamo names, fingers optional, and a texture budget. The
   `interrogate` review of the ADR text was skipped. Phase 0 is closed except for the server leg
   of step 0.3, which does not change the item format. Phase 1 may start.
+- 2026-11-11. Step 0.3, server leg: the item's visibility is ruled out. The owner published the
+  Steamworks change, and the anonymous game-server download still returned `k_EResultFail` with
+  the test item private, unlisted, and public. The item is private again. What remains is the
+  Workshop being visible to developers only on an unreleased app. Model swaps do not need this
+  leg, because only clients download them. Retest when step 1.8 opens the Workshop, and before
+  Phase 3. If it still fails then, the other route is a game-server login token in place of the
+  anonymous login.
+- 2026-11-11. Phase 1 started on the owner's word. Steps 1.1 and 1.2 run in parallel in their own
+  worktrees: the item manifest and a GLB pre-check in Shared, and the importer with the swap in
+  the real fighter path.
 
 ## Phase 1. Ship model swaps
 
