@@ -1,13 +1,12 @@
 #nullable enable
 using System;
 using System.Diagnostics;
-using System.IO;
-using System.IO.Compression;
 using System.Threading;
 using System.Threading.Tasks;
 using GLTFast;
 using GLTFast.Addons;
 using TextureBase = GLTFast.Schema.TextureBase;
+using SlopArena.Shared;
 using Unity.Collections;
 using UnityEngine;
 
@@ -93,19 +92,21 @@ namespace SlopArena.Client.Workshop
         }
 
         /// <summary>
-        /// Takes PNG images from glTFast: decodes and shrinks them on a worker thread, so the main thread only uploads
-        /// the small copy. Unity decodes a PNG on the main thread, and Dusty's 4096 px PNG stalled one frame for about
-        /// 235 ms. A PNG this decoder does not cover goes back to Unity's decoder and the GPU shrink.
+        /// Takes PNG images from glTFast: decodes and shrinks them on a worker thread with Shared's
+        /// <see cref="PngShrink"/>, so the main thread only uploads the small copy. Unity decodes a PNG on the main
+        /// thread, and Dusty's 4096 px PNG stalled one frame for about 235 ms. A valid PNG kind the reader does not
+        /// decode (interlaced, packed samples) goes to Unity's decoder and the GPU shrink; a malformed one refuses the
+        /// file. Every texture it makes belongs to the import, so a failed or dropped import frees it.
         /// </summary>
         internal sealed class PngLoader : ImportAddonInstance, ITextureImageLoader
         {
             private readonly int _maxSide;
-            private readonly ModelSwapImportStats _stats;
+            private readonly ImportedSwapModel _model;
 
-            public PngLoader(int maxSide, ModelSwapImportStats stats)
+            public PngLoader(int maxSide, ImportedSwapModel model)
             {
                 _maxSide = maxSide;
-                _stats = stats;
+                _model = model;
             }
 
             public override bool SupportsGltfExtension(string extensionName) => false;
@@ -125,15 +126,23 @@ namespace SlopArena.Client.Workshop
                 bool generateMipMaps, CancellationToken cancellationToken)
             {
                 byte[] bytes = data.ToArray();
+                var stats = _model.Stats;
                 var clock = Stopwatch.StartNew();
-                var image = await Task.Run(() => PngShrink.Decode(bytes, _maxSide), cancellationToken);
-                _stats.DecodeMs += clock.Elapsed.TotalMilliseconds;
+                var decoded = await Task.Run(() => PngShrink.Decode(bytes, _maxSide, WorkshopGlbLimits.Default));
+                stats.DecodeMs += clock.Elapsed.TotalMilliseconds;
+                // The import may have failed or been dropped while the worker decoded.
+                if (_model.IsDisposed || cancellationToken.IsCancellationRequested) return ImageResult.Null;
+                if (decoded.Image == null && !decoded.Unsupported)
+                {
+                    _model.ImageRefusal ??= $"{decoded.Code}: {decoded.Message}";
+                    return ImageResult.Null;
+                }
                 clock.Restart();
                 Texture2D texture;
-                if (image != null)
+                if (decoded.Image is { } image)
                 {
                     // What Unity's own decoder would have kept: full size, RGBA32.
-                    _stats.TextureBytesLoaded += (long)image.SourceWidth * image.SourceHeight * 4;
+                    stats.TextureBytesLoaded += (long)image.SourceWidth * image.SourceHeight * 4;
                     texture = NewTexture("png", image.Width, image.Height, linear);
                     texture.SetPixelData(image.Rgb, 0);
                     Finish(texture);
@@ -141,159 +150,16 @@ namespace SlopArena.Client.Workshop
                 else
                 {
                     texture = new Texture2D(4, 4, TextureFormat.RGBA32, false, linear) { name = "png" };
-                    texture.LoadImage(bytes, false);
+                    if (!texture.LoadImage(bytes, false))
+                    {
+                        UnityEngine.Object.Destroy(texture);
+                        _model.ImageRefusal ??= $"{decoded.Code}: Unity could not decode it either.";
+                        return ImageResult.Null;
+                    }
                 }
-                _stats.WorstTextureMs = Math.Max(_stats.WorstTextureMs, clock.Elapsed.TotalMilliseconds);
+                _model.Textures.Add(texture);
+                stats.WorstTextureMs = Math.Max(stats.WorstTextureMs, clock.Elapsed.TotalMilliseconds);
                 return new ImageResult(texture);
-            }
-        }
-    }
-
-    /// <summary>
-    /// A small PNG reader for the texture budget: 8- and 16-bit grey, RGB, palette, grey with alpha and RGBA, not
-    /// interlaced. It box-filters rows into the output as it inflates them, so a 4096 px image never sits in memory
-    /// whole, and writes rows bottom-up as Unity textures are. Alpha is dropped. Returns null for anything else.
-    /// </summary>
-    internal static class PngShrink
-    {
-        internal sealed class Image
-        {
-            public int Width, Height, SourceWidth, SourceHeight;
-            public byte[] Rgb = Array.Empty<byte>();
-        }
-
-        private static readonly byte[] Signature = { 137, 80, 78, 71, 13, 10, 26, 10 };
-        private const int MaxSide = 16384;
-
-        public static bool IsPng(ReadOnlySpan<byte> data) => data.Length > 8 && data.Slice(0, 8).SequenceEqual(Signature);
-
-        public static Image? Decode(byte[] png, int maxSide)
-        {
-            if (!IsPng(png)) return null;
-            int width = 0, height = 0, bitDepth = 0, colorType = -1, interlace = 0;
-            byte[]? palette = null;
-            using var idat = new MemoryStream();
-            int at = 8;
-            while (at + 12 <= png.Length)
-            {
-                int length = ReadInt(png, at);
-                if (length < 0 || at + 12 + length > png.Length) return null;
-                string type = System.Text.Encoding.ASCII.GetString(png, at + 4, 4);
-                int body = at + 8;
-                if (type == "IHDR" && length >= 13)
-                {
-                    width = ReadInt(png, body);
-                    height = ReadInt(png, body + 4);
-                    bitDepth = png[body + 8];
-                    colorType = png[body + 9];
-                    interlace = png[body + 12];
-                }
-                else if (type == "PLTE") palette = png.AsSpan(body, length).ToArray();
-                else if (type == "IDAT") idat.Write(png, body, length);
-                else if (type == "IEND") break;
-                at += 12 + length;
-            }
-            int channels = colorType switch { 0 => 1, 2 => 3, 3 => 1, 4 => 2, 6 => 4, _ => 0 };
-            bool depthOk = bitDepth == 8 || bitDepth == 16 && colorType != 3;
-            if (channels == 0 || !depthOk || interlace != 0 || width <= 0 || height <= 0 || width > MaxSide || height > MaxSide
-                || colorType == 3 && palette == null || idat.Length < 2)
-                return null;
-
-            int factor = 1;
-            while ((width + factor - 1) / factor > maxSide || (height + factor - 1) / factor > maxSide) factor *= 2;
-            int outWidth = (width + factor - 1) / factor, outHeight = (height + factor - 1) / factor;
-            int bytesPerPixel = channels * bitDepth / 8;
-            int stride = width * bytesPerPixel;
-            var row = new byte[stride];
-            var previous = new byte[stride];
-            var sums = new int[outWidth * 3];
-            var counts = new int[outWidth];
-            var rgb = new byte[outWidth * outHeight * 3];
-
-            idat.Position = 2;
-            using var inflate = new DeflateStream(idat, CompressionMode.Decompress);
-            for (int y = 0; y < height; y++)
-            {
-                int filter = inflate.ReadByte();
-                if (filter < 0 || !ReadFully(inflate, row)) return null;
-                Unfilter(filter, row, previous, bytesPerPixel);
-                for (int x = 0; x < width; x++)
-                {
-                    int p = x * bytesPerPixel, step = bitDepth / 8;
-                    int r, g, b;
-                    switch (colorType)
-                    {
-                        case 3:
-                            int entry = row[p] * 3;
-                            if (entry + 2 >= palette!.Length) return null;
-                            r = palette[entry]; g = palette[entry + 1]; b = palette[entry + 2];
-                            break;
-                        case 0:
-                        case 4:
-                            r = g = b = row[p];
-                            break;
-                        default:
-                            r = row[p]; g = row[p + step]; b = row[p + 2 * step];
-                            break;
-                    }
-                    int o = x / factor;
-                    sums[o * 3] += r; sums[o * 3 + 1] += g; sums[o * 3 + 2] += b;
-                    counts[o]++;
-                }
-                if ((y + 1) % factor == 0 || y == height - 1)
-                {
-                    int outRow = outHeight - 1 - y / factor;
-                    for (int o = 0; o < outWidth; o++)
-                    {
-                        int n = Math.Max(1, counts[o]), d = outRow * outWidth * 3 + o * 3;
-                        rgb[d] = (byte)(sums[o * 3] / n);
-                        rgb[d + 1] = (byte)(sums[o * 3 + 1] / n);
-                        rgb[d + 2] = (byte)(sums[o * 3 + 2] / n);
-                    }
-                    Array.Clear(sums, 0, sums.Length);
-                    Array.Clear(counts, 0, counts.Length);
-                }
-                (row, previous) = (previous, row);
-            }
-            return new Image { Width = outWidth, Height = outHeight, SourceWidth = width, SourceHeight = height, Rgb = rgb };
-        }
-
-        private static int ReadInt(byte[] data, int at) => data[at] << 24 | data[at + 1] << 16 | data[at + 2] << 8 | data[at + 3];
-
-        private static bool ReadFully(Stream stream, byte[] buffer)
-        {
-            int read = 0;
-            while (read < buffer.Length)
-            {
-                int n = stream.Read(buffer, read, buffer.Length - read);
-                if (n <= 0) return false;
-                read += n;
-            }
-            return true;
-        }
-
-        private static void Unfilter(int filter, byte[] row, byte[] previous, int bpp)
-        {
-            switch (filter)
-            {
-                case 1:
-                    for (int i = bpp; i < row.Length; i++) row[i] += row[i - bpp];
-                    break;
-                case 2:
-                    for (int i = 0; i < row.Length; i++) row[i] += previous[i];
-                    break;
-                case 3:
-                    for (int i = 0; i < row.Length; i++)
-                        row[i] += (byte)(((i >= bpp ? row[i - bpp] : 0) + previous[i]) / 2);
-                    break;
-                case 4:
-                    for (int i = 0; i < row.Length; i++)
-                    {
-                        int a = i >= bpp ? row[i - bpp] : 0, b = previous[i], c = i >= bpp ? previous[i - bpp] : 0;
-                        int p = a + b - c, pa = Math.Abs(p - a), pb = Math.Abs(p - b), pc = Math.Abs(p - c);
-                        row[i] += (byte)(pa <= pb && pa <= pc ? a : pb <= pc ? b : c);
-                    }
-                    break;
             }
         }
     }

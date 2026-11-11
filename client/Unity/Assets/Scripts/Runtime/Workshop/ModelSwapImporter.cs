@@ -25,6 +25,7 @@ namespace SlopArena.Client.Workshop
         FileUnreadable,
         FileLimits,
         GltfLoadFailed,
+        ImageUnreadable,
         NoSkinnedMesh,
         BoneMapInvalid,
         RequiredBonesMissing,
@@ -90,6 +91,8 @@ namespace SlopArena.Client.Workshop
         internal readonly List<Texture2D> Textures = new();
         internal readonly List<Material> Materials = new();
         internal readonly List<Mesh> InkedSources = new();
+        internal bool IsDisposed;
+        internal string? ImageRefusal;
 
         public GameObject? Root { get; internal set; }
         public Animator? Animator { get; internal set; }
@@ -105,9 +108,16 @@ namespace SlopArena.Client.Workshop
 
         public void Dispose()
         {
+            IsDisposed = true;
             foreach (var mesh in InkedSources) FighterInk.Release(mesh);
             InkedSources.Clear();
-            if (Root != null) UnityEngine.Object.Destroy(Root);
+            if (Root != null)
+            {
+                // Out of any fighter's hierarchy at once, so this frame's child searches no longer find it.
+                Root.transform.SetParent(null, false);
+                Root.SetActive(false);
+                UnityEngine.Object.Destroy(Root);
+            }
             Root = null;
             if (Avatar != null) UnityEngine.Object.Destroy(Avatar);
             Avatar = null;
@@ -186,7 +196,7 @@ namespace SlopArena.Client.Workshop
             var materials = new SwapMaterialGenerator(shader, target.Rim, model.Materials);
             var logger = new CollectingLogger();
             var gltf = model.Gltf = new GltfImport(NoDownloads.Instance, null, materials, logger);
-            if (TextureMaxSide > 0) gltf.AddImportAddonInstance(new ModelSwapTextures.PngLoader(TextureMaxSide, stats));
+            if (TextureMaxSide > 0) gltf.AddImportAddonInstance(new ModelSwapTextures.PngLoader(TextureMaxSide, model));
             var settings = new ImportSettings
             {
                 AnimationMethod = AnimationMethod.None,
@@ -194,7 +204,10 @@ namespace SlopArena.Client.Workshop
                 GenerateMipMaps = false,
             };
             var watch = Stopwatch.StartNew();
-            if (!await gltf.Load(glb, null, settings, cancel))
+            bool loaded = await gltf.Load(glb, null, settings, cancel);
+            if (model.ImageRefusal != null)
+                return ModelSwapImportResult.Refuse(ModelSwapRefusalReason.ImageUnreadable, model.ImageRefusal);
+            if (!loaded)
                 return ModelSwapImportResult.Refuse(ModelSwapRefusalReason.GltfLoadFailed, FirstError(logger, "glTFast could not read the file."));
             stats.LoadMs = watch.Elapsed.TotalMilliseconds;
 
