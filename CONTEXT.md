@@ -572,6 +572,8 @@ Bare "server" is ambiguous; name the owner instead.
  
 ## Workshop / Creator Content
 
+For text-first fighter authoring, use the generated [Workshop authoring reference](docs/characters/workshop-authoring-reference.md) and its Unity-free kit checker. The reference separates accepted gameplay source from portable asset formats that are not defined yet.
+
 **WorkshopContent**:
 Creator-authored fighter, stage, or presentation content distributed through Steam Workshop. WorkshopContent references SLOPArena capabilities by public identity and owns its creator-provided assets.
 _Avoid_: mod, addon, user content

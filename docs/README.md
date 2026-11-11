@@ -88,6 +88,8 @@ Use [Project context](../CONTEXT.md) for canonical gameplay vocabulary and settl
 
 ## Character authoring
 
+- [Workshop fighter authoring reference](characters/workshop-authoring-reference.md). Generated source contract, example kit, and Unity-free checker.
+
 | Document | Use it for |
 | --- | --- |
 | [Adding a Character](characters/adding-a-new-character.md) | Package source, asset catalog, cooking, and admission |

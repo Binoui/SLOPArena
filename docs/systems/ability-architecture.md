@@ -23,9 +23,11 @@ Character Package source
 
 The GameServer and client prediction consume the same cooked representation. Unity does not execute gameplay logic independently. `PlayerRenderer` and other presentation systems consume authoritative state and semantic presentation events only.
 
+For the exact accepted JSON fields, defaults, operation kinds, units, budgets, public capability parameters, bone identifiers, and diagnostics, use the generated [Workshop authoring reference](../characters/workshop-authoring-reference.md). Its worked example compiles without Unity. This page explains runtime behavior.
+
 ## Package-authored ability model
 
-A package has fourteen canonical entries: grounded and aerial variants for `1`, `3`, `4`, `A`, `E`, `R`, and `F` (ADR-0042 retired normal `2`). Physical controls are input adapters; package identity is the canonical slot ID.
+A package has fourteen canonical entries: grounded and aerial variants for `1`, `2`, `3`, `A`, `E`, `R`, and `F`. Physical controls are input adapters; package identity is the canonical slot ID.
 
 Each slot contains a fixed, ordered timeline of stages. A stage owns duration, IASA, landing-lag/auto-cancel timing, animation IDs, and typed operations. Operations have explicit versioned contracts, units, bounds, defaults, and budget cost. Same-tick operations execute in authored order.
 
@@ -399,9 +401,9 @@ contacts and input timing.
 | `slop.internal.fightguy.rising-dragon.v1` | FightGuy E, rising recovery | Public recovery primitive after trajectory and contact parity |
 | `slop.internal.fightguy.cyclone-kick.v1` | FightGuy R, rotating movement and hits | Cooked movement and hit windows after parity |
 | `slop.internal.wibou.rising-slash.v1` | Wibou E, aimed rising slash | Public recovery primitive after trajectory and contact parity |
-| `slop.internal.manki.round-bomb.v3` | Manki A, Bombs Away | Public contact-bomb and backward-hop operations after flight and fuse parity |
+| `slop.internal.manki.proximity-mine.v1` | Manki A, Bombs Away | Public contact-bomb and backward-hop operations after flight and fuse parity |
 | `slop.internal.manki.jetpack-boost.v3` | Manki E, Flying ignition | Public fighter-flight state after fuel, interruption and rollback parity |
-| `slop.internal.manki.bazooka.v2` | Manki R, press-to-fire homing rocket | Public projectile behavior after target capture, limited steering, cancellation and explosion parity |
+| `slop.internal.manki.bazooka.v3` | Manki R, press-to-fire homing rocket | Public projectile behavior after target capture, limited steering, cancellation and explosion parity |
 | `slop.internal.manki.kamikaze.v1` | Manki F, Kamikaze | Public targeted thrust and contact explosion after finisher and self-push parity. Bashie's F uses her own cooked whistle timeline. |
 
 Blade Flurry (Skyfall, `slop.internal.wibou.blade-flurry.v1` and `.v2`) is retired in favour of

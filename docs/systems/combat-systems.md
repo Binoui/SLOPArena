@@ -2,14 +2,16 @@
 
 This document describes mechanics shared by every SLOPArena fighter. Character-specific kit data belongs in the character package; package execution is covered by [Ability Architecture](ability-architecture.md).
 
+For source fields and examples, use the [Workshop authoring reference](../characters/workshop-authoring-reference.md). It includes the full hitbox shape, hit groups, coordinate conventions, and public command-grab launch parameters.
+
 ## Move model
 
-Each fighter has eight button concepts, each with grounded and aerial entries:
+Each fighter has seven button concepts, each with grounded and aerial entries:
 
-- normals `1`, `2`, `3`, and `4`;
+- normals `1`, `2`, and `3`;
 - specials `A`, `E`, `R`, and `F`.
 
-That produces the canonical 14-entry grid, including six normal moves (normals `1`, `3` and `4`, ground and air) and eight special moves. [`CanonicalSlotProjection`](../../src/Shared/SlotAddress.cs) defines the entries. `A` is the signature special, `E` is recovery-capable mobility, `R` is the playmaking special, and `F` is the long-cooldown power special. A package may alias entries in authoring, but cooking expands them into explicit runtime slots. Physical labels such as `LMB` and `RMB` are input mappings, not move identity.
+That produces the canonical 14-entry grid, including six normal moves (normals `1`, `2` and `3`, ground and air) and eight special moves. [`CanonicalSlotProjection`](../../src/Shared/SlotAddress.cs) defines the entries. `A` is the signature special, `E` is recovery-capable mobility, `R` is the playmaking special, and `F` is the long-cooldown power special. A package may alias entries in authoring, but cooking expands them into explicit runtime slots. Physical labels such as `LMB` and `RMB` are input mappings, not move identity.
 
 Every move is a fixed-timeline entry with authored stage timing, animation IDs, and typed deterministic operations. The Shared simulation controls activation, duration, collision, interruption, and completion.
 
