@@ -485,7 +485,8 @@ namespace SlopArena.Client.Entities
                 return false;
             }
             var live = LiveClip();
-            model.transform.SetParent(_modelInstance.transform.parent, false);
+            Transform holder = _modelInstance.transform.parent;
+            model.transform.SetParent(holder, false);
             model.transform.localScale = Vector3.one * _modelVisualScale;
             _weaponAttach ??= GetComponent<WeaponAttach>();
             Dictionary<string, Transform> sockets;
@@ -502,28 +503,57 @@ namespace SlopArena.Client.Entities
                 sockets = Workshop.ModelSwapSockets.Build(_animancer.Animator, animancer.Animator,
                     _weaponAttach != null ? _weaponAttach.BoneNames : Array.Empty<string>());
             }
+            catch (Exception exception)
+            {
+                // The built-in model is still on; hand the swap back unworn.
+                model.transform.SetParent(null, false);
+                ResumeClip(live);
+                error = "Could not pose the model swap: " + exception.Message;
+                return false;
+            }
             finally { _hitFeel?.ResumeDeformation(); }
             DiscardModel(_modelInstance);
-            _weaponSockets = sockets;
-            AdoptModel(model, animancer);
-            ResumeClip(live);
+            try
+            {
+                _weaponSockets = sockets;
+                AdoptModel(model, animancer);
+                ResumeClip(live);
+            }
+            catch (Exception exception)
+            {
+                Debug.LogException(exception);
+                RestoreBuiltIn(live, holder);
+                error = "Could not wear the model swap: " + exception.Message;
+                return false;
+            }
             return true;
         }
 
         /// <summary>Take a worn model swap off and show the built-in model again; the renderer destroys the swap's object.</summary>
         public void TakeOffModel()
         {
-            if (!WearsModelSwap || _modelPrefab == null) return;
-            if (!TryCreateModel(_modelPrefab, out var instance, out var animancer, out var error))
+            if (WearsModelSwap && _modelInstance != null)
+                RestoreBuiltIn(LiveClip(), _modelInstance.transform.parent);
+        }
+
+        // A fresh built-in model under the hit-feel pivots, with the look the match gave every fighter at its start.
+        private void RestoreBuiltIn((AnimationClip Clip, float Time, float Speed)? live, Transform holder)
+        {
+            if (_modelPrefab == null)
             {
-                Debug.LogError($"[PlayerRenderer] {error}");
+                Debug.LogError("[PlayerRenderer] Could not restore the built-in model: no prefab.");
                 return;
             }
-            var live = LiveClip();
-            instance.transform.SetParent(_modelInstance.transform.parent, false);
-            DiscardModel(_modelInstance);
+            if (!TryCreateModel(_modelPrefab, out var instance, out var animancer, out var error))
+            {
+                Debug.LogError($"[PlayerRenderer] Could not restore the built-in model: {error}");
+                return;
+            }
+            instance.transform.SetParent(holder, false);
+            if (_modelInstance != null && _modelInstance.transform.parent == holder) DiscardModel(_modelInstance);
             _weaponSockets = null;
             AdoptModel(instance, animancer);
+            MatchVisualStyle.Current?.StyleModel(this, instance);
             ResumeClip(live);
         }
 

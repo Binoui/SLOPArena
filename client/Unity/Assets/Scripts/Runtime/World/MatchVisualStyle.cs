@@ -40,8 +40,12 @@ namespace SlopArena.Client.World
         private int _cameraCount = -1;
         private bool _applied;
 
+        /// <summary>The look of the match being played; null outside a match.</summary>
+        public static MatchVisualStyle? Current { get; private set; }
+
         public void Apply()
         {
+            Current = this;
             var stage = FindFirstObjectByType<StageLook>();
             _look = stage != null ? stage.Settings : StageLookSettings.Default;
             StageLook.Active = _look;
@@ -180,39 +184,47 @@ namespace SlopArena.Client.World
             ApplyFighterLook();
 
             foreach (var player in FindObjectsByType<PlayerRenderer>(FindObjectsSortMode.None))
-            {
-                Color rimColor = RimColorFor(player);
+                StyleSkins(player.GetComponentsInChildren<SkinnedMeshRenderer>(true), RimColorFor(player), shader);
+        }
 
-                foreach (var modelRenderer in player.GetComponentsInChildren<Renderer>(true))
+        /// <summary>
+        /// Give a model that replaced a fighter's model mid-match (a model swap taken off) the look every fighter got
+        /// at the start: the fighter shader with its seat rim, and the ink line when the stage has one.
+        /// </summary>
+        public void StyleModel(PlayerRenderer player, GameObject model)
+        {
+            var shader = FighterShader;
+            if (shader != null) StyleSkins(model.GetComponentsInChildren<SkinnedMeshRenderer>(true), RimColorFor(player), shader);
+        }
+
+        private void StyleSkins(SkinnedMeshRenderer[] skins, Color rimColor, Shader shader)
+        {
+            foreach (var skin in skins)
+            {
+                var originals = skin.sharedMaterials;
+                var styled = new Material[originals.Length];
+                for (int i = 0; i < originals.Length; i++)
                 {
-                    if (modelRenderer is not SkinnedMeshRenderer skin)
+                    var original = originals[i];
+                    if (original == null)
                         continue;
 
-                    var originals = modelRenderer.sharedMaterials;
-                    var styled = new Material[originals.Length];
-                    for (int i = 0; i < originals.Length; i++)
+                    var material = CreateFighterMaterial(shader, original.name + "_GraphicRuntime", rimColor);
+                    if (original.HasProperty("_BaseMap"))
                     {
-                        var original = originals[i];
-                        if (original == null)
-                            continue;
-
-                        var material = CreateFighterMaterial(shader, original.name + "_GraphicRuntime", rimColor);
-                        if (original.HasProperty("_BaseMap"))
-                        {
-                            material.SetTexture("_BaseMap", original.GetTexture("_BaseMap"));
-                            material.SetTextureScale("_BaseMap", original.GetTextureScale("_BaseMap"));
-                            material.SetTextureOffset("_BaseMap", original.GetTextureOffset("_BaseMap"));
-                        }
-                        if (original.HasProperty("_BaseColor"))
-                            material.SetColor("_BaseColor", original.GetColor("_BaseColor"));
-                        if (original.HasProperty("_Cull"))
-                            material.SetFloat("_Cull", original.GetFloat("_Cull"));
-                        styled[i] = material;
-                        _runtimeMaterials.Add(material);
+                        material.SetTexture("_BaseMap", original.GetTexture("_BaseMap"));
+                        material.SetTextureScale("_BaseMap", original.GetTextureScale("_BaseMap"));
+                        material.SetTextureOffset("_BaseMap", original.GetTextureOffset("_BaseMap"));
                     }
-                    modelRenderer.sharedMaterials = styled;
-                    if (_look.Fighters.Ink > 0f) FighterInk.Apply(skin);
+                    if (original.HasProperty("_BaseColor"))
+                        material.SetColor("_BaseColor", original.GetColor("_BaseColor"));
+                    if (original.HasProperty("_Cull"))
+                        material.SetFloat("_Cull", original.GetFloat("_Cull"));
+                    styled[i] = material;
+                    _runtimeMaterials.Add(material);
                 }
+                skin.sharedMaterials = styled;
+                if (_look.Fighters.Ink > 0f) FighterInk.Apply(skin);
             }
         }
 
@@ -253,6 +265,7 @@ namespace SlopArena.Client.World
 
         private void OnDestroy()
         {
+            if (Current == this) Current = null;
             foreach (var material in _runtimeMaterials)
                 if (material != null)
                     Destroy(material);

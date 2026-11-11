@@ -2,11 +2,13 @@
 using System;
 using System.Diagnostics;
 using System.IO;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using SlopArena.Client.Entities;
 using SlopArena.Client.UI;
 using SlopArena.Client.World;
+using SlopArena.Shared;
 using UnityEngine;
 using Debug = UnityEngine.Debug;
 
@@ -104,11 +106,17 @@ namespace SlopArena.Client.Workshop
             ModelSwapImportResult result;
             try
             {
-                var (glb, boneMap) = await Task.Run(() => Read(choice), cancel.Token);
-                result = await ModelSwapImporter.ImportAsync(glb, boneMap, target, cancel.Token);
+                var token = cancel.Token;
+                var (glb, boneMap) = await Task.Run(() => Read(choice, token), token);
+                result = await ModelSwapImporter.ImportAsync(glb, boneMap, target, token);
             }
             catch (OperationCanceledException)
             {
+                return;
+            }
+            catch (TooLarge tooLarge)
+            {
+                if (cancel == _cancel) Refuse(ModelSwapRefusalReason.FileLimits, tooLarge.Message, clock);
                 return;
             }
             catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or ArgumentException or NotSupportedException)
@@ -128,7 +136,18 @@ namespace SlopArena.Client.Workshop
                 return;
             }
             Stats = result.Model.Stats;
-            if (!_renderer.WearModel(result.Model.Root!, result.Model.Animancer!, out string error))
+            bool worn;
+            string error;
+            try
+            {
+                worn = _renderer.WearModel(result.Model.Root!, result.Model.Animancer!, out error);
+            }
+            catch
+            {
+                result.Model.Dispose();
+                throw;
+            }
+            if (!worn)
             {
                 result.Model.Dispose();
                 Refuse(ModelSwapRefusalReason.ImportFailed, error, clock);
@@ -141,11 +160,41 @@ namespace SlopArena.Client.Workshop
             Debug.Log($"[ModelSwap] P{_renderer.PlayerNumber} wears {choice.Name} on {_packageId} after {SettleMs:0} ms: {Stats}");
         }
 
-        private static (byte[] Glb, string? BoneMap) Read(ModelSwapChoice choice)
+        /// <summary>The largest humanoid.json read; a full Mixamo map is about 3 KB.</summary>
+        public const int MaxBoneMapBytes = 64 * 1024;
+
+        // Runs on a worker thread. Sizes are checked before a byte is read, and a dropped swap stops the read.
+        private static async Task<(byte[] Glb, string? BoneMap)> Read(ModelSwapChoice choice, CancellationToken cancel)
         {
-            byte[] glb = File.ReadAllBytes(choice.GlbPath);
-            string? boneMap = choice.BoneMapPath is { } path ? File.ReadAllText(path) : null;
+            byte[] glb = await ReadCapped(choice.GlbPath, WorkshopGlbLimits.Default.MaxFileBytes, "glb.limit.file-bytes", cancel);
+            string? boneMap = null;
+            if (choice.BoneMapPath is { } path)
+            {
+                byte[] json = await ReadCapped(path, MaxBoneMapBytes, "humanoid.limit.file-bytes", cancel);
+                using var reader = new StreamReader(new MemoryStream(json), Encoding.UTF8, true);
+                boneMap = reader.ReadToEnd();
+            }
             return (glb, boneMap);
+        }
+
+        private static async Task<byte[]> ReadCapped(string path, long maxBytes, string code, CancellationToken cancel)
+        {
+            using var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read, 1 << 20, true);
+            if (stream.Length > maxBytes)
+                throw new TooLarge($"{code}: {Path.GetFileName(path)} is {stream.Length} bytes; the limit is {maxBytes}.");
+            var bytes = new byte[stream.Length];
+            for (int read = 0; read < bytes.Length;)
+            {
+                int n = await stream.ReadAsync(bytes, read, bytes.Length - read, cancel).ConfigureAwait(false);
+                if (n == 0) throw new IOException($"{Path.GetFileName(path)} ended before its length.");
+                read += n;
+            }
+            return bytes;
+        }
+
+        private sealed class TooLarge : Exception
+        {
+            public TooLarge(string message) : base(message) { }
         }
 
         private void Refuse(ModelSwapRefusalReason reason, string message, Stopwatch clock)
@@ -177,7 +226,10 @@ namespace SlopArena.Client.Workshop
         {
             _cancel?.Cancel();
             _cancel = null;
-            _worn?.Dispose();
+            if (_worn == null) return;
+            // The fighter's own hierarchy is being destroyed and takes the worn model with it.
+            _worn.Root = null;
+            _worn.Dispose();
             _worn = null;
         }
     }
