@@ -220,7 +220,7 @@ as a new item. It never creates a replacement automatically.
 
 Each view restores controller focus after rebuilding and after busy work completes.
 The selected tab is independent of focus. Text fields return to their edit button
-with Up, Down or Back. Back closes a dropdown before closing Workshop. Titles are
+with Up, Down or Back. Base and visibility selections use cycle buttons with no popup. Titles are
 plain text. Invalid publish settings fall back to local defaults, and a missing or
 ambiguous base fighter refuses Training before closing the screen. Library rows show
 title, base display name, creator, worn state and published state.
