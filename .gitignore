@@ -5,6 +5,8 @@ build/
 export/
 bin/
 obj/
+TestResults/
+/output/
 
 # ==========================================
 # IDE / Editor
