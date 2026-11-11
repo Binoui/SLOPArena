@@ -170,9 +170,12 @@ namespace SlopArena.Client.Workshop
             }
         }
 
-        // The file-level limits (size, triangles, bones, texture size) land as WorkshopGlbPrecheck.Check(glb,
-        // WorkshopGlbLimits.Default) in Shared; it must run here, before glTFast parses a byte.
-        private static string? FilePrecheck(byte[] glb) => glb.Length == 0 ? "The file is empty." : null;
+        // Runs before glTFast parses a byte, so a file outside the limits is never decoded.
+        private static string? FilePrecheck(byte[] glb)
+        {
+            var result = WorkshopGlbPrecheck.Check(glb, WorkshopGlbLimits.Default);
+            return result.IsAccepted ? null : string.Join(" ", result.Diagnostics.Select(d => $"{d.Code}: {d.Message}"));
+        }
 
         private static async Task<ModelSwapImportResult> Build(
             ImportedSwapModel model, byte[] glb, string? boneMapJson, ModelSwapTarget target, CancellationToken cancel)

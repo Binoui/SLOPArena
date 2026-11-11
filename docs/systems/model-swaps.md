@@ -33,8 +33,10 @@ swap and asks again.
 fighter, and returns a model or a refusal with a `ModelSwapRefusalReason`. Each step
 runs in its own frame, so a match never waits on it.
 
-1. The file-level precheck runs first (`FilePrecheck`). The Shared limits for file
-   size, triangles, bones and texture size plug in there.
+1. The file-level precheck runs first (`FilePrecheck`). It calls
+   `WorkshopGlbPrecheck.Check` in Shared with `WorkshopGlbLimits.Default`, which
+   refuses a file outside the limits for file size, triangles, bones and texture
+   size before glTFast reads it. The refusal reason is `FileLimits`.
 2. glTFast loads the GLB with no clips and no external downloads. A swap file must
    embed its buffers and images.
 3. Textures shrink to `TextureMaxSide` (1024 px) with mipmaps and DXT1 where the GPU
