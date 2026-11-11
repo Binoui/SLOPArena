@@ -167,3 +167,8 @@ appear before publishing. The screen defaults to private visibility.
 **Download and verify** downloads the selected item, verifies its folder and imports
 its avatar before offering wear and Training. Items that fail show the refusal.
 The item's page and the game's Workshop page open in Steam's overlay.
+
+`WorkshopLibrary.WearableItems()` returns verified local items and installed Steam
+items remembered after download. Each call verifies the files again. Missing or
+changed downloads disappear from that result. This API does not perform a Unity
+avatar import. The Workshop screen performs that check before remembering a download.

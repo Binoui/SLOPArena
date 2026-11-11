@@ -42,6 +42,7 @@ namespace SlopArena.Client.UI
             _root.style.left = _root.style.right = 35;
             _root.style.top = _root.style.bottom = 35;
             _root.style.backgroundColor = new Color(.07f, .08f, .11f);
+            _root.style.color = Color.white;
             _root.style.paddingLeft = _root.style.paddingRight = 20;
             _root.style.paddingTop = _root.style.paddingBottom = 12;
             host.Add(_root);
