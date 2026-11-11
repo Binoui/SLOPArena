@@ -211,7 +211,7 @@ namespace SlopArena.Client.UI
                 MatchConfig.ModelSwaps[1] = new ModelSwapChoice(item.GlbPath, item.Manifest.BaseFighterPackageId);
                 SceneManager.LoadScene("Arena_Offline");
             });
-            if (!string.Equals(Path.GetDirectoryName(item.Folder), _library.ItemsFolder, StringComparison.OrdinalIgnoreCase)) return;
+            if (!string.Equals(Path.GetFullPath(Path.GetDirectoryName(item.Folder)!), Path.GetFullPath(_library.ItemsFolder), StringComparison.OrdinalIgnoreCase)) return;
             var guidelines = new Toggle("I have read the content guidelines");
             _body.Add(new Label("Credit your sources, respect creators, and mark AI-assisted work. Rights claims follow Steam's takedown process."));
             _body.Add(guidelines);
