@@ -7,8 +7,8 @@ so the swap never reaches Shared, the GameServer or the match content hash. The
 [Workshop roadmap](../plans/2026-11-10-workshop-roadmap.md) Phase 1 builds it.
 
 ```text
-MatchConfig.ModelSwaps[player 1-4]       (launch option or folder today; Fighter Select,
-  -> FighterModelSwap                      Workshop screen and Rooms later)
+MatchConfig.ModelSwaps[player 1-4]       (Workshop library or launch option; Fighter Select
+  -> FighterModelSwap                      and Rooms follow later)
   -> ModelSwapImporter (glTFast, over several frames, built-in model still shown)
   -> PlayerRenderer.WearModel            (the base fighter's clips through Animancer)
 ```
@@ -16,9 +16,9 @@ MatchConfig.ModelSwaps[player 1-4]       (launch option or folder today; Fighter
 ## Choosing a swap
 
 `MatchConfig.ModelSwaps` maps a player number to a `ModelSwapChoice`, a GLB path.
-Two players on the same fighter can wear different models. Until the screens exist,
-`ModelSwapLaunchOptions` fills it at launch from `-modelSwap 2=C:\models\dusty.glb`
-(repeatable, or pairs joined by `;`), or else from `p1.glb` to `p4.glb` in the
+Two players on the same fighter can wear different models. The Workshop library restores
+saved choices at launch. `ModelSwapLaunchOptions` can override them from `-modelSwap 2=C:\models\dusty.glb`
+(repeatable, or pairs joined by `;`), or, when no choice exists, from `p1.glb` to `p4.glb` in the
 `ModelSwaps` folder under the player's data folder. A bone map file sits beside the
 GLB as `<name>.humanoid.json`, or as `humanoid.json` in a Workshop item folder.
 
