@@ -242,6 +242,7 @@ namespace SlopArena.Client.UI
                     var installed = await _steam.Download(item.Id);
                     using var model = await Load(WorkshopLibrary.ReadCapped(installed.GlbPath, SlopArena.Shared.WorkshopGlbLimits.Default.MaxFileBytes),
                         File.Exists(Path.Combine(installed.Folder, "humanoid.json")) ? System.Text.Encoding.UTF8.GetString(WorkshopLibrary.ReadCapped(Path.Combine(installed.Folder, "humanoid.json"), 65536)) : null);
+                    _library.RememberInstalled(installed);
                     Details(installed); Status("Downloaded and verified " + item.Id + ". Ready to wear.");
                 }));
             }

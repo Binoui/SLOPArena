@@ -95,7 +95,26 @@ namespace SlopArena.Client.Workshop
             string path = Path.Combine(Root, $"wear-{player}.txt");
             if (!File.Exists(path)) return null;
             try { return Verify(File.ReadAllText(path)); }
-            catch (Exception e) when (e is IOException or UnauthorizedAccessException or ArgumentException) { return null; }
+            catch (Exception e) when (e is IOException or InvalidDataException or UnauthorizedAccessException or ArgumentException) { return null; }
+        }
+        public void RememberInstalled(WorkshopLibraryItem item)
+        {
+            string index = Path.Combine(Root, "installed.txt");
+            var folders = File.Exists(index) ? File.ReadAllLines(index).ToList() : new List<string>();
+            if (!folders.Contains(item.Folder)) { folders.Add(item.Folder); File.WriteAllLines(index, folders); }
+        }
+
+        public IReadOnlyList<WorkshopLibraryItem> WearableItems()
+        {
+            var result = new List<WorkshopLibraryItem>();
+            string index = Path.Combine(Root, "installed.txt");
+            var folders = Directory.GetDirectories(ItemsFolder).Concat(File.Exists(index) ? File.ReadAllLines(index) : Array.Empty<string>());
+            foreach (string folder in folders.Distinct())
+            {
+                try { result.Add(Verify(folder)); }
+                catch (Exception e) when (e is IOException or InvalidDataException or UnauthorizedAccessException or ArgumentException) { }
+            }
+            return result;
         }
         public string StatePath(WorkshopLibraryItem item) => Path.Combine(Root, Path.GetFileName(item.Folder) + ".publish.json");
     }
