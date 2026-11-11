@@ -65,8 +65,13 @@ namespace SlopArena.Client.UI
         private void HandleBack()
         {
             var panel = _root.panel;
-            var popup = panel?.visualTree.Q(className: "unity-base-dropdown__container-outer");
-            if (popup != null) { popup.RemoveFromHierarchy(); FocusBody(); return; }
+            var popup = panel?.visualTree.Q(className: GenericDropdownMenu.ussClassName);
+            if (popup != null)
+            {
+                var target = popup.Q<ScrollView>()?.contentContainer ?? popup;
+                using var cancel = NavigationCancelEvent.GetPooled(); cancel.target = target; target.SendEvent(cancel);
+                FocusBody(); return;
+            }
             var focused = panel?.focusController.focusedElement as VisualElement;
             foreach (var pair in _editButtons)
                 if (focused != null && (ReferenceEquals(pair.Key, focused) || pair.Key.Contains(focused))) { pair.Key.Blur(); pair.Value.Focus(); return; }
