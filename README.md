@@ -6,6 +6,8 @@
 
 **A free, open-source 3D platform fighter**
 
+**[Wishlist on Steam](https://store.steampowered.com/app/5324910/) · [playsloparena.com](https://playsloparena.com/)**
+
 [Discord](https://discord.gg/VvfaxDCF6Z) · [X](https://x.com/SLOPArena) · [TikTok](https://www.tiktok.com/@sloparena) · [YouTube](https://www.youtube.com/@SLOPArena) · [Play it](#play-it) · [Try it in five minutes](#try-it-in-five-minutes-no-unity-needed) · [Make stuff](#make-stuff) · [Docs](docs/README.md)
 
 ## Hi!
@@ -28,7 +30,7 @@ Things friends usually want from this part:
 
 ## What is SLOPArena?
 
-It's a platform fighter in the Smash family, in full 3D. Every hit adds damage, and the more damage you carry, the farther you fly, until somebody goes off the stage. Each fighter has a compact kit: eight normal attacks (four on the ground, four in the air) and four specials.
+It's a platform fighter in the Smash family, in full 3D. Every hit adds damage, and the more damage you carry, the farther you fly, until somebody goes off the stage. Each fighter has a compact kit: three normal attacks and four specials, each with a ground and an air version.
 
 <p align="center">
   <img src="client/Unity/Assets/Resources/UI/Stages/table_manners.png" alt="Table Manners stage: a frosted cake on a kid's bedroom table" width="32%">
@@ -36,14 +38,15 @@ It's a platform fighter in the Smash family, in full 3D. Every hit adds damage, 
   <img src="client/Unity/Assets/Resources/UI/Stages/log_off.png" alt="Log Off stage: a tree stump at a campsite with a sign reading 'No Wi-Fi, just logs'" width="32%">
 </p>
 
-- **Five rostered fighters:** FightGuy, Manki, Wibou, Bonk, and Bashie. Bashie's kit still has some stand-in moves.
-- **Six stages** to pick from, including the three above.
-- **Training** against a CPU you can tune, and offline **Arcade** challenges.
-- **Online matches** on a dedicated server, with rollback netcode.
+- **Seven fighters:** FightGuy, Manki, Wibou, Sir Bonk, Bashie, Dusty, and Nyx. Bashie and Dusty are still works in progress.
+- **Seven stages** to pick from, including the three above.
+- **Versus** with up to four fighters, friends on one screen or CPUs, **Training** against a CPU you can tune, and a **Fighter's License** tutorial.
+- **Arcade** modes: Slopball, Slop Rally races on four fighter courses, and Manki Mayhem.
+- **Online matches** in Rooms on a dedicated server, with rollback netcode.
 - Built in **Unity 6**. The gameplay itself is a deterministic C# simulation that the game and the server share.
 - **MIT licensed.** Made by one developer and a lot of AI help ([how AI is used](#ai-usage)).
 
-> **Where it's at (October 2026):** early. We're building toward a playable demo for friends. The fighters are still being tuned, no stage has had a proper group playtest yet, and making online matches reliable is the current focus. Expect rough edges, and please tell us about them.
+> **Where it's at (November 2026):** early, and playable. The [Steam store page](https://store.steampowered.com/app/5324910/) is up and the game is tested through the Steam Playtest. Fighters are still being tuned, and each test build can change the network protocol, so everyone needs the same build to play online. Expect rough edges, and please tell us about them.
 
 ### The fighters
 
@@ -52,16 +55,18 @@ It's a platform fighter in the Smash family, in full 3D. Every hit adds damage, 
 | [**FightGuy**](docs/characters/fightguy.md) | Close-range martial artist: Ki Shot, Rising Dragon, Cyclone Kick, and Fist of Fury |
 | [**Manki**](docs/characters/manki.md) | Pyromaniac inventor monkey with a jetpack, a bazooka, bombs, and aerosol traps |
 | [**Wibou**](docs/characters/wibou.md) | Matrix-inspired mall ninja who controls space with his katana, then juggles you in the air |
-| [**Bonk**](docs/characters/bonk.md) | Greatsword bruiser with long reach, a jump-slam recovery, and Blade Storm |
-| [**Bashie**](docs/characters/bashie.md) | Lifeguard turtle with a water blaster and shell moves; part of her kit still uses stand-ins |
+| [**Sir Bonk**](docs/characters/bonk.md) | Self-knighted bruiser with homemade armour and a plank for a sword: Pot-Lid Throw, The Joust, Leap of Faith, and Blade Storm |
+| [**Bashie**](docs/characters/bashie.md) | Lifeguard turtle who enforces the pool rules and breaks all of them: Rescue Ring, Hydro Jet, Cannonball, and Wave Pool. Work in progress |
+| [**Dusty**](docs/characters/dusty.md) | Small-time salamander gunslinger with finger guns, a lasso, and a glued-on mustache. Work in progress, still named Salamander in the game |
+| [**Nyx**](docs/characters/nyx.md) | Shadow witch with a second form: Nyx curses and grabs from range, Nyxxie the influencer rushes in with her ring light |
 
 ## Things you can do here
 
 ### Play it
 
-SLOPArena runs on Windows 10 and 11. The easiest way in is the Steam Playtest: ask Binoui for access on [Discord](https://discord.gg/VvfaxDCF6Z). Test builds are also attached to the [Releases page](https://github.com/Binoui/SLOPArena/releases).
+SLOPArena runs on Windows 10 and 11. [Wishlist it on Steam](https://store.steampowered.com/app/5324910/) to hear when it launches. The easiest way in today is the Steam Playtest: ask Binoui for access on [Discord](https://discord.gg/VvfaxDCF6Z). Test builds are also attached to the [Releases page](https://github.com/Binoui/SLOPArena/releases).
 
-Training and Arcade work offline. Online matches need our server to be up, and they're what we're fixing right now, so they may not connect yet. The controls are [below](#controls).
+Versus, Training and Arcade work offline. Online matches need our server to be up and the same build as the other players. The controls are [below](#controls).
 
 ### Try it in five minutes, no Unity needed
 
@@ -130,20 +135,21 @@ The project rules tell assistants to explain the intended change, then complete 
 | Action | Keyboard and mouse | Gamepad (Xbox labels) |
 | --- | --- | --- |
 | Move | W A S D (Z Q S D on AZERTY) | Left stick |
-| Camera and aim | Mouse | Right stick |
-| Jump, then again to double jump | Space | RB |
+| Camera | Mouse | Turns by itself |
+| Jump, then again to double jump | Space | A |
 | Shield | Left Shift | RT |
-| Grab | C | LB + RT |
+| Grab | C | LB |
 | Crouch, slide, fast-fall | X | LT |
-| Normals 1 / 2 / 3 / 4 | Number row 1 / 2 / 3 / 4 | A / X / Y / B |
-| Specials A / E / R / F | Q / E / R / F (A / E / R / F on AZERTY) | Hold LB, then A / Y / X / B |
+| Normals 1 / 2 / 3 | Number row 1 / 2 / 3 | X / Y / B |
+| Beeline (homing dash to your target) | 4 | RB |
+| Specials A / E / R / F | Q / E / R / F (A / E / R / F on AZERTY) | Flick the right stick down / up / left / right |
 | Face the camera | Left click | L3 |
-| Lock on to a target | Right click | R3 |
+| Lock on to a target | Right click | Tap R3 |
 | Switch target | Tab | D-pad right |
 | Zoom | Mouse wheel | |
 | Pause | Esc | Start |
 
-Remap controls under **Settings → Controls**. In Training, press Esc or Start to set the CPU to idle, attack, shield, or avoid, change its difficulty and damage, or reset positions.
+Remap controls under **Settings → Controls**. Setting **Right Stick** to **Camera** there brings back the stick camera, with specials on LB plus A / Y / X / B and grab on LB + RT. In Training, press Esc or Start to set the CPU to idle, attack, shield, or avoid, change its difficulty and damage, or reset positions.
 
 </details>
 
