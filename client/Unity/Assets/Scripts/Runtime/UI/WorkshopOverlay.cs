@@ -173,7 +173,7 @@ namespace SlopArena.Client.UI
             var renderers = root.GetComponentsInChildren<Renderer>();
             if (renderers.Length == 0) throw new InvalidDataException("No visible mesh for preview.");
             var bounds = renderers[0].bounds; foreach (var r in renderers) { bounds.Encapsulate(r.bounds); r.gameObject.layer = 30; }
-            var cameraObject = new GameObject("Workshop portrait camera"); var camera = cameraObject.AddComponent<Camera>();
+            var cameraObject = new GameObject("Workshop portrait camera"); var camera = cameraObject.AddComponent<UnityEngine.Camera>();
             var target = new RenderTexture(512, 512, 24); var image = new Texture2D(512, 512, TextureFormat.RGB24, false);
             var previous = RenderTexture.active;
             try
