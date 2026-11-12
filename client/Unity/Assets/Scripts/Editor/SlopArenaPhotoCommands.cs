@@ -34,7 +34,7 @@ namespace SlopArena.EditorTools
         private const string SessionKey = "SlopArena.Photo.Active";
         private static readonly string[] ArtifactPrefixes = { "tmp/", ".impeccable/", ".ability-lab-cache/", "client/Unity/Temp/" };
 
-        private sealed class Saved { public string stage = ""; public int captureFramerate; public bool training; public CharacterClass playerClass; public string packageId = ""; public CharacterClass opponentClass; public byte playerForm, opponentForm; }
+        private sealed class Saved { public string stage = ""; public int captureFramerate; public bool training; public MatchConfig.PlayerSelection playerSelection; public CharacterClass opponentClass; public byte opponentForm; }
 
         [CliCommand("sloparena.photo.prepare", "Prepare an in-memory photo shoot on a PvP stage, real Training, or the live Slopball scene for sloparena.photo.live, using the stage-view save/restore lifecycle.", MainThreadRequired = true, Tags = new[] { "capture", "photo" })]
         public static object Prepare(
@@ -60,7 +60,7 @@ namespace SlopArena.EditorTools
             CharacterClass selected = Select(fighter), opponentClass = Select(opponent);
             // Save before the first mutation so the declared restore also handles partial setup failure.
             SessionState.SetString(SessionKey, JsonConvert.SerializeObject(new Saved { stage = stage, captureFramerate = Time.captureFramerate,
-                training = training, playerClass = MatchConfig.PlayerClass, packageId = MatchConfig.PlayerPackageId, opponentClass = MatchConfig.Seat(2).Fighter, playerForm = MatchConfig.PlayerForm, opponentForm = MatchConfig.Seat(2).Form }));
+                training = training, playerSelection = MatchConfig.Selection, opponentClass = MatchConfig.Seat(2).Fighter, opponentForm = MatchConfig.Seat(2).Form }));
             SlopArenaStageViewCommands.Prepare(stage, lighting);
             if (stage == SlopballMatch.ArenaKey)
             {
@@ -562,12 +562,12 @@ namespace SlopArena.EditorTools
             if (EditorApplication.isPlayingOrWillChangePlaymode)
                 throw new InvalidOperationException("Stop and settle Play Mode before restoring a photo session.");
             var saved = JsonConvert.DeserializeObject<Saved>(text) ?? new Saved();
+            if (saved?.playerSelection == null) throw new InvalidDataException("Saved session has no player selection snapshot.");
             Time.captureFramerate = saved.captureFramerate;
-            MatchConfig.PlayerForm = saved.playerForm;
+            MatchConfig.SetPlayerFighter(saved.playerSelection);
             MatchConfig.Seat(2).Form = saved.opponentForm;
             if (saved.training)
             {
-                MatchConfig.SetPlayerFighter(saved.playerClass, saved.packageId);
                 MatchConfig.Seat(2).Fighter = saved.opponentClass;
             }
             var result = SlopArenaStageViewCommands.Restore();

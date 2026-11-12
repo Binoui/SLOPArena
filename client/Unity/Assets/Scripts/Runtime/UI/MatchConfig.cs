@@ -29,32 +29,66 @@ namespace SlopArena.Client.UI
         public static System.Guid? MatchId;
 
         public static SteamMatchDescriptor? SteamDescriptor;
-        private sealed class PlayerSelection
+        public sealed class PlayerSelection
         {
-            internal readonly CharacterClass Selector;
-            internal readonly string PackageId;
-            internal PlayerSelection(CharacterClass selector, string packageId) { Selector = selector; PackageId = packageId; }
+            public CharacterClass Selector { get; }
+            public string PackageId { get; }
+            public byte Form { get; }
+
+            public PlayerSelection(CharacterClass selector, string packageId, byte form = 0)
+            {
+                if (selector == CharacterClass.None)
+                {
+                    if (packageId != "" && !MatchContentCatalogBuilder.IsStablePackageId(packageId))
+                        throw new System.ArgumentException("Player package ID is invalid.");
+                }
+                else if (ShippedRoster.ReadApplication().Manifest.Resolve(selector)?.PackageId != packageId || string.IsNullOrEmpty(packageId))
+                    throw new System.ArgumentException("Player selector and package must name the same shipped fighter.");
+                Selector = selector;
+                PackageId = packageId;
+                Form = form;
+            }
+            private PlayerSelection(PlayerSelection source, byte form)
+            { Selector = source.Selector; PackageId = source.PackageId; Form = form; }
+
+            internal PlayerSelection WithForm(byte form) => new(this, form);
         }
-        private static PlayerSelection _player = new(CharacterClass.FightGuy, "fightguy");
+        private static PlayerSelection _player = new(CharacterClass.None, "");
+        public static PlayerSelection Selection => _player;
         public static CharacterClass PlayerClass => _player.Selector;
         public static string PlayerPackageId => _player.PackageId;
+        public static byte PlayerForm
+        {
+            get => _player.Form;
+            set => _player = _player.WithForm(value);
+        }
+
+        public static void SetPlayerFighter(PlayerSelection selection)
+            => _player = selection ?? throw new System.ArgumentNullException(nameof(selection));
 
         public static void SetPlayerFighter(CharacterClass selector, string packageId)
+            => SetPlayerFighter(new PlayerSelection(selector, packageId, PlayerForm));
+
+        public static void SetPlayerFighter(CharacterClass selector)
         {
-            var roster = ShippedRoster.ReadApplication().Manifest;
-            if (roster.Resolve(selector)?.PackageId != packageId || string.IsNullOrEmpty(packageId))
-                throw new System.ArgumentException("Player selector and package must name the same shipped fighter.");
-            _player = new PlayerSelection(selector, packageId);
+            var entry = ShippedRoster.ReadApplication().Manifest.Resolve(selector)
+                ?? throw new System.ArgumentException("The roster does not contain the selected fighter.");
+            SetPlayerFighter(selector, entry.PackageId);
+        }
+
+        public static bool SetDefaultPlayerFighter()
+        {
+            if (!ShippedRoster.TryReadApplication(out var roster, out _)) return false;
+            var entry = roster!.DefaultFighter;
+            SetPlayerFighter(entry.Selector, entry.PackageId);
+            return true;
         }
 
         public static void SetPlayerFighter(MatchContentEntry entry)
         {
             if (entry == null) throw new System.ArgumentNullException(nameof(entry));
-            if (entry.LegacySelector is { } selector) SetPlayerFighter(selector, entry.Identity.PackageId);
-            else _player = new PlayerSelection(CharacterClass.None, entry.Identity.PackageId);
+            SetPlayerFighter(new PlayerSelection(entry.LegacySelector ?? CharacterClass.None, entry.Identity.PackageId, PlayerForm));
         }
-        /// <summary>P1's picked starting form (ADR-0051).</summary>
-        public static byte PlayerForm;
 
         /// <summary>The starting form a seat picked on Fighter Select.</summary>
         public static byte FormOf(int playerNumber) => playerNumber == 1 ? PlayerForm : Seat(playerNumber).Form;
@@ -81,7 +115,11 @@ namespace SlopArena.Client.UI
         /// <summary>P2–P4 of a Solo match (ADR-0041). P1 is always the local player with PlayerClass.</summary>
         public static readonly SoloSeat[] SoloSeats = new SoloSeat[3];
 
-        static MatchConfig() => ResetSoloSeats();
+        static MatchConfig()
+        {
+            ResetSoloSeats();
+            SetDefaultPlayerFighter();
+        }
 
         public static ref SoloSeat Seat(int playerNumber)
         {
@@ -196,7 +234,7 @@ namespace SlopArena.Client.UI
         {
             ClearActiveMatch();
             LocalMode = LocalPlayMode.Brawl;
-            SetPlayerFighter(CharacterClass.FightGuy, "fightguy");
+            SetDefaultPlayerFighter();
             ResetSoloSeats();
             ArenaName = "training";
             IsHost = true;

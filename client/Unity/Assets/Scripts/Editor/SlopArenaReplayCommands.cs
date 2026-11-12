@@ -34,10 +34,10 @@ namespace SlopArena.EditorTools
             public bool optionsEnabled, paused, freezeOnStart, tips, gizmos;
             public int options, viewSize;
             public float timeScale;
-            public string recordDirectory, arenaName, playerPackageId;
+            public string recordDirectory, arenaName;
             public GameMode mode;
             public LocalPlayMode localMode;
-            public CharacterClass playerClass;
+            public MatchConfig.PlayerSelection playerSelection;
             public int nextChunk;
             public SoloSeat[] seats;
         }
@@ -90,7 +90,7 @@ namespace SlopArena.EditorTools
                 paused = EditorApplication.isPaused, timeScale = Time.timeScale,
                 freezeOnStart = CharacterCourseMatch.FreezeOnStartForProbe, tips = CharacterCourseMatch.MovementTipsEnabled,
                 recordDirectory = ArcadeRecordsStore.VerificationDirectory, arenaName = MatchConfig.ArenaName,
-                playerPackageId = MatchConfig.PlayerPackageId, playerClass = MatchConfig.PlayerClass, mode = MatchConfig.Mode, localMode = MatchConfig.LocalMode,
+                playerSelection = MatchConfig.Selection, mode = MatchConfig.Mode, localMode = MatchConfig.LocalMode,
                 viewSize = (int)view.GetType().GetProperty("selectedSizeIndex", Flags).GetValue(view),
                 gizmos = (bool)view.GetType().GetProperty("drawGizmos", Flags).GetValue(view)
             };
@@ -184,7 +184,7 @@ namespace SlopArena.EditorTools
             EditorSettings.enterPlayModeOptionsEnabled = saved.optionsEnabled; EditorSettings.enterPlayModeOptions = (EnterPlayModeOptions)saved.options;
             ArcadeRecordsStore.VerificationDirectory = saved.recordDirectory;
             CharacterCourseMatch.FreezeOnStartForProbe = saved.freezeOnStart; CharacterCourseMatch.MovementTipsEnabled = saved.tips;
-            MatchConfig.Mode = saved.mode; MatchConfig.LocalMode = saved.localMode; MatchConfig.ArenaName = saved.arenaName; MatchConfig.SetPlayerFighter(saved.playerClass, saved.playerPackageId);
+            MatchConfig.Mode = saved.mode; MatchConfig.LocalMode = saved.localMode; MatchConfig.ArenaName = saved.arenaName; MatchConfig.SetPlayerFighter(saved.playerSelection);
             if (saved.seats != null) Array.Copy(saved.seats, MatchConfig.SoloSeats, MatchConfig.SoloSeats.Length);
             Time.timeScale = saved.timeScale; EditorApplication.isPaused = saved.paused;
             EditorSceneManager.RestoreSceneManagerSetup(saved.scenes);
@@ -200,7 +200,7 @@ namespace SlopArena.EditorTools
         private static Saved Read(string session)
         {
             var saved = JsonConvert.DeserializeObject<Saved>(SessionState.GetString(SessionKey, ""));
-            if (saved == null || saved.session != session) throw new InvalidOperationException("No replay session owned by this request.");
+            if (saved == null || saved.playerSelection == null || saved.session != session) throw new InvalidOperationException("No replay session owned by this request.");
             return saved;
         }
         private static EditorWindow GameView()

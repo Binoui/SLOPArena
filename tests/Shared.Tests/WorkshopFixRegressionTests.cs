@@ -64,20 +64,47 @@ public sealed class WorkshopFixRegressionTests
     [Fact]
     public void Public_and_runtime_capability_admission_allocate_no_bytes_after_warmup()
     {
-        int accepted = 0;
-        for (int i = 0; i < 10000; i++) accepted += Check();
-        for (int run = 0; run < 5; run++)
-        {
-            long before = GC.GetAllocatedBytesForCurrentThread();
-            for (int i = 0; i < 100000; i++) accepted += Check();
-            long allocated = GC.GetAllocatedBytesForCurrentThread() - before;
-            Assert.Equal(0, allocated);
-        }
-        Assert.Equal(510000 * 3, accepted);
+        var measurement = MeasureOnFreshThread(Check, 10000, 100000, 5);
+        Assert.All(measurement.Bytes, allocated => Assert.Equal(0, allocated));
+        Assert.Equal(510000 * 3, measurement.Accepted);
         static int Check() => (CharacterPackageCompiler.IsPublicCapability("slop.ability.dash-strike.v1", "1") ? 1 : 0)
             + (CharacterPackageCompiler.IsPublicCapability("slop.ability.forms.v1", "1") ? 1 : 0)
             + (CharacterPackageCompiler.IsRuntimeCapability("slop.internal.fightguy.rising-dragon.v1", "1") ? 1 : 0)
             + (CharacterPackageCompiler.IsPublicCapability("unknown", "1") ? 1 : 0);
+    }
+
+    [Fact]
+    public void AllocationMeasurementDetectsAllocationsInsideTheCalls()
+    {
+        var measurement = MeasureOnFreshThread(() => { GC.KeepAlive(new byte[32]); return 1; }, 10, 100, 2);
+        Assert.All(measurement.Bytes, allocated => Assert.True(allocated > 0));
+        Assert.Equal(210, measurement.Accepted);
+    }
+
+    private static (long[] Bytes, int Accepted) MeasureOnFreshThread(Func<int> call, int warmup, int iterations, int samples)
+    {
+        int accepted = 0;
+        for (int i = 0; i < warmup; i++) accepted += call();
+        var bytes = new long[samples];
+        Exception? failure = null;
+        // A reused allocation context can charge its retired tail during background GC.
+        var thread = new Thread(() =>
+        {
+            try
+            {
+                for (int run = 0; run < samples; run++)
+                {
+                    long before = GC.GetAllocatedBytesForCurrentThread();
+                    for (int i = 0; i < iterations; i++) accepted += call();
+                    bytes[run] = GC.GetAllocatedBytesForCurrentThread() - before;
+                }
+            }
+            catch (Exception ex) { failure = ex; }
+        });
+        using (ExecutionContext.SuppressFlow()) thread.Start();
+        thread.Join();
+        if (failure != null) System.Runtime.ExceptionServices.ExceptionDispatchInfo.Capture(failure).Throw();
+        return (bytes, accepted);
     }
 
     [Fact]
