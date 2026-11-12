@@ -91,8 +91,7 @@ namespace SlopArena.EditorTools
             EditorSettings.enterPlayModeOptions = EnterPlayModeOptions.DisableDomainReload;
             MatchConfig.ClearActiveMatch();
             MatchConfig.Mode = GameMode.Tutorial;
-            MatchConfig.PlayerClass = selected;
-            MatchConfig.PlayerPackageId = fighter;
+            MatchConfig.SetPlayerFighter(selected, fighter);
             MatchConfig.ArenaName = TutorialMatch.Layout.ArenaKey;
             EditorSceneManager.OpenScene(ScenePath, OpenSceneMode.Single);
             return new { success = true, scene = ScenePath, fighter };
@@ -109,8 +108,7 @@ namespace SlopArena.EditorTools
             var saved = JsonConvert.DeserializeObject<Saved>(json);
             EditorSettings.enterPlayModeOptionsEnabled = saved.optionsEnabled;
             EditorSettings.enterPlayModeOptions = (EnterPlayModeOptions)saved.options;
-            MatchConfig.Mode = saved.mode; MatchConfig.PlayerClass = saved.playerClass;
-            MatchConfig.PlayerPackageId = saved.playerPackageId; MatchConfig.ArenaName = saved.arenaName;
+            MatchConfig.Mode = saved.mode; MatchConfig.SetPlayerFighter(saved.playerClass, saved.playerPackageId); MatchConfig.ArenaName = saved.arenaName;
             EditorSceneManager.RestoreSceneManagerSetup(saved.scenes);
             var view = GameView(); var callback = view.GetType().GetMethod("SizeSelectionCallback", Flags);
             callback.Invoke(view, callback.GetParameters().Select(x => x.ParameterType == typeof(int) ? (object)saved.viewSize : null).ToArray());

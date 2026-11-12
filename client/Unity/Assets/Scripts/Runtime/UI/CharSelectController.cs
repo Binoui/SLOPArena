@@ -1280,8 +1280,7 @@ namespace SlopArena.Client.UI
                 MatchConfig.Seat(_editingSeat).Fighter = cls;
             else
             {
-                MatchConfig.PlayerClass = cls;
-                MatchConfig.PlayerPackageId = MenuRoster.PackageId(cls);
+                MatchConfig.SetPlayerFighter(cls, MenuRoster.PackageId(cls));
             }
 
             if ((MatchConfig.Mode is GameMode.Solo or GameMode.Training) && _rosterPanel != null)

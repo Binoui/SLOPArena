@@ -28,7 +28,7 @@ public sealed record SteamMatchDescriptor(
 
     public static string HashContent(MatchContentHandleMap content)
     {
-        if (content.Arena == null || (content.SchemaVersion != MatchContentHandleMap.CurrentSchemaVersion && content.SchemaVersion != MatchContentHandleMap.LocalSchemaVersion))
+        if (content.Arena == null || content.SchemaVersion != MatchContentHandleMap.CurrentSchemaVersion)
             throw new ArgumentException("Match content requires an arena identity.", nameof(content));
         return MatchContentInternals.Sha256(Encoding.UTF8.GetBytes(MatchContentHandleMapCodec.Serialize(content)));
     }

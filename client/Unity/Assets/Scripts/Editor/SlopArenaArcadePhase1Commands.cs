@@ -92,7 +92,7 @@ namespace SlopArena.EditorTools
             MatchConfig.ClearActiveMatch();
             MatchConfig.LocalMode = scenePath == SlopArenaCharacterCourseCommands.ScenePath ? LocalPlayMode.CharacterCourse : LocalPlayMode.Slopball;
             MatchConfig.Mode = GameMode.Arcade;
-            MatchConfig.PlayerClass = selected; MatchConfig.PlayerPackageId = fighter;
+            MatchConfig.SetPlayerFighter(selected, fighter);
             MatchConfig.ArenaName = stageKey;
             SessionState.SetString(ArcadeBallLabMatch.FighterSessionKey, selected.ToString());
             EditorSceneManager.OpenScene(scenePath, OpenSceneMode.Single);

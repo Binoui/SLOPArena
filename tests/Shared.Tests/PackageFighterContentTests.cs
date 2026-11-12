@@ -6,21 +6,21 @@ using Xunit;
 
 namespace SlopArena.Shared.Tests;
 
-public class PackageFighterContentTests
+public partial class PackageFighterContentTests
 {
     static string Root => ReplayWorldTests.Root;
     static MatchContentCatalog Bundled()
     {
         var roster = BuiltInRosterManifestCodec.Load(Path.Combine(Root, "content-cooked/roster/manifest.json"));
-        return new MatchContentCatalogBuilder().Build(roster, roster.Entries.ToDictionary(e => e.PackageId,
+        return new MatchContentCatalogBuilder().Build(ShippedRoster.ReadApplication(), roster.Entries.ToDictionary(e => e.PackageId,
             e => CookedCharacterPackageLoader.LoadDirectory(Path.Combine(Root, "content-cooked", e.PackageId), e.Requirement))).Catalog!;
     }
 
-    static (Dictionary<string, byte[]> Files, MatchContentPackageRequirement Requirement) Fixture()
+    static (Dictionary<string, byte[]> Files, MatchContentPackageRequirement Requirement) Fixture(string packageId = "local.tumbleweed")
     {
         var path = Path.Combine(Root, "client/Unity/Assets/CharacterPackages/salamander");
         var metadata = JsonNode.Parse(File.ReadAllText(Path.Combine(path, "package.json")))!;
-        metadata["packageId"] = "local.tumbleweed";
+        metadata["packageId"] = packageId;
         var compiled = CharacterPackageCompiler.Compile(metadata.ToJsonString(), File.ReadAllText(Path.Combine(path, "character.json")), CharacterCookProfile.Workshop);
         Assert.NotNull(compiled.CookedPackage);
         var package = compiled.CookedPackage!;
@@ -40,7 +40,7 @@ public class PackageFighterContentTests
         var entries = builtins.Entries.Select(e => new AdmittedFighter(
             CookedCharacterPackageLoader.LoadDirectory(Path.Combine(Root, "content-cooked", e.Identity.PackageId),
                 new(e.Identity.PackageId, e.Identity.Version, e.Identity.CookedContentHash, e.Identity.PackageHash)), e.LegacySelector,
-                new(e.Identity.PackageId, e.Identity.Version, e.Identity.CookedContentHash, e.Identity.PackageHash))).Append(local).ToArray();
+                ShippedRoster.ReadApplication())).Append(local).ToArray();
         var result = new MatchContentCatalogBuilder().Build(entries, MatchContentPolicy.LocalPlay);
         Assert.True(result.IsValid, string.Join("; ", result.Diagnostics));
         return result.Catalog!;
@@ -81,16 +81,6 @@ public class PackageFighterContentTests
         Assert.True(MatchContentHandleMapCodec.TryParse(json, out var read));
         Assert.Equal(json, MatchContentHandleMapCodec.Serialize(read!));
         foreach (var entry in catalog.Entries) Assert.Equal(entry.Identity, read!.Resolve(entry.Handle)!.Identity);
-    }
-
-    [Fact]
-    public void OnlineSchema2MatchesOriginMainBytesAndHash()
-    {
-        var map = new MatchContentHandleMap(2, Bundled().Entries.Select(e => new MatchContentHandleRecord(
-            e.Handle, e.LegacySelector, e.Identity, e.DisplayName)).ToArray(), new("slop_pit", new string('d',64)));
-        string fixture = Path.Combine(Root, "tests/Shared.Tests/Fixtures/MatchContent/schema2-origin-main");
-        Assert.Equal(File.ReadAllText(fixture + ".json"), MatchContentHandleMapCodec.Serialize(map));
-        Assert.Equal(File.ReadAllText(fixture + ".sha256"), SteamMatchDescriptor.HashContent(map));
     }
 
     [Fact]

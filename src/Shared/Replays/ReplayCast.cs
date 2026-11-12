@@ -142,20 +142,17 @@ namespace SlopArena.Shared.Replays
                         if (entry?.Identity != record.Identity || entry.DisplayName != record.DisplayName)
                             throw new ArgumentException("Recorded content is unavailable.");
                         entries.Add(new MatchContentEntry(record.Handle, entry.LegacySelector, entry.Identity,
-                            entry.DisplayName, entry.Definition, entry.BakedAnimation, entry.CookedCharacterPackage));
+                            entry.DisplayName, entry.Definition, entry.BakedAnimation, entry.CookedCharacterPackage, entry.IsBundled));
                     }
                     if (map.Arena != new MatchArenaRecord(arena.Definition.Name, arena.Digest))
                         throw new ArgumentException("Recorded arena is unavailable.");
                     content = content with { Catalog = new MatchContentCatalog(entries) };
-                    hash = SteamMatchDescriptor.HashContent(map);
+                    hash = MatchContentHandleMapCodec.HashLocalContent(map);
                 }
                 else
                 {
-                    var records = content.Catalog.Entries.Select(e => new MatchContentHandleRecord(
-                        e.Handle, e.LegacySelector, e.Identity, e.DisplayName)).ToList();
-                    var schema = records.All(e => e.Selector.HasValue) ? MatchContentHandleMap.CurrentSchemaVersion : MatchContentHandleMap.LocalSchemaVersion;
-                    hash = SteamMatchDescriptor.HashContent(new MatchContentHandleMap(schema,
-                        records, new MatchArenaRecord(arena.Definition.Name, arena.Digest)));
+                    hash = SteamMatchDescriptor.HashContent(MatchContentHandleMap.CaptureBundled(content.Catalog,
+                        new MatchArenaRecord(arena.Definition.Name, arena.Digest)));
                 }
             }
             catch (ArgumentException)

@@ -310,13 +310,12 @@ namespace SlopArena.Client
                 RejectMatchStart("Master roster selected an unavailable player character.");
                 return;
             }
-            UI.MatchConfig.PlayerClass = playerClass;
             if (config.Format == Shared.MatchFormat.SlopballVersus
                 && (!Shared.SlopballCamps.AreBalanced(config.Players.Select(p => p.Camp))
                     || config.Players.Any(p => p.EntityId <= 0 || p.EntityId >= Shared.ServerSimulation.ArcadeBallTargetInputId)
                     || config.Players.Select(p => p.EntityId).Distinct().Count() != config.Players.Count))
             { RejectMatchStart("Versus Slopball needs balanced Teal and Clay camps."); return; }
-            UI.MatchConfig.PlayerPackageId = catalog.Resolve(playerClass)?.Identity.PackageId ?? string.Empty;
+            UI.MatchConfig.SetPlayerFighter(catalog.Resolve(playerClass) ?? throw new InvalidOperationException("Player fighter is unavailable."));
             UI.MatchConfig.LocalEntityId = (ulong)local.EntityId;
             UI.MatchConfig.MaxStocks = config.MaxStocks;
             UI.MatchConfig.Format = config.Format;
@@ -530,7 +529,7 @@ namespace SlopArena.Client
                         rosterEntry.Requirement);
                 }
                 var built = new Shared.MatchContentCatalogBuilder().Build(
-                    rosterResolution.Roster,
+                    Shared.ShippedRoster.ReadApplication(),
                     packages);
                 if (!built.IsValid || built.Catalog == null)
                 {

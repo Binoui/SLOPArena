@@ -142,7 +142,7 @@ public static class LobbyPayloadCodec
         if ((matchPort > 0) == (descriptor != null))
             return null;
         if (!element.TryGetProperty("content", out var c) ||
-            !MatchContentHandleMapCodec.TryParse(c, out var content) || content?.Arena == null ||
+            !MatchContentHandleMapCodec.TryParse(c, out var content) || content?.Arena == null || content.SchemaVersion != MatchContentHandleMap.CurrentSchemaVersion ||
             !string.Equals(content.Arena.Name, arenaName, StringComparison.Ordinal))
             return null;
         if (descriptor != null &&

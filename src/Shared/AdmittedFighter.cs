@@ -4,7 +4,7 @@ using System.Linq;
 
 namespace SlopArena.Shared;
 
-public enum MatchContentPolicy : byte { LocalPlay, StandardRoom, WorkshopRoom }
+public enum MatchContentPolicy : byte { LocalPlay, StandardRoom, WorkshopRoom, EditorDevelopment }
 
 /// <summary>Verified gameplay admitted by Shared. External file admission is deliberately unavailable.</summary>
 public sealed class AdmittedFighter
@@ -12,23 +12,26 @@ public sealed class AdmittedFighter
     internal CookedCharacterPackageLoadResult Loaded { get; }
     public MatchContentIdentity Identity => Loaded.Identity;
     public CharacterClass? LegacySelector { get; }
-    readonly MatchContentPackageRequirement? trustedPin;
+    readonly ShippedRoster? trustedRoster;
+    internal bool IsBundled => trustedRoster != null || development;
+    readonly bool development;
 
     internal AdmittedFighter(CookedCharacterPackageLoadResult loaded, CharacterClass? selector,
-        MatchContentPackageRequirement? trustedPin)
+        ShippedRoster? trustedRoster, bool development = false)
     {
         if (!loaded.IsValid) throw new ArgumentException("Invalid cooked package.", nameof(loaded));
         Loaded = loaded;
         LegacySelector = selector;
-        this.trustedPin = trustedPin;
+        this.trustedRoster = trustedRoster;
+        this.development = development;
     }
 
     internal bool Allowed(MatchContentPolicy policy) => policy switch
     {
-        MatchContentPolicy.LocalPlay => true,
-        MatchContentPolicy.StandardRoom or MatchContentPolicy.WorkshopRoom => trustedPin != null
-            && trustedPin.PackageId == Identity.PackageId && trustedPin.Version == Identity.Version
-            && trustedPin.CookedContentHash == Identity.CookedContentHash && trustedPin.PackageHash == Identity.PackageHash,
+        MatchContentPolicy.LocalPlay => !development,
+        MatchContentPolicy.EditorDevelopment => true,
+        MatchContentPolicy.StandardRoom or MatchContentPolicy.WorkshopRoom => !development && trustedRoster != null
+            && trustedRoster.Authorizes(Identity),
         _ => false,
     };
 

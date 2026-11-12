@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using SlopArena.Shared;
 
 namespace SlopArena.Server;
@@ -22,14 +23,18 @@ public sealed class MatchContentCatalogProvider
         catalog = null; handleMap = null; error = null;
         try
         {
+            var shipped = ShippedRoster.ReadApplication();
             var manifest = BuiltInRosterManifestCodec.Load(_manifestPath);
+            if (manifest.Entries.Count == 0 || manifest.Entries.Count != shipped.Manifest.Entries.Count
+                || manifest.Entries.Any(e => shipped.Manifest.Resolve(e.Selector) != e))
+                throw new InvalidDataException("Server roster must contain the complete application shipped roster.");
             var packages = new Dictionary<string, CookedCharacterPackageLoadResult>(StringComparer.Ordinal);
             foreach (var rosterEntry in manifest.Entries)
             {
                 string directory = Path.Combine(_cookedRoot, rosterEntry.PackageId);
                 packages[rosterEntry.PackageId] = CookedCharacterPackageLoader.LoadDirectory(directory, rosterEntry.Requirement);
             }
-            var result = new MatchContentCatalogBuilder().Build(manifest, packages);
+            var result = new MatchContentCatalogBuilder().Build(shipped, packages);
             if (!result.IsValid || result.Catalog == null)
             {
                 error = string.Join("; ", result.Diagnostics);

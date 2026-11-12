@@ -66,8 +66,7 @@ namespace SlopArena.Client.World
             // A different, roomy fighter stands in as the dummy so the two never look alike.
             _dummyEntry = catalog.Resolve(entry.Definition.Class == CharacterClass.Bonk ? CharacterClass.FightGuy : CharacterClass.Bonk) ?? entry;
             ClientSession.InstallLocalMatchCatalog(catalog);
-            if (entry.LegacySelector.HasValue) MatchConfig.PlayerClass = entry.LegacySelector.Value;
-            MatchConfig.PlayerPackageId = entry.Identity.PackageId;
+            MatchConfig.SetPlayerFighter(entry);
             _arena = arena; _playerEntry = entry; _playerDef = entry.Definition;
             _bridge = new LocalSimulationBridge(arena, NoWinMatchRule.Instance);
             if (_combatFeedback == null) _combatFeedback = GetComponent<CombatFeedback>() ?? gameObject.AddComponent<CombatFeedback>();

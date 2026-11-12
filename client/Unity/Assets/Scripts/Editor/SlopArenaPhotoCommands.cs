@@ -65,8 +65,7 @@ namespace SlopArena.EditorTools
             if (stage == SlopballMatch.ArenaKey)
             {
                 // The stage-view restore puts back the fighter it saved before this in-memory choice.
-                MatchConfig.PlayerClass = selected;
-                MatchConfig.PlayerPackageId = fighter;
+                MatchConfig.SetPlayerFighter(selected, fighter);
                 SessionState.SetString(ArcadeBallMatch.FighterSessionKey, selected.ToString());
                 return new { success = true, stage, fighter };
             }
@@ -74,8 +73,7 @@ namespace SlopArena.EditorTools
             {
                 MatchConfig.Seat(2).Fighter = opponentClass;
                 MatchConfig.PlayerForm = 0; MatchConfig.Seat(2).Form = 0;
-                MatchConfig.PlayerClass = selected;
-                MatchConfig.PlayerPackageId = fighter;
+                MatchConfig.SetPlayerFighter(selected, fighter);
                 var match = Object.FindFirstObjectByType<TrainingMatch>();
                 var serialized = new SerializedObject(match);
                 serialized.FindProperty("_playerClassOverride").enumValueIndex = Array.IndexOf(Enum.GetValues(typeof(CharacterClass)), selected);
@@ -569,8 +567,7 @@ namespace SlopArena.EditorTools
             MatchConfig.Seat(2).Form = saved.opponentForm;
             if (saved.training)
             {
-                MatchConfig.PlayerClass = saved.playerClass;
-                MatchConfig.PlayerPackageId = saved.packageId;
+                MatchConfig.SetPlayerFighter(saved.playerClass, saved.packageId);
                 MatchConfig.Seat(2).Fighter = saved.opponentClass;
             }
             var result = SlopArenaStageViewCommands.Restore();

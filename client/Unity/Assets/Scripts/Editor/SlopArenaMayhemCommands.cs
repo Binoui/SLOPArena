@@ -59,8 +59,7 @@ namespace SlopArena.EditorTools
             MatchConfig.Mode = GameMode.Solo;
             MatchConfig.Format = MatchFormat.MankiMayhem;
             MatchConfig.MayhemSeed = seed;
-            MatchConfig.PlayerClass = selected;
-            MatchConfig.PlayerPackageId = fighter.ToLowerInvariant();
+            MatchConfig.SetPlayerFighter(selected, fighter.ToLowerInvariant());
             MatchConfig.ArenaName = "manki_mayhem";
             MatchConfig.LocalEntityId = 1;
             var roster = new[] { CharacterClass.Manki, CharacterClass.Wibou, CharacterClass.Bashie };
@@ -241,7 +240,7 @@ namespace SlopArena.EditorTools
             if (saved == null) return new { success = true, restored = false };
             SlopArenaStageViewCommands.Restore();
             MatchConfig.Format = saved.format; MatchConfig.Mode = saved.mode; MatchConfig.LocalMode = saved.localMode;
-            MatchConfig.PlayerClass = saved.fighter; MatchConfig.PlayerPackageId = saved.package;
+            MatchConfig.SetPlayerFighter(saved.fighter, saved.package);
             MatchConfig.ArenaName = saved.arena; MatchConfig.MayhemSeed = saved.seed; MatchConfig.LocalEntityId = saved.entity;
             Array.Copy(saved.seats, MatchConfig.SoloSeats, 3);
             SessionState.EraseString(Key);

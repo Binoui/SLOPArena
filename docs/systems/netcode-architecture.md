@@ -21,7 +21,9 @@ before connecting, predicting or sending Ready on Steam and development UDP.
 Local capture uses handle map schema 3. Each entry stores handle, exact package identity, and
 display name without a selector. The map also carries the arena name and digest when bound to
 a Match. `CaptureLocal` retains selector-free entries. `WithArena` preserves schema 3.
-Online writers continue to use schema 2 with the original enum spelling, byte order, and hash.
+Online parsing and `SteamMatchDescriptor.HashContent` refuse schema 3. Local hashing uses
+`MatchContentHandleMapCodec.HashLocalContent`. Online writers continue to use schema 2 with the
+original enum spelling, byte order, and hash.
 The regression fixture in `tests/Shared.Tests/Fixtures/MatchContent/` pins those bytes.
 
 The predictor validates a complete frame before publishing metadata or ledger

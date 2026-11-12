@@ -93,8 +93,7 @@ namespace SlopArena.Client.UI
             var entry = _catalog?.Resolve(fighter);
             if (entry == null || !Admits(fighter)) return;
             _selected = fighter;
-            MatchConfig.PlayerClass = fighter;
-            MatchConfig.PlayerPackageId = entry.Identity.PackageId;
+            MatchConfig.SetPlayerFighter(entry);
             _context.Q<Label>("arcade-selected-mode")!.text = _courseSelected ? _course!.Title : "SLOPBALL";
             var poster = _context.Q<VisualElement>("local-record-poster")!;
             var texture = Resources.Load<Texture2D>("UI/Stages/" + (_courseSelected ? _course!.Key : SlopballMatch.ArenaKey));

@@ -5,6 +5,7 @@ using SlopArena.Shared.AI;
 
 namespace SlopArena.Client.UI
 {
+    public enum LocalPlayMode { Brawl, Slopball, CharacterCourse, MankiMayhem }
     public enum GameMode { Training, Solo, PvP, Arcade, Tutorial }
     public enum MatchTransport { None, DevelopmentUdp, SteamP2P }
 
@@ -28,9 +29,30 @@ namespace SlopArena.Client.UI
         public static System.Guid? MatchId;
 
         public static SteamMatchDescriptor? SteamDescriptor;
-        public static SlopArena.Shared.CharacterClass PlayerClass
-            = SlopArena.Shared.CharacterClass.FightGuy;
-        public static string PlayerPackageId = "fightguy";
+        private sealed class PlayerSelection
+        {
+            internal readonly CharacterClass Selector;
+            internal readonly string PackageId;
+            internal PlayerSelection(CharacterClass selector, string packageId) { Selector = selector; PackageId = packageId; }
+        }
+        private static PlayerSelection _player = new(CharacterClass.FightGuy, "fightguy");
+        public static CharacterClass PlayerClass => _player.Selector;
+        public static string PlayerPackageId => _player.PackageId;
+
+        public static void SetPlayerFighter(CharacterClass selector, string packageId)
+        {
+            var roster = ShippedRoster.ReadApplication().Manifest;
+            if (roster.Resolve(selector)?.PackageId != packageId || string.IsNullOrEmpty(packageId))
+                throw new System.ArgumentException("Player selector and package must name the same shipped fighter.");
+            _player = new PlayerSelection(selector, packageId);
+        }
+
+        public static void SetPlayerFighter(MatchContentEntry entry)
+        {
+            if (entry == null) throw new System.ArgumentNullException(nameof(entry));
+            if (entry.LegacySelector is { } selector) SetPlayerFighter(selector, entry.Identity.PackageId);
+            else _player = new PlayerSelection(CharacterClass.None, entry.Identity.PackageId);
+        }
         /// <summary>P1's picked starting form (ADR-0051).</summary>
         public static byte PlayerForm;
 
@@ -174,8 +196,7 @@ namespace SlopArena.Client.UI
         {
             ClearActiveMatch();
             LocalMode = LocalPlayMode.Brawl;
-            PlayerPackageId = "fightguy";
-            PlayerClass = SlopArena.Shared.CharacterClass.FightGuy;
+            SetPlayerFighter(CharacterClass.FightGuy, "fightguy");
             ResetSoloSeats();
             ArenaName = "training";
             IsHost = true;

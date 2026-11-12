@@ -34,6 +34,10 @@ public sealed class MatchContentHandleMap
         Entries = new ReadOnlyCollection<MatchContentHandleRecord>(copy);
         Arena = arena;
     }
+    public static MatchContentHandleMap CaptureBundled(MatchContentCatalog catalog, MatchArenaRecord? arena = null)
+        => new(CurrentSchemaVersion, catalog.Entries.Where(e => e.IsBundled).OrderBy(e => e.Identity.PackageId, StringComparer.Ordinal)
+            .Select((e, i) => new MatchContentHandleRecord(new ContentHandle((ushort)(i + 1)), e.LegacySelector, e.Identity, e.DisplayName)).ToArray(), arena);
+
     public static MatchContentHandleMap CaptureLocal(MatchContentCatalog catalog, MatchArenaRecord? arena = null)
         => new(LocalSchemaVersion, catalog.Entries.Select(e => new MatchContentHandleRecord(e.Handle, null, e.Identity, e.DisplayName)).ToArray(), arena);
 
@@ -43,6 +47,13 @@ public sealed class MatchContentHandleMap
 
 public static class MatchContentHandleMapCodec
 {
+    public static string HashLocalContent(MatchContentHandleMap map)
+    {
+        if (map.SchemaVersion != MatchContentHandleMap.LocalSchemaVersion || map.Arena == null)
+            throw new ArgumentException("Local content requires schema 3 and an arena.", nameof(map));
+        return MatchContentInternals.Sha256(System.Text.Encoding.UTF8.GetBytes(Serialize(map)));
+    }
+
     public static string Serialize(MatchContentHandleMap map)
     {
         if (map == null) throw new ArgumentNullException(nameof(map));
