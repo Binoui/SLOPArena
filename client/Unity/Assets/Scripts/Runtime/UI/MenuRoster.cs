@@ -28,7 +28,7 @@ namespace SlopArena.Client.UI
                         if (!FighterPresentation.Binding(entry.PackageId).HasValue)
                         {
                             var path = System.IO.Path.Combine(ShippedRoster.ReadApplication().CookedRoot, entry.PackageId);
-                            name = CookedCharacterRuntimeAdapter.ToCharacterDefinition(CookedCharacterPackageLoader.LoadDirectory(path, entry.Requirement)).DisplayName;
+                            name = CookedCharacterPackageLoader.LoadDirectory(path, entry.Requirement).ToCharacterDefinition().DisplayName;
                         }
                     }
                     catch (Exception error) { Debug.LogWarning($"[MenuRoster] Could not read {entry.PackageId}'s cooked name: {error.Message}"); }
