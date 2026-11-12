@@ -73,7 +73,7 @@ namespace SlopArena.Client.World
             {
                 Debug.LogWarning("[Arcade] Retired fighter selector session value ignored; using the default fighter.");
                 UnityEditor.SessionState.EraseString("SlopArena.ArcadeBallLab.Fighter");
-                packageOverride = ShippedRoster.ReadApplication().DefaultFighter.PackageId;
+                if (string.IsNullOrEmpty(packageOverride)) packageOverride = ShippedRoster.ReadApplication().DefaultFighter.PackageId;
             }
 #endif
             if (!string.IsNullOrEmpty(packageOverride)) choice = MatchConfig.ResolveStoredFighter(packageOverride, catalog);
