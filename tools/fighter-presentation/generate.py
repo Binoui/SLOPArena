@@ -60,6 +60,11 @@ def generate(root=ROOT, admission=None):
                     if actual.casefold().startswith(folder.casefold()) and '/' not in actual[len(folder):]:
                         canonical = folder + actual[len(folder):]
                         paths.setdefault(actual[len(folder):], {})['card' if folder == card_folder else 'icon'] = texture(canonical)
+            for slot in model.get('slots', []):
+                icon_id = slot.get('iconId')
+                if icon_id:
+                    texture(f'Icons/{alias}/' + icon_id)
+                    texture(card_folder + icon_id)
             icons.append(paths)
         fighters.append(dict(packageId=package, alias=alias, names=[f['displayName'] for f in forms],
                              portraits=portraits, icons=icons, legacyWeapon=f'WeaponConfigs/{alias}' if (assets / 'Resources/WeaponConfigs' / (alias + '.asset')).exists() else '', hasSplash=f'fighter-panel--{alias} .fighter-panel__art' in (assets / 'UI/FighterPanels.uss').read_text(), card=card))
