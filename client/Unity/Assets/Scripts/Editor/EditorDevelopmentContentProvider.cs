@@ -72,7 +72,7 @@ public static class EditorDevelopmentContentProvider
                 return Fail(diagnostics, transientCatalogs, out failure);
 
             var manifest = new BuiltInRosterManifest(rosterResolution.Roster.SchemaVersion, entries);
-            var built = new MatchContentCatalogBuilder().Build(manifest, packages);
+            var built = new MatchContentCatalogBuilder().Build(manifest, packages, MatchContentPolicy.EditorDevelopment);
             diagnostics.AddRange(built.Diagnostics);
             if (!built.IsValid || built.Catalog == null)
                 return Fail(diagnostics, transientCatalogs, out failure);

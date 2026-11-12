@@ -7,6 +7,7 @@ namespace SlopArena.Shared.Replays;
 
 internal static class ReplayStorage
 {
+    internal const int MaxHeaderBytes = 65536;
     internal const long MaxFileBytes = 64_000_000;
     internal const int TrailerReserve = 16400;
     internal const int MaxExact = 65552;
@@ -19,7 +20,7 @@ internal static class ReplayStorage
     {
         Validate(h);
         var meta = ReplayMetadata.Write(h);
-        if (meta.Length > 65536) throw new InvalidDataException("Header bound");
+        if (meta.Length > MaxHeaderBytes) throw new InvalidDataException("Replay header exceeds the 64 KiB recording limit.");
         var b = ReplayBinary.Bytes(w =>
         {
             w.Write(new byte[] { 83, 76, 79, 80, 82, 69, 80, 0 });
@@ -36,6 +37,14 @@ internal static class ReplayStorage
     internal static void Validate(ReplayHeader h)
     {
         if (h.Build == null || h.Rules == null || h.Build.Protocol == 0 || h.Build.FrameFormat == 0 || h.Build.SnapshotFormat == 0 || string.IsNullOrEmpty(h.MatchId) || string.IsNullOrEmpty(h.ArenaId) || string.IsNullOrEmpty(h.Build.ContentHash) || h.Roster.Count < 2 || h.Roster.Count > 4) throw new InvalidDataException("Required header");
+        if (h.ContentMap is { } map)
+        {
+            if (map.SchemaVersion != MatchContentHandleMap.LocalSchemaVersion || map.Arena != new MatchArenaRecord(h.ArenaId, h.ArenaDigest)
+                || MatchContentHandleMapCodec.HashLocalContent(map) != h.Build.ContentHash)
+                throw new InvalidDataException("Content map identity");
+            foreach (var participant in h.Roster)
+                if (!map.Entries.Any(e => e.Identity == participant.Package)) throw new InvalidDataException("Content map roster");
+        }
         ulong last = 0;
         foreach (var p in h.Roster)
         {

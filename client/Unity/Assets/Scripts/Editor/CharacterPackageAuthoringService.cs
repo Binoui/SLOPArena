@@ -387,8 +387,11 @@ public sealed class CharacterPackageAuthoringService
             {
                 new BuiltInRosterEntry(selector, packageId, new MatchContentPackageRequirement(packageId, version, cookedHash, packageHash))
             }).ToArray();
-            WriteDurably(rosterPath, Encoding.UTF8.GetBytes(BuiltInRosterManifestCodec.Serialize(
-                new BuiltInRosterManifest(manifest.SchemaVersion, entries))));
+            var candidate = new BuiltInRosterManifest(manifest.SchemaVersion, entries);
+            diagnostics.AddRange(MatchContentCatalogBuilder.ValidateRoster(candidate));
+            if (diagnostics.Any(x => x.Severity == CharacterDiagnosticSeverity.Error))
+                return CharacterRosterAdmissionResult.Failure(packageId, diagnostics);
+            WriteDurably(rosterPath, Encoding.UTF8.GetBytes(BuiltInRosterManifestCodec.Serialize(candidate)));
             return CharacterRosterAdmissionResult.Successful(packageId, selector.ToString());
         }
         catch (Exception ex)

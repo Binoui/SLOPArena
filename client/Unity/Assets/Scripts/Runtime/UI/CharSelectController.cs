@@ -1279,7 +1279,9 @@ namespace SlopArena.Client.UI
             if ((MatchConfig.Mode is GameMode.Solo or GameMode.Training) && _editingSeat > 1)
                 MatchConfig.Seat(_editingSeat).Fighter = cls;
             else
-                MatchConfig.PlayerClass = cls;
+            {
+                MatchConfig.SetPlayerFighter(cls, MenuRoster.PackageId(cls));
+            }
 
             if ((MatchConfig.Mode is GameMode.Solo or GameMode.Training) && _rosterPanel != null)
                 SetSelectionTarget(context, _editingSeat);

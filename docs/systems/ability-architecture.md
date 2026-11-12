@@ -453,6 +453,26 @@ pre-simulation tick using the current ground/air variant and ordinary resource g
 A fresh accepted press supersedes an older buffer. Landing-lag and defense-commitment
 presses are discarded, including on their expiry tick; they do not queue an attack.
 
+`MatchContentCatalogBuilder` builds from `AdmittedFighter` values under a required
+`MatchContentPolicy`. The generic builder has no roster minimum and indexes every entry by
+package and handle. A legacy selector is optional. `ShippedRoster.ReadApplication` reads the
+application installation beside the Shared assembly and is the only constructor of shipped
+roster authority. It never reads a caller's manifest DTO or searches the current directory.
+The shipped-roster builder checks its exact pins. StandardRoom checks every admitted fighter
+against that authority. Caller-created manifests use the explicit EditorDevelopment policy;
+their content cannot satisfy a standard Room. LocalPlay accepts shipped and local admitted
+content. WorkshopRoom is reserved and currently permits only shipped content.
+External-file admission is unavailable to product callers; the selector-free fixture factory
+is internal. Roster selectors are explicit mappings, with no lowercase-enum naming rule.
+The server rejects empty rosters, incomplete supplied copies, duplicate mappings, incompatible
+schemas, and unloadable or mismatched package entries. A well-formed truncated authoritative
+installation manifest needs an independent deployment-integrity check to detect its omission.
+
+This authority protects catalog construction. It is not an in-process sandbox. Code that
+bypasses the catalog can still give any definition directly to `ServerSimulation`.
+Player selection stores class and package in one immutable value, published only after the
+setter validates the pair. Training reads its package projection.
+
 The Match Content Catalog is immutable for the match. A later cook applies only to a later match. Missing, invalid, stale, incompatible, or hash-mismatched content fails closed; it does not fall back to raw source, C# definitions, or a similar capability.
 
 Admitted `CharacterDefinition` values have init-only properties, defensively copied

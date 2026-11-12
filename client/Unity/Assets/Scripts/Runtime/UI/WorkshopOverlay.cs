@@ -312,7 +312,7 @@ namespace SlopArena.Client.UI
                 await ModelSwapLibrary.Ready;
                 if (!IsOpen) return;
                 MatchConfig.Reset(); MatchConfig.Mode = GameMode.Training;
-                MatchConfig.PlayerPackageId = item.Manifest.BaseFighterPackageId; MatchConfig.PlayerClass = matches[0];
+                MatchConfig.SetPlayerFighter(matches[0], item.Manifest.BaseFighterPackageId);
                 ModelSwapLibrary.Preview(item); Close(); SceneManager.LoadScene("Arena_Offline");
             }));
             Status("Ready. Wear this model or preview it in Training.");

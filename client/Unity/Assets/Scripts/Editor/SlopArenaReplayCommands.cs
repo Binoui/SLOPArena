@@ -104,8 +104,7 @@ namespace SlopArena.EditorTools
             Array.Clear(MatchConfig.SoloSeats, 0, MatchConfig.SoloSeats.Length);
             for (int i = 0; i < extras.Length; i++) MatchConfig.Seat(i + 2) = new SoloSeat
                 { Kind = SeatKind.LocalPlayer, Fighter = catalog.ResolvePackage(extras[i]).LegacySelector.Value };
-            MatchConfig.Mode = GameMode.Arcade; MatchConfig.LocalMode = LocalPlayMode.CharacterCourse; MatchConfig.ArenaName = stage; MatchConfig.PlayerPackageId = fighter;
-            if (entry.LegacySelector.HasValue) MatchConfig.PlayerClass = entry.LegacySelector.Value;
+            MatchConfig.Mode = GameMode.Arcade; MatchConfig.LocalMode = LocalPlayMode.CharacterCourse; MatchConfig.ArenaName = stage; MatchConfig.SetPlayerFighter(entry);
             EditorSceneManager.OpenScene(SlopArenaCharacterCourseCommands.ScenePath, OpenSceneMode.Single);
             return new { success = true, stage, fighter, requestedTicks = total, recordsDirectory = ArcadeRecordsStore.VerificationDirectory };
         }
@@ -185,7 +184,7 @@ namespace SlopArena.EditorTools
             EditorSettings.enterPlayModeOptionsEnabled = saved.optionsEnabled; EditorSettings.enterPlayModeOptions = (EnterPlayModeOptions)saved.options;
             ArcadeRecordsStore.VerificationDirectory = saved.recordDirectory;
             CharacterCourseMatch.FreezeOnStartForProbe = saved.freezeOnStart; CharacterCourseMatch.MovementTipsEnabled = saved.tips;
-            MatchConfig.Mode = saved.mode; MatchConfig.LocalMode = saved.localMode; MatchConfig.ArenaName = saved.arenaName; MatchConfig.PlayerPackageId = saved.playerPackageId; MatchConfig.PlayerClass = saved.playerClass;
+            MatchConfig.Mode = saved.mode; MatchConfig.LocalMode = saved.localMode; MatchConfig.ArenaName = saved.arenaName; MatchConfig.SetPlayerFighter(saved.playerClass, saved.playerPackageId);
             if (saved.seats != null) Array.Copy(saved.seats, MatchConfig.SoloSeats, MatchConfig.SoloSeats.Length);
             Time.timeScale = saved.timeScale; EditorApplication.isPaused = saved.paused;
             EditorSceneManager.RestoreSceneManagerSetup(saved.scenes);

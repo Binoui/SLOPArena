@@ -1420,7 +1420,7 @@ public sealed class CharacterPackageAssemblerTests
         return CharacterPackageAssembler.Assemble(BuildInput(package, Array.Empty<PackageDependencySource>(), Array.Empty<CookedCapabilityRequirement>(), Array.Empty<CharacterDiagnostic>()));
     }
 
-    private static CharacterPackageAssemblyInput BuildInput(CookedCharacterPackage package, IReadOnlyList<PackageDependencySource> dependencies, IReadOnlyList<CookedCapabilityRequirement> capabilities, IReadOnlyList<CharacterDiagnostic> warnings)
+    internal static CharacterPackageAssemblyInput BuildInput(CookedCharacterPackage package, IReadOnlyList<PackageDependencySource> dependencies, IReadOnlyList<CookedCapabilityRequirement> capabilities, IReadOnlyList<CharacterDiagnostic> warnings)
     {
         string sourceHash = new string('a', 64);
         var names = new HashSet<string>(StringComparer.Ordinal)

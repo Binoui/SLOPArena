@@ -24,7 +24,28 @@ namespace SlopArena.Shared.Replays
     public sealed record ReplayHeader(string MatchId, string ArenaId, ReplayRules Rules,
         uint StartTick, IReadOnlyList<ReplayParticipant> Roster, ReplayBuildIdentity Build, string ArenaDigest = "")
     {
+        public MatchContentHandleMap? ContentMap { get; init; }
         public const ushort TickRate = 60;
+
+        public bool TryWithLocalContent(MatchContentCatalog catalog, out ReplayHeader? prepared, out string? refusal)
+        {
+            prepared = null;
+            refusal = null;
+            try { prepared = WithLocalContent(catalog); return true; }
+            catch (Exception ex) when (ReplayStorage.ParseFailure(ex))
+            {
+                refusal = "Recording refused before capture. The header must fit 64 KiB: " + ex.Message;
+                return false;
+            }
+        }
+
+        public ReplayHeader WithLocalContent(MatchContentCatalog catalog)
+        {
+            var map = MatchContentHandleMap.CaptureLocal(catalog, new MatchArenaRecord(ArenaId, ArenaDigest));
+            var prepared = this with { ContentMap = map, Build = Build with { ContentHash = MatchContentHandleMapCodec.HashLocalContent(map) } };
+            _ = ReplayStorage.Preamble(prepared);
+            return prepared;
+        }
     }
 
     public enum ReplayEndReason

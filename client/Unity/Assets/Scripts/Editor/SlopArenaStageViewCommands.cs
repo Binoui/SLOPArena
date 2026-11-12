@@ -101,8 +101,7 @@ namespace SlopArena.EditorTools
                 // The real Arcade scene: FightGuy receives live serves; the camera orbit is the normal one.
                 MatchConfig.Mode = GameMode.Arcade; MatchConfig.LocalMode = LocalPlayMode.Slopball;
                 MatchConfig.ArenaName = stage;
-                MatchConfig.PlayerClass = CharacterClass.FightGuy;
-                MatchConfig.PlayerPackageId = "fightguy";
+                MatchConfig.SetPlayerFighter(CharacterClass.FightGuy, "fightguy");
                 SessionState.SetString(ArcadeBallMatch.FighterSessionKey, CharacterClass.FightGuy.ToString());
                 // Scripted serves bank like play does; keep them out of the player's real records.
                 ArcadeRecordsStore.VerificationDirectory = Path.Combine(Application.temporaryCachePath, "SlopArenaStageViewRecords");
@@ -218,7 +217,7 @@ namespace SlopArena.EditorTools
             MatchConfig.Mode = saved.mode; MatchConfig.LocalMode = saved.localMode; Time.timeScale = saved.timeScale; EditorApplication.isPaused = saved.paused;
             if (saved.slopball)
             {
-                MatchConfig.PlayerClass = saved.playerClass; MatchConfig.PlayerPackageId = saved.packageId; MatchConfig.ArenaName = saved.arenaName;
+                MatchConfig.SetPlayerFighter(saved.playerClass, saved.packageId); MatchConfig.ArenaName = saved.arenaName;
                 if (string.IsNullOrEmpty(saved.fighterSession)) SessionState.EraseString(ArcadeBallMatch.FighterSessionKey);
                 else SessionState.SetString(ArcadeBallMatch.FighterSessionKey, saved.fighterSession);
                 ArcadeRecordsStore.VerificationDirectory = saved.recordDirectory;

@@ -6,7 +6,6 @@ using UnityEngine.SceneManagement;
 
 namespace SlopArena.Client.UI
 {
-    public enum LocalPlayMode { Brawl, Slopball, CharacterCourse, MankiMayhem }
     public enum LocalSeatPolicy { FourSeats, OneSeat, HumanCourseSeats }
 
     public sealed class LocalPlayModeInfo

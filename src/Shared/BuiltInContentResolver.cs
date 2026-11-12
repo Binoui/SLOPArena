@@ -22,7 +22,7 @@ public static class BuiltInContentResolver
                 throw new InvalidDataException(string.Join("; ", loaded.Diagnostics.Select(x => $"{x.Code}:{x.Message}")));
             packages[rosterEntry.PackageId] = loaded;
         }
-        var result = new MatchContentCatalogBuilder().Build(manifest, packages);
+        var result = new MatchContentCatalogBuilder().Build(ShippedRoster.ReadApplication(), packages, MatchContentPolicy.LocalPlay);
         if (!result.IsValid || result.Catalog == null) throw new InvalidDataException(string.Join("; ", result.Diagnostics.Select(x => $"{x.Code}:{x.Message}")));
         return result.Catalog.Resolve(selector) ?? throw new InvalidDataException($"Catalog selector '{selector}' is unavailable.");
     }

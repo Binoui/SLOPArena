@@ -39,7 +39,8 @@ namespace SlopArena.EditorTools
             [CliArg("arena", "Baked arena name; empty picks the format's usual arena.")] string arena = "",
             [CliArg("ticks", "Recorded ticks (60 per second).")] int ticks = 1800,
             [CliArg("seed", "Bot random seed.")] int seed = 7,
-            [CliArg("match-format", "stock, slopball-coop, slopball-versus, course-race, course-coop, course-scramble or manki-mayhem.")] string format = "stock")
+            [CliArg("match-format", "stock, slopball-coop, slopball-versus, course-race, course-coop, course-scramble or manki-mayhem.")] string format = "stock",
+            [CliArg("local-content-map", "Capture a local schema-3 map; default exercises the GameHost no-map recording format.")] bool localContentMap = false)
         {
             if (!output.EndsWith(".slopreplay", StringComparison.Ordinal)) throw new ArgumentException("output must end with .slopreplay");
             if (!MatchFormats.TryParseWire(format, out var matchFormat)) throw new ArgumentException($"Unknown format '{format}'.");
@@ -65,12 +66,16 @@ namespace SlopArena.EditorTools
             var camps = entries.Select((_, i) => matchFormat == MatchFormat.SlopballVersus ? (i % 2 == 0 ? SlopballCamp.Teal : SlopballCamp.Clay) : SlopballCamp.None).ToArray();
             var roster = entries.Select((e, i) => new ReplayParticipant((ulong)i + 1, "cpu", i.ToString(CultureInfo.InvariantCulture), e.Identity,
                 picks[i].Length > 1 && picks[i][1] == "alternate" ? "alternate" : "base", camps[i].ToWire(), i.ToString(CultureInfo.InvariantCulture))).ToArray();
-            // The GameHost's content hash: the whole roster handle map with the Match arena (MultiMatchOrchestrator).
-            var records = catalog.Entries.Where(e => e.LegacySelector.HasValue)
-                .Select(e => new MatchContentHandleRecord(e.Handle, e.LegacySelector!.Value, e.Identity, e.DisplayName)).ToList();
-            string hash = SteamMatchDescriptor.HashContent(new MatchContentHandleMap(MatchContentHandleMap.CurrentSchemaVersion, records, identity));
+            // The default preserves the GameHost's schema-2 hash and no-map header.
+            string hash = SteamMatchDescriptor.HashContent(MatchContentHandleMap.CaptureBundled(catalog, identity));
             var header = new ReplayHeader("editor-bots-" + seed, arena, new ReplayRules(format, "off", 4, false), 1, roster,
                 ReplayBuildIdentity.Current("editor", hash), identity.Digest);
+            if (localContentMap)
+            {
+                if (!header.TryWithLocalContent(catalog, out var prepared, out var refusal))
+                    return new { success = false, error = refusal };
+                header = prepared!;
+            }
             var sim = new ServerSimulation(definition, matchFormat.CreateRule(4, FriendlyFireMode.Off,
                 roster.ToDictionary(p => p.EntityId, p => camps[(int)p.EntityId - 1])));
             for (int i = 0; i < entries.Length; i++)

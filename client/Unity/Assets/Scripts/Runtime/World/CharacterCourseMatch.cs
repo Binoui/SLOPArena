@@ -128,8 +128,7 @@ namespace SlopArena.Client.World
             if (entry == null || !arena.Arcade.AllowsPackage(entry.Identity.PackageId))
             { Debug.LogError("[Course] This course does not admit package " + fighter); enabled = false; return; }
             ClientSession.InstallLocalMatchCatalog(catalog);
-            if (entry.LegacySelector.HasValue) MatchConfig.PlayerClass = entry.LegacySelector.Value;
-            MatchConfig.PlayerPackageId = entry.Identity.PackageId;
+            MatchConfig.SetPlayerFighter(entry);
             if (MatchConfig.LocalMode == LocalPlayMode.CharacterCourse && Array.Exists(MatchConfig.SoloSeats, s => s.Kind == SeatKind.LocalPlayer))
             { StartScramble(catalog, arena, entry); return; }
             _playerDef = entry.Definition; _course = arena.Arcade.Course;
