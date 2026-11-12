@@ -25,6 +25,16 @@ namespace SlopArena.Client.UI
 
     public sealed partial class LocalFighterLibrary
     {
+        static partial void ReadDevelopmentContent(ref MatchContentCatalog? content)
+        {
+#if UNITY_EDITOR
+            if (Application.isEditor)
+            {
+                if (ClientSession.TryBuildLocalMatchCatalog(out var development, out var failure)) content = development;
+                else Debug.LogWarning("[LocalFighterLibrary] Development content unavailable: " + failure);
+            }
+#endif
+        }
         static partial void Warn(string message) => Debug.LogWarning(message);
         IReadOnlyList<FighterCard>? fighters;
         public IReadOnlyList<FighterCard> Fighters => fighters ??= PackageIds.Select(id => new FighterCard(catalog!.ResolvePackage(id)!)).ToList().AsReadOnly();

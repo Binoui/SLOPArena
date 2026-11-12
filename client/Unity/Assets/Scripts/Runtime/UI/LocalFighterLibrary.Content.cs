@@ -19,7 +19,9 @@ namespace SlopArena.Client.UI
         {
             try
             {
-                var content = BuiltInContentResolver.ReadApplicationCatalog();
+                MatchContentCatalog? content = null;
+                ReadDevelopmentContent(ref content);
+                content ??= BuiltInContentResolver.ReadApplicationCatalog();
                 var ids = ShippedRoster.ReadApplication().Manifest.Entries.Select(p => p.PackageId).ToList().AsReadOnly();
                 return new LocalFighterLibrary(content, ids, null);
             }
@@ -29,6 +31,7 @@ namespace SlopArena.Client.UI
                 return new LocalFighterLibrary(null, Array.Empty<string>(), error.Message);
             }
         }
+        static partial void ReadDevelopmentContent(ref MatchContentCatalog? content);
         static partial void Warn(string message);
         internal static void ReportDiagnostic(string message)
         { System.Diagnostics.Trace.TraceWarning(message); Warn(message); }
