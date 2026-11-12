@@ -48,6 +48,18 @@ public partial class PackageFighterContentTests
 
 public sealed class StoredFighterChoiceTests
 {
+    [Fact]
+    public void LegacyNumericSeatChoiceCannotBecomeAPackage()
+    {
+        var state = System.Text.Json.JsonSerializer.Deserialize<SoloSeatState>(
+            "{\"Kind\":1,\"Fighter\":7,\"Form\":1,\"Difficulty\":2,\"DeviceId\":0}",
+            new System.Text.Json.JsonSerializerOptions { IncludeFields = true })!;
+        var seat = state.Restore();
+        Assert.Equal(SeatKind.Cpu, seat.Kind);
+        Assert.Equal(ShippedRoster.ReadApplication().DefaultFighter.PackageId, seat.Choice!.Revision.PackageId);
+        Assert.Equal(0, seat.Form);
+    }
+
     [Theory]
     [InlineData("7", 0)]
     [InlineData("missing.package", 0)]

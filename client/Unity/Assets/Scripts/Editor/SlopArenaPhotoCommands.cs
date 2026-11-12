@@ -569,7 +569,7 @@ namespace SlopArena.EditorTools
 
             if (saved.training)
             {
-                MatchConfig.Seat(2).SetFighter(saved.opponent.Restore());
+                MatchConfig.Seat(2).SetFighter((saved.opponent ?? new FighterChoiceState()).Restore());
             }
             var result = SlopArenaStageViewCommands.Restore();
             SessionState.EraseString(SessionKey);

@@ -27,15 +27,15 @@ namespace SlopArena.Client.UI
     public sealed class SoloSeatState
     {
         public SeatKind Kind;
-        public FighterChoiceState? Fighter;
+        public FighterChoiceState? FighterPackage;
         public CpuDifficulty Difficulty;
         public int DeviceId;
         public static SoloSeatState Capture(SoloSeat seat) => new SoloSeatState
-        { Kind = seat.Kind, Fighter = seat.Choice == null ? null : new FighterChoiceState(seat.Choice), Difficulty = seat.Difficulty, DeviceId = seat.DeviceId };
+        { Kind = seat.Kind, FighterPackage = seat.Choice == null ? null : new FighterChoiceState(seat.Choice), Difficulty = seat.Difficulty, DeviceId = seat.DeviceId };
         public SoloSeat Restore()
         {
             var seat = new SoloSeat { Kind = Kind, Difficulty = Difficulty, DeviceId = DeviceId };
-            if (Fighter != null || Kind != SeatKind.Open) seat.SetFighter((Fighter ?? new FighterChoiceState()).Restore());
+            if (FighterPackage != null || Kind != SeatKind.Open) seat.SetFighter((FighterPackage ?? new FighterChoiceState()).Restore());
             return seat;
         }
     }
