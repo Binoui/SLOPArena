@@ -43,7 +43,7 @@ internal static class ReplayStorage
                 || MatchContentHandleMapCodec.HashLocalContent(map) != h.Build.ContentHash)
                 throw new InvalidDataException("Content map identity");
             foreach (var participant in h.Roster)
-                if (!map.Entries.Any(e => e.Identity == participant.Package)) throw new InvalidDataException("Content map roster");
+                if (!map.Entries.Any(e => e.Identity == participant.Package)) throw new InvalidDataException("Recorded participant package is absent from the local content map: " + participant.Package.PackageId);
         }
         ulong last = 0;
         foreach (var p in h.Roster)

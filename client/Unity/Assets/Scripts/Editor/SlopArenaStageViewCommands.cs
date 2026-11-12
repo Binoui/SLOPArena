@@ -50,8 +50,8 @@ namespace SlopArena.EditorTools
             public GameMode mode;
             public LocalPlayMode localMode;
             public bool slopball;
-            public CharacterClass playerClass;
-            public string packageId, arenaName, fighterSession, recordDirectory;
+            public MatchConfig.PlayerSelection playerSelection;
+            public string arenaName, fighterSession, recordDirectory;
         }
 
         [CliCommand("sloparena.stage.views.prepare", "Save Editor state, disable domain reload and open the Training-based baseline scene on a PvP stage, or the Slopball Arcade scene.", MainThreadRequired = true, Tags = new[] { "stage", "capture" })]
@@ -85,7 +85,7 @@ namespace SlopArena.EditorTools
                 stage = stage, scenes = scenes, selection = Selection.objects.Select(x => GlobalObjectId.GetGlobalObjectIdSlow(x).ToString()).ToArray(),
                 optionsEnabled = EditorSettings.enterPlayModeOptionsEnabled, options = (int)EditorSettings.enterPlayModeOptions,
                 paused = EditorApplication.isPaused, timeScale = Time.timeScale, mode = MatchConfig.Mode, localMode = MatchConfig.LocalMode, slopball = slopball,
-                playerClass = MatchConfig.PlayerClass, packageId = MatchConfig.PlayerPackageId, arenaName = MatchConfig.ArenaName,
+                playerSelection = MatchConfig.Selection, arenaName = MatchConfig.ArenaName,
                 fighterSession = SessionState.GetString(ArcadeBallMatch.FighterSessionKey, ""),
                 recordDirectory = ArcadeRecordsStore.VerificationDirectory,
                 viewSize = (int)view.GetType().GetProperty("selectedSizeIndex", Flags).GetValue(view),
@@ -101,8 +101,8 @@ namespace SlopArena.EditorTools
                 // The real Arcade scene: FightGuy receives live serves; the camera orbit is the normal one.
                 MatchConfig.Mode = GameMode.Arcade; MatchConfig.LocalMode = LocalPlayMode.Slopball;
                 MatchConfig.ArenaName = stage;
-                MatchConfig.SetPlayerFighter(CharacterClass.FightGuy, "fightguy");
-                SessionState.SetString(ArcadeBallMatch.FighterSessionKey, CharacterClass.FightGuy.ToString());
+                MatchConfig.SetDefaultPlayerFighter();
+                SessionState.SetString(ArcadeBallMatch.FighterSessionKey, MatchConfig.PlayerClass.ToString());
                 // Scripted serves bank like play does; keep them out of the player's real records.
                 ArcadeRecordsStore.VerificationDirectory = Path.Combine(Application.temporaryCachePath, "SlopArenaStageViewRecords");
                 EditorSceneManager.OpenScene(SlopballScenePath, OpenSceneMode.Single);
@@ -211,13 +211,14 @@ namespace SlopArena.EditorTools
         {
             if (string.IsNullOrEmpty(SessionState.GetString(SessionKey, ""))) return new { success = true, restored = true, started = false };
             var saved = Read();
+            if (saved.playerSelection == null) throw new InvalidDataException("Saved session has no player selection snapshot.");
             if (EditorApplication.isPlayingOrWillChangePlaymode || Application.isPlaying)
                 throw new InvalidOperationException("Stop the stage views and settle Play Mode before restoring.");
             EditorSettings.enterPlayModeOptionsEnabled = saved.optionsEnabled; EditorSettings.enterPlayModeOptions = (EnterPlayModeOptions)saved.options;
             MatchConfig.Mode = saved.mode; MatchConfig.LocalMode = saved.localMode; Time.timeScale = saved.timeScale; EditorApplication.isPaused = saved.paused;
             if (saved.slopball)
             {
-                MatchConfig.SetPlayerFighter(saved.playerClass, saved.packageId); MatchConfig.ArenaName = saved.arenaName;
+                MatchConfig.SetPlayerFighter(saved.playerSelection); MatchConfig.ArenaName = saved.arenaName;
                 if (string.IsNullOrEmpty(saved.fighterSession)) SessionState.EraseString(ArcadeBallMatch.FighterSessionKey);
                 else SessionState.SetString(ArcadeBallMatch.FighterSessionKey, saved.fighterSession);
                 ArcadeRecordsStore.VerificationDirectory = saved.recordDirectory;

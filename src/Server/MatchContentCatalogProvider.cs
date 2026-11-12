@@ -9,10 +9,12 @@ namespace SlopArena.Server;
 /// <summary>Builds an immutable content catalog for each match assignment.</summary>
 public sealed class MatchContentCatalogProvider
 {
-    private readonly string _cookedRoot;
-    private readonly string _manifestPath;
+    private readonly string? _cookedRoot;
+    private readonly string? _manifestPath;
 
-    public MatchContentCatalogProvider(string cookedRoot = "content-cooked", string manifestPath = "content-cooked/roster/manifest.json")
+    public MatchContentCatalogProvider() { }
+
+    internal MatchContentCatalogProvider(string cookedRoot, string manifestPath)
     {
         _cookedRoot = cookedRoot ?? throw new ArgumentNullException(nameof(cookedRoot));
         _manifestPath = manifestPath ?? throw new ArgumentNullException(nameof(manifestPath));
@@ -24,14 +26,14 @@ public sealed class MatchContentCatalogProvider
         try
         {
             var shipped = ShippedRoster.ReadApplication();
-            var manifest = BuiltInRosterManifestCodec.Load(_manifestPath);
+            var manifest = _manifestPath == null ? shipped.Manifest : BuiltInRosterManifestCodec.Load(_manifestPath);
             if (manifest.Entries.Count == 0 || manifest.Entries.Count != shipped.Manifest.Entries.Count
                 || manifest.Entries.Any(e => shipped.Manifest.Resolve(e.Selector) != e))
                 throw new InvalidDataException("Server roster must contain the complete application shipped roster.");
             var packages = new Dictionary<string, CookedCharacterPackageLoadResult>(StringComparer.Ordinal);
             foreach (var rosterEntry in manifest.Entries)
             {
-                string directory = Path.Combine(_cookedRoot, rosterEntry.PackageId);
+                string directory = Path.Combine(_cookedRoot ?? shipped.CookedRoot, rosterEntry.PackageId);
                 packages[rosterEntry.PackageId] = CookedCharacterPackageLoader.LoadDirectory(directory, rosterEntry.Requirement);
             }
             var result = new MatchContentCatalogBuilder().Build(shipped, packages);

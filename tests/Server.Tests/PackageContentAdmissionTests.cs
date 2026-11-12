@@ -63,4 +63,23 @@ public sealed class PackageContentAdmissionTests
         Assert.Null(catalog); Assert.Null(map);
         Assert.Contains("catalog.package.missing",error);
     }
+    [Fact]
+    public void DefaultProviderIgnoresWorkingDirectoryAndReadsOneApplicationContentRoot()
+    {
+        string previous=Directory.GetCurrentDirectory();
+        string temp=Path.Combine(Path.GetTempPath(),"sloparena-cwd-"+Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(temp);
+        try
+        {
+            Directory.SetCurrentDirectory(temp);
+            Assert.True(new MatchContentCatalogProvider().TryBuild(out var catalog,out var map,out var error),error);
+            var shipped=ShippedRoster.ReadApplication();
+            Assert.Equal(shipped.Manifest.Entries.Count,catalog!.Entries.Count);
+            foreach(var entry in catalog.Entries)
+                Assert.Equal(shipped.Manifest.ResolvePackage(entry.Identity.PackageId)!.Requirement.PackageHash,entry.Identity.PackageHash);
+            Assert.Equal(catalog.Entries.Count,map!.Entries.Count);
+        }
+        finally { Directory.SetCurrentDirectory(previous);Directory.Delete(temp,true); }
+    }
+
 }

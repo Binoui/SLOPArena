@@ -458,6 +458,12 @@ presses are discarded, including on their expiry tick; they do not queue an atta
 package and handle. A legacy selector is optional. `ShippedRoster.ReadApplication` reads the
 application installation beside the Shared assembly and is the only constructor of shipped
 roster authority. It never reads a caller's manifest DTO or searches the current directory.
+The process reuses the parsed snapshot and failures. Source checkouts reload after the roster's
+write time or length changes, so Editor authoring updates apply to later matches.
+`Assembly.Location` may be empty; discovery then starts at the application base directory.
+Missing Unity `_Data` and solution markers produce `content.application.root-missing` at match
+start. Empty location and base directory produce `content.application.location-empty`.
+Menu Reset tolerates these failures and leaves admission to match start.
 The shipped-roster builder checks its exact pins. StandardRoom checks every admitted fighter
 against that authority. Caller-created manifests use the explicit EditorDevelopment policy;
 their content cannot satisfy a standard Room. LocalPlay accepts shipped and local admitted
@@ -470,8 +476,14 @@ installation manifest needs an independent deployment-integrity check to detect 
 
 This authority protects catalog construction. It is not an in-process sandbox. Code that
 bypasses the catalog can still give any definition directly to `ServerSimulation`.
-Player selection stores class and package in one immutable value, published only after the
-setter validates the pair. Training reads its package projection.
+Player selection stores class, package, and form in one immutable value. Editor session tools
+save and restore that selection directly, including selector-free choices. Training reads its
+package projection. The roster maps the preferred default selector to its package explicitly.
+The GameServer's default provider reads both the roster and packages from this same resolved
+application root. Published servers use `AppContext.BaseDirectory/content-cooked`; source
+consumers use their application/source root, independent of the current working directory.
+Read-only tools that explicitly name a cooked root use that tree's own roster under
+EditorDevelopment policy. That path cannot authorize a standard Room.
 
 The Match Content Catalog is immutable for the match. A later cook applies only to a later match. Missing, invalid, stale, incompatible, or hash-mismatched content fails closed; it does not fall back to raw source, C# definitions, or a similar capability.
 

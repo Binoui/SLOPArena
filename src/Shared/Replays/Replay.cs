@@ -34,7 +34,7 @@ namespace SlopArena.Shared.Replays
             try { prepared = WithLocalContent(catalog); return true; }
             catch (Exception ex) when (ReplayStorage.ParseFailure(ex))
             {
-                refusal = "Recording refused before capture. The header must fit 64 KiB: " + ex.Message;
+                refusal = "Recording refused before capture: " + ex.Message;
                 return false;
             }
         }

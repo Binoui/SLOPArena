@@ -812,7 +812,8 @@ Presenters implement `IReplayPresenter` and read `ReplayFrame.World` as they rea
   content refuses Exact; View still uses today's cast. Extra installed fighters do not enter the
   recorded map. Tag 9 is omitted when absent. Old readers skip tag 9 and can read View without
   reconstructing its new local hash. Preparation refuses a header above 64 KiB before capture
-  starts, with a diagnostic rather than a Match failure. Editor bot recordings default to the
+  starts, with a diagnostic rather than a Match failure. Refusals retain the actual cause,
+  such as a missing participant package; only a size violation mentions the 64 KiB limit. Editor bot recordings default to the
   GameHost no-map format. Their `local-content-map` option exercises local schema 3.
   Container, View, frame, tick, and snapshot versions are unchanged.
 - **Cast.** A recorded package today's build has is `Recorded` (same identity) or `Today` (other

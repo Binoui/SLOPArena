@@ -697,3 +697,16 @@ Do not claim a live runtime result from a build or static inspection alone.
   branch remains unchanged at **25547241**.
 - Local staging was restored. No player was launched; packaged two-account
   match/rematch and a new isolated backup restore were not exercised.
+
+## Exact allocation assertions
+
+`WorkshopFixRegressionTests` warms capability calls on the parent, then measures them on a
+fresh thread with execution-context flow suppressed. Assertions and result storage stay outside
+the counted interval. The target still requires exactly zero bytes, and a positive control
+checks that allocating calls produce a nonzero count.
+
+A reused thread's counter can include unused allocation-context space retired during background
+GC. The local control probe reproduced positive deltas in a no-allocation loop on .NET 8 while
+its fresh-thread control stayed zero. This matches the
+[runtime allocation-context report](https://github.com/dotnet/runtime/issues/134724).
+Do not replace the assertion with a byte tolerance or disable suite parallelism.

@@ -52,7 +52,7 @@ internal static class ReplayFields
                 f.Write(w, x);
                 EndSize(w, fieldStart);
             }
-            if (w.BaseStream.Position - start > ReplayViewCodec.MaxRecord) throw new InvalidDataException("Object bound");
+            if (w.BaseStream.Position - start > ReplayViewCodec.MaxRecord) throw new InvalidDataException("Replay metadata exceeds the 64 KiB object limit.");
         }
         internal T Read(byte[] bytes)
         {

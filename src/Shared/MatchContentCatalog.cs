@@ -93,6 +93,12 @@ public sealed class MatchContentCatalog
 
     public MatchContentEntry? Resolve(ContentHandle handle) => _byHandle.TryGetValue(handle, out var e) ? e : null;
     public MatchContentEntry? Resolve(CharacterClass selector) => _bySelector.TryGetValue(selector, out var e) ? e : null;
+    public MatchContentEntry? ResolveLegacySelection(string? selection, CharacterClass fallback)
+    {
+        if (string.IsNullOrEmpty(selection)) return Resolve(fallback);
+        return Enum.TryParse<CharacterClass>(selection, true, out var selector) ? Resolve(selector) : null;
+    }
+
     public MatchContentEntry? ResolvePackage(string packageId) => packageId != null && _byPackage.TryGetValue(packageId, out var e) ? e : null;
 }
 
@@ -127,19 +133,14 @@ public sealed class MatchContentCatalogBuilder
     {
         var diagnostics = new List<CharacterDiagnostic>();
         if (manifest == null) { diagnostics.Add(Error("catalog.manifest.missing", "manifest", "Roster manifest is required.")); return new(null, diagnostics); }
-        if (manifest.SchemaVersion != BuiltInRosterManifest.CurrentSchemaVersion)
-            diagnostics.Add(Error("catalog.manifest.schema", "manifest.schemaVersion", "Unsupported roster manifest schema."));
         diagnostics.AddRange(ValidateRoster(manifest));
         if (trustedRoster == null && policy != MatchContentPolicy.EditorDevelopment)
             diagnostics.Add(Error("catalog.roster.untrusted", "manifest", "Only the application shipped roster authorizes non-development catalogs."));
         var byPackage = new Dictionary<string, (BuiltInRosterEntry Roster, CookedCharacterPackageLoadResult Loaded)>(StringComparer.Ordinal);
-        var bySelector = new HashSet<CharacterClass>();
         foreach (var roster in manifest.Entries)
         {
-            if (!bySelector.Add(roster.Selector)) diagnostics.Add(Error("catalog.selector.duplicate", roster.Selector.ToString(), "Duplicate roster selector."));
             if (!IsStablePackageId(roster.PackageId) || !byPackage.TryAdd(roster.PackageId, default))
             {
-                if (byPackage.ContainsKey(roster.PackageId)) diagnostics.Add(Error("catalog.package.duplicate", roster.PackageId, "Duplicate package ID."));
                 continue;
             }
             if (roster.Requirement == null) continue;
@@ -196,7 +197,9 @@ public sealed class MatchContentCatalogBuilder
         var packages = new HashSet<string>(StringComparer.Ordinal);
         foreach (var entry in manifest.Entries)
         {
-            if (!selectors.Add(entry.Selector) || !packages.Add(entry.PackageId))
+            bool duplicateSelector = !selectors.Add(entry.Selector);
+            bool duplicatePackage = !packages.Add(entry.PackageId);
+            if (duplicateSelector || duplicatePackage)
                 d.Add(Error("catalog.roster.duplicate", "entries", "Duplicate selector or package."));
             if (!Enum.IsDefined(typeof(CharacterClass), entry.Selector) || entry.Selector == CharacterClass.None) d.Add(Error("catalog.selector.invalid", "entries", "Roster selector must be a supported non-None value."));
             if (!IsStablePackageId(entry.PackageId)) d.Add(Error("catalog.package.invalid", "entries.packageId", "Package ID is not a stable lowercase ID."));

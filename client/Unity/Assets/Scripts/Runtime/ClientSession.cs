@@ -287,6 +287,18 @@ namespace SlopArena.Client
                 RejectMatchStart("Master match roster does not contain this authenticated Steam account with an assigned entity.");
                 return;
             }
+            var playerEntry = catalog.ResolveLegacySelection(local.CharacterSelection,
+                descriptor == null ? Shared.CharacterClass.Manki : Shared.CharacterClass.None);
+            if (playerEntry == null)
+            {
+                RejectMatchStart("Master roster selected an unavailable player character.");
+                return;
+            }
+            if (config.Format == Shared.MatchFormat.SlopballVersus
+                && (!Shared.SlopballCamps.AreBalanced(config.Players.Select(p => p.Camp))
+                    || config.Players.Any(p => p.EntityId <= 0 || p.EntityId >= Shared.ServerSimulation.ArcadeBallTargetInputId)
+                    || config.Players.Select(p => p.EntityId).Distinct().Count() != config.Players.Count))
+            { RejectMatchStart("Versus Slopball needs balanced Teal and Clay camps."); return; }
             MatchContentCatalog = catalog;
             MatchContentHandleMap = content;
             CurrentMatchResults = null;
@@ -302,20 +314,7 @@ namespace SlopArena.Client
                 UI.MatchConfig.ServerIP = config.ServerAddress!;
 
 
-            var playerClass = ParseClass(local.CharacterSelection,
-                descriptor == null ? Shared.CharacterClass.Manki : Shared.CharacterClass.None);
-            if (descriptor != null && (playerClass == Shared.CharacterClass.None ||
-                catalog.Resolve(playerClass) == null))
-            {
-                RejectMatchStart("Master roster selected an unavailable player character.");
-                return;
-            }
-            if (config.Format == Shared.MatchFormat.SlopballVersus
-                && (!Shared.SlopballCamps.AreBalanced(config.Players.Select(p => p.Camp))
-                    || config.Players.Any(p => p.EntityId <= 0 || p.EntityId >= Shared.ServerSimulation.ArcadeBallTargetInputId)
-                    || config.Players.Select(p => p.EntityId).Distinct().Count() != config.Players.Count))
-            { RejectMatchStart("Versus Slopball needs balanced Teal and Clay camps."); return; }
-            UI.MatchConfig.SetPlayerFighter(catalog.Resolve(playerClass) ?? throw new InvalidOperationException("Player fighter is unavailable."));
+            UI.MatchConfig.SetPlayerFighter(playerEntry);
             UI.MatchConfig.LocalEntityId = (ulong)local.EntityId;
             UI.MatchConfig.MaxStocks = config.MaxStocks;
             UI.MatchConfig.Format = config.Format;

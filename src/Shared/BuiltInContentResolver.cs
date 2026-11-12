@@ -8,10 +8,18 @@ namespace SlopArena.Shared;
 /// <summary>Resolves a built-in selector through the cooked catalog boundary used by matches.</summary>
 public static class BuiltInContentResolver
 {
-    public static MatchContentEntry Resolve(CharacterClass selector, string cookedRoot = "content-cooked")
+    public static MatchContentEntry Resolve(CharacterClass selector)
     {
-        cookedRoot = ResolveRoot(cookedRoot);
-        var manifest = BuiltInRosterManifestCodec.Load(Path.Combine(cookedRoot, "roster", "manifest.json"));
+        var shipped = ShippedRoster.ReadApplication();
+        return ResolveCatalog(selector, shipped.CookedRoot, shipped);
+    }
+
+    public static MatchContentEntry Resolve(CharacterClass selector, string cookedRoot)
+        => ResolveCatalog(selector, ResolveRoot(cookedRoot), null);
+
+    private static MatchContentEntry ResolveCatalog(CharacterClass selector, string cookedRoot, ShippedRoster? shipped)
+    {
+        var manifest = shipped?.Manifest ?? BuiltInRosterManifestCodec.Load(Path.Combine(cookedRoot, "roster", "manifest.json"));
         var roster = manifest.Resolve(selector) ?? throw new InvalidDataException($"Roster selector '{selector}' is not available.");
         var packages = new Dictionary<string, CookedCharacterPackageLoadResult>(StringComparer.Ordinal);
         foreach (var rosterEntry in manifest.Entries)
@@ -22,7 +30,10 @@ public static class BuiltInContentResolver
                 throw new InvalidDataException(string.Join("; ", loaded.Diagnostics.Select(x => $"{x.Code}:{x.Message}")));
             packages[rosterEntry.PackageId] = loaded;
         }
-        var result = new MatchContentCatalogBuilder().Build(ShippedRoster.ReadApplication(), packages, MatchContentPolicy.LocalPlay);
+        var builder = new MatchContentCatalogBuilder();
+        var result = shipped == null
+            ? builder.Build(manifest, packages, MatchContentPolicy.EditorDevelopment)
+            : builder.Build(shipped, packages, MatchContentPolicy.LocalPlay);
         if (!result.IsValid || result.Catalog == null) throw new InvalidDataException(string.Join("; ", result.Diagnostics.Select(x => $"{x.Code}:{x.Message}")));
         return result.Catalog.Resolve(selector) ?? throw new InvalidDataException($"Catalog selector '{selector}' is unavailable.");
     }

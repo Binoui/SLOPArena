@@ -52,8 +52,8 @@ namespace SlopArena.EditorTools
             public bool optionsEnabled, gizmos;
             public int options, viewSize;
             public GameMode mode;
-            public CharacterClass playerClass;
-            public string playerPackageId, arenaName;
+            public MatchConfig.PlayerSelection playerSelection;
+            public string arenaName;
         }
 
         [CliCommand("sloparena.tutorial.open", "Save Editor state, disable domain reload (this Editor stalls entering Play Mode with one) and open the Tutorial scene for a fighter; then editor_play. Always finish with sloparena.tutorial.restore.",
@@ -85,7 +85,7 @@ namespace SlopArena.EditorTools
                 viewSize = (int)view.GetType().GetProperty("selectedSizeIndex", Flags).GetValue(view),
                 gizmos = (bool)view.GetType().GetProperty("drawGizmos", Flags).GetValue(view),
                 options = (int)EditorSettings.enterPlayModeOptions, mode = MatchConfig.Mode,
-                playerClass = MatchConfig.PlayerClass, playerPackageId = MatchConfig.PlayerPackageId, arenaName = MatchConfig.ArenaName,
+                playerSelection = MatchConfig.Selection, arenaName = MatchConfig.ArenaName,
             }));
             EditorSettings.enterPlayModeOptionsEnabled = true;
             EditorSettings.enterPlayModeOptions = EnterPlayModeOptions.DisableDomainReload;
@@ -106,9 +106,10 @@ namespace SlopArena.EditorTools
             if (EditorApplication.isPlayingOrWillChangePlaymode || Application.isPlaying)
                 throw new InvalidOperationException("Stop Play Mode before restoring.");
             var saved = JsonConvert.DeserializeObject<Saved>(json);
+            if (saved?.playerSelection == null) throw new InvalidDataException("Saved session has no player selection snapshot.");
             EditorSettings.enterPlayModeOptionsEnabled = saved.optionsEnabled;
             EditorSettings.enterPlayModeOptions = (EnterPlayModeOptions)saved.options;
-            MatchConfig.Mode = saved.mode; MatchConfig.SetPlayerFighter(saved.playerClass, saved.playerPackageId); MatchConfig.ArenaName = saved.arenaName;
+            MatchConfig.Mode = saved.mode; MatchConfig.SetPlayerFighter(saved.playerSelection); MatchConfig.ArenaName = saved.arenaName;
             EditorSceneManager.RestoreSceneManagerSetup(saved.scenes);
             var view = GameView(); var callback = view.GetType().GetMethod("SizeSelectionCallback", Flags);
             callback.Invoke(view, callback.GetParameters().Select(x => x.ParameterType == typeof(int) ? (object)saved.viewSize : null).ToArray());
