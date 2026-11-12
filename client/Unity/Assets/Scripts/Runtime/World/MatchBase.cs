@@ -251,7 +251,7 @@ namespace SlopArena.Client.World
 
             var animationOverride = local && entry.CookedCharacterPackage == null ? _playerAnimConfig : null;
             if (!renderer.Configure(def, entry.BakedAnimation, animationCatalog,
-                    rig ?? (local ? _playerModelPrefab : null), out var configurationError, animationOverride))
+                    rig ?? (local ? _playerModelPrefab : null), out var configurationError, animationOverride, entry.Identity.PackageId))
             {
                 Debug.LogError($"[{GetType().Name}] Renderer configuration failed: {configurationError}");
                 return false;
