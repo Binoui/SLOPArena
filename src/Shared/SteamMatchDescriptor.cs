@@ -22,9 +22,13 @@ public sealed record SteamMatchDescriptor(
     public const int MaximumAdmissionWindowSeconds = 65;
 
     /// <summary>Preserves the original schema-1 characters-only catalog hash bytes.</summary>
-    public static string HashCatalog(MatchContentHandleMap content) =>
-        MatchContentInternals.Sha256(Encoding.UTF8.GetBytes(MatchContentHandleMapCodec.Serialize(
+    public static string HashCatalog(MatchContentHandleMap content)
+    {
+        if (content.SchemaVersion == MatchContentHandleMap.LocalSchemaVersion)
+            throw new ArgumentException("Online catalog hashing refuses local schema 3.", nameof(content));
+        return MatchContentInternals.Sha256(Encoding.UTF8.GetBytes(MatchContentHandleMapCodec.Serialize(
             new MatchContentHandleMap(MatchContentHandleMap.CatalogSchemaVersion, content.Entries))));
+    }
 
     public static string HashContent(MatchContentHandleMap content)
     {

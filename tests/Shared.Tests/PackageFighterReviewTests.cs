@@ -80,6 +80,9 @@ public partial class PackageFighterContentTests
     {
         var map = MatchContentHandleMap.CaptureLocal(Local(),new("slop_pit",new string('d',64)));
         Assert.Throws<ArgumentException>(() => SteamMatchDescriptor.HashContent(map));
+        var legacyRecordsInLocalMap = new MatchContentHandleMap(3,Bundled().Entries.Select(e =>
+            new MatchContentHandleRecord(e.Handle,e.LegacySelector,e.Identity,e.DisplayName)).ToArray());
+        Assert.Throws<ArgumentException>(() => SteamMatchDescriptor.HashCatalog(legacyRecordsInLocalMap));
         var json = MatchContentHandleMapCodec.Serialize(map);
         var obj = JsonNode.Parse(json)!;
         obj["entries"]![0]!["selector"] = "Bonk";
