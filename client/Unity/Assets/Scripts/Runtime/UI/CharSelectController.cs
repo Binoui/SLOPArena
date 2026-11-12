@@ -402,7 +402,7 @@ namespace SlopArena.Client.UI
         }
 
         private bool EditsSeat => (MatchConfig.Mode is GameMode.Solo or GameMode.Training) && _editingSeat > 1;
-        private byte EditingForm => EditsSeat ? MatchConfig.Seat(_editingSeat).Form : MatchConfig.PlayerForm;
+        private byte EditingForm => MatchConfig.PreferredFormOf(EditsSeat ? _editingSeat : 1);
 
         /// <summary>Flip the editing seat's starting form, picking the fighter first when the seat has another one.</summary>
         private void ToggleForm(string cls, FrontendPageContext context)

@@ -61,7 +61,7 @@ namespace SlopArena.EditorTools
             var opponentChoice = Select(opponent);
             // Save before the first mutation so the declared restore also handles partial setup failure.
             SessionState.SetString(SessionKey, JsonConvert.SerializeObject(new Saved { stage = stage, captureFramerate = Time.captureFramerate,
-                training = training, playerSelection = new FighterChoiceState(MatchConfig.Selection.Choice), opponent = new FighterChoiceState(MatchConfig.Seat(2).Choice) }));
+                training = training, playerSelection = new FighterChoiceState(MatchConfig.Selection.Choice, MatchConfig.PreferredFormOf(1)), opponent = new FighterChoiceState(MatchConfig.Seat(2).Choice, MatchConfig.PreferredFormOf(2)) }));
             SlopArenaStageViewCommands.Prepare(stage, lighting);
             if (stage == SlopballMatch.ArenaKey)
             {
@@ -565,11 +565,11 @@ namespace SlopArena.EditorTools
             var saved = JsonConvert.DeserializeObject<Saved>(text) ?? new Saved();
             if (saved?.playerSelection == null) throw new InvalidDataException("Saved session has no player selection snapshot.");
             Time.captureFramerate = saved.captureFramerate;
-            MatchConfig.SetPlayerFighter(saved.playerSelection.Restore());
+            MatchConfig.SetPlayerFighter(saved.playerSelection);
 
             if (saved.training)
             {
-                MatchConfig.Seat(2).SetFighter((saved.opponent ?? new FighterChoiceState()).Restore());
+                MatchConfig.Seat(2).SetFighter(saved.opponent ?? new FighterChoiceState());
             }
             var result = SlopArenaStageViewCommands.Restore();
             SessionState.EraseString(SessionKey);

@@ -58,6 +58,31 @@ public partial class PackageFighterContentTests
 public sealed class StoredFighterChoiceTests
 {
     [Fact]
+    public void SingleFormChoiceKeepsNyxMenuPreferenceWithoutAdmittingAnInvalidForm()
+    {
+        try
+        {
+            MatchConfig.SetPlayerFighter("nyx"); MatchConfig.PlayerForm = 1;
+            MatchConfig.SetPlayerFighter("fightguy");
+            Assert.Equal(0, MatchConfig.Selection.Choice.StartingForm);
+            Assert.Equal(1, MatchConfig.PreferredFormOf(1));
+            var saved = new FighterChoiceState(MatchConfig.Selection.Choice, MatchConfig.PreferredFormOf(1));
+            MatchConfig.PlayerForm = 0;
+            MatchConfig.SetPlayerFighter(saved);
+            Assert.Equal(1, MatchConfig.PreferredFormOf(1));
+            MatchConfig.SetPlayerFighter("nyx");
+            Assert.Equal(1, MatchConfig.Selection.Choice.StartingForm);
+            var seat = new SoloSeat { Fighter = "nyx", Form = 1 };
+            seat.Fighter = "fightguy";
+            Assert.Equal(0, seat.Choice!.StartingForm);
+            Assert.Equal(1, seat.PreferredForm);
+            seat.Fighter = "nyx";
+            Assert.Equal(1, seat.Choice!.StartingForm);
+        }
+        finally { MatchConfig.PlayerForm = 0; MatchConfig.Reset(); }
+    }
+
+    [Fact]
     public void LegacyNumericSeatChoiceCannotBecomeAPackage()
     {
         var state = System.Text.Json.JsonSerializer.Deserialize<SoloSeatState>(

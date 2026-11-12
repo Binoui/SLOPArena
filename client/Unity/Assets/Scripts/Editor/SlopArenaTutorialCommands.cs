@@ -79,7 +79,7 @@ namespace SlopArena.EditorTools
                 viewSize = (int)view.GetType().GetProperty("selectedSizeIndex", Flags).GetValue(view),
                 gizmos = (bool)view.GetType().GetProperty("drawGizmos", Flags).GetValue(view),
                 options = (int)EditorSettings.enterPlayModeOptions, mode = MatchConfig.Mode,
-                playerSelection = new FighterChoiceState(MatchConfig.Selection.Choice), arenaName = MatchConfig.ArenaName,
+                playerSelection = new FighterChoiceState(MatchConfig.Selection.Choice, MatchConfig.PreferredFormOf(1)), arenaName = MatchConfig.ArenaName,
             }));
             EditorSettings.enterPlayModeOptionsEnabled = true;
             EditorSettings.enterPlayModeOptions = EnterPlayModeOptions.DisableDomainReload;
@@ -103,7 +103,7 @@ namespace SlopArena.EditorTools
             if (saved?.playerSelection == null) throw new InvalidDataException("Saved session has no player selection snapshot.");
             EditorSettings.enterPlayModeOptionsEnabled = saved.optionsEnabled;
             EditorSettings.enterPlayModeOptions = (EnterPlayModeOptions)saved.options;
-            MatchConfig.Mode = saved.mode; MatchConfig.SetPlayerFighter(saved.playerSelection.Restore()); MatchConfig.ArenaName = saved.arenaName;
+            MatchConfig.Mode = saved.mode; MatchConfig.SetPlayerFighter(saved.playerSelection); MatchConfig.ArenaName = saved.arenaName;
             EditorSceneManager.RestoreSceneManagerSetup(saved.scenes);
             var view = GameView(); var callback = view.GetType().GetMethod("SizeSelectionCallback", Flags);
             callback.Invoke(view, callback.GetParameters().Select(x => x.ParameterType == typeof(int) ? (object)saved.viewSize : null).ToArray());

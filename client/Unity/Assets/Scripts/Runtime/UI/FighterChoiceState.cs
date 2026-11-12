@@ -10,9 +10,10 @@ namespace SlopArena.Client.UI
     {
         public string PackageId = "";
         public byte Form;
+        public byte? MenuForm;
         public FighterChoiceState() { }
-        public FighterChoiceState(FighterChoice choice)
-        { PackageId = choice.Revision.PackageId; Form = choice.StartingForm; }
+        public FighterChoiceState(FighterChoice choice, byte? menuForm = null)
+        { PackageId = choice.Revision.PackageId; Form = choice.StartingForm; MenuForm = menuForm; }
         public FighterChoice Restore()
         {
             var library = LocalFighterLibrary.Current;
@@ -31,11 +32,11 @@ namespace SlopArena.Client.UI
         public CpuDifficulty Difficulty;
         public int DeviceId;
         public static SoloSeatState Capture(SoloSeat seat) => new SoloSeatState
-        { Kind = seat.Kind, FighterPackage = seat.Choice == null ? null : new FighterChoiceState(seat.Choice), Difficulty = seat.Difficulty, DeviceId = seat.DeviceId };
+        { Kind = seat.Kind, FighterPackage = seat.Choice == null ? null : new FighterChoiceState(seat.Choice, seat.PreferredForm), Difficulty = seat.Difficulty, DeviceId = seat.DeviceId };
         public SoloSeat Restore()
         {
             var seat = new SoloSeat { Kind = Kind, Difficulty = Difficulty, DeviceId = DeviceId };
-            if (FighterPackage != null || Kind != SeatKind.Open) seat.SetFighter((FighterPackage ?? new FighterChoiceState()).Restore());
+            if (FighterPackage != null || Kind != SeatKind.Open) seat.SetFighter(FighterPackage ?? new FighterChoiceState());
             return seat;
         }
     }

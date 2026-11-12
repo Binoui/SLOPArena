@@ -85,7 +85,7 @@ namespace SlopArena.EditorTools
                 stage = stage, scenes = scenes, selection = Selection.objects.Select(x => GlobalObjectId.GetGlobalObjectIdSlow(x).ToString()).ToArray(),
                 optionsEnabled = EditorSettings.enterPlayModeOptionsEnabled, options = (int)EditorSettings.enterPlayModeOptions,
                 paused = EditorApplication.isPaused, timeScale = Time.timeScale, mode = MatchConfig.Mode, localMode = MatchConfig.LocalMode, slopball = slopball,
-                playerSelection = new FighterChoiceState(MatchConfig.Selection.Choice), arenaName = MatchConfig.ArenaName,
+                playerSelection = new FighterChoiceState(MatchConfig.Selection.Choice, MatchConfig.PreferredFormOf(1)), arenaName = MatchConfig.ArenaName,
                 fighterSession = SessionState.GetString(ArcadeBallMatch.FighterSessionKey, ""),
                 recordDirectory = ArcadeRecordsStore.VerificationDirectory,
                 viewSize = (int)view.GetType().GetProperty("selectedSizeIndex", Flags).GetValue(view),
@@ -218,7 +218,7 @@ namespace SlopArena.EditorTools
             MatchConfig.Mode = saved.mode; MatchConfig.LocalMode = saved.localMode; Time.timeScale = saved.timeScale; EditorApplication.isPaused = saved.paused;
             if (saved.slopball)
             {
-                MatchConfig.SetPlayerFighter(saved.playerSelection.Restore()); MatchConfig.ArenaName = saved.arenaName;
+                MatchConfig.SetPlayerFighter(saved.playerSelection); MatchConfig.ArenaName = saved.arenaName;
                 if (string.IsNullOrEmpty(saved.fighterSession)) SessionState.EraseString(ArcadeBallMatch.FighterSessionKey);
                 else SessionState.SetString(ArcadeBallMatch.FighterSessionKey, saved.fighterSession);
                 ArcadeRecordsStore.VerificationDirectory = saved.recordDirectory;

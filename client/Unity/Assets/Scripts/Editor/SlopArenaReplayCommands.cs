@@ -90,7 +90,7 @@ namespace SlopArena.EditorTools
                 paused = EditorApplication.isPaused, timeScale = Time.timeScale,
                 freezeOnStart = CharacterCourseMatch.FreezeOnStartForProbe, tips = CharacterCourseMatch.MovementTipsEnabled,
                 recordDirectory = ArcadeRecordsStore.VerificationDirectory, arenaName = MatchConfig.ArenaName,
-                playerSelection = new FighterChoiceState(MatchConfig.Selection.Choice), mode = MatchConfig.Mode, localMode = MatchConfig.LocalMode,
+                playerSelection = new FighterChoiceState(MatchConfig.Selection.Choice, MatchConfig.PreferredFormOf(1)), mode = MatchConfig.Mode, localMode = MatchConfig.LocalMode,
                 viewSize = (int)view.GetType().GetProperty("selectedSizeIndex", Flags).GetValue(view),
                 gizmos = (bool)view.GetType().GetProperty("drawGizmos", Flags).GetValue(view)
             };
@@ -184,7 +184,7 @@ namespace SlopArena.EditorTools
             EditorSettings.enterPlayModeOptionsEnabled = saved.optionsEnabled; EditorSettings.enterPlayModeOptions = (EnterPlayModeOptions)saved.options;
             ArcadeRecordsStore.VerificationDirectory = saved.recordDirectory;
             CharacterCourseMatch.FreezeOnStartForProbe = saved.freezeOnStart; CharacterCourseMatch.MovementTipsEnabled = saved.tips;
-            MatchConfig.Mode = saved.mode; MatchConfig.LocalMode = saved.localMode; MatchConfig.ArenaName = saved.arenaName; MatchConfig.SetPlayerFighter(saved.playerSelection.Restore());
+            MatchConfig.Mode = saved.mode; MatchConfig.LocalMode = saved.localMode; MatchConfig.ArenaName = saved.arenaName; MatchConfig.SetPlayerFighter(saved.playerSelection);
             if (saved.seats != null) Array.Copy(saved.seats.Select(s => s.Restore()).ToArray(), MatchConfig.SoloSeats, MatchConfig.SoloSeats.Length);
             Time.timeScale = saved.timeScale; EditorApplication.isPaused = saved.paused;
             EditorSceneManager.RestoreSceneManagerSetup(saved.scenes);

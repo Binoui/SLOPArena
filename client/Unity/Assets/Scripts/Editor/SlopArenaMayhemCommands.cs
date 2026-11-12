@@ -48,7 +48,7 @@ namespace SlopArena.EditorTools
             if (cpus < 1 || cpus > 3 || seed == 0 || !LocalFighterLibrary.Current.Contains(fighter.ToLowerInvariant()))
                 throw new ArgumentException("Expected 1–3 CPUs, nonzero seed, and an admitted fighter name.");
             if (!string.IsNullOrEmpty(SessionState.GetString(Key, ""))) throw new InvalidOperationException("Restore the preceding Mayhem session first.");
-            var saved = new Saved { format = MatchConfig.Format, mode = MatchConfig.Mode, localMode = MatchConfig.LocalMode, playerSelection = new FighterChoiceState(MatchConfig.Selection.Choice), arena = MatchConfig.ArenaName, seed = MatchConfig.MayhemSeed,
+            var saved = new Saved { format = MatchConfig.Format, mode = MatchConfig.Mode, localMode = MatchConfig.LocalMode, playerSelection = new FighterChoiceState(MatchConfig.Selection.Choice, MatchConfig.PreferredFormOf(1)), arena = MatchConfig.ArenaName, seed = MatchConfig.MayhemSeed,
                 seats = MatchConfig.SoloSeats.Select(SoloSeatState.Capture).ToArray(), entity = MatchConfig.LocalEntityId };
             SlopArenaStageViewCommands.Prepare("manki_mayhem");
             SessionState.SetString(Key, JsonConvert.SerializeObject(saved));
@@ -240,7 +240,7 @@ namespace SlopArena.EditorTools
             if (saved.playerSelection == null) throw new InvalidDataException("Saved session has no player selection snapshot.");
             SlopArenaStageViewCommands.Restore();
             MatchConfig.Format = saved.format; MatchConfig.Mode = saved.mode; MatchConfig.LocalMode = saved.localMode;
-            MatchConfig.SetPlayerFighter(saved.playerSelection.Restore());
+            MatchConfig.SetPlayerFighter(saved.playerSelection);
             MatchConfig.ArenaName = saved.arena; MatchConfig.MayhemSeed = saved.seed; MatchConfig.LocalEntityId = saved.entity;
             Array.Copy(saved.seats.Select(s => s.Restore()).ToArray(), MatchConfig.SoloSeats, 3);
             SessionState.EraseString(Key);

@@ -15,17 +15,32 @@ namespace SlopArena.Client.UI
     {
         public SeatKind Kind;
         public FighterChoice? Choice { get; private set; }
+        public byte PreferredForm { get; private set; }
         public string Fighter
         {
             get => Choice?.Revision.PackageId ?? "";
-            set => SetFighter(LocalFighterLibrary.Current.Choose(value, LocalFighterLibrary.Current.HasForms(value) ? Form : (byte)0));
+            set => SetFighter(LocalFighterLibrary.Current.Choose(value, LocalFighterLibrary.Current.HasForms(value) ? PreferredForm : (byte)0));
         }
-        public void SetFighter(FighterChoice choice) => Choice = choice ?? throw new System.ArgumentNullException(nameof(choice));
+        public void SetFighter(FighterChoice choice)
+        {
+            Choice = choice ?? throw new System.ArgumentNullException(nameof(choice));
+            if (choice.HasAlternateForm) PreferredForm = choice.StartingForm;
+        }
+        public void SetFighter(FighterChoiceState state)
+        {
+            var choice = state.Restore();
+            SetFighter(choice);
+            if (!choice.HasAlternateForm && state.MenuForm is <= 1) PreferredForm = state.MenuForm.Value;
+        }
         /// <summary>The picked starting form of a two-form fighter (ADR-0051); others ignore it.</summary>
         public byte Form
         {
             get => Choice?.StartingForm ?? 0;
-            set => SetFighter((Choice ?? throw new System.InvalidOperationException("Seat has no fighter.")).WithForm(value));
+            set
+            {
+                SetFighter((Choice ?? throw new System.InvalidOperationException("Seat has no fighter.")).WithForm(value));
+                PreferredForm = value;
+            }
         }
         public CpuDifficulty Difficulty;
         public int DeviceId;
@@ -50,19 +65,29 @@ namespace SlopArena.Client.UI
             internal PlayerSelection WithForm(byte form) => new(Choice.WithForm(form));
         }
         private static PlayerSelection? _player;
+        private static byte _preferredPlayerForm;
         public static PlayerSelection Selection => _player!;
         public static CharacterClass PlayerClass => _player?.Selector ?? CharacterClass.None;
         public static string PlayerPackageId => _player?.PackageId ?? "";
         public static byte PlayerForm
         {
             get => _player?.Form ?? 0;
-            set { if (_player != null) _player = _player.WithForm(value); }
+            set { if (_player != null) _player = _player.WithForm(value); _preferredPlayerForm = value; }
         }
         public static void SetPlayerFighter(PlayerSelection selection)
-            => _player = selection ?? throw new System.ArgumentNullException(nameof(selection));
+        {
+            _player = selection ?? throw new System.ArgumentNullException(nameof(selection));
+            if (selection.Choice.HasAlternateForm) _preferredPlayerForm = selection.Form;
+        }
+        public static void SetPlayerFighter(FighterChoiceState state)
+        {
+            var choice = state.Restore();
+            SetPlayerFighter(choice);
+            if (!choice.HasAlternateForm && state.MenuForm is <= 1) _preferredPlayerForm = state.MenuForm.Value;
+        }
         public static void SetPlayerFighter(FighterChoice choice) => SetPlayerFighter(new PlayerSelection(choice));
         public static void SetPlayerFighter(string packageId)
-            => SetPlayerFighter(LocalFighterLibrary.Current.Choose(packageId, LocalFighterLibrary.Current.HasForms(packageId) ? PlayerForm : (byte)0));
+            => SetPlayerFighter(LocalFighterLibrary.Current.Choose(packageId, LocalFighterLibrary.Current.HasForms(packageId) ? _preferredPlayerForm : (byte)0));
         public static void SetPlayerFighter(CharacterClass selector, string packageId)
         {
             if (ShippedRoster.ReadApplication().Manifest.Resolve(selector)?.PackageId != packageId)
@@ -85,7 +110,7 @@ namespace SlopArena.Client.UI
         public static void SetPlayerFighter(MatchContentEntry entry)
         {
             if (entry == null) throw new System.ArgumentNullException(nameof(entry));
-            SetPlayerFighter(entry.Choose(entry.Definition.AlternateForm != null ? PlayerForm : (byte)0));
+            SetPlayerFighter(entry.Choose(entry.Definition.AlternateForm != null ? _preferredPlayerForm : (byte)0));
         }
 
         public static FighterChoice? ResolveStoredFighter(string packageId, MatchContentCatalog catalog)
@@ -97,10 +122,11 @@ namespace SlopArena.Client.UI
                 if (ShippedRoster.TryReadApplication(out var roster, out _))
                     entry = catalog.ResolvePackage(roster!.DefaultFighter.PackageId);
             }
-            return entry?.Choose();
+            return entry?.Choose(entry.Definition.AlternateForm != null ? _preferredPlayerForm : (byte)0);
         }
 
         /// <summary>The starting form a seat picked on Fighter Select.</summary>
+        public static byte PreferredFormOf(int playerNumber) => playerNumber == 1 ? _preferredPlayerForm : Seat(playerNumber).PreferredForm;
         public static byte FormOf(int playerNumber) => playerNumber == 1 ? PlayerForm : Seat(playerNumber).Form;
         public static string ArenaName = "training";
         public static bool IsHost = true;
