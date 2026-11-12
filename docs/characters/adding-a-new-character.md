@@ -437,6 +437,19 @@ Run `python3 tools/fighter-presentation/generate.py` after changing a card or sh
 Run the same command with `--check` to verify the generated output.
 The generator reads the shipped roster in order and binds its legacy filenames to package IDs.
 It writes `Assets/Resources/Generated/FighterUi.json` without moving existing art.
+The Shared suite runs `--check`, so a stale snapshot fails `dotnet test`.
+The shipped UI layout requires canonical-case paths and `.png` textures in
+`Resources/UI/Portraits`, `Resources/UI/AbilityCards`, and `Resources/Icons`.
+The generator rejects other image extensions, ambiguous resource names, and incorrect casing.
+Text documentation in those folders is ignored.
+
+Before Editor roster admission, run
+`python3 tools/fighter-presentation/generate.py --prepare-admission <package-id> --selector <selector>`.
+The command creates a presentation-only default card if absent and prepares the candidate binding.
+Review its text, then retry admission. Admission refuses missing or mismatched card/binding data
+with this command in the diagnostic. After admission, ordinary generation includes the new roster entry.
+A missing runtime binding degrades to neutral art with a diagnostic, including in Fighter Select.
+
 The generator is the source-card reader. The client reads the resulting immutable presentation snapshot.
 Shared admission and simulation do not read cards.
 
@@ -445,7 +458,18 @@ Release verification still checks all seven cooks because Unity dependencies can
 The existing missing-art treatment of built-ins is retained, including Salamander's missing portrait.
 Selector-free content uses the neutral portrait and slot glyphs.
 
-`MatchBase` retains each entity's exact catalog entry and resolved appearance when configuring its renderer.
+`MatchBase` binds each entity's exact catalog entry and resolved appearance as content resolves,
+before renderer or HUD setup. Undrawn fighters retain the same binding.
 HUD, feedback, end cards, and result snapshots consume that binding.
 Result snapshots retain the appearance after the Match scene unloads.
 `MenuRoster` remains a thin grid adapter until the seat and Fighter Select migration in ADR-0067 unit 3.
+
+The HUD deck takes its focused entity and appearance together. Other local racers only add
+fight cards; their art cannot replace the focused deck. Replay View draws today's stand-in
+model when recorded content is unavailable. Its HUD uses the stand-in's art and identifies
+it as a stand-in for the recorded display name. Unavailable attacks retain the existing
+missing-move indication instead of executing the stand-in's attacks.
+
+Practice logs retain legacy selector keys for bundled fighters in headers, filename slugs,
+seat events, and results. Selector-free fighters use package IDs. `SessionLogReport` accepts
+both these keys and the display-name headers produced during the unit 2 migration.

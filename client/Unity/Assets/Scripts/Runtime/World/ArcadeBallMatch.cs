@@ -77,6 +77,7 @@ namespace SlopArena.Client.World
                 enabled = false;
                 return;
             }
+            if (!BindFighter(PlayerEntityId, entry)) return;
             ClientSession.InstallLocalMatchCatalog(catalog);
             MatchConfig.SetPlayerFighter(entry);
             _playerDef = entry.Definition;
@@ -98,7 +99,7 @@ namespace SlopArena.Client.World
             _bridge.SetRespawnPosition(PlayerEntityId, spawn.X, spawn.Y, spawn.Z, spawn.Yaw);
             _playerRenderer.transform.SetPositionAndRotation(new(spawn.X, spawn.Y, spawn.Z),
                 Quaternion.Euler(0f, spawn.Yaw * Mathf.Rad2Deg, 0f));
-            SetupHUD(_playerDef);
+            if (!SetupHUD(_playerDef)) return;
             SetupCamera(); SetupAimHandler(_playerDef);
             if (arena.Arcade.Slopball != null)
             {

@@ -27,7 +27,7 @@ namespace SlopArena.Client.UI
                 panel.AddToClassList($"fighter-panel--{ui.StyleAlias}");
                 var art = new VisualElement { pickingMode = PickingMode.Ignore };
                 art.AddToClassList("fighter-panel__art");
-                var portrait = ui.Portrait(form);
+                var portrait = MenuRoster.Contains(fighter.Value) ? ui.Portrait(form) : null;
                 if (portrait != null) art.style.backgroundImage = new StyleBackground(portrait);
                 // Splash images are stylesheet dependencies, so they ship without Resources copies.
                 if (ui.HasSplash)

@@ -38,7 +38,7 @@ namespace SlopArena.Client
         readonly string[] names;
         readonly Texture2D?[] portraits;
         readonly Dictionary<string, UiImage>[] icons;
-        readonly bool generic;
+        readonly bool[] neutralForms;
         public FighterCardText Card { get; }
         public string StyleAlias { get; }
         public bool HasForms => names.Length > 1;
@@ -50,7 +50,7 @@ namespace SlopArena.Client
         internal FighterUiArt(string[] names, bool forms, JsonElement? binding)
         {
             this.names = forms ? names : new[] { names[0] };
-            generic = !binding.HasValue;
+            neutralForms = new bool[this.names.Length];
             HasSplash = binding?.GetProperty("hasSplash").GetBoolean() ?? false;
             StyleAlias = binding?.GetProperty("alias").GetString() ?? "";
             Card = binding.HasValue ? FighterCardText.Read(binding.Value.GetProperty("card")) : FighterCardText.Empty;
@@ -58,9 +58,14 @@ namespace SlopArena.Client
             icons = new Dictionary<string, UiImage>[this.names.Length];
             for (int form = 0; form < this.names.Length; form++)
             {
-                portraits[form] = generic ? NeutralPortrait : LoadTexture(binding!.Value.GetProperty("portraits")[form].GetString());
+                bool available = binding.HasValue && form < binding.Value.GetProperty("portraits").GetArrayLength()
+                    && form < binding.Value.GetProperty("icons").GetArrayLength();
+                neutralForms[form] = !available;
+                if (binding.HasValue && !available)
+                    Debug.LogWarning($"[FighterPresentation] Missing UI form {form} for {names[0]}. Using neutral art. Run python3 tools/fighter-presentation/generate.py.");
+                portraits[form] = available ? LoadTexture(binding!.Value.GetProperty("portraits")[form].GetString()) : NeutralPortrait;
                 icons[form] = new Dictionary<string, UiImage>(StringComparer.Ordinal);
-                if (binding.HasValue)
+                if (available)
                     foreach (var icon in binding.Value.GetProperty("icons")[form].EnumerateObject())
                     {
                         var row = icon.Value;
@@ -73,10 +78,10 @@ namespace SlopArena.Client
 
         int Form(byte form) => form < names.Length ? form : 0;
         public string Name(byte form = 0) => names[Form(form)];
-        public Texture2D? Portrait(byte form = 0) => portraits[Form(form)];
+        public Texture2D? Portrait(byte form = 0) => neutralForms[Form(form)] ? NeutralPortrait : portraits[Form(form)];
         public UiImage MoveIcon(byte form, string? iconId, byte slot, bool normal)
         {
-            if (generic) return new UiImage(NeutralGlyph(slot), null, Color.white);
+            if (neutralForms[Form(form)]) return new UiImage(NeutralGlyph(slot), null, Color.white);
             if (string.IsNullOrEmpty(iconId)) return default;
             Color tint = normal ? new Color32(27, 26, 24, 255) : Color.white;
             return icons[Form(form)].TryGetValue(iconId, out var image) && image.Sprite != null
@@ -85,10 +90,33 @@ namespace SlopArena.Client
         static Texture2D? LoadTexture(string? path) => string.IsNullOrEmpty(path) ? null : Resources.Load<Texture2D>(path);
         static Texture2D? neutralPortrait;
         static readonly Dictionary<byte, Texture2D> glyphs = new();
-        public static Texture2D NeutralPortrait => neutralPortrait ??= Draw(true, 0);
+        public static Texture2D NeutralPortrait => neutralPortrait != null ? neutralPortrait : neutralPortrait = Draw(true, 0);
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+        static void RegisterTextureCleanup()
+        {
+            ReleaseNeutralTextures();
+            Application.quitting -= ReleaseNeutralTextures;
+            Application.quitting += ReleaseNeutralTextures;
+        }
+#if UNITY_EDITOR
+        [UnityEditor.InitializeOnLoadMethod]
+        static void RegisterEditorCleanup()
+        {
+            UnityEditor.AssemblyReloadEvents.beforeAssemblyReload -= ReleaseNeutralTextures;
+            UnityEditor.AssemblyReloadEvents.beforeAssemblyReload += ReleaseNeutralTextures;
+        }
+#endif
+        internal static void ReleaseNeutralTextures()
+        {
+            if (neutralPortrait != null) UnityEngine.Object.DestroyImmediate(neutralPortrait);
+            neutralPortrait = null;
+            foreach (var texture in glyphs.Values)
+                if (texture != null) UnityEngine.Object.DestroyImmediate(texture);
+            glyphs.Clear();
+        }
         static Texture2D NeutralGlyph(byte slot)
         {
-            if (!glyphs.TryGetValue(slot, out var image)) glyphs[slot] = image = Draw(false, slot);
+            if (!glyphs.TryGetValue(slot, out var image) || image == null) glyphs[slot] = image = Draw(false, slot);
             return image;
         }
         static Texture2D Draw(bool portrait, byte slot)
@@ -126,23 +154,54 @@ namespace SlopArena.Client
 
     public static class FighterPresentation
     {
-        static readonly Dictionary<string, JsonElement> bindings = ReadBindings();
+        static Dictionary<string, JsonElement>? bindings;
+        static readonly HashSet<string> warned = new(StringComparer.Ordinal);
+        static void Missing(string packageId)
+        {
+            if (warned.Add(packageId)) Debug.LogWarning($"[FighterPresentation] Missing or invalid UI binding/card for '{packageId}'. Using neutral art. Run python3 tools/fighter-presentation/generate.py.");
+        }
         static Dictionary<string, JsonElement> ReadBindings()
         {
             var result = new Dictionary<string, JsonElement>(StringComparer.Ordinal);
-            var asset = Resources.Load<TextAsset>("Generated/FighterUi");
-            if (asset == null) throw new InvalidOperationException("Generated fighter UI bindings are missing.");
-            using var document = JsonDocument.Parse(asset.text);
-            foreach (var row in document.RootElement.GetProperty("fighters").EnumerateArray()) result.Add(row.GetProperty("packageId").GetString()!, row.Clone());
+            try
+            {
+                var asset = Resources.Load<TextAsset>("Generated/FighterUi");
+                if (asset == null) { Missing("Generated/FighterUi"); return result; }
+                using var document = JsonDocument.Parse(asset.text);
+                foreach (var row in document.RootElement.GetProperty("fighters").EnumerateArray())
+                {
+                    string package = row.GetProperty("packageId").GetString()!;
+                    try
+                    {
+                        if (row.GetProperty("names").GetArrayLength() == 0) throw new InvalidOperationException("No form names.");
+                        row.GetProperty("portraits").GetArrayLength(); row.GetProperty("icons").GetArrayLength();
+                        row.GetProperty("alias").GetString(); row.GetProperty("legacyWeapon").GetString();
+                        row.GetProperty("hasSplash").GetBoolean(); FighterCardText.Read(row.GetProperty("card"));
+                        result[package] = row.Clone();
+                    }
+                    catch (Exception error) when (error is JsonException or InvalidOperationException or KeyNotFoundException or ArgumentException)
+                    { Missing(package); }
+                }
+            }
+            catch (Exception error) when (error is JsonException or InvalidOperationException or KeyNotFoundException or ArgumentException)
+            { Missing("Generated/FighterUi"); }
             return result;
         }
-        internal static JsonElement? Binding(string packageId) => bindings.TryGetValue(packageId, out var row) ? row : null;
+        internal static JsonElement? Binding(string packageId)
+        {
+            bindings ??= ReadBindings();
+            if (bindings.TryGetValue(packageId, out var row)) return row;
+            Missing(packageId);
+            return null;
+        }
         static readonly ConditionalWeakTable<MatchContentEntry, FighterAppearance> resolved = new();
         public static FighterAppearance Resolve(MatchContentEntry entry) => resolved.GetValue(entry ?? throw new ArgumentNullException(nameof(entry)), content => new FighterAppearance(content));
         public static FighterUiArt Unavailable(string name) => new(new[] { name }, false, null);
-        public static FighterUiArt Menu(string packageId)
+        public static FighterUiArt Menu(string packageId, string fallbackName)
         {
-            var row = Binding(packageId) ?? throw new InvalidOperationException("No shipped UI binding for " + packageId);
+            var binding = Binding(packageId);
+            if (!binding.HasValue) return Unavailable(fallbackName);
+            var row = binding.Value;
             var names = new List<string>(); foreach (var name in row.GetProperty("names").EnumerateArray()) names.Add(name.GetString()!);
             return new FighterUiArt(names.ToArray(), names.Count > 1, row);
         }

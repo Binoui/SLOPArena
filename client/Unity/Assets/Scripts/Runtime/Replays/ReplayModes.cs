@@ -112,7 +112,7 @@ namespace SlopArena.Client.Replays
 
         /// <summary>The course board's rows: the fighter and short participant ID, in the recorded seat colour.</summary>
         private static IReadOnlyList<LobbyPlayerInfo> Roster(ReplayWorld replay)
-            => replay.Cast.Select(m => new LobbyPlayerInfo(0, ReplayText.Fighter(m), null, true, false, (int)m.EntityId,
+            => replay.Cast.Select(m => new LobbyPlayerInfo(0, ReplayText.Fighter(replay, m), null, true, false, (int)m.EntityId,
                 SlopballCamps.TryParse(m.Recorded.CampId, out var camp) ? camp : SlopballCamp.None,
                 byte.TryParse(m.Recorded.ColourId, NumberStyles.None, CultureInfo.InvariantCulture, out byte colour) ? colour : (byte)0)).ToList();
 

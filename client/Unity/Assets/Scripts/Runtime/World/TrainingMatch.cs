@@ -358,7 +358,7 @@ namespace SlopArena.Client.World
                 Spawn = NextNpcSpawn(),
             };
             slot.Memory.Difficulty = CurrentNpcDifficulty;
-            if (!SpawnNpcSlot(slot))
+            if (!BindFighter(slot.Id, slot.Entry) || !SpawnNpcSlot(slot))
                 return;
             _npcs.Add(slot);
             RebuildRosterVisuals();
@@ -450,6 +450,7 @@ namespace SlopArena.Client.World
                 Debug.LogError("[TrainingMatch] Solo needs at least one opponent.");
                 return;
             }
+            if (!BindFighter(PlayerEntityId, playerEntry)) return;
             var playerDef = playerEntry.Definition;
             _playerDef = playerDef;
             _playerEntry = playerEntry;
@@ -482,6 +483,7 @@ namespace SlopArena.Client.World
                     Debug.LogError($"[TrainingMatch] Missing catalog entry for P{player}={seat.Fighter}.");
                     return;
                 }
+                if (!BindFighter(NpcEntityId + (ulong)(player - 2), entry)) return;
                 var npc = new NpcSlot
                 {
                     Id = NpcEntityId + (ulong)(player - 2),
@@ -498,7 +500,7 @@ namespace SlopArena.Client.World
                 _npcs.Add(npc);
             }
             if (solo) StartCouch();
-            SetupHUD(playerDef, HudExtraPlayers());
+            if (!SetupHUD(playerDef, HudExtraPlayers())) return;
 
             // Shared camera + aim setup
             SetupCamera();
@@ -549,7 +551,7 @@ namespace SlopArena.Client.World
                 _mainCamera ??= _cameraMount?.RenderCamera ?? UnityEngine.Camera.main);
             _sessionLog = PracticeSessionLog.TryStart(header, _playerDef);
             foreach (var npc in _npcs)
-                _sessionLog?.LogEvent(0, "seat", $"P{npc.PlayerNumber}:{npc.Id}:{npc.Entry.Identity.PackageId}:{(npc.Input != null ? "local" : npc.Memory.Difficulty.ToString())}");
+                _sessionLog?.LogEvent(0, "seat", $"P{npc.PlayerNumber}:{npc.Id}:{PracticeSessionLog.CharacterKey(npc.Entry)}:{(npc.Input != null ? "local" : npc.Memory.Difficulty.ToString())}");
         }
 
         private void CreateStageHazardPresentation()
@@ -943,7 +945,7 @@ namespace SlopArena.Client.World
             _hudManager?.ShowSoloEnding(winner.Name, winnerArt, results.SharedVictory);
             foreach (var entry in entries)
             {
-                string result = $"{entry.Name} {entry.Fighter?.Content.Identity.PackageId} place={entry.Placement} falls={entry.Falls}";
+                string result = $"{entry.Name} {(entry.Fighter == null ? "" : PracticeSessionLog.CharacterKey(entry.Fighter.Content))} place={entry.Placement} falls={entry.Falls}";
                 Debug.Log($"[Solo] result {result}");
                 _sessionLog?.LogEvent((int)_tick, "result", result);
             }

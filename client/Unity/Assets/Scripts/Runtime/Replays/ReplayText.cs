@@ -55,8 +55,14 @@ namespace SlopArena.Client.Replays
         };
 
         /// <summary>The recorded player name, or the fighter name with a short Steam ID.</summary>
-        public static string Fighter(ReplayCastMember member)
-            => ReplayLabels.ReplayParticipantLabel(member.Recorded, member.Kind == ReplayCastKind.StandIn ? member.Recorded.Package.PackageId : member.Content.DisplayName);
+        public static string Fighter(ReplayWorld replay, ReplayCastMember member)
+        {
+            string label = ReplayLabels.ReplayParticipantLabel(member.Recorded, member.Content.DisplayName);
+            if (member.Kind != ReplayCastKind.StandIn) return label;
+            string recorded = replay.Header.ContentMap?.Entries.FirstOrDefault(e => e.Identity.PackageId == member.Recorded.Package.PackageId)?.DisplayName
+                ?? "unavailable fighter";
+            return $"{label} (stand-in for {recorded})";
+        }
 
         public static string Conclusion(ReplayConclusion? conclusion, ReplayPrefixReason prefix)
         {

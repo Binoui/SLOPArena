@@ -1,4 +1,5 @@
 using System.Text.Json;
+using System.Diagnostics;
 using SlopArena.Shared;
 using Xunit;
 
@@ -7,6 +8,18 @@ namespace SlopArena.Shared.Tests;
 public sealed class FighterPresentationBindingsTests
 {
     static readonly string Root = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "../../../../../"));
+
+    [Fact]
+    public void GeneratedPresentationIsFresh()
+    {
+        var start = new ProcessStartInfo("python3") { WorkingDirectory = Root, RedirectStandardOutput = true, RedirectStandardError = true };
+        start.ArgumentList.Add("tools/fighter-presentation/generate.py");
+        start.ArgumentList.Add("--check");
+        using var process = Process.Start(start)!;
+        string output = process.StandardOutput.ReadToEnd() + process.StandardError.ReadToEnd();
+        Assert.True(process.WaitForExit(30000), "Fighter presentation generator timed out.");
+        Assert.True(process.ExitCode == 0, output);
+    }
 
     [Fact]
     public void EveryRosterFighterHasPresentationOnlyCardAndMatchingGeneratedBindings()

@@ -270,11 +270,6 @@ namespace SlopArena.Client.UI
             for (int i = 0; i < players.Count; i++)
             {
                 var p = players[i];
-                if (p.IsLocal)
-                {
-                    _localEntityId = p.EntityId;
-                    _localArt = p.Art;
-                }
                 var billboard = BuildBillboardPanel(p, i);
                 _billboardPanels[p.EntityId] = billboard;
                 _billboardLayer?.Add(billboard.Root);
@@ -580,7 +575,14 @@ namespace SlopArena.Client.UI
         /// Provide the character definition: resolves ability icons, per-slot max
         /// cooldowns (max of grounded/airborne), and the locked (no-data) state.
         /// </summary>
-        public void SetCharacterDefinition(CharacterDefinition def)
+        public void SetFighter(ulong entityId, FighterAppearance fighter)
+        {
+            _localEntityId = entityId;
+            _localArt = fighter.Art;
+            SetCharacterDefinition(fighter.Content.Definition);
+        }
+
+        private void SetCharacterDefinition(CharacterDefinition def)
         {
             if (_getState != null && _localEntityId != 0) def = def.ForForm(_getState(_localEntityId).Form.Active);
             _charDef = def;

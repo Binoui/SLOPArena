@@ -197,6 +197,7 @@ namespace SlopArena.EditorTools
             {
                 var entry = catalog.ResolvePackage(fighter.Package)
                     ?? throw new InvalidOperationException("Missing roster package: " + fighter.Package);
+                if (!BindFighter(fighter.Id, entry)) return;
                 _entries[fighter.Id] = entry;
                 _renderers[fighter.Id] = Spawn(entry, fighter);
             }
@@ -318,7 +319,7 @@ namespace SlopArena.EditorTools
                 HumanInputActions.LastUsedGamepad = true;
             }
             _hudManager.Initialize(_bridge.GetState, players, HudStocks);
-            _hudManager.SetCharacterDefinition(_entries[HudLocal].Definition);
+            _hudManager.SetFighter(HudLocal, FighterFor(HudLocal));
             _hudManager.SetCamera(_views.Count > 0 ? _views[0].Camera : Template);
             _hudManager.Refresh();
             HideChat();

@@ -110,6 +110,7 @@ namespace SlopArena.EditorTools
                 ?? throw new InvalidOperationException("Missing roster package: " + AttackerPackage);
             var victim = catalog.ResolvePackage(VictimPackage)
                 ?? throw new InvalidOperationException("Missing roster package: " + VictimPackage);
+            if (!BindFighter(AttackerId, attacker) || !BindFighter(VictimId, victim)) return;
             if (Arena.SpawnPoints == null || Arena.SpawnPoints.Length == 0)
                 throw new InvalidOperationException("The review arena has no spawn points.");
 
