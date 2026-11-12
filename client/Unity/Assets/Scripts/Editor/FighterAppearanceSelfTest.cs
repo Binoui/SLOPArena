@@ -76,14 +76,16 @@ public static class FighterAppearanceSelfTest
             var fields = BindingFlags.Instance | BindingFlags.NonPublic;
             Require(ReferenceEquals(typeof(HUDManager).GetField("_localArt", fields).GetValue(hud), FighterPresentation.Resolve(manki).Art)
                 && ReferenceEquals(typeof(HUDManager).GetField("_charDef", fields).GetValue(hud), manki.Definition), "Deck definition and art must share P1's binding.");
-            foreach (var key in new[] { CharacterClass.None, (CharacterClass)999 })
+            foreach (var key in new[] { CharacterClass.None, (CharacterClass)99 })
             {
                 var panelType = typeof(HUDManager).Assembly.GetType("SlopArena.Client.UI.FighterPanel");
                 var panel = (VisualElement)panelType.GetMethod("Build").Invoke(null, new object[] { 2, "Guest", "PLAYER", key, "", false, false, (byte)0 });
                 Require(panel.Q<Label>(className: "fighter-panel__placeholder")?.text == "?", "Invalid lobby selector lost its placeholder.");
             }
-            new SoloEndCardView(new VisualElement()).Show("P1", null, false);
-            new SoloEndCardView(new VisualElement()).ShowPoster("END", "DRAW", "", null);
+            var endType = typeof(HUDManager).Assembly.GetType("SlopArena.Client.UI.SoloEndCardView");
+            var ending = Activator.CreateInstance(endType, new object[] { new VisualElement() });
+            endType.GetMethod("Show").Invoke(ending, new object[] { "P1", null, false });
+            endType.GetMethod("ShowPoster").Invoke(ending, new object[] { "END", "DRAW", "", null, null, false });
             var binding = typeof(FighterPresentation).GetMethod("Binding", BindingFlags.Static | BindingFlags.NonPublic).Invoke(null, new object[] { "manki" });
             var forms = (FighterUiArt)Activator.CreateInstance(typeof(FighterUiArt), BindingFlags.Instance | BindingFlags.NonPublic, null,
                 new object[] { new[] { "Manki", "New form" }, true, binding }, null);
