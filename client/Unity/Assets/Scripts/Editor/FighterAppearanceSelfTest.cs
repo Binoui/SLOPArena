@@ -79,11 +79,11 @@ public static class FighterAppearanceSelfTest
             Require(deck.style.display.value == DisplayStyle.Flex, "Assigning the focused fighter must show its deck.");
             Require(ReferenceEquals(typeof(HUDManager).GetField("_localArt", fields).GetValue(hud), FighterPresentation.Resolve(manki).Art)
                 && ReferenceEquals(typeof(HUDManager).GetField("_charDef", fields).GetValue(hud), manki.Definition), "Deck definition and art must share P1's binding.");
-            foreach (var key in new[] { CharacterClass.None, (CharacterClass)99 })
+            foreach (var key in new[] { "none", "7" })
             {
                 var panelType = typeof(HUDManager).Assembly.GetType("SlopArena.Client.UI.FighterPanel");
                 var panel = (VisualElement)panelType.GetMethod("Build").Invoke(null, new object[] { 2, "Guest", "PLAYER", key, "", false, false, (byte)0 });
-                Require(panel.Q<Label>(className: "fighter-panel__placeholder")?.text == "?", "Invalid lobby selector lost its placeholder.");
+                Require(panel.Q<Label>(className: "fighter-panel__placeholder")?.text == "?", "Unavailable fighter package lost its placeholder.");
             }
             var endType = typeof(HUDManager).Assembly.GetType("SlopArena.Client.UI.SoloEndCardView");
             var ending = Activator.CreateInstance(endType, new object[] { new VisualElement() });
