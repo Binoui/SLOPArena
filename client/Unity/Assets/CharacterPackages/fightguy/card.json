@@ -1,0 +1,9 @@
+{
+  "description": "Loves punching stuff. But also kicking stuff.",
+  "workInProgress": false,
+  "tutorialHint": {
+    "starter": "2",
+    "followUp": "2",
+    "jump": true
+  }
+}

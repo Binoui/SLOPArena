@@ -80,7 +80,7 @@ namespace SlopArena.Client.World
             Place(PlayerEntityId, entry, _playerRenderer, arena.SpawnPoints[0], 0, 0);
             Place(DummyEntityId, _dummyEntry, _dummyRenderer, arena.SpawnPoints[1], 0, 0);
             SetupHUD(_playerDef, new List<HUDManager.HudPlayer>
-                { new(DummyEntityId, "DUMMY", _dummyEntry.Definition.Class, isLocal: false) });
+                { new(DummyEntityId, "DUMMY", ArtFor(DummyEntityId), isLocal: false) });
             SetupCamera(); SetupAimHandler(_playerDef);
             _inputController.RequireReleaseBeforeHumanInput();
             Progress = new TutorialProgress(Layout, _playerDef.CapsuleHeight);

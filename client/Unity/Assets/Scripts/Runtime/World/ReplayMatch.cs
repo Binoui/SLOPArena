@@ -430,7 +430,9 @@ namespace SlopArena.Client.World
 
         private List<HUDManager.HudPlayer> HudPlayers()
             => _replay!.Cast.Select((m, i) => new HUDManager.HudPlayer(m.EntityId, $"P{i + 1}",
-                m.Content.LegacySelector ?? CharacterClass.None, m.EntityId == _focus, ReplayText.Fighter(m), playerNumber: i + 1)).ToList();
+                m.Kind == ReplayCastKind.StandIn
+                    ? FighterPresentation.Unavailable(_replay.Header.ContentMap?.Entries.FirstOrDefault(e => e.Identity.PackageId == m.Recorded.Package.PackageId)?.DisplayName ?? m.Recorded.Package.PackageId)
+                    : ArtFor(m.EntityId), m.EntityId == _focus, ReplayText.Fighter(m), playerNumber: i + 1)).ToList();
 
         private void SetupFocusHud()
         {

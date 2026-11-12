@@ -24,8 +24,7 @@ namespace SlopArena.Client.World
             foreach (var pair in _fighters)
             {
                 if (result.Count == 4) break;
-                var definition = pair.Value != null ? pair.Value.CharacterDef : null;
-                var entry = definition == null ? null : ClientSession.MatchContentCatalog?.Resolve(definition.Class);
+                var entry = FighterFor(pair.Key)?.Content;
                 if (entry != null && pair.Key != 0)
                     result.Add(new FeedbackFighter(pair.Key, entry.Identity.PackageId, entry.Identity.Version, entry.Identity.CookedContentHash));
             }
@@ -105,6 +104,9 @@ namespace SlopArena.Client.World
         private TetherRopePresenter TetherRopes => _tetherRopes ??= gameObject.AddComponent<TetherRopePresenter>();
         private readonly Dictionary<ulong, WeaponAttach> _weapons = new();
         private readonly Dictionary<ulong, PlayerRenderer> _fighters = new();
+        private readonly Dictionary<ulong, FighterAppearance> _fighterContent = new();
+        public FighterAppearance? FighterFor(ulong entityId) => _fighterContent.TryGetValue(entityId, out var fighter) ? fighter : null;
+        protected FighterUiArt ArtFor(ulong entityId) => FighterFor(entityId)?.Art ?? throw new InvalidOperationException("Fighter is not bound: " + entityId);
         private ArenaDefinition _fighterArena;
         private GameObject _fighterIndicator;
         private readonly HashSet<ulong> _activeSwordOwners = new();
@@ -202,6 +204,7 @@ namespace SlopArena.Client.World
                 if (weapon != null) weapon.SetHitboxTrailActive(false);
             _weapons.Clear();
             _fighters.Clear();
+            _fighterContent.Clear();
             if (_cameraCollisionMesh != null)
                 Destroy(_cameraCollisionMesh);
         }
@@ -238,6 +241,9 @@ namespace SlopArena.Client.World
                 return false;
             }
 
+            if (_fighterContent.TryGetValue(entityId, out var previous) && previous.Revision != entry.Identity)
+                throw new InvalidOperationException("An entity cannot change fighter revision during a Match.");
+            var appearance = FighterPresentation.Resolve(entry);
             var def = entry.Definition;
             CharacterAnimationCatalog animationCatalog = null;
             GameObject rig = null;
@@ -273,12 +279,13 @@ namespace SlopArena.Client.World
                 ? cookedWeaponConfig
                 : local && _playerWeaponConfig != null
                     ? _playerWeaponConfig
-                    : Resources.Load<WeaponAttachConfig>($"WeaponConfigs/{def.Class}");
+                    : appearance.LegacyWeapon;
             var weapon = renderer.GetComponent<WeaponAttach>() ?? renderer.gameObject.AddComponent<WeaponAttach>();
             weapon.Init(renderer, weaponConfig);
             Workshop.FighterModelSwap.Track(renderer, entry.Identity.PackageId);
             _weapons[entityId] = weapon;
             _fighters[entityId] = renderer;
+            _fighterContent[entityId] = appearance;
             _fighterArena = arena;
             return true;
         }
@@ -422,10 +429,10 @@ namespace SlopArena.Client.World
             var players = new List<HUDManager.HudPlayer>(
                 MatchConfig.Opponents.Count + 1 + (extraPlayers?.Count ?? 0))
             {
-                OnlineHudPlayer(PlayerEntityId, def.Class, isLocal: true)
+                OnlineHudPlayer(PlayerEntityId, isLocal: true)
             };
             foreach (var opp in MatchConfig.Opponents)
-                players.Add(OnlineHudPlayer(opp.EntityId, opp.Class, isLocal: false));
+                players.Add(OnlineHudPlayer(opp.EntityId, isLocal: false));
             if (extraPlayers != null)
                 players.AddRange(extraPlayers);
             players.Sort((a, b) => a.EntityId.CompareTo(b.EntityId));
@@ -450,7 +457,7 @@ namespace SlopArena.Client.World
         /// Master roster, which names the player and ties their chat identity
         /// to the fighter for speech slips; offline cards keep the fighter name.
         /// </summary>
-        protected static HUDManager.HudPlayer OnlineHudPlayer(ulong entityId, CharacterClass @class, bool isLocal)
+        protected HUDManager.HudPlayer OnlineHudPlayer(ulong entityId, bool isLocal)
         {
             string label = $"P{entityId}";
             if (MatchConfig.Mode == GameMode.PvP && ClientSession.MatchRoster != null)
@@ -462,9 +469,9 @@ namespace SlopArena.Client.World
                     string chatId = member.SteamId > 0
                         ? member.SteamId.ToString(System.Globalization.CultureInfo.InvariantCulture)
                         : null;
-                    return new HUDManager.HudPlayer(entityId, label, @class, isLocal, name, chatId, playerNumber: (int)entityId);
+                    return new HUDManager.HudPlayer(entityId, label, ArtFor(entityId), isLocal, name, chatId, playerNumber: (int)entityId);
                 }
-            return new HUDManager.HudPlayer(entityId, label, @class, isLocal, playerNumber: (int)entityId);
+            return new HUDManager.HudPlayer(entityId, label, ArtFor(entityId), isLocal, playerNumber: (int)entityId);
         }
 
         protected void SetupAimHandler(CharacterDefinition def)
@@ -503,7 +510,11 @@ namespace SlopArena.Client.World
         }
 
         /// <summary>Drop a fighter whose renderer is being destroyed; rebuild the indicators afterwards.</summary>
-        protected void ForgetFighter(ulong entityId) => _fighters.Remove(entityId);
+        protected void ForgetFighter(ulong entityId)
+        {
+            _fighters.Remove(entityId);
+            _fighterContent.Remove(entityId);
+        }
 
 
         /// <summary>

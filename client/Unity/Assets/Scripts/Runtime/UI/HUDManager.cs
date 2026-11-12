@@ -46,7 +46,7 @@ namespace SlopArena.Client.UI
         {
             public readonly ulong EntityId;
             public readonly string Label;
-            public readonly CharacterClass Class;
+            public readonly FighterUiArt Art;
             public readonly bool IsLocal;
             public readonly int PlayerNumber;
             /// <summary>Online player name for the fight card; null offline.</summary>
@@ -54,12 +54,12 @@ namespace SlopArena.Client.UI
             /// <summary>Chat identity of an online player, for speech slips; null offline.</summary>
             public readonly string ChatPlayerId;
 
-            public HudPlayer(ulong entityId, string label, CharacterClass @class, bool isLocal,
+            public HudPlayer(ulong entityId, string label, FighterUiArt art, bool isLocal,
                 string displayName = null, string chatPlayerId = null, int playerNumber = 0)
             {
                 EntityId = entityId;
                 Label = label;
-                Class = @class;
+                Art = art;
                 IsLocal = isLocal;
                 PlayerNumber = playerNumber;
                 DisplayName = displayName;
@@ -71,7 +71,7 @@ namespace SlopArena.Client.UI
         {
             public VisualElement Root = null!;
             public VisualElement Portrait = null!;
-            public CharacterClass Class;
+            public FighterUiArt Art;
             public byte PortraitForm = byte.MaxValue;
             public Label Damage = null!;
             public VisualElement[] StockIcons = Array.Empty<VisualElement>();
@@ -92,20 +92,6 @@ namespace SlopArena.Client.UI
             public float HitFlashTimer;
         }
 
-        private readonly struct SlotArtwork
-        {
-            public readonly Texture2D Texture;
-            public readonly Sprite Sprite;
-            public readonly Color Tint;
-
-            public SlotArtwork(Texture2D texture, Sprite sprite, Color tint)
-            {
-                Texture = texture;
-                Sprite = sprite;
-                Tint = tint;
-            }
-        }
-
         private sealed class ActionSlot
         {
             public readonly VisualElement Root;
@@ -117,8 +103,8 @@ namespace SlopArena.Client.UI
             public readonly Label Ready;
             public readonly Label MoveName;
             public readonly Image Icon;
-            public SlotArtwork Artwork;
-            public SlotArtwork DisplayedIcon;
+            public UiImage Artwork;
+            public UiImage DisplayedIcon;
             public string DisplayName;
             public bool GroundAvailable;
             public bool AirAvailable;
@@ -190,7 +176,6 @@ namespace SlopArena.Client.UI
         private const float JuiceDuration = 0.15f;
         private const float ReadyDuration = 0.42f;
 
-        private static readonly Color MoveInk = new Color32(27, 26, 24, 255);
         private static readonly Color BeelineInk = new Color32(22, 21, 19, 255);
         private static readonly Color BeelineYellow = new Color32(255, 204, 34, 255);
         private static readonly Color BeelineTrack = new Color32(58, 56, 51, 255);
@@ -211,6 +196,7 @@ namespace SlopArena.Client.UI
 
         private Func<ulong, CharacterState> _getState;
         private ulong _localEntityId;
+        private FighterUiArt _localArt;
         private int _maxStocks;
         private CharacterDefinition _charDef;
         private VisualElement _billboardLayer;
@@ -285,7 +271,10 @@ namespace SlopArena.Client.UI
             {
                 var p = players[i];
                 if (p.IsLocal)
+                {
                     _localEntityId = p.EntityId;
+                    _localArt = p.Art;
+                }
                 var billboard = BuildBillboardPanel(p, i);
                 _billboardPanels[p.EntityId] = billboard;
                 _billboardLayer?.Add(billboard.Root);
@@ -471,7 +460,7 @@ namespace SlopArena.Client.UI
             portraitFrame.style.backgroundColor = identityColor;
             var portrait = new VisualElement();
             portrait.AddToClassList("fighter-portrait");
-            var portraitTexture = Resources.Load<Texture2D>($"UI/Portraits/{p.Class}");
+            var portraitTexture = p.Art.Portrait();
             if (portraitTexture != null)
                 portrait.style.backgroundImage = new StyleBackground(portraitTexture);
             else
@@ -496,7 +485,7 @@ namespace SlopArena.Client.UI
             tape.Add(badge);
             details.Add(tape);
 
-            string character = MenuRoster.Name(p.Class).ToUpperInvariant();
+            string character = p.Art.Name().ToUpperInvariant();
             bool named = !string.IsNullOrEmpty(p.DisplayName);
             var fighterName = new Label(named ? p.DisplayName : character) { enableRichText = false };
             fighterName.AddToClassList("fighter-name");
@@ -515,7 +504,7 @@ namespace SlopArena.Client.UI
             damage.AddToClassList("overhead-damage");
             copy.Add(damage);
 
-            var panel = new OverheadPanel { Root = root, Portrait = portrait, Class = p.Class, Damage = damage, IdentityColor = identityColor, PlayerNumber = p.PlayerNumber > 0 ? p.PlayerNumber : colorIndex + 1 };
+            var panel = new OverheadPanel { Root = root, Portrait = portrait, Art = p.Art, Damage = damage, IdentityColor = identityColor, PlayerNumber = p.PlayerNumber > 0 ? p.PlayerNumber : colorIndex + 1 };
             AddStocks(panel, copy);
             root.Add(copy);
 
@@ -632,32 +621,20 @@ namespace SlopArena.Client.UI
                     ? def.ForForm((byte)(def.Form ^ 1)).DisplayName.ToUpperInvariant()
                     : MoveLabel(displayAbility);
                 slot.Artwork = d.SlotIndex + 1 == AbilitySlots.F && def.AlternateForm != null
-                    ? new SlotArtwork(Resources.Load<Texture2D>($"UI/Portraits/{PortraitId(def.Class, (byte)(def.Form ^ 1))}"), null, Color.white)
-                    : LoadSlotIcon(displayAbility, normal);
+                    ? new UiImage(_localArt.Portrait((byte)(def.Form ^ 1)), null, Color.white)
+                    : LoadSlotIcon(displayAbility, normal, (byte)(d.SlotIndex + 1));
                 SetChargePips(slot, normal ? null : displayAbility);
                 SetSlotPresentation(slot, isGrounded);
             }
 
         }
 
-        private static string PortraitId(CharacterClass character, byte form)
-            => character == CharacterClass.Nyx && form == 1 ? "Nyx_Fake" : character.ToString();
-
         private static string MoveLabel(CookedSlotDefinition spec)
             => spec != null && !string.IsNullOrWhiteSpace(spec.Name)
                 ? spec.Name.ToUpperInvariant() : "UNAVAILABLE";
 
-        private SlotArtwork LoadSlotIcon(CookedSlotDefinition spec, bool normal)
-        {
-            if (spec == null || string.IsNullOrEmpty(spec.IconId)) return default;
-            string path = $"Icons/{_charDef.Class}/";
-            string cardPath = $"UI/AbilityCards/{_charDef.Class}/";
-            if (_charDef.AlternateForm != null) cardPath += _charDef.Form == 0 ? "Real/" : "Fake/";
-            var tint = normal ? MoveInk : Color.white;
-            var cardIcons = Resources.LoadAll<Sprite>(cardPath + spec.IconId);
-            if (cardIcons.Length > 0) return new SlotArtwork(null, cardIcons[0], Color.white);
-            return new SlotArtwork(Resources.Load<Texture2D>(path + spec.IconId), null, tint);
-        }
+        private UiImage LoadSlotIcon(CookedSlotDefinition spec, bool normal, byte wireSlot)
+            => _localArt.MoveIcon(_charDef.Form, spec?.IconId, wireSlot, normal);
 
         /// <summary>Empty pips on the card's bottom edge say the move charges before it is ever pressed.</summary>
         private static void SetChargePips(ActionSlot slot, CookedSlotDefinition move)
@@ -719,8 +696,7 @@ namespace SlopArena.Client.UI
             if (panel.PortraitForm != state.Form.Active)
             {
                 panel.PortraitForm = state.Form.Active;
-                string portraitId = PortraitId(panel.Class, state.Form.Active);
-                var texture = Resources.Load<Texture2D>($"UI/Portraits/{portraitId}");
+                var texture = panel.Art.Portrait(state.Form.Active);
                 panel.Portrait.style.backgroundImage = texture != null ? new StyleBackground(texture) : StyleKeyword.None;
                 panel.Portrait.parent.EnableInClassList("portrait-missing", texture == null);
             }
@@ -772,13 +748,13 @@ namespace SlopArena.Client.UI
             }
             if (results.Versus is { } versus)
             {
-                _soloEndCard?.ShowPoster("BEST\nSLOPPER", versus.Winner.ToString().ToUpperInvariant() + " WINS!", "", CharacterClass.None);
+                _soloEndCard?.ShowPoster("BEST\nSLOPPER", versus.Winner.ToString().ToUpperInvariant() + " WINS!", "", null);
                 return;
             }
             if (results.Run is { } run)
             {
                 _soloEndCard?.ShowPoster("RUN\nOVER.", (run.TotalReturns == 1 ? "1 RETURN" : $"{run.TotalReturns} RETURNS")
-                    + $" · BEST COMBO {run.BestCombo}", "", CharacterClass.None);
+                    + $" · BEST COMBO {run.BestCombo}", "", null);
                 return;
             }
 
@@ -788,34 +764,33 @@ namespace SlopArena.Client.UI
             if (results.Course is { } course && (course.Cooperative || !course.Completed))
             {
                 _soloEndCard?.ShowPoster(course.Completed ? "COURSE\nCLEARED." : "RUN\nOVER.",
-                    course.Completed ? "TEAM COMPLETE" : "RUN ENDED", "", CharacterClass.None);
+                    course.Completed ? "TEAM COMPLETE" : "RUN ENDED", "", null);
                 return;
             }
             if (winners.Count == 0)
             {
-                _soloEndCard?.ShowPoster("BEST\nSLOPPER", "FIGHT OVER", "", CharacterClass.None);
+                _soloEndCard?.ShowPoster("BEST\nSLOPPER", "FIGHT OVER", "", null);
                 return;
             }
 
             var first = winners[0];
-            CharacterClass Fighter(ClientSession.ResultEntry entry)
-                => Enum.TryParse(entry.ClassName, true, out CharacterClass parsed) ? parsed : CharacterClass.None;
+            FighterUiArt Fighter(ClientSession.ResultEntry entry) => entry.Fighter?.Art;
             string Name(ClientSession.ResultEntry entry)
                 => (string.IsNullOrEmpty(entry.Name) ? $"P{entry.EntityId}" : entry.Name).ToUpperInvariant();
             bool shared = results.SharedVictory && winners.Count > 1;
             string headline = results.Course != null ? "COURSE\nCLEARED." : shared ? "DOUBLE\nK.O.!" : "BEST\nSLOPPER";
             string outcome = shared ? "SHARED VICTORY" : first.EntityId == _localEntityId ? "YOU WIN!" : $"{Name(first)} WINS!";
-            string name = shared ? $"{MenuRoster.Name(Fighter(first)).ToUpperInvariant()}\n{MenuRoster.Name(Fighter(winners[1])).ToUpperInvariant()}"
-                : MenuRoster.Name(Fighter(first)).ToUpperInvariant();
+            string name = shared ? $"{(Fighter(first)?.Name() ?? "").ToUpperInvariant()}\n{(Fighter(winners[1])?.Name() ?? "").ToUpperInvariant()}"
+                : (Fighter(first)?.Name() ?? "").ToUpperInvariant();
             _soloEndCard?.ShowPoster(headline, outcome, name, Fighter(first),
-                shared ? Fighter(winners[1]) : CharacterClass.None, shared);
+                shared ? Fighter(winners[1]) : null, shared);
         }
 
         /// <summary>A headline on the gold start card, without the countdown beat (Character Course ALL CLEAR!).</summary>
         public void ShowSoloStamp(string text, float seconds)
             => _soloCountdown?.Show(text, seconds, wide: true, sound: false);
 
-        public void ShowSoloEnding(string winningSeat, CharacterClass winner, bool sharedVictory)
+        public void ShowSoloEnding(string winningSeat, FighterUiArt winner, bool sharedVictory)
         {
             _soloCountdown?.Clear();
             _soloEndCard?.Show(winningSeat, winner, sharedVictory);

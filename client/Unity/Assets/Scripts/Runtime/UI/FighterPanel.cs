@@ -23,16 +23,16 @@ namespace SlopArena.Client.UI
             panel.Add(heading);
             if (fighter.HasValue)
             {
-                panel.AddToClassList($"fighter-panel--{fighter.Value}");
+                var ui = MenuRoster.Art(fighter.Value);
+                panel.AddToClassList($"fighter-panel--{ui.StyleAlias}");
                 var art = new VisualElement { pickingMode = PickingMode.Ignore };
                 art.AddToClassList("fighter-panel__art");
-                var portrait = Resources.Load<Texture2D>(MenuRoster.PortraitPath(fighter.Value, form))
-                    ?? Resources.Load<Texture2D>(MenuRoster.PortraitPath(fighter.Value, 0));
+                var portrait = ui.Portrait(form);
                 if (portrait != null) art.style.backgroundImage = new StyleBackground(portrait);
                 // Splash images are stylesheet dependencies, so they ship without Resources copies.
-                if (fighter.Value is CharacterClass.Manki or CharacterClass.FightGuy or CharacterClass.Wibou or CharacterClass.Bonk)
+                if (ui.HasSplash)
                     art.style.backgroundImage = StyleKeyword.Null;
-                if (portrait == null && fighter.Value is not (CharacterClass.Manki or CharacterClass.FightGuy or CharacterClass.Wibou or CharacterClass.Bonk))
+                if (portrait == null && !ui.HasSplash)
                     art.Add(Text("?", "fighter-panel__placeholder"));
                 panel.Add(art);
                 panel.Add(Text(MenuRoster.Name(fighter.Value, form).ToUpperInvariant(), "fighter-panel__fighter"));

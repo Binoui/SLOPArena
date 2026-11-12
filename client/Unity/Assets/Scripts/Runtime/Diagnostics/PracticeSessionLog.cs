@@ -71,7 +71,7 @@ namespace SlopArena.Client.Diagnostics
         {
             EntityId = entityId,
             Role = role,
-            Character = entry.Definition.Class.ToString(),
+            Character = entry.DisplayName,
             PackageId = entry.Identity.PackageId,
             PackageVersion = entry.Identity.Version,
             CookedContentHash = entry.Identity.CookedContentHash,

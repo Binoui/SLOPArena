@@ -1,0 +1,9 @@
+{
+  "description": "Sir Bonk do bonky bonks.",
+  "workInProgress": false,
+  "tutorialHint": {
+    "starter": "2",
+    "followUp": "1",
+    "jump": true
+  }
+}

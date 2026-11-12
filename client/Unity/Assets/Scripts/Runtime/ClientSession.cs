@@ -91,7 +91,7 @@ namespace SlopArena.Client
                 int kos,
                 int falls,
                 string name = "",
-                string className = "",
+                FighterAppearance? fighter = null,
                 int stocksRemaining = 0,
                 int damagePercent = 0)
             {
@@ -100,17 +100,17 @@ namespace SlopArena.Client
                 KOs = kos;
                 Falls = falls;
                 Name = name ?? "";
-                ClassName = className ?? "";
                 StocksRemaining = stocksRemaining;
                 DamagePercent = damagePercent;
+                Fighter = fighter;
             }
 
+            public FighterAppearance? Fighter { get; }
             public ulong EntityId { get; }
             public int Placement { get; }
             public int KOs { get; }
             public int Falls { get; }
             public string Name { get; }
-            public string ClassName { get; }
             public int StocksRemaining { get; }
             public int DamagePercent { get; }
             public bool IsWinner => Placement == 1;
@@ -165,7 +165,7 @@ namespace SlopArena.Client
                     entry.EntityId,
                     entry.Placement,
                     entry.KOs,
-                    entry.Falls);
+                    entry.Falls, fighter: World.MatchBase.Active?.FighterFor(entry.EntityId));
             }
 
             CurrentMatchResults = new MatchResultsData(

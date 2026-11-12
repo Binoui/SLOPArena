@@ -309,7 +309,7 @@ namespace SlopArena.EditorTools
             _hudDocument.panelSettings = _hudPanel;
             _hudDocument.enabled = true;
             var players = Fighters
-                .Select(f => new HUDManager.HudPlayer(f.Id, $"P{f.Id}", _entries[f.Id].Definition.Class, f.Id == HudLocal))
+                .Select(f => new HUDManager.HudPlayer(f.Id, $"P{f.Id}", ArtFor(f.Id), f.Id == HudLocal))
                 .OrderBy(p => p.EntityId).ToList();
             if (HudGamepad)
             {

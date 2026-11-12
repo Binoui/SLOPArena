@@ -520,7 +520,7 @@ namespace SlopArena.Client.World
                 var renderers = _npcs.ToDictionary(n => n.Id, n => n.Renderer);
                 renderers.Add(PlayerEntityId, _playerRenderer);
                 var players = HudExtraPlayers().ToList();
-                players.Insert(0, new HUDManager.HudPlayer(PlayerEntityId, "P1", playerClass, true, playerNumber: 1));
+                players.Insert(0, new HUDManager.HudPlayer(PlayerEntityId, "P1", ArtFor(PlayerEntityId), true, playerNumber: 1));
                 _mayhem = new MankiMayhemPresentation(transform, _bridge.InternalSim, arena.Arcade.Mayhem,
                     contentCatalog.Resolve(CharacterClass.Manki), renderers, players, _hudManager, _projectileVFX,
                     _cameraMount, () => _cameraMount.RenderCamera);
@@ -549,7 +549,7 @@ namespace SlopArena.Client.World
                 _mainCamera ??= _cameraMount?.RenderCamera ?? UnityEngine.Camera.main);
             _sessionLog = PracticeSessionLog.TryStart(header, _playerDef);
             foreach (var npc in _npcs)
-                _sessionLog?.LogEvent(0, "seat", $"P{npc.PlayerNumber}:{npc.Id}:{npc.Def.Class}:{(npc.Input != null ? "local" : npc.Memory.Difficulty.ToString())}");
+                _sessionLog?.LogEvent(0, "seat", $"P{npc.PlayerNumber}:{npc.Id}:{npc.Entry.Identity.PackageId}:{(npc.Input != null ? "local" : npc.Memory.Difficulty.ToString())}");
         }
 
         private void CreateStageHazardPresentation()
@@ -667,7 +667,7 @@ namespace SlopArena.Client.World
             var list = new List<HUDManager.HudPlayer>(_npcs.Count);
             for (int i = 0; i < _npcs.Count; i++)
                 list.Add(new HUDManager.HudPlayer(_npcs[i].Id, $"P{_npcs[i].PlayerNumber}",
-                    _npcs[i].Def.Class, isLocal: false, playerNumber: _npcs[i].PlayerNumber));
+                    ArtFor(_npcs[i].Id), isLocal: false, playerNumber: _npcs[i].PlayerNumber));
             return list;
         }
 
@@ -925,25 +925,25 @@ namespace SlopArena.Client.World
             {
                 var npc = _npcs.FirstOrDefault(slot => slot.Id == pair.Key);
                 int playerNumber = npc?.PlayerNumber ?? 1;
-                var fighter = npc?.Def.Class ?? _playerEntry.Definition.Class;
+                var fighter = FighterFor(pair.Key);
                 var state = pair.Value;
                 int placement = 1;
                 if (_eliminatedAt.TryGetValue(pair.Key, out uint eliminated))
                     placement += _bridge.GetAllStates().Keys.Count(id => id != pair.Key &&
                         (!_eliminatedAt.TryGetValue(id, out uint other) || other > eliminated));
                 entries.Add(new ClientSession.ResultEntry(pair.Key, placement, kos: 0, falls: state.Deaths,
-                    name: $"P{playerNumber}", className: fighter.ToString(),
+                    name: $"P{playerNumber}", fighter: fighter,
                     stocksRemaining: Math.Max(0, MatchConfig.MaxStocks - state.Deaths), damagePercent: state.DamagePercent));
             }
             entries.Sort((a, b) => a.Placement != b.Placement ? a.Placement.CompareTo(b.Placement) : a.EntityId.CompareTo(b.EntityId));
             var results = new ClientSession.MatchResultsData(outcome.IsSharedVictory, MatchConfig.ArenaName, 0, entries);
             ClientSession.SetLocalMatchResults(results);
             var winner = entries[0];
-            Enum.TryParse(winner.ClassName, out CharacterClass winnerClass);
-            _hudManager?.ShowSoloEnding(winner.Name, winnerClass, results.SharedVictory);
+            var winnerArt = winner.Fighter?.Art;
+            _hudManager?.ShowSoloEnding(winner.Name, winnerArt, results.SharedVictory);
             foreach (var entry in entries)
             {
-                string result = $"{entry.Name} {entry.ClassName} place={entry.Placement} falls={entry.Falls}";
+                string result = $"{entry.Name} {entry.Fighter?.Content.Identity.PackageId} place={entry.Placement} falls={entry.Falls}";
                 Debug.Log($"[Solo] result {result}");
                 _sessionLog?.LogEvent((int)_tick, "result", result);
             }

@@ -56,7 +56,7 @@ namespace SlopArena.Client.Replays
 
         /// <summary>The recorded player name, or the fighter name with a short Steam ID.</summary>
         public static string Fighter(ReplayCastMember member)
-            => ReplayLabels.ReplayParticipantLabel(member.Recorded, member.Content.DisplayName);
+            => ReplayLabels.ReplayParticipantLabel(member.Recorded, member.Kind == ReplayCastKind.StandIn ? member.Recorded.Package.PackageId : member.Content.DisplayName);
 
         public static string Conclusion(ReplayConclusion? conclusion, ReplayPrefixReason prefix)
         {

@@ -37,7 +37,7 @@ namespace SlopArena.Client.UI
                 : a.Ratings != b.Ratings ? b.Ratings.CompareTo(a.Ratings) : a.EntityId.CompareTo(b.EntityId));
             int winners = ordered.FindAll(p => p.Ratings == ordered[0].Ratings && !p.Withdrawn).Count;
             ShowPoster("SHOW'S\nOVER!", winners == 0 ? "MATCH ENDED" : winners > 1 ? "SHARED WIN!" : $"{name(ordered[0].EntityId)} WINS!",
-                "MANKI MAYHEM", CharacterClass.None);
+                "MANKI MAYHEM", null);
             _duration = float.PositiveInfinity;
             _standings = new VisualElement { name = "mayhem-standings", pickingMode = PickingMode.Ignore };
             _standings.style.position = Position.Absolute;
@@ -76,11 +76,11 @@ namespace SlopArena.Client.UI
             Clear();
         }
 
-        public void Show(string winningSeat, CharacterClass winner, bool sharedVictory)
+        public void Show(string winningSeat, FighterUiArt winner, bool sharedVictory)
         {
             ShowPoster(sharedVictory ? "DOUBLE\nK.O.!" : "BEST\nSLOPPER",
                 sharedVictory ? "SHARED VICTORY" : $"{winningSeat.ToUpperInvariant()} WINS!",
-                MenuRoster.Name(winner).ToUpperInvariant(), winner, shared: sharedVictory);
+                winner.Name().ToUpperInvariant(), winner, shared: sharedVictory);
         }
 
         /// <summary>
@@ -88,20 +88,20 @@ namespace SlopArena.Client.UI
         /// with a taped portrait slip of <paramref name="portrait"/> (and <paramref name="other"/> for a shared win).
         /// Without a portrait the poster is the declaration alone (team results such as Slopball).
         /// </summary>
-        public void ShowPoster(string headline, string outcome, string name, CharacterClass portrait,
-            CharacterClass other = CharacterClass.None, bool shared = false)
+        public void ShowPoster(string headline, string outcome, string name, FighterUiArt portrait,
+            FighterUiArt other = null, bool shared = false)
         {
             if (_root == null) return;
             _standings?.RemoveFromHierarchy();
             _duration = Duration;
-            bool slip = portrait != CharacterClass.None;
-            _root.EnableInClassList("solo-end--shared", shared && other != CharacterClass.None);
+            bool slip = portrait != null;
+            _root.EnableInClassList("solo-end--shared", shared && other != null);
             _root.EnableInClassList("solo-end--team", !slip);
             _title.text = _print.text = headline;
             _outcome.text = outcome;
             _name.text = name;
-            _portrait.image = slip ? Resources.Load<Texture2D>($"UI/Portraits/{portrait}") : null;
-            _otherPortrait.image = other != CharacterClass.None ? Resources.Load<Texture2D>($"UI/Portraits/{other}") : null;
+            _portrait.image = slip ? portrait.Portrait() : null;
+            _otherPortrait.image = other != null ? other.Portrait() : null;
             _portrait.scaleMode = _otherPortrait.scaleMode = ScaleMode.ScaleToFit;
             _age = 0f;
             _root.style.display = DisplayStyle.Flex;

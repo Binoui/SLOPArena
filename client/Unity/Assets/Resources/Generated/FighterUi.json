@@ -1,0 +1,343 @@
+{
+  "fighters": [
+    {
+      "packageId": "manki",
+      "alias": "Manki",
+      "names": [
+        "Manki"
+      ],
+      "portraits": [
+        "UI/Portraits/Manki"
+      ],
+      "icons": [
+        {
+          "icon.1": {
+            "card": "UI/AbilityCards/Manki/icon.1"
+          },
+          "icon.2": {
+            "card": "UI/AbilityCards/Manki/icon.2"
+          },
+          "icon.3": {
+            "card": "UI/AbilityCards/Manki/icon.3"
+          },
+          "icon.a": {
+            "card": "UI/AbilityCards/Manki/icon.a"
+          },
+          "icon.e": {
+            "card": "UI/AbilityCards/Manki/icon.e"
+          },
+          "icon.f": {
+            "card": "UI/AbilityCards/Manki/icon.f"
+          },
+          "icon.r": {
+            "card": "UI/AbilityCards/Manki/icon.r"
+          }
+        }
+      ],
+      "legacyWeapon": "WeaponConfigs/Manki",
+      "hasSplash": true,
+      "card": {
+        "description": "There's nothing a few explosives can't fix.",
+        "workInProgress": false,
+        "tutorialHint": {
+          "starter": "1",
+          "followUp": "R",
+          "jump": false
+        }
+      }
+    },
+    {
+      "packageId": "fightguy",
+      "alias": "FightGuy",
+      "names": [
+        "FightGuy"
+      ],
+      "portraits": [
+        "UI/Portraits/FightGuy"
+      ],
+      "icons": [
+        {
+          "icon.1": {
+            "card": "UI/AbilityCards/FightGuy/icon.1"
+          },
+          "icon.2": {
+            "card": "UI/AbilityCards/FightGuy/icon.2"
+          },
+          "icon.3": {
+            "card": "UI/AbilityCards/FightGuy/icon.3"
+          },
+          "icon.a": {
+            "card": "UI/AbilityCards/FightGuy/icon.a"
+          },
+          "icon.e": {
+            "card": "UI/AbilityCards/FightGuy/icon.e"
+          },
+          "icon.f": {
+            "card": "UI/AbilityCards/FightGuy/icon.f"
+          },
+          "icon.r": {
+            "card": "UI/AbilityCards/FightGuy/icon.r"
+          }
+        }
+      ],
+      "legacyWeapon": "",
+      "hasSplash": true,
+      "card": {
+        "description": "Loves punching stuff. But also kicking stuff.",
+        "workInProgress": false,
+        "tutorialHint": {
+          "starter": "2",
+          "followUp": "2",
+          "jump": true
+        }
+      }
+    },
+    {
+      "packageId": "wibou",
+      "alias": "Wibou",
+      "names": [
+        "Wibou"
+      ],
+      "portraits": [
+        "UI/Portraits/Wibou"
+      ],
+      "icons": [
+        {
+          "icon.1": {
+            "card": "UI/AbilityCards/Wibou/icon.1"
+          },
+          "icon.2": {
+            "card": "UI/AbilityCards/Wibou/icon.2"
+          },
+          "icon.3": {
+            "card": "UI/AbilityCards/Wibou/icon.3"
+          },
+          "icon.a": {
+            "card": "UI/AbilityCards/Wibou/icon.a"
+          },
+          "icon.e": {
+            "card": "UI/AbilityCards/Wibou/icon.e"
+          },
+          "icon.f": {
+            "card": "UI/AbilityCards/Wibou/icon.f"
+          },
+          "icon.r": {
+            "card": "UI/AbilityCards/Wibou/icon.r"
+          }
+        }
+      ],
+      "legacyWeapon": "",
+      "hasSplash": true,
+      "card": {
+        "description": "He studied the blade. A lot.",
+        "workInProgress": false,
+        "tutorialHint": {
+          "starter": "2",
+          "followUp": "2",
+          "jump": false
+        }
+      }
+    },
+    {
+      "packageId": "bonk",
+      "alias": "Bonk",
+      "names": [
+        "Sir Bonk"
+      ],
+      "portraits": [
+        "UI/Portraits/Bonk"
+      ],
+      "icons": [
+        {
+          "icon.1": {
+            "card": "UI/AbilityCards/Bonk/icon.1"
+          },
+          "icon.2": {
+            "card": "UI/AbilityCards/Bonk/icon.2"
+          },
+          "icon.3": {
+            "card": "UI/AbilityCards/Bonk/icon.3"
+          },
+          "icon.a": {
+            "card": "UI/AbilityCards/Bonk/icon.a"
+          },
+          "icon.e": {
+            "card": "UI/AbilityCards/Bonk/icon.e"
+          },
+          "icon.f": {
+            "card": "UI/AbilityCards/Bonk/icon.f"
+          },
+          "icon.r": {
+            "card": "UI/AbilityCards/Bonk/icon.r"
+          }
+        }
+      ],
+      "legacyWeapon": "",
+      "hasSplash": true,
+      "card": {
+        "description": "Sir Bonk do bonky bonks.",
+        "workInProgress": false,
+        "tutorialHint": {
+          "starter": "2",
+          "followUp": "1",
+          "jump": true
+        }
+      }
+    },
+    {
+      "packageId": "bashie",
+      "alias": "Bashie",
+      "names": [
+        "Bashie"
+      ],
+      "portraits": [
+        "UI/Portraits/Bashie"
+      ],
+      "icons": [
+        {
+          "icon.1": {
+            "card": "UI/AbilityCards/Bashie/icon.1"
+          },
+          "icon.2": {
+            "card": "UI/AbilityCards/Bashie/icon.2"
+          },
+          "icon.3": {
+            "card": "UI/AbilityCards/Bashie/icon.3"
+          },
+          "icon.a": {
+            "card": "UI/AbilityCards/Bashie/icon.a"
+          },
+          "icon.e": {
+            "card": "UI/AbilityCards/Bashie/icon.e"
+          },
+          "icon.f": {
+            "card": "UI/AbilityCards/Bashie/icon.f"
+          },
+          "icon.r": {
+            "card": "UI/AbilityCards/Bashie/icon.r"
+          }
+        }
+      ],
+      "legacyWeapon": "",
+      "hasSplash": false,
+      "card": {
+        "description": "NO RUNNING! (She speed-walks.)",
+        "workInProgress": true,
+        "tutorialHint": {
+          "starter": "1",
+          "followUp": "R",
+          "jump": false
+        }
+      }
+    },
+    {
+      "packageId": "salamander",
+      "alias": "Salamander",
+      "names": [
+        "Salamander"
+      ],
+      "portraits": [
+        ""
+      ],
+      "icons": [
+        {
+          "icon.1": {
+            "card": "UI/AbilityCards/Salamander/icon.1"
+          },
+          "icon.2": {
+            "card": "UI/AbilityCards/Salamander/icon.2"
+          },
+          "icon.3": {
+            "card": "UI/AbilityCards/Salamander/icon.3"
+          },
+          "icon.a": {
+            "card": "UI/AbilityCards/Salamander/icon.a"
+          },
+          "icon.e": {
+            "card": "UI/AbilityCards/Salamander/icon.e"
+          },
+          "icon.f": {
+            "card": "UI/AbilityCards/Salamander/icon.f"
+          },
+          "icon.r": {
+            "card": "UI/AbilityCards/Salamander/icon.r"
+          }
+        }
+      ],
+      "legacyWeapon": "",
+      "hasSplash": false,
+      "card": {
+        "description": "The fastest fingers in the West.",
+        "workInProgress": true,
+        "tutorialHint": null
+      }
+    },
+    {
+      "packageId": "nyx",
+      "alias": "Nyx",
+      "names": [
+        "Nyx",
+        "Nyxxie"
+      ],
+      "portraits": [
+        "UI/Portraits/Nyx",
+        "UI/Portraits/Nyx_Fake"
+      ],
+      "icons": [
+        {
+          "icon.1": {
+            "card": "UI/AbilityCards/Nyx/Real/icon.1"
+          },
+          "icon.2": {
+            "card": "UI/AbilityCards/Nyx/Real/icon.2"
+          },
+          "icon.3": {
+            "card": "UI/AbilityCards/Nyx/Real/icon.3"
+          },
+          "icon.a": {
+            "card": "UI/AbilityCards/Nyx/Real/icon.a"
+          },
+          "icon.e": {
+            "card": "UI/AbilityCards/Nyx/Real/icon.e"
+          },
+          "icon.f": {
+            "card": "UI/AbilityCards/Nyx/Real/icon.f"
+          },
+          "icon.r": {
+            "card": "UI/AbilityCards/Nyx/Real/icon.r"
+          }
+        },
+        {
+          "icon.1": {
+            "card": "UI/AbilityCards/Nyx/Fake/icon.1"
+          },
+          "icon.2": {
+            "card": "UI/AbilityCards/Nyx/Fake/icon.2"
+          },
+          "icon.3": {
+            "card": "UI/AbilityCards/Nyx/Fake/icon.3"
+          },
+          "icon.a": {
+            "card": "UI/AbilityCards/Nyx/Fake/icon.a"
+          },
+          "icon.e": {
+            "card": "UI/AbilityCards/Nyx/Fake/icon.e"
+          },
+          "icon.f": {
+            "card": "UI/AbilityCards/Nyx/Fake/icon.f"
+          },
+          "icon.r": {
+            "card": "UI/AbilityCards/Nyx/Fake/icon.r"
+          }
+        }
+      ],
+      "legacyWeapon": "",
+      "hasSplash": false,
+      "card": {
+        "description": "A witch with another side.",
+        "workInProgress": false,
+        "tutorialHint": null
+      }
+    }
+  ]
+}

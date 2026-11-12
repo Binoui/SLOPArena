@@ -97,7 +97,7 @@ namespace SlopArena.Client.UI
 
                     var portrait = new VisualElement { name = "char-portrait" };
                     portrait.AddToClassList("char-portrait");
-                    var texture = Resources.Load<Texture2D>($"UI/Portraits/{cls}");
+                    var texture = MenuRoster.Art(cls).Portrait();
                     if (texture != null)
                         portrait.style.backgroundImage = new StyleBackground(texture);
                     else
@@ -426,8 +426,7 @@ namespace SlopArena.Client.UI
                 if (toggle == null || !Enum.TryParse(btn.name.Substring(5), out CharacterClass cls)) continue;
                 toggle.text = $"SWAP TO {MenuRoster.Name(cls, (byte)(form ^ 1)).ToUpperInvariant()}";
                 var portrait = btn.Q<VisualElement>("char-portrait");
-                var texture = Resources.Load<Texture2D>(MenuRoster.PortraitPath(cls, form))
-                    ?? Resources.Load<Texture2D>(MenuRoster.PortraitPath(cls, 0));
+                var texture = MenuRoster.Art(cls).Portrait(form);
                 if (portrait != null && texture != null) portrait.style.backgroundImage = new StyleBackground(texture);
             }
         }

@@ -79,7 +79,7 @@ namespace SlopArena.Client.World
             HumanInputActions.RestrictToDevices(devices.ToArray());
             SpawnStageVisual(arena);
             RegisterScrambleRacers();
-            SetupHUD(_playerDef, _racers.Skip(1).Select(r => new HUDManager.HudPlayer(r.Id, $"P{r.Id}", r.Entry.Definition.Class, true, playerNumber: (int)r.Id)).ToArray());
+            SetupHUD(_playerDef, _racers.Skip(1).Select(r => new HUDManager.HudPlayer(r.Id, $"P{r.Id}", ArtFor(r.Id), true, playerNumber: (int)r.Id)).ToArray());
             SetupCamera();
             foreach (var racer in _racers)
             {

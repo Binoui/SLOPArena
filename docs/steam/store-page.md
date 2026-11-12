@@ -27,7 +27,7 @@ Brawl, `04-online.mp4` under Online), so Steam writes the video tag itself.
 
 Facts to keep current: five playable fighters (Bashie and Dusty are WIP), the seven stages
 in `client/Unity/Assets/Resources/Stages/roster.json` `picker`, and the fighter one-liners
-in `MenuRoster.Description`. Write the name SLOPArena.
+in each package source's `card.json`. Write the name SLOPArena.
 
 ## Short description
 

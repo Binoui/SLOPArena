@@ -80,16 +80,22 @@ namespace SlopArena.Client.UI
             ["mayhem.pair.break-out-dodge"] = ("Escape + dodge", ""),
             ["mayhem.pair.spot-jump"] = ("Hold spots + jump", ""),
         };
-        private static readonly IReadOnlyDictionary<string, CharacterClass> Guests = new Dictionary<string, CharacterClass>
+        private static readonly IReadOnlyDictionary<string, string> Guests = new Dictionary<string, string>
         {
-            ["mayhem.channel.no-running"] = CharacterClass.Bashie,
-            ["mayhem.channel.break-boards"] = CharacterClass.FightGuy,
-            ["mayhem.channel.bonk"] = CharacterClass.Bonk,
-            ["mayhem.channel.smile"] = CharacterClass.Nyx,
-            ["mayhem.channel.glitch"] = CharacterClass.Wibou,
+            ["mayhem.channel.no-running"] = "bashie",
+            ["mayhem.channel.break-boards"] = "fightguy",
+            ["mayhem.channel.bonk"] = "bonk",
+            ["mayhem.channel.smile"] = "nyx",
+            ["mayhem.channel.glitch"] = "wibou",
         };
-        public static CharacterClass GuestFor(ChannelEntry channel)
-            => channel != null && Guests.TryGetValue(channel.CopyKey, out var guest) ? guest : CharacterClass.None;
+        public static string GuestFor(ChannelEntry channel)
+            => channel != null && Guests.TryGetValue(channel.CopyKey, out var guest) ? guest : null;
+        private readonly Dictionary<string, FighterUiArt> _guestArt = new();
+        public Texture2D GuestPortrait(ChannelEntry channel)
+        {
+            string id = GuestFor(channel);
+            return id != null && _guestArt.TryGetValue(id, out var art) ? art.Portrait() : null;
+        }
         public static void ValidateCopy()
         {
             var keys = MayhemChannels.All.SelectMany(c => new[] { c.CopyKey }.Concat(c.Twists.Select(t => t.CopyKey)))
@@ -152,6 +158,13 @@ namespace SlopArena.Client.UI
         }
         public MankiMayhemView(VisualElement hud, IReadOnlyList<HUDManager.HudPlayer> players, FriendlyFireMode friendlyFire = FriendlyFireMode.Shoves)
         {
+            var catalog = ClientSession.MatchContentCatalog;
+            foreach (string id in Guests.Values)
+            {
+                var entry = catalog?.ResolvePackage(id);
+                if (entry != null) _guestArt[id] = FighterPresentation.Resolve(entry).Art;
+            }
+
             ValidateCopy();
             _players = players; _friendlyFire = friendlyFire;
             _root = new VisualElement { name = "mayhem-hud", pickingMode = PickingMode.Ignore };
@@ -167,7 +180,7 @@ namespace SlopArena.Client.UI
             {
                 var row = new VisualElement(); row.AddToClassList("mayhem-row");
                 row.style.borderLeftColor = SeatColours.For(player.PlayerNumber);
-                var portrait = new Image { image = Resources.Load<Texture2D>($"UI/Portraits/{player.Class}"), scaleMode = ScaleMode.ScaleToFit };
+                var portrait = new Image { image = player.Art.Portrait(), scaleMode = ScaleMode.ScaleToFit };
                 portrait.AddToClassList("mayhem-portrait"); row.Add(portrait);
                 var label = Text("", "mayhem-player"); row.Add(label); _rows.Add(player.EntityId, label); _scores.Add(row);
                 var stamp=Text("","mayhem-stamp"); stamp.style.display=DisplayStyle.None; _root.Add(stamp); _stamps.Add(player.EntityId,stamp);
@@ -209,8 +222,8 @@ namespace SlopArena.Client.UI
             _subtitle.style.opacity = watch && WatchText(view)=="TURNING! STOP!" && !ClientSettingsService.Instance.ReducedFlashing ? .65f+.35f*Mathf.Sin(view.Tick*1.2f) : 1f;
             _subtitle.style.color = watch ? (WatchText(view) == "NOT LOOKING" ? new Color(0,.4f,.12f) : new Color(.7f,0,0)) : new Color(.12f,.06f,.07f);
             var guest = GuestFor(view.Channel);
-            _guest.image = guest == CharacterClass.None ? null : Resources.Load<Texture2D>($"UI/Portraits/{guest}");
-            _guest.style.display = guest == CharacterClass.None ? DisplayStyle.None : DisplayStyle.Flex;
+            _guest.image = GuestPortrait(view.Channel);
+            _guest.style.display = guest == null ? DisplayStyle.None : DisplayStyle.Flex;
             _banner.parent.style.display = c.Phase == MayhemPhase.Ended ? DisplayStyle.None : DisplayStyle.Flex;
             _fuse.style.width = Length.Percent(c.Phase == MayhemPhase.Play ? 100f * (c.Deadline - Math.Min(view.Tick,c.Deadline)) / Math.Max(1u,c.Deadline-c.PlayStart) : 100);
             bool gamepad = SlopArena.Client.Input.HumanInputActions.LastUsedGamepad;
@@ -256,7 +269,7 @@ namespace SlopArena.Client.UI
                     stamp.style.height = stampHeight;
                     stamp.style.left = rect.x; stamp.style.top = rect.y;
                 }
-                _rows[player.EntityId].text = $"{identity.Label} · {MenuRoster.Name(identity.Class).ToUpperInvariant()}   {player.Ratings} ★\n{status}";
+                _rows[player.EntityId].text = $"{identity.Label} · {identity.Art.Name().ToUpperInvariant()}   {player.Ratings} ★\n{status}";
                 _rows[player.EntityId].style.color = player.Failure != null ? new Color(1,.4f,.25f) : Color.white;
             }
         }

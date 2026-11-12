@@ -424,3 +424,28 @@ a source-only probe or freeze incidental tuning values in engine tests.
 Do not add `Build<Name>`, registry factories, legacy adapter branches, raw runtime JSON
 loaders, manual animation configs, standalone skeleton ownership, or a second persisted
 move mapping. Nilus compatibility and character/slot factory dispatch have been removed.
+
+## Fighter presentation
+
+Each shipped fighter has `card.json` beside `package.json` and `character.json`.
+The card contains only `description`, `workInProgress`, and `tutorialHint`.
+The nullable Tutorial hint contains `starter` and `followUp` canonical button labels and a `jump` flag.
+These values describe a suggested combo. They do not configure abilities or simulation.
+Names and form names come from the cooked character definition.
+
+Run `python3 tools/fighter-presentation/generate.py` after changing a card or shipped UI art.
+Run the same command with `--check` to verify the generated output.
+The generator reads the shipped roster in order and binds its legacy filenames to package IDs.
+It writes `Assets/Resources/Generated/FighterUi.json` without moving existing art.
+The generator is the source-card reader. The client reads the resulting immutable presentation snapshot.
+Shared admission and simulation do not read cards.
+
+`card.json` and the generated UI bindings are outside character cook inputs.
+Release verification still checks all seven cooks because Unity dependencies can be transitive.
+The existing missing-art treatment of built-ins is retained, including Salamander's missing portrait.
+Selector-free content uses the neutral portrait and slot glyphs.
+
+`MatchBase` retains each entity's exact catalog entry and resolved appearance when configuring its renderer.
+HUD, feedback, end cards, and result snapshots consume that binding.
+Result snapshots retain the appearance after the Match scene unloads.
+`MenuRoster` remains a thin grid adapter until the seat and Fighter Select migration in ADR-0067 unit 3.

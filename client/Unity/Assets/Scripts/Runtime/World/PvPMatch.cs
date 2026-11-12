@@ -355,8 +355,8 @@ namespace SlopArena.Client.World
             if (MatchConfig.Format == MatchFormat.MankiMayhem && _hudManager != null)
             {
                 var renderers = new Dictionary<ulong, PlayerRenderer>(_opponentRenderers) { [PlayerEntityId] = _playerRenderer };
-                var players = MatchConfig.Opponents.Select(p => OnlineHudPlayer(p.EntityId, p.Class, false)).ToList();
-                players.Add(OnlineHudPlayer(PlayerEntityId, playerDef.Class, true));
+                var players = MatchConfig.Opponents.Select(p => OnlineHudPlayer(p.EntityId, false)).ToList();
+                players.Add(OnlineHudPlayer(PlayerEntityId, true));
                 players.Sort((a, b) => a.EntityId.CompareTo(b.EntityId));
                 _mayhem = new MankiMayhemPresentation(transform, _bridge.Simulation, arena.Arcade.Mayhem,
                     contentCatalog.Resolve(CharacterClass.Manki), renderers, players, _hudManager, _projectileVFX,
