@@ -78,7 +78,7 @@ namespace SlopArena.Client
         {
             if (generic) return new UiImage(NeutralGlyph(slot), null, Color.white);
             if (string.IsNullOrEmpty(iconId)) return default;
-            var tint = normal ? new Color32(27, 26, 24, 255) : Color.white;
+            Color tint = normal ? new Color32(27, 26, 24, 255) : Color.white;
             return icons[Form(form)].TryGetValue(iconId, out var image) && image.Sprite != null
                 ? image : new UiImage(image.Texture, null, tint);
         }
