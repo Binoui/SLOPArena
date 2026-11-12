@@ -72,8 +72,11 @@ public static class FighterAppearanceSelfTest
             var hud = go.AddComponent<HUDManager>();
             hud.Initialize(_ => default, new[] { new HUDManager.HudPlayer(1, "P1", FighterPresentation.Resolve(manki).Art, true),
                 new HUDManager.HudPlayer(3, "P3", FighterPresentation.Resolve(wibou).Art, true) }, 0);
-            hud.SetFighter(1, FighterPresentation.Resolve(manki));
             var fields = BindingFlags.Instance | BindingFlags.NonPublic;
+            var deck = new VisualElement(); deck.style.display = DisplayStyle.None;
+            typeof(HUDManager).GetField("_moveDeck", fields).SetValue(hud, deck);
+            hud.SetFighter(1, FighterPresentation.Resolve(manki));
+            Require(deck.style.display.value == DisplayStyle.Flex, "Assigning the focused fighter must show its deck.");
             Require(ReferenceEquals(typeof(HUDManager).GetField("_localArt", fields).GetValue(hud), FighterPresentation.Resolve(manki).Art)
                 && ReferenceEquals(typeof(HUDManager).GetField("_charDef", fields).GetValue(hud), manki.Definition), "Deck definition and art must share P1's binding.");
             foreach (var key in new[] { CharacterClass.None, (CharacterClass)99 })

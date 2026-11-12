@@ -579,6 +579,7 @@ namespace SlopArena.Client.UI
         {
             _localEntityId = entityId;
             _localArt = fighter.Art;
+            if (_moveDeck != null) _moveDeck.style.display = entityId != 0 ? DisplayStyle.Flex : DisplayStyle.None;
             SetCharacterDefinition(fighter.Content.Definition);
         }
 
