@@ -74,7 +74,7 @@ public sealed class CookedTimelineAbility : ServerAbility
             return null;
         }
     }
-    public override TetherAbility? Tether
+    public override ITetherCatch? Tether
     {
         get
         {

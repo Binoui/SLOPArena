@@ -663,3 +663,6 @@ and strengthen tracking. It survives the lid activation, is independent for each
 A landed hit that opens the existing command hold, with a CommandGrabbed victim carried at the holder's anchor.
 Unlike Capture, it is blocked by Shield and does not hold armoured, paired, CutHeld or Swept fighters.
 Joust's scoop deals small damage, carries through the post-movement pair pass and releases as an ordinary credited fling.
+
+- **Grapple:** a lasso capability that pulls its owner to a standable lip, or holds a caught fighter while its owner zips in and kicks (ADR-0064). It spends an ordinary slot cooldown without landing/hit refresh.
+- **Lip:** the boundary of an upward-facing standable surface, found deterministically at the grapple throw. Walls, moving objects and hazards are not grapple anchors.

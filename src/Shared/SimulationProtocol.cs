@@ -147,6 +147,8 @@ namespace SlopArena.Shared
         //   acts one and two, child twists and seeds per lane, lane-and-owner contact routing and SafeStep CPUs.
         //   The classic PRIME TIME! twist is gone. Replay View adds the pair and both child twist copy keys.
         //   Each channel keeps one twist cycle across solo and remix airings, and Bomb rain rows pack into a late start.
+        // - Lasso grapple capability, GrappleMiss presentation source and World Snapshot v32 (ADR-0064).
+        //   Runtime API 1.23.0. Main already published snapshot 29–31 for Mayhem, so the grapple record is 32.
         public const byte Version = 38;
     }
 }

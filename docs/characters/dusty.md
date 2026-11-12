@@ -93,8 +93,9 @@ hitbox.
 
 ## Open questions
 
-- **Grapple anchors.** Which surfaces the loop can catch (stage edges only, or walls and platforms too), and what it
-  does on a stage without a clear edge. Ledge grabs are off in this game, so the haul ends with a hop onto the top,
-  not a ledge hang. Bashie's tether already detects its ring hitting the stage; today that counts as a miss.
 - **Big Iron as a recovery.** The recoil distance needs a feel check in play.
 - **Movement.** His own movement values have not had a pass.
+
+## Grapple anchors
+
+The accepted Lasso Grapple (ADR-0064) searches for the nearest standable lip at throw time, biased to the held stick's side. Walls, moving objects and hazards are not anchors. In air it prefers a lip, then the current fighter target; on ground it prefers the target, then a lip. Shield stops the loop; a caught fighter is held through the zip and kicked. A stage with no lip is a miss: the loop flops and he keeps falling. The haul ends with a hop onto the top, not a ledge hang. One ordinary slot cooldown starts at the press, with no landing or hit refresh. Engine support lands separately from the salamander E package switch, rope presentation, clips and Lab UI.

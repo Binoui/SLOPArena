@@ -333,6 +333,10 @@ public sealed partial class HeuristicBotPolicy
                 || HasCooldown(self, _profileDefinition!, candidate.Slot, activeMove)
                 || IsChargePoolExhausted(self, candidate.Slot, air))
                 continue;
+            // Grapples are admitted by the shared lip query before ordinary recovery scoring.
+            if (_profileDefinition!.GetCookedSlotAbility(candidate.Slot, air)?.Timeline.Stages
+                .SelectMany(s => s.Operations).OfType<CookedStartCapabilityOperation>()
+                .Any(o => o.Parameters is CookedGrappleCapabilityParameters) == true) continue;
             float score = candidate.Reach - MathF.Abs(candidate.Reach - distance) * 0.25f
                 + (candidate.HasMovement ? 2f : 0f);
             if (score > bestScore)
@@ -367,6 +371,26 @@ public sealed partial class HeuristicBotPolicy
         }
         if (!NeedsRecovery(self, def, arena, memory)) return false;
         memory.Recovering = true; memory.RecoveryDeaths = self.Deaths;
+        if (!self.IsGrounded)
+        {
+            foreach (var slot in def.CookedSlots!)
+            {
+                if (!slot.IsAir || !slot.IsRecoveryMove) continue;
+                byte wire = CanonicalSlotProjection.ToWire(CanonicalSlotProjection.All[slot.Ordinal]);
+                if (HasCooldown(self, def, wire, activeMove)) continue;
+                var grapple = slot.Timeline.Stages.SelectMany(s => s.Operations).OfType<CookedStartCapabilityOperation>()
+                    .Select(o => o.Parameters).OfType<CookedGrappleCapabilityParameters>().FirstOrDefault();
+                if (grapple == null) continue;
+                if (_recoveryTriangleCandidates.Length < (arena.CollisionTriangles?.Length ?? 0))
+                    _recoveryTriangleCandidates = new int[arena.CollisionTriangles!.Length];
+                if (!GrappleAnchors.TryFind(self, def, arena, grapple, 0, 0, _recoveryTriangleCandidates, out var lip)) continue;
+                float gx = lip.X - self.PX, gz = lip.Z - self.PZ;
+                float gl = MathF.Max(.001f, MathF.Sqrt(gx * gx + gz * gz));
+                input.MoveX = gx / gl; input.MoveY = gz / gl; input.ActiveSlot = wire;
+                return true;
+            }
+        }
+
         if (!TryGetRecoveryTarget(self, in def, in arena, memory,
                 out var target, out float distance, activeMove))
         {
@@ -1228,7 +1252,7 @@ public sealed partial class HeuristicBotPolicy
     private static float DirectForwardReach(in HitboxEvent evt)
         => MathF.Max(evt.OffZ, evt.EndOffZ) + evt.Radius;
     private static bool IsSupportedCapability(CookedCapabilityParameters parameters)
-        => parameters is CookedAimedRecoveryCapabilityParameters
+        => parameters is CookedGrappleCapabilityParameters or CookedAimedRecoveryCapabilityParameters
             or CookedRisingDragonCapabilityParameters
             or CookedCycloneKickCapabilityParameters
             or CookedChargedProjectileCapabilityParameters
@@ -1310,6 +1334,11 @@ public sealed partial class HeuristicBotPolicy
                 // The hop only travels; the shell's splash is not part of the move.
                 movementReach = MathF.Max(movementReach, x.MaxRange);
                 hasMovement = true; break;
+            case CookedGrappleCapabilityParameters x:
+                hitReach = MathF.Max(hitReach, x.Projectile.Speed * x.Projectile.MaxFlightTicks / 60f);
+                damage += x.Projectile.Damage + x.Kick.Damage;
+                hasDamage = true; hasMovement = true;
+                break;
             case CookedTetherCapabilityParameters { AtTarget.Unmarked: { } hand }:
                 // The CPU does not read marks, so it plans for the unmarked hand ahead of her.
                 hitReach = MathF.Max(hitReach, hand.Distance + hand.Radius);
@@ -1360,6 +1389,7 @@ public sealed partial class HeuristicBotPolicy
             CookedCycloneKickCapabilityParameters x => x.WindupTicks,
             CookedChargedProjectileCapabilityParameters x => x.FireTriggerTick,
             CookedChargedStreamCapabilityParameters x => x.FireTriggerTick,
+            CookedGrappleCapabilityParameters x => x.ThrowTick,
             CookedTetherCapabilityParameters x => x.AtTarget?.Unmarked?.RiseTick ?? x.AtTarget?.WarningTicks ?? x.ThrowTick,
             CookedCommandGrabCapabilityParameters x => x.CaptureTick,
             CookedCannonballCapabilityParameters x => x.TakeoffTick,

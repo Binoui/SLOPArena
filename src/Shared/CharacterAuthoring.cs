@@ -822,3 +822,29 @@ public enum SourceSlotId : byte
 }
 
 public sealed record ChargeAssistParameters(float AssistRange, float AssistHalfAngleDegrees, float AssistDegreesPerSecond);
+
+/// <summary>Dusty's lasso self-pull (ADR-0064), runtime API 1.23.0.</summary>
+public sealed record GrappleCapabilityParameters(
+    ushort ThrowTick,
+    float AnchorReach,
+    float MaxRise,
+    float MinRise,
+    ushort HaulTicks,
+    float PopClearance,
+    float PopInset,
+    float PopVelocity,
+    ushort PopTicks,
+    float ZipSpeed,
+    ushort MaxZipTicks,
+    float KickRecoil,
+    ushort KickRecoveryTicks,
+    ushort MissRecoveryTicks,
+    float AirGravityScale,
+    ProjectileSource Projectile,
+    HitboxSource Kick,
+    string OutAnimationId = "",
+    string HaulAnimationId = "",
+    string PopAnimationId = "",
+    string ZipAnimationId = "",
+    string KickAnimationId = "",
+    string MissAnimationId = "") : TypedCapabilityParameters;

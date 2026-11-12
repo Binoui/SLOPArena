@@ -31,7 +31,11 @@ namespace SlopArena.Shared
         // 26: one wall jump per airtime in CharacterState.
         // 27: the Mayhem channel show (ADR-0061): seed, roster, withdrawals, pass masks, current failures, on-air set,
         //     safe poses and the current channel's own state, replacing the round director.
-        public const uint SnapshotFormatVersion = 31;
+        // 29: Mayhem plan-computed airings, resolved gates, restore context and channel state (ADR-0063). World Frame v11.
+        // 30: SUMO!, SMILE!, GLITCH! and BONK! channel state and board target windows (ADR-0063).
+        // 31: Mayhem finale, draw/shove observations, carry/progress cues, barrage fields and HOT POTATO!'s return lock.
+        // 32: grapple branch, haul/zip phase, anchor, path origin, pop point and recovery-turn stick (ADR-0064).
+        public const uint SnapshotFormatVersion = 32;
 
         private readonly List<ulong> _abilityOrder = new();
 
