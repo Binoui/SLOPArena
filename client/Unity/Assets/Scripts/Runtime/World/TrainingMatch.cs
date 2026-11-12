@@ -522,7 +522,7 @@ namespace SlopArena.Client.World
                 var players = HudExtraPlayers().ToList();
                 players.Insert(0, new HUDManager.HudPlayer(PlayerEntityId, "P1", ArtFor(PlayerEntityId), true, playerNumber: 1));
                 _mayhem = new MankiMayhemPresentation(transform, _bridge.InternalSim, arena.Arcade.Mayhem,
-                    contentCatalog.Resolve(CharacterClass.Manki), renderers, players, _hudManager, _projectileVFX,
+                    contentCatalog.ResolvePackage("manki"), contentCatalog, renderers, players, _hudManager, _projectileVFX,
                     _cameraMount, () => _cameraMount.RenderCamera);
                 RegisterHostPresentation(ServerSimulation.MayhemHostEntityId, _mayhem.Host.Root, _mayhem.Host.Catalog);
             }

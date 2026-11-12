@@ -156,9 +156,8 @@ namespace SlopArena.Client.UI
             }
             return "NOT LOOKING";
         }
-        public MankiMayhemView(VisualElement hud, IReadOnlyList<HUDManager.HudPlayer> players, FriendlyFireMode friendlyFire = FriendlyFireMode.Shoves)
+        public MankiMayhemView(VisualElement hud, IReadOnlyList<HUDManager.HudPlayer> players, MatchContentCatalog catalog, FriendlyFireMode friendlyFire = FriendlyFireMode.Shoves)
         {
-            var catalog = ClientSession.MatchContentCatalog;
             foreach (string id in Guests.Values)
             {
                 var entry = catalog?.ResolvePackage(id);

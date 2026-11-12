@@ -359,7 +359,7 @@ namespace SlopArena.Client.World
                 players.Add(OnlineHudPlayer(PlayerEntityId, true));
                 players.Sort((a, b) => a.EntityId.CompareTo(b.EntityId));
                 _mayhem = new MankiMayhemPresentation(transform, _bridge.Simulation, arena.Arcade.Mayhem,
-                    contentCatalog.Resolve(CharacterClass.Manki), renderers, players, _hudManager, _projectileVFX,
+                    contentCatalog.ResolvePackage("manki"), contentCatalog, renderers, players, _hudManager, _projectileVFX,
                     _cameraMount, () => _cameraMount.RenderCamera, MatchConfig.FriendlyFire);
                 RegisterHostPresentation(ServerSimulation.MayhemHostEntityId, _mayhem.Host.Root, _mayhem.Host.Catalog);
             }

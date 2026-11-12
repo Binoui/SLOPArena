@@ -97,13 +97,13 @@ namespace SlopArena.Client.Replays
             if (format.IsCourse() && arena.Arcade?.Course != null)
                 return new ReplayModes(null, new OnlineCharacterCourse(scene.Parent, arena, scene.Hud, scene.RenderCamera,
                     Roster(replay), scene.Perspective), null, null, arena.Arcade.Course);
-            if (format == MatchFormat.MankiMayhem && arena.Arcade?.Mayhem != null && scene.Catalog.Resolve(CharacterClass.Manki) is { } manki)
+            if (format == MatchFormat.MankiMayhem && arena.Arcade?.Mayhem != null && scene.Catalog.ResolvePackage("manki") is { } manki)
             {
                 var friendlyFire = replay.Header.Rules.FriendlyFireId switch
                 {
                     "on" => FriendlyFireMode.On, "shoves" => FriendlyFireMode.Shoves, _ => FriendlyFireMode.Off,
                 };
-                return new ReplayModes(null, null, new MankiMayhemPresentation(scene.Parent, replay.World, arena.Arcade.Mayhem, manki,
+                return new ReplayModes(null, null, new MankiMayhemPresentation(scene.Parent, replay.World, arena.Arcade.Mayhem, manki, scene.Catalog,
                     scene.Fighters, scene.Players, scene.Hud, scene.Projectiles, scene.Camera, scene.RenderCamera, friendlyFire)
                     { FixedTelegraphs = view }, null);
             }

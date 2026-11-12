@@ -1,5 +1,9 @@
 using System;
 using System.IO;
+using System.Linq;
+using SlopArena.Client.UI;
+using SlopArena.Shared.Mayhem;
+using UnityEngine.UIElements;
 using SlopArena.Shared;
 using SlopArena.Client;
 using UnityEditor;
@@ -28,7 +32,15 @@ public static class FighterAppearanceSelfTest
             Require(image.Texture != null && image.Texture.name == "Neutral slot " + slot && image.Sprite == null, "Fixture borrowed slot art.");
         }
         Require(ReferenceEquals(appearance, FighterPresentation.Resolve(content)), "Content did not retain one appearance.");
-        Debug.Log("[FighterAppearanceSelfTest] selector-free cooked name, neutral portrait and seven neutral slot glyphs passed.");
+        var roster = ShippedRoster.ReadApplication();
+        var loaded = roster.Manifest.Entries.ToDictionary(e => e.PackageId,
+            e => CookedCharacterPackageLoader.LoadDirectory(Path.Combine(roster.CookedRoot, e.PackageId), e.Requirement));
+        var catalog = new MatchContentCatalogBuilder().Build(roster, loaded, MatchContentPolicy.LocalPlay).Catalog;
+        Require(catalog != null, "Guest-art fixture catalog failed admission.");
+        using var mayhem = new MankiMayhemView(new VisualElement(), Array.Empty<HUDManager.HudPlayer>(), catalog);
+        var guest = MayhemChannels.All.First(channel => MankiMayhemView.GuestFor(channel) == "bashie");
+        Require(mayhem.GuestPortrait(guest) == FighterPresentation.Resolve(catalog.ResolvePackage("bashie")).Art.Portrait(), "Mayhem did not retain its supplied catalog's guest art.");
+        Debug.Log("[FighterAppearanceSelfTest] selector-free cooked name, neutral portrait, seven neutral slot glyphs and explicit Mayhem guest content passed.");
     }
     static void Require(bool condition, string message)
     { if (!condition) throw new InvalidOperationException(message); }
