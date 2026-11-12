@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType><TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable><ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../../src/Shared/SlopArena.Shared.csproj" />
+    <EmbeddedResource Include="../../content-cooked/roster/manifest.json" LogicalName="SlopArena.KitCheck.RosterManifest" />
+    <EmbeddedResource Include="../../content-cooked/**/character.runtime.json" LogicalName="SlopArena.KitCheck.Roster.%(RecursiveDir)character.runtime.json" />
+    <EmbeddedResource Include="../../data/arenas/training.arena" LogicalName="SlopArena.KitCheck.TrainingArena" />
+    <None Include="../../docs/characters/workshop-authoring-reference.md" Link="reference.md" CopyToPublishDirectory="PreserveNewest" />
+    <None Include="../../docs/characters/examples/workshop-kit/*.json" Link="example-kit/%(Filename)%(Extension)" CopyToPublishDirectory="PreserveNewest" />
+    <None Include="../../docs/characters/examples/workshop-grappler/*.json" Link="example-grappler/%(Filename)%(Extension)" CopyToPublishDirectory="PreserveNewest" />
+  </ItemGroup>
+</Project>

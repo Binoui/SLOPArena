@@ -7,20 +7,24 @@ internal static class BonkSpecialContract
 {
     internal static string? Charge(CookedSteeredChargeCapabilityParameters p)
     {
+        var rulesLaunch = CharacterRuntimeLimits.Object("launch");
+        var rulesChargeCarry = CharacterRuntimeLimits.Object("chargeCarry");
+        var rulesCapSteeredChargeV2 = CharacterRuntimeLimits.Object("cap.steered-charge.v2");
+        var rulesChargeAssist = CharacterRuntimeLimits.Object("chargeAssist");
         if (p.Assist is { } a && (!Finite(a.AssistRange, a.AssistHalfAngleDegrees, a.AssistDegreesPerSecond)
-            || a.AssistRange <= 0 || a.AssistRange > 10 || a.AssistHalfAngleDegrees <= 0 || a.AssistHalfAngleDegrees > 90
-            || a.AssistDegreesPerSecond <= 0 || a.AssistDegreesPerSecond > 1440))
+            || rulesChargeAssist.Field("assistRange").IsOutsideGameplay(a.AssistRange) || rulesChargeAssist.Field("assistHalfAngleDegrees").IsOutsideGameplay(a.AssistHalfAngleDegrees)
+            || rulesChargeAssist.Field("assistDegreesPerSecond").IsOutsideGameplay(a.AssistDegreesPerSecond)))
             return "Charge assist range, cone or turn rate is invalid.";
         var c = p.Carry; var f = c.Fling;
         if (!Finite(p.TrackDegreesPerSecond, p.ChallengedTrackDegreesPerSecond, c.AnchorDistance, c.AnchorHeight,
                 f.Damage, f.Angle, f.BaseKnockback, f.KnockbackGrowth)
-            || p.TrackDegreesPerSecond < 0 || p.TrackDegreesPerSecond > 1440
-            || p.ChallengedTrackDegreesPerSecond < 0 || p.ChallengedTrackDegreesPerSecond > 1440
-            || p.ChallengedRearTicks == 0 || p.ChallengedRearTicks > 120
-            || c.AnchorDistance < 0 || c.AnchorDistance > 3 || c.AnchorHeight < 0 || c.AnchorHeight > 3
-            || c.MaxCarryTicks == 0 || c.MaxCarryTicks > 120 || c.FlingTicks == 0 || c.FlingTicks > 120
-            || f.Damage <= 0 || f.Damage > 100 || f.Angle < -90 || f.Angle > 90
-            || f.BaseKnockback < 0 || f.KnockbackGrowth < 0 || f.StunTicks > 240
+            || rulesCapSteeredChargeV2.Field("trackDegreesPerSecond").IsOutsideGameplay(p.TrackDegreesPerSecond)
+            || rulesCapSteeredChargeV2.Field("challengedTrackDegreesPerSecond").IsOutsideGameplay(p.ChallengedTrackDegreesPerSecond)
+            || rulesCapSteeredChargeV2.Field("challengedRearTicks").IsOutsideGameplay(p.ChallengedRearTicks)
+            || rulesChargeCarry.Field("anchorDistance").IsOutsideGameplay(c.AnchorDistance) || rulesChargeCarry.Field("anchorHeight").IsOutsideGameplay(c.AnchorHeight)
+            || rulesChargeCarry.Field("maxCarryTicks").IsOutsideGameplay(c.MaxCarryTicks) || rulesChargeCarry.Field("flingTicks").IsOutsideGameplay(c.FlingTicks)
+            || rulesLaunch.Field("damage").IsOutsideGameplay(f.Damage) || rulesLaunch.Field("angle").IsOutsideGameplay(f.Angle)
+            || f.BaseKnockback < rulesLaunch.Field("baseKnockback").GameplayMinimum!.Value || f.KnockbackGrowth < rulesLaunch.Field("knockbackGrowth").GameplayMinimum!.Value || f.StunTicks > rulesLaunch.Field("stunTicks").GameplayMaximum!.Value
             || p.ChestHitbox.StartBoneId != null || p.ChestHitbox.EndBoneId != null || p.ChestHitbox.HitGroup != 0
             || p.LanceHitbox.Damage <= 0 || p.ChestHitbox.Damage != p.LanceHitbox.Damage)
             return "Charge tracking, chest contact, anchor, carry or fling values are invalid.";
@@ -29,21 +33,27 @@ internal static class BonkSpecialContract
 
     internal static string? Leap(CookedTargetedLeapCapabilityParameters p)
     {
-        if (!Finite(p.RiseHeight, p.MaxRange, p.NoTargetDistance) || p.RiseHeight <= 0 || p.RiseHeight > 30
-            || p.MaxRange <= 0 || p.MaxRange > 60 || p.NoTargetDistance < 0 || p.NoTargetDistance > p.MaxRange
-            || p.RiseTicks == 0 || p.RiseTicks > 240 || p.HangTicks == 0 || p.HangTicks > 240
-            || p.DropTicks == 0 || p.DropTicks > 240 || p.MaxFallTicks == 0 || p.MaxFallTicks > 600
-            || p.HitRecoveryTicks == 0 || p.MissRecoveryTicks < p.HitRecoveryTicks || p.MissRecoveryTicks > 600
+        var rulesCapTargetedLeapV2 = CharacterRuntimeLimits.Object("cap.targeted-leap.v2");
+        if (!Finite(p.RiseHeight, p.MaxRange, p.NoTargetDistance) || rulesCapTargetedLeapV2.Field("riseHeight").IsOutsideGameplay(p.RiseHeight)
+            || rulesCapTargetedLeapV2.Field("maxRange").IsOutsideGameplay(p.MaxRange) || p.NoTargetDistance < 0 || p.NoTargetDistance > p.MaxRange
+            || rulesCapTargetedLeapV2.Field("riseTicks").IsOutsideGameplay(p.RiseTicks) || rulesCapTargetedLeapV2.Field("hangTicks").IsOutsideGameplay(p.HangTicks)
+            || rulesCapTargetedLeapV2.Field("dropTicks").IsOutsideGameplay(p.DropTicks) || rulesCapTargetedLeapV2.Field("maxFallTicks").IsOutsideGameplay(p.MaxFallTicks)
+            || p.HitRecoveryTicks == 0 || p.MissRecoveryTicks < p.HitRecoveryTicks || p.MissRecoveryTicks > rulesCapTargetedLeapV2.Field("missRecoveryTicks").GameplayMaximum!.Value
             || p.Hitbox.DurationTicks == 0 || p.Hitbox.DurationTicks > p.HitRecoveryTicks)
             return "Leap heights, ranges, beats or recoveries are invalid.";
         return null;
     }
 
     internal static string? LegHit(ProjectileLegHit h)
-        => !Finite(h.Damage, h.Angle, h.BaseKnockback, h.KnockbackGrowth) || h.Damage < 0 || h.Damage > 100
-           || h.Angle < -90 || h.Angle > 90 || h.BaseKnockback < 0 || h.KnockbackGrowth < 0
-           || h.StunTicks > 240 || h.FixedHitstunTicks > 240 || h.FixedHitstunTicks > 0 && h.StunTicks == 0
+    {
+        var rules = CharacterRuntimeLimits.Object("legHit");
+        return !Finite(h.Damage, h.Angle, h.BaseKnockback, h.KnockbackGrowth)
+            || rules.Field("damage").IsOutsideGameplay(h.Damage) || rules.Field("angle").IsOutsideGameplay(h.Angle)
+            || rules.Field("baseKnockback").IsOutsideGameplay(h.BaseKnockback) || rules.Field("knockbackGrowth").IsOutsideGameplay(h.KnockbackGrowth)
+            || rules.Field("stunTicks").IsOutsideGameplay(h.StunTicks) || rules.Field("fixedHitstunTicks").IsOutsideGameplay(h.FixedHitstunTicks)
+            || h.FixedHitstunTicks > 0 && h.StunTicks == 0
             ? "Return hit values are invalid; fixed hitstun needs a nonzero stun gate." : null;
+    }
 
     internal static bool NeedsApi(CookedSlotDefinition slot)
         => slot.Timeline.Stages.SelectMany(s => s.Operations).Any(op => op is CookedStartCapabilityOperation

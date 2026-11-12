@@ -90,18 +90,18 @@ public static class CharacterPackageAuthoringSelfTest
         {
             string invalidCharacter = MakeInvalidCharacter(
                 File.ReadAllText(manifestPath),
-                Encoding.UTF8.GetString(originalCharacter));
+                Encoding.UTF8.GetString(originalCharacter), out string invalidTickPath);
             File.WriteAllText(characterPath, invalidCharacter);
 
             CharacterPackageInspectionResult invalidInspect = service.Inspect("fightguy");
             Require(invalidInspect.Success && invalidInspect.Status == "invalid" && invalidInspect.DirtyOrStale,
                 "Invalid source inspection did not report invalid content.");
-            Require(invalidInspect.Diagnostics.Any(x => x.Code == "value.out-of-range" && x.Path == "character.operation.tick"),
+            Require(invalidInspect.Diagnostics.Any(x => x.Code == "value.out-of-range" && x.Path == invalidTickPath),
                 "Invalid source diagnostic was not propagated with its compiler path.");
 
             byte[] statusBeforeInvalidCook = File.ReadAllBytes(statusPath);
             CharacterPackageCookResult invalidCook = SlopArenaCharacterCommands.Cook("fightguy");
-            Require(invalidCook.Diagnostics.Any(x => x.Code == "value.out-of-range" && x.Path == "character.operation.tick"),
+            Require(invalidCook.Diagnostics.Any(x => x.Code == "value.out-of-range" && x.Path == invalidTickPath),
                 "Cook command did not return the compiler diagnostic.");
             Require(File.ReadAllBytes(Path.Combine(projectRoot, CharacterCookOutput.FightGuy.IntermediateDirectory, "poses.bin")).SequenceEqual(pose),
                 "Invalid cook changed pose output.");
@@ -212,7 +212,7 @@ public static class CharacterPackageAuthoringSelfTest
             "Could not restore Bonk after queue coalescing assertion.");
     }
 
-    private static string MakeInvalidCharacter(string manifestJson, string characterJson)
+    private static string MakeInvalidCharacter(string manifestJson, string characterJson, out string invalidTickPath)
     {
         CharacterPackageSource source = CharacterPackageSourceCodec.Load(manifestJson, characterJson).Source
             ?? throw new InvalidDataException("FightGuy source could not be loaded for the authoring self-test.");
@@ -223,6 +223,7 @@ public static class CharacterPackageAuthoringSelfTest
         if (stageIndex < 0) throw new InvalidDataException("FightGuy ground.1 has no hitbox for the invalid-source test.");
         CharacterStageSource stage = slot.Timeline.Stages[stageIndex];
         int operationIndex = stage.Operations.ToList().FindIndex(operation => operation is SpawnHitboxOperationSource);
+        invalidTickPath = $"character.slots[{slotIndex}].timeline.stages[{stageIndex}].operations[{operationIndex}].tick";
         var invalidOperation = ((SpawnHitboxOperationSource)stage.Operations[operationIndex]) with { Tick = stage.DurationTicks };
         var operations = stage.Operations.ToList();
         operations[operationIndex] = invalidOperation;

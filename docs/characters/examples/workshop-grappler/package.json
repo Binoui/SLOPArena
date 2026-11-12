@@ -1,0 +1,9 @@
+{
+  "manifestSchemaVersion": 1,
+  "packageId": "local.workshop-grappler",
+  "version": "0.0.0-dev",
+  "creator": "Your name",
+  "license": "CC0-1.0",
+  "attribution": "Original work",
+  "dependencies": []
+}

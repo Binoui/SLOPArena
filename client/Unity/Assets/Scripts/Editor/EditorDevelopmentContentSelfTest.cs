@@ -73,13 +73,13 @@ public static class EditorDevelopmentContentSelfTest
                 File.ReadAllBytes(generatedPath).SequenceEqual(generatedSnapshot),
                 "Valid Editor Play compilation modified persisted cooked content.");
 
-            CharacterPackageSource invalidSource = CreateInvalidSource(loaded.Source);
+            CharacterPackageSource invalidSource = CreateInvalidSource(loaded.Source, out string invalidTickPath);
             File.WriteAllText(characterPath, CharacterPackageSourceCodec.SerializeCharacter(invalidSource.Character), Encoding.UTF8);
             Require(!ClientSession.TryBuildLocalMatchCatalog(out var invalidCatalog, out var invalidFailure) && invalidCatalog == null,
                 "Invalid source unexpectedly produced an Editor development catalog.");
             Require(invalidFailure != null && invalidFailure.Contains("value.out-of-range", StringComparison.Ordinal) &&
-                invalidFailure.Contains("character.operation.tick", StringComparison.Ordinal),
-                "Invalid source diagnostic did not include value.out-of-range at character.operation.tick: " + invalidFailure);
+                invalidFailure.Contains(invalidTickPath, StringComparison.Ordinal),
+                "Invalid source diagnostic did not include value.out-of-range at " + invalidTickPath + ": " + invalidFailure);
             Require(ClientSession.TryBuildPersistedLocalMatchCatalog(out var restoredPersistedCatalog, out var restoredPersistedFailure) &&
                 restoredPersistedCatalog != null && restoredPersistedCatalog.Resolve(CharacterClass.FightGuy)?.Identity == persistedEntry.Identity,
                 restoredPersistedFailure ?? "Persisted path failed after invalid Editor source.");
@@ -151,7 +151,7 @@ public static class EditorDevelopmentContentSelfTest
         }
     }
 
-    private static CharacterPackageSource CreateInvalidSource(CharacterPackageSource source)
+    private static CharacterPackageSource CreateInvalidSource(CharacterPackageSource source, out string invalidTickPath)
     {
         for (int slotIndex = 0; slotIndex < source.Character.Slots.Count; slotIndex++)
         {
@@ -163,6 +163,7 @@ public static class EditorDevelopmentContentSelfTest
                 {
                     if (stage.Operations[operationIndex] is SpawnHitboxOperationSource hitbox)
                     {
+                        invalidTickPath = $"character.slots[{slotIndex}].timeline.stages[{stageIndex}].operations[{operationIndex}].tick";
                         var invalidOperation = hitbox with { Tick = stage.DurationTicks };
                         var operations = stage.Operations.ToList();
                         operations[operationIndex] = invalidOperation;

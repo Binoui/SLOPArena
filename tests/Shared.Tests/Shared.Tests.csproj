@@ -22,6 +22,7 @@
   <ItemGroup>
     <ProjectReference Include="..\..\src\Shared\SlopArena.Shared.csproj" />
     <ProjectReference Include="../../tools/ReplayReport/ReplayReport.csproj" />
+    <ProjectReference Include="../../tools/KitCheck/KitCheck.csproj" />
     <ProjectReference Include="..\..\tools\MoveDataReport\MoveDataReport.csproj" />
     <ProjectReference Include="..\..\tools\AssetCatalog\AssetCatalog.csproj" />
     <ProjectReference Include="..\..\tools\SessionLogReport\SessionLogReport.csproj" />

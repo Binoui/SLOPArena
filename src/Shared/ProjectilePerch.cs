@@ -159,12 +159,13 @@ namespace SlopArena.Shared
     {
         internal const float MaxTurnDegreesPerTick = 90f;
         internal const ushort MaxPerchTicks = 1200;
-        private const ushort MaxPopStunTicks = 240;
-        private const ushort MaxDivePhaseTicks = 240;
-        private const float MaxHoverHeight = 12f;
-        private const float MaxDiveSpeed = 60f;
-        private const float MaxNoTargetDistance = 20f;
-        private const float MaxPeckDamage = 20f;
+        internal const ushort MaxPopStunTicks = 240;
+        internal const ushort MaxDivePhaseTicks = 240;
+        internal const float MaxHoverHeight = 12f;
+        internal const float MaxDiveSpeed = 60f;
+        internal const float MaxNoTargetDistance = 20f;
+        internal const float MaxPeckDamage = 20f;
+        internal const bool PeckUsesWholeDamage = true;
 
         internal static CookedProjectileHoming? Cook(ProjectileHomingSource? homing)
             => homing == null ? null : new CookedProjectileHoming(homing.TurnDegreesPerTick,
@@ -190,16 +191,15 @@ namespace SlopArena.Shared
             if (projectile.Homing is { } homing)
             {
                 float norm = homing.TurnCos * homing.TurnCos + homing.TurnSin * homing.TurnSin;
-                if (!float.IsFinite(homing.TurnDegreesPerTick) || !(homing.TurnDegreesPerTick > 0f)
-                    || homing.TurnDegreesPerTick > MaxTurnDegreesPerTick || !float.IsFinite(norm)
+                if (!float.IsFinite(homing.TurnDegreesPerTick) || !CharacterRuntimeLimits.Object("homing").Field("turnDegreesPerTick").IsWithinGameplay(homing.TurnDegreesPerTick) || !float.IsFinite(norm)
                     || MathF.Abs(norm - 1f) > .00001f || homing.TurnCos < 0f || !(homing.TurnSin > 0f))
-                    return "homing.turnDegreesPerTick must be above 0 and at most 90.";
+                    return CharacterRuntimeLimits.Object("homing").Field("turnDegreesPerTick").Describe();
                 if (!(projectile.Speed > 0f)) return "A homing projectile needs a positive speed.";
             }
             if (projectile.Perch is not { } perch) return null;
             if (projectile.Homing != null && perch.Dive != null)
                 return "A perch with a dive block commits to its line: remove its homing block.";
-            if (perch.PerchTicks == 0 || perch.PerchTicks > MaxPerchTicks) return "perch.perchTicks must be 1 to 1200.";
+            if (CharacterRuntimeLimits.Object("perch").Field("perchTicks").IsOutsideGameplay(perch.PerchTicks)) return CharacterRuntimeLimits.Object("perch").Field("perchTicks").Describe();
             if (projectile.Return != null) return "A perching projectile cannot return.";
             if (projectile.Damage != 0f || projectile.BaseKnockback != 0f || projectile.KnockbackGrowth != 0f
                 || projectile.StunTicks != 0)
@@ -208,30 +208,30 @@ namespace SlopArena.Shared
             if (!float.IsFinite(pop.Damage) || !float.IsFinite(pop.Angle) || !float.IsFinite(pop.BaseKnockback)
                 || !float.IsFinite(pop.KnockbackGrowth))
                 return "The pop's values must be finite.";
-            if (!(pop.Damage > 0f && pop.Damage <= 100f)) return "perch.pop.damage must be above 0 and at most 100.";
-            if (pop.Angle < -90f || pop.Angle > 90f) return "perch.pop.angle must be -90 to 90.";
-            if (pop.BaseKnockback < 0f || pop.KnockbackGrowth < 0f) return "The pop's knockback cannot be negative.";
-            if (pop.StunTicks > MaxPopStunTicks) return "perch.pop.stunTicks must be 0 to 240.";
+            if (!CharacterRuntimeLimits.Object("pop").Field("damage").IsWithinGameplay(pop.Damage)) return CharacterRuntimeLimits.Object("pop").Field("damage").Describe();
+            if (CharacterRuntimeLimits.Object("pop").Field("angle").IsOutsideGameplay(pop.Angle)) return CharacterRuntimeLimits.Object("pop").Field("angle").Describe();
+            if (CharacterRuntimeLimits.Object("pop").Field("baseKnockback").IsOutsideGameplay(pop.BaseKnockback) || CharacterRuntimeLimits.Object("pop").Field("knockbackGrowth").IsOutsideGameplay(pop.KnockbackGrowth)) return "The pop's knockback cannot be negative.";
+            if (CharacterRuntimeLimits.Object("pop").Field("stunTicks").IsOutsideGameplay(pop.StunTicks)) return CharacterRuntimeLimits.Object("pop").Field("stunTicks").Describe();
             if (perch.Peck is { } peck)
             {
-                if (peck.IntervalTicks == 0 || peck.IntervalTicks > perch.PerchTicks)
+                if (CharacterRuntimeLimits.Object("peck").Field("intervalTicks").IsOutsideGameplay(peck.IntervalTicks) || peck.IntervalTicks > perch.PerchTicks)
                     return "perch.peck.intervalTicks must be 1 to perch.perchTicks.";
-                if (!float.IsFinite(peck.Damage) || !(peck.Damage >= 1f) || peck.Damage > MaxPeckDamage
-                    || peck.Damage != MathF.Floor(peck.Damage))
-                    return "perch.peck.damage must be a whole number from 1 to 20.";
+                if (!float.IsFinite(peck.Damage) || !CharacterRuntimeLimits.Object("peck").Field("damage").IsWithinGameplay(peck.Damage)
+                    || PeckUsesWholeDamage && peck.Damage != MathF.Floor(peck.Damage))
+                    return "Peck damage must be whole. " + CharacterRuntimeLimits.Object("peck").Field("damage").Describe();
             }
             if (perch.Dive is not { } dive) return null;
             if (projectile.Gravity != 0f) return "A diving perch flies without gravity.";
-            if (!(projectile.Speed > 0f && projectile.Speed <= MaxDiveSpeed))
+            if (!CharacterRuntimeLimits.Object("diving perch").Field("speed").IsWithinGameplay(projectile.Speed))
                 return "A perching projectile rises at its speed: above 0 and at most 60.";
-            if (!float.IsFinite(dive.HoverHeight) || !(dive.HoverHeight > 0f) || dive.HoverHeight > MaxHoverHeight)
-                return "perch.dive.hoverHeight must be above 0 and at most 12.";
-            if (dive.MaxRiseTicks == 0 || dive.MaxRiseTicks > MaxDivePhaseTicks) return "perch.dive.maxRiseTicks must be 1 to 240.";
-            if (dive.MarkTicks == 0 || dive.MarkTicks > MaxDivePhaseTicks) return "perch.dive.markTicks must be 1 to 240.";
-            if (!float.IsFinite(dive.DiveSpeed) || !(dive.DiveSpeed > 0f) || dive.DiveSpeed > MaxDiveSpeed)
-                return "perch.dive.diveSpeed must be above 0 and at most 60.";
-            if (!float.IsFinite(dive.NoTargetDistance) || dive.NoTargetDistance < 0f || dive.NoTargetDistance > MaxNoTargetDistance)
-                return "perch.dive.noTargetDistance must be 0 to 20.";
+            if (!float.IsFinite(dive.HoverHeight) || !CharacterRuntimeLimits.Object("dive").Field("hoverHeight").IsWithinGameplay(dive.HoverHeight))
+                return CharacterRuntimeLimits.Object("dive").Field("hoverHeight").Describe();
+            if (CharacterRuntimeLimits.Object("dive").Field("maxRiseTicks").IsOutsideGameplay(dive.MaxRiseTicks)) return CharacterRuntimeLimits.Object("dive").Field("maxRiseTicks").Describe();
+            if (CharacterRuntimeLimits.Object("dive").Field("markTicks").IsOutsideGameplay(dive.MarkTicks)) return CharacterRuntimeLimits.Object("dive").Field("markTicks").Describe();
+            if (!float.IsFinite(dive.DiveSpeed) || !CharacterRuntimeLimits.Object("dive").Field("diveSpeed").IsWithinGameplay(dive.DiveSpeed))
+                return CharacterRuntimeLimits.Object("dive").Field("diveSpeed").Describe();
+            if (!float.IsFinite(dive.NoTargetDistance) || CharacterRuntimeLimits.Object("dive").Field("noTargetDistance").IsOutsideGameplay(dive.NoTargetDistance))
+                return CharacterRuntimeLimits.Object("dive").Field("noTargetDistance").Describe();
             if (projectile.MaxFlightTicks <= dive.MaxRiseTicks + dive.MarkTicks)
                 return "A diving perch's maxFlightTicks must outlast its rise and mark, leaving time to dive.";
             return null;

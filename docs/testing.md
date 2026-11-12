@@ -337,7 +337,7 @@ For integrated Unity-facing changes and accepted package verification:
    content-resolution or cook behavior changed. A valid `character.json` edit must
    change the next Editor Training catalog without changing `content-cooked` or the
    generated animation catalog bytes. An invalid operation must report
-   `value.out-of-range` at `character.operation.tick` with its code, path, and message,
+   `value.out-of-range` at `character.slots[i].timeline.stages[j].operations[k].tick` with its code, path, and message,
    block the local catalog, and never use the old persisted package.
 3. Confirm `TryBuildPersistedLocalMatchCatalog` still loads the exact persisted roster
    requirement and hashes. Keep the existing `content-cooked` package/release verification.

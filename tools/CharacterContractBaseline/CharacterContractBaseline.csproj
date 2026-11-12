@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <SharedCompilerRoot Condition="'$(SharedCompilerRoot)' == ''">$(MSBuildThisFileDirectory)../../src/Shared</SharedCompilerRoot>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="$(SharedCompilerRoot)/SlopArena.Shared.csproj" />
+    <Compile Include="../KitCheck/MutationContract.cs" Link="MutationContract.cs" />
+    <Compile Include="../KitCheck/FieldContract.cs" Link="FieldContract.cs" />
+  </ItemGroup>
+  <ItemGroup Condition="!Exists('$(SharedCompilerRoot)/CharacterSourceSchema.cs')">
+    <Compile Include="../../src/Shared/CharacterSourceSchema.cs" Link="Metadata/CharacterSourceSchema.cs" />
+    <EmbeddedResource Include="../../src/Shared/CharacterSourceSchema.xml" LogicalName="SlopArena.Shared.CharacterSourceSchema.xml" />
+  </ItemGroup>
+</Project>

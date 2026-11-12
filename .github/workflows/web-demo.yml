@@ -12,6 +12,8 @@ on:
   pull_request:
     paths:
       - client/Web/**
+      - src/Shared/**
+      - tools/SharedSourceSmoke/**
       - .github/workflows/web-demo.yml
   workflow_dispatch:
 permissions:
@@ -48,6 +50,8 @@ jobs:
         run: python3 client/Web/scripts/asset-sources.py check --github
       - name: Build the WASM sim
         run: client/Web/scripts/build.sh
+      - name: Check Shared source resources and cooked loading
+        run: dotnet run --project tools/SharedSourceSmoke -p:SkipUnityPluginCopy=true -- .
       - name: Smoke-test a headless match
         run: node client/Web/scripts/smoke.mjs brawl after_hours fightguy,manki
       - name: Smoke-test the tutorial

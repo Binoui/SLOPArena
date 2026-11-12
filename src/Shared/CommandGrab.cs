@@ -62,38 +62,43 @@ public sealed record CookedGrabLaunch(float Damage, float Angle, float BaseKnock
 /// <summary>The command grab rules shared by the compiler and the cooked loader; each returns null when admissible.</summary>
 internal static class CommandGrabContract
 {
+    internal const ushort MaxCaptureDurationTicks = 30;
+    internal const float MaxCaptureRadius = 3f;
     internal static string? BoundsError(CookedCommandGrabCapabilityParameters x)
     {
+        var rulesLaunch = CharacterRuntimeLimits.Object("launch");
+        var rulesCapCommandGrabV1 = CharacterRuntimeLimits.Object("cap.command-grab.v1");
         var c = x.Capture;
+        var captureLimits = CharacterRuntimeLimits.Object("command-grab capture");
         if (!Finite(x.LungeSpeed, x.StopDistance, x.AnchorDistance ?? 0f, c.Radius, c.OffsetX, c.OffsetY, c.OffsetZ,
                 c.EndOffsetX, c.EndOffsetY, c.EndOffsetZ, c.Damage)
             || x.Launch is { } launch && !Finite(launch.Damage, launch.Angle, launch.BaseKnockback, launch.KnockbackGrowth))
             return "Command grab values must be finite.";
-        if (x.LungeTicks > 60 || !(x.LungeSpeed >= 0f && x.LungeSpeed <= 60f) || !(x.StopDistance >= 0f && x.StopDistance <= 5f))
-            return "The lunge needs lungeTicks 0 to 60, a speed of 0 to 60 and a stopDistance of 0 to 5.";
+        if (x.LungeTicks > rulesCapCommandGrabV1.Field("lungeTicks").GameplayMaximum!.Value || !(rulesCapCommandGrabV1.Field("lungeSpeed").IsWithinGameplay(x.LungeSpeed)) || !(rulesCapCommandGrabV1.Field("stopDistance").IsWithinGameplay(x.StopDistance)))
+            return rulesCapCommandGrabV1.Describe("lungeTicks", "lungeSpeed", "stopDistance");
         if (c.RequiresFacingOwner || c.StartBoneId != null || c.EndBoneId != null || c.HitGroup != 0
             || c.Shape is not (AuthoringHitboxShape.Sphere or AuthoringHitboxShape.Capsule))
             return "The capture is a root-relative sphere or capsule with authored hitGroup 0.";
-        if (!(c.Radius > 0f && c.Radius <= 3f) || c.Damage < 0f || c.BaseKnockback != 0f || c.KnockbackGrowth != 0f
-            || c.StunTicks != 0 || c.FixedHitstunTicks != 0)
-            return "The capture holds instead of launching: a radius above 0 and at most 3, damage >= 0, no knockback or stun.";
+        if (!captureLimits.Field("radius").IsWithinGameplay(c.Radius) || c.Damage < 0f || captureLimits.Field("baseKnockback").IsOutsideGameplay(c.BaseKnockback) || captureLimits.Field("knockbackGrowth").IsOutsideGameplay(c.KnockbackGrowth)
+            || captureLimits.Field("stunTicks").IsOutsideGameplay(c.StunTicks) || captureLimits.Field("fixedHitstunTicks").IsOutsideGameplay(c.FixedHitstunTicks))
+            return $"The capture holds instead of launching: a positive radius at most {MaxCaptureRadius}, nonnegative damage, no knockback or stun.";
         if (x.LungeSpeed * Simulation.TickDt > 2f * c.Radius)
             return "The lunge's travel per tick exceeds twice the capture radius, leaving gaps in its reach.";
-        if (x.CaptureTick == 0 || x.CaptureTick > 120 || c.DurationTicks == 0 || c.DurationTicks > 30)
-            return "The capture opens at tick 1 to 120 for 1 to 30 ticks.";
-        if (x.ReleaseTick < x.CaptureTick + c.DurationTicks || x.ReleaseTick > 240)
-            return "releaseTick must follow the capture window and be at most 240.";
-        if (x.AnchorDistance is { } anchor && !(anchor >= 0f && anchor <= 3f)) return "anchorDistance must be 0 to 3.";
+        if (rulesCapCommandGrabV1.Field("captureTick").IsOutsideGameplay(x.CaptureTick) || captureLimits.Field("durationTicks").IsOutsideGameplay(c.DurationTicks))
+            return rulesCapCommandGrabV1.Field("captureTick").Describe() + $"; capture duration must be positive and at most {MaxCaptureDurationTicks}.";
+        if (x.ReleaseTick < x.CaptureTick + c.DurationTicks || x.ReleaseTick > rulesCapCommandGrabV1.Field("releaseTick").GameplayMaximum!.Value)
+            return "releaseTick must follow the capture window. " + rulesCapCommandGrabV1.Field("releaseTick").Describe();
+        if (x.AnchorDistance is { } anchor && !(rulesCapCommandGrabV1.Field("anchorDistance").IsWithinGameplay(anchor))) return rulesCapCommandGrabV1.Field("anchorDistance").Describe();
         if (x.Launch is { } l)
         {
-            if (!(l.Damage > 0f && l.Damage <= 100f) || l.Angle < -90f || l.Angle > 90f || l.BaseKnockback < 0f
-                || l.KnockbackGrowth < 0f || l.StunTicks > 240)
-                return "The launch needs damage above 0 and at most 100, an angle of -90 to 90, no negative knockback and stun to 240.";
+            if (!(rulesLaunch.Field("damage").IsWithinGameplay(l.Damage)) || rulesLaunch.Field("angle").IsOutsideGameplay(l.Angle) || l.BaseKnockback < rulesLaunch.Field("baseKnockback").GameplayMinimum!.Value
+                || l.KnockbackGrowth < rulesLaunch.Field("knockbackGrowth").GameplayMinimum!.Value || l.StunTicks > rulesLaunch.Field("stunTicks").GameplayMaximum!.Value)
+                return rulesLaunch.Describe("damage", "angle", "baseKnockback", "knockbackGrowth", "stunTicks");
             if (x.ReleaseLockTicks != 0) return "A release with a launch has no releaseLockTicks.";
         }
-        else if (x.ReleaseLockTicks == 0 || x.ReleaseLockTicks > 60)
-            return "A release without a launch holds the victim for releaseLockTicks 1 to 60 before the timeline's finisher.";
-        if (x.WhiffRecoveryTicks > 120) return "whiffRecoveryTicks must be at most 120.";
+        else if (x.ReleaseLockTicks == 0 || x.ReleaseLockTicks > rulesCapCommandGrabV1.Field("releaseLockTicks").GameplayMaximum!.Value)
+            return "Without launch, releaseLockTicks must be positive. " + rulesCapCommandGrabV1.Field("releaseLockTicks").Describe();
+        if (x.WhiffRecoveryTicks > rulesCapCommandGrabV1.Field("whiffRecoveryTicks").GameplayMaximum!.Value) return rulesCapCommandGrabV1.Field("whiffRecoveryTicks").Describe();
         return null;
     }
 

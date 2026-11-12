@@ -3,11 +3,13 @@
 A character is a package, not a registry factory. New package work must have an approved
 kit and presentation specification before it becomes roster content.
 
+For text-first and AI-assisted authoring, use the [Workshop authoring reference](workshop-authoring-reference.md). It documents the JSON contract, the Unity-free template and checker, operation parameters, public capabilities, and the limits of source-only validation. The Editor workflow below also handles built-in asset bindings.
+
 ## 1. Create authoring-ready source
 
 Create `client/Unity/Assets/CharacterPackages/<package>/` through
 `AbilityLabPackageWorkspace.NewPackage`. The pipeline writes an authoring-ready source
-template with sane movement, capsule, hurtbox, presentation, thirty-tick timelines, and
+template with starter movement, capsule, hurtbox, presentation, thirty-tick timelines, and
 one unique `anim.move.*` semantic ID per canonical slot. The catalog receives matching
 empty binding rows.
 
@@ -16,7 +18,7 @@ Keep the three authoring modules separate:
 - `package.json` uses `manifestSchemaVersion: 1` and owns `packageId`, version,
   creator, license, attribution, and dependencies.
 - `character.json` uses `authoringSchemaVersion: 4` and owns gameplay source,
-  presentation IDs, and the canonical sixteen-slot
+  presentation IDs, and the canonical fourteen-slot
   grid, capture geometry/anchors, and standardized defense animation roles.
 - `CharacterAssetCatalog.asset` uses catalog schema 2 and owns Unity rig, clip and
   effect bindings, plus the character's sound pools, respawn tint and projectile
@@ -140,8 +142,7 @@ runtime API minimum, or simulation protocol.
 Persist these fourteen slot IDs, in ground-then-air order:
 
 `ground.1`, `ground.2`, `ground.3`, `ground.A`, `ground.E`, `ground.R`, `ground.F`,
-then the same seven IDs under `air.`. Normal `2` was retired by ADR-0042; the compiler
-rejects it. Physical controls are input adapters,
+then the same seven IDs under `air.`. Normals are `1`, `2`, and `3` in authoring schema 4. Physical controls are input adapters,
 not alternate move identity. Author fixed timelines in 60 Hz ticks with engine-owned
 operations. Define damage, hitboxes, recovery, movement, and capability values only from the
 approved kit specification.
@@ -235,7 +236,7 @@ unity command --project-path client/Unity \
   sloparena.character.inspect --target <package> --format json
 ```
 
-Require the expected package identity, sixteen-slot projection, source status, structured
+Require the expected package identity, fourteen-slot projection, source status, structured
 source/catalog diagnostics, and exact dependency list. Repair invalid or stale inputs
 before continuing.
 
@@ -278,7 +279,7 @@ unchanged transaction-owned bytes; conflicting writes retain recovery evidence a
 block a blind retry. This is not a crash-atomic multi-file transaction. Lab saves
 source before invoking the cook.
 
-Cooked schema version is 3 and runtime API maximum is `1.x`.
+Cooked schema version is 5 and runtime API maximum is `1.x`.
 [`CharacterPackageCompiler`](../../src/Shared/CharacterPackageCompiler.cs) selects
 the highest API floor required by the authored features, starting at `1.2.0`.
 Read its feature checks for the full mapping. Steered charge, charged stream, and

@@ -1,0 +1,1048 @@
+{
+  "authoringSchemaVersion": 4,
+  "displayName": "Workshop grappler",
+  "weight": 120,
+  "movement": {
+    "runSpeed": 14,
+    "runAccelerationA": 20,
+    "runAccelerationB": 12,
+    "dashSpeed": 20,
+    "airDodgeSpeed": 11,
+    "airSpeedMax": 7.5,
+    "airAccelStick": 16,
+    "airAccelBase": 3.2,
+    "jumpForce": 12,
+    "shortHopForce": 7.2,
+    "airJumpVMultiplier": 0.8,
+    "airJumpHMultiplier": 0.85,
+    "gravity": 36,
+    "airFloatGravity": 0,
+    "dashDurationTicks": 20,
+    "dashCooldownTicks": 48,
+    "groundFriction": 8,
+    "airFriction": 6,
+    "maxFallSpeed": 48,
+    "fastFallSpeed": 58,
+    "maxJumps": 2,
+    "jumpSquatTicks": 4,
+    "floatWindowTicks": 35,
+    "rushTicks": 10
+  },
+  "presentation": {
+    "idle": "anim.idle",
+    "run": "anim.run",
+    "dash": "anim.dash",
+    "jump": "anim.jump",
+    "fall": "anim.fall",
+    "hitSmall": "anim.hit-light",
+    "hitMedium": "anim.hit-medium",
+    "hitHard": "anim.hit-hard",
+    "landStartOffsetSeconds": 0,
+    "modelResourcePath": "",
+    "visualScale": 1,
+    "hurtboxBoneScale": 0.85,
+    "modelYOffset": 0,
+    "modelSoleOffset": 0,
+    "autoModelYOffset": false
+  },
+  "capsuleRadius": 0.35,
+  "capsuleHeight": 1.7,
+  "hipHeight": 0.82,
+  "hurtboxRadius": 1,
+  "shieldRadius": 1,
+  "captureGeometry": {
+    "reach": 0.9,
+    "width": 0.7,
+    "height": 1.2,
+    "offsetY": 0.6,
+    "attackerAnchor": {
+      "x": 0,
+      "y": 0.6,
+      "z": 0.3
+    },
+    "victimAnchor": {
+      "x": 0,
+      "y": 0.6,
+      "z": 0.45
+    }
+  },
+  "hurtboxCapsules": [
+    {
+      "startX": 0,
+      "startY": 0.2,
+      "startZ": 0,
+      "endX": 0,
+      "endY": 0.35,
+      "endZ": 0,
+      "radius": 0.3
+    },
+    {
+      "startX": 0,
+      "startY": 0.62,
+      "startZ": 0,
+      "endX": 0,
+      "endY": 0.62,
+      "endZ": 0,
+      "radius": 0.22
+    },
+    {
+      "startX": 0.15,
+      "startY": 0,
+      "startZ": 0,
+      "endX": 0.15,
+      "endY": -0.65,
+      "endZ": 0,
+      "radius": 0.16
+    },
+    {
+      "startX": -0.15,
+      "startY": 0,
+      "startZ": 0,
+      "endX": -0.15,
+      "endY": -0.65,
+      "endZ": 0,
+      "radius": 0.16
+    }
+  ],
+  "hurtboxBoneDefs": [
+    {
+      "boneId": "bone.head",
+      "offsetX": 0,
+      "offsetY": 0,
+      "offsetZ": 0,
+      "radius": 0.22,
+      "endOffsetX": 0,
+      "endOffsetY": 0,
+      "endOffsetZ": 0
+    },
+    {
+      "boneId": "bone.spine2",
+      "offsetX": 0,
+      "offsetY": 0,
+      "offsetZ": 0,
+      "radius": 0.26,
+      "endOffsetX": 0,
+      "endOffsetY": 0,
+      "endOffsetZ": 0
+    },
+    {
+      "boneId": "bone.hips",
+      "offsetX": 0,
+      "offsetY": 0,
+      "offsetZ": 0,
+      "radius": 0.26,
+      "endOffsetX": 0,
+      "endOffsetY": 0,
+      "endOffsetZ": 0
+    },
+    {
+      "boneId": "bone.right-hand",
+      "offsetX": 0,
+      "offsetY": 0,
+      "offsetZ": 0,
+      "radius": 0.12,
+      "endOffsetX": 0,
+      "endOffsetY": 0,
+      "endOffsetZ": 0
+    },
+    {
+      "boneId": "bone.left-hand",
+      "offsetX": 0,
+      "offsetY": 0,
+      "offsetZ": 0,
+      "radius": 0.12,
+      "endOffsetX": 0,
+      "endOffsetY": 0,
+      "endOffsetZ": 0
+    },
+    {
+      "boneId": "bone.right-foot",
+      "offsetX": 0,
+      "offsetY": 0,
+      "offsetZ": 0,
+      "radius": 0.16,
+      "endOffsetX": 0,
+      "endOffsetY": 0,
+      "endOffsetZ": 0
+    },
+    {
+      "boneId": "bone.left-foot",
+      "offsetX": 0,
+      "offsetY": 0,
+      "offsetZ": 0,
+      "radius": 0.16,
+      "endOffsetX": 0,
+      "endOffsetY": 0,
+      "endOffsetZ": 0
+    }
+  ],
+  "attachmentBoneIds": [],
+  "presentationIds": [],
+  "capabilityRequirements": [
+    {
+      "capabilityId": "slop.ability.aimed-recovery.v1",
+      "capabilityVersion": "1"
+    },
+    {
+      "capabilityId": "slop.ability.command-grab.v1",
+      "capabilityVersion": "1"
+    }
+  ],
+  "slots": [
+    {
+      "id": "ground.1",
+      "name": "1",
+      "description": "",
+      "iconId": "icon.1",
+      "behavior": "meleeCombo",
+      "aimMode": "none",
+      "aimMovement": "fixed",
+      "cooldownTicks": 0,
+      "isRecoveryMove": false,
+      "preserveMomentumOnStart": false,
+      "allowSlideCarry": false,
+      "timeline": {
+        "stages": [
+          {
+            "durationTicks": 30,
+            "iasaTicks": 0,
+            "landingLagTicks": 0,
+            "autoCancelBeforeTicks": 0,
+            "autoCancelAfterTicks": 0,
+            "attackRange": 0,
+            "warpRange": 0,
+            "useTargetLock": false,
+            "rotateTowardTarget": false,
+            "trackingStrength": 0,
+            "animationIds": [
+              "anim.move.ground-1"
+            ],
+            "operations": [
+              {
+                "kind": "spawnHitbox",
+                "tick": 6,
+                "unit": "meters",
+                "hitbox": {
+                  "shape": "sphere",
+                  "radius": 0.5,
+                  "offsetX": 0,
+                  "offsetY": 0.5,
+                  "offsetZ": 0.8,
+                  "endOffsetX": 0,
+                  "endOffsetY": 0,
+                  "endOffsetZ": 0,
+                  "startBoneId": null,
+                  "endBoneId": null,
+                  "damage": 6,
+                  "angle": 35,
+                  "baseKnockback": 4,
+                  "knockbackGrowth": 1,
+                  "stunTicks": 10,
+                  "durationTicks": 3,
+                  "interruptible": true,
+                  "hitGroup": 0
+                }
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "ground.2",
+      "name": "2",
+      "description": "",
+      "iconId": "icon.2",
+      "behavior": "meleeCombo",
+      "aimMode": "none",
+      "aimMovement": "fixed",
+      "cooldownTicks": 0,
+      "isRecoveryMove": false,
+      "preserveMomentumOnStart": false,
+      "allowSlideCarry": false,
+      "timeline": {
+        "stages": [
+          {
+            "durationTicks": 30,
+            "iasaTicks": 0,
+            "landingLagTicks": 0,
+            "autoCancelBeforeTicks": 0,
+            "autoCancelAfterTicks": 0,
+            "attackRange": 0,
+            "warpRange": 0,
+            "useTargetLock": false,
+            "rotateTowardTarget": false,
+            "trackingStrength": 0,
+            "animationIds": [
+              "anim.move.ground-2"
+            ],
+            "operations": [
+              {
+                "kind": "spawnHitbox",
+                "tick": 6,
+                "unit": "meters",
+                "hitbox": {
+                  "shape": "sphere",
+                  "radius": 0.5,
+                  "offsetX": 0,
+                  "offsetY": 0.5,
+                  "offsetZ": 0.8,
+                  "endOffsetX": 0,
+                  "endOffsetY": 0,
+                  "endOffsetZ": 0,
+                  "startBoneId": null,
+                  "endBoneId": null,
+                  "damage": 6,
+                  "angle": 35,
+                  "baseKnockback": 4,
+                  "knockbackGrowth": 1,
+                  "stunTicks": 10,
+                  "durationTicks": 3,
+                  "interruptible": true,
+                  "hitGroup": 0
+                }
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "ground.3",
+      "name": "3",
+      "description": "",
+      "iconId": "icon.3",
+      "behavior": "meleeCombo",
+      "aimMode": "none",
+      "aimMovement": "fixed",
+      "cooldownTicks": 0,
+      "isRecoveryMove": false,
+      "preserveMomentumOnStart": false,
+      "allowSlideCarry": false,
+      "timeline": {
+        "stages": [
+          {
+            "durationTicks": 30,
+            "iasaTicks": 0,
+            "landingLagTicks": 0,
+            "autoCancelBeforeTicks": 0,
+            "autoCancelAfterTicks": 0,
+            "attackRange": 0,
+            "warpRange": 0,
+            "useTargetLock": false,
+            "rotateTowardTarget": false,
+            "trackingStrength": 0,
+            "animationIds": [
+              "anim.move.ground-3"
+            ],
+            "operations": [
+              {
+                "kind": "forwardLunge",
+                "tick": 0,
+                "unit": "metersPerSecond",
+                "speed": 6,
+                "durationTicks": 6,
+                "stopInAttackRange": false
+              },
+              {
+                "kind": "spawnHitbox",
+                "tick": 6,
+                "unit": "meters",
+                "hitbox": {
+                  "shape": "sphere",
+                  "radius": 0.5,
+                  "offsetX": 0,
+                  "offsetY": 0.5,
+                  "offsetZ": 0.8,
+                  "endOffsetX": 0,
+                  "endOffsetY": 0,
+                  "endOffsetZ": 0,
+                  "startBoneId": null,
+                  "endBoneId": null,
+                  "damage": 6,
+                  "angle": 35,
+                  "baseKnockback": 4,
+                  "knockbackGrowth": 1,
+                  "stunTicks": 10,
+                  "durationTicks": 3,
+                  "interruptible": true,
+                  "hitGroup": 0
+                }
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "ground.A",
+      "name": "A",
+      "description": "",
+      "iconId": "icon.a",
+      "behavior": "meleeCombo",
+      "aimMode": "none",
+      "aimMovement": "fixed",
+      "cooldownTicks": 0,
+      "isRecoveryMove": false,
+      "preserveMomentumOnStart": false,
+      "allowSlideCarry": false,
+      "timeline": {
+        "stages": [
+          {
+            "durationTicks": 30,
+            "iasaTicks": 0,
+            "landingLagTicks": 0,
+            "autoCancelBeforeTicks": 0,
+            "autoCancelAfterTicks": 0,
+            "attackRange": 0,
+            "warpRange": 0,
+            "useTargetLock": false,
+            "rotateTowardTarget": false,
+            "trackingStrength": 0,
+            "animationIds": [
+              "anim.move.ground-a"
+            ],
+            "operations": [
+              {
+                "kind": "spawnProjectile",
+                "tick": 8,
+                "unit": "meters",
+                "projectile": {
+                  "launchOffsetX": 0,
+                  "launchOffsetY": 0.5,
+                  "launchOffsetZ": 0.8,
+                  "yawOffsetDegrees": 0,
+                  "speed": 12,
+                  "gravity": 0,
+                  "radius": 0.2,
+                  "damage": 4,
+                  "angle": 25,
+                  "baseKnockback": 3,
+                  "knockbackGrowth": 0.8,
+                  "stunTicks": 8,
+                  "maxFlightTicks": 60
+                }
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "ground.E",
+      "name": "E",
+      "description": "",
+      "iconId": "icon.e",
+      "behavior": "meleeCombo",
+      "aimMode": "none",
+      "aimMovement": "fixed",
+      "cooldownTicks": 0,
+      "isRecoveryMove": true,
+      "preserveMomentumOnStart": false,
+      "allowSlideCarry": false,
+      "timeline": {
+        "stages": [
+          {
+            "durationTicks": 60,
+            "iasaTicks": 0,
+            "landingLagTicks": 0,
+            "autoCancelBeforeTicks": 0,
+            "autoCancelAfterTicks": 0,
+            "attackRange": 0,
+            "warpRange": 0,
+            "useTargetLock": false,
+            "rotateTowardTarget": false,
+            "trackingStrength": 0,
+            "animationIds": [
+              "anim.move.ground-e"
+            ],
+            "operations": [
+              {
+                "kind": "startCapability",
+                "tick": 0,
+                "unit": "ticks",
+                "capabilityId": "slop.ability.aimed-recovery.v1",
+                "capabilityVersion": "1",
+                "parameters": {
+                  "startupTicks": 10,
+                  "verticalSpeed": 16,
+                  "directionalVerticalSpeed": 12,
+                  "horizontalSpeed": 8,
+                  "preparationRiseSpeed": 0
+                }
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "ground.R",
+      "name": "R",
+      "description": "",
+      "iconId": "icon.r",
+      "behavior": "meleeCombo",
+      "aimMode": "none",
+      "aimMovement": "fixed",
+      "cooldownTicks": 0,
+      "isRecoveryMove": false,
+      "preserveMomentumOnStart": false,
+      "allowSlideCarry": false,
+      "timeline": {
+        "stages": [
+          {
+            "durationTicks": 30,
+            "iasaTicks": 0,
+            "landingLagTicks": 0,
+            "autoCancelBeforeTicks": 0,
+            "autoCancelAfterTicks": 0,
+            "attackRange": 0,
+            "warpRange": 0,
+            "useTargetLock": false,
+            "rotateTowardTarget": false,
+            "trackingStrength": 0,
+            "animationIds": [
+              "anim.move.ground-r"
+            ],
+            "operations": [
+              {
+                "kind": "armorWindow",
+                "tick": 0,
+                "unit": "ticks",
+                "durationTicks": 9
+              },
+              {
+                "kind": "spawnHitbox",
+                "tick": 6,
+                "unit": "meters",
+                "hitbox": {
+                  "shape": "sphere",
+                  "radius": 0.5,
+                  "offsetX": 0,
+                  "offsetY": 0.5,
+                  "offsetZ": 0.8,
+                  "endOffsetX": 0,
+                  "endOffsetY": 0,
+                  "endOffsetZ": 0,
+                  "startBoneId": null,
+                  "endBoneId": null,
+                  "damage": 6,
+                  "angle": 35,
+                  "baseKnockback": 4,
+                  "knockbackGrowth": 1,
+                  "stunTicks": 10,
+                  "durationTicks": 3,
+                  "interruptible": true,
+                  "hitGroup": 0
+                }
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "ground.F",
+      "name": "Capture and toss",
+      "description": "A public command grab with a release launch.",
+      "iconId": "icon.f",
+      "behavior": "meleeCombo",
+      "aimMode": "none",
+      "aimMovement": "fixed",
+      "cooldownTicks": 0,
+      "isRecoveryMove": false,
+      "preserveMomentumOnStart": false,
+      "allowSlideCarry": false,
+      "timeline": {
+        "stages": [
+          {
+            "durationTicks": 55,
+            "iasaTicks": 0,
+            "landingLagTicks": 0,
+            "autoCancelBeforeTicks": 0,
+            "autoCancelAfterTicks": 0,
+            "attackRange": 0,
+            "warpRange": 0,
+            "useTargetLock": false,
+            "rotateTowardTarget": false,
+            "trackingStrength": 0,
+            "animationIds": [
+              "anim.knight.ground-f"
+            ],
+            "operations": [
+              {
+                "kind": "startCapability",
+                "tick": 0,
+                "unit": "ticks",
+                "capabilityId": "slop.ability.command-grab.v1",
+                "capabilityVersion": "1",
+                "parameters": {
+                  "lungeTicks": 0,
+                  "lungeSpeed": 0,
+                  "stopDistance": 0,
+                  "captureTick": 12,
+                  "capture": {
+                    "shape": "sphere",
+                    "radius": 0.5,
+                    "offsetX": 0,
+                    "offsetY": 0.2,
+                    "offsetZ": 0.8,
+                    "endOffsetX": 0,
+                    "endOffsetY": 0,
+                    "endOffsetZ": 0,
+                    "startBoneId": null,
+                    "endBoneId": null,
+                    "damage": 0,
+                    "angle": 35,
+                    "baseKnockback": 0,
+                    "knockbackGrowth": 0,
+                    "stunTicks": 0,
+                    "durationTicks": 5,
+                    "interruptible": true,
+                    "hitGroup": 0
+                  },
+                  "releaseTick": 32,
+                  "launch": {
+                    "damage": 13,
+                    "angle": 40,
+                    "baseKnockback": 7,
+                    "knockbackGrowth": 1.2,
+                    "stunTicks": 20
+                  }
+                }
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "air.1",
+      "name": "1",
+      "description": "",
+      "iconId": "icon.1",
+      "behavior": "meleeCombo",
+      "aimMode": "none",
+      "aimMovement": "fixed",
+      "cooldownTicks": 0,
+      "isRecoveryMove": false,
+      "preserveMomentumOnStart": false,
+      "allowSlideCarry": false,
+      "timeline": {
+        "stages": [
+          {
+            "durationTicks": 30,
+            "iasaTicks": 0,
+            "landingLagTicks": 0,
+            "autoCancelBeforeTicks": 0,
+            "autoCancelAfterTicks": 0,
+            "attackRange": 0,
+            "warpRange": 0,
+            "useTargetLock": false,
+            "rotateTowardTarget": false,
+            "trackingStrength": 0,
+            "animationIds": [
+              "anim.move.air-1"
+            ],
+            "operations": [
+              {
+                "kind": "spawnHitbox",
+                "tick": 6,
+                "unit": "meters",
+                "hitbox": {
+                  "shape": "sphere",
+                  "radius": 0.5,
+                  "offsetX": 0,
+                  "offsetY": 0.5,
+                  "offsetZ": 0.8,
+                  "endOffsetX": 0,
+                  "endOffsetY": 0,
+                  "endOffsetZ": 0,
+                  "startBoneId": null,
+                  "endBoneId": null,
+                  "damage": 6,
+                  "angle": 35,
+                  "baseKnockback": 4,
+                  "knockbackGrowth": 1,
+                  "stunTicks": 10,
+                  "durationTicks": 3,
+                  "interruptible": true,
+                  "hitGroup": 0
+                }
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "air.2",
+      "name": "2",
+      "description": "",
+      "iconId": "icon.2",
+      "behavior": "meleeCombo",
+      "aimMode": "none",
+      "aimMovement": "fixed",
+      "cooldownTicks": 0,
+      "isRecoveryMove": false,
+      "preserveMomentumOnStart": false,
+      "allowSlideCarry": false,
+      "timeline": {
+        "stages": [
+          {
+            "durationTicks": 30,
+            "iasaTicks": 0,
+            "landingLagTicks": 0,
+            "autoCancelBeforeTicks": 0,
+            "autoCancelAfterTicks": 0,
+            "attackRange": 0,
+            "warpRange": 0,
+            "useTargetLock": false,
+            "rotateTowardTarget": false,
+            "trackingStrength": 0,
+            "animationIds": [
+              "anim.move.air-2"
+            ],
+            "operations": [
+              {
+                "kind": "spawnHitbox",
+                "tick": 6,
+                "unit": "meters",
+                "hitbox": {
+                  "shape": "sphere",
+                  "radius": 0.5,
+                  "offsetX": 0,
+                  "offsetY": 0.5,
+                  "offsetZ": 0.8,
+                  "endOffsetX": 0,
+                  "endOffsetY": 0,
+                  "endOffsetZ": 0,
+                  "startBoneId": null,
+                  "endBoneId": null,
+                  "damage": 6,
+                  "angle": 35,
+                  "baseKnockback": 4,
+                  "knockbackGrowth": 1,
+                  "stunTicks": 10,
+                  "durationTicks": 3,
+                  "interruptible": true,
+                  "hitGroup": 0
+                }
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "air.3",
+      "name": "3",
+      "description": "",
+      "iconId": "icon.3",
+      "behavior": "meleeCombo",
+      "aimMode": "none",
+      "aimMovement": "fixed",
+      "cooldownTicks": 0,
+      "isRecoveryMove": false,
+      "preserveMomentumOnStart": false,
+      "allowSlideCarry": false,
+      "timeline": {
+        "stages": [
+          {
+            "durationTicks": 30,
+            "iasaTicks": 0,
+            "landingLagTicks": 0,
+            "autoCancelBeforeTicks": 0,
+            "autoCancelAfterTicks": 0,
+            "attackRange": 0,
+            "warpRange": 0,
+            "useTargetLock": false,
+            "rotateTowardTarget": false,
+            "trackingStrength": 0,
+            "animationIds": [
+              "anim.move.air-3"
+            ],
+            "operations": [
+              {
+                "kind": "forwardLunge",
+                "tick": 0,
+                "unit": "metersPerSecond",
+                "speed": 6,
+                "durationTicks": 6,
+                "stopInAttackRange": false
+              },
+              {
+                "kind": "spawnHitbox",
+                "tick": 6,
+                "unit": "meters",
+                "hitbox": {
+                  "shape": "sphere",
+                  "radius": 0.5,
+                  "offsetX": 0,
+                  "offsetY": 0.5,
+                  "offsetZ": 0.8,
+                  "endOffsetX": 0,
+                  "endOffsetY": 0,
+                  "endOffsetZ": 0,
+                  "startBoneId": null,
+                  "endBoneId": null,
+                  "damage": 6,
+                  "angle": 35,
+                  "baseKnockback": 4,
+                  "knockbackGrowth": 1,
+                  "stunTicks": 10,
+                  "durationTicks": 3,
+                  "interruptible": true,
+                  "hitGroup": 0
+                }
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "air.A",
+      "name": "A",
+      "description": "",
+      "iconId": "icon.a",
+      "behavior": "meleeCombo",
+      "aimMode": "none",
+      "aimMovement": "fixed",
+      "cooldownTicks": 0,
+      "isRecoveryMove": false,
+      "preserveMomentumOnStart": false,
+      "allowSlideCarry": false,
+      "timeline": {
+        "stages": [
+          {
+            "durationTicks": 30,
+            "iasaTicks": 0,
+            "landingLagTicks": 0,
+            "autoCancelBeforeTicks": 0,
+            "autoCancelAfterTicks": 0,
+            "attackRange": 0,
+            "warpRange": 0,
+            "useTargetLock": false,
+            "rotateTowardTarget": false,
+            "trackingStrength": 0,
+            "animationIds": [
+              "anim.move.air-a"
+            ],
+            "operations": [
+              {
+                "kind": "spawnProjectile",
+                "tick": 8,
+                "unit": "meters",
+                "projectile": {
+                  "launchOffsetX": 0,
+                  "launchOffsetY": 0.5,
+                  "launchOffsetZ": 0.8,
+                  "yawOffsetDegrees": 0,
+                  "speed": 12,
+                  "gravity": 0,
+                  "radius": 0.2,
+                  "damage": 4,
+                  "angle": 25,
+                  "baseKnockback": 3,
+                  "knockbackGrowth": 0.8,
+                  "stunTicks": 8,
+                  "maxFlightTicks": 60
+                }
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "air.E",
+      "name": "E",
+      "description": "",
+      "iconId": "icon.e",
+      "behavior": "meleeCombo",
+      "aimMode": "none",
+      "aimMovement": "fixed",
+      "cooldownTicks": 0,
+      "isRecoveryMove": true,
+      "preserveMomentumOnStart": false,
+      "allowSlideCarry": false,
+      "timeline": {
+        "stages": [
+          {
+            "durationTicks": 60,
+            "iasaTicks": 0,
+            "landingLagTicks": 0,
+            "autoCancelBeforeTicks": 0,
+            "autoCancelAfterTicks": 0,
+            "attackRange": 0,
+            "warpRange": 0,
+            "useTargetLock": false,
+            "rotateTowardTarget": false,
+            "trackingStrength": 0,
+            "animationIds": [
+              "anim.move.air-e"
+            ],
+            "operations": [
+              {
+                "kind": "startCapability",
+                "tick": 0,
+                "unit": "ticks",
+                "capabilityId": "slop.ability.aimed-recovery.v1",
+                "capabilityVersion": "1",
+                "parameters": {
+                  "startupTicks": 10,
+                  "verticalSpeed": 16,
+                  "directionalVerticalSpeed": 12,
+                  "horizontalSpeed": 8,
+                  "preparationRiseSpeed": 0
+                }
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "air.R",
+      "name": "R",
+      "description": "",
+      "iconId": "icon.r",
+      "behavior": "meleeCombo",
+      "aimMode": "none",
+      "aimMovement": "fixed",
+      "cooldownTicks": 0,
+      "isRecoveryMove": false,
+      "preserveMomentumOnStart": false,
+      "allowSlideCarry": false,
+      "timeline": {
+        "stages": [
+          {
+            "durationTicks": 30,
+            "iasaTicks": 0,
+            "landingLagTicks": 0,
+            "autoCancelBeforeTicks": 0,
+            "autoCancelAfterTicks": 0,
+            "attackRange": 0,
+            "warpRange": 0,
+            "useTargetLock": false,
+            "rotateTowardTarget": false,
+            "trackingStrength": 0,
+            "animationIds": [
+              "anim.move.air-r"
+            ],
+            "operations": [
+              {
+                "kind": "armorWindow",
+                "tick": 0,
+                "unit": "ticks",
+                "durationTicks": 9
+              },
+              {
+                "kind": "spawnHitbox",
+                "tick": 6,
+                "unit": "meters",
+                "hitbox": {
+                  "shape": "sphere",
+                  "radius": 0.5,
+                  "offsetX": 0,
+                  "offsetY": 0.5,
+                  "offsetZ": 0.8,
+                  "endOffsetX": 0,
+                  "endOffsetY": 0,
+                  "endOffsetZ": 0,
+                  "startBoneId": null,
+                  "endBoneId": null,
+                  "damage": 6,
+                  "angle": 35,
+                  "baseKnockback": 4,
+                  "knockbackGrowth": 1,
+                  "stunTicks": 10,
+                  "durationTicks": 3,
+                  "interruptible": true,
+                  "hitGroup": 0
+                }
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "air.F",
+      "name": "Capture and toss",
+      "description": "A public command grab with a release launch.",
+      "iconId": "icon.f",
+      "behavior": "meleeCombo",
+      "aimMode": "none",
+      "aimMovement": "fixed",
+      "cooldownTicks": 0,
+      "isRecoveryMove": false,
+      "preserveMomentumOnStart": false,
+      "allowSlideCarry": false,
+      "timeline": {
+        "stages": [
+          {
+            "durationTicks": 55,
+            "iasaTicks": 0,
+            "landingLagTicks": 12,
+            "autoCancelBeforeTicks": 0,
+            "autoCancelAfterTicks": 0,
+            "attackRange": 0,
+            "warpRange": 0,
+            "useTargetLock": false,
+            "rotateTowardTarget": false,
+            "trackingStrength": 0,
+            "animationIds": [
+              "anim.knight.air-f"
+            ],
+            "operations": [
+              {
+                "kind": "startCapability",
+                "tick": 0,
+                "unit": "ticks",
+                "capabilityId": "slop.ability.command-grab.v1",
+                "capabilityVersion": "1",
+                "parameters": {
+                  "lungeTicks": 0,
+                  "lungeSpeed": 0,
+                  "stopDistance": 0,
+                  "captureTick": 12,
+                  "capture": {
+                    "shape": "sphere",
+                    "radius": 0.5,
+                    "offsetX": 0,
+                    "offsetY": 0.2,
+                    "offsetZ": 0.8,
+                    "endOffsetX": 0,
+                    "endOffsetY": 0,
+                    "endOffsetZ": 0,
+                    "startBoneId": null,
+                    "endBoneId": null,
+                    "damage": 0,
+                    "angle": 35,
+                    "baseKnockback": 0,
+                    "knockbackGrowth": 0,
+                    "stunTicks": 0,
+                    "durationTicks": 5,
+                    "interruptible": true,
+                    "hitGroup": 0
+                  },
+                  "releaseTick": 32,
+                  "launch": {
+                    "damage": 13,
+                    "angle": 40,
+                    "baseKnockback": 7,
+                    "knockbackGrowth": 1.2,
+                    "stunTicks": 20
+                  }
+                }
+              }
+            ]
+          }
+        ]
+      }
+    }
+  ],
+  "aliases": []
+}

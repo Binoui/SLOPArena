@@ -18,9 +18,10 @@ internal static class DashStrikeContract
 {
     internal static string? BoundsError(CookedDashStrikeCapabilityParameters x)
     {
-        if (!Finite(x.Distance) || x.Distance <= 0 || x.Distance > 12 ||
-            !Finite(x.Speed) || x.Speed <= 0 || x.Speed > 60 || x.RecoveryTicks == 0 || x.RecoveryTicks > 120)
-            return "Dash strike requires finite distance (0, 12], speed (0, 60], and recovery 1..120 ticks.";
+        var rulesCapDashStrikeV1 = CharacterRuntimeLimits.Object("cap.dash-strike.v1");
+        if (!Finite(x.Distance) || rulesCapDashStrikeV1.Field("distance").IsOutsideGameplay(x.Distance) ||
+            !Finite(x.Speed) || rulesCapDashStrikeV1.Field("speed").IsOutsideGameplay(x.Speed) || rulesCapDashStrikeV1.Field("recoveryTicks").IsOutsideGameplay(x.RecoveryTicks))
+            return "Dash strike requires finite values. " + rulesCapDashStrikeV1.Describe("distance", "speed", "recoveryTicks");
         if (x.Distance / (double)(x.Speed * Simulation.TickDt) > ushort.MaxValue)
             return "Dash strike travel exceeds the supported tick budget.";
         var light = x.LightHitbox;

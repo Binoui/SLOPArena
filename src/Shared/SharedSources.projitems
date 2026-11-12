@@ -1,0 +1,8 @@
+<Project>
+  <ItemGroup>
+    <Compile Include="$(MSBuildThisFileDirectory)**/*.cs"
+             Exclude="$(MSBuildThisFileDirectory)obj/**;$(MSBuildThisFileDirectory)bin/**" />
+    <EmbeddedResource Include="$(MSBuildThisFileDirectory)CharacterSourceSchema.xml"
+                      LogicalName="SlopArena.Shared.CharacterSourceSchema.xml" />
+  </ItemGroup>
+</Project>
