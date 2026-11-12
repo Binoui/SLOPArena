@@ -2,6 +2,8 @@
 
 Build and publish with the repository's .NET SDK. No Unity, source parser, or additional NuGet package is needed.
 Run the published output anywhere with the .NET 8 runtime. Keep its publish-directory files together.
+`template` validates the package ID before writing and refuses to overwrite either source file.
+`moves <folder>` prints per-contact estimates by calling Shared simulation functions. Captures are labelled as holds, and dynamic capability outcomes need play verification.
 
 ```sh
 dotnet publish tools/KitCheck -p:SkipUnityPluginCopy=true -c Release -o /tmp/kitcheck
@@ -25,7 +27,9 @@ dotnet kitcheck/KitCheck.dll template my-kit local.my-kit 'My kit'
 
 The generator reads the public, immutable `CharacterSourceSchema` API in Shared.
 Its embedded `CharacterSourceSchema.xml` defines field names, types, requiredness, defaults, units, descriptions,
-scalar ranges, enum tokens, child schemas, diagnostic identities, capabilities, and budget costs.
+source-only scalar ranges, enum tokens, child schemas, diagnostic identities, capabilities, and budget costs.
+Runtime/cooked-loader scalar limits live in `CharacterRuntimeLimits` and named code constants. Capability versions and snapshot limits stay in code. Tests require the schema to agree.
+Use `HasWritableDefault` to distinguish an insertable JSON default from an omission value, and `IsAllowed` for conditional fields. `ContextRanges` describes bounds specific to a containing capability.
 The source reader and compiler use those definitions. Existing coupled geometry and lifecycle checks remain compiler-owned;
 the reference describes those exceptions by hand. `dotnet build` fails when a schema field has no description.
 

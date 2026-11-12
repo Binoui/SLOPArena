@@ -1,0 +1,422 @@
+[
+  {
+    "Schema": "alias",
+    "Objects": 27,
+    "Removals": 54,
+    "DefaultInsertions": 0,
+    "Hash": "b75fdcdcbb9ca294c4b29aca49bb610419b52ffbda160bef08d2d53e3257a680"
+  },
+  {
+    "Schema": "alternateForm",
+    "Objects": 1,
+    "Removals": 6,
+    "DefaultInsertions": 0,
+    "Hash": "810abebea69caa1d0dbb310e5358cacdb8e387569d2162f599a1bf44d6bb61fc"
+  },
+  {
+    "Schema": "anchor",
+    "Objects": 24,
+    "Removals": 72,
+    "DefaultInsertions": 0,
+    "Hash": "78add3ff6c685f05bd68ce2aa14c42cad1137f2b30efea8831053b2b2f2644ec"
+  },
+  {
+    "Schema": "cap.aimed-recovery.v1",
+    "Objects": 10,
+    "Removals": 70,
+    "DefaultInsertions": 10,
+    "Hash": "129468f65315c6604fa990f7902843181ae0943667a630fc58f380adc4c429a2"
+  },
+  {
+    "Schema": "cap.cannonball.v1",
+    "Objects": 1,
+    "Removals": 7,
+    "DefaultInsertions": 1,
+    "Hash": "794a71688db3b68502ae62e4b313ad43b946f15293b9f4bc9768a8b038ae86a2"
+  },
+  {
+    "Schema": "cap.charged-projectile.v1",
+    "Objects": 2,
+    "Removals": 14,
+    "DefaultInsertions": 0,
+    "Hash": "ff90185c8e9c804be719af9e10713e66e43c4c714cf5957fb8525ebbe7fc76ad"
+  },
+  {
+    "Schema": "cap.charged-stream.v1",
+    "Objects": 2,
+    "Removals": 26,
+    "DefaultInsertions": 5,
+    "Hash": "6a7e648f990d4cf6875e92ab8d11e14a97842dd39c3eb668163294dee23fc550"
+  },
+  {
+    "Schema": "cap.command-grab.v1",
+    "Objects": 8,
+    "Removals": 104,
+    "DefaultInsertions": 38,
+    "Hash": "43aff6d026022ca9090f3e548b9449c79e0108246ec377b0d8785ed9d4360101"
+  },
+  {
+    "Schema": "cap.dash-strike.v1",
+    "Objects": 1,
+    "Removals": 7,
+    "DefaultInsertions": 0,
+    "Hash": "b0fb0028af2ca5ccc6c22b506613b43c8dfef52fa0492777339ef10db8b36d53"
+  },
+  {
+    "Schema": "cap.finger-guns.v1",
+    "Objects": 1,
+    "Removals": 8,
+    "DefaultInsertions": 0,
+    "Hash": "e07e45e44092b5d90a7a60a9e800456c2145f182e728cf646060ccd3d745e43b"
+  },
+  {
+    "Schema": "cap.flash-cut.v1",
+    "Objects": 1,
+    "Removals": 17,
+    "DefaultInsertions": 0,
+    "Hash": "e8f28651e6a5538bc8754351dbdaf5876a15b6d925273d02ca07d7d5836d1e57"
+  },
+  {
+    "Schema": "cap.steered-charge.v2",
+    "Objects": 4,
+    "Removals": 108,
+    "DefaultInsertions": 38,
+    "Hash": "157d74fca932bb82fc5dc3c1fa93692b79807657f19cf81c193248e163032b52"
+  },
+  {
+    "Schema": "cap.targeted-leap.v2",
+    "Objects": 4,
+    "Removals": 80,
+    "DefaultInsertions": 4,
+    "Hash": "1f2583bc3ba58ed86a9a61af26e616f8c25450785acd4c362dc0af778b486b03"
+  },
+  {
+    "Schema": "cap.tether.v1",
+    "Objects": 2,
+    "Removals": 26,
+    "DefaultInsertions": 8,
+    "Hash": "56bdc8eadd229cbb18828647bae94ad64c668edb6d7bda3404d9cace6be79349"
+  },
+  {
+    "Schema": "cap.thrust.v1",
+    "Objects": 3,
+    "Removals": 30,
+    "DefaultInsertions": 3,
+    "Hash": "24c955530fcf208a6216c890c971c0202ed69b5286e7436544fc2fdc2e42274e"
+  },
+  {
+    "Schema": "capabilityRequirement",
+    "Objects": 36,
+    "Removals": 72,
+    "DefaultInsertions": 0,
+    "Hash": "c584e26a0c6262161a031a184e6df590b6b57b4f8f9aa627ea545d7e97d7889c"
+  },
+  {
+    "Schema": "captureGeometry",
+    "Objects": 12,
+    "Removals": 72,
+    "DefaultInsertions": 0,
+    "Hash": "584311e4022dec4b703ea6f1676ff7704e480cba58780f97b823bff3a89f3304"
+  },
+  {
+    "Schema": "character",
+    "Objects": 12,
+    "Removals": 240,
+    "DefaultInsertions": 0,
+    "Hash": "34712e44dced3db225d4c148c9020d58f22fb480e7f8dce9402e0f6fa7aedc73"
+  },
+  {
+    "Schema": "chargeAssist",
+    "Objects": 4,
+    "Removals": 12,
+    "DefaultInsertions": 0,
+    "Hash": "f574656e4dcf787c99ebba4dc56e31ed8b086dbdf42b8e0794a6eb33d5b00619"
+  },
+  {
+    "Schema": "chargeCarry",
+    "Objects": 4,
+    "Removals": 32,
+    "DefaultInsertions": 12,
+    "Hash": "2cf2266e5c794092f4e9f5147e2986e570322384a4741a99a8937520e65cad0b"
+  },
+  {
+    "Schema": "chargePool",
+    "Objects": 1,
+    "Removals": 2,
+    "DefaultInsertions": 0,
+    "Hash": "80f15ecb5a5d36e1ad5e2b16342b52ea15115ace8a7b7915fb2ce0c81f2094a7"
+  },
+  {
+    "Schema": "dependency",
+    "Objects": 2,
+    "Removals": 6,
+    "DefaultInsertions": 0,
+    "Hash": "84a00360f618a9598722b1ad998be451abb4978880f8acb1dae9ce7bbc886702"
+  },
+  {
+    "Schema": "dive",
+    "Objects": 1,
+    "Removals": 5,
+    "DefaultInsertions": 0,
+    "Hash": "1798747d166cd2475e86bbad72e3002d2517cefc11813435af5ffff6a4d46994"
+  },
+  {
+    "Schema": "formPresentation",
+    "Objects": 1,
+    "Removals": 14,
+    "DefaultInsertions": 14,
+    "Hash": "cae111303453dd0389d1cd1b41bc733f0866f3e6bfa9f1e7899e39dcb4709483"
+  },
+  {
+    "Schema": "hitbox",
+    "Objects": 193,
+    "Removals": 4246,
+    "DefaultInsertions": 1157,
+    "Hash": "2bf983c3caeb5fd5e535b56ab298d82f3fd3c7f0ffb35c3a074269669ed09e17"
+  },
+  {
+    "Schema": "homing",
+    "Objects": 4,
+    "Removals": 4,
+    "DefaultInsertions": 0,
+    "Hash": "6da3443171634c6b341cf50577d1bcdf2e260ff530cc462952ecb9973d679c3c"
+  },
+  {
+    "Schema": "hurtboxBone",
+    "Objects": 149,
+    "Removals": 1341,
+    "DefaultInsertions": 588,
+    "Hash": "778547e062788d8665f93dbf33f1e6c5770622260748bbd013e6e9d6d2363a91"
+  },
+  {
+    "Schema": "hurtboxCapsule",
+    "Objects": 60,
+    "Removals": 420,
+    "DefaultInsertions": 0,
+    "Hash": "86b6cee2da1a440ffae179cf4eeb673528106dad53aaea11da94d45b2621b68e"
+  },
+  {
+    "Schema": "launch",
+    "Objects": 11,
+    "Removals": 55,
+    "DefaultInsertions": 0,
+    "Hash": "0977fddd9b8c301f8368045ad7f3dd29850bedba77c31d9a3bc433ba02542bf0"
+  },
+  {
+    "Schema": "legHit",
+    "Objects": 4,
+    "Removals": 24,
+    "DefaultInsertions": 4,
+    "Hash": "eb50b7e931f72c773a1cbd9554bbf4efee17e5cac4765be050f0a018d9f9fa98"
+  },
+  {
+    "Schema": "manifest",
+    "Objects": 12,
+    "Removals": 84,
+    "DefaultInsertions": 0,
+    "Hash": "9fcb03615b381f52e05b8dcabfec5fca299a8053f8559a7b03116ac405a4582a"
+  },
+  {
+    "Schema": "movement",
+    "Objects": 13,
+    "Removals": 312,
+    "DefaultInsertions": 0,
+    "Hash": "489679de67a83d44194a198a1e550b824fcb466d1cb6278caaba713130b1560f"
+  },
+  {
+    "Schema": "op.armorWindow",
+    "Objects": 6,
+    "Removals": 24,
+    "DefaultInsertions": 0,
+    "Hash": "83c1f1d60bc36a4929f991670090027a93aed5babff9a303c45b0e24adcc0c30"
+  },
+  {
+    "Schema": "op.completeTimeline",
+    "Objects": 2,
+    "Removals": 6,
+    "DefaultInsertions": 0,
+    "Hash": "87ece3d13ddc5833c44a5df510faca2435919710956c47d00efad4b836662ad3"
+  },
+  {
+    "Schema": "op.emitPresentation",
+    "Objects": 164,
+    "Removals": 984,
+    "DefaultInsertions": 328,
+    "Hash": "c4819ac28367e13687ed38c6bf0356a963a499f6e3a31b7b029c80c2c34be68c"
+  },
+  {
+    "Schema": "op.forwardLunge",
+    "Objects": 9,
+    "Removals": 54,
+    "DefaultInsertions": 9,
+    "Hash": "d5243996070aea9a310747b36abee4b9fc070e5b97413325af721ec5c928d24c"
+  },
+  {
+    "Schema": "op.gravityWindow",
+    "Objects": 4,
+    "Removals": 20,
+    "DefaultInsertions": 0,
+    "Hash": "8f360b5d4a657e4bea1016cdfaa44a86664a71bf27115a1c1e2839aed835dafa"
+  },
+  {
+    "Schema": "op.setAimState",
+    "Objects": 8,
+    "Removals": 32,
+    "DefaultInsertions": 0,
+    "Hash": "4e9b7c623551bd0aed21affee48539e1edd82e05565d5584a0d3d23bdb282b4c"
+  },
+  {
+    "Schema": "op.setVelocity",
+    "Objects": 19,
+    "Removals": 133,
+    "DefaultInsertions": 0,
+    "Hash": "ad58ba92adc6510df459078fa1169c7f6ba2eb92ee1e24ab11bb35f5e5a69909"
+  },
+  {
+    "Schema": "op.spawnHitbox",
+    "Objects": 167,
+    "Removals": 668,
+    "DefaultInsertions": 0,
+    "Hash": "efe11a9b6738d039cbd1f2ebfd0afe768e3e6021157afef38176ae38824fab8f"
+  },
+  {
+    "Schema": "op.spawnProjectile",
+    "Objects": 17,
+    "Removals": 68,
+    "DefaultInsertions": 0,
+    "Hash": "43bf4a26653241c8027335a221d069b2e20a5aaa4ac9c3e9081ef71990a29826"
+  },
+  {
+    "Schema": "op.startCapability",
+    "Objects": 46,
+    "Removals": 276,
+    "DefaultInsertions": 0,
+    "Hash": "c8be6a77e0f2412965b5e07ff10d2ae1df352593b87b70e74b3c65bfbd0ad966"
+  },
+  {
+    "Schema": "op.startupAimCorrection",
+    "Objects": 57,
+    "Removals": 570,
+    "DefaultInsertions": 0,
+    "Hash": "a24d8a2325cfc4c5355e6aa98fc3ff9102c3e81f255b59ad9b62206fdbe0cda0"
+  },
+  {
+    "Schema": "op.swapForm",
+    "Objects": 2,
+    "Removals": 6,
+    "DefaultInsertions": 0,
+    "Hash": "1bcef073f16f50837c3fa938cad39324235704489ddea0a614d78b5f8429e016"
+  },
+  {
+    "Schema": "peck",
+    "Objects": 1,
+    "Removals": 3,
+    "DefaultInsertions": 1,
+    "Hash": "545095e56af4bb0e1bd7669dfc322fee7081ca44eaafcedd46564ae602bee0d4"
+  },
+  {
+    "Schema": "perch",
+    "Objects": 1,
+    "Removals": 5,
+    "DefaultInsertions": 1,
+    "Hash": "4152744ba235c4a7cc0944f58cefc708aeb7c5d9f13c2cbb8e510511bf10ae0c"
+  },
+  {
+    "Schema": "placement",
+    "Objects": 164,
+    "Removals": 1968,
+    "DefaultInsertions": 1817,
+    "Hash": "20f801806fb2c81711f72d1c1ca6be2ecfe56415eee16e470bd8c55bbf34814d"
+  },
+  {
+    "Schema": "pop",
+    "Objects": 1,
+    "Removals": 6,
+    "DefaultInsertions": 1,
+    "Hash": "f84b86c5b1f211abb7a23d4c16b66a2d8ecc53da9b2e4909295f3edfb0297349"
+  },
+  {
+    "Schema": "presentation",
+    "Objects": 12,
+    "Removals": 324,
+    "DefaultInsertions": 143,
+    "Hash": "3493849c1af072182f898e1860e531ff72f8704ab09d1fa1a3f2700c05712eff"
+  },
+  {
+    "Schema": "projectile",
+    "Objects": 23,
+    "Removals": 391,
+    "DefaultInsertions": 23,
+    "Hash": "7d09c64d305e7e07c0348454a7e0c56e52c0f3a110b6fcb0ef23b9b5bbf74fc6"
+  },
+  {
+    "Schema": "projectileReturn",
+    "Objects": 4,
+    "Removals": 32,
+    "DefaultInsertions": 8,
+    "Hash": "c1a2f5064f84521e505a83ba10ea482d62951875c20bfac23ac0ae295c400984"
+  },
+  {
+    "Schema": "recoveryHop",
+    "Objects": 2,
+    "Removals": 10,
+    "DefaultInsertions": 0,
+    "Hash": "933b9f94a9cb45e1c568e9607bd495e08b87d56bdc8bfdb9fede053916b4c9a9"
+  },
+  {
+    "Schema": "ride",
+    "Objects": 1,
+    "Removals": 5,
+    "DefaultInsertions": 1,
+    "Hash": "6286edf6ec7e735c075147c441d9ce0fbd4eb05bf5870246402f7920d65f2995"
+  },
+  {
+    "Schema": "shell",
+    "Objects": 1,
+    "Removals": 4,
+    "DefaultInsertions": 0,
+    "Hash": "cb20e71b10d148d8834fd03d003f1bfe2e6e580c356ef6b118abab8b79dfc013"
+  },
+  {
+    "Schema": "slot",
+    "Objects": 155,
+    "Removals": 2635,
+    "DefaultInsertions": 1079,
+    "Hash": "f01580b71aa64ded1fc1ca84ae323a9a854fe96f4abe00d3af5a19e3ff326320"
+  },
+  {
+    "Schema": "splash",
+    "Objects": 1,
+    "Removals": 3,
+    "DefaultInsertions": 1,
+    "Hash": "695247b067470ff759532a000eab676fd00df53677be5cac3120500d4d0630b4"
+  },
+  {
+    "Schema": "stage",
+    "Objects": 156,
+    "Removals": 1872,
+    "DefaultInsertions": 780,
+    "Hash": "c320389d229397479facea2652eb12db51cdad9e1f7205e2ebea8573755b9e01"
+  },
+  {
+    "Schema": "tetherAtTarget",
+    "Objects": 1,
+    "Removals": 10,
+    "DefaultInsertions": 2,
+    "Hash": "6cb6821cd754f5079736e90c167f0aaa199790500725468bb69988122f46bf2e"
+  },
+  {
+    "Schema": "tetherUnmarked",
+    "Objects": 1,
+    "Removals": 12,
+    "DefaultInsertions": 1,
+    "Hash": "864bbb9bc5f5cf1018277d074b604ac47d212b96d10490d56e89f9d7ebbc00e2"
+  },
+  {
+    "Schema": "timeline",
+    "Objects": 155,
+    "Removals": 155,
+    "DefaultInsertions": 0,
+    "Hash": "6f7a3b6b8e4815f0e53e010af7266f8322aa10f79fd0a1310237100fd3087932"
+  }
+]

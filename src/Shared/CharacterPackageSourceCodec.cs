@@ -1240,9 +1240,9 @@ public static class CharacterPackageSourceCodec
             var chargePool = HasObject(p, "chargePool", d)
                 ? ParseChargePool(p["chargePool"], path + ".chargePool", d)
                 : null;
-            result.Add(new CharacterSlotSource(String(p, "id", path + ".id", d), String(p, "name", path + ".name", d), String(p, "description", path + ".description", d), String(p, "iconId", path + ".iconId", d), EnumValue(p, "behavior", path + ".behavior", d, ParseBehavior), EnumValue(p, "aimMode", path + ".aimMode", d, ParseAimMode), UShort(p, "cooldownTicks", path + ".cooldownTicks", d), Bool(p, "isRecoveryMove", path + ".isRecoveryMove", d), Bool(p, "preserveMomentumOnStart", path + ".preserveMomentumOnStart", d), ParseTimeline(p, path, d), chargePool, OptionalEnumValue(p, "aimMovement", path + ".aimMovement", d, ParseAimMovement, AuthoringAimMovementMode.Fixed), OptionalString(p, "aimAnimationId", path + ".aimAnimationId", d), OptionalBool(p, "allowSlideCarry", path + ".allowSlideCarry", d), OptionalString(p, "hitPresentationId", path + ".hitPresentationId", d),
-                p.ContainsKey("aimMovementSpeedScale") ? Float(p, "aimMovementSpeedScale", path + ".aimMovementSpeedScale", d) : 1f,
-                OptionalEnumValue(p, "shellPolicy", path + ".shellPolicy", d, ParseShellPolicy, ShellPolicy.PopOut)));
+            result.Add(new CharacterSlotSource(String(p, "id", path + ".id", d), String(p, "name", path + ".name", d), String(p, "description", path + ".description", d), String(p, "iconId", path + ".iconId", d), EnumValue(p, "behavior", path + ".behavior", d, ParseBehavior), EnumValue(p, "aimMode", path + ".aimMode", d, ParseAimMode), UShort(p, "cooldownTicks", path + ".cooldownTicks", d), Bool(p, "isRecoveryMove", path + ".isRecoveryMove", d), Bool(p, "preserveMomentumOnStart", path + ".preserveMomentumOnStart", d), ParseTimeline(p, path, d), chargePool, OptionalEnumValue(p, "aimMovement", path + ".aimMovement", d, ParseAimMovement), OptionalString(p, "aimAnimationId", path + ".aimAnimationId", d), OptionalBool(p, "allowSlideCarry", path + ".allowSlideCarry", d), OptionalString(p, "hitPresentationId", path + ".hitPresentationId", d),
+                OptionalFloat(p, "aimMovementSpeedScale", path + ".aimMovementSpeedScale", d),
+                OptionalEnumValue(p, "shellPolicy", path + ".shellPolicy", d, ParseShellPolicy)));
             i++;
         }
         return result;
@@ -1304,7 +1304,7 @@ public static class CharacterPackageSourceCodec
                 case "spawnProjectile": result.Add(new SpawnProjectileOperationSource(tick, unit, ParseProjectile(p, opPath, d))); break;
                 case "setAimState": result.Add(new SetAimStateOperationSource(tick, unit, EnumValue(p, "aimState", opPath + ".aimState", d, ParseAimMode))); break;
                 case "startCapability": result.Add(new StartCapabilityOperationSource(tick, unit, String(p, "capabilityId", opPath + ".capabilityId", d), String(p, "capabilityVersion", opPath + ".capabilityVersion", d), ParseCapabilityParameters(p, opPath, d))); break;
-                case "emitPresentation": result.Add(new EmitPresentationOperationSource(tick, unit, String(p, "presentationId", opPath + ".presentationId", d), ParsePlacement(p, opPath, d), OptionalEnumValue(p, "condition", opPath + ".condition", d, ParsePresentationCondition, AuthoringPresentationCondition.Always))); break;
+                case "emitPresentation": result.Add(new EmitPresentationOperationSource(tick, unit, String(p, "presentationId", opPath + ".presentationId", d), ParsePlacement(p, opPath, d), OptionalEnumValue(p, "condition", opPath + ".condition", d, ParsePresentationCondition))); break;
                 case "completeTimeline": result.Add(new CompleteTimelineOperationSource(tick, unit)); break;
                 case "swapForm": result.Add(new SwapFormOperationSource(tick, unit)); break;
                 case "startupAimCorrection":
@@ -1341,7 +1341,7 @@ public static class CharacterPackageSourceCodec
             ? ReadObject(parent["placement"], path + ".placement", d, CharacterSourceSchema.Object("placement"))
             : new SourceProperties { Schema = CharacterSourceSchema.Object("placement") };
         return new PresentationPlacement(
-            OptionalEnumValue(p, "attachmentMode", path + ".placement.attachmentMode", d, ParsePresentationAttachmentMode, AuthoringPresentationAttachmentMode.World),
+            OptionalEnumValue(p, "attachmentMode", path + ".placement.attachmentMode", d, ParsePresentationAttachmentMode),
             OptionalString(p, "boneId", path + ".placement.boneId", d),
             OptionalFloat(p, "localPositionX", path + ".placement.localPositionX", d),
             OptionalFloat(p, "localPositionY", path + ".placement.localPositionY", d),
@@ -1349,10 +1349,10 @@ public static class CharacterPackageSourceCodec
             OptionalFloat(p, "localRotationX", path + ".placement.localRotationX", d),
             OptionalFloat(p, "localRotationY", path + ".placement.localRotationY", d),
             OptionalFloat(p, "localRotationZ", path + ".placement.localRotationZ", d),
-            OptionalFloatOrDefault(p, "localScaleX", path + ".placement.localScaleX", d, 1f),
-            OptionalFloatOrDefault(p, "localScaleY", path + ".placement.localScaleY", d, 1f),
-            OptionalFloatOrDefault(p, "localScaleZ", path + ".placement.localScaleZ", d, 1f),
-            OptionalUShort(p, "durationTicks", path + ".placement.durationTicks", d, 28));
+            OptionalFloat(p, "localScaleX", path + ".placement.localScaleX", d),
+            OptionalFloat(p, "localScaleY", path + ".placement.localScaleY", d),
+            OptionalFloat(p, "localScaleZ", path + ".placement.localScaleZ", d),
+            OptionalUShort(p, "durationTicks", path + ".placement.durationTicks", d));
     }
 
     private static HitboxSource ParseHitboxNamed(SourceProperties parent, string name, string path, DiagnosticBag d)
@@ -1385,8 +1385,8 @@ public static class CharacterPackageSourceCodec
             UShort(p, "durationTicks", hitboxPath + ".durationTicks", d),
             Bool(p, "interruptible", hitboxPath + ".interruptible", d),
             Byte(p, "hitGroup", hitboxPath + ".hitGroup", d),
-            OptionalEnumValue(p, "knockbackDirection", hitboxPath + ".knockbackDirection", d, ParseKnockbackDirection, AuthoringKnockbackDirection.AwayFromOwner),
-            OptionalUShort(p, "fixedHitstunTicks", hitboxPath + ".fixedHitstunTicks", d, 0),
+            OptionalEnumValue(p, "knockbackDirection", hitboxPath + ".knockbackDirection", d, ParseKnockbackDirection),
+            OptionalUShort(p, "fixedHitstunTicks", hitboxPath + ".fixedHitstunTicks", d),
             OptionalString(p, "hitPresentationId", hitboxPath + ".hitPresentationId", d),
             OptionalBool(p, "requiresFacingOwner", hitboxPath + ".requiresFacingOwner", d));
     }
@@ -1406,7 +1406,7 @@ public static class CharacterPackageSourceCodec
                 OptionalString(r, "selfHitPresentationId", rp + "selfHitPresentationId", d) ?? "", ParseLegHit(r, rp + "hit", d));
         }
         return new ProjectileSource(Float(p, "launchOffsetX", path + ".projectile.launchOffsetX", d), Float(p, "launchOffsetY", path + ".projectile.launchOffsetY", d), Float(p, "launchOffsetZ", path + ".projectile.launchOffsetZ", d), Float(p, "speed", path + ".projectile.speed", d), Float(p, "gravity", path + ".projectile.gravity", d), Float(p, "radius", path + ".projectile.radius", d), Float(p, "damage", path + ".projectile.damage", d), Float(p, "angle", path + ".projectile.angle", d), Float(p, "baseKnockback", path + ".projectile.baseKnockback", d), Float(p, "knockbackGrowth", path + ".projectile.knockbackGrowth", d), UShort(p, "stunTicks", path + ".projectile.stunTicks", d), UShort(p, "maxFlightTicks", path + ".projectile.maxFlightTicks", d), Float(p, "yawOffsetDegrees", path + ".projectile.yawOffsetDegrees", d), back,
-            ParseHoming(p, path + ".projectile.homing", d), ParsePerch(p, path + ".projectile.perch", d), OptionalUShort(p, "challengeTicks", path + ".projectile.challengeTicks", d, 0));
+            ParseHoming(p, path + ".projectile.homing", d), ParsePerch(p, path + ".projectile.perch", d), OptionalUShort(p, "challengeTicks", path + ".projectile.challengeTicks", d));
     }
 
     private static ProjectileLegHit? ParseLegHit(SourceProperties p, string path, DiagnosticBag d)
@@ -1415,7 +1415,7 @@ public static class CharacterPackageSourceCodec
         var h = Object(p, "hit", path, d, CharacterSourceSchema.Object("legHit"));
         return new ProjectileLegHit(Float(h, "damage", path, d), Float(h, "angle", path, d),
             Float(h, "baseKnockback", path, d), Float(h, "knockbackGrowth", path, d),
-            UShort(h, "stunTicks", path, d), OptionalUShort(h, "fixedHitstunTicks", path, d, 0));
+            UShort(h, "stunTicks", path, d), OptionalUShort(h, "fixedHitstunTicks", path, d));
     }
 
     private static ProjectileHomingSource? ParseHoming(SourceProperties p, string path, DiagnosticBag d)
@@ -1506,9 +1506,9 @@ public static class CharacterPackageSourceCodec
                 OptionalString(p, "catchPresentationId", at + "catchPresentationId", d) ?? "",
                 OptionalString(p, "releasePresentationId", at + "releasePresentationId", d) ?? "",
                 OptionalBool(p, "level", at + "level", d),
-                p.ContainsKey("anchorDistance") ? Float(p, "anchorDistance", at + "anchorDistance", d) : null,
-                OptionalUShort(p, "releaseLockTicks", at + "releaseLockTicks", d, 0),
-                OptionalUShort(p, "whiffRecoveryTicks", at + "whiffRecoveryTicks", d, 0));
+                OptionalNullableFloat(p, "anchorDistance", at + "anchorDistance", d),
+                OptionalUShort(p, "releaseLockTicks", at + "releaseLockTicks", d),
+                OptionalUShort(p, "whiffRecoveryTicks", at + "whiffRecoveryTicks", d));
         }
         if (id == CharacterPackageCompiler.CannonballCapabilityId)
             return ParseCannonball(p, path + ".parameters", d);
@@ -1576,13 +1576,13 @@ public static class CharacterPackageSourceCodec
                 Float(p, "maxRecoilSpeed", path + ".parameters.maxRecoilSpeed", d),
                 ParseProjectile(p, path + ".parameters", d),
                 OptionalString(p, "sprayAnimationId", path + ".parameters.sprayAnimationId", d) ?? "",
-                p.ContainsKey("sprayLoopTicks") ? UShort(p, "sprayLoopTicks", path + ".parameters.sprayLoopTicks", d) : (ushort)0,
+                OptionalUShort(p, "sprayLoopTicks", path + ".parameters.sprayLoopTicks", d),
                 OptionalString(p, "endAnimationId", path + ".parameters.endAnimationId", d) ?? "");
         if (id.EndsWith("rising-dragon.v1", StringComparison.Ordinal)) return new RisingDragonCapabilityParameters(Float(p, "riseSpeed", path + ".parameters.riseSpeed", d), UShort(p, "riseTicks", path + ".parameters.riseTicks", d), UShort(p, "riseDelay", path + ".parameters.riseDelay", d));
         if (id.EndsWith("cyclone-kick.v1", StringComparison.Ordinal)) return new CycloneKickCapabilityParameters(Float(p, "forwardSpeed", path + ".parameters.forwardSpeed", d), UShort(p, "windupTicks", path + ".parameters.windupTicks", d), UShort(p, "hitboxEndTick", path + ".parameters.hitboxEndTick", d), UShort(p, "durationTicks", path + ".parameters.durationTicks", d), Float(p, "bodyRadius", path + ".parameters.bodyRadius", d), Float(p, "sideRadius", path + ".parameters.sideRadius", d), Float(p, "sideOffset", path + ".parameters.sideOffset", d), Float(p, "damage", path + ".parameters.damage", d), Float(p, "knockbackAngle", path + ".parameters.knockbackAngle", d), Float(p, "knockbackBase", path + ".parameters.knockbackBase", d), Float(p, "knockbackGrowth", path + ".parameters.knockbackGrowth", d), UShort(p, "stunTicks", path + ".parameters.stunTicks", d), Float(p, "bodyY", path + ".parameters.bodyY", d), Float(p, "sideY", path + ".parameters.sideY", d),
-            OptionalUShort(p, "hitIntervalTicks", path + ".parameters.hitIntervalTicks", d, 0),
-            OptionalUShort(p, "fixedHitstunTicks", path + ".parameters.fixedHitstunTicks", d, 0),
-            OptionalUShort(p, "finisherTick", path + ".parameters.finisherTick", d, 0),
+            OptionalUShort(p, "hitIntervalTicks", path + ".parameters.hitIntervalTicks", d),
+            OptionalUShort(p, "fixedHitstunTicks", path + ".parameters.fixedHitstunTicks", d),
+            OptionalUShort(p, "finisherTick", path + ".parameters.finisherTick", d),
             OptionalFloat(p, "finisherDamage", path + ".parameters.finisherDamage", d),
             OptionalFloat(p, "finisherKnockbackAngle", path + ".parameters.finisherKnockbackAngle", d),
             OptionalFloat(p, "finisherKnockbackBase", path + ".parameters.finisherKnockbackBase", d),
@@ -1622,10 +1622,10 @@ public static class CharacterPackageSourceCodec
                 ParseHitbox(p, path + ".parameters", d),
                 OptionalString(p, "riseAnimationId", path, d) ?? "",
                 OptionalString(p, "hangAnimationId", path, d) ?? "",
-                OptionalUShort(p, "hangPoseTick", path, d, 0),
+                OptionalUShort(p, "hangPoseTick", path, d),
                 OptionalString(p, "dropAnimationId", path, d) ?? "",
                 OptionalString(p, "landingAnimationId", path, d) ?? "",
-                OptionalUShort(p, "hitLandingSeekTick", path, d, 0),
+                OptionalUShort(p, "hitLandingSeekTick", path, d),
                 OptionalString(p, "risePresentationId", path, d) ?? "",
                 OptionalString(p, "hangPresentationId", path, d) ?? "",
                 OptionalString(p, "lockPresentationId", path, d) ?? "",
@@ -1701,9 +1701,9 @@ public static class CharacterPackageSourceCodec
                 OptionalString(a, "catchPresentationId", ap + "catchPresentationId", d) ?? "",
                 HasObject(a, "unmarked", d) ? ParseUnmarked(Object(a, "unmarked", ap + "unmarked", d, CharacterSourceSchema.Object("tetherUnmarked")),
                     ap + "unmarked.", d) : null);
-            foreach (string thrown in new[] { "projectile", "retractSpeed" })
-                if (p.ContainsKey(thrown))
-                    d.Error("operation.parameter-unknown", path + "." + thrown, "A placed catch (atTarget) throws no ring.");
+            foreach (var field in p.Schema!.Fields)
+                if (!field.IsAllowed(p) && p.ContainsKey(field.Name))
+                    d.Error("operation.parameter-unknown", path + "." + field.Name, "A placed catch (atTarget) throws no ring.");
         }
         return new(
             UShort(p, "throwTick", path + ".throwTick", d),
@@ -1712,7 +1712,7 @@ public static class CharacterPackageSourceCodec
             Float(p, "anchorDistance", path + ".anchorDistance", d),
             UShort(p, "arrivalStunTicks", path + ".arrivalStunTicks", d),
             UShort(p, "maxReelTicks", path + ".maxReelTicks", d),
-            at == null ? Float(p, "retractSpeed", path + ".retractSpeed", d) : 0f,
+            at == null ? Float(p, "retractSpeed", path + ".retractSpeed", d) : p.Schema!.Field("retractSpeed").DefaultValue().GetSingle(),
             UShort(p, "missRecoveryTicks", path + ".missRecoveryTicks", d),
             Float(p, "airGravityScale", path + ".airGravityScale", d),
             OptionalString(p, "reelAnimationId", path + ".reelAnimationId", d) ?? "",
@@ -1759,7 +1759,7 @@ public static class CharacterPackageSourceCodec
             ParseHitbox(p.TryGetValue("chestHitbox", out var chest) ? new SourceProperties { ["hitbox"] = chest } : new SourceProperties(), path, d, path + ".chestHitbox"), ParseChargeCarry(p, path, d),
             OptionalString(p, "challengePresentationId", path, d) ?? "",
             OptionalString(p, "gallopAnimationId", path + ".gallopAnimationId", d) ?? "",
-            OptionalUShort(p, "gallopLoopTicks", path + ".gallopLoopTicks", d, 0),
+            OptionalUShort(p, "gallopLoopTicks", path + ".gallopLoopTicks", d),
             OptionalString(p, "hitEndingAnimationId", path + ".hitEndingAnimationId", d) ?? "",
             OptionalString(p, "missEndingAnimationId", path + ".missEndingAnimationId", d) ?? "",
             OptionalString(p, "airEndingAnimationId", path + ".airEndingAnimationId", d) ?? "",
@@ -1917,21 +1917,24 @@ public static class CharacterPackageSourceCodec
         return value.ValueKind == JsonValueKind.Number && value.TryGetSingle(out var number) ? number : 0f;
     }
     private static float OptionalFloat(SourceProperties p, string name, string path, DiagnosticBag d)
-        => OptionalFloatOrDefault(p, name, path, d, 0f);
-    private static float OptionalFloatOrDefault(SourceProperties p, string name, string path, DiagnosticBag d, float fallback)
     {
         ReadValue(p, name, path, d, "number", false, out var value);
-        return value.ValueKind == JsonValueKind.Number && value.TryGetSingle(out var number) ? number : fallback;
+        return value.ValueKind == JsonValueKind.Number && value.TryGetSingle(out var number) ? number : 0f;
+    }
+    private static float? OptionalNullableFloat(SourceProperties p, string name, string path, DiagnosticBag d)
+    {
+        ReadValue(p, name, path, d, "number", false, out var value);
+        return value.ValueKind == JsonValueKind.Number && value.TryGetSingle(out var number) ? number : null;
     }
     private static ushort UShort(SourceProperties p, string name, string path, DiagnosticBag d)
     {
         ReadValue(p, name, path, d, "ushort", true, out var value);
         return value.ValueKind == JsonValueKind.Number && value.TryGetUInt16(out var number) ? number : (ushort)0;
     }
-    private static ushort OptionalUShort(SourceProperties p, string name, string path, DiagnosticBag d, ushort fallback)
+    private static ushort OptionalUShort(SourceProperties p, string name, string path, DiagnosticBag d)
     {
         ReadValue(p, name, path, d, "ushort", false, out var value);
-        return value.ValueKind == JsonValueKind.Number && value.TryGetUInt16(out var number) ? number : fallback;
+        return value.ValueKind == JsonValueKind.Number && value.TryGetUInt16(out var number) ? number : (ushort)0;
     }
     private static byte Byte(SourceProperties p, string name, string path, DiagnosticBag d)
     {
@@ -1959,17 +1962,17 @@ public static class CharacterPackageSourceCodec
         { d.Error(field?.InvalidCode ?? "enum.unknown", path, "Unknown enum value '" + token + "'."); return default; }
         return parsed.Value;
     }
-    private static T OptionalEnumValue<T>(SourceProperties p, string name, string path, DiagnosticBag d, Func<string, T?> parse, T fallback) where T : struct
+    private static T OptionalEnumValue<T>(SourceProperties p, string name, string path, DiagnosticBag d, Func<string, T?> parse) where T : struct
     {
         bool present = ReadValue(p, name, path, d, "enum", false, out var value);
-        if (!present && value.ValueKind != JsonValueKind.String) return fallback;
-        if (value.ValueKind != JsonValueKind.String) return fallback;
+        if (!present && value.ValueKind != JsonValueKind.String) return default;
+        if (value.ValueKind != JsonValueKind.String) return default;
         path = FieldPath(p, name, path);
         var token = value.GetString() ?? "";
         var parsed = parse(token);
         var field = p.Schema?.FindField(name);
         if (!parsed.HasValue || field?.AllowedValues.Count > 0 && !field.AllowedValues.Contains(token, StringComparer.Ordinal))
-        { d.Error(field?.InvalidCode ?? "enum.unknown", path, "Unknown enum value '" + token + "'."); return fallback; }
+        { d.Error(field?.InvalidCode ?? "enum.unknown", path, "Unknown enum value '" + token + "'."); return default; }
         return parsed.Value;
     }
     private static AuthoringUnit ParseUnit(SourceProperties p, string name, string path, DiagnosticBag d)

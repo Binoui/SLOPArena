@@ -72,16 +72,16 @@
       "startY": 0.2,
       "startZ": 0,
       "endX": 0,
-      "endY": 0.9,
+      "endY": 0.35,
       "endZ": 0,
       "radius": 0.3
     },
     {
       "startX": 0,
-      "startY": 1.2,
+      "startY": 0.62,
       "startZ": 0,
       "endX": 0,
-      "endY": 1.2,
+      "endY": 0.62,
       "endZ": 0,
       "radius": 0.22
     },
@@ -90,7 +90,7 @@
       "startY": 0,
       "startZ": 0,
       "endX": 0.15,
-      "endY": -0.8,
+      "endY": -0.65,
       "endZ": 0,
       "radius": 0.16
     },
@@ -99,7 +99,7 @@
       "startY": 0,
       "startZ": 0,
       "endX": -0.15,
-      "endY": -0.8,
+      "endY": -0.65,
       "endZ": 0,
       "radius": 0.16
     }

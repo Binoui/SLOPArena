@@ -58,17 +58,17 @@ public static class CharacterPackageCompiler
     public const string CommandGrabCapabilityVersion = "1";
     public const string FormsCapabilityId = "slop.ability.forms.v1";
     public const string FormsCapabilityVersion = "1";
-    internal static float MaxSteeredChargeTurnDegreesPerSecond => (float)CharacterSourceSchema.Object("cap.steered-charge.v2").Field("turnDegreesPerSecond").GameplayMaximum!.Value;
-    private static ushort ManifestSchemaVersion => CharacterSourceSchema.Object("manifest").Field("manifestSchemaVersion").ExpectedUnsignedInteger;
-    private static ushort AuthoringSchemaVersion => CharacterSourceSchema.Object("character").Field("authoringSchemaVersion").ExpectedUnsignedInteger;
+    internal const float MaxSteeredChargeTurnDegreesPerSecond = 1440f;
+    private const ushort ManifestSchemaVersion = 1;
+    private const ushort AuthoringSchemaVersion = 4;
     private const ushort CookedSchemaVersion = 5;
     private const string RuntimeApiMin = "1.2.0";
     private const string RuntimeApiMax = "1.x";
-    private static ushort MaxFixedHitstunTicks => (ushort)CharacterSourceSchema.Range("fixedHitstun").Maximum!.Value;
-    internal static float MaxStartupAcquisitionRange => (float)CharacterSourceSchema.Range("startupRange").Maximum!.Value;
-    internal static float MaxStartupAngleDegrees => (float)CharacterSourceSchema.Range("startupAngle").Maximum!.Value;
-    internal static float MaxStartupPitchDegrees => (float)CharacterSourceSchema.Range("startupPitch").Maximum!.Value;
-    internal static float MaxStartupRateDegreesPerSecond => (float)CharacterSourceSchema.Range("startupRate").Maximum!.Value;
+    private const ushort MaxFixedHitstunTicks = 240;
+    internal const float MaxStartupAcquisitionRange = 32f;
+    internal const float MaxStartupAngleDegrees = 180f;
+    internal const float MaxStartupPitchDegrees = 90f;
+    internal const float MaxStartupRateDegreesPerSecond = 1440f;
     private static readonly string[] CanonicalSlots = CanonicalSlotProjection.All
         .Select(slot => slot.Id)
         .ToArray();
@@ -88,7 +88,21 @@ public static class CharacterPackageCompiler
     internal static bool IsTrustedCapability(string id, string version)
         => TrustedCapabilities.TryGetValue(id, out var supported) && supported == version;
     public static bool IsPublicCapability(string id, string version)
-        => CharacterSourceSchema.IsPublicCapability(id, version);
+        => id == AimedRecoveryCapabilityId && version == AimedRecoveryCapabilityVersion
+            || id == TargetedLeapCapabilityId && version == TargetedLeapCapabilityVersion
+            || id == DashStrikeCapabilityId && version == DashStrikeCapabilityVersion
+            || id == FlashCutCapabilityId && version == FlashCutCapabilityVersion
+            || id == ChargedProjectileCapabilityId && version == ChargedProjectileCapabilityVersion
+            || id == ChargedStreamCapabilityId && version == ChargedStreamCapabilityVersion
+            || id == FingerGunsCapabilityId && version == FingerGunsCapabilityVersion
+            || id == SteeredChargeCapabilityId && version == SteeredChargeCapabilityVersion
+            || id == ShellStanceCapabilityId && version == ShellStanceCapabilityVersion
+            || id == ThrustCapabilityId && version == ThrustCapabilityVersion
+            || id == TetherCapabilityId && version == TetherCapabilityVersion
+            || id == CommandGrabCapabilityId && version == CommandGrabCapabilityVersion
+            || id == CannonballCapabilityId && version == CannonballCapabilityVersion
+            || id == FormsCapabilityId && version == FormsCapabilityVersion;
+
     internal static bool IsRuntimeCapability(string id, string version)
         => IsPublicCapability(id, version) || IsTrustedCapability(id, version);
     private static bool RequiresRuntimeApi122(CharacterAuthoringDocument c)
@@ -579,20 +593,20 @@ public static class CharacterPackageCompiler
             if (stage.DurationTicks == 0 || stage.IasaTicks > stage.DurationTicks || stage.LandingLagTicks > stage.DurationTicks || stage.AutoCancelBeforeTicks > stage.DurationTicks || stage.AutoCancelAfterTicks > stage.DurationTicks) d.Error("value.out-of-range", stagePath + "." + (stage.DurationTicks == 0 ? "durationTicks" : stage.IasaTicks > stage.DurationTicks ? "iasaTicks" : stage.LandingLagTicks > stage.DurationTicks ? "landingLagTicks" : stage.AutoCancelBeforeTicks > stage.DurationTicks ? "autoCancelBeforeTicks" : "autoCancelAfterTicks"), "Stage timing is outside its duration.");
             if (float.IsNaN(stage.AttackRange) || float.IsInfinity(stage.AttackRange) || float.IsNaN(stage.WarpRange) || float.IsInfinity(stage.WarpRange) || float.IsNaN(stage.TrackingStrength) || float.IsInfinity(stage.TrackingStrength))
                 d.Error("value.non-finite", stagePath, "Targeting metadata must be finite.");
-            if (stage.AttackRange < 0f) d.Error("value.out-of-range", stagePath + ".attackRange", "Attack range must be non-negative.");
-            if (stage.WarpRange < 0f) d.Error("value.out-of-range", stagePath + ".warpRange", "Warp range must be non-negative.");
-            if (stage.TrackingStrength < 0f || stage.TrackingStrength > 1f) d.Error("value.out-of-range", stagePath + ".trackingStrength", "Tracking strength must be between 0 and 1.");
+            if (CharacterSourceSchema.Range("nonnegative").IsOutside(stage.AttackRange)) d.Error("value.out-of-range", stagePath + ".attackRange", "Attack range must be non-negative.");
+            if (CharacterSourceSchema.Range("nonnegative").IsOutside(stage.WarpRange)) d.Error("value.out-of-range", stagePath + ".warpRange", "Warp range must be non-negative.");
+            if (CharacterSourceSchema.Object("stage").Field("trackingStrength").IsOutsideGameplay(stage.TrackingStrength)) d.Error("value.out-of-range", stagePath + ".trackingStrength", "Tracking strength must be between 0 and 1.");
             if (stage.WarpRange != 0f || stage.UseTargetLock || stage.RotateTowardTarget || stage.TrackingStrength != 0f)
                 d.Error("timeline.targeting.retired", stagePath,
                     "Automatic warp and per-stage target tracking are retired. Use authored movement and startup aim correction.");
             if (stage.Operations.Count > CookedBudget.MaxOperationsPerStage) d.Error("budget.exceeded", stagePath + ".operations", "Stage operation budget exceeded.");
-            foreach (var lunge in stage.Operations.OfType<ForwardLungeOperationSource>()
-                .Where(operation => operation.StopInAttackRange))
+            for (int lungeIndex = 0; lungeIndex < stage.Operations.Count; lungeIndex++)
             {
+                if (stage.Operations[lungeIndex] is not ForwardLungeOperationSource { StopInAttackRange: true } lunge) continue;
                 if (!stage.Operations.Any(operation =>
                     operation is SpawnHitboxOperationSource hitbox && hitbox.Tick > lunge.Tick))
                     d.Error("operation.forward-lunge.no-subsequent-hitbox",
-                        stagePath + $".operations[{stage.Operations.ToList().IndexOf(lunge)}].stopInAttackRange",
+                        stagePath + $".operations[{lungeIndex}].stopInAttackRange",
                         "A forward lunge that stops in attack range requires a subsequent spawnHitbox in the same stage.");
             }
 
@@ -630,6 +644,13 @@ public static class CharacterPackageCompiler
         }
         ValidateStartupAimCorrection(slot, index, d);
     }
+    private static int OperationIndex(IReadOnlyList<CharacterTimelineOperationSource> operations, CharacterTimelineOperationSource target)
+    {
+        for (int index = 0; index < operations.Count; index++)
+            if (ReferenceEquals(operations[index], target)) return index;
+        throw new InvalidOperationException("Operation does not belong to its stage.");
+    }
+
     /// <summary>
     /// A steered charge owns the end of its move: one per slot, in a single stage with IASA disabled,
     /// with no competing motion, hitboxes, projectiles, aim or lifecycle. Its startup (rear-up) may correct
@@ -648,10 +669,11 @@ public static class CharacterPackageCompiler
             return;
         }
         var stage = slot.Timeline.Stages[0];
-        string operationPath = $"character.slots[{index}].timeline.stages[0].operations[{slot.Timeline.Stages[0].Operations.ToList().IndexOf(charges[0])}]";
+        string operationPath = $"character.slots[{index}].timeline.stages[0].operations[{OperationIndex(slot.Timeline.Stages[0].Operations, charges[0])}]";
         var charge = charges[0];
-        foreach (var operation in stage.Operations)
+        for (int operationIndex = 0; operationIndex < stage.Operations.Count; operationIndex++)
         {
+            var operation = stage.Operations[operationIndex];
             if (operation == charge) continue;
             if (operation is ForwardLungeOperationSource or SetVelocityOperationSource or SpawnHitboxOperationSource
                 or SpawnProjectileOperationSource or SetAimStateOperationSource or StartCapabilityOperationSource
@@ -659,13 +681,13 @@ public static class CharacterPackageCompiler
                 d.Error("capability.ambiguous", path,
                     "Steered charge cannot share its stage with motion, hitboxes, projectiles, aim, completion or another lifecycle.");
             if (operation is StartupAimCorrectionOperationSource correction && correction.EndTick > charge.Tick)
-                d.Error("operation.cutoff-after-commitment",  $"character.slots[{index}].timeline.stages[0].operations[{stage.Operations.ToList().IndexOf(operation)}].endTick",
+                d.Error("operation.cutoff-after-commitment",  $"character.slots[{index}].timeline.stages[0].operations[{operationIndex}].endTick",
                     "Startup aim correction must end no later than the charge starts.");
             if (operation is GravityWindowOperationSource gravity && gravity.Tick + gravity.DurationTicks > charge.Tick)
-                d.Error("value.out-of-range", $"character.slots[{index}].timeline.stages[0].operations[{stage.Operations.ToList().IndexOf(operation)}].durationTicks",
+                d.Error("value.out-of-range", $"character.slots[{index}].timeline.stages[0].operations[{operationIndex}].durationTicks",
                     "A gravity window must end no later than the charge starts; the charge owns its own height.");
             if (operation is ArmorWindowOperationSource armor && armor.Tick + armor.DurationTicks > charge.Tick)
-                d.Error("value.out-of-range", $"character.slots[{index}].timeline.stages[0].operations[{stage.Operations.ToList().IndexOf(operation)}].durationTicks",
+                d.Error("value.out-of-range", $"character.slots[{index}].timeline.stages[0].operations[{operationIndex}].durationTicks",
                     "An armour window must end no later than the charge starts; the charge owns its own armour.");
         }
         if (charge.Parameters is not SteeredChargeCapabilityParameters x)
@@ -701,7 +723,7 @@ public static class CharacterPackageCompiler
     {
         string path = $"character.slots[{index}].timeline";
         var stage = slot.Timeline.Stages[0];
-        string operationPath = $"character.slots[{index}].timeline.stages[0].operations[{slot.Timeline.Stages[0].Operations.ToList().IndexOf(thrusts[0])}]";
+        string operationPath = $"character.slots[{index}].timeline.stages[0].operations[{OperationIndex(slot.Timeline.Stages[0].Operations, thrusts[0])}]";
         if (thrusts.Length != 1 || slot.Timeline.Stages.Count != 1 || thrusts[0].Tick != 0
             || slot.Behavior != AuthoringAbilityBehavior.MeleeCombo || slot.AimMode != AuthoringAimMode.None
             || stage.Operations.Any(operation => operation != thrusts[0]
@@ -722,7 +744,7 @@ public static class CharacterPackageCompiler
     {
         string path = $"character.slots[{index}].timeline";
         var stage = slot.Timeline.Stages[0];
-        string operationPath = $"character.slots[{index}].timeline.stages[0].operations[{slot.Timeline.Stages[0].Operations.ToList().IndexOf(tethers[0])}]";
+        string operationPath = $"character.slots[{index}].timeline.stages[0].operations[{OperationIndex(slot.Timeline.Stages[0].Operations, tethers[0])}]";
         if (TetherSlotError(tethers.Length, slot.Timeline.Stages.Count, tethers[0].Tick, slot.Behavior, slot.AimMode,
                 stage.IasaTicks, slot.ShellPolicy,
                 stage.Operations.Any(operation => operation != tethers[0] && operation is not EmitPresentationOperationSource))
@@ -755,7 +777,7 @@ public static class CharacterPackageCompiler
     /// <summary>Bounds shared by the compiler and the cooked loader; null when the tether is admissible.</summary>
     internal static string? TetherBoundsError(CookedTetherCapabilityParameters x)
     {
-        var rulesCapTetherV1 = CharacterSourceSchema.Object("cap.tether.v1");
+        var rulesCapTetherV1 = CharacterRuntimeLimits.Object("cap.tether.v1");
         if (x.AtTarget is { } at)
             return x.Projectile != null || x.RetractSpeed != 0f || x.RetractAnimationId.Length > 0
                 || x.RetractPresentationId.Length > 0
@@ -767,66 +789,66 @@ public static class CharacterPackageCompiler
                 ring.LaunchOffsetY, ring.LaunchOffsetZ, ring.Speed, ring.Gravity, ring.Radius, ring.Damage, ring.Angle,
                 ring.BaseKnockback, ring.KnockbackGrowth, ring.YawOffsetDegrees))
             return "Tether values must be finite.";
-        if (rulesCapTetherV1.Field("throwTick").IsOutsideGameplay(x.ThrowTick)) return "throwTick must be 1 to 120.";
-        if (!(ring.Speed > 0f && ring.Speed <= 60f) || !(ring.Radius > 0f && ring.Radius <= 3f)
-            || ring.MaxFlightTicks == 0 || ring.MaxFlightTicks > 240)
-            return "The ring needs 0 < speed <= 60, 0 < radius <= 3 and maxFlightTicks 1 to 240.";
+        if (rulesCapTetherV1.Field("throwTick").IsOutsideGameplay(x.ThrowTick)) return rulesCapTetherV1.Field("throwTick").Describe();
+        if (!CharacterRuntimeLimits.Object("thrown tether").Field("speed").IsWithinGameplay(ring.Speed) || !CharacterRuntimeLimits.Object("thrown tether").Field("radius").IsWithinGameplay(ring.Radius)
+            || CharacterRuntimeLimits.Object("thrown tether").Field("maxFlightTicks").IsOutsideGameplay(ring.MaxFlightTicks))
+            return CharacterRuntimeLimits.Object("thrown tether").Describe("speed", "radius", "maxFlightTicks");
         if (ring.Gravity != 0f || ring.YawOffsetDegrees != 0f || ring.Return != null)
             return "The ring flies straight: no gravity, no yaw offset and no return block.";
         if (ring.Damage < 0f || ring.BaseKnockback != 0f || ring.KnockbackGrowth != 0f || ring.StunTicks != 0)
             return "The ring catches instead of launching: damage >= 0, no knockback and no stun.";
         if (!(rulesCapTetherV1.Field("reelSpeed").IsWithinGameplay(x.ReelSpeed)) || !(rulesCapTetherV1.Field("retractSpeed").IsWithinGameplay(x.RetractSpeed)))
-            return "reelSpeed and retractSpeed must be above 0 and at most 60.";
+            return rulesCapTetherV1.Describe("reelSpeed", "retractSpeed");
         return TetherReelBoundsError(x);
     }
 
     private static string? TetherAtTargetBoundsError(CookedTetherCapabilityParameters x, CookedTetherAtTarget at)
     {
-        var rulesTetherAtTarget = CharacterSourceSchema.Object("tetherAtTarget");
+        var rulesTetherAtTarget = CharacterRuntimeLimits.Object("tetherAtTarget");
         if (!AllFinite(x.ReelSpeed, x.AnchorDistance, x.AirGravityScale, at.Radius, at.Height, at.Damage, at.MaxRange,
                 at.NoTargetDistance))
             return "Tether values must be finite.";
-        if (x.ThrowTick == 0 || x.ThrowTick > 120) return "throwTick must be 1 to 120.";
-        if (rulesTetherAtTarget.Field("warningTicks").IsOutsideGameplay(at.WarningTicks)) return "atTarget.warningTicks must be 1 to 120.";
-        if (rulesTetherAtTarget.Field("catchTicks").IsOutsideGameplay(at.CatchTicks)) return "atTarget.catchTicks must be 1 to 60.";
+        if (CharacterRuntimeLimits.Object("cap.tether.v1").Field("throwTick").IsOutsideGameplay(x.ThrowTick)) return CharacterRuntimeLimits.Object("cap.tether.v1").Field("throwTick").Describe();
+        if (rulesTetherAtTarget.Field("warningTicks").IsOutsideGameplay(at.WarningTicks)) return rulesTetherAtTarget.Field("warningTicks").Describe();
+        if (rulesTetherAtTarget.Field("catchTicks").IsOutsideGameplay(at.CatchTicks)) return rulesTetherAtTarget.Field("catchTicks").Describe();
         if (!(rulesTetherAtTarget.Field("radius").IsWithinGameplay(at.Radius)) || !(at.Height >= 2f * at.Radius && at.Height <= rulesTetherAtTarget.Field("height").GameplayMaximum!.Value))
-            return "The catch needs 0 < radius <= 3 and a height of two radii up to 6.";
-        if (!(rulesTetherAtTarget.Field("damage").IsWithinGameplay(at.Damage))) return "atTarget.damage must be 0 to 100.";
+            return rulesTetherAtTarget.Describe("radius", "height") + "; height must be at least twice radius.";
+        if (!(rulesTetherAtTarget.Field("damage").IsWithinGameplay(at.Damage))) return rulesTetherAtTarget.Field("damage").Describe();
         if (!(at.MaxRange > rulesTetherAtTarget.Field("maxRange").GameplayMinimum!.Value && at.MaxRange <= MaxStartupAcquisitionRange)
             || !(at.NoTargetDistance >= rulesTetherAtTarget.Field("noTargetDistance").GameplayMinimum!.Value && at.NoTargetDistance <= at.MaxRange))
-            return "atTarget needs 0 < maxRange <= 32 and 0 <= noTargetDistance <= maxRange.";
-        if (!(x.ReelSpeed > 0f && x.ReelSpeed <= 60f)) return "reelSpeed must be above 0 and at most 60.";
+            return rulesTetherAtTarget.Field("maxRange").Describe() + "; noTargetDistance must be nonnegative and no greater than maxRange.";
+        if (!CharacterRuntimeLimits.Object("cap.tether.v1").Field("reelSpeed").IsWithinGameplay(x.ReelSpeed)) return CharacterRuntimeLimits.Object("cap.tether.v1").Field("reelSpeed").Describe();
         return TetherUnmarkedBoundsError(at.Unmarked) ?? TetherReelBoundsError(x);
     }
 
     private static string? TetherUnmarkedBoundsError(CookedTetherUnmarked? hand)
     {
-        var rulesTetherUnmarked = CharacterSourceSchema.Object("tetherUnmarked");
+        var rulesTetherUnmarked = CharacterRuntimeLimits.Object("tetherUnmarked");
         if (hand == null) return null;
         if (!AllFinite(hand.Distance, hand.Radius, hand.Height, hand.Damage, hand.Angle, hand.BaseKnockback,
                 hand.KnockbackGrowth))
             return "atTarget.unmarked values must be finite.";
-        if (rulesTetherUnmarked.Field("riseTick").IsOutsideGameplay(hand.RiseTick)) return "atTarget.unmarked.riseTick must be 1 to 120.";
-        if (rulesTetherUnmarked.Field("activeTicks").IsOutsideGameplay(hand.ActiveTicks)) return "atTarget.unmarked.activeTicks must be 1 to 60.";
-        if (hand.RecoveryTicks > rulesTetherUnmarked.Field("recoveryTicks").GameplayMaximum!.Value) return "atTarget.unmarked.recoveryTicks must be 0 to 240.";
-        if (!(rulesTetherUnmarked.Field("distance").IsWithinGameplay(hand.Distance))) return "atTarget.unmarked.distance must be 0 to 6.";
+        if (rulesTetherUnmarked.Field("riseTick").IsOutsideGameplay(hand.RiseTick)) return rulesTetherUnmarked.Field("riseTick").Describe();
+        if (rulesTetherUnmarked.Field("activeTicks").IsOutsideGameplay(hand.ActiveTicks)) return rulesTetherUnmarked.Field("activeTicks").Describe();
+        if (hand.RecoveryTicks > rulesTetherUnmarked.Field("recoveryTicks").GameplayMaximum!.Value) return rulesTetherUnmarked.Field("recoveryTicks").Describe();
+        if (!(rulesTetherUnmarked.Field("distance").IsWithinGameplay(hand.Distance))) return rulesTetherUnmarked.Field("distance").Describe();
         if (!(rulesTetherUnmarked.Field("radius").IsWithinGameplay(hand.Radius)) || !(hand.Height >= 2f * hand.Radius && hand.Height <= rulesTetherUnmarked.Field("height").GameplayMaximum!.Value))
-            return "The unmarked hand needs 0 < radius <= 3 and a height of two radii up to 6.";
-        if (!(rulesTetherUnmarked.Field("damage").IsWithinGameplay(hand.Damage))) return "atTarget.unmarked.damage must be above 0 and at most 100.";
-        if (rulesTetherUnmarked.Field("angle").IsOutsideGameplay(hand.Angle)) return "atTarget.unmarked.angle must be -90 to 90.";
+            return rulesTetherUnmarked.Describe("radius", "height") + "; height must be at least twice radius.";
+        if (!(rulesTetherUnmarked.Field("damage").IsWithinGameplay(hand.Damage))) return rulesTetherUnmarked.Field("damage").Describe();
+        if (rulesTetherUnmarked.Field("angle").IsOutsideGameplay(hand.Angle)) return rulesTetherUnmarked.Field("angle").Describe();
         if (hand.BaseKnockback < rulesTetherUnmarked.Field("baseKnockback").GameplayMinimum!.Value || hand.KnockbackGrowth < rulesTetherUnmarked.Field("knockbackGrowth").GameplayMinimum!.Value) return "The unmarked hand's knockback cannot be negative.";
-        if (hand.StunTicks > rulesTetherUnmarked.Field("stunTicks").GameplayMaximum!.Value) return "atTarget.unmarked.stunTicks must be 0 to 240.";
+        if (hand.StunTicks > rulesTetherUnmarked.Field("stunTicks").GameplayMaximum!.Value) return rulesTetherUnmarked.Field("stunTicks").Describe();
         return null;
     }
 
     private static string? TetherReelBoundsError(CookedTetherCapabilityParameters x)
     {
-        var rulesCapTetherV1 = CharacterSourceSchema.Object("cap.tether.v1");
-        if (!(rulesCapTetherV1.Field("anchorDistance").IsWithinGameplay(x.AnchorDistance))) return "anchorDistance must be 0 to 3.";
-        if (rulesCapTetherV1.Field("arrivalStunTicks").IsOutsideGameplay(x.ArrivalStunTicks)) return "arrivalStunTicks must be 1 to 240.";
-        if (rulesCapTetherV1.Field("maxReelTicks").IsOutsideGameplay(x.MaxReelTicks)) return "maxReelTicks must be 1 to 600.";
-        if (x.MissRecoveryTicks > rulesCapTetherV1.Field("missRecoveryTicks").GameplayMaximum!.Value) return "missRecoveryTicks must be 0 to 240.";
-        if (!(rulesCapTetherV1.Field("airGravityScale").IsWithinGameplay(x.AirGravityScale))) return "airGravityScale must be 0 to 1.";
+        var rulesCapTetherV1 = CharacterRuntimeLimits.Object("cap.tether.v1");
+        if (!(rulesCapTetherV1.Field("anchorDistance").IsWithinGameplay(x.AnchorDistance))) return rulesCapTetherV1.Field("anchorDistance").Describe();
+        if (rulesCapTetherV1.Field("arrivalStunTicks").IsOutsideGameplay(x.ArrivalStunTicks)) return rulesCapTetherV1.Field("arrivalStunTicks").Describe();
+        if (rulesCapTetherV1.Field("maxReelTicks").IsOutsideGameplay(x.MaxReelTicks)) return rulesCapTetherV1.Field("maxReelTicks").Describe();
+        if (x.MissRecoveryTicks > rulesCapTetherV1.Field("missRecoveryTicks").GameplayMaximum!.Value) return rulesCapTetherV1.Field("missRecoveryTicks").Describe();
+        if (!(rulesCapTetherV1.Field("airGravityScale").IsWithinGameplay(x.AirGravityScale))) return rulesCapTetherV1.Field("airGravityScale").Describe();
         return null;
     }
 
@@ -964,40 +986,40 @@ public static class CharacterPackageCompiler
     /// <summary>Bounds shared by the compiler and the cooked loader; null when the cannonball is admissible.</summary>
     internal static string? CannonballBoundsError(CookedCannonballCapabilityParameters x)
     {
-        var rulesCapCannonballV1 = CharacterSourceSchema.Object("cap.cannonball.v1");
+        var rulesCapCannonballV1 = CharacterRuntimeLimits.Object("cap.cannonball.v1");
         if (!AllFinite(x.MaxRange, x.NoTargetDistance, x.MaxLaunchSpeed)) return "Cannonball values must be finite.";
-        if (x.TakeoffTick > rulesCapCannonballV1.Field("takeoffTick").GameplayMaximum!.Value) return "takeoffTick must be 0 to 60.";
+        if (x.TakeoffTick > rulesCapCannonballV1.Field("takeoffTick").GameplayMaximum!.Value) return rulesCapCannonballV1.Field("takeoffTick").Describe();
         if (!(x.NoTargetDistance > rulesCapCannonballV1.Field("noTargetDistance").GameplayMinimum!.Value && x.NoTargetDistance <= x.MaxRange && x.MaxRange <= rulesCapCannonballV1.Field("maxRange").GameplayMaximum!.Value))
-            return "Ranges need 0 < noTargetDistance <= maxRange <= 30.";
+            return rulesCapCannonballV1.Describe("noTargetDistance", "maxRange") + "; noTargetDistance must not exceed maxRange.";
         if (x.MinFlightTicks < rulesCapCannonballV1.Field("minFlightTicks").GameplayMinimum!.Value || x.MinFlightTicks > x.MaxFlightTicks || x.MaxFlightTicks > rulesCapCannonballV1.Field("maxFlightTicks").GameplayMaximum!.Value)
-            return "Flight ticks need 2 <= minFlightTicks <= maxFlightTicks <= 240.";
-        if (!(rulesCapCannonballV1.Field("maxLaunchSpeed").IsWithinGameplay(x.MaxLaunchSpeed))) return "maxLaunchSpeed must be above 0 and at most 60.";
+            return rulesCapCannonballV1.Describe("minFlightTicks", "maxFlightTicks") + "; minFlightTicks must not exceed maxFlightTicks.";
+        if (!(rulesCapCannonballV1.Field("maxLaunchSpeed").IsWithinGameplay(x.MaxLaunchSpeed))) return rulesCapCannonballV1.Field("maxLaunchSpeed").Describe();
         return null;
     }
 
     /// <summary>Bounds shared by the compiler and the cooked loader; null when the shell is admissible.</summary>
     internal static string? ShellBoundsError(CookedShellDefinition x)
     {
-        var rulesRide = CharacterSourceSchema.Object("ride");
-        var rulesSplash = CharacterSourceSchema.Object("splash");
-        var rulesShell = CharacterSourceSchema.Object("shell");
+        var rulesRide = CharacterRuntimeLimits.Object("ride");
+        var rulesSplash = CharacterRuntimeLimits.Object("splash");
+        var rulesShell = CharacterRuntimeLimits.Object("shell");
         if (!AllFinite(x.PopOutDeceleration, x.BlockedRecoilSpeed)) return "Shell values must be finite.";
-        if (!(rulesShell.Field("popOutDeceleration").IsWithinGameplay(x.PopOutDeceleration))) return "popOutDeceleration must be 0 to 600.";
-        if (!(rulesShell.Field("blockedRecoilSpeed").IsWithinGameplay(x.BlockedRecoilSpeed))) return "blockedRecoilSpeed must be 0 to 30.";
+        if (!(rulesShell.Field("popOutDeceleration").IsWithinGameplay(x.PopOutDeceleration))) return rulesShell.Field("popOutDeceleration").Describe();
+        if (!(rulesShell.Field("blockedRecoilSpeed").IsWithinGameplay(x.BlockedRecoilSpeed))) return rulesShell.Field("blockedRecoilSpeed").Describe();
         if (x.Splash == null && x.Ride == null) return "A shell needs a splash, a ride or both.";
         if (x.Splash is { } splash)
         {
             if (splash.Hitbox.StartBoneId != null || splash.Hitbox.EndBoneId != null || splash.Hitbox.HitGroup != 0)
                 return "The splash hitbox is root-relative with its own hit history (no bones, hitGroup 0).";
-            if (rulesSplash.Field("popUpTicks").IsOutsideGameplay(splash.PopUpTicks)) return "splash.popUpTicks must be 1 to 240.";
+            if (rulesSplash.Field("popUpTicks").IsOutsideGameplay(splash.PopUpTicks)) return rulesSplash.Field("popUpTicks").Describe();
         }
         if (x.Ride is { } ride)
         {
             if (!AllFinite(ride.Speed, ride.TurnDegreesPerSecond)) return "Ride values must be finite.";
-            if (rulesRide.Field("ticks").IsOutsideGameplay(ride.Ticks)) return "ride.ticks must be 1 to 600.";
-            if (!(rulesRide.Field("speed").IsWithinGameplay(ride.Speed))) return "ride.speed must be above 0 and at most 60.";
+            if (rulesRide.Field("ticks").IsOutsideGameplay(ride.Ticks)) return rulesRide.Field("ticks").Describe();
+            if (!(rulesRide.Field("speed").IsWithinGameplay(ride.Speed))) return rulesRide.Field("speed").Describe();
             if (!(rulesRide.Field("turnDegreesPerSecond").IsWithinGameplay(ride.TurnDegreesPerSecond)))
-                return "ride.turnDegreesPerSecond must be 0 to 720.";
+                return rulesRide.Field("turnDegreesPerSecond").Describe();
             if (ride.Wave.StartBoneId != null || ride.Wave.EndBoneId != null || ride.Wave.HitGroup != 0)
                 return "The wave is root-relative with its own hit history (no bones, hitGroup 0).";
             if (ride.Wave.StunTicks != 0 || ride.Wave.FixedHitstunTicks != 0)
@@ -1009,18 +1031,18 @@ public static class CharacterPackageCompiler
     /// <summary>Bounds shared by the compiler and the cooked loader; null when the thrust is admissible.</summary>
     internal static string? ThrustBoundsError(CookedThrustCapabilityParameters x)
     {
-        var rulesCapThrustV1 = CharacterSourceSchema.Object("cap.thrust.v1");
+        var rulesCapThrustV1 = CharacterRuntimeLimits.Object("cap.thrust.v1");
         if (!AllFinite(x.TargetConeDegrees, x.NeutralPitchDegrees, x.StickPitchDegrees, x.Speed, x.Acceleration, x.MaxSpeed))
             return "Thrust values must be finite.";
         if (x.Aim is not (ThrustAim.Stick or ThrustAim.TargetAhead)) return "Unknown thrust aim.";
         if (!(rulesCapThrustV1.Field("targetConeDegrees").IsWithinGameplay(x.TargetConeDegrees))
             || x.Aim == ThrustAim.Stick && x.TargetConeDegrees != 0f)
-            return "targetConeDegrees is 0 to 180 and only applies to targetAhead.";
-        if (!(CharacterSourceSchema.Object("cap.thrust.v1").Field("neutralPitchDegrees").IsWithinGameplay(x.NeutralPitchDegrees) && CharacterSourceSchema.Object("cap.thrust.v1").Field("stickPitchDegrees").IsWithinGameplay(x.StickPitchDegrees)))
-            return "Pitches must be -90 to 90 degrees.";
-        if (!(x.Speed > rulesCapThrustV1.Field("speed").GameplayMinimum!.Value && x.Speed <= x.MaxSpeed && x.MaxSpeed <= rulesCapThrustV1.Field("maxSpeed").GameplayMaximum!.Value)) return "Speeds need 0 < speed <= maxSpeed <= 60.";
-        if (!(rulesCapThrustV1.Field("acceleration").IsWithinGameplay(x.Acceleration))) return "acceleration must be 0 to 240.";
-        if (rulesCapThrustV1.Field("thrustTicks").IsOutsideGameplay(x.ThrustTicks)) return "thrustTicks must be 1 to 600.";
+            return rulesCapThrustV1.Field("targetConeDegrees").Describe() + "; it only applies to targetAhead.";
+        if (!(CharacterRuntimeLimits.Object("cap.thrust.v1").Field("neutralPitchDegrees").IsWithinGameplay(x.NeutralPitchDegrees) && CharacterRuntimeLimits.Object("cap.thrust.v1").Field("stickPitchDegrees").IsWithinGameplay(x.StickPitchDegrees)))
+            return rulesCapThrustV1.Describe("neutralPitchDegrees", "stickPitchDegrees");
+        if (!(x.Speed > rulesCapThrustV1.Field("speed").GameplayMinimum!.Value && x.Speed <= x.MaxSpeed && x.MaxSpeed <= rulesCapThrustV1.Field("maxSpeed").GameplayMaximum!.Value)) return rulesCapThrustV1.Describe("speed", "maxSpeed") + "; speed must not exceed maxSpeed.";
+        if (!(rulesCapThrustV1.Field("acceleration").IsWithinGameplay(x.Acceleration))) return rulesCapThrustV1.Field("acceleration").Describe();
+        if (rulesCapThrustV1.Field("thrustTicks").IsOutsideGameplay(x.ThrustTicks)) return rulesCapThrustV1.Field("thrustTicks").Describe();
         if (x.TrailHitbox is { } trail && (trail.StartBoneId != null || trail.EndBoneId != null || trail.HitGroup != 0))
             return "The trail hitbox is root-relative with its own hit history (no bones, hitGroup 0).";
         return null;
@@ -1159,8 +1181,8 @@ public static class CharacterPackageCompiler
     internal static bool ValidAimedRecovery(ushort startup, float vertical, float directional, float horizontal, float preparation,
         RecoveryHopParameters? hop = null, float riseSteer = 0f)
     {
-        var schema = CharacterSourceSchema.Object("cap.aimed-recovery.v1");
-        var hopSchema = CharacterSourceSchema.Object("recoveryHop");
+        var schema = CharacterRuntimeLimits.Object("cap.aimed-recovery.v1");
+        var hopSchema = CharacterRuntimeLimits.Object("recoveryHop");
         return schema.Field("startupTicks").IsWithinGameplay(startup)
             && schema.Field("verticalSpeed").IsWithinGameplay(vertical)
             && schema.Field("directionalVerticalSpeed").IsWithinGameplay(directional) && directional <= vertical
@@ -1176,7 +1198,7 @@ public static class CharacterPackageCompiler
 
     internal static bool ValidFingerGuns(ushort fire, ushort recovery, byte shots, ushort reload, float fall, float recoil)
     {
-        var schema = CharacterSourceSchema.Object("cap.finger-guns.v1");
+        var schema = CharacterRuntimeLimits.Object("cap.finger-guns.v1");
         return schema.Field("fireTriggerTick").IsWithinGameplay(fire) && schema.Field("recoveryTicks").IsWithinGameplay(recovery)
             && schema.Field("shotsPerReload").IsWithinGameplay(shots) && schema.Field("reloadTicks").IsWithinGameplay(reload)
             && schema.Field("airMaxFallSpeed").IsWithinGameplay(fall) && schema.Field("airRecoilSpeed").IsWithinGameplay(recoil);
@@ -1673,24 +1695,34 @@ public static class CharacterPackageCompiler
             ValidateId(id, $"character.presentation.{field}", d);
             if (!standardAnimations.Add(id)) d.Error("id.duplicate", "character.presentation." + field, "Duplicate standard animation ID.");
         }
-        foreach (var stageId in c.PresentationIds) if (!PresentationUsed(stageId, c)) d.Warning("presentation.unused-id", "character.presentationIds[" + c.PresentationIds.ToList().IndexOf(stageId) + "]", "Declared presentation ID is not referenced by an attack or timeline operation.");
+        for (int index = 0; index < c.PresentationIds.Count; index++)
+            if (!PresentationUsed(c.PresentationIds[index], c)) d.Warning("presentation.unused-id", $"character.presentationIds[{index}]", "Declared presentation ID is not referenced by an attack or timeline operation.");
     }
 
     private static bool PresentationUsed(string id, CharacterAuthoringDocument c)
         => AllSlots(c).Any(slot => slot.HitPresentationId == id)
             || c.Shell?.Splash?.PresentationId == id || c.Shell?.Ride?.HitPresentationId == id
+            || c.Shell?.Splash?.Hitbox.HitPresentationId == id || c.Shell?.Ride?.Wave.HitPresentationId == id
             || AllSlots(c).SelectMany(s => s.Timeline.Stages).SelectMany(s => s.Operations).Any(op =>
             op is EmitPresentationOperationSource emit && emit.PresentationId == id ||
             op is SpawnHitboxOperationSource hitbox && hitbox.Hitbox.HitPresentationId == id ||
-            op is SpawnProjectileOperationSource { Projectile.Return: { } back }
-                && (back.CatchPresentationId == id || back.SelfHitPresentationId == id) ||
+            op is SpawnProjectileOperationSource projectile && ProjectilePresentationUsed(id, projectile.Projectile) ||
             op is StartCapabilityOperationSource capability && (capability.Parameters switch
             {
-                TargetedLeapCapabilityParameters p => p.RisePresentationId == id || p.HangPresentationId == id || p.LockPresentationId == id || p.LandingPresentationId == id,
+                TargetedLeapCapabilityParameters p => p.Hitbox.HitPresentationId == id || p.RisePresentationId == id || p.HangPresentationId == id || p.LockPresentationId == id || p.LandingPresentationId == id,
                 CannonballCapabilityParameters p => p.LaunchPresentationId == id,
-                FlashCutCapabilityParameters p => p.LockPresentationId == id || p.RevealPresentationId == id
+                DashStrikeCapabilityParameters p => p.TipPresentationId == id || p.LightHitbox.HitPresentationId == id || p.TipHitbox.HitPresentationId == id,
+                CommandGrabCapabilityParameters p => p.CatchPresentationId == id || p.ReleasePresentationId == id || p.Capture.HitPresentationId == id,
+                ThrustCapabilityParameters p => p.TrailHitbox?.HitPresentationId == id,
+                TetherCapabilityParameters p => p.ThrowPresentationId == id || p.RetractPresentationId == id
+                    || p.AtTarget?.WarningPresentationId == id || p.AtTarget?.CatchPresentationId == id
+                    || p.AtTarget?.Unmarked?.PresentationId == id || ProjectilePresentationUsed(id, p.Projectile),
+                ChargedProjectileCapabilityParameters p => ProjectilePresentationUsed(id, p.Projectile),
+                ChargedStreamCapabilityParameters p => ProjectilePresentationUsed(id, p.Projectile),
+                FingerGunsCapabilityParameters p => ProjectilePresentationUsed(id, p.Projectile),
+                FlashCutCapabilityParameters p => p.CutHitbox.HitPresentationId == id || p.LockPresentationId == id || p.RevealPresentationId == id
                     || p.SheathePresentationId == id || p.PopPresentationId == id,
-                SteeredChargeCapabilityParameters p => p.GallopPresentationId == id || p.HitEndingPresentationId == id
+                SteeredChargeCapabilityParameters p => p.LanceHitbox.HitPresentationId == id || p.ChestHitbox.HitPresentationId == id || p.GallopPresentationId == id || p.HitEndingPresentationId == id
                     || p.MissEndingPresentationId == id || p.AirEndingPresentationId == id || p.ChallengePresentationId == id
                     || p.Carry.ScoopPresentationId == id || p.Carry.FlingPresentationId == id,
                 MankiRoundBombCapabilityParameters p => p.ExplosionPresentationId == id,
@@ -1699,6 +1731,11 @@ public static class CharacterPackageCompiler
                 MankiBazookaCapabilityParameters p => p.ExplosionPresentationId == id,
                 _ => false,
             }));
+
+    private static bool ProjectilePresentationUsed(string id, ProjectileSource? projectile)
+        => projectile != null && (projectile.Return?.CatchPresentationId == id || projectile.Return?.SelfHitPresentationId == id
+            || projectile.Perch?.ScatterPresentationId == id || projectile.Perch?.Pop.PresentationId == id
+            || projectile.Perch?.Peck?.PresentationId == id);
 
     private static IEnumerable<CharacterSlotSource> AllSlots(CharacterAuthoringDocument c)
         => c.AlternateForm == null ? c.Slots : c.Slots.Concat(c.AlternateForm.Slots);

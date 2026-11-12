@@ -15,6 +15,7 @@ public sealed class CharacterSourceField
     public string Type { get; }
     public bool Required { get; }
     public string? RequiredWhen { get; }
+    public string? ForbiddenWhen { get; }
     public string? DefaultJson { get; }
     public bool AllowsNull { get; }
     public string? ExpectedJson { get; }
@@ -31,6 +32,9 @@ public sealed class CharacterSourceField
     public double? Maximum { get; }
     public IReadOnlyList<string> AllowedValues { get; }
     public string? RangeRuleId { get; }
+    public string? MaximumCodeConstant { get; }
+    public bool WholeNumber { get; }
+    public IReadOnlyList<CharacterSourceContextRange> ContextRanges { get; }
 
     internal CharacterSourceField(XElement field)
     {
@@ -39,6 +43,7 @@ public sealed class CharacterSourceField
         Name = RequiredAttribute("name"); Type = RequiredAttribute("type");
         Required = bool.Parse(RequiredAttribute("required"));
         RequiredWhen = (string?)field.Attribute("requiredWhen");
+        ForbiddenWhen = (string?)field.Attribute("forbiddenWhen");
         DefaultJson = (string?)field.Attribute("default");
         AllowsNull = (bool?)field.Attribute("allowsNull") ?? false;
         ExpectedJson = (string?)field.Attribute("expected");
@@ -51,22 +56,35 @@ public sealed class CharacterSourceField
         GameplayMinimum = Number("gameMin"); GameplayMaximum = Number("gameMax");
         ExclusiveGameplayMinimum = (bool?)field.Attribute("exclusiveGameMin") ?? false;
         RangeRuleId = (string?)field.Attribute("rangeRule");
+        MaximumCodeConstant = (string?)field.Attribute("maxCode");
+        WholeNumber = (bool?)field.Attribute("wholeNumber") ?? false;
+        ContextRanges = Array.AsReadOnly(field.Elements("range").Select(x => new CharacterSourceContextRange(
+            (string)x.Attribute("context")!, (double?)x.Attribute("min"), (double?)x.Attribute("max"), (bool?)x.Attribute("exclusiveMin") ?? false, (string?)x.Attribute("maxCode"))).ToArray());
         AllowedValues = Array.AsReadOnly(((string?)field.Attribute("values") ?? "").Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries));
         double? Number(string name) => field.Attribute(name) is { } a ? double.Parse(a.Value, CultureInfo.InvariantCulture) : null;
         if (Required == (DefaultJson != null)) throw new InvalidOperationException("Source field must be required or have a default: " + Name);
     }
 
     public bool IsRequired(JsonElement containingObject)
-        => Required || RequiredWhen != null && Condition(containingObject.TryGetProperty(RequiredWhen.Split(':')[0], out var value), value);
+        => Required || RequiredWhen != null && Condition(RequiredWhen, containingObject.TryGetProperty(RequiredWhen.Split(':')[0], out var value), value);
+
+    public bool IsAllowed(JsonElement containingObject)
+        => ForbiddenWhen == null || !Condition(ForbiddenWhen, containingObject.TryGetProperty(ForbiddenWhen.Split(':')[0], out var value), value);
+
+    public bool HasWritableDefault => DefaultJson != null && (DefaultJson != "null" || AllowsNull) && !(RequiredWhen != null && ForbiddenWhen != null);
 
     internal bool IsRequired(IReadOnlyDictionary<string, JsonElement> properties)
-        => Required || RequiredWhen != null && Condition(properties.TryGetValue(RequiredWhen.Split(':')[0], out var value), value);
+        => Required || RequiredWhen != null && Condition(RequiredWhen, properties.TryGetValue(RequiredWhen.Split(':')[0], out var value), value);
 
-    private bool Condition(bool present, JsonElement value) => RequiredWhen!.Split(':')[1] switch
+    internal bool IsAllowed(IReadOnlyDictionary<string, JsonElement> properties)
+        => ForbiddenWhen == null || !Condition(ForbiddenWhen, properties.TryGetValue(ForbiddenWhen.Split(':')[0], out var value), value);
+
+    private static bool Condition(string rule, bool present, JsonElement value) => rule.Split(':')[1] switch
     {
         "absent" => !present,
+        "present" => present,
         "zero" => !present || value.ValueKind == JsonValueKind.Number && value.TryGetDouble(out var number) && number == 0,
-        _ => throw new InvalidOperationException("Unknown source field condition " + RequiredWhen),
+        _ => throw new InvalidOperationException("Unknown source field condition " + rule),
     };
 
     public ushort ExpectedUnsignedInteger => ushort.Parse(ExpectedJson ?? throw new InvalidOperationException("Field has no expected integer."), CultureInfo.InvariantCulture);
@@ -100,11 +118,14 @@ public sealed class CharacterSourceField
     };
 }
 
+public sealed record CharacterSourceContextRange(string Context, double? Minimum, double? Maximum, bool ExclusiveMinimum, string? MaximumCodeConstant);
+
 public sealed class CharacterSourceObject
 {
     public string Id { get; }
     public string Title { get; }
     public string Path { get; }
+    public string? ConstraintAnchor { get; }
     public string? OperationKind { get; }
     public string? CapabilityId { get; }
     public string? CapabilityVersion { get; }
@@ -121,6 +142,7 @@ public sealed class CharacterSourceObject
     {
         Id = (string)element.Attribute("id")!; Title = (string)element.Attribute("title")!;
         Path = (string)element.Attribute("path")!;
+        ConstraintAnchor = (string?)element.Attribute("constraintAnchor");
         OperationKind = (string?)element.Attribute("operation");
         HitboxCost = (int?)element.Attribute("hitboxCost") ?? 0;
         ProjectileCost = (int?)element.Attribute("projectileCost") ?? 0;
@@ -219,5 +241,5 @@ public static class CharacterSourceSchema
     public static CharacterSourceObject Object(string id) => ById.TryGetValue(id, out var schema) ? schema : throw new ArgumentException("Unknown source schema " + id);
     public static CharacterSourceObject? Operation(string kind) => ByOperation.TryGetValue(kind, out var schema) ? schema : null;
     public static CharacterSourceObject? Capability(string id) => id != null && ByCapability.TryGetValue(id, out var schema) ? schema : null;
-    public static bool IsPublicCapability(string id, string version) => Capability(id) is { } schema && schema.CapabilityVersion == version || Features.Any(x => x.Id == id && x.Version == version);
+    public static bool IsPublicCapability(string id, string version) => CharacterPackageCompiler.IsPublicCapability(id, version);
 }

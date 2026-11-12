@@ -33,23 +33,23 @@ public sealed record CookedFlashCutCapabilityParameters(
 
 internal static class FlashCutContract
 {
-    internal static int MaxTargetsLimit => (int)CharacterSourceSchema.Object("cap.flash-cut.v1").Field("maxTargets").GameplayMaximum!.Value;
+    internal const int MaxTargetsLimit = 7;
     /// <summary>A held victim's freeze is its hitstop; keep it within the fixed-hitstun ceiling.</summary>
     internal const int MaxHoldTicks = 240;
 
     internal static string? BoundsError(CookedFlashCutCapabilityParameters x)
     {
-        var rulesCapFlashCutV1 = CharacterSourceSchema.Object("cap.flash-cut.v1");
+        var rulesCapFlashCutV1 = CharacterRuntimeLimits.Object("cap.flash-cut.v1");
         if (!rulesCapFlashCutV1.Field("stanceTicks").IsWithinGameplay(x.StanceTicks) || !rulesCapFlashCutV1.Field("legTicks").IsWithinGameplay(x.LegTicks) || !rulesCapFlashCutV1.Field("sheatheTicks").IsWithinGameplay(x.SheatheTicks) ||
             !rulesCapFlashCutV1.Field("recoveryTicks").IsWithinGameplay(x.RecoveryTicks) || !rulesCapFlashCutV1.Field("whiffTicks").IsWithinGameplay(x.WhiffTicks) ||
             x.RevealLeadTicks == 0 || x.RevealLeadTicks > x.SheatheTicks)
-            return "Flash cut requires stance, sheathe, recovery and whiff of 1..120 ticks, legs of 1..30, and a reveal lead of 1..sheatheTicks.";
+            return rulesCapFlashCutV1.Describe("stanceTicks", "sheatheTicks", "recoveryTicks", "whiffTicks", "legTicks") + "; revealLeadTicks must be positive and no greater than sheatheTicks.";
         if (!Finite(x.LockRange) || rulesCapFlashCutV1.Field("lockRange").IsOutsideGameplay(x.LockRange) ||
             !Finite(x.PassThroughDistance) || rulesCapFlashCutV1.Field("passThroughDistance").IsOutsideGameplay(x.PassThroughDistance) ||
             !rulesCapFlashCutV1.Field("maxTargets").IsWithinGameplay(x.MaxTargets))
-            return "Flash cut requires a lock range in (0, 20] m, a pass-through in [0, 3] m and 1..7 targets.";
+            return rulesCapFlashCutV1.Describe("lockRange", "passThroughDistance", "maxTargets");
         if (x.PopAfterLock(x.MaxTargets) > MaxHoldTicks)
-            return "Flash cut legs and sheathe hold their victims too long: maxTargets × legTicks + sheatheTicks must be at most 240.";
+            return $"Flash cut legs and sheathe hold their victims too long: maxTargets × legTicks + sheatheTicks must be at most {MaxHoldTicks}.";
         var cut = x.CutHitbox;
         if (cut.Shape != AuthoringHitboxShape.Sphere || cut.StartBoneId != null || cut.EndBoneId != null || cut.HitGroup != 0)
             return "The flash cut requires a root-relative sphere with authored hitGroup 0.";

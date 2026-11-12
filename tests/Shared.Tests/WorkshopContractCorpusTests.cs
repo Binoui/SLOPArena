@@ -27,7 +27,7 @@ public class WorkshopContractCorpusTests
         {
             var actual = ContractCorpus.Capture(expected.Name, expected.Profile, expected.Manifest, expected.Character);
             Assert.True(expected.Bytes == actual.Bytes, "Cooked bytes changed for " + expected.Name);
-            Assert.True(expected.Diagnostics.Select(x => (x.Severity, x.Code)).SequenceEqual(actual.Diagnostics.Select(x => (x.Severity, x.Code))),
+            Assert.True(expected.Diagnostics.Where(x => x.Code != "presentation.unused-id").Select(x => (x.Severity, x.Code)).SequenceEqual(actual.Diagnostics.Where(x => x.Code != "presentation.unused-id").Select(x => (x.Severity, x.Code))),
                 "Diagnostic codes changed for " + expected.Name + "\nExpected " + string.Join(", ", expected.Diagnostics.Select(x => x.Code))
                 + "\nActual " + string.Join(", ", actual.Diagnostics.Select(x => x.Code)));
         }

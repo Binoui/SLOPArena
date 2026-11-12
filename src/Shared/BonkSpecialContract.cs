@@ -7,10 +7,10 @@ internal static class BonkSpecialContract
 {
     internal static string? Charge(CookedSteeredChargeCapabilityParameters p)
     {
-        var rulesLaunch = CharacterSourceSchema.Object("launch");
-        var rulesChargeCarry = CharacterSourceSchema.Object("chargeCarry");
-        var rulesCapSteeredChargeV2 = CharacterSourceSchema.Object("cap.steered-charge.v2");
-        var rulesChargeAssist = CharacterSourceSchema.Object("chargeAssist");
+        var rulesLaunch = CharacterRuntimeLimits.Object("launch");
+        var rulesChargeCarry = CharacterRuntimeLimits.Object("chargeCarry");
+        var rulesCapSteeredChargeV2 = CharacterRuntimeLimits.Object("cap.steered-charge.v2");
+        var rulesChargeAssist = CharacterRuntimeLimits.Object("chargeAssist");
         if (p.Assist is { } a && (!Finite(a.AssistRange, a.AssistHalfAngleDegrees, a.AssistDegreesPerSecond)
             || rulesChargeAssist.Field("assistRange").IsOutsideGameplay(a.AssistRange) || rulesChargeAssist.Field("assistHalfAngleDegrees").IsOutsideGameplay(a.AssistHalfAngleDegrees)
             || rulesChargeAssist.Field("assistDegreesPerSecond").IsOutsideGameplay(a.AssistDegreesPerSecond)))
@@ -33,7 +33,7 @@ internal static class BonkSpecialContract
 
     internal static string? Leap(CookedTargetedLeapCapabilityParameters p)
     {
-        var rulesCapTargetedLeapV2 = CharacterSourceSchema.Object("cap.targeted-leap.v2");
+        var rulesCapTargetedLeapV2 = CharacterRuntimeLimits.Object("cap.targeted-leap.v2");
         if (!Finite(p.RiseHeight, p.MaxRange, p.NoTargetDistance) || rulesCapTargetedLeapV2.Field("riseHeight").IsOutsideGameplay(p.RiseHeight)
             || rulesCapTargetedLeapV2.Field("maxRange").IsOutsideGameplay(p.MaxRange) || p.NoTargetDistance < 0 || p.NoTargetDistance > p.MaxRange
             || rulesCapTargetedLeapV2.Field("riseTicks").IsOutsideGameplay(p.RiseTicks) || rulesCapTargetedLeapV2.Field("hangTicks").IsOutsideGameplay(p.HangTicks)
@@ -45,10 +45,15 @@ internal static class BonkSpecialContract
     }
 
     internal static string? LegHit(ProjectileLegHit h)
-        => !Finite(h.Damage, h.Angle, h.BaseKnockback, h.KnockbackGrowth) || h.Damage < 0 || h.Damage > 100
-           || h.Angle < -90 || h.Angle > 90 || h.BaseKnockback < 0 || h.KnockbackGrowth < 0
-           || h.StunTicks > 240 || h.FixedHitstunTicks > 240 || h.FixedHitstunTicks > 0 && h.StunTicks == 0
+    {
+        var rules = CharacterRuntimeLimits.Object("legHit");
+        return !Finite(h.Damage, h.Angle, h.BaseKnockback, h.KnockbackGrowth)
+            || rules.Field("damage").IsOutsideGameplay(h.Damage) || rules.Field("angle").IsOutsideGameplay(h.Angle)
+            || rules.Field("baseKnockback").IsOutsideGameplay(h.BaseKnockback) || rules.Field("knockbackGrowth").IsOutsideGameplay(h.KnockbackGrowth)
+            || rules.Field("stunTicks").IsOutsideGameplay(h.StunTicks) || rules.Field("fixedHitstunTicks").IsOutsideGameplay(h.FixedHitstunTicks)
+            || h.FixedHitstunTicks > 0 && h.StunTicks == 0
             ? "Return hit values are invalid; fixed hitstun needs a nonzero stun gate." : null;
+    }
 
     internal static bool NeedsApi(CookedSlotDefinition slot)
         => slot.Timeline.Stages.SelectMany(s => s.Operations).Any(op => op is CookedStartCapabilityOperation

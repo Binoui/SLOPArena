@@ -1,5 +1,6 @@
 using System.Globalization;
 using System.Text;
+using System.Text.Json;
 using SlopArena.Shared;
 
 namespace SlopArena.KitCheck;
@@ -13,8 +14,9 @@ public static class AuthoringReference
     {
         var text = new StringBuilder(Start + "\n\n## Source contract\n\n");
         text.AppendLine("Generated from the public `CharacterSourceSchema` definitions used by the Shared source reader. Regenerate with `dotnet kitcheck/KitCheck.dll reference --write <repository-root>`.\n");
-        text.AppendLine("`Required` means omission is an error. Optional fields show their JSON default. Empty text and null are different. A null omission default does not permit a literal JSON null unless the type column explicitly says so. An optional containing object can be omitted; its required children apply only when that object is present.\n");
+        text.AppendLine("`Required` means omission is an error. Optional fields show a writable JSON default or an instruction to omit the field. Empty text and null are different. A null omission default does not permit a literal JSON null unless the type column explicitly says so. An optional containing object can be omitted; its required children apply only when that object is present.\n");
         text.AppendLine("The range column gives storage limits, enum tokens, and shared scalar rules. A ushort stores 0 through 65535, a byte 0 through 255, and an integer -2147483648 through 2147483647. Shared scalar rules refine these storage limits at the compiler validation step. Successful cooking also requires the gameplay and lifecycle constraints described below the tables. Those coupled constraints remain in the existing compiler and are explicitly documented by hand.\n");
+        AppendRosterAndTraining(text);
         text.AppendLine("### Canonical move grid\n");
         text.AppendLine(string.Join(", ", CharacterPackageCompiler.CanonicalSlotIds.Select(x => "`" + x + "`")) + ".\n");
         text.AppendLine("### Public capabilities\n\n| ID | Version | Parameter schema |\n| --- | --- | --- |");
@@ -44,10 +46,13 @@ public static class AuthoringReference
                     ? $"{field.Type} of [{CharacterSourceSchema.Object(child).Title}](#{Anchor(child)})" : field.Type;
                 if (field.AllowsNull) type += " or null";
                 var rule = field.RangeRuleId != null ? CharacterSourceSchema.Range(field.RangeRuleId) : null;
-                var requirement = field.Required ? "Required" : field.RequiredWhen != null ? "Required when " + field.RequiredWhen.Replace(":absent", " is absent").Replace(":zero", " is zero or absent") + "; otherwise `" + field.DefaultJson + "`" : "`" + field.DefaultJson + "`";
-                var range = field.ExpectedJson != null ? "Exactly `" + field.ExpectedJson + "`" : field.GameplayMinimum.HasValue || field.GameplayMaximum.HasValue ? (field.GameplayMinimum.HasValue ? (field.ExclusiveGameplayMinimum ? "greater than " : "at least ") + Number(field.GameplayMinimum) : "") + (field.GameplayMaximum.HasValue ? "; at most " + Number(field.GameplayMaximum) : "") : rule != null ? (rule.ExclusiveMinimum ? "greater than " : "at least ") + Number(rule.Minimum) + (rule.Maximum.HasValue ? ", at most " + Number(rule.Maximum) : "") : field.AllowedValues.Count > 0 ? string.Join(", ", field.AllowedValues.Select(x => "`" + x + "`"))
-                    : field.Minimum.HasValue || field.Maximum.HasValue ? $"{Number(field.Minimum)} to {Number(field.Maximum)}"
-                    : field.Type == "number" ? "32-bit float; see gameplay constraints" : "See meaning and gameplay constraints";
+                string DefaultText() => field.HasWritableDefault ? "`" + field.DefaultJson + "`" : "Omit; no writable JSON default";
+                var requirement = field.Required ? "Required" : field.RequiredWhen != null
+                    ? "Required when " + field.RequiredWhen.Replace(":absent", " is absent").Replace(":zero", " is zero or absent")
+                        + (field.ForbiddenWhen != null ? "; forbidden when " + field.ForbiddenWhen.Replace(":present", " is present") : "; otherwise " + DefaultText())
+                    : DefaultText();
+                var range = FieldRange(field, rule);
+                if (schema.ConstraintAnchor is { } constraint) range += " [Relationships](#" + constraint + ").";
                 text.AppendLine($"| `{field.Name}` | {type} | {requirement} | {field.Unit} | {range} | {field.Description} | `{field.MissingCode}`, `{field.InvalidCode}`{(field.ConstraintCode != null ? ", `" + field.ConstraintCode + "`" : "")} |");
             }
             text.AppendLine();
@@ -56,6 +61,53 @@ public static class AuthoringReference
         text.AppendLine(string.Join(", ", CharacterBoneRegistry.HumanoidPoints.Select(x => "`" + x.Id + "`")) + ". `bone.spine` also resolves to `bone.spine2`.\n");
         text.AppendLine(End);
         return text.ToString().Replace("\r\n", "\n");
+    }
+    private static string FieldRange(CharacterSourceField field, CharacterSourceRange? rule)
+    {
+        if (field.ExpectedJson != null) return "Exactly `" + field.ExpectedJson + "`";
+        if (field.AllowedValues.Count > 0) return string.Join(", ", field.AllowedValues.Select(x => "`" + x + "`"));
+        string Bounds(double? min, double? max, bool exclusive) =>
+            (min.HasValue ? (exclusive ? "greater than " : "at least ") + Number(min) : "no lower gameplay limit")
+            + (max.HasValue ? ", at most " + Number(max) : ", no upper gameplay limit");
+        string range = field.GameplayMinimum.HasValue || field.GameplayMaximum.HasValue
+            ? Bounds(field.GameplayMinimum, field.GameplayMaximum, field.ExclusiveGameplayMinimum)
+            : rule != null ? Bounds(rule.Minimum, rule.Maximum, rule.ExclusiveMinimum)
+            : field.Minimum.HasValue || field.Maximum.HasValue ? $"{Number(field.Minimum)} to {Number(field.Maximum)}"
+            : field.Type == "number" ? "Finite 32-bit number; no additional scalar limit"
+            : field.Type == "string" ? "Text; naming and reference rules apply"
+            : field.Type == "boolean" ? "`true` or `false`" : "Child fields and array budgets apply";
+        if ((field.GameplayMinimum.HasValue || field.GameplayMaximum.HasValue || rule != null) && field.Minimum.HasValue && field.Maximum.HasValue)
+            range += $"; storage {Number(field.Minimum)} to {Number(field.Maximum)}";
+        if (field.WholeNumber) range += "; whole numbers only";
+        foreach (var context in field.ContextRanges)
+            range += "; " + context.Context + ": " + Bounds(context.Minimum, context.Maximum, context.ExclusiveMinimum);
+        return range;
+    }
+
+    private static byte[] Resource(string name)
+    {
+        using var stream = typeof(AuthoringReference).Assembly.GetManifestResourceStream(name)
+            ?? throw new InvalidOperationException("Missing reference input " + name);
+        using var bytes = new MemoryStream(); stream.CopyTo(bytes); return bytes.ToArray();
+    }
+
+    private static void AppendRosterAndTraining(StringBuilder text)
+    {
+        text.AppendLine("### Roster and Training reference points\n\nGenerated from the committed roster, its cooked fighters, the Training arena, and simulation constants. These are reference values, not compiler balance limits.\n");
+        text.AppendLine("| Built-in fighter | Weight |\n| --- | --- |");
+        using var roster = JsonDocument.Parse(Resource("SlopArena.KitCheck.RosterManifest"));
+        foreach (var entry in roster.RootElement.GetProperty("entries").EnumerateArray().OrderBy(x => x.GetProperty("packageId").GetString(), StringComparer.Ordinal))
+        {
+            string id = entry.GetProperty("packageId").GetString()!;
+            using var fighter = JsonDocument.Parse(Resource("SlopArena.KitCheck.Roster." + id + "/character.runtime.json"));
+            text.AppendLine("| " + id + " | " + fighter.RootElement.GetProperty("character").GetProperty("weight").GetSingle().ToString(CultureInfo.InvariantCulture) + " |");
+        }
+        var arena = ArenaBinaryFormat.Deserialize(Resource("SlopArena.KitCheck.TrainingArena")) ?? throw new InvalidDataException("Training arena is invalid.");
+        var lines = ArenaCollision.ResolveBlastLines(arena);
+        text.AppendLine("\n| Training world coordinate | Blast line in meters |\n| --- | --- |");
+        foreach (var (name, value) in new[] { ("Minimum X", lines.KillMinX), ("Maximum X", lines.KillMaxX), ("Minimum Z", lines.KillMinZ), ("Maximum Z", lines.KillMaxZ), ("Bottom Y", lines.KillHeight), ("Top Y", lines.KillTop) })
+            text.AppendLine("| " + name + " | " + value.ToString(CultureInfo.InvariantCulture) + " |");
+        text.AppendLine($"\nLaunch pop lasts {Simulation.KnockbackPopTicks} ticks for upward launches. Flight gravity is {Simulation.FlightGravity.ToString(CultureInfo.InvariantCulture)} m/s². Neutral flight braking is {Simulation.FlightFriction.ToString(CultureInfo.InvariantCulture)} m/s²; opposing input can raise it to {Simulation.HeldFlightBrake.ToString(CultureInfo.InvariantCulture)} m/s². Settled crouch multiplies ordinary launch velocity by {DownActionTuning.Default.CrouchLaunchMultiplier.ToString(CultureInfo.InvariantCulture)} without changing hitstun.\n");
     }
     private static string Number(double? value) => value?.ToString(CultureInfo.InvariantCulture) ?? "unbounded";
     private static string Anchor(string id) => "schema-" + id.Replace('.', '-');
