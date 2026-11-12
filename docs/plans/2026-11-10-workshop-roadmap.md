@@ -66,6 +66,9 @@ No agent can settle these by running something. The owner answered D1, D4, D5, a
 | D8 | What a made fighter is at first: a remix of an existing kit, a kit built from the engine's parts, or a fully original fighter with its own animations. | Decided 2026-11-11: built from parts. A creator's model with moves assembled from the public building blocks. A remix is the same thing started from a copy. |
 | D9 | How a creator writes moves. | Decided 2026-11-11: a text file first. The goal is that people author either with an editor UI (the Ability Lab, later in the game) or with AI agents working from a reference. Both write the same source file. |
 | D10 | Where a Workshop fighter's animations come from. | Decided 2026-11-11: both the clips in the creator's GLB and a shared library of the game's own clips. Which built-in clips may enter the library depends on who made them and is still open. |
+| D11 | Where made fighters appear at Fighter Select. | Decided 2026-11-12: in the same grid as built-ins, with a Workshop badge. |
+| D12 | Which modes take made fighters first. | Decided 2026-11-12: Brawl, Training, and couch Matches. Each Arcade mode opens later. |
+| D13 | A made fighter's portrait. | Decided 2026-11-12: rendered from the model when the creator gives none. |
 
 ## Phase 0. Prove four unknowns
 
@@ -286,6 +289,16 @@ what happens to published items when the cooked schema changes. Attach the evide
 - 2026-11-11. Phase 2 starts with decisions D8 to D10 and one proof before any screen is
   designed: one custom fighter built from parts, made by hand and taken into a player build, to
   list what is missing. It is a throwaway and does not merge.
+- 2026-11-12. The proof worked. A fighter that exists only as files (a JSON kit, a GLB, and
+  four cooked files that the player build wrote itself in about 2 seconds) fought built-in
+  fighters in a player build, used all 14 slots, and was KO'd and respawned. The largest gap is
+  the match path keyed on `CharacterClass`: the proof had to take over the Salamander slot. An
+  agent wrote the kit in about four minutes, but not from the docs alone.
+- 2026-11-12. The owner approved the design for fighters identified by their package, recorded
+  as [ADR-0067](../adr/0067-fighters-by-package.md), with decisions D11 to D13. Two designs were
+  sketched from one census of the code (373 non-test lines in 59 files depend on the fixed
+  list) and scored by a third pass. The roll-out has six units. The owner's animation inventory
+  and a Steam Deck measurement are needed before units 4c and 4a set their final values.
 
 ## Phase 1. Ship model swaps
 
