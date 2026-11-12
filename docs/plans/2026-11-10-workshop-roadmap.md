@@ -372,10 +372,13 @@ one GLB, a portrait, and the editable source.
    package references an ID and never copies the asset. The shared motion must be owner-made or
    CC0, because joint positions derived from it end up inside published `poses.bin` files.
 3. **Build local catalogs from the roster plus installed Workshop fighters.**
-   `MatchContentEntry.LegacySelector` is already nullable. `MatchContentCatalogBuilder.Build`
-   accepts only the roster manifest today (`src/Shared/MatchContentCatalog.cs:110`). Fighter
-   Select, the HUD, and portraits read names and images from the item, not from `CharacterClass`
-   switches (`client/Unity/Assets/Scripts/Runtime/UI/MenuRoster.cs:103`).
+   Follow [ADR-0067's rollout](../adr/0067-fighters-by-package.md). The catalog builder accepts
+   admitted fighters under a match-content policy. Match presentation retains each entity's
+   `FighterAppearance` and `FighterUiArt`; shipped descriptions, WIP flags, and Tutorial hints
+   come from `card.json`. Generated UI bindings reach the existing art without moving it.
+   `MenuRoster` remains the Fighter Select grid adapter until unit 3 replaces local seats.
+   Installed fighters wait for the loader, portable bindings, and runtime cook before entering
+   the grid. See [fighter presentation](../characters/adding-a-new-character.md#fighter-presentation).
 4. **Cook in the game.** Run `CharacterPackageCompiler` with `CharacterCookProfile.Workshop`, bake
    the points, fit the capsules, assemble, and verify. Show diagnostics on screen. Cook again when
    a source file changes.
