@@ -199,7 +199,8 @@ namespace SlopArena.Client.UI
             var hint = World.MatchBase.Active?.FighterFor(MatchConfig.LocalEntityId)?.Art.Card.TutorialHint;
             if (!hint.HasValue) return lead + " Cooldowns are off here.";
             var opener = hint.Value;
-            byte Slot(string key) => key switch { "1" => AbilitySlots.Normal1, "2" => AbilitySlots.Normal2, "3" => AbilitySlots.Normal3, "A" => AbilitySlots.A, "E" => AbilitySlots.E, "R" => AbilitySlots.R, "F" => AbilitySlots.F, _ => 0 };
+            byte Slot(string key) => CanonicalSlotProjection.TryGet(false, key, out var address)
+                ? CanonicalSlotProjection.ToWire(address) : (byte)0;
             string starter = $"{MoveName(Slot(opener.Starter))} [{SlotKey(Slot(opener.Starter), gamepad)}]";
             string followUp = $"{MoveName(Slot(opener.FollowUp), opener.Jump)} [{SlotKey(Slot(opener.FollowUp), gamepad)}]";
             return $"{lead} Try {starter}, then {(opener.Jump ? "jump and " : "")}{followUp}. Cooldowns are off here.";
