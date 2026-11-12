@@ -77,8 +77,10 @@ namespace SlopArena.Client
         public UiImage MoveIcon(byte form, string? iconId, byte slot, bool normal)
         {
             if (generic) return new UiImage(NeutralGlyph(slot), null, Color.white);
-            if (iconId == null || !icons[Form(form)].TryGetValue(iconId, out var image)) return default;
-            return image.Sprite != null ? image : new UiImage(image.Texture, null, normal ? new Color32(27, 26, 24, 255) : Color.white);
+            if (string.IsNullOrEmpty(iconId)) return default;
+            var tint = normal ? new Color32(27, 26, 24, 255) : Color.white;
+            return icons[Form(form)].TryGetValue(iconId, out var image) && image.Sprite != null
+                ? image : new UiImage(image.Texture, null, tint);
         }
         static Texture2D? LoadTexture(string? path) => string.IsNullOrEmpty(path) ? null : Resources.Load<Texture2D>(path);
         static Texture2D? neutralPortrait;
