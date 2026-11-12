@@ -246,6 +246,9 @@ namespace SlopArena.Client.World
                 ClientSession.RejectMatchStart($"Player selector {MatchConfig.PlayerClass} is absent from the admitted content catalog.");
                 return;
             }
+            if (!BindFighter(PlayerEntityId, playerEntry)) return;
+            foreach (var opponent in MatchConfig.Opponents)
+                if (!BindFighter(opponent.EntityId, contentCatalog.Resolve(opponent.Class))) return;
             var playerDef = playerEntry.Definition;
             _playerDef = playerDef;
 
@@ -258,7 +261,7 @@ namespace SlopArena.Client.World
             if (MatchConfig.Format.IsCourse() && (!arena.Arcade.AllowsPackage(playerEntry.Identity.PackageId)
                 || MatchConfig.Opponents.Any(p => !arena.Arcade.AllowsPackage(p.PackageId))))
             { ClientSession.RejectMatchStart("Course roster uses a fighter this course does not admit."); return; }
-            SetupHUD(playerDef);
+            if (!SetupHUD(playerDef)) return;
             if (MatchConfig.Format.IsCourse() && _hudManager != null)
                 _course = new OnlineCharacterCourse(transform, arena, _hudManager,
                     () => _cameraMount?.RenderCamera ?? UnityEngine.Camera.main);
@@ -355,11 +358,11 @@ namespace SlopArena.Client.World
             if (MatchConfig.Format == MatchFormat.MankiMayhem && _hudManager != null)
             {
                 var renderers = new Dictionary<ulong, PlayerRenderer>(_opponentRenderers) { [PlayerEntityId] = _playerRenderer };
-                var players = MatchConfig.Opponents.Select(p => OnlineHudPlayer(p.EntityId, p.Class, false)).ToList();
-                players.Add(OnlineHudPlayer(PlayerEntityId, playerDef.Class, true));
+                var players = MatchConfig.Opponents.Select(p => OnlineHudPlayer(p.EntityId, false)).ToList();
+                players.Add(OnlineHudPlayer(PlayerEntityId, true));
                 players.Sort((a, b) => a.EntityId.CompareTo(b.EntityId));
                 _mayhem = new MankiMayhemPresentation(transform, _bridge.Simulation, arena.Arcade.Mayhem,
-                    contentCatalog.Resolve(CharacterClass.Manki), renderers, players, _hudManager, _projectileVFX,
+                    contentCatalog.ResolvePackage("manki"), contentCatalog, renderers, players, _hudManager, _projectileVFX,
                     _cameraMount, () => _cameraMount.RenderCamera, MatchConfig.FriendlyFire);
                 RegisterHostPresentation(ServerSimulation.MayhemHostEntityId, _mayhem.Host.Root, _mayhem.Host.Catalog);
             }

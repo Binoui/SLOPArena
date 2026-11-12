@@ -21,11 +21,10 @@ namespace SlopArena.Client.World
         public System.Collections.Generic.IReadOnlyList<FeedbackFighter> DescribeFeedbackFighters()
         {
             var result = new System.Collections.Generic.List<FeedbackFighter>();
-            foreach (var pair in _fighters)
+            foreach (var pair in _fighterContent)
             {
                 if (result.Count == 4) break;
-                var definition = pair.Value != null ? pair.Value.CharacterDef : null;
-                var entry = definition == null ? null : ClientSession.MatchContentCatalog?.Resolve(definition.Class);
+                var entry = pair.Value.Content;
                 if (entry != null && pair.Key != 0)
                     result.Add(new FeedbackFighter(pair.Key, entry.Identity.PackageId, entry.Identity.Version, entry.Identity.CookedContentHash));
             }
@@ -105,6 +104,33 @@ namespace SlopArena.Client.World
         private TetherRopePresenter TetherRopes => _tetherRopes ??= gameObject.AddComponent<TetherRopePresenter>();
         private readonly Dictionary<ulong, WeaponAttach> _weapons = new();
         private readonly Dictionary<ulong, PlayerRenderer> _fighters = new();
+        private readonly Dictionary<ulong, FighterAppearance> _fighterContent = new();
+        public FighterAppearance? FighterFor(ulong entityId) => _fighterContent.TryGetValue(entityId, out var fighter) ? fighter : null;
+        public string ContentFailure { get; private set; } = "";
+        private bool _contentRejected;
+        protected bool RejectContent(string reason)
+        {
+            _contentRejected = true;
+            enabled = false;
+            ContentFailure = reason;
+            if (Application.isPlaying) ClientSession.RejectMatchStart($"{GetType().Name}: {reason}");
+            else Debug.LogError($"[{GetType().Name}] {reason}");
+            return false;
+        }
+        protected bool BindFighter(ulong entityId, MatchContentEntry entry)
+        {
+            if (entry == null) return RejectContent($"Fighter content is missing for entity {entityId}.");
+            if (_fighterContent.TryGetValue(entityId, out var previous) && previous.Revision != entry.Identity)
+                return RejectContent($"Fighter revision changed for entity {entityId} ({entry.Identity.PackageId}).");
+            _fighterContent[entityId] = FighterPresentation.Resolve(entry);
+            return true;
+        }
+        protected FighterUiArt ArtFor(ulong entityId)
+        {
+            if (FighterFor(entityId) is { } fighter) return fighter.Art;
+            RejectContent($"Fighter content is not bound for entity {entityId}.");
+            return FighterPresentation.Unavailable("Unavailable fighter");
+        }
         private ArenaDefinition _fighterArena;
         private GameObject _fighterIndicator;
         private readonly HashSet<ulong> _activeSwordOwners = new();
@@ -125,6 +151,7 @@ namespace SlopArena.Client.World
                 _hudManager != null ? _hudManager.Document : null,
                 freezeSimulation: FreezesOnPause, onRetry: PauseRetry);
             OnMatchStart();
+            if (_contentRejected) { enabled = false; return; }
             if (enabled) RebuildFighterIndicators();
             gameObject.AddComponent<MatchVisualStyle>().Apply();
         }
@@ -202,6 +229,7 @@ namespace SlopArena.Client.World
                 if (weapon != null) weapon.SetHitboxTrailActive(false);
             _weapons.Clear();
             _fighters.Clear();
+            _fighterContent.Clear();
             if (_cameraCollisionMesh != null)
                 Destroy(_cameraCollisionMesh);
         }
@@ -238,6 +266,10 @@ namespace SlopArena.Client.World
                 return false;
             }
 
+            var appearance = FighterFor(entityId);
+            if (appearance == null) return RejectContent($"Renderer requested unbound fighter entity {entityId}.");
+            if (appearance.Revision != entry.Identity)
+                return RejectContent($"Renderer requested a different fighter revision for entity {entityId}.");
             var def = entry.Definition;
             CharacterAnimationCatalog animationCatalog = null;
             GameObject rig = null;
@@ -251,7 +283,7 @@ namespace SlopArena.Client.World
 
             var animationOverride = local && entry.CookedCharacterPackage == null ? _playerAnimConfig : null;
             if (!renderer.Configure(def, entry.BakedAnimation, animationCatalog,
-                    rig ?? (local ? _playerModelPrefab : null), out var configurationError, animationOverride))
+                    rig ?? (local ? _playerModelPrefab : null), out var configurationError, animationOverride, entry.Identity.PackageId))
             {
                 Debug.LogError($"[{GetType().Name}] Renderer configuration failed: {configurationError}");
                 return false;
@@ -273,7 +305,7 @@ namespace SlopArena.Client.World
                 ? cookedWeaponConfig
                 : local && _playerWeaponConfig != null
                     ? _playerWeaponConfig
-                    : Resources.Load<WeaponAttachConfig>($"WeaponConfigs/{def.Class}");
+                    : appearance.LegacyWeapon;
             var weapon = renderer.GetComponent<WeaponAttach>() ?? renderer.gameObject.AddComponent<WeaponAttach>();
             weapon.Init(renderer, weaponConfig);
             Workshop.FighterModelSwap.Track(renderer, entry.Identity.PackageId);
@@ -413,8 +445,11 @@ namespace SlopArena.Client.World
                         light.enabled = false;
         }
 
-        protected void SetupHUD(CharacterDefinition def, IReadOnlyList<HUDManager.HudPlayer>? extraPlayers = null)
+        protected bool SetupHUD(CharacterDefinition def, IReadOnlyList<HUDManager.HudPlayer>? extraPlayers = null)
         {
+            if (FighterFor(PlayerEntityId) == null) return RejectContent($"HUD player is not bound for entity {PlayerEntityId}.");
+            var missing = MatchConfig.Opponents.FirstOrDefault(opp => FighterFor(opp.EntityId) == null);
+            if (missing != null) return RejectContent($"HUD opponent is not bound for entity {missing.EntityId}.");
             // One panel per player (local + opponents), sorted by entity ID so
             // panels read P1..PN left to right regardless of who is local (issue #38).
             // extraPlayers: training NPCs (not in MatchConfig.Opponents — that is a
@@ -422,10 +457,10 @@ namespace SlopArena.Client.World
             var players = new List<HUDManager.HudPlayer>(
                 MatchConfig.Opponents.Count + 1 + (extraPlayers?.Count ?? 0))
             {
-                OnlineHudPlayer(PlayerEntityId, def.Class, isLocal: true)
+                OnlineHudPlayer(PlayerEntityId, isLocal: true)
             };
             foreach (var opp in MatchConfig.Opponents)
-                players.Add(OnlineHudPlayer(opp.EntityId, opp.Class, isLocal: false));
+                players.Add(OnlineHudPlayer(opp.EntityId, isLocal: false));
             if (extraPlayers != null)
                 players.AddRange(extraPlayers);
             players.Sort((a, b) => a.EntityId.CompareTo(b.EntityId));
@@ -434,15 +469,20 @@ namespace SlopArena.Client.World
                 ? MatchConfig.MaxStocks
                 : 0;
             if (MatchConfig.Format.IsSlopball() || MatchConfig.Format.IsCourse() || MatchConfig.Format == MatchFormat.MankiMayhem) maxStocks = 0;
-            SetupHUD(players, maxStocks, def);
+            return SetupHUD(players, maxStocks, PlayerEntityId);
         }
 
         /// <summary>The HUD over given fight cards; <paramref name="focus"/> is the definition of the card marked local.</summary>
-        protected void SetupHUD(IReadOnlyList<HUDManager.HudPlayer> players, int maxStocks, CharacterDefinition focus)
+        protected bool SetupHUD(IReadOnlyList<HUDManager.HudPlayer> players, int maxStocks, ulong focusEntityId)
         {
+            var focus = FighterFor(focusEntityId);
+            if (focus == null) return RejectContent($"HUD focus is not bound for entity {focusEntityId}.");
+            foreach (var player in players)
+                if (FighterFor(player.EntityId) == null) return RejectContent($"HUD fighter is not bound for entity {player.EntityId}.");
             _hudManager?.Initialize(Bridge.GetState, players, maxStocks);
-            _hudManager?.SetCharacterDefinition(focus);
+            _hudManager?.SetFighter(focusEntityId, focus);
             _hudManager?.SetCamera(_cameraMount?.RenderCamera ?? UnityEngine.Camera.main);
+            return !_contentRejected;
         }
 
         /// <summary>
@@ -450,7 +490,7 @@ namespace SlopArena.Client.World
         /// Master roster, which names the player and ties their chat identity
         /// to the fighter for speech slips; offline cards keep the fighter name.
         /// </summary>
-        protected static HUDManager.HudPlayer OnlineHudPlayer(ulong entityId, CharacterClass @class, bool isLocal)
+        protected HUDManager.HudPlayer OnlineHudPlayer(ulong entityId, bool isLocal)
         {
             string label = $"P{entityId}";
             if (MatchConfig.Mode == GameMode.PvP && ClientSession.MatchRoster != null)
@@ -462,9 +502,9 @@ namespace SlopArena.Client.World
                     string chatId = member.SteamId > 0
                         ? member.SteamId.ToString(System.Globalization.CultureInfo.InvariantCulture)
                         : null;
-                    return new HUDManager.HudPlayer(entityId, label, @class, isLocal, name, chatId, playerNumber: (int)entityId);
+                    return new HUDManager.HudPlayer(entityId, label, ArtFor(entityId), isLocal, name, chatId, playerNumber: (int)entityId);
                 }
-            return new HUDManager.HudPlayer(entityId, label, @class, isLocal, playerNumber: (int)entityId);
+            return new HUDManager.HudPlayer(entityId, label, ArtFor(entityId), isLocal, playerNumber: (int)entityId);
         }
 
         protected void SetupAimHandler(CharacterDefinition def)
@@ -503,7 +543,11 @@ namespace SlopArena.Client.World
         }
 
         /// <summary>Drop a fighter whose renderer is being destroyed; rebuild the indicators afterwards.</summary>
-        protected void ForgetFighter(ulong entityId) => _fighters.Remove(entityId);
+        protected void ForgetFighter(ulong entityId)
+        {
+            _fighters.Remove(entityId);
+            _fighterContent.Remove(entityId);
+        }
 
 
         /// <summary>

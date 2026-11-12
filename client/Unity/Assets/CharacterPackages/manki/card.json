@@ -1,0 +1,9 @@
+{
+  "description": "There's nothing a few explosives can't fix.",
+  "workInProgress": false,
+  "tutorialHint": {
+    "starter": "1",
+    "followUp": "R",
+    "jump": false
+  }
+}

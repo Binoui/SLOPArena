@@ -1,124 +1,55 @@
 #nullable enable
 using System;
-using System.IO;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text.Json;
-using UnityEngine;
 using SlopArena.Shared;
+using UnityEngine;
 
 namespace SlopArena.Client.UI
 {
-    /// <summary>
-    /// The player-facing roster for pre-match screens. The cooked manifest is the
-    /// single source of truth, including its authored entry order.
-    /// </summary>
     public static class MenuRoster
     {
-        private static readonly Dictionary<CharacterClass, string> Names = new();
-        private static readonly Dictionary<CharacterClass, string> AlternateNames = new();
-        private static readonly Dictionary<CharacterClass, string> PackageIds = new();
-        public static readonly CharacterClass[] Classes = LoadClasses();
-
-        /// <summary>
-        /// The fighter's player-facing name: the cooked package's displayName ("Sir Bonk"),
-        /// falling back to the selector. Never use CharacterClass.ToString() in UI text.
-        /// </summary>
-        public static string Name(CharacterClass characterClass) =>
-            Names.TryGetValue(characterClass, out var name) ? name : characterClass.ToString();
-
-        /// <summary>The admitted fighter's package id from the cooked roster, without compiling or loading the package.</summary>
-        public static string? PackageId(CharacterClass characterClass) =>
-            PackageIds.TryGetValue(characterClass, out var id) ? id : null;
-
-        /// <summary>True for a fighter with two forms (ADR-0051), whose card picks the starting form.</summary>
-        public static bool HasForms(CharacterClass characterClass) => AlternateNames.ContainsKey(characterClass);
-
-        /// <summary>The name of one of the fighter's forms ("Nyxxie" for Nyx's form 1).</summary>
-        public static string Name(CharacterClass characterClass, byte form) =>
-            form == 1 && AlternateNames.TryGetValue(characterClass, out var name) ? name : Name(characterClass);
-
-        /// <summary>The portrait resource of one of the fighter's forms; form 1 adds "_Fake".</summary>
-        public static string PortraitPath(CharacterClass characterClass, byte form) =>
-            form == 1 && HasForms(characterClass) ? $"UI/Portraits/{characterClass}_Fake" : $"UI/Portraits/{characterClass}";
-
-        private static CharacterClass[] LoadClasses()
+        static readonly Dictionary<CharacterClass, string> Packages = new();
+        static readonly Dictionary<CharacterClass, FighterUiArt> Artworks = new();
+        static CharacterClass[] classes = Array.Empty<CharacterClass>();
+        static bool loaded;
+        static void Load()
         {
-            string[] roots =
-            {
-                "content-cooked",
-                Path.Combine(Application.dataPath, "../../../content-cooked"),
-                Path.Combine(Application.streamingAssetsPath, "content-cooked"),
-            };
-
+            if (loaded) return;
+            loaded = true;
             try
             {
-                foreach (string root in roots)
+                foreach (var entry in ShippedRoster.ReadApplication().Manifest.Entries)
                 {
-                    string path = Path.Combine(root, "roster", "manifest.json");
-                    if (!File.Exists(path))
-                        continue;
-
-                    BuiltInRosterManifest manifest = BuiltInRosterManifestCodec.Load(path);
-                    foreach (var entry in manifest.Entries)
+                    Packages[entry.Selector] = entry.PackageId;
+                    string name = entry.Selector.ToString();
+                    try
                     {
-                        PackageIds[entry.Selector] = entry.PackageId;
-                        string runtime = Path.Combine(root, entry.PackageId, "character.runtime.json");
-                        if (ReadDisplayName(runtime) is { } name)
-                            Names[entry.Selector] = name;
-                        if (ReadDisplayName(runtime, "alternateForm") is { } alternate)
-                            AlternateNames[entry.Selector] = alternate;
+                        if (!FighterPresentation.Binding(entry.PackageId).HasValue)
+                        {
+                            var path = System.IO.Path.Combine(ShippedRoster.ReadApplication().CookedRoot, entry.PackageId);
+                            name = CookedCharacterPackageLoader.LoadDirectory(path, entry.Requirement).ToCharacterDefinition().DisplayName;
+                        }
                     }
-                    return manifest.Entries.Select(entry => entry.Selector).ToArray();
+                    catch (Exception error) { Debug.LogWarning($"[MenuRoster] Could not read {entry.PackageId}'s cooked name: {error.Message}"); }
+                    Artworks[entry.Selector] = FighterPresentation.Menu(entry.PackageId, name);
                 }
-
-                throw new FileNotFoundException("Cooked roster manifest is missing.");
+                classes = Packages.Keys.ToArray();
             }
-            catch (Exception ex)
-            {
-                Debug.LogError($"[MenuRoster] Admitted roster unavailable: {ex.Message}");
-                return Array.Empty<CharacterClass>();
-            }
+            catch (Exception error) { Debug.LogWarning($"[MenuRoster] Roster presentation is unavailable: {error.Message}"); }
         }
-
-        private static string? ReadDisplayName(string path, string? block = null)
+        public static CharacterClass[] Classes { get { Load(); return classes; } }
+        public static bool Contains(CharacterClass fighter) { Load(); return Packages.ContainsKey(fighter); }
+        public static string? PackageId(CharacterClass fighter) { Load(); return Packages.TryGetValue(fighter, out var id) ? id : null; }
+        public static FighterUiArt Art(CharacterClass fighter)
         {
-            try
-            {
-                if (!File.Exists(path)) return null;
-                using var document = JsonDocument.Parse(File.ReadAllBytes(path));
-                if (!document.RootElement.TryGetProperty("character", out var character)) return null;
-                if (block != null && !character.TryGetProperty(block, out character)) return null;
-                return character.TryGetProperty("displayName", out var name)
-                    && name.GetString() is { Length: > 0 } text ? text : null;
-            }
-            catch (Exception ex)
-            {
-                Debug.LogWarning($"[MenuRoster] No display name in {path}: {ex.Message}");
-                return null;
-            }
+            Load();
+            return Artworks.TryGetValue(fighter, out var art) ? art : FighterPresentation.Unavailable(fighter.ToString());
         }
-
-        /// <summary>True for a fighter still being built; menus tag it WIP so players know its kit and art are unfinished.</summary>
-        public static bool IsWorkInProgress(CharacterClass characterClass) => characterClass is CharacterClass.Bashie or CharacterClass.Salamander;
-
-        /// <summary>
-        /// Short, player-facing guidance that distinguishes each admitted fighter's
-        /// game plan without pretending to expose uncooked move data.
-        /// </summary>
-        public static string Description(CharacterClass characterClass)
-        {
-            return characterClass switch
-            {
-                CharacterClass.FightGuy => "Loves punching stuff. But also kicking stuff.",
-                CharacterClass.Manki => "There's nothing a few explosives can't fix.",
-                CharacterClass.Wibou => "He studied the blade. A lot.",
-                CharacterClass.Bonk => "Sir Bonk do bonky bonks.",
-                CharacterClass.Bashie => "NO RUNNING! (She speed-walks.)",
-                CharacterClass.Salamander => "The fastest fingers in the West.",
-                CharacterClass.Nyx => "A witch with another side.",
-                _ => "Admitted fighter with a style all its own.",
-            };
-        }
+        public static string Name(CharacterClass fighter) => Art(fighter).Name();
+        public static string Name(CharacterClass fighter, byte form) => Art(fighter).Name(form);
+        public static bool HasForms(CharacterClass fighter) => Art(fighter).HasForms;
+        public static bool IsWorkInProgress(CharacterClass fighter) => Art(fighter).Card.IsWorkInProgress;
+        public static string Description(CharacterClass fighter) => Art(fighter).Card.Description;
     }
 }

@@ -1034,7 +1034,7 @@ namespace SlopArena.Client.Tools
 
         private bool ConfigureRenderer(PlayerRenderer renderer, CharacterDefinition def, string name)
         {
-            if (!renderer.Configure(def, Baked, _previewAnimationCatalog, _previewRig, out var error))
+            if (!renderer.Configure(def, Baked, _previewAnimationCatalog, _previewRig, out var error, packageId: SelectedPackageId))
             {
                 Debug.LogError($"[AbilityLab] Renderer configuration failed: {error}");
                 return false;

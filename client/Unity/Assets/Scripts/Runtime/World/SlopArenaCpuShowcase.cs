@@ -130,6 +130,7 @@ namespace SlopArena.EditorTools
                 };
                 fighter.Memory.Difficulty = Difficulty;
                 fighter.Renderer.transform.SetParent(transform, false);
+                if (!BindFighter(fighter.Id, entry)) return;
                 if (!SetupRenderer(fighter.Renderer, entry, arena, fighter.Id, false))
                     throw new InvalidOperationException("Could not present package " + Packages[i]);
                 _feedback.RegisterRenderer(fighter.Renderer);

@@ -243,7 +243,7 @@ namespace SlopArena.Client.UI
             label.AddToClassList("results-winner-label");
             card.Add(label);
 
-            var portrait = BuildPortrait(metadata.Class);
+            var portrait = BuildPortrait(metadata.Art);
             portrait.AddToClassList("results-winner-portrait");
             card.Add(portrait);
 
@@ -272,7 +272,7 @@ namespace SlopArena.Client.UI
             placement.AddToClassList("results-row-placement");
             row.Add(placement);
 
-            var portrait = BuildPortrait(metadata.Class);
+            var portrait = BuildPortrait(metadata.Art);
             portrait.AddToClassList("results-row-portrait");
             row.Add(portrait);
 
@@ -338,11 +338,11 @@ namespace SlopArena.Client.UI
             parent.Add(stat);
         }
 
-        private static VisualElement BuildPortrait(CharacterClass character)
+        private static VisualElement BuildPortrait(FighterUiArt? art)
         {
             var portrait = new VisualElement();
             portrait.AddToClassList("results-portrait");
-            var texture = Resources.Load<Texture2D>($"UI/Portraits/{character}");
+            var texture = art?.Portrait();
             if (texture != null)
                 portrait.style.backgroundImage = new StyleBackground(texture);
             else
@@ -353,39 +353,15 @@ namespace SlopArena.Client.UI
         private static PlayerMetadata ResolveMetadata(ClientSession.ResultEntry entry)
         {
             string playerName = entry.Name;
-            CharacterClass character = ParseClass(entry.ClassName);
-
-            if (ClientSession.MatchRoster != null)
-            {
-                foreach (var roster in ClientSession.MatchRoster)
-                {
-                    if (roster.EntityId != (long)entry.EntityId) continue;
-                    if (string.IsNullOrEmpty(playerName))
-                        playerName = roster.Name;
-                    character = ParseClass(roster.CharacterSelection, character);
-                    break;
-                }
-            }
+            if (string.IsNullOrEmpty(playerName) && ClientSession.MatchRoster != null)
+                foreach (var member in ClientSession.MatchRoster)
+                    if (member.EntityId == (long)entry.EntityId) { playerName = member.Name; break; }
 
             if (string.IsNullOrEmpty(playerName))
                 playerName = $"P{entry.EntityId}";
 
-            var content = ClientSession.MatchContentCatalog?.Resolve(character);
-            string fighterName = string.IsNullOrEmpty(content?.DisplayName)
-                ? MenuRoster.Name(character)
-                : content!.DisplayName;
-            return new PlayerMetadata(
-                playerName.ToUpperInvariant(),
-                fighterName.ToUpperInvariant(),
-                character);
-        }
-        private static CharacterClass ParseClass(string? value, CharacterClass fallback = CharacterClass.None)
-        {
-            if (!string.IsNullOrEmpty(value)
-                && Enum.TryParse(value, true, out CharacterClass parsed)
-                && parsed != CharacterClass.None)
-                return parsed;
-            return fallback;
+            var art = entry.Fighter?.Art;
+            return new PlayerMetadata(playerName.ToUpperInvariant(), (art?.Name() ?? "").ToUpperInvariant(), art);
         }
 
 
@@ -409,16 +385,16 @@ namespace SlopArena.Client.UI
 
         private readonly struct PlayerMetadata
         {
-            public PlayerMetadata(string playerName, string fighterName, CharacterClass @class)
+            public PlayerMetadata(string playerName, string fighterName, FighterUiArt? art)
             {
                 PlayerName = playerName;
                 FighterName = fighterName;
-                Class = @class;
+                Art = art;
             }
 
             public string PlayerName { get; }
             public string FighterName { get; }
-            public CharacterClass Class { get; }
+            public FighterUiArt? Art { get; }
         }
     }
 }

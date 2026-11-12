@@ -97,13 +97,13 @@ namespace SlopArena.Client.Replays
             if (format.IsCourse() && arena.Arcade?.Course != null)
                 return new ReplayModes(null, new OnlineCharacterCourse(scene.Parent, arena, scene.Hud, scene.RenderCamera,
                     Roster(replay), scene.Perspective), null, null, arena.Arcade.Course);
-            if (format == MatchFormat.MankiMayhem && arena.Arcade?.Mayhem != null && scene.Catalog.Resolve(CharacterClass.Manki) is { } manki)
+            if (format == MatchFormat.MankiMayhem && arena.Arcade?.Mayhem != null && scene.Catalog.ResolvePackage("manki") is { } manki)
             {
                 var friendlyFire = replay.Header.Rules.FriendlyFireId switch
                 {
                     "on" => FriendlyFireMode.On, "shoves" => FriendlyFireMode.Shoves, _ => FriendlyFireMode.Off,
                 };
-                return new ReplayModes(null, null, new MankiMayhemPresentation(scene.Parent, replay.World, arena.Arcade.Mayhem, manki,
+                return new ReplayModes(null, null, new MankiMayhemPresentation(scene.Parent, replay.World, arena.Arcade.Mayhem, manki, scene.Catalog,
                     scene.Fighters, scene.Players, scene.Hud, scene.Projectiles, scene.Camera, scene.RenderCamera, friendlyFire)
                     { FixedTelegraphs = view }, null);
             }
@@ -112,7 +112,7 @@ namespace SlopArena.Client.Replays
 
         /// <summary>The course board's rows: the fighter and short participant ID, in the recorded seat colour.</summary>
         private static IReadOnlyList<LobbyPlayerInfo> Roster(ReplayWorld replay)
-            => replay.Cast.Select(m => new LobbyPlayerInfo(0, ReplayText.Fighter(m), null, true, false, (int)m.EntityId,
+            => replay.Cast.Select(m => new LobbyPlayerInfo(0, ReplayText.Fighter(replay, m), null, true, false, (int)m.EntityId,
                 SlopballCamps.TryParse(m.Recorded.CampId, out var camp) ? camp : SlopballCamp.None,
                 byte.TryParse(m.Recorded.ColourId, NumberStyles.None, CultureInfo.InvariantCulture, out byte colour) ? colour : (byte)0)).ToList();
 

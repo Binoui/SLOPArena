@@ -59,6 +59,29 @@ public sealed class SessionLogReportTests
     }
 
     [Theory]
+    [InlineData("Bonk", "Bonk")]
+    [InlineData("Sir Bonk", "bonk")]
+    public void ReadsLegacyAndDisplayNameSessionLogs(string character, string eventKey)
+    {
+        using var stream = new System.IO.MemoryStream();
+        var header = new SessionHeader { Fighters = new() { new() { EntityId = Player, Role = "player", Character = character, PackageId = "bonk" } } };
+        using (var writer = new SessionLogWriter(stream, header))
+        {
+            writer.WriteFrame(Frame(0));
+            writer.WriteEvent(new SessionEvent { Kind = "seat", Detail = $"P1:1:{eventKey}:local" });
+            writer.WriteEvent(new SessionEvent { Kind = "result", Detail = $"P1 {eventKey} place=1 falls=0" });
+            writer.Complete(new List<SwingRecord>(), new SessionEnd { Ticks = 1 });
+        }
+        using var input = new System.IO.MemoryStream(stream.ToArray());
+        var log = SessionLogReader.Read(input);
+        var report = SessionAnalysis.Analyze(new[] { log });
+        Assert.Equal(character, report.Sessions.Single().Player);
+        Assert.Equal("bonk", log.Header.Fighters.Single().PackageId);
+        Assert.Equal(2, log.Events.Count);
+        Assert.All(log.Events, e => Assert.Contains(eventKey, e.Detail));
+    }
+
+    [Theory]
     [InlineData(0.6f, 0.1f, 0.2f, "short")]
     [InlineData(-0.6f, 0.1f, 0.2f, "past")]
     [InlineData(0.1f, 0.2f, 0.6f, "under")]

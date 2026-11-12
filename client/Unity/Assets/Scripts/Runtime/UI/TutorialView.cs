@@ -193,27 +193,16 @@ namespace SlopArena.Client.UI
             foreach (var button in _pauseButtons) button.RemoveFromHierarchy();
         }
 
-        /// <summary>
-        /// Juggle openers that a Shared probe confirmed against the dummy at 30% (2026-10-17;
-        /// Bonk's on 2026-10-18): starter, follow-up and whether to jump in between. Re-check them
-        /// when a kit changes (docs/design/tutorial.md); an unknown fighter gets the generic hint.
-        /// </summary>
-        private static readonly Dictionary<CharacterClass, (byte Starter, byte FollowUp, bool Jump)> ComboOpeners = new()
-        {
-            [CharacterClass.FightGuy] = (AbilitySlots.Normal2, AbilitySlots.Normal2, true),
-            // Manki and Bashie lost normal 2 to the three-normal merge (ADR-0042); re-probe both.
-            [CharacterClass.Manki] = (AbilitySlots.Normal1, AbilitySlots.R, false),
-            [CharacterClass.Wibou] = (AbilitySlots.Normal2, AbilitySlots.Normal2, false),
-            [CharacterClass.Bonk] = (AbilitySlots.Normal2, AbilitySlots.Normal1, true),
-            [CharacterClass.Bashie] = (AbilitySlots.Normal1, AbilitySlots.R, false),
-        };
-
         private string ComboHint(bool gamepad)
         {
             const string lead = "Launch the dummy, then hit it again before it lands.";
-            if (!ComboOpeners.TryGetValue(_def.Class, out var opener)) return lead + " Cooldowns are off here.";
-            string starter = $"{MoveName(opener.Starter)} [{SlotKey(opener.Starter, gamepad)}]";
-            string followUp = $"{MoveName(opener.FollowUp, opener.Jump)} [{SlotKey(opener.FollowUp, gamepad)}]";
+            var hint = World.MatchBase.Active?.FighterFor(MatchConfig.LocalEntityId)?.Art.Card.TutorialHint;
+            if (!hint.HasValue) return lead + " Cooldowns are off here.";
+            var opener = hint.Value;
+            byte Slot(string key) => CanonicalSlotProjection.TryGet(false, key, out var address)
+                ? CanonicalSlotProjection.ToWire(address) : (byte)0;
+            string starter = $"{MoveName(Slot(opener.Starter))} [{SlotKey(Slot(opener.Starter), gamepad)}]";
+            string followUp = $"{MoveName(Slot(opener.FollowUp), opener.Jump)} [{SlotKey(Slot(opener.FollowUp), gamepad)}]";
             return $"{lead} Try {starter}, then {(opener.Jump ? "jump and " : "")}{followUp}. Cooldowns are off here.";
         }
 

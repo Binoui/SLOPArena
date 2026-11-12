@@ -133,6 +133,8 @@ namespace SlopArena.Client.World
         {
             var replay = _replay!;
             var arena = replay.Arena;
+            foreach (var member in replay.Cast)
+                if (!BindFighter(member.EntityId, member.Content)) return;
             SpawnStageVisual(arena);
             _projectiles = GetComponent<ProjectileVFXManager>() ?? gameObject.AddComponent<ProjectileVFXManager>();
             _projectiles.SetPredictedSimulation(replay.World);
@@ -430,16 +432,16 @@ namespace SlopArena.Client.World
 
         private List<HUDManager.HudPlayer> HudPlayers()
             => _replay!.Cast.Select((m, i) => new HUDManager.HudPlayer(m.EntityId, $"P{i + 1}",
-                m.Content.LegacySelector ?? CharacterClass.None, m.EntityId == _focus, ReplayText.Fighter(m), playerNumber: i + 1)).ToList();
+                ArtFor(m.EntityId), m.EntityId == _focus, ReplayText.Fighter(_replay, m), playerNumber: i + 1)).ToList();
 
         private void SetupFocusHud()
         {
             var focus = _replay!.Cast.First(m => m.EntityId == _focus);
-            SetupHUD(HudPlayers(), StockLimit, focus.Content.Definition);
+            SetupHUD(HudPlayers(), StockLimit, focus.EntityId);
         }
 
         private string FocusName()
-            => _replay?.Cast.FirstOrDefault(m => m.EntityId == _focus) is { } member ? ReplayText.Fighter(member) : "";
+            => _replay?.Cast.FirstOrDefault(m => m.EntityId == _focus) is { } member ? ReplayText.Fighter(_replay, member) : "";
 
         private void UpdateLabels()
         {
@@ -450,8 +452,7 @@ namespace SlopArena.Client.World
                 var move = _frame.Moves[i];
                 if (!Fighters.TryGetValue(move.EntityId, out var renderer) || renderer == null) continue;
                 var member = _replay.Cast.First(m => m.EntityId == move.EntityId);
-                var parts = new List<string>(3) { ReplayText.Fighter(member) };
-                if (member.Kind == ReplayCastKind.StandIn) parts.Add($"Stand-in for {member.Recorded.Package.PackageId}");
+                var parts = new List<string>(3) { ReplayText.Fighter(_replay, member) };
                 if (move.RecordedName.Length > 0 && (move.Match == ReplayMoveMatch.Missing || _overlay.NamesShown))
                     parts.Add(move.Match == ReplayMoveMatch.Missing ? $"{move.RecordedName} (missing)" : move.RecordedName);
                 float height = renderer.CharacterDef?.CapsuleHeight ?? 1.8f;

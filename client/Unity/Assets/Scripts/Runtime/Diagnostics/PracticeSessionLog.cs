@@ -66,12 +66,14 @@ namespace SlopArena.Client.Diagnostics
             }
         }
 
+        public static string CharacterKey(MatchContentEntry entry) => entry.LegacySelector?.ToString() ?? entry.Identity.PackageId;
+
         public static SessionFighter Fighter(ulong entityId, string role, MatchContentEntry entry,
             string? cpuDifficulty = null, string? cpuBehavior = null) => new()
         {
             EntityId = entityId,
             Role = role,
-            Character = entry.Definition.Class.ToString(),
+            Character = CharacterKey(entry),
             PackageId = entry.Identity.PackageId,
             PackageVersion = entry.Identity.Version,
             CookedContentHash = entry.Identity.CookedContentHash,

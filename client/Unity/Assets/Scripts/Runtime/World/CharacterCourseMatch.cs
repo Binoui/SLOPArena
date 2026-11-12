@@ -127,6 +127,7 @@ namespace SlopArena.Client.World
             var entry = catalog.ResolvePackage(fighter);
             if (entry == null || !arena.Arcade.AllowsPackage(entry.Identity.PackageId))
             { Debug.LogError("[Course] This course does not admit package " + fighter); enabled = false; return; }
+            if (!BindFighter(PlayerEntityId, entry)) return;
             ClientSession.InstallLocalMatchCatalog(catalog);
             MatchConfig.SetPlayerFighter(entry);
             if (MatchConfig.LocalMode == LocalPlayMode.CharacterCourse && Array.Exists(MatchConfig.SoloSeats, s => s.Kind == SeatKind.LocalPlayer))
@@ -141,7 +142,7 @@ namespace SlopArena.Client.World
             if (!SetupPlayerRenderer(entry, arena)) { enabled = false; return; }
             SpawnStageVisual(arena);
             RegisterFighter();
-            SetupHUD(_playerDef); SetupCamera(); SetupAimHandler(_playerDef);
+            if (!SetupHUD(_playerDef)) return; SetupCamera(); SetupAimHandler(_playerDef);
             _inputController.RequireReleaseBeforeHumanInput();
             _recordKey = new("character-course", arena.Arcade.ProfileId, entry.Identity.PackageId,
                 ArcadeRecordCompatibility.Course(arena, entry));

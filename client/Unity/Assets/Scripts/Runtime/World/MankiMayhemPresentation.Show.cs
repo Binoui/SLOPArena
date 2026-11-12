@@ -150,8 +150,8 @@ namespace SlopArena.Client.World
             foreach (var crt in _screens)
             {
                 var guest = MankiMayhemView.GuestFor(view.Channel);
-                crt.Guest.gameObject.SetActive(guest != CharacterClass.None);
-                if(guest != CharacterClass.None) crt.GuestMaterial.SetTexture("_BaseMap",Resources.Load<Texture2D>($"UI/Portraits/{guest}"));
+                crt.Guest.gameObject.SetActive(guest != null);
+                if(guest != null) crt.GuestMaterial.SetTexture("_BaseMap",_view.GuestPortrait(view.Channel));
                 crt.Guest.transform.localRotation = Quaternion.Euler(0, MankiMayhemView.FakeTurn(view) * 55, 0);
                 crt.Header.text = $"MANKI MAYHEM / ACT {c.Act+1} / {Math.Max(0,c.Episode+1):00}";
                 crt.Title.text = title;

@@ -391,6 +391,14 @@ public sealed class CharacterPackageAuthoringService
             diagnostics.AddRange(MatchContentCatalogBuilder.ValidateRoster(candidate));
             if (diagnostics.Any(x => x.Severity == CharacterDiagnosticSeverity.Error))
                 return CharacterRosterAdmissionResult.Failure(packageId, diagnostics);
+            string prepare = $"python3 tools/fighter-presentation/generate.py --prepare-admission {packageId} --selector {selector}";
+            string cardPath = Path.Combine(Application.dataPath, "CharacterPackages", packageId, "card.json");
+            string uiPath = Path.Combine(Application.dataPath, "Resources", "Generated", "FighterUi.json");
+            if (!HasRosterPresentation(packageId, selector, cardPath, uiPath))
+            {
+                diagnostics.Add(Error("roster.presentation.missing", packageId, $"Prepare this fighter's presentation before admission. Run {prepare}, then retry."));
+                return CharacterRosterAdmissionResult.Failure(packageId, diagnostics);
+            }
             WriteDurably(rosterPath, Encoding.UTF8.GetBytes(BuiltInRosterManifestCodec.Serialize(candidate)));
             return CharacterRosterAdmissionResult.Successful(packageId, selector.ToString());
         }
@@ -400,6 +408,21 @@ public sealed class CharacterPackageAuthoringService
             return CharacterRosterAdmissionResult.Failure(packageId, diagnostics);
         }
     }
+    internal static bool HasRosterPresentation(string packageId, CharacterClass selector, string cardPath, string uiPath)
+    {
+        if (!File.Exists(cardPath) || !File.Exists(uiPath)) return false;
+        try
+        {
+            using var ui = JsonDocument.Parse(File.ReadAllText(uiPath));
+            using var card = JsonDocument.Parse(File.ReadAllText(cardPath));
+            return ui.RootElement.GetProperty("fighters").EnumerateArray().Any(row =>
+                row.GetProperty("packageId").GetString() == packageId && row.GetProperty("alias").GetString() == selector.ToString()
+                && System.Text.Json.JsonSerializer.Serialize(row.GetProperty("card")) == System.Text.Json.JsonSerializer.Serialize(card.RootElement));
+        }
+        catch (Exception error) when (error is System.Text.Json.JsonException or InvalidOperationException or KeyNotFoundException)
+        { return false; }
+    }
+
     public CharacterRosterAdmissionResult RefreshRoster(string packageId)
     {
         CharacterPackageVerificationResult verification = Verify(packageId);

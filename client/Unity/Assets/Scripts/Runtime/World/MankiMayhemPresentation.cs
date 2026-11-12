@@ -54,7 +54,7 @@ namespace SlopArena.Client.World
 
         private float RingRadius => FixedTelegraphs ? FixedRingRadius : MayhemPresentationTuning.BlastRadius;
 
-        public MankiMayhemPresentation(Transform parent, ServerSimulation simulation, MankiMayhemDefinition stage, MatchContentEntry manki,
+        public MankiMayhemPresentation(Transform parent, ServerSimulation simulation, MankiMayhemDefinition stage, MatchContentEntry manki, MatchContentCatalog content,
             IReadOnlyDictionary<ulong, PlayerRenderer> fighters, IReadOnlyList<HUDManager.HudPlayer> players,
             HUDManager hud, ProjectileVFXManager projectiles, CameraMount camera, Func<UnityEngine.Camera> renderCamera, FriendlyFireMode friendlyFire = FriendlyFireMode.Shoves)
         {
@@ -64,7 +64,7 @@ namespace SlopArena.Client.World
             _root.SetParent(parent, false);
             Host = new MankiHostPresenter(_root, manki, stage);
             _projectiles.RegisterHazardOwner(ServerSimulation.MayhemHostEntityId, Host.Catalog, Host.Bomb, Host.Hand);
-            _view = new MankiMayhemView(hud.Document.rootVisualElement, players, friendlyFire);
+            _view = new MankiMayhemView(hud.Document.rootVisualElement, players, content, friendlyFire);
             _ink = Material(new Color(.13f, .025f, .025f));
             _gold = Material(new Color(1f, .73f, .04f));
             _hot = Material(new Color(1f, .18f, .035f));

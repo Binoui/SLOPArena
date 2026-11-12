@@ -58,6 +58,7 @@ namespace SlopArena.Client.World
                 int seat = i == 0 ? 1 : seats[i - 1];
                 var entry = i == 0 ? player : catalog.Resolve(MatchConfig.Seat(seat).Fighter);
                 if (entry == null) { Debug.LogError($"[Scramble] P{seat}'s fighter is unavailable."); enabled = false; return; }
+                if (!BindFighter((ulong)seat, entry)) return;
                 var renderer = i == 0 ? _playerRenderer : new GameObject($"Course P{seat}").AddComponent<PlayerRenderer>();
                 if (!SetupRenderer(renderer, entry, arena, (ulong)seat, i == 0)) { enabled = false; return; }
                 var input = i == 0 ? _inputController : gameObject.AddComponent<InputController>();
@@ -79,7 +80,7 @@ namespace SlopArena.Client.World
             HumanInputActions.RestrictToDevices(devices.ToArray());
             SpawnStageVisual(arena);
             RegisterScrambleRacers();
-            SetupHUD(_playerDef, _racers.Skip(1).Select(r => new HUDManager.HudPlayer(r.Id, $"P{r.Id}", r.Entry.Definition.Class, true, playerNumber: (int)r.Id)).ToArray());
+            if (!SetupHUD(_playerDef, _racers.Skip(1).Select(r => new HUDManager.HudPlayer(r.Id, $"P{r.Id}", ArtFor(r.Id), true, playerNumber: (int)r.Id)).ToArray())) return;
             SetupCamera();
             foreach (var racer in _racers)
             {

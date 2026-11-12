@@ -199,7 +199,7 @@ namespace SlopArena.Client.Entities
         public bool Configure(
             CharacterDefinition definition, BakedAnimationData? baked,
             CharacterAnimationCatalog animationCatalog, GameObject prefabOverride,
-            out string error, CharacterAnimationConfig animationConfigOverride = null)
+            out string error, CharacterAnimationConfig animationConfigOverride = null, string packageId = "")
         {
             error = "";
             if (definition == null)
@@ -242,7 +242,7 @@ namespace SlopArena.Client.Entities
                 }
                 if (animationCatalog == null)
                 {
-                    if (definition.Class == CharacterClass.FightGuy)
+                    if (packageId == "fightguy")
                     {
                         error = "FightGuy requires generated cooked animation assets.";
                         return false;

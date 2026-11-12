@@ -65,6 +65,7 @@ namespace SlopArena.Client.World
             if (entry == null) { Debug.LogError("[Tutorial] No fighter package for " + MatchConfig.PlayerClass); enabled = false; return; }
             // A different, roomy fighter stands in as the dummy so the two never look alike.
             _dummyEntry = catalog.Resolve(entry.Definition.Class == CharacterClass.Bonk ? CharacterClass.FightGuy : CharacterClass.Bonk) ?? entry;
+            if (!BindFighter(PlayerEntityId, entry) || !BindFighter(DummyEntityId, _dummyEntry)) return;
             ClientSession.InstallLocalMatchCatalog(catalog);
             MatchConfig.SetPlayerFighter(entry);
             _arena = arena; _playerEntry = entry; _playerDef = entry.Definition;
@@ -79,8 +80,8 @@ namespace SlopArena.Client.World
             SpawnStageVisual(arena);
             Place(PlayerEntityId, entry, _playerRenderer, arena.SpawnPoints[0], 0, 0);
             Place(DummyEntityId, _dummyEntry, _dummyRenderer, arena.SpawnPoints[1], 0, 0);
-            SetupHUD(_playerDef, new List<HUDManager.HudPlayer>
-                { new(DummyEntityId, "DUMMY", _dummyEntry.Definition.Class, isLocal: false) });
+            if (!SetupHUD(_playerDef, new List<HUDManager.HudPlayer>
+                { new(DummyEntityId, "DUMMY", ArtFor(DummyEntityId), isLocal: false) })) return;
             SetupCamera(); SetupAimHandler(_playerDef);
             _inputController.RequireReleaseBeforeHumanInput();
             Progress = new TutorialProgress(Layout, _playerDef.CapsuleHeight);
