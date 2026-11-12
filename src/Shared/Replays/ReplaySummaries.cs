@@ -26,7 +26,7 @@ namespace SlopArena.Shared.Replays
         {
             var arena = content.LoadArena(header.ArenaId);
             if (arena == null) return new(ReplayTrack.View, new(ReplayFailureCode.ArenaUnavailable, header.ArenaId, "available", ""));
-            var refusal = ReplayExact.Check(header, ReplayExactEnvironment.For(content, arena));
+            var refusal = ReplayExact.Check(header, ReplayExactEnvironment.For(content, arena, header));
             return new(refusal == null ? ReplayTrack.Exact : ReplayTrack.View, refusal);
         }
     }

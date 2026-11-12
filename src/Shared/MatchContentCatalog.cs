@@ -110,7 +110,7 @@ public sealed class MatchContentCatalogBuildResult
 public sealed class MatchContentCatalogBuilder
 {
     public MatchContentCatalogBuildResult Build(BuiltInRosterManifest manifest,
-        IReadOnlyDictionary<string, CookedCharacterPackageLoadResult> cookedPackages)
+        IReadOnlyDictionary<string, CookedCharacterPackageLoadResult> cookedPackages, MatchContentPolicy policy = MatchContentPolicy.StandardRoom)
     {
         var diagnostics = new List<CharacterDiagnostic>();
         if (manifest == null) { diagnostics.Add(Error("catalog.manifest.missing", "manifest", "Roster manifest is required.")); return new(null, diagnostics); }
@@ -137,27 +137,41 @@ public sealed class MatchContentCatalogBuilder
             byPackage[roster.PackageId] = (roster, loaded);
         }
         if (diagnostics.Any(x => x.Severity == CharacterDiagnosticSeverity.Error)) return new(null, diagnostics);
-        var ordered = byPackage.Values.OrderBy(x => x.Roster.PackageId, StringComparer.Ordinal).ToList();
-        var entries = new List<MatchContentEntry>(ordered.Count);
-        for (ushort i = 0; i < ordered.Count; i++)
+        var admitted = byPackage.Values.Select(x => new AdmittedFighter(x.Loaded, x.Roster.Selector, x.Roster.Requirement)).ToArray();
+        return Build(admitted, policy);
+    }
+
+    public MatchContentCatalogBuildResult Build(IReadOnlyList<AdmittedFighter> fighters, MatchContentPolicy policy)
+    {
+        if (fighters == null) throw new ArgumentNullException(nameof(fighters));
+        var diagnostics = new List<CharacterDiagnostic>();
+        var packages = new HashSet<string>(StringComparer.Ordinal);
+        var selectors = new HashSet<CharacterClass>();
+        if (fighters.Count > ushort.MaxValue)
+            diagnostics.Add(Error("catalog.capacity", "fighters", "Too many fighters."));
+        foreach (var fighter in fighters)
         {
-            var x = ordered[i];
-            entries.Add(new MatchContentEntry(new ContentHandle((ushort)(i + 1)), x.Roster.Selector,
-                x.Loaded.Identity, x.Loaded.Package!.Definition.DisplayName,
-                x.Loaded.ToCharacterDefinition(x.Roster.Selector), x.Loaded.BakedAnimation, x.Loaded.Package));
+            if (!packages.Add(fighter.Identity.PackageId))
+                diagnostics.Add(Error("catalog.package.duplicate", fighter.Identity.PackageId, "One revision per package is allowed."));
+            if (fighter.LegacySelector is { } selector && !selectors.Add(selector))
+                diagnostics.Add(Error("catalog.selector.duplicate", selector.ToString(), "Duplicate selector."));
+            if (!fighter.Allowed(policy))
+                diagnostics.Add(Error("catalog.policy.refused", fighter.Identity.PackageId, "Fighter is not eligible under this match policy."));
         }
-        return new MatchContentCatalogBuildResult(new MatchContentCatalog(entries), diagnostics);
+        if (diagnostics.Count != 0) return new(null, diagnostics);
+        var ordered = fighters.OrderBy(x => x.Identity.PackageId, StringComparer.Ordinal).ToArray();
+        var entries = ordered.Select((x, i) => new MatchContentEntry(new ContentHandle((ushort)(i + 1)), x.LegacySelector,
+            x.Identity, x.Loaded.Package!.Definition.DisplayName, x.Loaded.ToCharacterDefinition(x.LegacySelector ?? CharacterClass.None),
+            x.Loaded.BakedAnimation, x.Loaded.Package)).ToArray();
+        return new(new MatchContentCatalog(entries), diagnostics);
     }
 
 
     private static void ValidateManifest(BuiltInRosterManifest manifest, List<CharacterDiagnostic> d)
     {
-        var required = new[] { CharacterClass.Manki, CharacterClass.FightGuy, CharacterClass.Wibou, CharacterClass.Bonk };
-        foreach (var selector in required)
-            if (manifest.Resolve(selector) == null) d.Add(Error("catalog.selector.missing", selector.ToString(), "Built-in roster selector is missing."));
         foreach (var entry in manifest.Entries)
         {
-            if (entry.Selector == CharacterClass.None) d.Add(Error("catalog.selector.invalid", "entries", "None is not a valid built-in selector."));
+            if (!Enum.IsDefined(typeof(CharacterClass), entry.Selector) || entry.PackageId != entry.Selector.ToString().ToLowerInvariant() || entry.Selector == CharacterClass.None) d.Add(Error("catalog.selector.invalid", "entries", "Built-in selector must name its own roster package."));
             if (!IsStablePackageId(entry.PackageId)) d.Add(Error("catalog.package.invalid", "entries.packageId", "Package ID is not a stable lowercase ID."));
             if (entry.Requirement == null || entry.Requirement.PackageId != entry.PackageId || !IsSha(entry.Requirement.CookedContentHash) || !IsSha(entry.Requirement.PackageHash) || string.IsNullOrWhiteSpace(entry.Requirement.Version))
                 d.Add(Error("catalog.requirement.invalid", entry.PackageId, "Package requirement is incomplete or invalid."));

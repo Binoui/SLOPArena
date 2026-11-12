@@ -437,7 +437,9 @@ namespace SlopArena.Client.World
             }
             SlopArena.Client.ClientSession.InstallLocalMatchCatalog(contentCatalog);
             var playerClass = _playerClassOverride != CharacterClass.None ? _playerClassOverride : MatchConfig.PlayerClass;
-            var playerEntry = contentCatalog.Resolve(playerClass);
+            var playerPackage = _playerClassOverride != CharacterClass.None
+                ? contentCatalog.Resolve(_playerClassOverride)?.Identity.PackageId : MatchConfig.PlayerPackageId;
+            var playerEntry = contentCatalog.ResolvePackage(playerPackage);
             if (playerEntry == null)
             {
                 Debug.LogError($"[TrainingMatch] Missing catalog entry for player={playerClass}.");

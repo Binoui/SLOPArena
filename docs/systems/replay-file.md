@@ -64,7 +64,7 @@ strings are field bytes, booleans one byte. Missing required identities reject t
 
 | Object | Tags 1 upward |
 |---|---|
-| Header | MatchId string, ArenaId string, Rules object, StartTick u32, Roster list, Build object, ArenaDigest string (default empty), TickRate u16 (required 60) |
+| Header | MatchId string, ArenaId string, Rules object, StartTick u32, Roster list, Build object, ArenaDigest string (default empty), TickRate u16 (required 60), ContentMap JSON bytes (optional tag 9) |
 | Build | Build label string, Protocol u32, FrameFormat u32, SnapshotFormat u32, ContentHash string |
 | Rules | FormatId string, FriendlyFireId string, MaxStocks u8, BallOnly bool |
 | Participant | EntityId u64, ParticipantProvider string, ParticipantSubject string, Package object, FormId string, CampId string, ColourId string, DisplayName string (default empty) |
@@ -804,7 +804,13 @@ Presenters implement `IReplayPresenter` and read `ReplayFrame.World` as they rea
   `TickAbilities`.
 - **Exact gate content hash.** The GameHost hashes the whole roster handle map with the Match arena
   (`MultiMatchOrchestrator`). `ReplayExactEnvironment` rebuilds it from today's catalog and arena digest,
-  so a build with the same roster and arena reproduces it.
+  so a build with the same roster and arena reproduces it for headers without ContentMap.
+  New local recordings use `ReplayHeader.WithLocalContent` to capture the complete admitted
+  schema-3 map, including fighters nobody picked. Exact reconstruction resolves each recorded
+  identity against available admitted content and preserves recorded handles. Missing or changed
+  content refuses Exact; View still uses today's cast. Extra installed fighters do not enter the
+  recorded map. Tag 9 is omitted when absent. Old readers skip tag 9 and can read View without
+  reconstructing its new local hash. Container, View, frame, tick, and snapshot versions are unchanged.
 - **Cast.** A recorded package today's build has is `Recorded` (same identity) or `Today` (other
   version). A missing package plays today's stand-in fighter, `StandIn`, whose moves are all Missing.
   A recorded alternate form the fighter no longer has plays its base form.

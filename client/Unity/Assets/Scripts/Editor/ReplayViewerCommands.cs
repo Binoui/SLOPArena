@@ -70,7 +70,7 @@ namespace SlopArena.EditorTools
                 .Select(e => new MatchContentHandleRecord(e.Handle, e.LegacySelector!.Value, e.Identity, e.DisplayName)).ToList();
             string hash = SteamMatchDescriptor.HashContent(new MatchContentHandleMap(MatchContentHandleMap.CurrentSchemaVersion, records, identity));
             var header = new ReplayHeader("editor-bots-" + seed, arena, new ReplayRules(format, "off", 4, false), 1, roster,
-                ReplayBuildIdentity.Current("editor", hash), identity.Digest);
+                ReplayBuildIdentity.Current("editor", hash), identity.Digest).WithLocalContent(catalog);
             var sim = new ServerSimulation(definition, matchFormat.CreateRule(4, FriendlyFireMode.Off,
                 roster.ToDictionary(p => p.EntityId, p => camps[(int)p.EntityId - 1])));
             for (int i = 0; i < entries.Length; i++)

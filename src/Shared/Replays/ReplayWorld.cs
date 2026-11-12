@@ -117,7 +117,7 @@ namespace SlopArena.Shared.Replays
                 ReplayFailure? refusal = null;
                 if (choice == ReplayTrackChoice.Best)
                 {
-                    var exact = reader.CreatePlayer(ReplayExactEnvironment.For(content, arena));
+                    var exact = reader.CreatePlayer(ReplayExactEnvironment.For(content, arena, reader.Header));
                     if (exact.Player is { Shell: { } shell } exactPlayer)
                         return new(new ReplayWorld(file, reader, exactPlayer, cast, shell, null, ReplayTrack.Exact, null, arena.Definition), null);
                     refusal = exact.Failure;

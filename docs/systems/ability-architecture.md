@@ -453,6 +453,14 @@ pre-simulation tick using the current ground/air variant and ordinary resource g
 A fresh accepted press supersedes an older buffer. Landing-lag and defense-commitment
 presses are discarded, including on their expiry tick; they do not queue an attack.
 
+`MatchContentCatalogBuilder` builds from `AdmittedFighter` values under a required
+`MatchContentPolicy`. The generic builder has no roster minimum and indexes every entry by
+package and handle. A legacy selector is optional. The bundled-manifest overload remains the
+trusted adapter, checks exact roster pins, and defaults to StandardRoom policy. LocalPlay
+accepts all admitted content. StandardRoom checks every entry for an exact trusted roster pin.
+WorkshopRoom is reserved and currently permits only trusted roster content. External-file
+admission is unavailable to product callers; the selector-free fixture factory is internal.
+
 The Match Content Catalog is immutable for the match. A later cook applies only to a later match. Missing, invalid, stale, incompatible, or hash-mismatched content fails closed; it does not fall back to raw source, C# definitions, or a similar capability.
 
 Admitted `CharacterDefinition` values have init-only properties, defensively copied

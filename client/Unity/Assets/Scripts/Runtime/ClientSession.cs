@@ -467,11 +467,7 @@ namespace SlopArena.Client
         public static void InstallLocalMatchCatalog(Shared.MatchContentCatalog catalog)
         {
             MatchContentCatalog = catalog ?? throw new ArgumentNullException(nameof(catalog));
-            var records = new System.Collections.Generic.List<Shared.MatchContentHandleRecord>();
-            foreach (var entry in catalog.Entries)
-                if (entry.LegacySelector.HasValue)
-                    records.Add(new Shared.MatchContentHandleRecord(entry.Handle, entry.LegacySelector.Value, entry.Identity, entry.DisplayName));
-            MatchContentHandleMap = new Shared.MatchContentHandleMap(Shared.MatchContentHandleMap.CurrentSchemaVersion, records);
+            MatchContentHandleMap = Shared.MatchContentHandleMap.CaptureLocal(catalog);
         }
         public static bool TryBuildLocalMatchCatalog(out Shared.MatchContentCatalog? catalog, out string? failure)
         {

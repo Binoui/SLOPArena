@@ -24,7 +24,14 @@ namespace SlopArena.Shared.Replays
     public sealed record ReplayHeader(string MatchId, string ArenaId, ReplayRules Rules,
         uint StartTick, IReadOnlyList<ReplayParticipant> Roster, ReplayBuildIdentity Build, string ArenaDigest = "")
     {
+        public MatchContentHandleMap? ContentMap { get; init; }
         public const ushort TickRate = 60;
+
+        public ReplayHeader WithLocalContent(MatchContentCatalog catalog)
+        {
+            var map = MatchContentHandleMap.CaptureLocal(catalog, new MatchArenaRecord(ArenaId, ArenaDigest));
+            return this with { ContentMap = map, Build = Build with { ContentHash = SteamMatchDescriptor.HashContent(map) } };
+        }
     }
 
     public enum ReplayEndReason

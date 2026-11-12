@@ -36,6 +36,14 @@ internal static class ReplayStorage
     internal static void Validate(ReplayHeader h)
     {
         if (h.Build == null || h.Rules == null || h.Build.Protocol == 0 || h.Build.FrameFormat == 0 || h.Build.SnapshotFormat == 0 || string.IsNullOrEmpty(h.MatchId) || string.IsNullOrEmpty(h.ArenaId) || string.IsNullOrEmpty(h.Build.ContentHash) || h.Roster.Count < 2 || h.Roster.Count > 4) throw new InvalidDataException("Required header");
+        if (h.ContentMap is { } map)
+        {
+            if (map.SchemaVersion != MatchContentHandleMap.LocalSchemaVersion || map.Arena != new MatchArenaRecord(h.ArenaId, h.ArenaDigest)
+                || SteamMatchDescriptor.HashContent(map) != h.Build.ContentHash)
+                throw new InvalidDataException("Content map identity");
+            foreach (var participant in h.Roster)
+                if (!map.Entries.Any(e => e.Identity == participant.Package)) throw new InvalidDataException("Content map roster");
+        }
         ulong last = 0;
         foreach (var p in h.Roster)
         {

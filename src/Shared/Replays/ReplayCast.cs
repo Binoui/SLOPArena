@@ -128,15 +128,35 @@ namespace SlopArena.Shared.Replays
     /// </summary>
     internal static class ReplayExactEnvironment
     {
-        internal static ReplayEnvironment For(ReplayContent content, ReplayArena arena)
+        internal static ReplayEnvironment For(ReplayContent content, ReplayArena arena, ReplayHeader? header = null)
         {
             string hash;
             try
             {
-                var records = content.Catalog.Entries.Where(e => e.LegacySelector.HasValue)
-                    .Select(e => new MatchContentHandleRecord(e.Handle, e.LegacySelector!.Value, e.Identity, e.DisplayName)).ToList();
-                hash = SteamMatchDescriptor.HashContent(new MatchContentHandleMap(MatchContentHandleMap.CurrentSchemaVersion,
-                    records, new MatchArenaRecord(arena.Definition.Name, arena.Digest)));
+                if (header?.ContentMap is { } map)
+                {
+                    var entries = new List<MatchContentEntry>();
+                    foreach (var record in map.Entries)
+                    {
+                        var entry = content.Catalog.ResolvePackage(record.Identity.PackageId);
+                        if (entry?.Identity != record.Identity || entry.DisplayName != record.DisplayName)
+                            throw new ArgumentException("Recorded content is unavailable.");
+                        entries.Add(new MatchContentEntry(record.Handle, entry.LegacySelector, entry.Identity,
+                            entry.DisplayName, entry.Definition, entry.BakedAnimation, entry.CookedCharacterPackage));
+                    }
+                    if (map.Arena != new MatchArenaRecord(arena.Definition.Name, arena.Digest))
+                        throw new ArgumentException("Recorded arena is unavailable.");
+                    content = content with { Catalog = new MatchContentCatalog(entries) };
+                    hash = SteamMatchDescriptor.HashContent(map);
+                }
+                else
+                {
+                    var records = content.Catalog.Entries.Select(e => new MatchContentHandleRecord(
+                        e.Handle, e.LegacySelector, e.Identity, e.DisplayName)).ToList();
+                    var schema = records.All(e => e.Selector.HasValue) ? MatchContentHandleMap.CurrentSchemaVersion : MatchContentHandleMap.LocalSchemaVersion;
+                    hash = SteamMatchDescriptor.HashContent(new MatchContentHandleMap(schema,
+                        records, new MatchArenaRecord(arena.Definition.Name, arena.Digest)));
+                }
             }
             catch (ArgumentException)
             {

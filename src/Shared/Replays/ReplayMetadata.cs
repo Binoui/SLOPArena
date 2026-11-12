@@ -51,8 +51,9 @@ internal static class ReplayMetadata
         Field<ReplayHeader, IReadOnlyList<ReplayParticipant>>(5, List(Obj((w, x) => ReplayParticipantTable.WriteTo(w, x), ReadReplayParticipant), 4), x => x.Roster, (x,v) => x with { Roster = v }, "Roster"),
         Field<ReplayHeader, ReplayBuildIdentity>(6, Obj((w, x) => ReplayBuildIdentityTable.WriteTo(w, x), ReadReplayBuildIdentity), x => x.Build, (x,v) => x with { Build = v }, "Build"),
         Field<ReplayHeader, string>(7, Text, x => x.ArenaDigest, (x,v) => x with { ArenaDigest = v }, "ArenaDigest"),
-        Field<ReplayHeader, ushort>(8, U16, x => ReplayHeader.TickRate, (x,v) => v == 60 ? x : throw new InvalidDataException("Tick rate"), "TickRate"));
-    internal static byte[] Write(ReplayHeader x) => ReplayHeaderTable.Write(x);
+        Field<ReplayHeader, ushort>(8, U16, x => ReplayHeader.TickRate, (x,v) => v == 60 ? x : throw new InvalidDataException("Tick rate"), "TickRate"),
+        Field<ReplayHeader, MatchContentHandleMap?>(9, ContentMap, x => x.ContentMap, (x,v) => x with { ContentMap = v }, "ContentMap"));
+    internal static byte[] Write(ReplayHeader x) => ReplayHeaderTable.Write(x, x.ContentMap == null ? (ushort)9 : null);
     internal static ReplayHeader ReadReplayHeader(byte[] bytes)
     {
         Require(bytes, 0x17e);
@@ -113,6 +114,12 @@ internal static class ReplayMetadata
         foreach (var f in ReplayBinary.Fields(bytes)) if (f.Key < 32) present |= 1u << f.Key;
         if ((present & mask) != mask) throw new InvalidDataException("Missing metadata field");
     }
+    static Codec<MatchContentHandleMap?> ContentMap => new((w, map) =>
+    {
+        if (map != null) w.Write(ReplayBinary.Utf8.GetBytes(MatchContentHandleMapCodec.Serialize(map)));
+    }, bytes => bytes.Length == 0 ? null : MatchContentHandleMapCodec.TryParse(ReplayBinary.Utf8.GetString(bytes), out var map)
+        && map?.SchemaVersion == MatchContentHandleMap.LocalSchemaVersion ? map : throw new InvalidDataException("Content map"));
+
     static Codec<ReplayEndReason> Reason => new((w, v) => Text.Write(w, v switch { ReplayEndReason.Finished => "finished", ReplayEndReason.Cancelled => "cancelled", ReplayEndReason.Limit => "limit", _ => throw new InvalidDataException("Reason") }), b => ReplayBinary.Text(b) switch { "finished" => ReplayEndReason.Finished, "cancelled" => ReplayEndReason.Cancelled, "limit" => ReplayEndReason.Limit, _ => throw new InvalidDataException("Reason") });
     static Codec<ReplayMatchResult?> OptionalResult => new((w, v) => { if (v != null) ReplayMatchResultTable.WriteTo(w, v); }, b => b.Length == 0 ? null : ReadReplayMatchResult(b));
 }

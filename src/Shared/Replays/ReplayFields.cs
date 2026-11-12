@@ -37,15 +37,16 @@ internal static class ReplayFields
         internal readonly FieldEntry<T>[] Fields;
         readonly Func<T> factory;
         internal Table(Func<T> factory, params FieldEntry<T>[] fields) { this.factory = factory; Fields = fields; }
-        internal byte[] Write(T x)
+        internal byte[] Write(T x, ushort? omitTag = null)
         {
-            return ReplayBinary.Bytes(w => WriteTo(w, x));
+            return ReplayBinary.Bytes(w => WriteTo(w, x, omitTag));
         }
-        internal void WriteTo(BinaryWriter w, T x)
+        internal void WriteTo(BinaryWriter w, T x, ushort? omitTag = null)
         {
             long start = w.BaseStream.Position;
             foreach (var f in Fields)
             {
+                if (f.Tag == omitTag) continue;
                 w.Write(f.Tag);
                 long fieldStart = BeginSize(w);
                 f.Write(w, x);
