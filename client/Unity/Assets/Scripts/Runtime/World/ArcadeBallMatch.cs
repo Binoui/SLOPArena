@@ -86,7 +86,7 @@ namespace SlopArena.Client.World
             }
             if (!BindFighter(PlayerEntityId, entry)) return;
             ClientSession.InstallLocalMatchCatalog(catalog);
-            MatchConfig.SetPlayerFighter(entry);
+            MatchConfig.SetPlayerFighter(choice);
             _playerDef = entry.Definition;
             _bridge = new LocalSimulationBridge(arena, NoWinMatchRule.Instance);
             if (_combatFeedback == null) _combatFeedback = GetComponent<CombatFeedback>() ?? gameObject.AddComponent<CombatFeedback>();

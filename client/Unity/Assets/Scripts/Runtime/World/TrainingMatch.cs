@@ -387,7 +387,7 @@ namespace SlopArena.Client.World
             // Only a fully initialized match may poll input or advance the simulation.
             enabled = false;
             string arenaName = string.IsNullOrEmpty(_arenaNameOverride) ? MatchConfig.ArenaName : _arenaNameOverride;
-            Debug.Log($"[{GetType().Name}] Starting match: mode={MatchConfig.Mode} char={MatchConfig.PlayerClass} arena={arenaName}");
+            Debug.Log($"[{GetType().Name}] Starting match: mode={MatchConfig.Mode} fighter={MatchConfig.PlayerPackageId} arena={arenaName}");
             // Baked arena is required (issue #77): hardcoded ArenaRegistry arenas carry
             // no collision data, so a missing .arena file used to make players fall
             // through the floor (Simulation grounded at KillHeight + 1).

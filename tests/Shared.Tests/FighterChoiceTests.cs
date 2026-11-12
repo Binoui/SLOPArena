@@ -34,10 +34,19 @@ public partial class PackageFighterContentTests
             Assert.Equal(SeatKind.Cpu, MatchConfig.Seat(3).Kind);
             Assert.Null(seatThree.LegacySelector);
             var entry = MatchConfig.Seat(3).Choice!.Resolve(catalog)!;
-            var arena = default(ArenaDefinition);
-            var simulation = new ServerSimulation(arena);
-            simulation.RegisterEntity(3, entry.Definition, new CharacterState { EntityId = 3 }, entry.BakedAnimation);
-            Assert.Same(entry.Definition, simulation.GetDefinition(3));
+            var arena = TestHelpers.TestArena();
+            var simulation = new SlopArena.Client.Simulation.LocalSimulationBridge(arena);
+            simulation.RegisterEntity(3, entry.Definition, TestHelpers.PlayerState() with { EntityId = 3 }, entry.BakedAnimation);
+            Assert.Same(entry.Definition, simulation.InternalSim.GetDefinition(3));
+            var policy = new SlopArena.Shared.AI.HeuristicBotPolicy();
+            var memory = new SlopArena.Shared.AI.BotMemory();
+            var rng = new Random(3);
+            for (int tick = 0; tick < 5; tick++)
+            {
+                var input = policy.Decide(simulation.GetState(3), TestHelpers.PlayerState() with { EntityId = 1 }, entry.Definition, rng, memory, arena);
+                simulation.Tick(new Dictionary<ulong, InputState> { [3] = input });
+            }
+            Assert.Equal((ulong)3, simulation.GetState(3).EntityId);
             Assert.Null(seatThree.Resolve(Bundled()));
             var changed = new MatchContentEntry(entry.Handle, null, entry.Identity with { PackageHash = new string('0', 64) }, entry.DisplayName, entry.Definition);
             Assert.Null(seatThree.Resolve(new MatchContentCatalog(new[] { changed })));

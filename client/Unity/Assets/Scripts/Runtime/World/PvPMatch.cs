@@ -240,10 +240,10 @@ namespace SlopArena.Client.World
                 ClientSession.RejectMatchStart("Admitted match content catalog is unavailable.");
                 return;
             }
-            var playerEntry = contentCatalog.Resolve(MatchConfig.PlayerClass);
+            var playerEntry = MatchConfig.Selection?.Choice.Resolve(contentCatalog);
             if (playerEntry == null)
             {
-                ClientSession.RejectMatchStart($"Player selector {MatchConfig.PlayerClass} is absent from the admitted content catalog.");
+                ClientSession.RejectMatchStart($"Player choice {MatchConfig.PlayerPackageId} is absent from the admitted content catalog or its exact revision differs.");
                 return;
             }
             if (!BindFighter(PlayerEntityId, playerEntry)) return;
