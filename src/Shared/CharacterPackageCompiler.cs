@@ -58,17 +58,17 @@ public static class CharacterPackageCompiler
     public const string CommandGrabCapabilityVersion = "1";
     public const string FormsCapabilityId = "slop.ability.forms.v1";
     public const string FormsCapabilityVersion = "1";
-    internal const float MaxSteeredChargeTurnDegreesPerSecond = 1440f;
-    private const ushort ManifestSchemaVersion = 1;
-    private const ushort AuthoringSchemaVersion = 4;
+    internal static float MaxSteeredChargeTurnDegreesPerSecond => (float)CharacterSourceSchema.Object("cap.steered-charge.v2").Field("turnDegreesPerSecond").GameplayMaximum!.Value;
+    private static ushort ManifestSchemaVersion => CharacterSourceSchema.Object("manifest").Field("manifestSchemaVersion").ExpectedUnsignedInteger;
+    private static ushort AuthoringSchemaVersion => CharacterSourceSchema.Object("character").Field("authoringSchemaVersion").ExpectedUnsignedInteger;
     private const ushort CookedSchemaVersion = 5;
     private const string RuntimeApiMin = "1.2.0";
     private const string RuntimeApiMax = "1.x";
-    private const ushort MaxFixedHitstunTicks = 240;
-    internal const float MaxStartupAcquisitionRange = 32f;
-    internal const float MaxStartupAngleDegrees = 180f;
-    internal const float MaxStartupPitchDegrees = 90f;
-    internal const float MaxStartupRateDegreesPerSecond = 1440f;
+    private static ushort MaxFixedHitstunTicks => (ushort)CharacterSourceSchema.Range("fixedHitstun").Maximum!.Value;
+    internal static float MaxStartupAcquisitionRange => (float)CharacterSourceSchema.Range("startupRange").Maximum!.Value;
+    internal static float MaxStartupAngleDegrees => (float)CharacterSourceSchema.Range("startupAngle").Maximum!.Value;
+    internal static float MaxStartupPitchDegrees => (float)CharacterSourceSchema.Range("startupPitch").Maximum!.Value;
+    internal static float MaxStartupRateDegreesPerSecond => (float)CharacterSourceSchema.Range("startupRate").Maximum!.Value;
     private static readonly string[] CanonicalSlots = CanonicalSlotProjection.All
         .Select(slot => slot.Id)
         .ToArray();
@@ -88,21 +88,7 @@ public static class CharacterPackageCompiler
     internal static bool IsTrustedCapability(string id, string version)
         => TrustedCapabilities.TryGetValue(id, out var supported) && supported == version;
     public static bool IsPublicCapability(string id, string version)
-        => id == AimedRecoveryCapabilityId && version == AimedRecoveryCapabilityVersion
-            || id == TargetedLeapCapabilityId && version == TargetedLeapCapabilityVersion
-            || id == DashStrikeCapabilityId && version == DashStrikeCapabilityVersion
-            || id == FlashCutCapabilityId && version == FlashCutCapabilityVersion
-            || id == ChargedProjectileCapabilityId && version == ChargedProjectileCapabilityVersion
-            || id == ChargedStreamCapabilityId && version == ChargedStreamCapabilityVersion
-            || id == FingerGunsCapabilityId && version == FingerGunsCapabilityVersion
-            || id == SteeredChargeCapabilityId && version == SteeredChargeCapabilityVersion
-            || id == ShellStanceCapabilityId && version == ShellStanceCapabilityVersion
-            || id == ThrustCapabilityId && version == ThrustCapabilityVersion
-            || id == TetherCapabilityId && version == TetherCapabilityVersion
-            || id == CommandGrabCapabilityId && version == CommandGrabCapabilityVersion
-            || id == CannonballCapabilityId && version == CannonballCapabilityVersion
-            || id == FormsCapabilityId && version == FormsCapabilityVersion;
-
+        => CharacterSourceSchema.IsPublicCapability(id, version);
     internal static bool IsRuntimeCapability(string id, string version)
         => IsPublicCapability(id, version) || IsTrustedCapability(id, version);
     private static bool RequiresRuntimeApi122(CharacterAuthoringDocument c)
@@ -209,7 +195,7 @@ public static class CharacterPackageCompiler
         }
         catch (Exception ex) when (ex is InvalidDataException || ex is FormatException || ex is OverflowException || ex is NullReferenceException || ex is ArgumentException)
         {
-            diagnostics.Error("schema.invalid", "source", ex.Message);
+            diagnostics.Error("schema.invalid", ex is SourceNumberException number ? number.SourcePath : "source", ex.Message);
             return new CharacterCompileResult(null, diagnostics.ToList());
         }
     }
@@ -250,23 +236,11 @@ public static class CharacterPackageCompiler
                 else if (!IsTrustedCapability(requirement.CapabilityId, requirement.CapabilityVersion))
                     d.Error("capability.unknown", requirementPath, "Capability is not admitted by the trusted profile.");
             }
-            else if (requirement.CapabilityId == AimedRecoveryCapabilityId ||
-                     requirement.CapabilityId == TargetedLeapCapabilityId ||
-                     requirement.CapabilityId == DashStrikeCapabilityId ||
-                     requirement.CapabilityId == FlashCutCapabilityId ||
-                     requirement.CapabilityId == ChargedProjectileCapabilityId ||
-                     requirement.CapabilityId == ChargedStreamCapabilityId ||
-                     requirement.CapabilityId == FingerGunsCapabilityId ||
-                     requirement.CapabilityId == SteeredChargeCapabilityId ||
-                     requirement.CapabilityId == ShellStanceCapabilityId ||
-                     requirement.CapabilityId == ThrustCapabilityId ||
-                     requirement.CapabilityId == TetherCapabilityId ||
-                     requirement.CapabilityId == CommandGrabCapabilityId ||
-                     requirement.CapabilityId == CannonballCapabilityId ||
-                     requirement.CapabilityId == FormsCapabilityId)
+            else if (CharacterSourceSchema.Capability(requirement.CapabilityId) != null
+                || CharacterSourceSchema.Features.Any(x => x.Id == requirement.CapabilityId))
             {
-                string supportedVersion = requirement.CapabilityId == TargetedLeapCapabilityId
-                    ? TargetedLeapCapabilityVersion : requirement.CapabilityId == SteeredChargeCapabilityId ? SteeredChargeCapabilityVersion : "1";
+                string supportedVersion = CharacterSourceSchema.Capability(requirement.CapabilityId)?.CapabilityVersion
+                    ?? CharacterSourceSchema.Features.Single(x => x.Id == requirement.CapabilityId).Version;
                 if (requirement.CapabilityVersion != supportedVersion)
                     d.Error("capability.version-mismatch", requirementPath, "Capability version is not supported.");
             }
@@ -277,7 +251,7 @@ public static class CharacterPackageCompiler
         }
         if (capabilityCount > CookedBudget.MaxCapabilityRequirements) d.Error("budget.exceeded", "character.capabilityRequirements", "Capability requirement budget exceeded.");
         ValidateFinite(c, d);
-        if (c.ShieldRadius <= 0f || c.ShieldRadius <= c.CapsuleHeight * 0.5f)
+        if (CharacterSourceSchema.Range("positive").IsOutside(c.ShieldRadius) || c.ShieldRadius <= c.CapsuleHeight * 0.5f)
             d.Error("value.out-of-range", "character.shieldRadius", "Shield radius must be positive and greater than half capsule height.");
         ValidateCaptureGeometry(c.CaptureGeometry, d);
         ValidateIds(c, d);
@@ -302,7 +276,7 @@ public static class CharacterPackageCompiler
             foreach (var op in slot.Timeline.Stages.SelectMany(s => s.Operations).OfType<StartCapabilityOperationSource>())
                 if (op.Parameters is SteeredChargeCapabilityParameters or TargetedLeapCapabilityParameters
                     && BonkSpecialContract.Slot(slot, op) is { } slotError)
-                    d.Error("capability.ambiguous", slot.Id, slotError);
+                    d.Error("capability.ambiguous", "character.slots[" + FindSourceSlotIndex(c.Slots, slot.Id) + "]", slotError);
         if (d.HasErrors) return;
         var metadata = new CookedPackageMetadata(
             m.PackageId, m.Version, CookedSchemaVersion,
@@ -382,7 +356,7 @@ public static class CharacterPackageCompiler
                 if (!aliases.TryAdd(alias.From, alias.To)) bag.Error("id.duplicate", "character.aliases[" + i + "].from", "Duplicate alias.");
             }
             resolved = new Dictionary<string, CharacterSlotSource>(StringComparer.Ordinal);
-            foreach (var id in CanonicalSlots) ResolveSlot(id, explicitSlots, aliases, resolved, new HashSet<string>(StringComparer.Ordinal), bag);
+            foreach (var id in CanonicalSlots) ResolveSlot(id, explicitSlots, aliases, resolved, new HashSet<string>(StringComparer.Ordinal), bag, doc.Aliases);
             var cookedSlots = new List<CookedSlotDefinition>(CanonicalSlots.Length);
             for (var ordinal = 0; ordinal < CanonicalSlots.Length; ordinal++)
             {
@@ -390,7 +364,10 @@ public static class CharacterPackageCompiler
                 ValidateSlideCarry(CanonicalSlots[ordinal], slot, FindSourceSlotIndex(doc.Slots, slot.Id), bag);
                 ValidateAimMovementSpeed(CanonicalSlots[ordinal], slot, FindSourceSlotIndex(doc.Slots, slot.Id), bag);
                 ValidateShellPolicy(CanonicalSlots[ordinal], slot, FindSourceSlotIndex(doc.Slots, slot.Id), doc, bag);
-                var timeline = CookTimeline(slot.Timeline, bag, ref stageCount, ref operationCount, ref hitboxCount, ref projectileCount, ref capabilityOperationCount, ref maxDuration, ref operationOrdinal);
+                var timelineDiagnostics = new DiagnosticBag();
+                var timeline = CookTimeline(slot.Timeline, timelineDiagnostics, ref stageCount, ref operationCount, ref hitboxCount, ref projectileCount, ref capabilityOperationCount, ref maxDuration, ref operationOrdinal);
+                bag.AddFrom(timelineDiagnostics, path => path == "character.timeline.operations"
+                    ? $"character.slots[{FindSourceSlotIndex(doc.Slots, slot.Id)}].timeline.stages" : path);
                 cookedSlots.Add(new CookedSlotDefinition(ordinal, CanonicalSlots[ordinal], ordinal >= CanonicalSlotProjection.VariantSlotCount, slot.Name, slot.Description, slot.IconId, slot.Behavior, slot.AimMode, slot.CooldownTicks, slot.IsRecoveryMove, slot.PreserveMomentumOnStart, timeline, slot.ChargePool == null ? null : new CookedChargePool(slot.ChargePool.MaxCharges, slot.ChargePool.RegenTicks), slot.AimMovement, slot.AimAnimationId, slot.AllowSlideCarry, slot.HitPresentationId, slot.AimMovementSpeedScale, slot.ShellPolicy, form));
             }
             if (resolved.Count != CanonicalSlots.Length) bag.Error("reference.unresolved", "character.slots", "Not all canonical slots resolve.");
@@ -411,8 +388,8 @@ public static class CharacterPackageCompiler
         if (slot.Timeline.Stages.Count == 0 || slot.Timeline.Stages.Count > CookedBudget.MaxStagesPerTimeline) d.Error("budget.exceeded", $"character.slots[{index}].timeline.stages", "Timeline stage budget exceeded or empty.");
         if (slot.ChargePool != null)
         {
-            if (slot.ChargePool.MaxCharges is < 1 or > 3) d.Error("value.out-of-range", $"character.slots[{index}].chargePool.maxCharges", "Max charges must be between one and three.");
-            if (slot.ChargePool.RegenTicks == 0) d.Error("value.out-of-range", $"character.slots[{index}].chargePool.regenTicks", "Regen ticks must be positive.");
+            if (CharacterSourceSchema.Object("chargePool").Field("maxCharges").IsOutsideGameplay(slot.ChargePool.MaxCharges)) d.Error("value.out-of-range", $"character.slots[{index}].chargePool.maxCharges", "Max charges must be between one and three.");
+            if (CharacterSourceSchema.Range("positive").IsOutside(slot.ChargePool.RegenTicks)) d.Error("value.out-of-range", $"character.slots[{index}].chargePool.regenTicks", "Regen ticks must be positive.");
         }
         var targetedLeapCount = slot.Timeline.Stages.Sum(stage =>
             stage.Operations.Count(operation =>
@@ -595,48 +572,60 @@ public static class CharacterPackageCompiler
                     (EmitPresentationOperationSource or StartupAimCorrectionOperationSource or GravityWindowOperationSource)))
             is { } rideError)
             d.Error("capability.ambiguous", $"character.slots[{index}].timeline", rideError);
-        foreach (var stage in slot.Timeline.Stages)
+        for (int stageIndex = 0; stageIndex < slot.Timeline.Stages.Count; stageIndex++)
         {
-            if (stage.DurationTicks == 0 || stage.IasaTicks > stage.DurationTicks || stage.LandingLagTicks > stage.DurationTicks || stage.AutoCancelBeforeTicks > stage.DurationTicks || stage.AutoCancelAfterTicks > stage.DurationTicks) d.Error("value.out-of-range", "character.slots[" + index + "].timeline", "Stage timing is outside its duration.");
+            var stage = slot.Timeline.Stages[stageIndex];
+            string stagePath = $"character.slots[{index}].timeline.stages[{stageIndex}]";
+            if (stage.DurationTicks == 0 || stage.IasaTicks > stage.DurationTicks || stage.LandingLagTicks > stage.DurationTicks || stage.AutoCancelBeforeTicks > stage.DurationTicks || stage.AutoCancelAfterTicks > stage.DurationTicks) d.Error("value.out-of-range", stagePath + "." + (stage.DurationTicks == 0 ? "durationTicks" : stage.IasaTicks > stage.DurationTicks ? "iasaTicks" : stage.LandingLagTicks > stage.DurationTicks ? "landingLagTicks" : stage.AutoCancelBeforeTicks > stage.DurationTicks ? "autoCancelBeforeTicks" : "autoCancelAfterTicks"), "Stage timing is outside its duration.");
             if (float.IsNaN(stage.AttackRange) || float.IsInfinity(stage.AttackRange) || float.IsNaN(stage.WarpRange) || float.IsInfinity(stage.WarpRange) || float.IsNaN(stage.TrackingStrength) || float.IsInfinity(stage.TrackingStrength))
-                d.Error("value.non-finite", $"character.slots[{index}].timeline", "Targeting metadata must be finite.");
-            if (stage.AttackRange < 0f) d.Error("value.out-of-range", $"character.slots[{index}].timeline.attackRange", "Attack range must be non-negative.");
-            if (stage.WarpRange < 0f) d.Error("value.out-of-range", $"character.slots[{index}].timeline.warpRange", "Warp range must be non-negative.");
-            if (stage.TrackingStrength < 0f || stage.TrackingStrength > 1f) d.Error("value.out-of-range", $"character.slots[{index}].timeline.trackingStrength", "Tracking strength must be between 0 and 1.");
+                d.Error("value.non-finite", stagePath, "Targeting metadata must be finite.");
+            if (stage.AttackRange < 0f) d.Error("value.out-of-range", stagePath + ".attackRange", "Attack range must be non-negative.");
+            if (stage.WarpRange < 0f) d.Error("value.out-of-range", stagePath + ".warpRange", "Warp range must be non-negative.");
+            if (stage.TrackingStrength < 0f || stage.TrackingStrength > 1f) d.Error("value.out-of-range", stagePath + ".trackingStrength", "Tracking strength must be between 0 and 1.");
             if (stage.WarpRange != 0f || stage.UseTargetLock || stage.RotateTowardTarget || stage.TrackingStrength != 0f)
-                d.Error("timeline.targeting.retired", $"character.slots[{index}].timeline",
+                d.Error("timeline.targeting.retired", stagePath,
                     "Automatic warp and per-stage target tracking are retired. Use authored movement and startup aim correction.");
-            if (stage.Operations.Count > CookedBudget.MaxOperationsPerStage) d.Error("budget.exceeded", "character.slots[" + index + "].timeline", "Stage operation budget exceeded.");
+            if (stage.Operations.Count > CookedBudget.MaxOperationsPerStage) d.Error("budget.exceeded", stagePath + ".operations", "Stage operation budget exceeded.");
             foreach (var lunge in stage.Operations.OfType<ForwardLungeOperationSource>()
                 .Where(operation => operation.StopInAttackRange))
             {
                 if (!stage.Operations.Any(operation =>
                     operation is SpawnHitboxOperationSource hitbox && hitbox.Tick > lunge.Tick))
                     d.Error("operation.forward-lunge.no-subsequent-hitbox",
-                        $"character.slots[{index}].timeline",
+                        stagePath + $".operations[{stage.Operations.ToList().IndexOf(lunge)}].stopInAttackRange",
                         "A forward lunge that stops in attack range requires a subsequent spawnHitbox in the same stage.");
             }
 
-            foreach (var id in stage.AnimationIds) { ValidateId(id, "character.animationId", d); if (!IsKnownAnimation(id, c)) d.Error("reference.unresolved", "character.animationId", "Animation ID is not declared."); }
-            foreach (var operation in stage.Operations)
+            for (int animationIndex = 0; animationIndex < stage.AnimationIds.Count; animationIndex++)
             {
-                if (operation.Tick >= stage.DurationTicks) d.Error("value.out-of-range", "character.operation.tick", "Operation tick must be within its stage.");
+                var id = stage.AnimationIds[animationIndex];
+                string animationPath = stagePath + $".animationIds[{animationIndex}]";
+                ValidateId(id, animationPath, d);
+                if (!IsKnownAnimation(id, c)) d.Error("reference.unresolved", animationPath, "Animation ID '" + id + "' must start with anim..");
+            }
+            for (int operationIndex = 0; operationIndex < stage.Operations.Count; operationIndex++)
+            {
+                var operation = stage.Operations[operationIndex];
+                string operationPath = stagePath + $".operations[{operationIndex}]";
+                if (operation.Tick >= stage.DurationTicks) d.Error("value.out-of-range", operationPath + ".tick", "Operation tick must be within its stage.");
                 if (operation is ForwardLungeOperationSource lunge &&
                     (int)lunge.Tick + lunge.DurationTicks > stage.DurationTicks)
-                    d.Error("value.out-of-range", "character.forwardLunge.durationTicks", "Forward lunge must end within its stage.");
+                    d.Error("value.out-of-range", operationPath + ".durationTicks", "Forward lunge must end within its stage.");
                 if (operation is GravityWindowOperationSource gravity &&
                     (int)gravity.Tick + gravity.DurationTicks > stage.DurationTicks)
-                    d.Error("value.out-of-range", "character.gravityWindow.durationTicks", "Gravity window must end within its stage.");
+                    d.Error("value.out-of-range", operationPath + ".durationTicks", "Gravity window must end within its stage.");
                 if (operation is ArmorWindowOperationSource armorWindow &&
                     (int)armorWindow.Tick + armorWindow.DurationTicks > stage.DurationTicks)
-                    d.Error("value.out-of-range", "character.armorWindow.durationTicks",
+                    d.Error("value.out-of-range", operationPath + ".durationTicks",
                         "Armor window must end within its stage.");
                 if (operation is StartCapabilityOperationSource capability)
                 {
-                    if (!capabilities.TryGetValue(capability.CapabilityId, out var version)) d.Error("capability.unknown", "character.operation.capabilityId", "Capability is not declared.");
-                    else if (version != capability.CapabilityVersion) d.Error("capability.version-mismatch", "character.operation.capabilityVersion", "Capability version does not match its declaration.");
+                    if (!capabilities.TryGetValue(capability.CapabilityId, out var version)) d.Error("capability.unknown", operationPath + ".capabilityId", "Capability is not declared.");
+                    else if (version != capability.CapabilityVersion) d.Error("capability.version-mismatch", operationPath + ".capabilityVersion", "Capability version does not match its declaration.");
                 }
-                ValidateOperation(operation, c, d);
+                var operationDiagnostics = new DiagnosticBag();
+                ValidateOperation(operation, c, operationDiagnostics);
+                d.AddFrom(operationDiagnostics, path => OperationDiagnosticPath(path, operationPath, operation is StartCapabilityOperationSource));
             }
         }
         ValidateStartupAimCorrection(slot, index, d);
@@ -659,6 +648,7 @@ public static class CharacterPackageCompiler
             return;
         }
         var stage = slot.Timeline.Stages[0];
+        string operationPath = $"character.slots[{index}].timeline.stages[0].operations[{slot.Timeline.Stages[0].Operations.ToList().IndexOf(charges[0])}]";
         var charge = charges[0];
         foreach (var operation in stage.Operations)
         {
@@ -669,13 +659,13 @@ public static class CharacterPackageCompiler
                 d.Error("capability.ambiguous", path,
                     "Steered charge cannot share its stage with motion, hitboxes, projectiles, aim, completion or another lifecycle.");
             if (operation is StartupAimCorrectionOperationSource correction && correction.EndTick > charge.Tick)
-                d.Error("operation.cutoff-after-commitment", path + ".operations.startupAimCorrection.endTick",
+                d.Error("operation.cutoff-after-commitment",  $"character.slots[{index}].timeline.stages[0].operations[{stage.Operations.ToList().IndexOf(operation)}].endTick",
                     "Startup aim correction must end no later than the charge starts.");
             if (operation is GravityWindowOperationSource gravity && gravity.Tick + gravity.DurationTicks > charge.Tick)
-                d.Error("value.out-of-range", path + ".operations.gravityWindow.durationTicks",
+                d.Error("value.out-of-range", $"character.slots[{index}].timeline.stages[0].operations[{stage.Operations.ToList().IndexOf(operation)}].durationTicks",
                     "A gravity window must end no later than the charge starts; the charge owns its own height.");
             if (operation is ArmorWindowOperationSource armor && armor.Tick + armor.DurationTicks > charge.Tick)
-                d.Error("value.out-of-range", path + ".operations.armorWindow.durationTicks",
+                d.Error("value.out-of-range", $"character.slots[{index}].timeline.stages[0].operations[{stage.Operations.ToList().IndexOf(operation)}].durationTicks",
                     "An armour window must end no later than the charge starts; the charge owns its own armour.");
         }
         if (charge.Parameters is not SteeredChargeCapabilityParameters x)
@@ -693,10 +683,10 @@ public static class CharacterPackageCompiler
             if (string.IsNullOrEmpty(id)) continue;
             int clip = clips.IndexOf(id);
             if (clip < 0)
-                d.Error("reference.unresolved", path + ".operations.parameters." + field,
+                d.Error("reference.unresolved", operationPath + ".parameters." + field,
                     "A steered charge phase clip must be listed in its stage's animationIds.");
             else if (clip == 0)
-                d.Error("value.out-of-range", path + ".operations.parameters." + field,
+                d.Error("value.out-of-range", operationPath + ".parameters." + field,
                     "The stage's first clip is the startup; phase clips sort after it (name them after it).");
         }
     }
@@ -711,6 +701,7 @@ public static class CharacterPackageCompiler
     {
         string path = $"character.slots[{index}].timeline";
         var stage = slot.Timeline.Stages[0];
+        string operationPath = $"character.slots[{index}].timeline.stages[0].operations[{slot.Timeline.Stages[0].Operations.ToList().IndexOf(thrusts[0])}]";
         if (thrusts.Length != 1 || slot.Timeline.Stages.Count != 1 || thrusts[0].Tick != 0
             || slot.Behavior != AuthoringAbilityBehavior.MeleeCombo || slot.AimMode != AuthoringAimMode.None
             || stage.Operations.Any(operation => operation != thrusts[0]
@@ -718,7 +709,7 @@ public static class CharacterPackageCompiler
             d.Error("capability.ambiguous", path,
                 "Thrust requires one tick-zero lifecycle in one meleeCombo stage with no aim, and only presentation or armour alongside it.");
         if (thrusts[0].Parameters is ThrustCapabilityParameters thrust && thrust.ThrustTicks > stage.DurationTicks)
-            d.Error("value.out-of-range", path + ".operations.parameters.thrustTicks", "The thrust must end within its stage.");
+            d.Error("value.out-of-range", operationPath + ".parameters.thrustTicks", "The thrust must end within its stage.");
     }
 
     /// <summary>
@@ -731,6 +722,7 @@ public static class CharacterPackageCompiler
     {
         string path = $"character.slots[{index}].timeline";
         var stage = slot.Timeline.Stages[0];
+        string operationPath = $"character.slots[{index}].timeline.stages[0].operations[{slot.Timeline.Stages[0].Operations.ToList().IndexOf(tethers[0])}]";
         if (TetherSlotError(tethers.Length, slot.Timeline.Stages.Count, tethers[0].Tick, slot.Behavior, slot.AimMode,
                 stage.IasaTicks, slot.ShellPolicy,
                 stage.Operations.Any(operation => operation != tethers[0] && operation is not EmitPresentationOperationSource))
@@ -744,10 +736,10 @@ public static class CharacterPackageCompiler
             if (string.IsNullOrEmpty(id)) continue;
             int clip = clips.IndexOf(id);
             if (clip < 0)
-                d.Error("reference.unresolved", path + ".operations.parameters." + field,
+                d.Error("reference.unresolved", operationPath + ".parameters." + field,
                     "A tether phase clip must be listed in its stage's animationIds.");
             else if (clip == 0)
-                d.Error("value.out-of-range", path + ".operations.parameters." + field,
+                d.Error("value.out-of-range", operationPath + ".parameters." + field,
                     "The stage's first clip is the throw; phase clips sort after it (name them after it).");
         }
     }
@@ -763,6 +755,7 @@ public static class CharacterPackageCompiler
     /// <summary>Bounds shared by the compiler and the cooked loader; null when the tether is admissible.</summary>
     internal static string? TetherBoundsError(CookedTetherCapabilityParameters x)
     {
+        var rulesCapTetherV1 = CharacterSourceSchema.Object("cap.tether.v1");
         if (x.AtTarget is { } at)
             return x.Projectile != null || x.RetractSpeed != 0f || x.RetractAnimationId.Length > 0
                 || x.RetractPresentationId.Length > 0
@@ -774,7 +767,7 @@ public static class CharacterPackageCompiler
                 ring.LaunchOffsetY, ring.LaunchOffsetZ, ring.Speed, ring.Gravity, ring.Radius, ring.Damage, ring.Angle,
                 ring.BaseKnockback, ring.KnockbackGrowth, ring.YawOffsetDegrees))
             return "Tether values must be finite.";
-        if (x.ThrowTick == 0 || x.ThrowTick > 120) return "throwTick must be 1 to 120.";
+        if (rulesCapTetherV1.Field("throwTick").IsOutsideGameplay(x.ThrowTick)) return "throwTick must be 1 to 120.";
         if (!(ring.Speed > 0f && ring.Speed <= 60f) || !(ring.Radius > 0f && ring.Radius <= 3f)
             || ring.MaxFlightTicks == 0 || ring.MaxFlightTicks > 240)
             return "The ring needs 0 < speed <= 60, 0 < radius <= 3 and maxFlightTicks 1 to 240.";
@@ -782,24 +775,25 @@ public static class CharacterPackageCompiler
             return "The ring flies straight: no gravity, no yaw offset and no return block.";
         if (ring.Damage < 0f || ring.BaseKnockback != 0f || ring.KnockbackGrowth != 0f || ring.StunTicks != 0)
             return "The ring catches instead of launching: damage >= 0, no knockback and no stun.";
-        if (!(x.ReelSpeed > 0f && x.ReelSpeed <= 60f) || !(x.RetractSpeed > 0f && x.RetractSpeed <= 60f))
+        if (!(rulesCapTetherV1.Field("reelSpeed").IsWithinGameplay(x.ReelSpeed)) || !(rulesCapTetherV1.Field("retractSpeed").IsWithinGameplay(x.RetractSpeed)))
             return "reelSpeed and retractSpeed must be above 0 and at most 60.";
         return TetherReelBoundsError(x);
     }
 
     private static string? TetherAtTargetBoundsError(CookedTetherCapabilityParameters x, CookedTetherAtTarget at)
     {
+        var rulesTetherAtTarget = CharacterSourceSchema.Object("tetherAtTarget");
         if (!AllFinite(x.ReelSpeed, x.AnchorDistance, x.AirGravityScale, at.Radius, at.Height, at.Damage, at.MaxRange,
                 at.NoTargetDistance))
             return "Tether values must be finite.";
         if (x.ThrowTick == 0 || x.ThrowTick > 120) return "throwTick must be 1 to 120.";
-        if (at.WarningTicks == 0 || at.WarningTicks > 120) return "atTarget.warningTicks must be 1 to 120.";
-        if (at.CatchTicks == 0 || at.CatchTicks > 60) return "atTarget.catchTicks must be 1 to 60.";
-        if (!(at.Radius > 0f && at.Radius <= 3f) || !(at.Height >= 2f * at.Radius && at.Height <= 6f))
+        if (rulesTetherAtTarget.Field("warningTicks").IsOutsideGameplay(at.WarningTicks)) return "atTarget.warningTicks must be 1 to 120.";
+        if (rulesTetherAtTarget.Field("catchTicks").IsOutsideGameplay(at.CatchTicks)) return "atTarget.catchTicks must be 1 to 60.";
+        if (!(rulesTetherAtTarget.Field("radius").IsWithinGameplay(at.Radius)) || !(at.Height >= 2f * at.Radius && at.Height <= rulesTetherAtTarget.Field("height").GameplayMaximum!.Value))
             return "The catch needs 0 < radius <= 3 and a height of two radii up to 6.";
-        if (!(at.Damage >= 0f && at.Damage <= 100f)) return "atTarget.damage must be 0 to 100.";
-        if (!(at.MaxRange > 0f && at.MaxRange <= MaxStartupAcquisitionRange)
-            || !(at.NoTargetDistance >= 0f && at.NoTargetDistance <= at.MaxRange))
+        if (!(rulesTetherAtTarget.Field("damage").IsWithinGameplay(at.Damage))) return "atTarget.damage must be 0 to 100.";
+        if (!(at.MaxRange > rulesTetherAtTarget.Field("maxRange").GameplayMinimum!.Value && at.MaxRange <= MaxStartupAcquisitionRange)
+            || !(at.NoTargetDistance >= rulesTetherAtTarget.Field("noTargetDistance").GameplayMinimum!.Value && at.NoTargetDistance <= at.MaxRange))
             return "atTarget needs 0 < maxRange <= 32 and 0 <= noTargetDistance <= maxRange.";
         if (!(x.ReelSpeed > 0f && x.ReelSpeed <= 60f)) return "reelSpeed must be above 0 and at most 60.";
         return TetherUnmarkedBoundsError(at.Unmarked) ?? TetherReelBoundsError(x);
@@ -807,30 +801,32 @@ public static class CharacterPackageCompiler
 
     private static string? TetherUnmarkedBoundsError(CookedTetherUnmarked? hand)
     {
+        var rulesTetherUnmarked = CharacterSourceSchema.Object("tetherUnmarked");
         if (hand == null) return null;
         if (!AllFinite(hand.Distance, hand.Radius, hand.Height, hand.Damage, hand.Angle, hand.BaseKnockback,
                 hand.KnockbackGrowth))
             return "atTarget.unmarked values must be finite.";
-        if (hand.RiseTick == 0 || hand.RiseTick > 120) return "atTarget.unmarked.riseTick must be 1 to 120.";
-        if (hand.ActiveTicks == 0 || hand.ActiveTicks > 60) return "atTarget.unmarked.activeTicks must be 1 to 60.";
-        if (hand.RecoveryTicks > 240) return "atTarget.unmarked.recoveryTicks must be 0 to 240.";
-        if (!(hand.Distance >= 0f && hand.Distance <= 6f)) return "atTarget.unmarked.distance must be 0 to 6.";
-        if (!(hand.Radius > 0f && hand.Radius <= 3f) || !(hand.Height >= 2f * hand.Radius && hand.Height <= 6f))
+        if (rulesTetherUnmarked.Field("riseTick").IsOutsideGameplay(hand.RiseTick)) return "atTarget.unmarked.riseTick must be 1 to 120.";
+        if (rulesTetherUnmarked.Field("activeTicks").IsOutsideGameplay(hand.ActiveTicks)) return "atTarget.unmarked.activeTicks must be 1 to 60.";
+        if (hand.RecoveryTicks > rulesTetherUnmarked.Field("recoveryTicks").GameplayMaximum!.Value) return "atTarget.unmarked.recoveryTicks must be 0 to 240.";
+        if (!(rulesTetherUnmarked.Field("distance").IsWithinGameplay(hand.Distance))) return "atTarget.unmarked.distance must be 0 to 6.";
+        if (!(rulesTetherUnmarked.Field("radius").IsWithinGameplay(hand.Radius)) || !(hand.Height >= 2f * hand.Radius && hand.Height <= rulesTetherUnmarked.Field("height").GameplayMaximum!.Value))
             return "The unmarked hand needs 0 < radius <= 3 and a height of two radii up to 6.";
-        if (!(hand.Damage > 0f && hand.Damage <= 100f)) return "atTarget.unmarked.damage must be above 0 and at most 100.";
-        if (hand.Angle < -90f || hand.Angle > 90f) return "atTarget.unmarked.angle must be -90 to 90.";
-        if (hand.BaseKnockback < 0f || hand.KnockbackGrowth < 0f) return "The unmarked hand's knockback cannot be negative.";
-        if (hand.StunTicks > 240) return "atTarget.unmarked.stunTicks must be 0 to 240.";
+        if (!(rulesTetherUnmarked.Field("damage").IsWithinGameplay(hand.Damage))) return "atTarget.unmarked.damage must be above 0 and at most 100.";
+        if (rulesTetherUnmarked.Field("angle").IsOutsideGameplay(hand.Angle)) return "atTarget.unmarked.angle must be -90 to 90.";
+        if (hand.BaseKnockback < rulesTetherUnmarked.Field("baseKnockback").GameplayMinimum!.Value || hand.KnockbackGrowth < rulesTetherUnmarked.Field("knockbackGrowth").GameplayMinimum!.Value) return "The unmarked hand's knockback cannot be negative.";
+        if (hand.StunTicks > rulesTetherUnmarked.Field("stunTicks").GameplayMaximum!.Value) return "atTarget.unmarked.stunTicks must be 0 to 240.";
         return null;
     }
 
     private static string? TetherReelBoundsError(CookedTetherCapabilityParameters x)
     {
-        if (!(x.AnchorDistance >= 0f && x.AnchorDistance <= 3f)) return "anchorDistance must be 0 to 3.";
-        if (x.ArrivalStunTicks == 0 || x.ArrivalStunTicks > 240) return "arrivalStunTicks must be 1 to 240.";
-        if (x.MaxReelTicks == 0 || x.MaxReelTicks > 600) return "maxReelTicks must be 1 to 600.";
-        if (x.MissRecoveryTicks > 240) return "missRecoveryTicks must be 0 to 240.";
-        if (!(x.AirGravityScale >= 0f && x.AirGravityScale <= 1f)) return "airGravityScale must be 0 to 1.";
+        var rulesCapTetherV1 = CharacterSourceSchema.Object("cap.tether.v1");
+        if (!(rulesCapTetherV1.Field("anchorDistance").IsWithinGameplay(x.AnchorDistance))) return "anchorDistance must be 0 to 3.";
+        if (rulesCapTetherV1.Field("arrivalStunTicks").IsOutsideGameplay(x.ArrivalStunTicks)) return "arrivalStunTicks must be 1 to 240.";
+        if (rulesCapTetherV1.Field("maxReelTicks").IsOutsideGameplay(x.MaxReelTicks)) return "maxReelTicks must be 1 to 600.";
+        if (x.MissRecoveryTicks > rulesCapTetherV1.Field("missRecoveryTicks").GameplayMaximum!.Value) return "missRecoveryTicks must be 0 to 240.";
+        if (!(rulesCapTetherV1.Field("airGravityScale").IsWithinGameplay(x.AirGravityScale))) return "airGravityScale must be 0 to 1.";
         return null;
     }
 
@@ -968,35 +964,39 @@ public static class CharacterPackageCompiler
     /// <summary>Bounds shared by the compiler and the cooked loader; null when the cannonball is admissible.</summary>
     internal static string? CannonballBoundsError(CookedCannonballCapabilityParameters x)
     {
+        var rulesCapCannonballV1 = CharacterSourceSchema.Object("cap.cannonball.v1");
         if (!AllFinite(x.MaxRange, x.NoTargetDistance, x.MaxLaunchSpeed)) return "Cannonball values must be finite.";
-        if (x.TakeoffTick > 60) return "takeoffTick must be 0 to 60.";
-        if (!(x.NoTargetDistance > 0f && x.NoTargetDistance <= x.MaxRange && x.MaxRange <= 30f))
+        if (x.TakeoffTick > rulesCapCannonballV1.Field("takeoffTick").GameplayMaximum!.Value) return "takeoffTick must be 0 to 60.";
+        if (!(x.NoTargetDistance > rulesCapCannonballV1.Field("noTargetDistance").GameplayMinimum!.Value && x.NoTargetDistance <= x.MaxRange && x.MaxRange <= rulesCapCannonballV1.Field("maxRange").GameplayMaximum!.Value))
             return "Ranges need 0 < noTargetDistance <= maxRange <= 30.";
-        if (x.MinFlightTicks < 2 || x.MinFlightTicks > x.MaxFlightTicks || x.MaxFlightTicks > 240)
+        if (x.MinFlightTicks < rulesCapCannonballV1.Field("minFlightTicks").GameplayMinimum!.Value || x.MinFlightTicks > x.MaxFlightTicks || x.MaxFlightTicks > rulesCapCannonballV1.Field("maxFlightTicks").GameplayMaximum!.Value)
             return "Flight ticks need 2 <= minFlightTicks <= maxFlightTicks <= 240.";
-        if (!(x.MaxLaunchSpeed > 0f && x.MaxLaunchSpeed <= 60f)) return "maxLaunchSpeed must be above 0 and at most 60.";
+        if (!(rulesCapCannonballV1.Field("maxLaunchSpeed").IsWithinGameplay(x.MaxLaunchSpeed))) return "maxLaunchSpeed must be above 0 and at most 60.";
         return null;
     }
 
     /// <summary>Bounds shared by the compiler and the cooked loader; null when the shell is admissible.</summary>
     internal static string? ShellBoundsError(CookedShellDefinition x)
     {
+        var rulesRide = CharacterSourceSchema.Object("ride");
+        var rulesSplash = CharacterSourceSchema.Object("splash");
+        var rulesShell = CharacterSourceSchema.Object("shell");
         if (!AllFinite(x.PopOutDeceleration, x.BlockedRecoilSpeed)) return "Shell values must be finite.";
-        if (!(x.PopOutDeceleration >= 0f && x.PopOutDeceleration <= 600f)) return "popOutDeceleration must be 0 to 600.";
-        if (!(x.BlockedRecoilSpeed >= 0f && x.BlockedRecoilSpeed <= 30f)) return "blockedRecoilSpeed must be 0 to 30.";
+        if (!(rulesShell.Field("popOutDeceleration").IsWithinGameplay(x.PopOutDeceleration))) return "popOutDeceleration must be 0 to 600.";
+        if (!(rulesShell.Field("blockedRecoilSpeed").IsWithinGameplay(x.BlockedRecoilSpeed))) return "blockedRecoilSpeed must be 0 to 30.";
         if (x.Splash == null && x.Ride == null) return "A shell needs a splash, a ride or both.";
         if (x.Splash is { } splash)
         {
             if (splash.Hitbox.StartBoneId != null || splash.Hitbox.EndBoneId != null || splash.Hitbox.HitGroup != 0)
                 return "The splash hitbox is root-relative with its own hit history (no bones, hitGroup 0).";
-            if (splash.PopUpTicks == 0 || splash.PopUpTicks > 240) return "splash.popUpTicks must be 1 to 240.";
+            if (rulesSplash.Field("popUpTicks").IsOutsideGameplay(splash.PopUpTicks)) return "splash.popUpTicks must be 1 to 240.";
         }
         if (x.Ride is { } ride)
         {
             if (!AllFinite(ride.Speed, ride.TurnDegreesPerSecond)) return "Ride values must be finite.";
-            if (ride.Ticks == 0 || ride.Ticks > 600) return "ride.ticks must be 1 to 600.";
-            if (!(ride.Speed > 0f && ride.Speed <= 60f)) return "ride.speed must be above 0 and at most 60.";
-            if (!(ride.TurnDegreesPerSecond >= 0f && ride.TurnDegreesPerSecond <= 720f))
+            if (rulesRide.Field("ticks").IsOutsideGameplay(ride.Ticks)) return "ride.ticks must be 1 to 600.";
+            if (!(rulesRide.Field("speed").IsWithinGameplay(ride.Speed))) return "ride.speed must be above 0 and at most 60.";
+            if (!(rulesRide.Field("turnDegreesPerSecond").IsWithinGameplay(ride.TurnDegreesPerSecond)))
                 return "ride.turnDegreesPerSecond must be 0 to 720.";
             if (ride.Wave.StartBoneId != null || ride.Wave.EndBoneId != null || ride.Wave.HitGroup != 0)
                 return "The wave is root-relative with its own hit history (no bones, hitGroup 0).";
@@ -1009,17 +1009,18 @@ public static class CharacterPackageCompiler
     /// <summary>Bounds shared by the compiler and the cooked loader; null when the thrust is admissible.</summary>
     internal static string? ThrustBoundsError(CookedThrustCapabilityParameters x)
     {
+        var rulesCapThrustV1 = CharacterSourceSchema.Object("cap.thrust.v1");
         if (!AllFinite(x.TargetConeDegrees, x.NeutralPitchDegrees, x.StickPitchDegrees, x.Speed, x.Acceleration, x.MaxSpeed))
             return "Thrust values must be finite.";
         if (x.Aim is not (ThrustAim.Stick or ThrustAim.TargetAhead)) return "Unknown thrust aim.";
-        if (!(x.TargetConeDegrees >= 0f && x.TargetConeDegrees <= 180f)
+        if (!(rulesCapThrustV1.Field("targetConeDegrees").IsWithinGameplay(x.TargetConeDegrees))
             || x.Aim == ThrustAim.Stick && x.TargetConeDegrees != 0f)
             return "targetConeDegrees is 0 to 180 and only applies to targetAhead.";
-        if (!(MathF.Abs(x.NeutralPitchDegrees) <= 90f && MathF.Abs(x.StickPitchDegrees) <= 90f))
+        if (!(CharacterSourceSchema.Object("cap.thrust.v1").Field("neutralPitchDegrees").IsWithinGameplay(x.NeutralPitchDegrees) && CharacterSourceSchema.Object("cap.thrust.v1").Field("stickPitchDegrees").IsWithinGameplay(x.StickPitchDegrees)))
             return "Pitches must be -90 to 90 degrees.";
-        if (!(x.Speed > 0f && x.Speed <= x.MaxSpeed && x.MaxSpeed <= 60f)) return "Speeds need 0 < speed <= maxSpeed <= 60.";
-        if (!(x.Acceleration >= 0f && x.Acceleration <= 240f)) return "acceleration must be 0 to 240.";
-        if (x.ThrustTicks == 0 || x.ThrustTicks > 600) return "thrustTicks must be 1 to 600.";
+        if (!(x.Speed > rulesCapThrustV1.Field("speed").GameplayMinimum!.Value && x.Speed <= x.MaxSpeed && x.MaxSpeed <= rulesCapThrustV1.Field("maxSpeed").GameplayMaximum!.Value)) return "Speeds need 0 < speed <= maxSpeed <= 60.";
+        if (!(rulesCapThrustV1.Field("acceleration").IsWithinGameplay(x.Acceleration))) return "acceleration must be 0 to 240.";
+        if (rulesCapThrustV1.Field("thrustTicks").IsOutsideGameplay(x.ThrustTicks)) return "thrustTicks must be 1 to 600.";
         if (x.TrailHitbox is { } trail && (trail.StartBoneId != null || trail.EndBoneId != null || trail.HitGroup != 0))
             return "The trail hitbox is root-relative with its own hit history (no bones, hitGroup 0).";
         return null;
@@ -1040,16 +1041,17 @@ public static class CharacterPackageCompiler
         int windowCount = 0;
         int stageStart = 0;
         var commitments = new List<int>();
-        var windows = new List<(int StageIndex, int StageStart, StartupAimCorrectionOperationSource Operation)>();
+        var windows = new List<(int StageIndex, int OperationIndex, int StageStart, StartupAimCorrectionOperationSource Operation)>();
         for (int stageIndex = 0; stageIndex < slot.Timeline.Stages.Count; stageIndex++)
         {
             var stage = slot.Timeline.Stages[stageIndex];
-            foreach (var operation in stage.Operations)
+            for (int operationIndex = 0; operationIndex < stage.Operations.Count; operationIndex++)
             {
+                var operation = stage.Operations[operationIndex];
                 if (operation is StartupAimCorrectionOperationSource correction)
                 {
                     windowCount++;
-                    windows.Add((stageIndex, stageStart, correction));
+                    windows.Add((stageIndex, operationIndex, stageStart, correction));
                 }
                 else if (IsStartupCommitment(operation))
                 {
@@ -1060,27 +1062,22 @@ public static class CharacterPackageCompiler
         }
 
         if (windowCount > 1)
-            d.Error("operation.ambiguous", timelinePath,
+            d.Error("operation.ambiguous", $"{timelinePath}.stages[{windows[1].StageIndex}].operations[{windows[1].OperationIndex}].kind",
                 "A timeline may contain only one startup aim-correction window.");
 
-        foreach (var (stageIndex, start, correction) in windows)
+        foreach (var (stageIndex, operationIndex, start, correction) in windows)
         {
-            string path = $"{timelinePath}.stages[{stageIndex}].operations.startupAimCorrection";
-            ValidateFiniteValues(new[]
-            {
-                correction.AcquisitionRange, correction.AcquisitionHalfAngleDegrees,
-                correction.MaxYawDegrees, correction.MaxPitchDegrees,
-                correction.YawDegreesPerSecond, correction.PitchDegreesPerSecond,
-            }, path, d);
+            string path = $"{timelinePath}.stages[{stageIndex}].operations[{operationIndex}]";
+            ValidateFiniteFields(new[] { (correction.AcquisitionRange, "acquisitionRange"), (correction.AcquisitionHalfAngleDegrees, "acquisitionHalfAngleDegrees"), (correction.MaxYawDegrees, "maxYawDegrees"), (correction.MaxPitchDegrees, "maxPitchDegrees"), (correction.YawDegreesPerSecond, "yawDegreesPerSecond"), (correction.PitchDegreesPerSecond, "pitchDegreesPerSecond") }, path, d);
             if (correction.EndTick <= correction.Tick || correction.EndTick > slot.Timeline.Stages[stageIndex].DurationTicks)
                 d.Error("value.out-of-range", path + ".endTick", "End tick must be exclusive, after the operation tick, and inside the stage.");
-            if (correction.AcquisitionRange <= 0f || correction.AcquisitionRange > MaxStartupAcquisitionRange)
+            if (CharacterSourceSchema.Range("startupRange").IsOutside(correction.AcquisitionRange))
                 d.Error("value.out-of-range", path + ".acquisitionRange", $"Acquisition range must be greater than zero and at most {MaxStartupAcquisitionRange} meters.");
-            if (correction.AcquisitionHalfAngleDegrees <= 0f || correction.AcquisitionHalfAngleDegrees > MaxStartupAngleDegrees)
+            if (CharacterSourceSchema.Range("startupAcquisitionAngle").IsOutside(correction.AcquisitionHalfAngleDegrees))
                 d.Error("value.out-of-range", path + ".acquisitionHalfAngleDegrees", $"Acquisition half-angle must be greater than zero and at most {MaxStartupAngleDegrees} degrees.");
-            if (correction.MaxYawDegrees < 0f || correction.MaxYawDegrees > MaxStartupAngleDegrees)
+            if (CharacterSourceSchema.Range("startupAngle").IsOutside(correction.MaxYawDegrees))
                 d.Error("value.out-of-range", path + ".maxYawDegrees", $"Maximum yaw must be between zero and {MaxStartupAngleDegrees} degrees.");
-            if (correction.MaxPitchDegrees < 0f || correction.MaxPitchDegrees > MaxStartupPitchDegrees)
+            if (CharacterSourceSchema.Range("startupPitch").IsOutside(correction.MaxPitchDegrees))
                 d.Error("value.out-of-range", path + ".maxPitchDegrees", $"Maximum pitch must be between zero and {MaxStartupPitchDegrees} degrees.");
             if (correction.YawDegreesPerSecond < 0f || correction.YawDegreesPerSecond > MaxStartupRateDegreesPerSecond ||
                 correction.MaxYawDegrees > 0f && correction.YawDegreesPerSecond == 0f)
@@ -1120,7 +1117,7 @@ public static class CharacterPackageCompiler
         var path = sourceIndex >= 0
             ? $"character.slots[{sourceIndex}].aimMovementSpeedScale"
             : $"character.slots.{canonicalId}.aimMovementSpeedScale";
-        if (!(slot.AimMovementSpeedScale > 0f && slot.AimMovementSpeedScale <= 1f))
+        if (!CharacterSourceSchema.Object("slot").Field("aimMovementSpeedScale").IsWithinGameplay(slot.AimMovementSpeedScale))
             d.Error("value.out-of-range", path, "Aim movement speed scale must be greater than 0 and at most 1.");
         if (slot.AimMovement != AuthoringAimMovementMode.Mobile)
             d.Error("slot.aim-movement-speed.requires-mobile", path, "Aim movement speed scale requires aimMovement mobile.");
@@ -1161,24 +1158,50 @@ public static class CharacterPackageCompiler
 
     internal static bool ValidAimedRecovery(ushort startup, float vertical, float directional, float horizontal, float preparation,
         RecoveryHopParameters? hop = null, float riseSteer = 0f)
-        => startup is > 0 and <= 120 && vertical is > 0f and <= 60f
-            && directional > 0f && directional <= vertical && horizontal is >= 0f and <= 60f
-            && preparation is >= 0f and <= 4f && riseSteer is >= 0f and <= 120f
-            && (hop == null || preparation == 0f && hop.StartTicks > 0
+    {
+        var schema = CharacterSourceSchema.Object("cap.aimed-recovery.v1");
+        var hopSchema = CharacterSourceSchema.Object("recoveryHop");
+        return schema.Field("startupTicks").IsWithinGameplay(startup)
+            && schema.Field("verticalSpeed").IsWithinGameplay(vertical)
+            && schema.Field("directionalVerticalSpeed").IsWithinGameplay(directional) && directional <= vertical
+            && schema.Field("horizontalSpeed").IsWithinGameplay(horizontal)
+            && schema.Field("preparationRiseSpeed").IsWithinGameplay(preparation)
+            && schema.Field("riseSteerAcceleration").IsWithinGameplay(riseSteer)
+            && (hop == null || preparation == 0f && hopSchema.Field("startTicks").IsWithinGameplay(hop.StartTicks)
                 && hop.ContactTicks >= hop.StartTicks + 4 && hop.ContactTicks < startup
-                && hop.ForwardDistance is > 0f and <= 3f
-                && hop.ArcHeight is > 0f and <= 3f && hop.LandingHeight is >= 0f and <= 1f);
+                && hopSchema.Field("forwardDistance").IsWithinGameplay(hop.ForwardDistance)
+                && hopSchema.Field("arcHeight").IsWithinGameplay(hop.ArcHeight)
+                && hopSchema.Field("landingHeight").IsWithinGameplay(hop.LandingHeight));
+    }
 
     internal static bool ValidFingerGuns(ushort fire, ushort recovery, byte shots, ushort reload, float fall, float recoil)
-        => fire is > 0 and <= 120 && recovery is > 0 and <= 240 && shots is > 0 and <= 24
-            && reload is > 0 and <= 600 && fall is >= 0f and <= 30f && recoil is >= 0f and <= 30f;
+    {
+        var schema = CharacterSourceSchema.Object("cap.finger-guns.v1");
+        return schema.Field("fireTriggerTick").IsWithinGameplay(fire) && schema.Field("recoveryTicks").IsWithinGameplay(recovery)
+            && schema.Field("shotsPerReload").IsWithinGameplay(shots) && schema.Field("reloadTicks").IsWithinGameplay(reload)
+            && schema.Field("airMaxFallSpeed").IsWithinGameplay(fall) && schema.Field("airRecoilSpeed").IsWithinGameplay(recoil);
+    }
 
     private static bool IsKnownAnimation(string id, CharacterAuthoringDocument c)
         => id.StartsWith("anim.", StringComparison.Ordinal);
 
+    private static string OperationDiagnosticPath(string path, string operationPath, bool capability)
+    {
+        foreach (string prefix in new[] { "character.operation", "character.forwardLunge", "character.gravityWindow", "character.armorWindow", "character.presentationPlacement" })
+            if (path == prefix || path.StartsWith(prefix + ".", StringComparison.Ordinal)) return operationPath + path.Substring(prefix.Length);
+        foreach (string child in new[] { "hitbox", "projectile" })
+        {
+            string prefix = "character." + child;
+            if (path == prefix || path.StartsWith(prefix + ".", StringComparison.Ordinal))
+                return operationPath + (capability ? ".parameters" : "") + "." + child + path.Substring(prefix.Length);
+        }
+        return path;
+    }
+
     private static void ValidateOperation(CharacterTimelineOperationSource operation, CharacterAuthoringDocument c, DiagnosticBag d)
     {
-        var expected = operation switch { SetVelocityOperationSource or ForwardLungeOperationSource => AuthoringUnit.MetersPerSecond, GravityWindowOperationSource => AuthoringUnit.Normalized, SpawnHitboxOperationSource => AuthoringUnit.Meters, SpawnProjectileOperationSource => AuthoringUnit.Meters, _ => AuthoringUnit.Ticks };
+        var kind = CharacterPackageSourceCodec.KnownOperationKind(operation);
+        var expected = kind == null ? AuthoringUnit.Ticks : CharacterSourceSchema.Operation(kind)!.OperationUnit!.Value;
         if (operation.Unit != expected) d.Error("unit.unknown", "character.operation.unit", "Unit does not match operation contract.");
         if (operation is StartCapabilityOperationSource { Parameters: var embedded }
             && embedded switch
@@ -1194,11 +1217,9 @@ public static class CharacterPackageCompiler
         switch (operation)
         {
             case StartCapabilityOperationSource capability when capability.Parameters is AimedRecoveryCapabilityParameters recovery:
-                ValidateFiniteValues(new[] { recovery.VerticalSpeed, recovery.DirectionalVerticalSpeed,
-                    recovery.HorizontalSpeed, recovery.PreparationRiseSpeed, recovery.RiseSteerAcceleration }, "character.operation.parameters", d);
+                ValidateFiniteFields(new[] { (recovery.VerticalSpeed, "verticalSpeed"), (recovery.DirectionalVerticalSpeed, "directionalVerticalSpeed"), (recovery.HorizontalSpeed, "horizontalSpeed"), (recovery.PreparationRiseSpeed, "preparationRiseSpeed"), (recovery.RiseSteerAcceleration, "riseSteerAcceleration") }, "character.operation.parameters", d);
                 if (recovery.Hop is { } hop)
-                    ValidateFiniteValues(new[] { hop.ForwardDistance, hop.ArcHeight, hop.LandingHeight },
-                        "character.operation.parameters.hop", d);
+                    ValidateFiniteFields(new[] { (hop.ForwardDistance, "forwardDistance"), (hop.ArcHeight, "arcHeight"), (hop.LandingHeight, "landingHeight") }, "character.operation.parameters.hop", d);
                 if (!ValidAimedRecovery(recovery.StartupTicks, recovery.VerticalSpeed, recovery.DirectionalVerticalSpeed,
                     recovery.HorizontalSpeed, recovery.PreparationRiseSpeed, recovery.Hop, recovery.RiseSteerAcceleration))
                     d.Error("value.out-of-range", "character.operation.parameters",
@@ -1212,35 +1233,35 @@ public static class CharacterPackageCompiler
                 if (bazooka.ChargeTicks > 600 || bazooka.ChargeTicks + bazooka.CastDuration > ushort.MaxValue
                     || rocket.CapabilityId == "slop.internal.manki.bazooka.v3" && bazooka.ChargeTicks == 0)
                     d.Error("value.out-of-range", "character.operation.parameters.chargeTicks", "Bazooka charge must be at most 600 ticks.");
-                ValidateFiniteValues(new[] { bazooka.HomingTurnDegPerTick }, "character.operation.parameters.homingTurnDegPerTick", d);
+                ValidateFiniteFields(new[] { (bazooka.HomingTurnDegPerTick, "homingTurnDegPerTick") }, "character.operation.parameters.homingTurnDegPerTick", d);
                 if (bazooka.HomingTurnDegPerTick <= 0f || bazooka.HomingTurnDegPerTick > 90f)
                     d.Error("value.out-of-range", "character.operation.parameters.homingTurnDegPerTick",
                         "Homing turn must be greater than zero and at most 90 degrees per tick.");
                 break;
             case SetVelocityOperationSource velocity:
-                ValidateFiniteValues(new[] { velocity.X, velocity.Y, velocity.Z }, "character.operation", d);
+                ValidateFiniteFields(new[] { (velocity.X, "x"), (velocity.Y, "y"), (velocity.Z, "z") }, "character.operation", d);
                 break;
             case ForwardLungeOperationSource lunge:
-                ValidateFiniteValues(new[] { lunge.Speed }, "character.forwardLunge.speed", d);
-                if (lunge.Speed <= 0f) d.Error("value.out-of-range", "character.forwardLunge.speed", "Speed must be greater than zero.");
-                if (lunge.DurationTicks == 0) d.Error("value.out-of-range", "character.forwardLunge.durationTicks", "Duration must be greater than zero.");
+                ValidateFiniteFields(new[] { (lunge.Speed, "speed") }, "character.forwardLunge.speed", d);
+                if (CharacterSourceSchema.Range("positive").IsOutside(lunge.Speed)) d.Error("value.out-of-range", "character.forwardLunge.speed", "Speed must be greater than zero.");
+                if (CharacterSourceSchema.Range("positive").IsOutside(lunge.DurationTicks)) d.Error("value.out-of-range", "character.forwardLunge.durationTicks", "Duration must be greater than zero.");
                 break;
             case GravityWindowOperationSource gravity:
-                ValidateFiniteValues(new[] { gravity.GravityScale }, "character.gravityWindow.gravityScale", d);
-                if (gravity.GravityScale < 0f || gravity.GravityScale > 1f)
+                ValidateFiniteFields(new[] { (gravity.GravityScale, "gravityScale") }, "character.gravityWindow.gravityScale", d);
+                if (CharacterSourceSchema.Range("normalized").IsOutside(gravity.GravityScale))
                     d.Error("value.out-of-range", "character.gravityWindow.gravityScale", "Gravity scale must be between zero and one.");
-                if (gravity.DurationTicks == 0)
+                if (CharacterSourceSchema.Range("positive").IsOutside(gravity.DurationTicks))
                     d.Error("value.out-of-range", "character.gravityWindow.durationTicks", "Duration must be greater than zero.");
                 break;
             case ArmorWindowOperationSource armorWindow:
-                if (armorWindow.DurationTicks == 0)
+                if (CharacterSourceSchema.Range("positive").IsOutside(armorWindow.DurationTicks))
                     d.Error("value.out-of-range", "character.armorWindow.durationTicks",
                         "Duration must be greater than zero.");
                 break;
             case SpawnHitboxOperationSource hitbox:
-                ValidateFiniteValues(new[] { hitbox.Hitbox.Radius, hitbox.Hitbox.OffsetX, hitbox.Hitbox.OffsetY, hitbox.Hitbox.OffsetZ, hitbox.Hitbox.EndOffsetX, hitbox.Hitbox.EndOffsetY, hitbox.Hitbox.EndOffsetZ, hitbox.Hitbox.Damage, hitbox.Hitbox.Angle, hitbox.Hitbox.BaseKnockback, hitbox.Hitbox.KnockbackGrowth }, "character.hitbox", d);
+                ValidateFiniteFields(new[] { (hitbox.Hitbox.Radius, "radius"), (hitbox.Hitbox.OffsetX, "offsetX"), (hitbox.Hitbox.OffsetY, "offsetY"), (hitbox.Hitbox.OffsetZ, "offsetZ"), (hitbox.Hitbox.EndOffsetX, "endOffsetX"), (hitbox.Hitbox.EndOffsetY, "endOffsetY"), (hitbox.Hitbox.EndOffsetZ, "endOffsetZ"), (hitbox.Hitbox.Damage, "damage"), (hitbox.Hitbox.Angle, "angle"), (hitbox.Hitbox.BaseKnockback, "baseKnockback"), (hitbox.Hitbox.KnockbackGrowth, "knockbackGrowth") }, "character.hitbox", d);
                 ValidateNonNegative(hitbox.Hitbox.Radius, "character.hitbox.radius", d); ValidateNonNegative(hitbox.Hitbox.Damage, "character.hitbox.damage", d); ValidateAngle(hitbox.Hitbox.Angle, "character.hitbox.angle", d); ValidateNonNegative(hitbox.Hitbox.BaseKnockback, "character.hitbox.baseKnockback", d); ValidateNonNegative(hitbox.Hitbox.KnockbackGrowth, "character.hitbox.knockbackGrowth", d);
-                if (hitbox.Hitbox.DurationTicks == 0) d.Error("value.out-of-range", "character.hitbox.durationTicks", "Duration must be greater than zero.");
+                if (CharacterSourceSchema.Range("positive").IsOutside(hitbox.Hitbox.DurationTicks)) d.Error("value.out-of-range", "character.hitbox.durationTicks", "Duration must be greater than zero.");
                 ValidateFixedHitstun(hitbox.Hitbox.FixedHitstunTicks, hitbox.Hitbox.StunTicks,
                     "character.hitbox.fixedHitstunTicks", d);
                 ValidateBoneReference(hitbox.Hitbox.StartBoneId, c, "character.hitbox.startBoneId", d); ValidateBoneReference(hitbox.Hitbox.EndBoneId, c, "character.hitbox.endBoneId", d);
@@ -1251,7 +1272,7 @@ public static class CharacterPackageCompiler
                     ValidateProjectileReturn(projectile.Projectile, c, d);
                 if (projectile.Projectile.Homing != null || projectile.Projectile.Perch != null)
                     ValidateHomingAndPerch(projectile.Projectile, c, d);
-                ValidateFiniteValues(new[] { projectile.Projectile.LaunchOffsetX, projectile.Projectile.LaunchOffsetY, projectile.Projectile.LaunchOffsetZ, projectile.Projectile.Speed, projectile.Projectile.Gravity, projectile.Projectile.Radius, projectile.Projectile.Damage, projectile.Projectile.Angle, projectile.Projectile.BaseKnockback, projectile.Projectile.KnockbackGrowth, projectile.Projectile.YawOffsetDegrees }, "character.projectile", d);
+                ValidateFiniteFields(new[] { (projectile.Projectile.LaunchOffsetX, "launchOffsetX"), (projectile.Projectile.LaunchOffsetY, "launchOffsetY"), (projectile.Projectile.LaunchOffsetZ, "launchOffsetZ"), (projectile.Projectile.Speed, "speed"), (projectile.Projectile.Gravity, "gravity"), (projectile.Projectile.Radius, "radius"), (projectile.Projectile.Damage, "damage"), (projectile.Projectile.Angle, "angle"), (projectile.Projectile.BaseKnockback, "baseKnockback"), (projectile.Projectile.KnockbackGrowth, "knockbackGrowth"), (projectile.Projectile.YawOffsetDegrees, "yawOffsetDegrees") }, "character.projectile", d);
                 ValidateNonNegative(projectile.Projectile.Speed, "character.projectile.speed", d); ValidateNonNegative(projectile.Projectile.Radius, "character.projectile.radius", d); ValidateNonNegative(projectile.Projectile.Damage, "character.projectile.damage", d); ValidateAngle(projectile.Projectile.Angle, "character.projectile.angle", d); ValidateYaw(projectile.Projectile.YawOffsetDegrees, "character.projectile.yawOffsetDegrees", d);
                 break;
             case EmitPresentationOperationSource presentation:
@@ -1308,7 +1329,7 @@ public static class CharacterPackageCompiler
                     charge.Tier2Ticks >= charge.Tier3Ticks || charge.Tier3Ticks > charge.MaxChargeTicks)
                     d.Error("value.out-of-range", "character.operation.parameters.tier2Ticks",
                         "Charge thresholds must satisfy 0 < tier2Ticks < tier3Ticks <= maxChargeTicks.");
-                ValidateFiniteValues(new[] { charge.Tier2Radius, charge.Tier3Radius }, "character.operation.parameters", d);
+                ValidateFiniteFields(new[] { (charge.Tier2Radius, "tier2Radius"), (charge.Tier3Radius, "tier3Radius") }, "character.operation.parameters", d);
                 if (charge.Projectile.Return != null)
                     d.Error("value.out-of-range", "character.operation.parameters.projectile.return",
                         "A charged projectile cannot return; use spawnProjectile.");
@@ -1331,8 +1352,7 @@ public static class CharacterPackageCompiler
                 ValidateOperation(new SpawnProjectileOperationSource(0, AuthoringUnit.Meters, guns.Projectile), c, d);
                 break;
             case StartCapabilityOperationSource capability when capability.Parameters is ChargedStreamCapabilityParameters stream:
-                ValidateFiniteValues(new[] { stream.MaxBaseKnockback, stream.MinRecoilSpeed, stream.MaxRecoilSpeed },
-                    "character.operation.parameters", d);
+                ValidateFiniteFields(new[] { (stream.MaxBaseKnockback, "maxBaseKnockback"), (stream.MinRecoilSpeed, "minRecoilSpeed"), (stream.MaxRecoilSpeed, "maxRecoilSpeed") }, "character.operation.parameters", d);
                 if (stream.MaxChargeTicks == 0 || stream.FireTriggerTick == 0 || stream.EmitIntervalTicks == 0 ||
                     stream.MinStreamTicks == 0 || stream.MaxStreamTicks < stream.MinStreamTicks)
                     d.Error("value.out-of-range", "character.operation.parameters.minStreamTicks",
@@ -1362,16 +1382,11 @@ public static class CharacterPackageCompiler
     private static void ValidatePresentationPlacement(PresentationPlacement placement, CharacterAuthoringDocument c, DiagnosticBag d)
     {
         placement ??= new PresentationPlacement();
-        ValidateFiniteValues(new[]
-        {
-            placement.LocalPositionX, placement.LocalPositionY, placement.LocalPositionZ,
-            placement.LocalRotationX, placement.LocalRotationY, placement.LocalRotationZ,
-            placement.LocalScaleX, placement.LocalScaleY, placement.LocalScaleZ,
-        }, "character.operation.placement", d);
-        if (placement.DurationTicks == 0)
+        ValidateFiniteFields(new[] { (placement.LocalPositionX, "localPositionX"), (placement.LocalPositionY, "localPositionY"), (placement.LocalPositionZ, "localPositionZ"), (placement.LocalRotationX, "localRotationX"), (placement.LocalRotationY, "localRotationY"), (placement.LocalRotationZ, "localRotationZ"), (placement.LocalScaleX, "localScaleX"), (placement.LocalScaleY, "localScaleY"), (placement.LocalScaleZ, "localScaleZ") }, "character.operation.placement", d);
+        if (CharacterSourceSchema.Range("positive").IsOutside(placement.DurationTicks))
             d.Error("value.out-of-range", "character.operation.placement.durationTicks", "Presentation duration must be greater than zero.");
         if (placement.LocalScaleX <= 0f || placement.LocalScaleY <= 0f || placement.LocalScaleZ <= 0f)
-            d.Error("value.out-of-range", "character.operation.placement.scale", "Presentation scale components must be greater than zero.");
+            d.Error("value.out-of-range", "character.operation.placement." + (placement.LocalScaleX <= 0f ? "localScaleX" : placement.LocalScaleY <= 0f ? "localScaleY" : "localScaleZ"), "Presentation scale components must be greater than zero.");
         if (placement.AttachmentMode != AuthoringPresentationAttachmentMode.World &&
             placement.AttachmentMode != AuthoringPresentationAttachmentMode.Bone)
             d.Error("value.out-of-range", "character.operation.placement.attachmentMode", "Unknown presentation attachment mode.");
@@ -1437,7 +1452,7 @@ public static class CharacterPackageCompiler
         if (x.Hit is { } hit && BonkSpecialContract.LegHit(hit) is { } hitError)
             d.Error("value.out-of-range", path + ".hit", hitError);
         if (projectile.ChallengeTicks > 600) d.Error("value.out-of-range", path, "challengeTicks must be at most 600.");
-        ValidateFiniteValues(new[] { x.ReturnSpeed, x.ReturnAcceleration, x.SelfHitDamage }, path, d);
+        ValidateFiniteFields(new[] { (x.ReturnSpeed, "returnSpeed"), (x.ReturnAcceleration, "returnAcceleration"), (x.SelfHitDamage, "selfHitDamage") }, path, d);
         if (!(projectile.Speed > 0f) || projectile.Gravity != 0f)
             d.Error("value.out-of-range", path, "A returning projectile needs a positive speed and no gravity.");
         if (x.OutboundTicks == 0 || x.OutboundTicks >= projectile.MaxFlightTicks)
@@ -1461,7 +1476,7 @@ public static class CharacterPackageCompiler
     private static void ValidateSteeredCharge(SteeredChargeCapabilityParameters x, CharacterAuthoringDocument c, DiagnosticBag d)
     {
         const string path = "character.operation.parameters";
-        ValidateFiniteValues(new[] { x.GallopSpeed, x.TurnDegreesPerSecond }, path, d);
+        ValidateFiniteFields(new[] { (x.GallopSpeed, "gallopSpeed"), (x.TurnDegreesPerSecond, "turnDegreesPerSecond") }, path, d);
         if (!(x.GallopSpeed > 0f))
             d.Error("value.out-of-range", path + ".gallopSpeed", "Gallop speed must be positive.");
         if (!(x.TurnDegreesPerSecond >= 0f && x.TurnDegreesPerSecond <= MaxSteeredChargeTurnDegreesPerSecond))
@@ -1513,9 +1528,8 @@ public static class CharacterPackageCompiler
 
     private static void ValidateCapabilityHitbox(HitboxSource x, CharacterAuthoringDocument c, string name, DiagnosticBag d)
     {
-        string path = "character.operation.parameters." + name;
-        ValidateFiniteValues(new[] { x.Radius, x.OffsetX, x.OffsetY, x.OffsetZ, x.EndOffsetX, x.EndOffsetY,
-            x.EndOffsetZ, x.Damage, x.Angle, x.BaseKnockback, x.KnockbackGrowth }, path, d);
+        string path = name.StartsWith("shell.", StringComparison.Ordinal) ? "character." + name : "character.operation.parameters." + name;
+        ValidateFiniteFields(new[] { (x.Radius, "radius"), (x.OffsetX, "offsetX"), (x.OffsetY, "offsetY"), (x.OffsetZ, "offsetZ"), (x.EndOffsetX, "endOffsetX"), (x.EndOffsetY, "endOffsetY"), (x.EndOffsetZ, "endOffsetZ"), (x.Damage, "damage"), (x.Angle, "angle"), (x.BaseKnockback, "baseKnockback"), (x.KnockbackGrowth, "knockbackGrowth") }, path, d);
         ValidateNonNegative(x.Radius, path + ".radius", d);
         ValidateNonNegative(x.Damage, path + ".damage", d);
         ValidateAngle(x.Angle, path + ".angle", d);
@@ -1539,6 +1553,12 @@ public static class CharacterPackageCompiler
             d.Error("reference.unresolved", path, "Hit presentation ID is not declared.");
     }
 
+
+    private static void ValidateFiniteFields(IEnumerable<(float Value, string Field)> values, string path, DiagnosticBag d)
+    {
+        foreach (var (value, field) in values)
+            if (float.IsNaN(value) || float.IsInfinity(value)) d.Error("value.non-finite", path + "." + field, "Numeric value must be finite.");
+    }
 
     private static void ValidateFiniteValues(IEnumerable<float> values, string path, DiagnosticBag d)
     {
@@ -1571,7 +1591,7 @@ public static class CharacterPackageCompiler
             else if (!character.PresentationIds.Contains(id, StringComparer.Ordinal))
                 d.Error("reference.unresolved", path + "." + field, "Leap presentation ID is not declared.");
         }
-        ValidateFiniteValues(new[] { parameters.RiseHeight, parameters.MaxRange, parameters.NoTargetDistance }, path, d);
+        ValidateFiniteFields(new[] { (parameters.RiseHeight, "riseHeight"), (parameters.MaxRange, "maxRange"), (parameters.NoTargetDistance, "noTargetDistance") }, path, d);
         if (parameters.RiseHeight <= 0 || parameters.MaxRange <= 0 || parameters.NoTargetDistance < 0
             || parameters.NoTargetDistance > parameters.MaxRange || parameters.RiseTicks == 0 || parameters.HangTicks == 0
             || parameters.DropTicks == 0 || parameters.MaxFallTicks == 0 || parameters.HitRecoveryTicks == 0
@@ -1586,12 +1606,7 @@ public static class CharacterPackageCompiler
             return;
         }
         string hitboxPath = path + ".hitbox";
-        ValidateFiniteValues(new[]
-        {
-            hitbox.Radius, hitbox.OffsetX, hitbox.OffsetY, hitbox.OffsetZ,
-            hitbox.EndOffsetX, hitbox.EndOffsetY, hitbox.EndOffsetZ,
-            hitbox.Damage, hitbox.Angle, hitbox.BaseKnockback, hitbox.KnockbackGrowth,
-        }, hitboxPath, d);
+        ValidateFiniteFields(new[] { (hitbox.Radius, "radius"), (hitbox.OffsetX, "offsetX"), (hitbox.OffsetY, "offsetY"), (hitbox.OffsetZ, "offsetZ"), (hitbox.EndOffsetX, "endOffsetX"), (hitbox.EndOffsetY, "endOffsetY"), (hitbox.EndOffsetZ, "endOffsetZ"), (hitbox.Damage, "damage"), (hitbox.Angle, "angle"), (hitbox.BaseKnockback, "baseKnockback"), (hitbox.KnockbackGrowth, "knockbackGrowth") }, hitboxPath, d);
         ValidateNonNegative(hitbox.Radius, hitboxPath + ".radius", d);
         ValidateNonNegative(hitbox.Damage, hitboxPath + ".damage", d);
         ValidateAngle(hitbox.Angle, hitboxPath + ".angle", d);
@@ -1629,15 +1644,15 @@ public static class CharacterPackageCompiler
         var seenPresentation = new HashSet<string>(StringComparer.Ordinal);
         for (var i = 0; i < c.PresentationIds.Count; i++) { ValidateId(c.PresentationIds[i], $"character.presentationIds[{i}]", d); if (!seenPresentation.Add(c.PresentationIds[i])) d.Error("id.duplicate", $"character.presentationIds[{i}]", "Duplicate presentation ID."); }
         var standardAnimations = new HashSet<string>(StringComparer.Ordinal);
-        foreach (var id in new[] { c.Presentation.Idle, c.Presentation.Run, c.Presentation.Dash, c.Presentation.Jump, c.Presentation.Fall, c.Presentation.HitSmall, c.Presentation.HitMedium, c.Presentation.HitHard })
+        foreach (var (id, field) in new[] { (c.Presentation.Idle, "idle"), (c.Presentation.Run, "run"), (c.Presentation.Dash, "dash"), (c.Presentation.Jump, "jump"), (c.Presentation.Fall, "fall"), (c.Presentation.HitSmall, "hitSmall"), (c.Presentation.HitMedium, "hitMedium"), (c.Presentation.HitHard, "hitHard") })
         {
-            ValidateId(id, "character.presentation", d);
-            if (!standardAnimations.Add(id)) d.Error("id.duplicate", "character.presentation", "Duplicate standard animation ID.");
+            ValidateId(id, "character.presentation." + field, d);
+            if (!standardAnimations.Add(id)) d.Error("id.duplicate", "character.presentation." + field, "Duplicate standard animation ID.");
         }
         if (!string.IsNullOrEmpty(c.Presentation.Tumble))
         {
             ValidateId(c.Presentation.Tumble, "character.presentation.tumble", d);
-            if (!standardAnimations.Add(c.Presentation.Tumble)) d.Error("id.duplicate", "character.presentation", "Duplicate standard animation ID.");
+            if (!standardAnimations.Add(c.Presentation.Tumble)) d.Error("id.duplicate", "character.presentation.tumble", "Duplicate standard animation ID.");
         }
         foreach (var (id, field) in new[]
         {
@@ -1656,9 +1671,9 @@ public static class CharacterPackageCompiler
         {
             if (string.IsNullOrEmpty(id)) continue;
             ValidateId(id, $"character.presentation.{field}", d);
-            if (!standardAnimations.Add(id)) d.Error("id.duplicate", "character.presentation", "Duplicate standard animation ID.");
+            if (!standardAnimations.Add(id)) d.Error("id.duplicate", "character.presentation." + field, "Duplicate standard animation ID.");
         }
-        foreach (var stageId in c.PresentationIds) if (!PresentationUsed(stageId, c)) d.Warning("presentation.unused-id", "character.presentationIds", "Declared presentation ID is not referenced by an attack or timeline operation.");
+        foreach (var stageId in c.PresentationIds) if (!PresentationUsed(stageId, c)) d.Warning("presentation.unused-id", "character.presentationIds[" + c.PresentationIds.ToList().IndexOf(stageId) + "]", "Declared presentation ID is not referenced by an attack or timeline operation.");
     }
 
     private static bool PresentationUsed(string id, CharacterAuthoringDocument c)
@@ -1706,11 +1721,21 @@ public static class CharacterPackageCompiler
     }
     private static void ValidateFinite(CharacterAuthoringDocument c, DiagnosticBag d)
     {
-        var floats = new List<float> { c.Weight, c.CapsuleRadius, c.CapsuleHeight, c.HipHeight, c.HurtboxRadius, c.ShieldRadius, c.Movement.AirDodgeSpeed, c.Presentation.LandStartOffsetSeconds, c.Presentation.VisualScale, c.Presentation.HurtboxBoneScale, c.Presentation.ModelYOffset, c.Presentation.ModelSoleOffset };
-        floats.AddRange(c.HurtboxCapsules.SelectMany(x => new[] { x.StartX, x.StartY, x.StartZ, x.EndX, x.EndY, x.EndZ, x.Radius }));
-        floats.AddRange(c.HurtboxBoneDefs.SelectMany(x => new[] { x.OffsetX, x.OffsetY, x.OffsetZ, x.Radius, x.EndOffsetX, x.EndOffsetY, x.EndOffsetZ }));
-        foreach (var value in floats) if (float.IsNaN(value) || float.IsInfinity(value)) d.Error("value.non-finite", "character", "Numeric value must be finite.");
-        if (c.Movement.AirDodgeSpeed <= 0f) d.Error("value.out-of-range", "character.movement.airDodgeSpeed", "Air-dodge speed must be greater than zero.");
+        var values = new List<(float Value, string Field)> { (c.Weight, "weight"), (c.CapsuleRadius, "capsuleRadius"), (c.CapsuleHeight, "capsuleHeight"), (c.HipHeight, "hipHeight"), (c.HurtboxRadius, "hurtboxRadius"), (c.ShieldRadius, "shieldRadius"), (c.Movement.AirDodgeSpeed, "movement.airDodgeSpeed"), (c.Presentation.LandStartOffsetSeconds, "presentation.landStartOffsetSeconds"), (c.Presentation.VisualScale, "presentation.visualScale"), (c.Presentation.HurtboxBoneScale, "presentation.hurtboxBoneScale"), (c.Presentation.ModelYOffset, "presentation.modelYOffset"), (c.Presentation.ModelSoleOffset, "presentation.modelSoleOffset") };
+        for (int i = 0; i < c.HurtboxCapsules.Count; i++)
+        {
+            var capsule = c.HurtboxCapsules[i];
+            string path = $"hurtboxCapsules[{i}]";
+            values.AddRange(new[] { (capsule.StartX, path + ".startX"), (capsule.StartY, path + ".startY"), (capsule.StartZ, path + ".startZ"), (capsule.EndX, path + ".endX"), (capsule.EndY, path + ".endY"), (capsule.EndZ, path + ".endZ"), (capsule.Radius, path + ".radius") });
+        }
+        for (int i = 0; i < c.HurtboxBoneDefs.Count; i++)
+        {
+            var bone = c.HurtboxBoneDefs[i];
+            string path = $"hurtboxBoneDefs[{i}]";
+            values.AddRange(new[] { (bone.OffsetX, path + ".offsetX"), (bone.OffsetY, path + ".offsetY"), (bone.OffsetZ, path + ".offsetZ"), (bone.Radius, path + ".radius"), (bone.EndOffsetX, path + ".endOffsetX"), (bone.EndOffsetY, path + ".endOffsetY"), (bone.EndOffsetZ, path + ".endOffsetZ") });
+        }
+        ValidateFiniteFields(values, "character", d);
+        if (CharacterSourceSchema.Range("positive").IsOutside(c.Movement.AirDodgeSpeed)) d.Error("value.out-of-range", "character.movement.airDodgeSpeed", "Air-dodge speed must be greater than zero.");
     }
     private static void ValidateCaptureGeometry(CharacterCaptureGeometrySource? geometry, DiagnosticBag d)
     {
@@ -1729,18 +1754,19 @@ public static class CharacterPackageCompiler
             },
             "character.captureGeometry",
             d);
-        if (geometry.Reach <= 0f || geometry.Width <= 0f || geometry.Height <= 0f)
+        if (CharacterSourceSchema.Range("positive").IsOutside(geometry.Reach) || CharacterSourceSchema.Range("positive").IsOutside(geometry.Width) || CharacterSourceSchema.Range("positive").IsOutside(geometry.Height))
             d.Error("value.out-of-range", "character.captureGeometry", "Capture reach, width, and height must be greater than zero.");
     }
 
-    private static CharacterSlotSource? ResolveSlot(string id, Dictionary<string, CharacterSlotSource> explicitSlots, Dictionary<string, string> aliases, Dictionary<string, CharacterSlotSource> resolved, HashSet<string> visiting, DiagnosticBag d)
+    private static CharacterSlotSource? ResolveSlot(string id, Dictionary<string, CharacterSlotSource> explicitSlots, Dictionary<string, string> aliases, Dictionary<string, CharacterSlotSource> resolved, HashSet<string> visiting, DiagnosticBag d, IReadOnlyList<CharacterAliasSource>? sourceAliases, int? originAliasIndex = null)
     {
         if (resolved.TryGetValue(id, out var existing)) return existing;
-        if (!visiting.Add(id)) { d.Error("alias.cycle", "character.aliases", "Alias cycle detected."); return null; }
+        int aliasIndex = sourceAliases?.ToList().FindIndex(alias => alias.From == id) ?? -1;
+        if (!visiting.Add(id)) { d.Error("alias.cycle", aliasIndex >= 0 ? $"character.aliases[{aliasIndex}].to" : "character.aliases", "Alias cycle detected at '" + id + "'."); return null; }
         CharacterSlotSource? slot = null;
         if (explicitSlots.TryGetValue(id, out var explicitSlot)) slot = explicitSlot;
-        else if (aliases.TryGetValue(id, out var target)) slot = ResolveSlot(target, explicitSlots, aliases, resolved, visiting, d);
-        else d.Error("alias.missing-target", "character.slots." + id, "Canonical slot has no explicit definition or alias.");
+        else if (aliases.TryGetValue(id, out var target)) slot = ResolveSlot(target, explicitSlots, aliases, resolved, visiting, d, sourceAliases, aliasIndex >= 0 ? aliasIndex : originAliasIndex);
+        else d.Error("alias.missing-target", originAliasIndex.HasValue ? $"character.aliases[{originAliasIndex.Value}].to" : "character.slots", "Canonical slot '" + id + "' has no explicit definition or alias.");
         visiting.Remove(id);
         if (slot != null) resolved[id] = CloneSlot(slot);
         return slot;
@@ -1823,8 +1849,8 @@ public static class CharacterPackageCompiler
             var cookedOps = new List<CookedTimelineOperation>();
             foreach (var op in stage.Operations.OrderBy(x => x.Tick))
             {
-                operations++;
-                timelineOperations++;
+                operations += CharacterSourceSchema.OperationEntryCost;
+                timelineOperations += CharacterSourceSchema.OperationEntryCost;
                 var cookedOperationOrdinal = operationOrdinal++;
                 switch (op)
                 {
@@ -1832,19 +1858,16 @@ public static class CharacterPackageCompiler
                     case ForwardLungeOperationSource x: cookedOps.Add(new CookedForwardLungeOperation(x.Tick, x.Unit, x.Speed, x.DurationTicks, x.StopInAttackRange)); break;
                     case GravityWindowOperationSource x: cookedOps.Add(new CookedGravityWindowOperation(x.Tick, x.Unit, x.GravityScale, x.DurationTicks)); break;
                     case ArmorWindowOperationSource x: cookedOps.Add(new CookedArmorWindowOperation(x.Tick, x.Unit, x.DurationTicks)); break;
-                    case SpawnHitboxOperationSource x: hitboxes++; cookedOps.Add(new CookedSpawnHitboxOperation(x.Tick, x.Unit, CookHitbox(x.Hitbox))); break;
-                    case SpawnProjectileOperationSource x: projectiles++; cookedOps.Add(new CookedSpawnProjectileOperation(x.Tick, x.Unit, new CookedProjectile(x.Projectile.LaunchOffsetX, x.Projectile.LaunchOffsetY, x.Projectile.LaunchOffsetZ, x.Projectile.Speed, x.Projectile.Gravity, x.Projectile.Radius, x.Projectile.Damage, x.Projectile.Angle, x.Projectile.BaseKnockback, x.Projectile.KnockbackGrowth, x.Projectile.StunTicks, x.Projectile.MaxFlightTicks, x.Projectile.YawOffsetDegrees,
+                    case SpawnHitboxOperationSource x: hitboxes += CharacterSourceSchema.Operation("spawnHitbox")!.HitboxCost; cookedOps.Add(new CookedSpawnHitboxOperation(x.Tick, x.Unit, CookHitbox(x.Hitbox))); break;
+                    case SpawnProjectileOperationSource x: projectiles += CharacterSourceSchema.Operation("spawnProjectile")!.ProjectileCost; cookedOps.Add(new CookedSpawnProjectileOperation(x.Tick, x.Unit, new CookedProjectile(x.Projectile.LaunchOffsetX, x.Projectile.LaunchOffsetY, x.Projectile.LaunchOffsetZ, x.Projectile.Speed, x.Projectile.Gravity, x.Projectile.Radius, x.Projectile.Damage, x.Projectile.Angle, x.Projectile.BaseKnockback, x.Projectile.KnockbackGrowth, x.Projectile.StunTicks, x.Projectile.MaxFlightTicks, x.Projectile.YawOffsetDegrees,
                         x.Projectile.Return is { } back ? new CookedProjectileReturn(back.OutboundTicks, back.ReturnSpeed, back.ReturnAcceleration, back.SelfHitDamage, back.SelfHitStunTicks, back.CatchPresentationId, back.SelfHitPresentationId, back.Hit) : null,
                         ProjectilePerchContract.Cook(x.Projectile.Homing), ProjectilePerchContract.Cook(x.Projectile.Perch), x.Projectile.ChallengeTicks))); break;
                     case SetAimStateOperationSource x: cookedOps.Add(new CookedSetAimStateOperation(x.Tick, x.Unit, x.AimState)); break;
                     case StartCapabilityOperationSource x:
-                        capabilities++;
-                        if (x.Parameters is TargetedLeapCapabilityParameters or SteeredChargeCapabilityParameters
-                            or ThrustCapabilityParameters { TrailHitbox: not null }) hitboxes++;
-                        else if (x.Parameters is DashStrikeCapabilityParameters) hitboxes += 2;
-                        else if (x.Parameters is FlashCutCapabilityParameters or CommandGrabCapabilityParameters) hitboxes++;
-                        else if (x.Parameters is ChargedProjectileCapabilityParameters or TetherCapabilityParameters { AtTarget: null }) projectiles++;
-                        else if (x.Parameters is TetherCapabilityParameters) hitboxes++;
+                        capabilities += CharacterSourceSchema.Operation("startCapability")!.CapabilityCost;
+                        var capabilityBudget = CharacterSourceSchema.CapabilityBudget(x.Parameters);
+                        hitboxes += capabilityBudget.Hitboxes;
+                        projectiles += capabilityBudget.Projectiles;
                         cookedOps.Add(new CookedStartCapabilityOperation(x.Tick, x.Unit, x.CapabilityId, x.CapabilityVersion, CookParameters(x.Parameters)));
                         break;
                     case StartupAimCorrectionOperationSource x:
@@ -1975,7 +1998,18 @@ public static class CharacterPackageCompiler
         return stream.ToArray();
     }
 
-    private static void WriteMovement(Utf8JsonWriter w, CookedMovement x) { w.WritePropertyName("movement"); w.WriteStartObject(); Number(w, "runSpeed", x.RunSpeed); Number(w, "runAccelerationA", x.RunAccelerationA); Number(w, "runAccelerationB", x.RunAccelerationB); Number(w, "dashSpeed", x.DashSpeed); Number(w, "airDodgeSpeed", x.AirDodgeSpeed); Number(w, "airSpeedMax", x.AirSpeedMax); Number(w, "airAccelStick", x.AirAccelStick); Number(w, "airAccelBase", x.AirAccelBase); Number(w, "jumpForce", x.JumpForce); Number(w, "shortHopForce", x.ShortHopForce); Number(w, "airJumpVMultiplier", x.AirJumpVMultiplier); Number(w, "airJumpHMultiplier", x.AirJumpHMultiplier); Number(w, "gravity", x.Gravity); Number(w, "airFloatGravity", x.AirFloatGravity); w.WriteNumber("dashDurationTicks", x.DashDurationTicks); w.WriteNumber("dashCooldownTicks", x.DashCooldownTicks); Number(w, "groundFriction", x.GroundFriction); Number(w, "airFriction", x.AirFriction); Number(w, "maxFallSpeed", x.MaxFallSpeed); Number(w, "fastFallSpeed", x.FastFallSpeed); w.WriteNumber("maxJumps", x.MaxJumps); w.WriteNumber("jumpSquatTicks", x.JumpSquatTicks); w.WriteNumber("floatWindowTicks", x.FloatWindowTicks); w.WriteNumber("rushTicks", x.RushTicks); w.WriteEndObject(); }
+    private sealed class SourceNumberException : ArgumentException
+    {
+        public string SourcePath { get; }
+        public SourceNumberException(string path) : base("Numeric value must be finite and representable by the source field.") => SourcePath = path;
+    }
+    private static void MovementNumber(Utf8JsonWriter writer, string path, string name, float value)
+    {
+        if (float.IsNaN(value) || float.IsInfinity(value)) throw new SourceNumberException(path + "." + name);
+        Number(writer, name, value);
+    }
+
+    private static void WriteMovement(Utf8JsonWriter w, CookedMovement x, string path = "character.movement") { w.WritePropertyName("movement"); w.WriteStartObject(); MovementNumber(w,path, "runSpeed", x.RunSpeed); MovementNumber(w,path, "runAccelerationA", x.RunAccelerationA); MovementNumber(w,path, "runAccelerationB", x.RunAccelerationB); MovementNumber(w,path, "dashSpeed", x.DashSpeed); MovementNumber(w,path, "airDodgeSpeed", x.AirDodgeSpeed); MovementNumber(w,path, "airSpeedMax", x.AirSpeedMax); MovementNumber(w,path, "airAccelStick", x.AirAccelStick); MovementNumber(w,path, "airAccelBase", x.AirAccelBase); MovementNumber(w,path, "jumpForce", x.JumpForce); MovementNumber(w,path, "shortHopForce", x.ShortHopForce); MovementNumber(w,path, "airJumpVMultiplier", x.AirJumpVMultiplier); MovementNumber(w,path, "airJumpHMultiplier", x.AirJumpHMultiplier); MovementNumber(w,path, "gravity", x.Gravity); MovementNumber(w,path, "airFloatGravity", x.AirFloatGravity); w.WriteNumber("dashDurationTicks", x.DashDurationTicks); w.WriteNumber("dashCooldownTicks", x.DashCooldownTicks); MovementNumber(w,path, "groundFriction", x.GroundFriction); MovementNumber(w,path, "airFriction", x.AirFriction); MovementNumber(w,path, "maxFallSpeed", x.MaxFallSpeed); MovementNumber(w,path, "fastFallSpeed", x.FastFallSpeed); w.WriteNumber("maxJumps", x.MaxJumps); w.WriteNumber("jumpSquatTicks", x.JumpSquatTicks); w.WriteNumber("floatWindowTicks", x.FloatWindowTicks); w.WriteNumber("rushTicks", x.RushTicks); w.WriteEndObject(); }
     private static void WritePresentation(Utf8JsonWriter w, CookedPresentation x)
     {
         w.WritePropertyName("presentation");
@@ -2016,7 +2050,7 @@ public static class CharacterPackageCompiler
         w.WriteStartObject();
         w.WriteString("id", x.Id);
         w.WriteString("displayName", x.DisplayName);
-        WriteMovement(w, x.Movement);
+        WriteMovement(w, x.Movement, "character.alternateForm.movement");
         w.WritePropertyName("presentation");
         w.WriteStartObject();
         foreach (var (name, id) in x.Presentation.Roles)
@@ -2475,13 +2509,13 @@ public static class CharacterPackageCompiler
     {
         if (!CharacterBoneRegistry.IsRigId(value)) ValidateId(value, path, d);
     }
-    private static void ValidateId(string value, string path, DiagnosticBag d) { if (!IsId(value)) d.Error("id.invalid", path, "ID must be lowercase ASCII and start with a letter."); }
+    private static void ValidateId(string value, string path, DiagnosticBag d) { if (!IsId(value)) d.Error("id.invalid", path, "ID '" + value + "' must be lowercase ASCII, start with a letter, contain only letters, digits, dots or hyphens, and be at most 64 characters."); }
     private static bool IsSemVer(string value)
     {
         var parts = value.Split(new[] { '.', '-' }, StringSplitOptions.RemoveEmptyEntries);
         return parts.Length >= 3 && parts[0].All(char.IsDigit) && parts[1].All(char.IsDigit) && parts[2].All(char.IsDigit);
     }
-    private static void ValidateNonNegative(float value, string path, DiagnosticBag d) { if (float.IsNaN(value) || float.IsInfinity(value)) d.Error("value.non-finite", path, "Value must be finite."); else if (value < 0) d.Error("value.out-of-range", path, "Value must be non-negative."); }
-    private static void ValidateAngle(float value, string path, DiagnosticBag d) { if (value < -90 || value > 90) d.Error("value.out-of-range", path, "Angle must be between -90 and 90 degrees."); }
-    private static void ValidateYaw(float value, string path, DiagnosticBag d) { if (value < -180 || value > 180) d.Error("value.out-of-range", path, "Yaw offset must be between -180 and 180 degrees."); }
+    private static void ValidateNonNegative(float value, string path, DiagnosticBag d) { if (float.IsNaN(value) || float.IsInfinity(value)) d.Error("value.non-finite", path, "Value must be finite."); else if (CharacterSourceSchema.Range("nonnegative").IsOutside(value)) d.Error("value.out-of-range", path, "Value must be non-negative."); }
+    private static void ValidateAngle(float value, string path, DiagnosticBag d) { if (CharacterSourceSchema.Range("angle").IsOutside(value)) d.Error("value.out-of-range", path, "Angle must be between -90 and 90 degrees."); }
+    private static void ValidateYaw(float value, string path, DiagnosticBag d) { if (CharacterSourceSchema.Range("yaw").IsOutside(value)) d.Error("value.out-of-range", path, "Yaw offset must be between -180 and 180 degrees."); }
 }

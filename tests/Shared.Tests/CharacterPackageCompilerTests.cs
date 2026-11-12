@@ -672,7 +672,7 @@ public sealed class CharacterPackageCompilerTests
             charge["parameters"]!["projectile"]!["return"] = ReturningProjectileFixture.Operation()["projectile"]!["return"]!.DeepClone();
         });
         Assert.Contains(chargedWithReturn.Diagnostics, x => x.Code == "value.out-of-range"
-            && x.Path == "character.operation.parameters.projectile.return");
+            && x.Path == "character.slots[6].timeline.stages[0].operations[0].parameters.projectile.return");
         Assert.Null(chargedWithReturn.CookedPackage);
     }
 

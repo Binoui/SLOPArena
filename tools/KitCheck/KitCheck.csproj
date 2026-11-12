@@ -5,7 +5,8 @@
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="../../src/Shared/SlopArena.Shared.csproj" />
-    <Reference Include="$(MSBuildSDKsPath)/../../8.*/Roslyn/bincore/Microsoft.CodeAnalysis.dll" />
-    <Reference Include="$(MSBuildSDKsPath)/../../8.*/Roslyn/bincore/Microsoft.CodeAnalysis.CSharp.dll" />
+    <None Include="../../docs/characters/workshop-authoring-reference.md" Link="reference.md" CopyToPublishDirectory="PreserveNewest" />
+    <None Include="../../docs/characters/examples/workshop-kit/*.json" Link="example-kit/%(Filename)%(Extension)" CopyToPublishDirectory="PreserveNewest" />
+    <None Include="../../docs/characters/examples/workshop-grappler/*.json" Link="example-grappler/%(Filename)%(Extension)" CopyToPublishDirectory="PreserveNewest" />
   </ItemGroup>
 </Project>

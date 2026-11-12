@@ -1,25 +1,40 @@
 # Kit checker
 
-Requires the existing .NET 8 SDK. No Unity or extra NuGet package is needed.
-The generator uses the C# parser shipped in that SDK.
+Build and publish with the repository's .NET SDK. No Unity, source parser, or additional NuGet package is needed.
+Run the published output anywhere with the .NET 8 runtime. Keep its publish-directory files together.
 
-Check a source folder from the repository root.
+```sh
+dotnet publish tools/KitCheck -p:SkipUnityPluginCopy=true -c Release -o /tmp/kitcheck
+cd /tmp
+dotnet kitcheck/KitCheck.dll kitcheck/example-kit
+dotnet kitcheck/KitCheck.dll kitcheck/example-grappler
+```
+
+The publish directory includes `reference.md`, `example-kit`, and `example-grappler`.
+To check repository source without publishing, run this from the repository root.
 
 ```sh
 dotnet run --project tools/KitCheck -p:SkipUnityPluginCopy=true -- docs/characters/examples/workshop-kit
 ```
 
-Create the compiler's authoring-ready template.
+Create a compiler template with the published checker.
 
 ```sh
-dotnet run --project tools/KitCheck -p:SkipUnityPluginCopy=true -- template /tmp/my-kit local.my-kit 'My kit'
+dotnet kitcheck/KitCheck.dll template my-kit local.my-kit 'My kit'
 ```
 
-Update the generated section of the [reference](../../docs/characters/workshop-authoring-reference.md).
+The generator reads the public, immutable `CharacterSourceSchema` API in Shared.
+Its embedded `CharacterSourceSchema.xml` defines field names, types, requiredness, defaults, units, descriptions,
+scalar ranges, enum tokens, child schemas, diagnostic identities, capabilities, and budget costs.
+The source reader and compiler use those definitions. Existing coupled geometry and lifecycle checks remain compiler-owned;
+the reference describes those exceptions by hand. `dotnet build` fails when a schema field has no description.
+
+Update the generated section of the [reference](../../docs/characters/workshop-authoring-reference.md) with either form.
+The write form needs a repository root because it updates that repository's document. It does not read C# source.
 
 ```sh
 dotnet run --project tools/KitCheck -p:SkipUnityPluginCopy=true -- reference --write .
+dotnet kitcheck/KitCheck.dll reference --write /path/to/SlopArena
 ```
 
-`reference .` prints that section to standard output. The generator reads codec syntax, compiler validation syntax,
-compiler constants, and the bone registry. The Shared compiler remains the authority for admission.
+`reference` prints the generated contract without needing a repository.

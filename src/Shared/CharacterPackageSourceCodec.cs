@@ -45,8 +45,8 @@ public sealed record CharacterAssetCatalogBindingSnapshot(string SemanticId, str
 
 public static class CharacterPackageSourceCodec
 {
-    private const ushort ManifestSchemaVersion = 1;
-    private const ushort AuthoringSchemaVersion = 4;
+    private static ushort ManifestSchemaVersion => CharacterSourceSchema.Object("manifest").Field("manifestSchemaVersion").ExpectedUnsignedInteger;
+    private static ushort AuthoringSchemaVersion => CharacterSourceSchema.Object("character").Field("authoringSchemaVersion").ExpectedUnsignedInteger;
     private static readonly JsonWriterOptions WriterOptions = new()
     {
         Encoder = JavaScriptEncoder.Default,
@@ -61,8 +61,10 @@ public static class CharacterPackageSourceCodec
         if (diagnostics.HasErrors) return new CharacterPackageSourceLoadResult(null, diagnostics.ToList());
         try
         {
-            using var manifestDoc = JsonDocument.Parse(packageJson!, new JsonDocumentOptions { AllowTrailingCommas = false, CommentHandling = JsonCommentHandling.Disallow });
-            using var characterDoc = JsonDocument.Parse(characterJson!, new JsonDocumentOptions { AllowTrailingCommas = false, CommentHandling = JsonCommentHandling.Disallow });
+            using var manifestDoc = ParseSourceJson(packageJson!, "manifest", diagnostics);
+            if (manifestDoc == null) return new CharacterPackageSourceLoadResult(null, diagnostics.ToList());
+            using var characterDoc = ParseSourceJson(characterJson!, "character", diagnostics);
+            if (characterDoc == null) return new CharacterPackageSourceLoadResult(null, diagnostics.ToList());
             var manifest = ParseManifest(manifestDoc.RootElement, diagnostics);
             var character = ParseCharacter(characterDoc.RootElement, diagnostics);
             return diagnostics.HasErrors
@@ -78,6 +80,16 @@ public static class CharacterPackageSourceCodec
         {
             diagnostics.Error("schema.invalid", "", ex.Message);
             return new CharacterPackageSourceLoadResult(null, diagnostics.ToList());
+        }
+    }
+
+    private static JsonDocument? ParseSourceJson(string json, string sourcePath, DiagnosticBag diagnostics)
+    {
+        try { return JsonDocument.Parse(json, new JsonDocumentOptions { AllowTrailingCommas = false, CommentHandling = JsonCommentHandling.Disallow }); }
+        catch (JsonException error)
+        {
+            diagnostics.Error("schema.invalid-json", sourcePath, error.Message);
+            return null;
         }
     }
 
@@ -984,11 +996,12 @@ public static class CharacterPackageSourceCodec
     private static string KnockbackDirectionText(AuthoringKnockbackDirection value)=>value switch { AuthoringKnockbackDirection.AwayFromOwner=>"awayFromOwner", AuthoringKnockbackDirection.TowardOwner=>"towardOwner", _=>throw new InvalidDataException("Unknown knockback direction.") };
     private static string VelocityText(AuthoringVelocityMode value)=>value switch { AuthoringVelocityMode.Absolute=>"absolute", AuthoringVelocityMode.Additive=>"additive", AuthoringVelocityMode.Vertical=>"vertical", _=>throw new InvalidDataException("Unknown velocity mode.") };
     private static string UnitText(AuthoringUnit value)=>value switch { AuthoringUnit.Meters=>"meters", AuthoringUnit.MetersPerSecond=>"metersPerSecond", AuthoringUnit.MetersPerSecondSquared=>"metersPerSecondSquared", AuthoringUnit.Degrees=>"degrees", AuthoringUnit.Normalized=>"normalized", AuthoringUnit.Damage=>"damage", AuthoringUnit.Knockback=>"knockback", AuthoringUnit.Ticks=>"ticks", _=>throw new InvalidDataException("Unknown unit.") };
-    private static string OperationKind(CharacterTimelineOperationSource value)=>value switch { SetVelocityOperationSource=>"setVelocity", ForwardLungeOperationSource=>"forwardLunge", GravityWindowOperationSource=>"gravityWindow", ArmorWindowOperationSource=>"armorWindow", SpawnHitboxOperationSource=>"spawnHitbox", SpawnProjectileOperationSource=>"spawnProjectile", SetAimStateOperationSource=>"setAimState", StartCapabilityOperationSource=>"startCapability", EmitPresentationOperationSource=>"emitPresentation", CompleteTimelineOperationSource=>"completeTimeline", SwapFormOperationSource=>"swapForm", StartupAimCorrectionOperationSource=>"startupAimCorrection", _=>throw new InvalidDataException("Unknown operation.") };
+    internal static string? KnownOperationKind(CharacterTimelineOperationSource value)=>value switch { SetVelocityOperationSource=>"setVelocity", ForwardLungeOperationSource=>"forwardLunge", GravityWindowOperationSource=>"gravityWindow", ArmorWindowOperationSource=>"armorWindow", SpawnHitboxOperationSource=>"spawnHitbox", SpawnProjectileOperationSource=>"spawnProjectile", SetAimStateOperationSource=>"setAimState", StartCapabilityOperationSource=>"startCapability", EmitPresentationOperationSource=>"emitPresentation", CompleteTimelineOperationSource=>"completeTimeline", SwapFormOperationSource=>"swapForm", StartupAimCorrectionOperationSource=>"startupAimCorrection", _=>null };
+    private static string OperationKind(CharacterTimelineOperationSource value) => KnownOperationKind(value) ?? throw new InvalidDataException("Unknown operation.");
 
     private static PackageManifestSource ParseManifest(JsonElement root, DiagnosticBag d)
     {
-        var p = ReadObject(root, "manifest", d, "manifestSchemaVersion", "packageId", "version", "creator", "license", "attribution", "dependencies", "schemaVersion", "id", "class");
+        var p = ReadObject(root, "manifest", d, CharacterSourceSchema.Object("manifest"));
         if (p.ContainsKey("schemaVersion")) d.Error("schema.unsupported", "manifest.schemaVersion", "Legacy schemaVersion is not accepted.");
         if (p.ContainsKey("id")) d.Error("source.identity-forbidden", "manifest.id", "Package identity belongs in package.json fields.");
         if (p.ContainsKey("class")) d.Error("source.class-forbidden", "manifest.class", "Character class is not part of the source contract.");
@@ -1008,7 +1021,7 @@ public static class CharacterPackageSourceCodec
                 var i = 0;
                 foreach (var depElement in dependencyElement.EnumerateArray())
                 {
-                    var dp = ReadObject(depElement, $"manifest.dependencies[{i}]", d, "packageId", "version", "cookedHash");
+                    var dp = ReadObject(depElement, $"manifest.dependencies[{i}]", d, CharacterSourceSchema.Object("dependency"));
                     deps.Add(new PackageDependencySource(String(dp, "packageId", $"manifest.dependencies[{i}].packageId", d), String(dp, "version", $"manifest.dependencies[{i}].version", d), String(dp, "cookedHash", $"manifest.dependencies[{i}].cookedHash", d)));
                     i++;
                 }
@@ -1020,7 +1033,7 @@ public static class CharacterPackageSourceCodec
 
     private static CharacterAuthoringDocument ParseCharacter(JsonElement root, DiagnosticBag d)
     {
-        var p = ReadObject(root, "character", d, "authoringSchemaVersion", "displayName", "weight", "movement", "presentation", "capsuleRadius", "capsuleHeight", "hipHeight", "hurtboxRadius", "shieldRadius", "captureGeometry", "hurtboxCapsules", "hurtboxBoneDefs", "attachmentBoneIds", "presentationIds", "capabilityRequirements", "shell", "slots", "aliases", "alternateForm", "schemaVersion", "id", "class");
+        var p = ReadObject(root, "character", d, CharacterSourceSchema.Object("character"));
         if (p.ContainsKey("schemaVersion")) d.Error("schema.unsupported", "character.schemaVersion", "Legacy schemaVersion is not accepted.");
         if (p.ContainsKey("id")) d.Error("source.identity-forbidden", "character.id", "Character identity belongs in package.json.");
         if (p.ContainsKey("class")) d.Error("source.class-forbidden", "character.class", "Character class is not part of the source contract.");
@@ -1041,16 +1054,16 @@ public static class CharacterPackageSourceCodec
             Float(p, "capsuleRadius", "character.capsuleRadius", d), Float(p, "capsuleHeight", "character.capsuleHeight", d),
             Float(p, "hipHeight", "character.hipHeight", d), Float(p, "hurtboxRadius", "character.hurtboxRadius", d),
             Float(p, "shieldRadius", "character.shieldRadius", d), ParseCaptureGeometry(p, d), capsules, bones, attachmentBoneIds, presentationIds, capabilities, slots, aliases,
-            p.ContainsKey("shell") ? ParseShell(p, d) : null,
-            p.ContainsKey("alternateForm") ? ParseAlternateForm(p, d) : null);
+            HasObject(p, "shell", d) ? ParseShell(p, d) : null,
+            HasObject(p, "alternateForm", d) ? ParseAlternateForm(p, d) : null);
     }
 
-    private static AlternateFormSource ParseAlternateForm(Dictionary<string, JsonElement> parent, DiagnosticBag d)
+    private static AlternateFormSource ParseAlternateForm(SourceProperties parent, DiagnosticBag d)
     {
         const string path = "character.alternateForm";
-        var p = Object(parent, "alternateForm", path, d, "id", "displayName", "movement", "presentation", "slots", "aliases");
+        var p = Object(parent, "alternateForm", path, d, CharacterSourceSchema.Object("alternateForm"));
         var roles = new FormPresentation().Roles.Select(role => role.Name).ToArray();
-        var q = Object(p, "presentation", path + ".presentation", d, roles);
+        var q = Object(p, "presentation", path + ".presentation", d, CharacterSourceSchema.Object("formPresentation"));
         string Role(string name) => OptionalString(q, name, path + ".presentation." + name, d) ?? "";
         return new AlternateFormSource(
             String(p, "id", path + ".id", d),
@@ -1063,23 +1076,22 @@ public static class CharacterPackageSourceCodec
             ParseAliases(p, d, path));
     }
 
-    private static ShellSource ParseShell(Dictionary<string, JsonElement> parent, DiagnosticBag d)
+    private static ShellSource ParseShell(SourceProperties parent, DiagnosticBag d)
     {
-        var p = Object(parent, "shell", "character.shell", d, "popOutDeceleration", "blockedRecoilSpeed", "splash", "ride");
+        var p = Object(parent, "shell", "character.shell", d, CharacterSourceSchema.Object("shell"));
         ShellSplashSource? splash = null;
-        if (p.ContainsKey("splash"))
+        if (HasObject(p, "splash", d))
         {
-            var q = Object(p, "splash", "character.shell.splash", d, "hitbox", "popUpTicks", "presentationId");
+            var q = Object(p, "splash", "character.shell.splash", d, CharacterSourceSchema.Object("splash"));
             splash = new ShellSplashSource(
                 ParseHitboxNamed(q, "hitbox", "character.shell.splash.hitbox", d),
                 UShort(q, "popUpTicks", "character.shell.splash.popUpTicks", d),
                 OptionalString(q, "presentationId", "character.shell.splash.presentationId", d));
         }
         ShellRideSource? ride = null;
-        if (p.ContainsKey("ride"))
+        if (HasObject(p, "ride", d))
         {
-            var q = Object(p, "ride", "character.shell.ride", d, "ticks", "speed", "turnDegreesPerSecond", "wave",
-                "hitPresentationId");
+            var q = Object(p, "ride", "character.shell.ride", d, CharacterSourceSchema.Object("ride"));
             ride = new ShellRideSource(
                 UShort(q, "ticks", "character.shell.ride.ticks", d),
                 Float(q, "speed", "character.shell.ride.speed", d),
@@ -1093,9 +1105,9 @@ public static class CharacterPackageSourceCodec
             splash, ride);
     }
 
-    private static CharacterMovementSource ParseMovement(Dictionary<string, JsonElement> parent, DiagnosticBag d, string path = "character")
+    private static CharacterMovementSource ParseMovement(SourceProperties parent, DiagnosticBag d, string path = "character")
     {
-        var p = Object(parent, "movement", path + ".movement", d, "runSpeed", "runAccelerationA", "runAccelerationB", "dashSpeed", "airDodgeSpeed", "airSpeedMax", "airAccelStick", "airAccelBase", "jumpForce", "shortHopForce", "airJumpVMultiplier", "airJumpHMultiplier", "gravity", "airFloatGravity", "dashDurationTicks", "dashCooldownTicks", "groundFriction", "airFriction", "maxFallSpeed", "fastFallSpeed", "maxJumps", "jumpSquatTicks", "floatWindowTicks", "rushTicks");
+        var p = Object(parent, "movement", path + ".movement", d, CharacterSourceSchema.Object("movement"));
         return new CharacterMovementSource(
             Float(p, "runSpeed", path + ".movement.runSpeed", d), Float(p, "runAccelerationA", path + ".movement.runAccelerationA", d), Float(p, "runAccelerationB", path + ".movement.runAccelerationB", d),
             Float(p, "dashSpeed", path + ".movement.dashSpeed", d), Float(p, "airDodgeSpeed", path + ".movement.airDodgeSpeed", d), Float(p, "airSpeedMax", path + ".movement.airSpeedMax", d), Float(p, "airAccelStick", path + ".movement.airAccelStick", d), Float(p, "airAccelBase", path + ".movement.airAccelBase", d),
@@ -1105,9 +1117,9 @@ public static class CharacterPackageSourceCodec
             Byte(p, "maxJumps", path + ".movement.maxJumps", d), UShort(p, "jumpSquatTicks", path + ".movement.jumpSquatTicks", d), UShort(p, "floatWindowTicks", path + ".movement.floatWindowTicks", d), UShort(p, "rushTicks", path + ".movement.rushTicks", d));
     }
 
-    private static CharacterPresentationSource ParsePresentation(Dictionary<string, JsonElement> parent, DiagnosticBag d)
+    private static CharacterPresentationSource ParsePresentation(SourceProperties parent, DiagnosticBag d)
     {
-        var p = Object(parent, "presentation", "character.presentation", d, "idle", "run", "dash", "jump", "fall", "hitSmall", "hitMedium", "hitHard", "tumble", "crouch", "slide", "shield", "grab", "grabbed", "throwForward", "airDodge", "shell", "flying", "mayhemLaugh", "wallJump", "landStartOffsetSeconds", "modelResourcePath", "visualScale", "hurtboxBoneScale", "modelYOffset", "modelSoleOffset", "autoModelYOffset");
+        var p = Object(parent, "presentation", "character.presentation", d, CharacterSourceSchema.Object("presentation"));
         return new CharacterPresentationSource(
             String(p, "idle", "character.presentation.idle", d),
             String(p, "run", "character.presentation.run", d),
@@ -1138,9 +1150,9 @@ public static class CharacterPackageSourceCodec
             OptionalString(p, "wallJump", "character.presentation.wallJump", d) ?? "");
     }
 
-    private static CharacterCaptureGeometrySource ParseCaptureGeometry(Dictionary<string, JsonElement> parent, DiagnosticBag d)
+    private static CharacterCaptureGeometrySource ParseCaptureGeometry(SourceProperties parent, DiagnosticBag d)
     {
-        var p = Object(parent, "captureGeometry", "character.captureGeometry", d, "reach", "width", "height", "offsetY", "attackerAnchor", "victimAnchor");
+        var p = Object(parent, "captureGeometry", "character.captureGeometry", d, CharacterSourceSchema.Object("captureGeometry"));
         return new CharacterCaptureGeometrySource(
             Float(p, "reach", "character.captureGeometry.reach", d),
             Float(p, "width", "character.captureGeometry.width", d),
@@ -1150,73 +1162,73 @@ public static class CharacterPackageSourceCodec
             ParseCaptureAnchor(p, "victimAnchor", d));
     }
 
-    private static CaptureAnchorSource ParseCaptureAnchor(Dictionary<string, JsonElement> parent, string name, DiagnosticBag d)
+    private static CaptureAnchorSource ParseCaptureAnchor(SourceProperties parent, string name, DiagnosticBag d)
     {
         string path = "character.captureGeometry." + name;
-        var p = Object(parent, name, path, d, "x", "y", "z");
+        var p = Object(parent, name, path, d, CharacterSourceSchema.Object("anchor"));
         return new CaptureAnchorSource(
             Float(p, "x", path + ".x", d),
             Float(p, "y", path + ".y", d),
             Float(p, "z", path + ".z", d));
     }
 
-    private static List<HurtboxCapsuleSource> ParseCapsules(Dictionary<string, JsonElement> parent, DiagnosticBag d)
+    private static List<HurtboxCapsuleSource> ParseCapsules(SourceProperties parent, DiagnosticBag d)
     {
         var result = new List<HurtboxCapsuleSource>();
         if (!Array(parent, "hurtboxCapsules", "character.hurtboxCapsules", d, out var a)) return result;
         var i = 0;
         foreach (var e in a.EnumerateArray())
         {
-            var p = ReadObject(e, $"character.hurtboxCapsules[{i}]", d, "startX", "startY", "startZ", "endX", "endY", "endZ", "radius");
+            var p = ReadObject(e, $"character.hurtboxCapsules[{i}]", d, CharacterSourceSchema.Object("hurtboxCapsule"));
             result.Add(new HurtboxCapsuleSource(Float(p, "startX", $"character.hurtboxCapsules[{i}].startX", d), Float(p, "startY", $"character.hurtboxCapsules[{i}].startY", d), Float(p, "startZ", $"character.hurtboxCapsules[{i}].startZ", d), Float(p, "endX", $"character.hurtboxCapsules[{i}].endX", d), Float(p, "endY", $"character.hurtboxCapsules[{i}].endY", d), Float(p, "endZ", $"character.hurtboxCapsules[{i}].endZ", d), Float(p, "radius", $"character.hurtboxCapsules[{i}].radius", d)));
             i++;
         }
         return result;
     }
 
-    private static List<HurtboxBoneSource> ParseBones(Dictionary<string, JsonElement> parent, DiagnosticBag d)
+    private static List<HurtboxBoneSource> ParseBones(SourceProperties parent, DiagnosticBag d)
     {
         var result = new List<HurtboxBoneSource>();
         if (!Array(parent, "hurtboxBoneDefs", "character.hurtboxBoneDefs", d, out var a)) return result;
         var i = 0;
         foreach (var e in a.EnumerateArray())
         {
-            var p = ReadObject(e, $"character.hurtboxBoneDefs[{i}]", d, "boneId", "offsetX", "offsetY", "offsetZ", "radius", "endBoneId", "endOffsetX", "endOffsetY", "endOffsetZ");
+            var p = ReadObject(e, $"character.hurtboxBoneDefs[{i}]", d, CharacterSourceSchema.Object("hurtboxBone"));
             result.Add(new HurtboxBoneSource(String(p, "boneId", $"character.hurtboxBoneDefs[{i}].boneId", d), Float(p, "offsetX", $"character.hurtboxBoneDefs[{i}].offsetX", d), Float(p, "offsetY", $"character.hurtboxBoneDefs[{i}].offsetY", d), Float(p, "offsetZ", $"character.hurtboxBoneDefs[{i}].offsetZ", d), Float(p, "radius", $"character.hurtboxBoneDefs[{i}].radius", d), OptionalString(p, "endBoneId", $"character.hurtboxBoneDefs[{i}].endBoneId", d), OptionalFloat(p, "endOffsetX", $"character.hurtboxBoneDefs[{i}].endOffsetX", d), OptionalFloat(p, "endOffsetY", $"character.hurtboxBoneDefs[{i}].endOffsetY", d), OptionalFloat(p, "endOffsetZ", $"character.hurtboxBoneDefs[{i}].endOffsetZ", d)));
             i++;
         }
         return result;
     }
 
-    private static List<CapabilityRequirementSource> ParseCapabilities(Dictionary<string, JsonElement> parent, DiagnosticBag d)
+    private static List<CapabilityRequirementSource> ParseCapabilities(SourceProperties parent, DiagnosticBag d)
     {
         var result = new List<CapabilityRequirementSource>();
         if (!Array(parent, "capabilityRequirements", "character.capabilityRequirements", d, out var a)) return result;
         var i = 0;
         foreach (var e in a.EnumerateArray())
         {
-            var p = ReadObject(e, $"character.capabilityRequirements[{i}]", d, "capabilityId", "capabilityVersion");
+            var p = ReadObject(e, $"character.capabilityRequirements[{i}]", d, CharacterSourceSchema.Object("capabilityRequirement"));
             result.Add(new CapabilityRequirementSource(String(p, "capabilityId", $"character.capabilityRequirements[{i}].capabilityId", d), String(p, "capabilityVersion", $"character.capabilityRequirements[{i}].capabilityVersion", d)));
             i++;
         }
         return result;
     }
 
-    private static List<CharacterAliasSource> ParseAliases(Dictionary<string, JsonElement> parent, DiagnosticBag d, string path = "character")
+    private static List<CharacterAliasSource> ParseAliases(SourceProperties parent, DiagnosticBag d, string path = "character")
     {
         var result = new List<CharacterAliasSource>();
         if (!Array(parent, "aliases", path + ".aliases", d, out var a)) return result;
         var i = 0;
         foreach (var e in a.EnumerateArray())
         {
-            var p = ReadObject(e, $"{path}.aliases[{i}]", d, "from", "to");
+            var p = ReadObject(e, $"{path}.aliases[{i}]", d, CharacterSourceSchema.Object("alias"));
             result.Add(new CharacterAliasSource(String(p, "from", $"{path}.aliases[{i}].from", d), String(p, "to", $"{path}.aliases[{i}].to", d)));
             i++;
         }
         return result;
     }
 
-    private static List<CharacterSlotSource> ParseSlots(Dictionary<string, JsonElement> parent, DiagnosticBag d, string root = "character")
+    private static List<CharacterSlotSource> ParseSlots(SourceProperties parent, DiagnosticBag d, string root = "character")
     {
         var result = new List<CharacterSlotSource>();
         if (!Array(parent, "slots", root + ".slots", d, out var a)) return result;
@@ -1224,9 +1236,9 @@ public static class CharacterPackageSourceCodec
         foreach (var e in a.EnumerateArray())
         {
             var path = $"{root}.slots[{i}]";
-            var p = ReadObject(e, path, d, "id", "name", "description", "iconId", "behavior", "aimMode", "aimMovement", "aimMovementSpeedScale", "aimAnimationId", "hitPresentationId", "cooldownTicks", "isRecoveryMove", "preserveMomentumOnStart", "allowSlideCarry", "shellPolicy", "chargePool", "timeline");
-            var chargePool = p.TryGetValue("chargePool", out var chargeElement) && chargeElement.ValueKind != JsonValueKind.Null
-                ? ParseChargePool(chargeElement, path + ".chargePool", d)
+            var p = ReadObject(e, path, d, CharacterSourceSchema.Object("slot"));
+            var chargePool = HasObject(p, "chargePool", d)
+                ? ParseChargePool(p["chargePool"], path + ".chargePool", d)
                 : null;
             result.Add(new CharacterSlotSource(String(p, "id", path + ".id", d), String(p, "name", path + ".name", d), String(p, "description", path + ".description", d), String(p, "iconId", path + ".iconId", d), EnumValue(p, "behavior", path + ".behavior", d, ParseBehavior), EnumValue(p, "aimMode", path + ".aimMode", d, ParseAimMode), UShort(p, "cooldownTicks", path + ".cooldownTicks", d), Bool(p, "isRecoveryMove", path + ".isRecoveryMove", d), Bool(p, "preserveMomentumOnStart", path + ".preserveMomentumOnStart", d), ParseTimeline(p, path, d), chargePool, OptionalEnumValue(p, "aimMovement", path + ".aimMovement", d, ParseAimMovement, AuthoringAimMovementMode.Fixed), OptionalString(p, "aimAnimationId", path + ".aimAnimationId", d), OptionalBool(p, "allowSlideCarry", path + ".allowSlideCarry", d), OptionalString(p, "hitPresentationId", path + ".hitPresentationId", d),
                 p.ContainsKey("aimMovementSpeedScale") ? Float(p, "aimMovementSpeedScale", path + ".aimMovementSpeedScale", d) : 1f,
@@ -1237,25 +1249,22 @@ public static class CharacterPackageSourceCodec
     }
     private static ChargePoolSource ParseChargePool(JsonElement element, string path, DiagnosticBag d)
     {
-        var p = ReadObject(element, path, d, "maxCharges", "regenTicks");
-        int maxCharges = p.TryGetValue("maxCharges", out var max) && max.TryGetInt32(out var value)
-            ? value
-            : 0;
-        if (!p.ContainsKey("maxCharges")) d.Error("schema.missing", path + ".maxCharges", "Required integer is missing.");
-        else if (!max.TryGetInt32(out _)) d.Error("value.out-of-range", path + ".maxCharges", "32-bit integer is required.");
-        return new ChargePoolSource(maxCharges, UShort(p, "regenTicks", path + ".regenTicks", d));
+        var p = ReadObject(element, path, d, CharacterSourceSchema.Object("chargePool"));
+        ReadValue(p, "maxCharges", path + ".maxCharges", d, "integer", true, out var value);
+        return new ChargePoolSource(value.ValueKind == JsonValueKind.Number && value.TryGetInt32(out var count) ? count : 0,
+            UShort(p, "regenTicks", path + ".regenTicks", d));
     }
 
-    private static CharacterTimelineSource ParseTimeline(Dictionary<string, JsonElement> parent, string path, DiagnosticBag d)
+    private static CharacterTimelineSource ParseTimeline(SourceProperties parent, string path, DiagnosticBag d)
     {
-        var p = Object(parent, "timeline", path + ".timeline", d, "stages");
+        var p = Object(parent, "timeline", path + ".timeline", d, CharacterSourceSchema.Object("timeline"));
         var stages = new List<CharacterStageSource>();
         if (!Array(p, "stages", path + ".timeline.stages", d, out var a)) return new CharacterTimelineSource(stages);
         var i = 0;
         foreach (var e in a.EnumerateArray())
         {
             var stagePath = path + ".timeline.stages[" + i + "]";
-            var sp = ReadObject(e, stagePath, d, "durationTicks", "iasaTicks", "landingLagTicks", "autoCancelBeforeTicks", "autoCancelAfterTicks", "attackRange", "warpRange", "useTargetLock", "rotateTowardTarget", "trackingStrength", "animationIds", "operations");
+            var sp = ReadObject(e, stagePath, d, CharacterSourceSchema.Object("stage"));
             var anims = ParseStringArray(sp, "animationIds", stagePath + ".animationIds", d);
             var operations = ParseOperations(sp, stagePath, d);
             stages.Add(new CharacterStageSource(UShort(sp, "durationTicks", stagePath + ".durationTicks", d), UShort(sp, "iasaTicks", stagePath + ".iasaTicks", d), UShort(sp, "landingLagTicks", stagePath + ".landingLagTicks", d), UShort(sp, "autoCancelBeforeTicks", stagePath + ".autoCancelBeforeTicks", d), UShort(sp, "autoCancelAfterTicks", stagePath + ".autoCancelAfterTicks", d), anims, operations, OptionalFloat(sp, "attackRange", stagePath + ".attackRange", d), OptionalFloat(sp, "warpRange", stagePath + ".warpRange", d), OptionalBool(sp, "useTargetLock", stagePath + ".useTargetLock", d), OptionalBool(sp, "rotateTowardTarget", stagePath + ".rotateTowardTarget", d), OptionalFloat(sp, "trackingStrength", stagePath + ".trackingStrength", d)));
@@ -1264,7 +1273,7 @@ public static class CharacterPackageSourceCodec
         return new CharacterTimelineSource(stages);
     }
 
-    private static List<CharacterTimelineOperationSource> ParseOperations(Dictionary<string, JsonElement> parent, string path, DiagnosticBag d)
+    private static List<CharacterTimelineOperationSource> ParseOperations(SourceProperties parent, string path, DiagnosticBag d)
     {
         var result = new List<CharacterTimelineOperationSource>();
         if (!Array(parent, "operations", path + ".operations", d, out var a)) return result;
@@ -1272,8 +1281,10 @@ public static class CharacterPackageSourceCodec
         foreach (var e in a.EnumerateArray())
         {
             var opPath = path + ".operations[" + i + "]";
-            var p = ReadObject(e, opPath, d, "kind", "tick", "unit", "velocityMode", "x", "y", "z", "speed", "durationTicks", "stopInAttackRange", "gravityScale", "hitbox", "projectile", "aimState", "capabilityId", "capabilityVersion", "parameters", "presentationId", "placement", "condition", "endTick", "acquisitionRange", "acquisitionHalfAngleDegrees", "maxYawDegrees", "maxPitchDegrees", "yawDegreesPerSecond", "pitchDegreesPerSecond");
+            var p = ReadOperationObject(e, opPath, d);
             var kind = String(p, "kind", opPath + ".kind", d);
+            p.Schema = CharacterSourceSchema.Operation(kind);
+            p.Path = opPath;
             var tick = UShort(p, "tick", opPath + ".tick", d);
             var unit = ParseUnit(p, "unit", opPath + ".unit", d);
             ValidateOperationFields(p, kind, opPath, d);
@@ -1313,41 +1324,22 @@ public static class CharacterPackageSourceCodec
         }
         return result;
     }
-    private static void ValidateOperationFields(Dictionary<string, JsonElement> properties, string kind, string path, DiagnosticBag d)
+    private static void ValidateOperationFields(SourceProperties properties, string kind, string path, DiagnosticBag d)
     {
-        var allowed = kind switch
-        {
-            "setVelocity" => new[] { "kind", "tick", "unit", "velocityMode", "x", "y", "z" },
-            "forwardLunge" => new[] { "kind", "tick", "unit", "speed", "durationTicks", "stopInAttackRange" },
-            "gravityWindow" => new[] { "kind", "tick", "unit", "gravityScale", "durationTicks" },
-            "armorWindow" => new[] { "kind", "tick", "unit", "durationTicks" },
-            "spawnHitbox" => new[] { "kind", "tick", "unit", "hitbox" },
-            "spawnProjectile" => new[] { "kind", "tick", "unit", "projectile" },
-            "setAimState" => new[] { "kind", "tick", "unit", "aimState" },
-            "startCapability" => new[] { "kind", "tick", "unit", "capabilityId", "capabilityVersion", "parameters" },
-            "emitPresentation" => new[] { "kind", "tick", "unit", "presentationId", "placement", "condition" },
-            "completeTimeline" => new[] { "kind", "tick", "unit" },
-            "swapForm" => new[] { "kind", "tick", "unit" },
-            "startupAimCorrection" => new[] { "kind", "tick", "unit", "endTick", "acquisitionRange", "acquisitionHalfAngleDegrees", "maxYawDegrees", "maxPitchDegrees", "yawDegreesPerSecond", "pitchDegreesPerSecond" },
-            _ => System.Array.Empty<string>(),
-        };
-        if (allowed.Length == 0) return;
-        foreach (var name in properties.Keys) if (!allowed.Contains(name, StringComparer.Ordinal)) d.Error("operation.parameter-unknown", path + "." + name, "Field is not valid for this operation.");
-        foreach (var name in allowed)
-            if (!properties.ContainsKey(name) && !(kind == "emitPresentation" && name is "placement" or "condition")
-                && !(kind == "forwardLunge" && name == "stopInAttackRange"))
-                d.Error("operation.parameter-missing", path + "." + name, "Field is required for this operation.");
+        var schema = CharacterSourceSchema.Operation(kind);
+        if (schema == null) return;
+        foreach (var name in properties.Keys)
+            if (schema.FindField(name) == null) d.Error("operation.parameter-unknown", path + "." + name, "Field is not valid for this operation.");
+        foreach (var field in schema.Fields)
+            if (field.Required && !properties.ContainsKey(field.Name))
+                d.Error("operation.parameter-missing", path + "." + field.Name, "Field is required for this operation.");
     }
 
-    private static PresentationPlacement ParsePlacement(Dictionary<string, JsonElement> parent, string path, DiagnosticBag d)
+    private static PresentationPlacement ParsePlacement(SourceProperties parent, string path, DiagnosticBag d)
     {
-        if (!parent.TryGetValue("placement", out var element))
-            return new PresentationPlacement();
-        var p = ReadObject(element, path + ".placement", d,
-            "attachmentMode", "boneId",
-            "localPositionX", "localPositionY", "localPositionZ",
-            "localRotationX", "localRotationY", "localRotationZ",
-            "localScaleX", "localScaleY", "localScaleZ", "durationTicks");
+        var p = HasObject(parent, "placement", d)
+            ? ReadObject(parent["placement"], path + ".placement", d, CharacterSourceSchema.Object("placement"))
+            : new SourceProperties { Schema = CharacterSourceSchema.Object("placement") };
         return new PresentationPlacement(
             OptionalEnumValue(p, "attachmentMode", path + ".placement.attachmentMode", d, ParsePresentationAttachmentMode, AuthoringPresentationAttachmentMode.World),
             OptionalString(p, "boneId", path + ".placement.boneId", d),
@@ -1363,49 +1355,49 @@ public static class CharacterPackageSourceCodec
             OptionalUShort(p, "durationTicks", path + ".placement.durationTicks", d, 28));
     }
 
-    private static HitboxSource ParseHitboxNamed(Dictionary<string, JsonElement> parent, string name, string path, DiagnosticBag d)
+    private static HitboxSource ParseHitboxNamed(SourceProperties parent, string name, string path, DiagnosticBag d)
     {
-        var nested = new Dictionary<string, JsonElement>(StringComparer.Ordinal);
+        var nested = new SourceProperties(StringComparer.Ordinal);
         if (parent.TryGetValue(name, out var hitbox)) nested.Add("hitbox", hitbox);
         else d.Error("operation.parameter-missing", path, "Hitbox is required.");
-        return ParseHitbox(nested, path, d);
+        return ParseHitbox(nested, path, d, path);
     }
-    private static HitboxSource ParseHitbox(Dictionary<string, JsonElement> parent, string path, DiagnosticBag d)
+    private static HitboxSource ParseHitbox(SourceProperties parent, string path, DiagnosticBag d, string? exactPath = null)
     {
-        var p = Object(parent, "hitbox", path + ".hitbox", d, "shape", "radius", "offsetX", "offsetY", "offsetZ", "endOffsetX", "endOffsetY", "endOffsetZ", "startBoneId", "endBoneId", "damage", "angle", "baseKnockback", "knockbackGrowth", "stunTicks", "durationTicks", "interruptible", "hitGroup", "knockbackDirection", "fixedHitstunTicks", "hitPresentationId", "requiresFacingOwner");
+        string hitboxPath = exactPath ?? path + ".hitbox";
+        var p = Object(parent, "hitbox", hitboxPath, d, CharacterSourceSchema.Object("hitbox"));
         return new HitboxSource(
-            EnumValue(p, "shape", path + ".hitbox.shape", d, ParseShape),
-            Float(p, "radius", path + ".hitbox.radius", d),
-            Float(p, "offsetX", path + ".hitbox.offsetX", d),
-            Float(p, "offsetY", path + ".hitbox.offsetY", d),
-            Float(p, "offsetZ", path + ".hitbox.offsetZ", d),
-            Float(p, "endOffsetX", path + ".hitbox.endOffsetX", d),
-            Float(p, "endOffsetY", path + ".hitbox.endOffsetY", d),
-            Float(p, "endOffsetZ", path + ".hitbox.endOffsetZ", d),
-            OptionalString(p, "startBoneId", path + ".hitbox.startBoneId", d),
-            OptionalString(p, "endBoneId", path + ".hitbox.endBoneId", d),
-            Float(p, "damage", path + ".hitbox.damage", d),
-            Float(p, "angle", path + ".hitbox.angle", d),
-            Float(p, "baseKnockback", path + ".hitbox.baseKnockback", d),
-            Float(p, "knockbackGrowth", path + ".hitbox.knockbackGrowth", d),
-            UShort(p, "stunTicks", path + ".hitbox.stunTicks", d),
-            UShort(p, "durationTicks", path + ".hitbox.durationTicks", d),
-            Bool(p, "interruptible", path + ".hitbox.interruptible", d),
-            Byte(p, "hitGroup", path + ".hitbox.hitGroup", d),
-            OptionalEnumValue(p, "knockbackDirection", path + ".hitbox.knockbackDirection", d, ParseKnockbackDirection, AuthoringKnockbackDirection.AwayFromOwner),
-            OptionalUShort(p, "fixedHitstunTicks", path + ".hitbox.fixedHitstunTicks", d, 0),
-            OptionalString(p, "hitPresentationId", path + ".hitbox.hitPresentationId", d),
-            OptionalBool(p, "requiresFacingOwner", path + ".hitbox.requiresFacingOwner", d));
+            EnumValue(p, "shape", hitboxPath + ".shape", d, ParseShape),
+            Float(p, "radius", hitboxPath + ".radius", d),
+            Float(p, "offsetX", hitboxPath + ".offsetX", d),
+            Float(p, "offsetY", hitboxPath + ".offsetY", d),
+            Float(p, "offsetZ", hitboxPath + ".offsetZ", d),
+            Float(p, "endOffsetX", hitboxPath + ".endOffsetX", d),
+            Float(p, "endOffsetY", hitboxPath + ".endOffsetY", d),
+            Float(p, "endOffsetZ", hitboxPath + ".endOffsetZ", d),
+            OptionalString(p, "startBoneId", hitboxPath + ".startBoneId", d),
+            OptionalString(p, "endBoneId", hitboxPath + ".endBoneId", d),
+            Float(p, "damage", hitboxPath + ".damage", d),
+            Float(p, "angle", hitboxPath + ".angle", d),
+            Float(p, "baseKnockback", hitboxPath + ".baseKnockback", d),
+            Float(p, "knockbackGrowth", hitboxPath + ".knockbackGrowth", d),
+            UShort(p, "stunTicks", hitboxPath + ".stunTicks", d),
+            UShort(p, "durationTicks", hitboxPath + ".durationTicks", d),
+            Bool(p, "interruptible", hitboxPath + ".interruptible", d),
+            Byte(p, "hitGroup", hitboxPath + ".hitGroup", d),
+            OptionalEnumValue(p, "knockbackDirection", hitboxPath + ".knockbackDirection", d, ParseKnockbackDirection, AuthoringKnockbackDirection.AwayFromOwner),
+            OptionalUShort(p, "fixedHitstunTicks", hitboxPath + ".fixedHitstunTicks", d, 0),
+            OptionalString(p, "hitPresentationId", hitboxPath + ".hitPresentationId", d),
+            OptionalBool(p, "requiresFacingOwner", hitboxPath + ".requiresFacingOwner", d));
     }
 
-    private static ProjectileSource ParseProjectile(Dictionary<string, JsonElement> parent, string path, DiagnosticBag d)
+    private static ProjectileSource ParseProjectile(SourceProperties parent, string path, DiagnosticBag d)
     {
-        var p = Object(parent, "projectile", path + ".projectile", d, "launchOffsetX", "launchOffsetY", "launchOffsetZ", "speed", "gravity", "radius", "damage", "angle", "baseKnockback", "knockbackGrowth", "stunTicks", "maxFlightTicks", "yawOffsetDegrees", "return", "homing", "perch", "challengeTicks");
+        var p = Object(parent, "projectile", path + ".projectile", d, CharacterSourceSchema.Object("projectile"));
         ProjectileReturnSource? back = null;
-        if (p.ContainsKey("return"))
+        if (HasObject(p, "return", d))
         {
-            var r = Object(p, "return", path + ".projectile.return", d, "outboundTicks", "returnSpeed", "returnAcceleration",
-                "selfHitDamage", "selfHitStunTicks", "catchPresentationId", "selfHitPresentationId", "hit");
+            var r = Object(p, "return", path + ".projectile.return", d, CharacterSourceSchema.Object("projectileReturn"));
             string rp = path + ".projectile.return.";
             back = new ProjectileReturnSource(UShort(r, "outboundTicks", rp + "outboundTicks", d),
                 Float(r, "returnSpeed", rp + "returnSpeed", d), Float(r, "returnAcceleration", rp + "returnAcceleration", d),
@@ -1417,43 +1409,41 @@ public static class CharacterPackageSourceCodec
             ParseHoming(p, path + ".projectile.homing", d), ParsePerch(p, path + ".projectile.perch", d), OptionalUShort(p, "challengeTicks", path + ".projectile.challengeTicks", d, 0));
     }
 
-    private static ProjectileLegHit? ParseLegHit(Dictionary<string, JsonElement> p, string path, DiagnosticBag d)
+    private static ProjectileLegHit? ParseLegHit(SourceProperties p, string path, DiagnosticBag d)
     {
-        if (!p.ContainsKey("hit")) return null;
-        var h = Object(p, "hit", path, d, "damage", "angle", "baseKnockback", "knockbackGrowth", "stunTicks", "fixedHitstunTicks");
+        if (!HasObject(p, "hit", d)) return null;
+        var h = Object(p, "hit", path, d, CharacterSourceSchema.Object("legHit"));
         return new ProjectileLegHit(Float(h, "damage", path, d), Float(h, "angle", path, d),
             Float(h, "baseKnockback", path, d), Float(h, "knockbackGrowth", path, d),
             UShort(h, "stunTicks", path, d), OptionalUShort(h, "fixedHitstunTicks", path, d, 0));
     }
 
-    private static ProjectileHomingSource? ParseHoming(Dictionary<string, JsonElement> p, string path, DiagnosticBag d)
+    private static ProjectileHomingSource? ParseHoming(SourceProperties p, string path, DiagnosticBag d)
     {
-        if (!p.ContainsKey("homing")) return null;
-        var h = Object(p, "homing", path, d, "turnDegreesPerTick");
+        if (!HasObject(p, "homing", d)) return null;
+        var h = Object(p, "homing", path, d, CharacterSourceSchema.Object("homing"));
         return new ProjectileHomingSource(Float(h, "turnDegreesPerTick", path + ".turnDegreesPerTick", d));
     }
 
-    private static ProjectilePerchSource? ParsePerch(Dictionary<string, JsonElement> p, string path, DiagnosticBag d)
+    private static ProjectilePerchSource? ParsePerch(SourceProperties p, string path, DiagnosticBag d)
     {
-        if (!p.ContainsKey("perch")) return null;
-        var perch = Object(p, "perch", path, d, "perchTicks", "pop", "dive", "peck", "scatterPresentationId");
-        var pop = Object(perch, "pop", path + ".pop", d, "damage", "angle", "baseKnockback", "knockbackGrowth", "stunTicks",
-            "presentationId");
+        if (!HasObject(p, "perch", d)) return null;
+        var perch = Object(p, "perch", path, d, CharacterSourceSchema.Object("perch"));
+        var pop = Object(perch, "pop", path + ".pop", d, CharacterSourceSchema.Object("pop"));
         string pp = path + ".pop.";
         ProjectileDiveSource? dive = null;
-        if (perch.ContainsKey("dive"))
+        if (HasObject(perch, "dive", d))
         {
-            var v = Object(perch, "dive", path + ".dive", d, "hoverHeight", "maxRiseTicks", "markTicks", "diveSpeed",
-                "noTargetDistance");
+            var v = Object(perch, "dive", path + ".dive", d, CharacterSourceSchema.Object("dive"));
             string vp = path + ".dive.";
             dive = new ProjectileDiveSource(Float(v, "hoverHeight", vp + "hoverHeight", d),
                 UShort(v, "maxRiseTicks", vp + "maxRiseTicks", d), UShort(v, "markTicks", vp + "markTicks", d),
                 Float(v, "diveSpeed", vp + "diveSpeed", d), Float(v, "noTargetDistance", vp + "noTargetDistance", d));
         }
         ProjectilePeckSource? peck = null;
-        if (perch.ContainsKey("peck"))
+        if (HasObject(perch, "peck", d))
         {
-            var k = Object(perch, "peck", path + ".peck", d, "intervalTicks", "damage", "presentationId");
+            var k = Object(perch, "peck", path + ".peck", d, CharacterSourceSchema.Object("peck"));
             string kp = path + ".peck.";
             peck = new ProjectilePeckSource(UShort(k, "intervalTicks", kp + "intervalTicks", d), Float(k, "damage", kp + "damage", d),
                 OptionalString(k, "presentationId", kp + "presentationId", d) ?? "");
@@ -1465,7 +1455,7 @@ public static class CharacterPackageSourceCodec
             dive, peck, OptionalString(perch, "scatterPresentationId", path + ".scatterPresentationId", d) ?? "");
     }
 
-    private static TypedCapabilityParameters ParseCapabilityParameters(Dictionary<string, JsonElement> parent, string path, DiagnosticBag d)
+    private static TypedCapabilityParameters ParseCapabilityParameters(SourceProperties parent, string path, DiagnosticBag d)
     {
         var id = String(parent, "capabilityId", path + ".capabilityId", d);
         if (RetiredCapabilities.TryGetReason(id, out var retiredReason))
@@ -1474,23 +1464,11 @@ public static class CharacterPackageSourceCodec
             return new RisingDragonCapabilityParameters(0, 0, 0);
         }
         if (!parent.TryGetValue("parameters", out var element)) { d.Error("operation.parameter-missing", path + ".parameters", "Capability parameters are required."); return new RisingDragonCapabilityParameters(0, 0, 0); }
-        var allowed = id switch
+        var allowed = CharacterSourceSchema.Capability(id)?.Fields.Select(x => x.Name).ToArray() ?? (id switch
         {
-            "slop.ability.aimed-recovery.v1" => new[] { "startupTicks", "verticalSpeed", "directionalVerticalSpeed", "horizontalSpeed", "preparationRiseSpeed", "hop", "riseSteerAcceleration" },
-            "slop.ability.charged-projectile.v1" => new[] { "maxChargeTicks", "tier2Ticks", "tier3Ticks", "fireTriggerTick", "tier2Radius", "tier3Radius", "projectile" },
-            "slop.ability.charged-stream.v1" => new[] { "maxChargeTicks", "fireTriggerTick", "emitIntervalTicks", "minStreamTicks", "maxStreamTicks", "recoveryTicks", "maxBaseKnockback", "minRecoilSpeed", "maxRecoilSpeed", "projectile", "sprayAnimationId", "sprayLoopTicks", "endAnimationId" },
-            "slop.ability.finger-guns.v1" => new[] { "fireTriggerTick", "recoveryTicks", "shotsPerReload", "reloadTicks", "reloadAnimationId", "airMaxFallSpeed", "airRecoilSpeed", "projectile" },
             "slop.internal.fightguy.rising-dragon.v1" => new[] { "riseSpeed", "riseTicks", "riseDelay" },
             "slop.internal.fightguy.cyclone-kick.v1" => new[] { "forwardSpeed", "windupTicks", "hitboxEndTick", "durationTicks", "bodyRadius", "sideRadius", "sideOffset", "damage", "knockbackAngle", "knockbackBase", "knockbackGrowth", "stunTicks", "bodyY", "sideY", "hitIntervalTicks", "fixedHitstunTicks", "finisherTick", "finisherDamage", "finisherKnockbackAngle", "finisherKnockbackBase", "finisherKnockbackGrowth" },
-            "slop.ability.dash-strike.v1" => new[] { "distance", "speed", "tipPoseTick", "recoveryTicks", "lightHitbox", "tipHitbox", "tipPresentationId" },
             "slop.internal.wibou.rising-slash.v1" => new[] { "riseSpeed", "riseTicks", "homingRange", "homingSpeed" },
-            CharacterPackageCompiler.FlashCutCapabilityId => FlashCutFields,
-            "slop.ability.targeted-leap.v2" => new[] { "riseTicks", "riseHeight", "hangTicks", "dropTicks", "maxRange", "noTargetDistance", "maxFallTicks", "hitRecoveryTicks", "missRecoveryTicks", "hitbox", "riseAnimationId", "hangAnimationId", "hangPoseTick", "dropAnimationId", "landingAnimationId", "hitLandingSeekTick", "risePresentationId", "hangPresentationId", "lockPresentationId", "landingPresentationId" },
-            "slop.ability.steered-charge.v2" => SteeredChargeFields,
-            "slop.ability.thrust.v1" => ThrustFields,
-            "slop.ability.tether.v1" => TetherFields,
-            CharacterPackageCompiler.CommandGrabCapabilityId => new[] { "lungeTicks", "lungeSpeed", "stopDistance", "captureTick", "capture", "releaseTick", "launch", "catchPresentationId", "releasePresentationId", "level", "anchorDistance", "releaseLockTicks", "whiffRecoveryTicks" },
-            "slop.ability.cannonball.v1" => CannonballFields,
             "slop.internal.manki.proximity-mine.v1" => new[] { "armTicks", "maxFlightTicks", "gravity", "hitboxRadius", "explosionDamage", "explosionRadius", "explosionKbBase", "explosionKbGrowth", "explosionStunTicks", "explosionDurationTicks", "explosionKbAngle", "explosionPresentationId", "triggerRadius", "warningTicks", "lifetimeTicks", "maxMines" },
             "slop.internal.manki.jetpack-boost.v3" => new[] { "startupTicks", "verticalSpeed", "horizontalSpeed", "explosionRadius", "explosionDamage", "explosionKbAngle", "explosionKbBase", "explosionKbGrowth", "explosionStunTicks", "explosionDurationTicks", "explosionPresentationId", "fuelTicks", "sinkSpeed", "jumpBurstSpeed", "jumpBurstTicks" },
             "slop.internal.manki.kamikaze.v1" => new[] { "runTicks", "speed", "contactRadius", "explosionDamage", "explosionRadius", "explosionKbBase", "explosionKbGrowth", "explosionStunTicks", "explosionDurationTicks", "explosionKbAngle", "selfPushSpeed", "explosionPresentationId" },
@@ -1498,8 +1476,11 @@ public static class CharacterPackageSourceCodec
             "slop.internal.manki.bazooka.v3" => new[] { "chargeTicks", "homingTurnDegPerTick", "fireTriggerTick", "projectileSpeed", "hitboxRadius", "damage", "gravity", "maxFlightTicks", "stunTicks", "explosionRadius", "kbAngle", "explosionKbBase", "explosionKbGrowth", "explosionStunTicks", "explosionDurationTicks", "explosionKbAngle", "castDuration", "recoveryDuration", "explosionPresentationId" },
 
             _ => System.Array.Empty<string>(),
-        };
-        var p = ReadObjectWithCode(element, path + ".parameters", d, "operation.parameter-unknown", allowed);
+        });
+        var publicSchema = CharacterSourceSchema.Capability(id);
+        var p = publicSchema != null
+            ? ReadObjectWithCode(element, path + ".parameters", d, "operation.parameter-unknown", publicSchema)
+            : ReadObjectWithCode(element, path + ".parameters", d, "operation.parameter-unknown", allowed);
         if (id == CharacterPackageCompiler.SteeredChargeCapabilityId)
             return ParseSteeredCharge(p, path + ".parameters", d);
         if (id == CharacterPackageCompiler.ThrustCapabilityId)
@@ -1510,9 +1491,9 @@ public static class CharacterPackageSourceCodec
         {
             string at = path + ".parameters.";
             GrabLaunchSource? launch = null;
-            if (p.ContainsKey("launch"))
+            if (HasObject(p, "launch", d))
             {
-                var l = Object(p, "launch", at + "launch", d, "damage", "angle", "baseKnockback", "knockbackGrowth", "stunTicks");
+                var l = Object(p, "launch", at + "launch", d, CharacterSourceSchema.Object("launch"));
                 launch = new GrabLaunchSource(Float(l, "damage", at + "launch.damage", d), Float(l, "angle", at + "launch.angle", d),
                     Float(l, "baseKnockback", at + "launch.baseKnockback", d),
                     Float(l, "knockbackGrowth", at + "launch.knockbackGrowth", d),
@@ -1533,15 +1514,15 @@ public static class CharacterPackageSourceCodec
             return ParseCannonball(p, path + ".parameters", d);
         if (id == CharacterPackageCompiler.AimedRecoveryCapabilityId)
         {
-            foreach (var required in allowed)
-                if (required is not ("hop" or "riseSteerAcceleration") && !p.ContainsKey(required))
+            foreach (var required in publicSchema!.Fields.Where(x => x.Required).Select(x => x.Name))
+                if (!p.ContainsKey(required))
                     d.Error("operation.parameter-missing", path + ".parameters." + required, "Required capability parameter is missing.");
             RecoveryHopParameters? hop = null;
-            if (p.TryGetValue("hop", out var elementHop))
+            if (HasObject(p, "hop", d))
             {
+                var elementHop = p["hop"];
                 string hp = path + ".parameters.hop";
-                var values = ReadObjectWithCode(elementHop, hp, d, "operation.parameter-unknown",
-                    "startTicks", "contactTicks", "forwardDistance", "arcHeight", "landingHeight");
+                var values = ReadObjectWithCode(elementHop, hp, d, "operation.parameter-unknown", CharacterSourceSchema.Object("recoveryHop"));
                 hop = new RecoveryHopParameters(UShort(values, "startTicks", hp + ".startTicks", d),
                     UShort(values, "contactTicks", hp + ".contactTicks", d),
                     Float(values, "forwardDistance", hp + ".forwardDistance", d),
@@ -1556,7 +1537,13 @@ public static class CharacterPackageSourceCodec
                 p.ContainsKey("riseSteerAcceleration")
                     ? Float(p, "riseSteerAcceleration", path + ".parameters.riseSteerAcceleration", d) : 0f);
         }
-        foreach (var required in allowed) if (!string.Equals(required, "explosionPresentationId", StringComparison.Ordinal) && !string.Equals(required, "launchPresentationId", StringComparison.Ordinal) && !string.Equals(required, "landingPresentationId", StringComparison.Ordinal) && !string.Equals(required, "minimumChargeTicks", StringComparison.Ordinal) && !string.Equals(required, "chargeTiers", StringComparison.Ordinal) && !string.Equals(required, "sprayAnimationId", StringComparison.Ordinal) && !string.Equals(required, "sprayLoopTicks", StringComparison.Ordinal) && !string.Equals(required, "endAnimationId", StringComparison.Ordinal) && System.Array.IndexOf(CycloneKickOptional, required) < 0 && !p.ContainsKey(required)) d.Error("operation.parameter-missing", path + ".parameters." + required, "Required capability parameter is missing.");
+        if (publicSchema != null)
+        {
+            foreach (var field in publicSchema.Fields)
+                if (field.Required && !p.ContainsKey(field.Name))
+                    d.Error("operation.parameter-missing", path + ".parameters." + field.Name, "Required capability parameter is missing.");
+        }
+        else foreach (var required in allowed) if (!string.Equals(required, "explosionPresentationId", StringComparison.Ordinal) && !string.Equals(required, "launchPresentationId", StringComparison.Ordinal) && !string.Equals(required, "landingPresentationId", StringComparison.Ordinal) && !string.Equals(required, "minimumChargeTicks", StringComparison.Ordinal) && !string.Equals(required, "chargeTiers", StringComparison.Ordinal) && !string.Equals(required, "sprayAnimationId", StringComparison.Ordinal) && !string.Equals(required, "sprayLoopTicks", StringComparison.Ordinal) && !string.Equals(required, "endAnimationId", StringComparison.Ordinal) && System.Array.IndexOf(CycloneKickOptional, required) < 0 && !p.ContainsKey(required)) d.Error("operation.parameter-missing", path + ".parameters." + required, "Required capability parameter is missing.");
         if (id == CharacterPackageCompiler.ChargedProjectileCapabilityId)
             return new ChargedProjectileCapabilityParameters(
                 UShort(p, "maxChargeTicks", path + ".parameters.maxChargeTicks", d),
@@ -1653,13 +1640,8 @@ public static class CharacterPackageSourceCodec
     }
     private static readonly string[] CycloneKickOptional = { "hitIntervalTicks", "fixedHitstunTicks", "finisherTick",
         "finisherDamage", "finisherKnockbackAngle", "finisherKnockbackBase", "finisherKnockbackGrowth" };
-    private static readonly string[] ThrustFields =
-    {
-        "aim", "targetConeDegrees", "neutralPitchDegrees", "stickPitchDegrees", "speed", "acceleration", "maxSpeed",
-        "keepIncomingSpeed", "thrustTicks", "trailHitbox",
-    };
 
-    private static ThrustCapabilityParameters ParseThrust(Dictionary<string, JsonElement> p, string path, DiagnosticBag d)
+    private static ThrustCapabilityParameters ParseThrust(SourceProperties p, string path, DiagnosticBag d)
     {
         var aim = EnumValue(p, "aim", path + ".aim", d, x => x switch
         {
@@ -1677,23 +1659,12 @@ public static class CharacterPackageSourceCodec
             Float(p, "maxSpeed", path + ".maxSpeed", d),
             Bool(p, "keepIncomingSpeed", path + ".keepIncomingSpeed", d),
             UShort(p, "thrustTicks", path + ".thrustTicks", d),
-            p.ContainsKey("trailHitbox") ? ParseHitboxNamed(p, "trailHitbox", path + ".trailHitbox", d) : null);
+            HasObject(p, "trailHitbox", d) ? ParseHitboxNamed(p, "trailHitbox", path + ".trailHitbox", d) : null);
     }
 
-    private static readonly string[] FlashCutFields =
-    {
-        "stanceTicks", "lockRange", "maxTargets", "legTicks", "passThroughDistance", "sheatheTicks", "revealLeadTicks",
-        "recoveryTicks", "whiffTicks", "cutHitbox", "stanceAnimationId", "legAnimationId", "sheatheAnimationId",
-        "lockPresentationId", "revealPresentationId", "sheathePresentationId", "popPresentationId",
-    };
 
-    private static readonly string[] CannonballFields =
-    {
-        "takeoffTick", "maxRange", "noTargetDistance", "minFlightTicks", "maxFlightTicks", "maxLaunchSpeed",
-        "launchPresentationId",
-    };
 
-    private static CannonballCapabilityParameters ParseCannonball(Dictionary<string, JsonElement> p, string path, DiagnosticBag d)
+    private static CannonballCapabilityParameters ParseCannonball(SourceProperties p, string path, DiagnosticBag d)
         => new(
             UShort(p, "takeoffTick", path + ".takeoffTick", d),
             Float(p, "maxRange", path + ".maxRange", d),
@@ -1703,26 +1674,10 @@ public static class CharacterPackageSourceCodec
             Float(p, "maxLaunchSpeed", path + ".maxLaunchSpeed", d),
             OptionalString(p, "launchPresentationId", path + ".launchPresentationId", d) ?? "");
 
-    private static readonly string[] TetherFields =
-    {
-        "throwTick", "projectile", "reelSpeed", "anchorDistance", "arrivalStunTicks", "maxReelTicks", "retractSpeed",
-        "missRecoveryTicks", "airGravityScale", "reelAnimationId", "retractAnimationId", "throwPresentationId",
-        "retractPresentationId", "atTarget",
-    };
 
-    private static readonly string[] TetherAtTargetFields =
-    {
-        "warningTicks", "catchTicks", "radius", "height", "damage", "maxRange", "noTargetDistance",
-        "warningPresentationId", "catchPresentationId", "unmarked",
-    };
 
-    private static readonly string[] TetherUnmarkedFields =
-    {
-        "riseTick", "activeTicks", "distance", "radius", "height", "damage", "angle", "baseKnockback", "knockbackGrowth",
-        "stunTicks", "recoveryTicks", "presentationId",
-    };
 
-    private static TetherUnmarkedSource ParseUnmarked(Dictionary<string, JsonElement> u, string up, DiagnosticBag d)
+    private static TetherUnmarkedSource ParseUnmarked(SourceProperties u, string up, DiagnosticBag d)
         => new(UShort(u, "riseTick", up + "riseTick", d), UShort(u, "activeTicks", up + "activeTicks", d),
             Float(u, "distance", up + "distance", d), Float(u, "radius", up + "radius", d), Float(u, "height", up + "height", d),
             Float(u, "damage", up + "damage", d), Float(u, "angle", up + "angle", d),
@@ -1731,12 +1686,12 @@ public static class CharacterPackageSourceCodec
             OptionalString(u, "presentationId", up + "presentationId", d) ?? "");
 
     /// <summary>A thrown ring needs its projectile and retract speed; a placed catch (atTarget) has neither.</summary>
-    private static TetherCapabilityParameters ParseTether(Dictionary<string, JsonElement> p, string path, DiagnosticBag d)
+    private static TetherCapabilityParameters ParseTether(SourceProperties p, string path, DiagnosticBag d)
     {
         TetherAtTargetSource? at = null;
-        if (p.ContainsKey("atTarget"))
+        if (HasObject(p, "atTarget", d))
         {
-            var a = Object(p, "atTarget", path + ".atTarget", d, TetherAtTargetFields);
+            var a = Object(p, "atTarget", path + ".atTarget", d, CharacterSourceSchema.Object("tetherAtTarget"));
             string ap = path + ".atTarget.";
             at = new TetherAtTargetSource(UShort(a, "warningTicks", ap + "warningTicks", d),
                 UShort(a, "catchTicks", ap + "catchTicks", d), Float(a, "radius", ap + "radius", d),
@@ -1744,7 +1699,7 @@ public static class CharacterPackageSourceCodec
                 Float(a, "maxRange", ap + "maxRange", d), Float(a, "noTargetDistance", ap + "noTargetDistance", d),
                 OptionalString(a, "warningPresentationId", ap + "warningPresentationId", d) ?? "",
                 OptionalString(a, "catchPresentationId", ap + "catchPresentationId", d) ?? "",
-                a.ContainsKey("unmarked") ? ParseUnmarked(Object(a, "unmarked", ap + "unmarked", d, TetherUnmarkedFields),
+                HasObject(a, "unmarked", d) ? ParseUnmarked(Object(a, "unmarked", ap + "unmarked", d, CharacterSourceSchema.Object("tetherUnmarked")),
                     ap + "unmarked.", d) : null);
             foreach (string thrown in new[] { "projectile", "retractSpeed" })
                 if (p.ContainsKey(thrown))
@@ -1767,35 +1722,25 @@ public static class CharacterPackageSourceCodec
             at);
     }
 
-    private static readonly string[] SteeredChargeRequired =
-    {
-        "gallopSpeed", "turnDegreesPerSecond", "maxGallopTicks", "armored", "lanceHitbox", "hitEndingTicks",
-        "missEndingTicks", "skidTicks", "turnAroundOnMiss", "airStrideTicks", "lookDownTicks", "challengedRearTicks", "trackDegreesPerSecond", "challengedTrackDegreesPerSecond", "chestHitbox", "carry",
-    };
-    private static readonly string[] SteeredChargeFields = SteeredChargeRequired.Concat(new[]
-    {
-        "assist", "challengePresentationId", "gallopAnimationId", "gallopLoopTicks", "hitEndingAnimationId", "missEndingAnimationId", "airEndingAnimationId",
-        "gallopPresentationId", "hitEndingPresentationId", "missEndingPresentationId", "airEndingPresentationId",
-    }).ToArray();
 
-    private static SteeredChargeCarrySource ParseChargeCarry(Dictionary<string, JsonElement> p, string path, DiagnosticBag d)
+    private static SteeredChargeCarrySource ParseChargeCarry(SourceProperties p, string path, DiagnosticBag d)
     {
-        var c = Object(p, "carry", path, d, "anchorDistance", "anchorHeight", "maxCarryTicks", "fling", "flingTicks", "flingAnimationId", "scoopPresentationId", "flingPresentationId");
-        var f = Object(c, "fling", path, d, "damage", "angle", "baseKnockback", "knockbackGrowth", "stunTicks");
+        var c = Object(p, "carry", path + ".carry", d, CharacterSourceSchema.Object("chargeCarry"));
+        var f = Object(c, "fling", path + ".carry.fling", d, CharacterSourceSchema.Object("launch"));
         return new SteeredChargeCarrySource(Float(c, "anchorDistance", path, d), Float(c, "anchorHeight", path, d), UShort(c, "maxCarryTicks", path, d),
             new GrabLaunchSource(Float(f, "damage", path, d), Float(f, "angle", path, d), Float(f, "baseKnockback", path, d), Float(f, "knockbackGrowth", path, d), UShort(f, "stunTicks", path, d)),
             UShort(c, "flingTicks", path, d), OptionalString(c, "flingAnimationId", path, d) ?? "", OptionalString(c, "scoopPresentationId", path, d) ?? "", OptionalString(c, "flingPresentationId", path, d) ?? "");
     }
 
-    private static ChargeAssistParameters ParseChargeAssist(Dictionary<string, JsonElement> p, string path, DiagnosticBag d)
+    private static ChargeAssistParameters ParseChargeAssist(SourceProperties p, string path, DiagnosticBag d)
     {
-        var a = Object(p, "assist", path, d, "assistRange", "assistHalfAngleDegrees", "assistDegreesPerSecond");
+        var a = Object(p, "assist", path + ".assist", d, CharacterSourceSchema.Object("chargeAssist"));
         return new ChargeAssistParameters(Float(a, "assistRange", path, d), Float(a, "assistHalfAngleDegrees", path, d), Float(a, "assistDegreesPerSecond", path, d));
     }
 
-    private static SteeredChargeCapabilityParameters ParseSteeredCharge(Dictionary<string, JsonElement> p, string path, DiagnosticBag d)
+    private static SteeredChargeCapabilityParameters ParseSteeredCharge(SourceProperties p, string path, DiagnosticBag d)
     {
-        foreach (var required in SteeredChargeRequired)
+        foreach (var required in CharacterSourceSchema.Object("cap.steered-charge.v2").Fields.Where(x => x.Required).Select(x => x.Name))
             if (!p.ContainsKey(required))
                 d.Error("operation.parameter-missing", path + "." + required, "Required capability parameter is missing.");
         return new SteeredChargeCapabilityParameters(
@@ -1811,7 +1756,7 @@ public static class CharacterPackageSourceCodec
             UShort(p, "airStrideTicks", path + ".airStrideTicks", d),
             UShort(p, "lookDownTicks", path + ".lookDownTicks", d),
             UShort(p, "challengedRearTicks", path, d), Float(p, "trackDegreesPerSecond", path, d), Float(p, "challengedTrackDegreesPerSecond", path, d),
-            ParseHitbox(p.TryGetValue("chestHitbox", out var chest) ? new Dictionary<string, JsonElement> { ["hitbox"] = chest } : new Dictionary<string, JsonElement>(), path, d), ParseChargeCarry(p, path, d),
+            ParseHitbox(p.TryGetValue("chestHitbox", out var chest) ? new SourceProperties { ["hitbox"] = chest } : new SourceProperties(), path, d, path + ".chestHitbox"), ParseChargeCarry(p, path, d),
             OptionalString(p, "challengePresentationId", path, d) ?? "",
             OptionalString(p, "gallopAnimationId", path + ".gallopAnimationId", d) ?? "",
             OptionalUShort(p, "gallopLoopTicks", path + ".gallopLoopTicks", d, 0),
@@ -1822,19 +1767,74 @@ public static class CharacterPackageSourceCodec
             OptionalString(p, "hitEndingPresentationId", path + ".hitEndingPresentationId", d) ?? "",
             OptionalString(p, "missEndingPresentationId", path + ".missEndingPresentationId", d) ?? "",
             OptionalString(p, "airEndingPresentationId", path + ".airEndingPresentationId", d) ?? "",
-            p.ContainsKey("assist") ? ParseChargeAssist(p, path, d) : null);
+            HasObject(p, "assist", d) ? ParseChargeAssist(p, path, d) : null);
     }
 
-    private static Dictionary<string, JsonElement> ReadObject(JsonElement element, string path, DiagnosticBag d, params string[] allowed)
+    private sealed class SourceProperties : Dictionary<string, JsonElement>
     {
-        var result = new Dictionary<string, JsonElement>(StringComparer.Ordinal); var set = new HashSet<string>(allowed, StringComparer.Ordinal);
+        public CharacterSourceObject? Schema { get; set; }
+        public string Path { get; set; } = "";
+        public SourceProperties() : base(StringComparer.Ordinal) { }
+        public SourceProperties(IEqualityComparer<string> comparer) : base(comparer) { }
+    }
+
+    private static bool HasObject(SourceProperties properties, string name, DiagnosticBag diagnostics)
+    {
+        var field = properties.Schema?.FindField(name);
+        if (properties.TryGetValue(name, out var value))
+            return !(field?.AllowsNull == true && value.ValueKind == JsonValueKind.Null);
+        if (field?.Required == true)
+        {
+            diagnostics.Error(field.MissingCode, FieldPath(properties, name, name), "Required object is missing.");
+            return false;
+        }
+        if (field?.DefaultJson != null)
+        {
+            var fallback = field.DefaultValue();
+            if (fallback.ValueKind != JsonValueKind.Null)
+            {
+                properties.Add(name, fallback);
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static SourceProperties ReadOperationObject(JsonElement element, string path, DiagnosticBag d)
+        => ReadObject(element, path, d, CharacterSourceSchema.Objects.Where(x => x.OperationKind != null)
+            .SelectMany(x => x.Fields).Select(x => x.Name).Distinct(StringComparer.Ordinal).ToArray());
+
+    private static SourceProperties ReadObject(JsonElement element, string path, DiagnosticBag d, CharacterSourceObject schema)
+    {
+        var allowed = schema.Fields.Select(x => x.Name);
+        if (schema.Id is "manifest" or "character") allowed = allowed.Concat(new[] { "schemaVersion", "id", "class" });
+        var result = ReadObject(element, path, d, allowed.ToArray());
+        result.Schema = schema;
+        result.Path = path;
+        return result;
+    }
+
+    private static SourceProperties ReadObjectWithCode(JsonElement element, string path, DiagnosticBag d, string code, CharacterSourceObject schema)
+    {
+        var result = ReadObjectWithCode(element, path, d, code, schema.Fields.Select(x => x.Name).ToArray());
+        result.Schema = schema;
+        result.Path = path;
+        return result;
+    }
+
+    private static SourceProperties Object(SourceProperties parent, string name, string path, DiagnosticBag d, CharacterSourceObject schema)
+        => parent.TryGetValue(name, out var value) ? ReadObject(value, path, d, schema) : MissingObject(path, d);
+
+    private static SourceProperties ReadObject(JsonElement element, string path, DiagnosticBag d, params string[] allowed)
+    {
+        var result = new SourceProperties(StringComparer.Ordinal); var set = new HashSet<string>(allowed, StringComparer.Ordinal);
         if (element.ValueKind != JsonValueKind.Object) { d.Error("value.out-of-range", path, "Object is required."); return result; }
         foreach (var property in element.EnumerateObject()) { var propertyPath = path + "." + property.Name; if (!set.Contains(property.Name)) d.Error("field.unknown", propertyPath, "Unknown field."); if (!result.TryAdd(property.Name, property.Value)) d.Error("field.duplicate", propertyPath, "Duplicate field."); }
         return result;
     }
-    private static Dictionary<string, JsonElement> ReadObjectWithCode(JsonElement element, string path, DiagnosticBag d, string unknownCode, params string[] allowed)
+    private static SourceProperties ReadObjectWithCode(JsonElement element, string path, DiagnosticBag d, string unknownCode, params string[] allowed)
     {
-        var result = new Dictionary<string, JsonElement>(StringComparer.Ordinal);
+        var result = new SourceProperties(StringComparer.Ordinal);
         var set = new HashSet<string>(allowed, StringComparer.Ordinal);
         if (element.ValueKind != JsonValueKind.Object) { d.Error("value.out-of-range", path, "Object is required."); return result; }
         foreach (var property in element.EnumerateObject())
@@ -1845,38 +1845,136 @@ public static class CharacterPackageSourceCodec
         }
         return result;
     }
-    private static Dictionary<string, JsonElement> Object(Dictionary<string, JsonElement> parent, string name, string path, DiagnosticBag d, params string[] allowed) => parent.TryGetValue(name, out var value) ? ReadObject(value, path, d, allowed) : MissingObject(path, d);
-    private static Dictionary<string, JsonElement> MissingObject(string path, DiagnosticBag d) { d.Error("schema.missing", path, "Required object is missing."); return new Dictionary<string, JsonElement>(StringComparer.Ordinal); }
-    private static bool Array(Dictionary<string, JsonElement> parent, string name, string path, DiagnosticBag d, out JsonElement value) { if (!parent.TryGetValue(name, out value)) { d.Error("schema.missing", path, "Required array is missing."); return false; } if (value.ValueKind != JsonValueKind.Array) { d.Error("value.out-of-range", path, "Array is required."); return false; } return true; }
-    private static List<string> ParseStringArray(Dictionary<string, JsonElement> parent, string name, string path, DiagnosticBag d) { var result = new List<string>(); if (!Array(parent, name, path, d, out var a)) return result; var i = 0; foreach (var x in a.EnumerateArray()) { if (x.ValueKind != JsonValueKind.String) d.Error("value.out-of-range", path + "[" + i + "]", "String is required."); else result.Add(x.GetString() ?? ""); i++; } return result; }
-    private static string String(Dictionary<string, JsonElement> p, string name, string path, DiagnosticBag d) { if (!p.TryGetValue(name, out var x)) { d.Error("schema.missing", path, "Required string is missing."); return ""; } if (x.ValueKind != JsonValueKind.String) { d.Error("value.out-of-range", path, "String is required."); return ""; } return x.GetString() ?? ""; }
-    private static string? OptionalString(Dictionary<string, JsonElement> p, string name, string path, DiagnosticBag d) { if (!p.TryGetValue(name, out var x) || x.ValueKind == JsonValueKind.Null) return null; return String(p, name, path, d); }
-    private static float OptionalFloat(Dictionary<string, JsonElement> p, string name, string path, DiagnosticBag d) { if (!p.TryGetValue(name, out var x)) return 0f; if (x.ValueKind != JsonValueKind.Number || !x.TryGetSingle(out var n)) { d.Error("value.out-of-range", path, "Finite number is required."); return 0f; } return n; }
-    private static float OptionalFloatOrDefault(Dictionary<string, JsonElement> p, string name, string path, DiagnosticBag d, float fallback) { if (!p.ContainsKey(name)) return fallback; return OptionalFloat(p, name, path, d); }
-    private static ushort OptionalUShort(Dictionary<string, JsonElement> p, string name, string path, DiagnosticBag d, ushort fallback) { if (!p.TryGetValue(name, out var x)) return fallback; if (x.ValueKind != JsonValueKind.Number || !x.TryGetUInt16(out var n)) { d.Error("value.out-of-range", path, "Unsigned 16-bit integer is required."); return fallback; } return n; }
-    private static bool OptionalBool(Dictionary<string, JsonElement> p, string name, string path, DiagnosticBag d) { if (!p.TryGetValue(name, out var x)) return false; if (x.ValueKind != JsonValueKind.True && x.ValueKind != JsonValueKind.False) { d.Error("value.out-of-range", path, "Boolean is required."); return false; } return x.GetBoolean(); }
-    private static float Float(Dictionary<string, JsonElement> p, string name, string path, DiagnosticBag d) { if (!p.TryGetValue(name, out var x)) { d.Error("schema.missing", path, "Required number is missing."); return 0; } if (x.ValueKind != JsonValueKind.Number || !x.TryGetSingle(out var n)) { d.Error("value.out-of-range", path, "Finite number is required."); return 0; } return n; }
-    private static ushort UShort(Dictionary<string, JsonElement> p, string name, string path, DiagnosticBag d) { if (!p.TryGetValue(name, out var x)) { d.Error("schema.missing", path, "Required integer is missing."); return 0; } if (x.ValueKind != JsonValueKind.Number || !x.TryGetUInt16(out var n)) { d.Error("value.out-of-range", path, "Unsigned 16-bit integer is required."); return 0; } return n; }
-    private static byte Byte(Dictionary<string, JsonElement> p, string name, string path, DiagnosticBag d) { if (!p.TryGetValue(name, out var x)) { d.Error("schema.missing", path, "Required integer is missing."); return 0; } if (x.ValueKind != JsonValueKind.Number || !x.TryGetByte(out var n)) { d.Error("value.out-of-range", path, "Unsigned 8-bit integer is required."); return 0; } return n; }
-    private static bool Bool(Dictionary<string, JsonElement> p, string name, string path, DiagnosticBag d) { if (!p.TryGetValue(name, out var x)) { d.Error("schema.missing", path, "Required boolean is missing."); return false; } if (x.ValueKind != JsonValueKind.True && x.ValueKind != JsonValueKind.False) { d.Error("value.out-of-range", path, "Boolean is required."); return false; } return x.GetBoolean(); }
-    private static T EnumValue<T>(Dictionary<string, JsonElement> p, string name, string path, DiagnosticBag d, Func<string, T?> parse) where T : struct
+    private static SourceProperties MissingObject(string path, DiagnosticBag d) { d.Error("schema.missing", path, "Required object is missing."); return new SourceProperties(StringComparer.Ordinal); }
+    private static bool Array(SourceProperties parent, string name, string path, DiagnosticBag d, out JsonElement value)
     {
-        if (!p.TryGetValue(name, out var element)) { d.Error("schema.missing", path, "Required enum is missing."); return default; }
-        if (element.ValueKind != JsonValueKind.String) { d.Error("enum.unknown", path, "Enum must be a string token."); return default; }
-        var parsed = parse(element.GetString() ?? "");
-        if (!parsed.HasValue) { d.Error("enum.unknown", path, "Unknown enum value."); return default; }
+        ReadValue(parent, name, path, d, "array", true, out value);
+        return value.ValueKind == JsonValueKind.Array;
+    }
+    private static string FieldPath(SourceProperties properties, string name, string fallback)
+        => properties.Path.Length > 0 ? properties.Path + "." + name : fallback;
+
+    private static bool ReadValue(SourceProperties p, string name, string path, DiagnosticBag d,
+        string fallbackType, bool requireMissing, out JsonElement value)
+    {
+        path = FieldPath(p, name, path);
+        var field = p.Schema?.FindField(name);
+        if (!p.TryGetValue(name, out value))
+        {
+            if (requireMissing && (field?.IsRequired(p) ?? true))
+                d.Error(field?.MissingCode ?? "schema.missing", path, "Required " + (field?.Type ?? fallbackType) + " is missing.");
+            if (field?.DefaultJson != null) value = field.DefaultValue();
+            return false;
+        }
+        bool valid = field != null ? field.AcceptsType(value) : fallbackType switch
+        {
+            "string" or "enum" => value.ValueKind == JsonValueKind.String,
+            "number" => value.ValueKind == JsonValueKind.Number && value.TryGetSingle(out _),
+            "ushort" => value.ValueKind == JsonValueKind.Number && value.TryGetUInt16(out _),
+            "byte" => value.ValueKind == JsonValueKind.Number && value.TryGetByte(out _),
+            "integer" => value.ValueKind == JsonValueKind.Number && value.TryGetInt32(out _),
+            "boolean" => value.ValueKind is JsonValueKind.True or JsonValueKind.False,
+            "array" => value.ValueKind == JsonValueKind.Array,
+            _ => false,
+        };
+        if (!valid)
+        {
+            d.Error(field?.InvalidCode ?? (fallbackType == "enum" ? "enum.unknown" : "value.out-of-range"), path,
+                "Expected " + (field?.Type ?? fallbackType) + "." + (field?.AllowedValues.Count > 0 ? " Use " + string.Join(", ", field.AllowedValues) + "." : ""));
+            value = default;
+        }
+        return valid;
+    }
+
+    private static List<string> ParseStringArray(SourceProperties parent, string name, string path, DiagnosticBag d)
+    {
+        var result = new List<string>();
+        if (!Array(parent, name, path, d, out var array)) return result;
+        int index = 0;
+        foreach (var item in array.EnumerateArray())
+        {
+            if (item.ValueKind != JsonValueKind.String) d.Error("value.out-of-range", path + "[" + index + "]", "String is required.");
+            else result.Add(item.GetString() ?? "");
+            index++;
+        }
+        return result;
+    }
+
+    private static string String(SourceProperties p, string name, string path, DiagnosticBag d)
+    {
+        ReadValue(p, name, path, d, "string", true, out var value);
+        return value.ValueKind == JsonValueKind.String ? value.GetString() ?? "" : "";
+    }
+    private static string? OptionalString(SourceProperties p, string name, string path, DiagnosticBag d)
+    {
+        if (p.TryGetValue(name, out var value) && value.ValueKind == JsonValueKind.Null) return null;
+        ReadValue(p, name, path, d, "string", false, out value);
+        return value.ValueKind == JsonValueKind.String ? value.GetString() : null;
+    }
+    private static float Float(SourceProperties p, string name, string path, DiagnosticBag d)
+    {
+        ReadValue(p, name, path, d, "number", true, out var value);
+        return value.ValueKind == JsonValueKind.Number && value.TryGetSingle(out var number) ? number : 0f;
+    }
+    private static float OptionalFloat(SourceProperties p, string name, string path, DiagnosticBag d)
+        => OptionalFloatOrDefault(p, name, path, d, 0f);
+    private static float OptionalFloatOrDefault(SourceProperties p, string name, string path, DiagnosticBag d, float fallback)
+    {
+        ReadValue(p, name, path, d, "number", false, out var value);
+        return value.ValueKind == JsonValueKind.Number && value.TryGetSingle(out var number) ? number : fallback;
+    }
+    private static ushort UShort(SourceProperties p, string name, string path, DiagnosticBag d)
+    {
+        ReadValue(p, name, path, d, "ushort", true, out var value);
+        return value.ValueKind == JsonValueKind.Number && value.TryGetUInt16(out var number) ? number : (ushort)0;
+    }
+    private static ushort OptionalUShort(SourceProperties p, string name, string path, DiagnosticBag d, ushort fallback)
+    {
+        ReadValue(p, name, path, d, "ushort", false, out var value);
+        return value.ValueKind == JsonValueKind.Number && value.TryGetUInt16(out var number) ? number : fallback;
+    }
+    private static byte Byte(SourceProperties p, string name, string path, DiagnosticBag d)
+    {
+        ReadValue(p, name, path, d, "byte", true, out var value);
+        return value.ValueKind == JsonValueKind.Number && value.TryGetByte(out var number) ? number : (byte)0;
+    }
+    private static bool Bool(SourceProperties p, string name, string path, DiagnosticBag d)
+    {
+        ReadValue(p, name, path, d, "boolean", true, out var value);
+        return value.ValueKind == JsonValueKind.True;
+    }
+    private static bool OptionalBool(SourceProperties p, string name, string path, DiagnosticBag d)
+    {
+        ReadValue(p, name, path, d, "boolean", false, out var value);
+        return value.ValueKind == JsonValueKind.True;
+    }
+    private static T EnumValue<T>(SourceProperties p, string name, string path, DiagnosticBag d, Func<string, T?> parse) where T : struct
+    {
+        if (!ReadValue(p, name, path, d, "enum", true, out var value)) return default;
+        path = FieldPath(p, name, path);
+        var token = value.GetString() ?? "";
+        var field = p.Schema?.FindField(name);
+        var parsed = parse(token);
+        if (!parsed.HasValue || field?.AllowedValues.Count > 0 && !field.AllowedValues.Contains(token, StringComparer.Ordinal))
+        { d.Error(field?.InvalidCode ?? "enum.unknown", path, "Unknown enum value '" + token + "'."); return default; }
         return parsed.Value;
     }
-    private static T OptionalEnumValue<T>(Dictionary<string, JsonElement> p, string name, string path, DiagnosticBag d, Func<string, T?> parse, T fallback) where T : struct
+    private static T OptionalEnumValue<T>(SourceProperties p, string name, string path, DiagnosticBag d, Func<string, T?> parse, T fallback) where T : struct
     {
-        if (!p.TryGetValue(name, out var element)) return fallback;
-        if (element.ValueKind != JsonValueKind.String) { d.Error("enum.unknown", path, "Enum must be a string token."); return fallback; }
-        var parsed = parse(element.GetString() ?? "");
-        if (!parsed.HasValue) { d.Error("enum.unknown", path, "Unknown enum value."); return fallback; }
+        bool present = ReadValue(p, name, path, d, "enum", false, out var value);
+        if (!present && value.ValueKind != JsonValueKind.String) return fallback;
+        if (value.ValueKind != JsonValueKind.String) return fallback;
+        path = FieldPath(p, name, path);
+        var token = value.GetString() ?? "";
+        var parsed = parse(token);
+        var field = p.Schema?.FindField(name);
+        if (!parsed.HasValue || field?.AllowedValues.Count > 0 && !field.AllowedValues.Contains(token, StringComparer.Ordinal))
+        { d.Error(field?.InvalidCode ?? "enum.unknown", path, "Unknown enum value '" + token + "'."); return fallback; }
         return parsed.Value;
     }
-    private static AuthoringUnit ParseUnit(Dictionary<string, JsonElement> p, string name, string path, DiagnosticBag d)
+    private static AuthoringUnit ParseUnit(SourceProperties p, string name, string path, DiagnosticBag d)
     {
+        path = FieldPath(p, name, path);
         if (!p.TryGetValue(name, out var element)) { d.Error("schema.missing", path, "Required unit is missing."); return AuthoringUnit.Ticks; }
         if (element.ValueKind != JsonValueKind.String) { d.Error("unit.unknown", path, "Unit must be a string token."); return AuthoringUnit.Ticks; }
         var value = element.GetString() ?? "";

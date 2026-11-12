@@ -64,12 +64,14 @@ internal static class CommandGrabContract
 {
     internal static string? BoundsError(CookedCommandGrabCapabilityParameters x)
     {
+        var rulesLaunch = CharacterSourceSchema.Object("launch");
+        var rulesCapCommandGrabV1 = CharacterSourceSchema.Object("cap.command-grab.v1");
         var c = x.Capture;
         if (!Finite(x.LungeSpeed, x.StopDistance, x.AnchorDistance ?? 0f, c.Radius, c.OffsetX, c.OffsetY, c.OffsetZ,
                 c.EndOffsetX, c.EndOffsetY, c.EndOffsetZ, c.Damage)
             || x.Launch is { } launch && !Finite(launch.Damage, launch.Angle, launch.BaseKnockback, launch.KnockbackGrowth))
             return "Command grab values must be finite.";
-        if (x.LungeTicks > 60 || !(x.LungeSpeed >= 0f && x.LungeSpeed <= 60f) || !(x.StopDistance >= 0f && x.StopDistance <= 5f))
+        if (x.LungeTicks > rulesCapCommandGrabV1.Field("lungeTicks").GameplayMaximum!.Value || !(rulesCapCommandGrabV1.Field("lungeSpeed").IsWithinGameplay(x.LungeSpeed)) || !(rulesCapCommandGrabV1.Field("stopDistance").IsWithinGameplay(x.StopDistance)))
             return "The lunge needs lungeTicks 0 to 60, a speed of 0 to 60 and a stopDistance of 0 to 5.";
         if (c.RequiresFacingOwner || c.StartBoneId != null || c.EndBoneId != null || c.HitGroup != 0
             || c.Shape is not (AuthoringHitboxShape.Sphere or AuthoringHitboxShape.Capsule))
@@ -79,21 +81,21 @@ internal static class CommandGrabContract
             return "The capture holds instead of launching: a radius above 0 and at most 3, damage >= 0, no knockback or stun.";
         if (x.LungeSpeed * Simulation.TickDt > 2f * c.Radius)
             return "The lunge's travel per tick exceeds twice the capture radius, leaving gaps in its reach.";
-        if (x.CaptureTick == 0 || x.CaptureTick > 120 || c.DurationTicks == 0 || c.DurationTicks > 30)
+        if (rulesCapCommandGrabV1.Field("captureTick").IsOutsideGameplay(x.CaptureTick) || c.DurationTicks == 0 || c.DurationTicks > 30)
             return "The capture opens at tick 1 to 120 for 1 to 30 ticks.";
-        if (x.ReleaseTick < x.CaptureTick + c.DurationTicks || x.ReleaseTick > 240)
+        if (x.ReleaseTick < x.CaptureTick + c.DurationTicks || x.ReleaseTick > rulesCapCommandGrabV1.Field("releaseTick").GameplayMaximum!.Value)
             return "releaseTick must follow the capture window and be at most 240.";
-        if (x.AnchorDistance is { } anchor && !(anchor >= 0f && anchor <= 3f)) return "anchorDistance must be 0 to 3.";
+        if (x.AnchorDistance is { } anchor && !(rulesCapCommandGrabV1.Field("anchorDistance").IsWithinGameplay(anchor))) return "anchorDistance must be 0 to 3.";
         if (x.Launch is { } l)
         {
-            if (!(l.Damage > 0f && l.Damage <= 100f) || l.Angle < -90f || l.Angle > 90f || l.BaseKnockback < 0f
-                || l.KnockbackGrowth < 0f || l.StunTicks > 240)
+            if (!(rulesLaunch.Field("damage").IsWithinGameplay(l.Damage)) || rulesLaunch.Field("angle").IsOutsideGameplay(l.Angle) || l.BaseKnockback < rulesLaunch.Field("baseKnockback").GameplayMinimum!.Value
+                || l.KnockbackGrowth < rulesLaunch.Field("knockbackGrowth").GameplayMinimum!.Value || l.StunTicks > rulesLaunch.Field("stunTicks").GameplayMaximum!.Value)
                 return "The launch needs damage above 0 and at most 100, an angle of -90 to 90, no negative knockback and stun to 240.";
             if (x.ReleaseLockTicks != 0) return "A release with a launch has no releaseLockTicks.";
         }
-        else if (x.ReleaseLockTicks == 0 || x.ReleaseLockTicks > 60)
+        else if (x.ReleaseLockTicks == 0 || x.ReleaseLockTicks > rulesCapCommandGrabV1.Field("releaseLockTicks").GameplayMaximum!.Value)
             return "A release without a launch holds the victim for releaseLockTicks 1 to 60 before the timeline's finisher.";
-        if (x.WhiffRecoveryTicks > 120) return "whiffRecoveryTicks must be at most 120.";
+        if (x.WhiffRecoveryTicks > rulesCapCommandGrabV1.Field("whiffRecoveryTicks").GameplayMaximum!.Value) return "whiffRecoveryTicks must be at most 120.";
         return null;
     }
 

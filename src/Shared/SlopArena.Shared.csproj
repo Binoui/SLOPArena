@@ -22,6 +22,17 @@
     <PackageReference Include="System.Text.Json" Version="8.0.5" />
   </ItemGroup>
 
+  <ItemGroup>
+    <EmbeddedResource Include="CharacterSourceSchema.xml" LogicalName="SlopArena.Shared.CharacterSourceSchema.xml" />
+  </ItemGroup>
+  <Target Name="ValidateSourceFieldDescriptions" BeforeTargets="CoreCompile">
+    <XmlPeek XmlInputPath="$(MSBuildProjectDirectory)/CharacterSourceSchema.xml"
+             Query="/authoring/object/field[not(@description) or normalize-space(@description)='']">
+      <Output TaskParameter="Result" ItemName="UndocumentedSourceFields" />
+    </XmlPeek>
+    <Error Condition="'@(UndocumentedSourceFields)' != ''" Text="Every source field must have a plain-language description: @(UndocumentedSourceFields)" />
+  </Target>
+
   <Target Name="CopyToUnity" AfterTargets="Build" Condition="'$(SkipUnityPluginCopy)' != 'true'">
     <!-- NuGet owns Unity's third-party assemblies; do not export that closure
          from Shared. This target never prunes a contributor's plugin folder. -->

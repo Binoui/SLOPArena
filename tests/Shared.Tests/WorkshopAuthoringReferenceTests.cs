@@ -22,7 +22,7 @@ public class WorkshopAuthoringReferenceTests
         var document = File.ReadAllText(Path.Combine(Root, "docs/characters/workshop-authoring-reference.md")).Replace("\r\n", "\n");
         var start = document.IndexOf(AuthoringReference.Start, StringComparison.Ordinal);
         var end = document.IndexOf(AuthoringReference.End, StringComparison.Ordinal) + AuthoringReference.End.Length;
-        Assert.Equal(AuthoringReference.Generate(Root).TrimEnd(), document[start..end]);
+        Assert.Equal(AuthoringReference.Generate().TrimEnd(), document[start..end]);
     }
 
     [Fact]

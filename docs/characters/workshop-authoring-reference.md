@@ -1,101 +1,251 @@
 # Write a Workshop fighter kit
 
 A kit is the gameplay source for a fighter. It has two UTF-8 JSON files in one folder.
-`package.json` names the package and its rights. `character.json` defines its body, movement, and moves.
-The compiler turns these files into deterministic gameplay data. The game runs that data at 60 ticks per second.
-A successful check validates gameplay source. It does not supply a model or bind animation clips.
+`package.json` names the package, its version, and its rights. `character.json` defines the body, movement, and moves.
+The compiler turns these files into deterministic gameplay data for a simulation running at 60 ticks per second.
+A successful check validates gameplay source. It does not bind a model, animation clips, effects, sounds, or menu assets.
 
-## Check a kit
+## Run the checker
 
-Run this from the repository root. The .NET 8 SDK must already be installed. Unity is not needed.
+A published checker works anywhere with the .NET 8 runtime. Keep all files from its publish directory together.
+Here `kitcheck` is that directory and `my-fighter` contains the two source files.
+
+```sh
+dotnet kitcheck/KitCheck.dll my-fighter
+```
+
+This is the standalone form. It does not need a repository or Unity. The following are repository forms, run from the repository root.
 
 ```sh
 dotnet run --project tools/KitCheck -p:SkipUnityPluginCopy=true -- docs/characters/examples/workshop-kit
+dotnet publish tools/KitCheck -p:SkipUnityPluginCopy=true -c Release -o /tmp/kitcheck
 ```
 
-Replace the last argument with your source folder. Success prints `COMPILE OK (0 diagnostics)`.
-Errors include a diagnostic code, a file and property path, and the compiler's explanation.
-An array index starts at zero. Exit code 1 means compilation failed. Exit code 2 means an invocation or file error.
-The command does not modify the source folder. Unknown fields are errors. JSON comments and trailing commas are errors.
+Success prints `COMPILE OK (0 diagnostics)`. A warning can accompany a successful compile.
+Errors name a diagnostic code, the source file, and a JSON property path. Array indices start at zero.
+For example, `character.json.slots[7].timeline.stages[0].animationIds[0]` identifies one animation in one move.
+Exit code 1 means compilation failed. Exit code 2 means an invocation or file error.
+The checker does not modify a checked kit. JSON comments, trailing commas, duplicate keys, and unknown fields are rejected.
 
 ## Make a fighter
 
-1. Copy [the complete worked example](examples/workshop-kit/character.json) and its [manifest](examples/workshop-kit/package.json) into a new folder.
-2. Change the package ID, display name, creator, license, and attribution to describe your work.
-3. Adjust movement and body dimensions. The template values are a starting point, not roster tuning.
-4. Edit one move's stage. A stage is a timed part of a move. An operation changes state at a tick in that stage.
-5. Run the checker after each edit. Fix every diagnostic before adding another move.
+1. Copy the [first example's character](examples/workshop-kit/character.json) and [manifest](examples/workshop-kit/package.json) into your source folder.
+2. Change `packageId`, `displayName`, `creator`, `license`, and `attribution` to describe your work.
+3. Adjust the movement and body values. Starter movement is not a recommendation for roster balance.
+4. Change one move, then check the complete folder. Fix diagnostics before adding another move.
+5. For a command grab, use the [grappler character](examples/workshop-grappler/character.json) and [grappler manifest](examples/workshop-grappler/package.json). Its F moves capture and launch; its E moves use aimed recovery.
 
-You can also create the compiler's authoring-ready template without the Editor.
+The examples are complete source kits. They use placeholder lowercase animation IDs and have no portable asset bindings.
+The first has hitboxes, lunges, projectiles, armor, and recovery. The second adds a public command grab with a release launch.
+If these links are unavailable in a standalone distribution, use the supplied `example-kit` and `example-grappler` directories.
+
+You can create the compiler's empty-move template with either command form.
 
 ```sh
+dotnet kitcheck/KitCheck.dll template my-fighter local.my-fighter 'My fighter'
 dotnet run --project tools/KitCheck -p:SkipUnityPluginCopy=true -- template /tmp/my-fighter local.my-fighter 'My fighter'
 ```
 
-The template has animation names and empty moves. It compiles but does not attack.
-The worked example has a normal hit, a lunge, a projectile, an armored attack, and a public recovery capability.
-Its grounded and aerial entries are explicit. Its animation names are placeholders awaiting asset assembly.
+The template compiles but has no attacks. It is a structural starting point, not a playable asset package.
 
-`iasaTicks` is the earliest cancel time. Zero disables early cancellation. `landingLagTicks` controls recovery on landing.
-Auto-cancel windows waive that lag before or after their boundaries. Keep zero values until you want those windows.
-`cooldownTicks` delays reuse. `isRecoveryMove` marks a move that spends the fighter's recovery availability.
+## Move identity and timing
 
-## Units and coordinates
+The generated grid below is the complete set of canonical move IDs. Every entry must resolve, either explicitly or through an alias.
+Normals are `1` for the jab or all-rounder, `2` for an upward move, and `3` for the big move.
+Specials conventionally use `A` for a signature move, `E` for recovery, `R` for a playmaking move, and `F` for a power move.
+These roles are conventions, not restrictions on which public building blocks a slot may use.
 
-One tick is 1/60 second. Tick zero is the start of a stage. Hitstop freezes the move clock.
+Ground or air selects the entry when the move starts. Landing does not switch an active move to its ground entry.
+Aliases reuse a complete authored move. Cooking expands aliases, including their ground/air projection. Aliases must not form a cycle.
+Both variants of a button share its cooldown and charge pool. Two forms keep separate cooldown banks.
+
+A stage is a fixed timed part of a move. An operation changes state at a tick in that stage.
+Tick zero is stage entry. One tick is 1/60 second. Operations at the same tick run in array order.
+Hitstop freezes the move clock, its armor windows, and owner-attached melee volumes. Ordinary projectiles age on simulation ticks.
+
+`iasaTicks` is the first stage age that permits early cancellation. Zero disables that window.
+At a nonzero boundary, age equal to `iasaTicks` is already unlocked. Ordinary action admission still checks hitstop, stun, landing lag, and cooldowns.
+A ready grounded normal may cancel into movement. Ready move cancellation also admits jump, dash, defense, and another move through their normal input gates.
+Capability-owned holds and special interaction states can impose their own restrictions.
+
+An air-started normal normally ends on landing. Its remaining stage recovery is discarded.
+Outside auto-cancel windows, `landingLagTicks` is then the landing lock, even when it is zero.
+A nonzero `autoCancelBeforeTicks` includes its boundary. A nonzero `autoCancelAfterTicks` also includes its boundary.
+Zero disables that particular window. Specials continue their active aerial timeline on the ground.
+Aim holds and lifecycles that own landing transitions also continue across landing.
+
+Cooldown is applied when an activation completes or is cancelled, not on the button press.
+A self-recast cannot bypass the outgoing move's pending cooldown. Ground and air share the same input-slot cooldown.
+
+## Units, names, and coordinates
+
 Distances are world meters. Speeds are meters per second. Accelerations are meters per second squared.
-Angles use degrees. Positive launch angles lift the target. Damage adds percent. Weight affects knockback.
-A hitbox is an attack volume. A hurtbox is the fighter's vulnerable volume. A capsule has two endpoints and a radius.
+Angles use degrees. Damage adds percent. Counts and ratios have no distance unit.
+All numeric values must remain representable by the declared JSON type and pass cooking.
 
-Root-relative attack offsets use local X sideways, Y up, and Z forward along facing.
-Bone-relative hitbox offsets use the baked bone points. Use the semantic bone identifiers below.
-A hurtbox bone can also name a rig-specific point with `rig:` followed by the exact rig name.
-Declare custom attachment points in `attachmentBoneIds`. These names start with an underscore.
-`setVelocity` uses world X/Y/Z. `absolute` replaces velocity, `additive` adds it, and `vertical` replaces only Y.
-`forwardLunge` follows facing. Projectile launch offsets follow facing and `yawOffsetDegrees` turns the shot around Y.
+Package, icon, presentation, and animation identifiers use lowercase ASCII, begin with a letter, contain only letters, digits, dots, or hyphens, and have at most 64 characters.
+Animation IDs also begin with `anim.`. For example, derive `anim.move.ground-a` from `ground.A`, not `anim.move.ground-A`.
+Canonical special slot IDs preserve their uppercase letters. They are not animation identifiers.
+Attachment-point IDs are underscore-prefixed lowercase names. Rig-specific hurtbox names use `rig:` followed by the exact rig name.
 
-A zero `hitGroup` gives each hitbox its own hit history. Equal nonzero groups share one hit per victim in an activation.
-A hitbox's `stunTicks` gates stun. `fixedHitstunTicks` overrides its duration when nonzero.
-An animation ID is a semantic name beginning with `anim.`. The gameplay checker does not prove that a clip exists.
-`behavior` selects the engine's move lifecycle. It does not restrict a melee move to hitboxes.
-`aimMode` selects aiming input. `aimMovement` controls whether an aiming fighter can move while holding aim.
-Use the worked example's behavior and aim settings for ordinary fixed timelines.
+An unboned attack offset is relative to the fighter position at the capsule center.
+Local X points right, Y up, and Z forward along facing. X/Z rotate with facing; Y stays vertical.
+Bone-attached attack offsets use the sampled bone point plus the facing-rotated offset, not the bone's local rotation matrix.
+`setVelocity` uses world X/Y/Z. `absolute` replaces all components, `additive` adds them, and `vertical` replaces only Y.
 
-## Fit the body and model
+`forwardLunge` snapshots facing when it starts. It replaces horizontal velocity with facing times speed on each driven tick.
+It preserves vertical velocity. At the end of the lunge window it sets horizontal velocity to zero.
+It owns that movement rather than accelerating through ordinary run friction.
+A later motion owner can override it. Terrain collision still applies.
+With `stopInAttackRange`, the first later same-stage hitbox supplies reach geometry. Reaching an opponent brakes the lunge permanently for that activation.
+The option does not turn toward an opponent or guarantee contact.
 
-`capsuleHeight` and `capsuleRadius` describe movement collision. Simulation Y is the capsule center.
-`hipHeight` is the standing hip pivot above the capsule's bottom. A baked bone's Y becomes
+Zero `hitGroup` gives each hitbox an independent hit history. Equal nonzero groups share one contact per victim during an activation.
+`armorWindow` prevents ordinary damaging contacts from interrupting or launching the owner while damage still applies.
+It is not invincibility. Grabs and other capture interactions bypass that protection.
+Its timer freezes in hitstop and clears on move completion or cancellation. A later armor window replaces the remaining window.
+The `interruptible` hitbox flag is serialized, but current Shared contact simulation does not read it.
+It does not grant armor, change the owner's interruption rules, or make a hitbox persistent after owner cleanup.
+
+## Predict damage launch
+
+For an ordinary damage hit, let `P` be the victim's percent after this hit and `D` the damage actually dealt by the hit.
+Let `B` be `baseKnockback`, `G` be `knockbackGrowth`, and `W` be victim `weight`.
+The unscaled launch magnitude is:
+
+```text
+M = (B + G × (P / 100 + 1) + D × 0.1) × 200 / max(0.01, W + 100)
+```
+
+Base and growth contribute launch speed before the weight divisor and match tuning.
+Larger weight reduces launch strength. Larger base raises launch at every percent. Larger growth makes percent matter more.
+The launch angle splits magnitude into horizontal and vertical components. Direction comes from the contact and the authored knockback direction.
+Default combat tuning multiplies launch velocity by 0.17 after hitstun calculation. Other match tuning may change that multiplier.
+This predicts initial velocity, not travel distance; terrain, gravity, drag, and player influence affect the trajectory.
+
+For a victim already at 90%, a 10-damage hit gives `P = 100`.
+With `B = 8`, `G = 5`, and `W = 100`, magnitude is `(8 + 5 × 2 + 1) × 1 = 19`.
+Default tuning gives launch speed `19 × 0.17 = 3.23 m/s` before direction splitting.
+At weight 150 the same hit has magnitude `19 × 200 / 250 = 15.2` and launch speed `2.584 m/s`.
+Fractional authored damage is converted through the simulation's percent accounting; use whole damage for an exact simple estimate.
+
+`stunTicks` is a zero/nonzero gate, not an authored duration. With a positive gate, ordinary hitstun is
+`clamp(truncate(HitstunCoefficient × (M + HitstunMagnitudeBonus)), 1, 65535)` ticks.
+Default coefficient is 0.45 and default magnitude bonus is zero. The magnitude-19 example produces 8 ticks.
+A nonzero `fixedHitstunTicks` replaces that duration and requires a positive gate. Zero keeps the formula.
+
+## Understand movement tuning
+
+`jumpForce` and `shortHopForce` assign initial upward speed. They are not forces and are not multiplied by weight.
+A jump starts at the end of the float window and uses ordinary gravity immediately.
+`maxJumps` includes the first grounded jump. Air jumps assign `jumpForce × airJumpVMultiplier` upward and can add a directional horizontal boost scaled by `airSpeedMax × airJumpHMultiplier`.
+Landing restores the ordinary jump and air-dodge resources.
+
+Current ground movement uses a shared speed ramp scaled by `runSpeed`. It ignores `runAccelerationA`, `runAccelerationB`, and `rushTicks`.
+Those fields remain required source data for compatibility. Changing them does not currently slow a knight's ground acceleration.
+`dashSpeed`, `dashDurationTicks`, and `dashCooldownTicks` are also retained legacy data; universal air dodge uses its own engine timing and `airDodgeSpeed`.
+
+Ordinary air steering adds `airAccelStick` and `airAccelBase`, then approaches the stick-selected `airSpeedMax` velocity with that acceleration.
+Without stick input, `airFriction` brakes horizontal components linearly in m/s². Post-hitstun flight has separate engine braking.
+`groundFriction` mainly handles excess-speed coasting toward run speed and selected locked movement states; ordinary stopping uses the shared run ramp.
+Neither friction value is a unitless coefficient.
+
+`floatWindowTicks` is an age threshold for low gravity after an explicit air-clock reset, such as recovery designation.
+Below that threshold, gravity is `airFloatGravity`; zero gives a real gravity-free window.
+Ordinary jumps and walking off a ledge set the clock to the end of the window and use normal `gravity` immediately.
+Increasing the window does not make ordinary ledge walk-offs hover.
+`maxFallSpeed` caps normal falling. Fast fall assigns downward `fastFallSpeed` and overrides the low-gravity window.
+
+## Follow aimed recovery from press to landing
+
+Use one tick-zero `startCapability` in one `meleeCombo` stage, `aimMode: none`, `iasaTicks: 0`, and `isRecoveryMove: true`.
+The stage must outlast `startupTicks`. Only presentation and hitbox spawns may accompany this recovery lifecycle.
+
+On start the recovery stops horizontal motion, assigns `preparationRiseSpeed` upward, and suppresses gravity.
+It does not need a floor, a target, or a remaining jump. An optional `hop` performs a fixed entry-facing setup arc instead of preparation rise.
+At `startupTicks`, it samples the movement input once. Neutral input launches at `verticalSpeed` with no horizontal speed.
+Full input launches along that world-plane direction at `horizontalSpeed` and upward at `directionalVerticalSpeed`.
+Partial input interpolates both contributions by stick magnitude.
+
+Launch resumes ordinary ballistic gravity and moves the air clock to the end of the float window.
+If `riseSteerAcceleration` is nonzero, later movement input steers horizontal velocity toward the authored horizontal speed while the capability remains active.
+Neutral later input keeps the current drift. The outer stage owns completion; its end does not extend a hidden recovery timer.
+Hitstop pauses the lifecycle. Interruption removes the pending setup and launch.
+
+The `isRecoveryMove` flag itself only resets the float clock when a move starts.
+It does not replenish jumps or dodges or enforce a once-per-airtime recovery stock. Normal cooldown gates still apply.
+Because E is a special, its aerial timeline continues on landing under the ordinary special landing rule.
+Landing still restores ordinary jump and dodge resources. Validate reach and presentation during playable assembly; source checking alone cannot show them.
+
+## Fit hurtboxes and the model
+
+The movement capsule and vulnerable hurtboxes are different shapes. `capsuleHeight` and `capsuleRadius` control movement collision.
+`hurtboxCapsules` are fallback vulnerable geometry relative to the capsule center, rotated by facing.
+For a 1.7 m capsule, a point at Y = 0.65 is 0.65 m above its center, not above its feet.
+These fallback capsules are not added on top of a valid bone-hurtbox set.
+
+When admitted baked animation data and `hurtboxBoneDefs` are available, the simulation constructs vulnerable shapes from those sampled bone points instead.
+A missing admitted hurtbox bone is an error, not permission to silently switch to a different body.
+An end bone makes a capsule; no end bone makes a sphere. Offsets rotate with facing, and fitted hurtbox radii follow the baked body scale.
+`hurtboxRadius` is the legacy sphere fallback in geometry paths without capsule data, not a multiplier for the bone capsules.
+
+`hipHeight` is the hip pivot above the capsule bottom. The legacy bone-Y conversion is
 `capsuleCenterY - capsuleHeight / 2 + hipHeight + boneLocalY`.
-Set hip height from the standing hip position of the scaled model. It is not an extra model offset.
+Baked geometry with an explicit hips-offset point follows the animation's baked hips placement instead.
+`visualScale` enlarges the rendered model without enlarging the movement capsule.
+Choose it by dividing desired model height by the imported model's unscaled height.
+`hurtboxBoneScale` scales attack-bone sampling; fitted bone hurtboxes use the baked body scale.
 
-`visualScale` multiplies the rendered model. Divide the desired standing model height by its unscaled standing height.
-`modelYOffset` shifts the model relative to its rendering pivot. Inspect idle frame zero with the clips you will actually use.
-Set the offset so the soles meet the floor. A feet-root model and a hips-root animation need different offsets.
-Do not assume that `-capsuleHeight / 2` fits both. Recheck the floor contact after changing clips or scale.
-`hurtboxBoneScale` scales sampled bone geometry. Check collision against the same scaled model.
-`modelSoleOffset` is a separate presentation adjustment. `autoModelYOffset` is serialized metadata, not a promise of automatic fitting.
+`modelYOffset` shifts the visible model relative to its presentation pivot.
+Fit idle frame zero with the actual clips you will use, then adjust until the soles meet the floor.
+Feet-root models and hips-root animations need different offsets. Do not assume `-capsuleHeight / 2` fits both.
+Recheck after changing clips or scale. `autoModelYOffset` is serialized metadata and does not currently implement automatic fitting.
+`modelSoleOffset` is also serialized but not read by the current renderer; adjust `modelYOffset` for manual floor fitting.
+The proof's scale 1.8 and final offset -0.03 are measurements for its rig and clips, not defaults for another fighter.
 
-The proof used visual scale 1.8 for a model about 0.99 m tall. Its final model offset was -0.03 with shared clips.
-Those values describe that proof, not defaults for another rig. Fit your own rig and clip convention.
+Universal grab geometry is capsule-center relative too. Its capture center is at the grabber Y plus `offsetY`.
+Current universal hold placement uses the grabber-facing `victimAnchor.x/z` offset and a vertical offset of `victimAnchor.y - attackerAnchor.y`.
+The current placement calculation retains but does not read `attackerAnchor.x/z`.
+Command grabs instead author a Hitbox-shaped `capture` and may set their own `anchorDistance`.
+
+## Author a command grab
+
+The grappler example uses a single-stage F lifecycle. Its `capture` is the same complete [Hitbox schema](#schema-hitbox), not a separate undocumented shape.
+The capture is root-relative, with no bone IDs, `hitGroup: 0`, `stunTicks: 0`, `fixedHitstunTicks: 0`, and zero base and growth.
+It may deal capture damage, but holding owns the victim instead of ordinary launch.
+
+On press, the grab turns toward the current target and lunges for `lungeTicks` at `lungeSpeed`.
+A positive `stopDistance` can brake that approach; zero disables target-gap braking.
+With `level`, gravity is suppressed during the lunge, and a blocking wall can end the grab empty.
+The capture volume opens at `captureTick` for its own `durationTicks`.
+It can capture through Shield and armor. Reciprocal grabs can clash.
+The first captured victim is held until `releaseTick`, unless an interruption or lost interaction ends the pair.
+A nonnull `anchorDistance` holds the victim that far in front, facing the grabber; omission uses the universal grab placement anchors.
+
+With `launch`, release deals the authored launch damage and knockback. `releaseLockTicks` must then be zero.
+Without `launch`, release instead requires a positive `releaseLockTicks` so a later timeline finisher can meet the held victim.
+A nonzero `whiffRecoveryTicks` selects a two-stage lunge/hold shape. A miss waits in the first stage for that recovery and never plays the empty hold stage.
+For a first grab, use the example's single-stage launching shape and leave whiff recovery at zero.
 
 ## Not defined yet
 
-A portable Workshop format for binding a GLB clip or shared animation to an animation ID is not defined yet.
+Portable Workshop binding formats for GLB clips, shared animation IDs, effects, sounds, projectile looks, portraits, model-root import rules, and menu registration are not defined here.
 The built-in Unity catalog binds clips and deterministic pose tracks today. It is not a portable Workshop binding file.
-There is no Editor-free contact-frame discovery command here. Choose gameplay ticks explicitly, then verify them against the bound motion during assembly.
-A successful source compile does not validate animation bindings or pose tracks.
-
-Portable effect and sound registries, projectile presentation bindings, portraits, menu registration, and model-root import conventions are not defined yet.
-`presentationIds` declares semantic cues. It does not provide their visual or audio assets.
-`displayName` supplies gameplay metadata. It does not install a fighter in a menu.
-The proof's `animations.json`, borrowed roster selector, and symbolic `slop.anim.*` bindings were temporary experiments.
-Do not publish them as a supported format. See the [Workshop roadmap](../plans/2026-11-10-workshop-roadmap.md).
+There is no Editor-free contact-frame discovery command in this checker. Author gameplay ticks explicitly, then verify them against bound motion during assembly.
+A successful source compile does not prove that the animation IDs resolve or that an attack looks correct.
+`presentationIds` declares cues but supplies no effect or audio assets. `displayName` supplies metadata but installs no menu entry.
+The proof's `animations.json`, borrowed selector, and `slop.anim.*` conventions were temporary experiments, not supported portable formats.
+See the [Workshop roadmap](../plans/2026-11-10-workshop-roadmap.md).
 
 <!-- BEGIN GENERATED CONTRACT -->
 
-## Generated contract
+## Source contract
 
-Generated by `dotnet run --project tools/KitCheck -p:SkipUnityPluginCopy=true -- reference --write .`. Do not edit this section.
+Generated from the public `CharacterSourceSchema` definitions used by the Shared source reader. Regenerate with `dotnet kitcheck/KitCheck.dll reference --write <repository-root>`.
+
+`Required` means omission is an error. Optional fields show their JSON default. Empty text and null are different. A null omission default does not permit a literal JSON null unless the type column explicitly says so. An optional containing object can be omitted; its required children apply only when that object is present.
+
+The range column gives storage limits, enum tokens, and shared scalar rules. A ushort stores 0 through 65535, a byte 0 through 255, and an integer -2147483648 through 2147483647. Shared scalar rules refine these storage limits at the compiler validation step. Successful cooking also requires the gameplay and lifecycle constraints described below the tables. Those coupled constraints remain in the existing compiler and are explicitly documented by hand.
 
 ### Canonical move grid
 
@@ -103,28 +253,24 @@ Generated by `dotnet run --project tools/KitCheck -p:SkipUnityPluginCopy=true --
 
 ### Public capabilities
 
-Declare each used capability in `capabilityRequirements`. Its ID and version must also match the `startCapability` operation. Forms and shell stance also govern document-level data.
-
-| ID | Version |
-| --- | --- |
-| `slop.ability.aimed-recovery.v1` | `1` |
-| `slop.ability.charged-projectile.v1` | `1` |
-| `slop.ability.charged-stream.v1` | `1` |
-| `slop.ability.finger-guns.v1` | `1` |
-| `slop.ability.dash-strike.v1` | `1` |
-| `slop.ability.flash-cut.v1` | `1` |
-| `slop.ability.targeted-leap.v2` | `2` |
-| `slop.ability.steered-charge.v2` | `2` |
-| `slop.ability.shell-stance.v2` | `1` |
-| `slop.ability.cannonball.v1` | `1` |
-| `slop.ability.thrust.v1` | `1` |
-| `slop.ability.tether.v1` | `1` |
-| `slop.ability.command-grab.v1` | `1` |
-| `slop.ability.forms.v1` | `1` |
+| ID | Version | Parameter schema |
+| --- | --- | --- |
+| `slop.ability.aimed-recovery.v1` | `1` | [aimed-recovery.v1 parameters](#schema-cap-aimed-recovery-v1) |
+| `slop.ability.charged-projectile.v1` | `1` | [charged-projectile.v1 parameters](#schema-cap-charged-projectile-v1) |
+| `slop.ability.charged-stream.v1` | `1` | [charged-stream.v1 parameters](#schema-cap-charged-stream-v1) |
+| `slop.ability.finger-guns.v1` | `1` | [finger-guns.v1 parameters](#schema-cap-finger-guns-v1) |
+| `slop.ability.dash-strike.v1` | `1` | [dash-strike.v1 parameters](#schema-cap-dash-strike-v1) |
+| `slop.ability.flash-cut.v1` | `1` | [flash-cut.v1 parameters](#schema-cap-flash-cut-v1) |
+| `slop.ability.targeted-leap.v2` | `2` | [targeted-leap.v2 parameters](#schema-cap-targeted-leap-v2) |
+| `slop.ability.steered-charge.v2` | `2` | [steered-charge.v2 parameters](#schema-cap-steered-charge-v2) |
+| `slop.ability.thrust.v1` | `1` | [thrust.v1 parameters](#schema-cap-thrust-v1) |
+| `slop.ability.tether.v1` | `1` | [tether.v1 parameters](#schema-cap-tether-v1) |
+| `slop.ability.command-grab.v1` | `1` | [command-grab.v1 parameters](#schema-cap-command-grab-v1) |
+| `slop.ability.cannonball.v1` | `1` | [cannonball.v1 parameters](#schema-cap-cannonball-v1) |
+| `slop.ability.shell-stance.v2` | `1` | Enables the document shell block and per-move shell policy; not a startCapability operation. |
+| `slop.ability.forms.v1` | `1` | Enables alternateForm and swapForm; not a startCapability operation. |
 
 ### Budgets
-
-Every operation consumes one operation entry, including completion and presentation. Aliases expand before counting slots and stages. Nested capability hitboxes and projectiles count through their capability's cooking rules.
 
 | Limit | Value |
 | --- | --- |
@@ -134,1403 +280,1337 @@ Every operation consumes one operation entry, including completion and presentat
 | MaxOperationsPerTimeline | 256 |
 | MaxCapabilityRequirements | 32 |
 
-### Source objects and fields
-
-Each table lists the accepted keys for an object. Objects and arrays are required unless the table says otherwise. `null` is distinct from an omitted key. Optional strings accept null. Required fields have no default.
-
-Numbers use finite 32-bit floating point. Unsigned 16-bit integers are 0 through 65535. Bytes are 0 through 255. Further constraints appear below. A default shown as an enum name uses the corresponding JSON token in the enum table.
-
-#### Manifest object "manifest"
-
-| Field | Type | Omission/default |
-| --- | --- | --- |
-| `manifestSchemaVersion` | unsigned 16-bit integer | required |
-| `packageId` | string | required |
-| `version` | string | required |
-| `creator` | string | required |
-| `license` | string | required |
-| `attribution` | string | required |
-| `dependencies` | array | required |
-| `schemaVersion` | object; see matching object table | forbidden; see diagnostics |
-| `id` | object; see matching object table | forbidden; see diagnostics |
-| `class` | object; see matching object table | forbidden; see diagnostics |
-
-#### Manifest object $"manifest.dependencies[{i}]"
-
-| Field | Type | Omission/default |
-| --- | --- | --- |
-| `packageId` | string | required |
-| `version` | string | required |
-| `cookedHash` | string | required |
-
-#### Character object "character"
-
-| Field | Type | Omission/default |
-| --- | --- | --- |
-| `authoringSchemaVersion` | unsigned 16-bit integer | required |
-| `displayName` | string | required |
-| `weight` | number | required |
-| `movement` | object; see matching object table | required |
-| `presentation` | object; see matching object table | required |
-| `capsuleRadius` | number | required |
-| `capsuleHeight` | number | required |
-| `hipHeight` | number | required |
-| `hurtboxRadius` | number | required |
-| `shieldRadius` | number | required |
-| `captureGeometry` | object; see matching object table | required |
-| `hurtboxCapsules` | array | required |
-| `hurtboxBoneDefs` | array | required |
-| `attachmentBoneIds` | string array | required |
-| `presentationIds` | string array | required |
-| `capabilityRequirements` | array | required |
-| `shell` | string | "" |
-| `slots` | array | required |
-| `aliases` | array | required |
-| `alternateForm` | object; see matching object table | null |
-| `schemaVersion` | object; see matching object table | forbidden; see diagnostics |
-| `id` | string | forbidden; see diagnostics |
-| `class` | object; see matching object table | forbidden; see diagnostics |
-
-#### AlternateForm object "alternateForm"
-
-| Field | Type | Omission/default |
-| --- | --- | --- |
-| `id` | string | required |
-| `displayName` | string | required |
-| `movement` | object; see matching object table | required |
-| `presentation` | object; see matching object table | required |
-| `slots` | array | required |
-| `aliases` | array | required |
-
-#### AlternateForm object "presentation"
-
-| Field | Type | Omission/default |
-| --- | --- | --- |
-| `idle` | string | "" |
-| `run` | string | "" |
-| `dash` | string | "" |
-| `jump` | string | "" |
-| `fall` | string | "" |
-| `hitSmall` | string | "" |
-| `hitMedium` | string | "" |
-| `hitHard` | string | "" |
-| `tumble` | string | "" |
-| `shield` | string | "" |
-| `grab` | string | "" |
-| `grabbed` | string | "" |
-| `throwForward` | string | "" |
-| `airDodge` | string | "" |
-
-#### Shell object "shell"
-
-| Field | Type | Omission/default |
-| --- | --- | --- |
-| `popOutDeceleration` | number | required |
-| `blockedRecoilSpeed` | number | required |
-| `splash` | object; see matching object table | omitted |
-| `ride` | object; see matching object table | omitted |
-
-#### Shell object "splash"
-
-| Field | Type | Omission/default |
-| --- | --- | --- |
-| `hitbox` | object; see matching object table | required |
-| `popUpTicks` | unsigned 16-bit integer | required |
-| `presentationId` | string | null (some roles normalize to empty string) |
-
-#### Shell object "ride"
-
-| Field | Type | Omission/default |
-| --- | --- | --- |
-| `ticks` | unsigned 16-bit integer | required |
-| `speed` | number | required |
-| `turnDegreesPerSecond` | number | required |
-| `wave` | object; see matching object table | required |
-| `hitPresentationId` | string | null (some roles normalize to empty string) |
-
-#### Movement object "movement"
-
-| Field | Type | Omission/default |
-| --- | --- | --- |
-| `runSpeed` | number | required |
-| `runAccelerationA` | number | required |
-| `runAccelerationB` | number | required |
-| `dashSpeed` | number | required |
-| `airDodgeSpeed` | number | required |
-| `airSpeedMax` | number | required |
-| `airAccelStick` | number | required |
-| `airAccelBase` | number | required |
-| `jumpForce` | number | required |
-| `shortHopForce` | number | required |
-| `airJumpVMultiplier` | number | required |
-| `airJumpHMultiplier` | number | required |
-| `gravity` | number | required |
-| `airFloatGravity` | number | required |
-| `dashDurationTicks` | unsigned 16-bit integer | required |
-| `dashCooldownTicks` | unsigned 16-bit integer | required |
-| `groundFriction` | number | required |
-| `airFriction` | number | required |
-| `maxFallSpeed` | number | required |
-| `fastFallSpeed` | number | required |
-| `maxJumps` | byte | required |
-| `jumpSquatTicks` | unsigned 16-bit integer | required |
-| `floatWindowTicks` | unsigned 16-bit integer | required |
-| `rushTicks` | unsigned 16-bit integer | required |
-
-#### Presentation object "presentation"
-
-| Field | Type | Omission/default |
-| --- | --- | --- |
-| `idle` | string | required |
-| `run` | string | required |
-| `dash` | string | required |
-| `jump` | string | required |
-| `fall` | string | required |
-| `hitSmall` | string | required |
-| `hitMedium` | string | required |
-| `hitHard` | string | required |
-| `tumble` | string | "" |
-| `crouch` | string | "" |
-| `slide` | string | "" |
-| `shield` | string | "" |
-| `grab` | string | "" |
-| `grabbed` | string | "" |
-| `throwForward` | string | "" |
-| `airDodge` | string | "" |
-| `shell` | string | "" |
-| `flying` | string | "" |
-| `mayhemLaugh` | string | "" |
-| `wallJump` | string | "" |
-| `landStartOffsetSeconds` | number | required |
-| `modelResourcePath` | string | required |
-| `visualScale` | number | required |
-| `hurtboxBoneScale` | number | required |
-| `modelYOffset` | number | required |
-| `modelSoleOffset` | number | required |
-| `autoModelYOffset` | boolean | required |
-
-#### CaptureGeometry object "captureGeometry"
-
-| Field | Type | Omission/default |
-| --- | --- | --- |
-| `reach` | number | required |
-| `width` | number | required |
-| `height` | number | required |
-| `offsetY` | number | required |
-| `attackerAnchor` | object; see matching object table | required |
-| `victimAnchor` | object; see matching object table | required |
-
-#### CaptureAnchor object name
-
-| Field | Type | Omission/default |
-| --- | --- | --- |
-| `x` | number | required |
-| `y` | number | required |
-| `z` | number | required |
-
-#### Capsules object $"character.hurtboxCapsules[{i}]"
-
-| Field | Type | Omission/default |
-| --- | --- | --- |
-| `startX` | number | required |
-| `startY` | number | required |
-| `startZ` | number | required |
-| `endX` | number | required |
-| `endY` | number | required |
-| `endZ` | number | required |
-| `radius` | number | required |
-
-#### Bones object $"character.hurtboxBoneDefs[{i}]"
-
-| Field | Type | Omission/default |
-| --- | --- | --- |
-| `boneId` | string | required |
-| `offsetX` | number | required |
-| `offsetY` | number | required |
-| `offsetZ` | number | required |
-| `radius` | number | required |
-| `endBoneId` | string | null (some roles normalize to empty string) |
-| `endOffsetX` | number | 0 |
-| `endOffsetY` | number | 0 |
-| `endOffsetZ` | number | 0 |
-
-#### Capabilities object $"character.capabilityRequirements[{i}]"
-
-| Field | Type | Omission/default |
-| --- | --- | --- |
-| `capabilityId` | string | required |
-| `capabilityVersion` | string | required |
-
-#### Aliases object $"{path}.aliases[{i}]"
-
-| Field | Type | Omission/default |
-| --- | --- | --- |
-| `from` | string | required |
-| `to` | string | required |
-
-#### Slots object path
-
-| Field | Type | Omission/default |
-| --- | --- | --- |
-| `id` | string | required |
-| `name` | string | required |
-| `description` | string | required |
-| `iconId` | string | required |
-| `behavior` | enum string | required |
-| `aimMode` | enum string | required |
-| `aimMovement` | enum string | AuthoringAimMovementMode.Fixed |
-| `aimMovementSpeedScale` | number | 1f |
-| `aimAnimationId` | string | null (some roles normalize to empty string) |
-| `hitPresentationId` | string | null (some roles normalize to empty string) |
-| `cooldownTicks` | unsigned 16-bit integer | required |
-| `isRecoveryMove` | boolean | required |
-| `preserveMomentumOnStart` | boolean | required |
-| `allowSlideCarry` | boolean | false |
-| `shellPolicy` | enum string | ShellPolicy.PopOut |
-| `chargePool` | object; see matching object table | null |
-| `timeline` | object; see matching object table | required |
-
-#### ChargePool object path
-
-| Field | Type | Omission/default |
-| --- | --- | --- |
-| `maxCharges` | signed 32-bit integer | required |
-| `regenTicks` | unsigned 16-bit integer | required |
-
-#### Timeline object "timeline"
-
-| Field | Type | Omission/default |
-| --- | --- | --- |
-| `stages` | array | required |
-
-#### Timeline object stagePath
-
-| Field | Type | Omission/default |
-| --- | --- | --- |
-| `durationTicks` | unsigned 16-bit integer | required |
-| `iasaTicks` | unsigned 16-bit integer | required |
-| `landingLagTicks` | unsigned 16-bit integer | required |
-| `autoCancelBeforeTicks` | unsigned 16-bit integer | required |
-| `autoCancelAfterTicks` | unsigned 16-bit integer | required |
-| `attackRange` | number | 0 |
-| `warpRange` | number | 0 |
-| `useTargetLock` | boolean | false |
-| `rotateTowardTarget` | boolean | false |
-| `trackingStrength` | number | 0 |
-| `animationIds` | string array | required |
-| `operations` | array | required |
-
-#### Placement object path + ".placement"
-
-| Field | Type | Omission/default |
-| --- | --- | --- |
-| `attachmentMode` | enum string | AuthoringPresentationAttachmentMode.World |
-| `boneId` | string | null (some roles normalize to empty string) |
-| `localPositionX` | number | 0 |
-| `localPositionY` | number | 0 |
-| `localPositionZ` | number | 0 |
-| `localRotationX` | number | 0 |
-| `localRotationY` | number | 0 |
-| `localRotationZ` | number | 0 |
-| `localScaleX` | number | 1f |
-| `localScaleY` | number | 1f |
-| `localScaleZ` | number | 1f |
-| `durationTicks` | unsigned 16-bit integer | 28 |
-
-#### Hitbox object "hitbox"
-
-| Field | Type | Omission/default |
-| --- | --- | --- |
-| `shape` | enum string | required |
-| `radius` | number | required |
-| `offsetX` | number | required |
-| `offsetY` | number | required |
-| `offsetZ` | number | required |
-| `endOffsetX` | number | required |
-| `endOffsetY` | number | required |
-| `endOffsetZ` | number | required |
-| `startBoneId` | string | null (some roles normalize to empty string) |
-| `endBoneId` | string | null (some roles normalize to empty string) |
-| `damage` | number | required |
-| `angle` | number | required |
-| `baseKnockback` | number | required |
-| `knockbackGrowth` | number | required |
-| `stunTicks` | unsigned 16-bit integer | required |
-| `durationTicks` | unsigned 16-bit integer | required |
-| `interruptible` | boolean | required |
-| `hitGroup` | byte | required |
-| `knockbackDirection` | enum string | AuthoringKnockbackDirection.AwayFromOwner |
-| `fixedHitstunTicks` | unsigned 16-bit integer | 0 |
-| `hitPresentationId` | string | null (some roles normalize to empty string) |
-| `requiresFacingOwner` | boolean | false |
-
-#### Projectile object "projectile"
-
-| Field | Type | Omission/default |
-| --- | --- | --- |
-| `launchOffsetX` | number | required |
-| `launchOffsetY` | number | required |
-| `launchOffsetZ` | number | required |
-| `speed` | number | required |
-| `gravity` | number | required |
-| `radius` | number | required |
-| `damage` | number | required |
-| `angle` | number | required |
-| `baseKnockback` | number | required |
-| `knockbackGrowth` | number | required |
-| `stunTicks` | unsigned 16-bit integer | required |
-| `maxFlightTicks` | unsigned 16-bit integer | required |
-| `yawOffsetDegrees` | number | required |
-| `return` | object; see matching object table | omitted |
-| `homing` | object; see matching object table | required |
-| `perch` | object; see matching object table | required |
-| `challengeTicks` | unsigned 16-bit integer | 0 |
-
-#### Projectile object "return"
-
-| Field | Type | Omission/default |
-| --- | --- | --- |
-| `outboundTicks` | unsigned 16-bit integer | required |
-| `returnSpeed` | number | required |
-| `returnAcceleration` | number | required |
-| `selfHitDamage` | number | required |
-| `selfHitStunTicks` | unsigned 16-bit integer | required |
-| `catchPresentationId` | string | "" |
-| `selfHitPresentationId` | string | "" |
-| `hit` | object; see matching object table | required |
-
-#### LegHit object "hit"
-
-| Field | Type | Omission/default |
-| --- | --- | --- |
-| `damage` | number | required |
-| `angle` | number | required |
-| `baseKnockback` | number | required |
-| `knockbackGrowth` | number | required |
-| `stunTicks` | unsigned 16-bit integer | required |
-| `fixedHitstunTicks` | unsigned 16-bit integer | 0 |
-
-#### Homing object "homing"
-
-| Field | Type | Omission/default |
-| --- | --- | --- |
-| `turnDegreesPerTick` | number | required |
-
-#### Perch object "perch"
-
-| Field | Type | Omission/default |
-| --- | --- | --- |
-| `perchTicks` | unsigned 16-bit integer | required |
-| `pop` | object; see matching object table | required |
-| `dive` | object; see matching object table | omitted |
-| `peck` | object; see matching object table | omitted |
-| `scatterPresentationId` | string | "" |
-
-#### Perch object "pop"
-
-| Field | Type | Omission/default |
-| --- | --- | --- |
-| `damage` | number | required |
-| `angle` | number | required |
-| `baseKnockback` | number | required |
-| `knockbackGrowth` | number | required |
-| `stunTicks` | unsigned 16-bit integer | required |
-| `presentationId` | string | "" |
-
-#### Perch object "dive"
-
-| Field | Type | Omission/default |
-| --- | --- | --- |
-| `hoverHeight` | number | required |
-| `maxRiseTicks` | unsigned 16-bit integer | required |
-| `markTicks` | unsigned 16-bit integer | required |
-| `diveSpeed` | number | required |
-| `noTargetDistance` | number | required |
-
-#### Perch object "peck"
-
-| Field | Type | Omission/default |
-| --- | --- | --- |
-| `intervalTicks` | unsigned 16-bit integer | required |
-| `damage` | number | required |
-| `presentationId` | string | "" |
-
-#### CapabilityParameters object path + ".parameters"
-
-| Field | Type | Omission/default |
-| --- | --- | --- |
-| `kind` | object; see matching object table | required |
-| `character.alternateForm` | object; see matching object table | required |
-| `.operations[` | object; see matching object table | required |
-| `]` | object; see matching object table | required |
-| `.kind` | object; see matching object table | required |
-| `setVelocity` | object; see matching object table | required |
-| `tick` | object; see matching object table | required |
-| `unit` | object; see matching object table | required |
-| `velocityMode` | object; see matching object table | required |
-| `x` | object; see matching object table | required |
-| `y` | object; see matching object table | required |
-| `z` | object; see matching object table | required |
-| `forwardLunge` | object; see matching object table | required |
-| `speed` | number | required |
-| `durationTicks` | unsigned 16-bit integer | required |
-| `stopInAttackRange` | object; see matching object table | required |
-| `gravityWindow` | object; see matching object table | required |
-| `gravityScale` | object; see matching object table | required |
-| `armorWindow` | object; see matching object table | required |
-| `spawnHitbox` | object; see matching object table | required |
-| `hitbox` | object; see matching object table | required |
-| `spawnProjectile` | object; see matching object table | required |
-| `projectile` | object; see matching object table | required |
-| `setAimState` | object; see matching object table | required |
-| `aimState` | object; see matching object table | required |
-| `startCapability` | object; see matching object table | required |
-| `capabilityId` | string | required |
-| `capabilityVersion` | object; see matching object table | required |
-| `parameters` | object; see matching object table | required |
-| `emitPresentation` | object; see matching object table | required |
-| `presentationId` | string | "" |
-| `placement` | object; see matching object table | required |
-| `condition` | object; see matching object table | required |
-| `completeTimeline` | object; see matching object table | required |
-| `swapForm` | object; see matching object table | required |
-| `startupAimCorrection` | object; see matching object table | required |
-| `endTick` | object; see matching object table | required |
-| `acquisitionRange` | object; see matching object table | required |
-| `acquisitionHalfAngleDegrees` | object; see matching object table | required |
-| `maxYawDegrees` | object; see matching object table | required |
-| `maxPitchDegrees` | object; see matching object table | required |
-| `yawDegreesPerSecond` | object; see matching object table | required |
-| `pitchDegreesPerSecond` | object; see matching object table | required |
-
-#### CapabilityParameters object "launch"
-
-| Field | Type | Omission/default |
-| --- | --- | --- |
-| `damage` | number | required |
-| `angle` | number | required |
-| `baseKnockback` | number | required |
-| `knockbackGrowth` | number | required |
-| `stunTicks` | unsigned 16-bit integer | required |
-
-#### CapabilityParameters object hp
-
-| Field | Type | Omission/default |
-| --- | --- | --- |
-| `startTicks` | unsigned 16-bit integer | required |
-| `contactTicks` | unsigned 16-bit integer | required |
-| `forwardDistance` | number | required |
-| `arcHeight` | number | required |
-| `landingHeight` | number | required |
-
-#### Tether object "atTarget"
-
-| Field | Type | Omission/default |
-| --- | --- | --- |
-| `warningTicks` | unsigned 16-bit integer | required |
-| `catchTicks` | unsigned 16-bit integer | required |
-| `radius` | number | required |
-| `height` | number | required |
-| `damage` | number | required |
-| `maxRange` | number | required |
-| `noTargetDistance` | number | required |
-| `warningPresentationId` | string | "" |
-| `catchPresentationId` | string | "" |
-| `unmarked` | object; see matching object table | null |
-
-#### Tether object "unmarked"
-
-| Field | Type | Omission/default |
-| --- | --- | --- |
-| `riseTick` | unsigned 16-bit integer | required |
-| `activeTicks` | unsigned 16-bit integer | required |
-| `distance` | number | required |
-| `radius` | number | required |
-| `height` | number | required |
-| `damage` | number | required |
-| `angle` | number | required |
-| `baseKnockback` | number | required |
-| `knockbackGrowth` | number | required |
-| `stunTicks` | unsigned 16-bit integer | required |
-| `recoveryTicks` | unsigned 16-bit integer | required |
-| `presentationId` | string | "" |
-
-#### ChargeCarry object "carry"
-
-| Field | Type | Omission/default |
-| --- | --- | --- |
-| `anchorDistance` | number | required |
-| `anchorHeight` | number | required |
-| `maxCarryTicks` | unsigned 16-bit integer | required |
-| `fling` | object; see matching object table | required |
-| `flingTicks` | unsigned 16-bit integer | required |
-| `flingAnimationId` | string | "" |
-| `scoopPresentationId` | string | "" |
-| `flingPresentationId` | string | "" |
-
-#### ChargeCarry object "fling"
-
-| Field | Type | Omission/default |
-| --- | --- | --- |
-| `damage` | number | required |
-| `angle` | number | required |
-| `baseKnockback` | number | required |
-| `knockbackGrowth` | number | required |
-| `stunTicks` | unsigned 16-bit integer | required |
-
-#### ChargeAssist object "assist"
-
-| Field | Type | Omission/default |
-| --- | --- | --- |
-| `assistRange` | number | required |
-| `assistHalfAngleDegrees` | number | required |
-| `assistDegreesPerSecond` | number | required |
-
-### Operation kinds
-
-The common fields are `kind` (string), `tick` (stage-relative unsigned 16-bit integer), and `unit` (string). Each is required. Same-tick operations run in array order. A tick must be inside its stage.
-
-#### `setVelocity`
-
-Unit is `metersPerSecond`. Budget cost is one operation entry.
-
-| Field | Type | Omission/default |
-| --- | --- | --- |
-| `velocityMode` | enum string | required |
-| `x` | number | required |
-| `y` | number | required |
-| `z` | number | required |
-
-#### `forwardLunge`
-
-Unit is `metersPerSecond`. Budget cost is one operation entry.
-
-| Field | Type | Omission/default |
-| --- | --- | --- |
-| `speed` | number | required |
-| `durationTicks` | unsigned 16-bit integer | required |
-| `stopInAttackRange` | boolean | false |
-
-#### `gravityWindow`
-
-Unit is `normalized`. Budget cost is one operation entry.
-
-| Field | Type | Omission/default |
-| --- | --- | --- |
-| `gravityScale` | number | required |
-| `durationTicks` | unsigned 16-bit integer | required |
-
-#### `armorWindow`
-
-Unit is `ticks`. Budget cost is one operation entry.
-
-| Field | Type | Omission/default |
-| --- | --- | --- |
-| `durationTicks` | unsigned 16-bit integer | required |
-
-#### `spawnHitbox`
-
-Unit is `meters`. Budget cost is one operation entry.
-
-| Field | Type | Omission/default |
-| --- | --- | --- |
-| `hitbox` | object; see matching object table | required |
-
-#### `spawnProjectile`
-
-Unit is `meters`. Budget cost is one operation entry.
-
-| Field | Type | Omission/default |
-| --- | --- | --- |
-| `projectile` | object; see matching object table | required |
-
-#### `setAimState`
-
-Unit is `ticks`. Budget cost is one operation entry.
-
-| Field | Type | Omission/default |
-| --- | --- | --- |
-| `aimState` | enum string | required |
-
-#### `startCapability`
-
-Unit is `ticks`. Budget cost is one operation entry.
-
-| Field | Type | Omission/default |
-| --- | --- | --- |
-| `capabilityId` | string | required |
-| `capabilityVersion` | string | required |
-| `parameters` | object; see matching object table | required |
-
-#### `emitPresentation`
-
-Unit is `ticks`. Budget cost is one operation entry.
-
-| Field | Type | Omission/default |
-| --- | --- | --- |
-| `presentationId` | string | required |
-| `placement` | object; see matching object table | required |
-| `condition` | enum string | AuthoringPresentationCondition.Always |
-
-#### `completeTimeline`
-
-Unit is `ticks`. Budget cost is one operation entry.
-
-| Field | Type | Omission/default |
-| --- | --- | --- |
-
-#### `swapForm`
-
-Unit is `ticks`. Budget cost is one operation entry.
-
-| Field | Type | Omission/default |
-| --- | --- | --- |
-
-#### `startupAimCorrection`
-
-Unit is `ticks`. Budget cost is one operation entry.
-
-| Field | Type | Omission/default |
-| --- | --- | --- |
-| `endTick` | unsigned 16-bit integer | required |
-| `acquisitionRange` | number | required |
-| `acquisitionHalfAngleDegrees` | number | required |
-| `maxYawDegrees` | number | required |
-| `maxPitchDegrees` | number | required |
-| `yawDegreesPerSecond` | number | required |
-| `pitchDegreesPerSecond` | number | required |
-
-### Capability parameter objects
-
-#### `slop.ability.aimed-recovery.v1` parameters
-
-| Field | Type | Omission/default |
-| --- | --- | --- |
-| `startupTicks` | unsigned 16-bit integer | required |
-| `verticalSpeed` | number | required |
-| `directionalVerticalSpeed` | number | required |
-| `horizontalSpeed` | number | required |
-| `preparationRiseSpeed` | number | required |
-| `hop` | object; see matching object table | omitted |
-| `riseSteerAcceleration` | number | 0f |
-
-#### `slop.ability.charged-projectile.v1` parameters
-
-| Field | Type | Omission/default |
-| --- | --- | --- |
-| `maxChargeTicks` | unsigned 16-bit integer | required |
-| `tier2Ticks` | unsigned 16-bit integer | required |
-| `tier3Ticks` | unsigned 16-bit integer | required |
-| `fireTriggerTick` | unsigned 16-bit integer | required |
-| `tier2Radius` | number | required |
-| `tier3Radius` | number | required |
-| `projectile` | object; see matching object table | required |
-
-#### `slop.ability.charged-stream.v1` parameters
-
-| Field | Type | Omission/default |
-| --- | --- | --- |
-| `maxChargeTicks` | unsigned 16-bit integer | required |
-| `fireTriggerTick` | unsigned 16-bit integer | required |
-| `emitIntervalTicks` | unsigned 16-bit integer | required |
-| `minStreamTicks` | unsigned 16-bit integer | required |
-| `maxStreamTicks` | unsigned 16-bit integer | required |
-| `recoveryTicks` | unsigned 16-bit integer | required |
-| `maxBaseKnockback` | number | required |
-| `minRecoilSpeed` | number | required |
-| `maxRecoilSpeed` | number | required |
-| `projectile` | object; see matching object table | required |
-| `sprayAnimationId` | string | "" |
-| `sprayLoopTicks` | unsigned 16-bit integer | (ushort)0 |
-| `endAnimationId` | string | "" |
-
-#### `slop.ability.finger-guns.v1` parameters
-
-| Field | Type | Omission/default |
-| --- | --- | --- |
-| `fireTriggerTick` | unsigned 16-bit integer | required |
-| `recoveryTicks` | unsigned 16-bit integer | required |
-| `shotsPerReload` | byte | required |
-| `reloadTicks` | unsigned 16-bit integer | required |
-| `reloadAnimationId` | string | required |
-| `airMaxFallSpeed` | number | required |
-| `airRecoilSpeed` | number | required |
-| `projectile` | object; see matching object table | required |
-
-#### `slop.ability.dash-strike.v1` parameters
-
-| Field | Type | Omission/default |
-| --- | --- | --- |
-| `distance` | number | required |
-| `speed` | number | required |
-| `tipPoseTick` | unsigned 16-bit integer | required |
-| `recoveryTicks` | unsigned 16-bit integer | required |
-| `lightHitbox` | object; see matching object table | required |
-| `tipHitbox` | object; see matching object table | required |
-| `tipPresentationId` | string | required |
-
-#### `slop.ability.flash-cut.v1` parameters
-
-| Field | Type | Omission/default |
-| --- | --- | --- |
-| `stanceTicks` | unsigned 16-bit integer | required |
-| `lockRange` | number | required |
-| `maxTargets` | unsigned 16-bit integer | required |
-| `legTicks` | unsigned 16-bit integer | required |
-| `passThroughDistance` | number | required |
-| `sheatheTicks` | unsigned 16-bit integer | required |
-| `revealLeadTicks` | unsigned 16-bit integer | required |
-| `recoveryTicks` | unsigned 16-bit integer | required |
-| `whiffTicks` | unsigned 16-bit integer | required |
-| `cutHitbox` | object; see matching object table | required |
-| `stanceAnimationId` | string | required |
-| `legAnimationId` | string | required |
-| `sheatheAnimationId` | string | required |
-| `lockPresentationId` | string | required |
-| `revealPresentationId` | string | required |
-| `sheathePresentationId` | string | required |
-| `popPresentationId` | string | required |
-
-#### `slop.ability.targeted-leap.v2` parameters
-
-| Field | Type | Omission/default |
-| --- | --- | --- |
-| `riseTicks` | unsigned 16-bit integer | required |
-| `riseHeight` | number | required |
-| `hangTicks` | unsigned 16-bit integer | required |
-| `dropTicks` | unsigned 16-bit integer | required |
-| `maxRange` | number | required |
-| `noTargetDistance` | number | required |
-| `maxFallTicks` | unsigned 16-bit integer | required |
-| `hitRecoveryTicks` | unsigned 16-bit integer | required |
-| `missRecoveryTicks` | unsigned 16-bit integer | required |
-| `hitbox` | object; see matching object table | required |
-| `riseAnimationId` | string | "" |
-| `hangAnimationId` | string | "" |
-| `hangPoseTick` | unsigned 16-bit integer | 0 |
-| `dropAnimationId` | string | "" |
-| `landingAnimationId` | string | "" |
-| `hitLandingSeekTick` | unsigned 16-bit integer | 0 |
-| `risePresentationId` | string | "" |
-| `hangPresentationId` | string | "" |
-| `lockPresentationId` | string | "" |
-| `landingPresentationId` | string | "" |
-
-#### `slop.ability.steered-charge.v2` parameters
-
-| Field | Type | Omission/default |
-| --- | --- | --- |
-| `gallopSpeed` | number | required |
-| `turnDegreesPerSecond` | number | required |
-| `maxGallopTicks` | unsigned 16-bit integer | required |
-| `armored` | boolean | required |
-| `lanceHitbox` | object; see matching object table | required |
-| `hitEndingTicks` | unsigned 16-bit integer | required |
-| `missEndingTicks` | unsigned 16-bit integer | required |
-| `skidTicks` | unsigned 16-bit integer | required |
-| `turnAroundOnMiss` | boolean | required |
-| `airStrideTicks` | unsigned 16-bit integer | required |
-| `lookDownTicks` | unsigned 16-bit integer | required |
-| `challengedRearTicks` | unsigned 16-bit integer | required |
-| `trackDegreesPerSecond` | number | required |
-| `challengedTrackDegreesPerSecond` | number | required |
-| `chestHitbox` | object; see matching object table | new Dictionary<string, JsonElement>() |
-| `carry` | object; see matching object table | required |
-| `assist` | object; see matching object table | null |
-| `challengePresentationId` | string | "" |
-| `gallopAnimationId` | string | "" |
-| `gallopLoopTicks` | unsigned 16-bit integer | 0 |
-| `hitEndingAnimationId` | string | "" |
-| `missEndingAnimationId` | string | "" |
-| `airEndingAnimationId` | string | "" |
-| `gallopPresentationId` | string | "" |
-| `hitEndingPresentationId` | string | "" |
-| `missEndingPresentationId` | string | "" |
-| `airEndingPresentationId` | string | "" |
-
-#### `slop.ability.thrust.v1` parameters
-
-| Field | Type | Omission/default |
-| --- | --- | --- |
-| `aim` | enum string | required |
-| `targetConeDegrees` | number | 0 |
-| `neutralPitchDegrees` | number | required |
-| `stickPitchDegrees` | number | required |
-| `speed` | number | required |
-| `acceleration` | number | required |
-| `maxSpeed` | number | required |
-| `keepIncomingSpeed` | boolean | required |
-| `thrustTicks` | unsigned 16-bit integer | required |
-| `trailHitbox` | object; see matching object table | null |
-
-#### `slop.ability.tether.v1` parameters
-
-| Field | Type | Omission/default |
-| --- | --- | --- |
-| `throwTick` | unsigned 16-bit integer | required |
-| `projectile` | object; see matching object table | required |
-| `reelSpeed` | number | required |
-| `anchorDistance` | number | required |
-| `arrivalStunTicks` | unsigned 16-bit integer | required |
-| `maxReelTicks` | unsigned 16-bit integer | required |
-| `retractSpeed` | number | 0f |
-| `missRecoveryTicks` | unsigned 16-bit integer | required |
-| `airGravityScale` | number | required |
-| `reelAnimationId` | string | "" |
-| `retractAnimationId` | string | "" |
-| `throwPresentationId` | string | "" |
-| `retractPresentationId` | string | "" |
-| `atTarget` | object; see matching object table | omitted |
-
-#### `slop.ability.command-grab.v1` parameters
-
-| Field | Type | Omission/default |
-| --- | --- | --- |
-| `lungeTicks` | unsigned 16-bit integer | required |
-| `lungeSpeed` | number | required |
-| `stopDistance` | number | required |
-| `captureTick` | unsigned 16-bit integer | required |
-| `capture` | object; see matching object table | required |
-| `releaseTick` | unsigned 16-bit integer | required |
-| `launch` | object; see matching object table | omitted |
-| `catchPresentationId` | string | "" |
-| `releasePresentationId` | string | "" |
-| `level` | boolean | false |
-| `anchorDistance` | number | null |
-| `releaseLockTicks` | unsigned 16-bit integer | 0 |
-| `whiffRecoveryTicks` | unsigned 16-bit integer | 0 |
-
-#### `slop.ability.cannonball.v1` parameters
-
-| Field | Type | Omission/default |
-| --- | --- | --- |
-| `takeoffTick` | unsigned 16-bit integer | required |
-| `maxRange` | number | required |
-| `noTargetDistance` | number | required |
-| `minFlightTicks` | unsigned 16-bit integer | required |
-| `maxFlightTicks` | unsigned 16-bit integer | required |
-| `maxLaunchSpeed` | number | required |
-| `launchPresentationId` | string | "" |
-
-`slop.ability.shell-stance.v2` has no supported `startCapability` parameter object. It declares a document-level feature.
-
-`slop.ability.forms.v1` has no supported `startCapability` parameter object. It declares a document-level feature.
-
-### Enum tokens
-
-| Enum | Allowed strings |
-| --- | --- |
-| Cannonball |  |
-| Unmarked |  |
-| PresentationAttachmentMode | `world`, `bone` |
-| PresentationCondition | `always`, `sweetspotHit` |
-| Behavior | `meleeCombo`, `chargeAttack`, `aimedProjectile`, `projectile`, `airGroundProjectile`, `selfBuff`, `areaDenial`, `directionalDash` |
-| AimMode | `none`, `groundCursor`, `cameraForward3D`, `groundVector` |
-| AimMovement | `fixed`, `mobile` |
-| Shape | `sphere`, `capsule` |
-| KnockbackDirection | `awayFromOwner`, `towardOwner` |
-| VelocityMode | `absolute`, `additive`, `vertical` |
-| ShellPolicy | `popOut`, `tuck`, `ride` |
+Every operation costs 1 operation entry. Additional counters are listed with each operation and capability schema below. Parameter counters add to the enclosing startCapability counters.
+
+
+### Operation contracts
+
+Each operation has a required `kind`, zero-based stage `tick`, and `unit`. Same-tick entries run in authored order.
+
+<a id="schema-manifest"></a>
+
+### Package manifest
+
+Location: `package.json`.
+
+| Field | Type or child schema | Required/default | Unit | Scalar range or tokens | Meaning | Diagnostics |
+| --- | --- | --- | --- | --- | --- | --- |
+| `manifestSchemaVersion` | ushort | Required | version | Exactly `1` | Selects the source format version; use the supported version shown in the schema rules. | `schema.missing`, `value.out-of-range`, `schema.unsupported` |
+| `packageId` | string | Required | identifier | See meaning and gameplay constraints | Stable lowercase package identity; changing it creates a different package. | `schema.missing`, `value.out-of-range` |
+| `version` | string | Required | version | See meaning and gameplay constraints | Package version in SemVer 2.0 text; dependencies pin this version. | `schema.missing`, `value.out-of-range` |
+| `creator` | string | Required | text | See meaning and gameplay constraints | Names the person or team that made the package. | `schema.missing`, `value.out-of-range` |
+| `license` | string | Required | text | See meaning and gameplay constraints | Names the license covering the package; does not relicense referenced assets. | `schema.missing`, `value.out-of-range` |
+| `attribution` | string | Required | text | See meaning and gameplay constraints | Records required credits and the origin of the work. | `schema.missing`, `value.out-of-range` |
+| `dependencies` | array of [Pinned dependency](#schema-dependency) | Required | list | See meaning and gameplay constraints | Packages this package depends on; each entry pins an identity, version and hash. | `schema.missing`, `value.out-of-range` |
+
+<a id="schema-dependency"></a>
+
+### Pinned dependency
+
+Location: `package.json.dependencies[]`.
+
+| Field | Type or child schema | Required/default | Unit | Scalar range or tokens | Meaning | Diagnostics |
+| --- | --- | --- | --- | --- | --- | --- |
+| `packageId` | string | Required | identifier | See meaning and gameplay constraints | Stable lowercase package identity; changing it creates a different package. | `schema.missing`, `value.out-of-range` |
+| `version` | string | Required | version | See meaning and gameplay constraints | Package version in SemVer 2.0 text; dependencies pin this version. | `schema.missing`, `value.out-of-range` |
+| `cookedHash` | string | Required | hash | See meaning and gameplay constraints | Pins the exact cooked dependency content hash. | `schema.missing`, `value.out-of-range` |
+
+<a id="schema-character"></a>
+
+### Fighter
+
+Location: `character.json`.
+
+| Field | Type or child schema | Required/default | Unit | Scalar range or tokens | Meaning | Diagnostics |
+| --- | --- | --- | --- | --- | --- | --- |
+| `authoringSchemaVersion` | ushort | Required | version | Exactly `4` | Selects the source format version; use the supported version shown in the schema rules. | `schema.missing`, `value.out-of-range`, `schema.unsupported` |
+| `displayName` | string | Required | text | See meaning and gameplay constraints | Name shown for the fighter or alternate form; does not install a menu entry. | `schema.missing`, `value.out-of-range` |
+| `weight` | number | Required | relative mass | 32-bit float; see gameplay constraints | Divides damage launch strength through 200 / max(0.01, weight + 100); larger weight reduces launch speed. | `schema.missing`, `value.out-of-range` |
+| `movement` | object of [Movement](#schema-movement) | Required | object | See meaning and gameplay constraints | Movement tuning used by the Shared simulation; see the movement field descriptions. | `schema.missing`, `value.out-of-range` |
+| `presentation` | object of [Presentation and model](#schema-presentation) | Required | object | See meaning and gameplay constraints | Semantic animation roles and model placement; these values do not bind asset files. | `schema.missing`, `value.out-of-range` |
+| `capsuleRadius` | number | Required | m | 32-bit float; see gameplay constraints | Movement capsule radius; larger values widen world collision and fighter separation. | `schema.missing`, `value.out-of-range` |
+| `capsuleHeight` | number | Required | m | 32-bit float; see gameplay constraints | Full movement capsule height; larger values make the collision body taller. | `schema.missing`, `value.out-of-range` |
+| `hipHeight` | number | Required | m | 32-bit float; see gameplay constraints | Hip pivot height above the capsule bottom; also positions baked geometry when no baked hips-offset point exists. | `schema.missing`, `value.out-of-range` |
+| `hurtboxRadius` | number | Required | m | 32-bit float; see gameplay constraints | Fallback sphere radius when no capsule geometry is available; larger values make the fallback easier to hit. | `schema.missing`, `value.out-of-range` |
+| `shieldRadius` | number | Required | m | greater than 0 | Shield sphere radius; larger values protect a wider area and must exceed half the capsule height. | `schema.missing`, `value.out-of-range` |
+| `captureGeometry` | object of [Universal grab geometry](#schema-captureGeometry) | Required | object | See meaning and gameplay constraints | Universal grab reach and holding anchors; command grabs have their own capture hitbox. | `schema.missing`, `value.out-of-range` |
+| `hurtboxCapsules` | array of [Fallback hurtbox capsule](#schema-hurtboxCapsule) | Required | list | See meaning and gameplay constraints | Fallback vulnerable capsules relative to the capsule center, rotated with facing; baked bone geometry replaces them when available. | `schema.missing`, `value.out-of-range` |
+| `hurtboxBoneDefs` | array of [Bone hurtbox capsule](#schema-hurtboxBone) | Required | list | See meaning and gameplay constraints | Vulnerable capsules built from sampled bone points; the asset cook must provide those points. | `schema.missing`, `value.out-of-range` |
+| `attachmentBoneIds` | array | Required | list | See meaning and gameplay constraints | Additional underscore-prefixed attachment point names that a pose bake may supply. | `schema.missing`, `value.out-of-range` |
+| `presentationIds` | array | Required | list | See meaning and gameplay constraints | Semantic effect or sound cues this package declares; declaring an ID does not supply its asset. | `schema.missing`, `value.out-of-range` |
+| `capabilityRequirements` | array of [Capability requirement](#schema-capabilityRequirement) | Required | list | See meaning and gameplay constraints | Versioned public engine features used by the kit; each used capability must be declared. | `schema.missing`, `value.out-of-range` |
+| `slots` | array of [Move](#schema-slot) | Required | list | See meaning and gameplay constraints | Explicit move definitions; aliases must resolve every canonical ground and air entry. | `schema.missing`, `value.out-of-range` |
+| `aliases` | array of [Move alias](#schema-alias) | Required | list | See meaning and gameplay constraints | Source-only move reuse; cooking expands each alias to a complete runtime move. | `schema.missing`, `value.out-of-range` |
+| `shell` | object of [Shell settings](#schema-shell) | `null` | object | See meaning and gameplay constraints | Shell landing splash and wave ride settings; requires the shell-stance capability and shell animation role. | `schema.missing`, `value.out-of-range` |
+| `alternateForm` | object of [Alternate form](#schema-alternateForm) | `null` | object | See meaning and gameplay constraints | Second form movement, animation roles and move grid; uses the top-level body and requires forms capability. | `schema.missing`, `value.out-of-range` |
+
+<a id="schema-movement"></a>
+
+### Movement
+
+Location: `character.json.movement`.
+
+| Field | Type or child schema | Required/default | Unit | Scalar range or tokens | Meaning | Diagnostics |
+| --- | --- | --- | --- | --- | --- | --- |
+| `runSpeed` | number | Required | m/s | 32-bit float; see gameplay constraints | Ordinary ground speed cap; larger values run faster and scale the shared start and braking ramp. | `schema.missing`, `value.out-of-range` |
+| `runAccelerationA` | number | Required | reserved m/s² | 32-bit float; see gameplay constraints | Serialized legacy ground acceleration coefficients; current ground locomotion ignores both and uses the shared speed ramp. | `schema.missing`, `value.out-of-range` |
+| `runAccelerationB` | number | Required | reserved m/s² | 32-bit float; see gameplay constraints | Serialized legacy ground acceleration coefficients; current ground locomotion ignores both and uses the shared speed ramp. | `schema.missing`, `value.out-of-range` |
+| `dashSpeed` | number | Required | m/s | 32-bit float; see gameplay constraints | Legacy dash tuning retained in source; universal air dodge uses airDodgeSpeed instead. | `schema.missing`, `value.out-of-range` |
+| `airDodgeSpeed` | number | Required | m/s | greater than 0 | Air-dodge base speed; larger values increase its initial 2.3-times burst and subsequent eased travel. | `schema.missing`, `value.out-of-range` |
+| `airSpeedMax` | number | Required | m/s | 32-bit float; see gameplay constraints | Ordinary air steering target speed; larger values allow faster horizontal drift. | `schema.missing`, `value.out-of-range` |
+| `airAccelStick` | number | Required | m/s² | 32-bit float; see gameplay constraints | Added together for ordinary air steering acceleration; larger values approach the air speed target faster. | `schema.missing`, `value.out-of-range` |
+| `airAccelBase` | number | Required | m/s² | 32-bit float; see gameplay constraints | Added together for ordinary air steering acceleration; larger values approach the air speed target faster. | `schema.missing`, `value.out-of-range` |
+| `jumpForce` | number | Required | m/s | 32-bit float; see gameplay constraints | Full-jump initial vertical speed, not a force or impulse; larger values jump higher under the same gravity. | `schema.missing`, `value.out-of-range` |
+| `shortHopForce` | number | Required | m/s | 32-bit float; see gameplay constraints | Short-hop initial vertical speed; larger values make the released-jump hop higher. | `schema.missing`, `value.out-of-range` |
+| `airJumpVMultiplier` | number | Required | ratio | 32-bit float; see gameplay constraints | Multiplies jumpForce for an air jump; larger values make air jumps rise faster. | `schema.missing`, `value.out-of-range` |
+| `airJumpHMultiplier` | number | Required | ratio | 32-bit float; see gameplay constraints | Multiplies airSpeedMax for the directional velocity added by an air jump; larger values add more horizontal speed. | `schema.missing`, `value.out-of-range` |
+| `gravity` | number | Required | m/s² | 32-bit float; see gameplay constraints | Downward acceleration; larger values bend flight or falling downward faster. | `schema.missing`, `value.out-of-range` |
+| `airFloatGravity` | number | Required | m/s² | 32-bit float; see gameplay constraints | Gravity while below floatWindowTicks; zero means no gravity in that window, not a disabled setting. | `schema.missing`, `value.out-of-range` |
+| `dashDurationTicks` | ushort | Required | reserved ticks | 0 to 65535 | Retained legacy dash field; does not tune the universal air-dodge duration or cooldown. | `schema.missing`, `value.out-of-range` |
+| `dashCooldownTicks` | ushort | Required | reserved ticks | 0 to 65535 | Retained legacy dash field; does not tune the universal air-dodge duration or cooldown. | `schema.missing`, `value.out-of-range` |
+| `groundFriction` | number | Required | m/s² | 32-bit float; see gameplay constraints | Braking toward run speed when coasting above it and in selected locked states; larger values remove that excess speed faster. | `schema.missing`, `value.out-of-range` |
+| `airFriction` | number | Required | m/s² | 32-bit float; see gameplay constraints | Ordinary air drag without stick input and in fixed airborne aim; larger values slow horizontal drift faster. | `schema.missing`, `value.out-of-range` |
+| `maxFallSpeed` | number | Required | m/s | 32-bit float; see gameplay constraints | Ordinary downward speed cap; larger values allow a faster fall. | `schema.missing`, `value.out-of-range` |
+| `fastFallSpeed` | number | Required | m/s | 32-bit float; see gameplay constraints | Downward speed assigned during fast fall; larger values make fast fall faster. | `schema.missing`, `value.out-of-range` |
+| `maxJumps` | byte | Required | count | 0 to 255 | Total jumps including the grounded jump; larger values allow more air jumps before landing. | `schema.missing`, `value.out-of-range` |
+| `jumpSquatTicks` | ushort | Required | ticks | 0 to 65535 | Ground jump preparation before launch; larger values delay takeoff. | `schema.missing`, `value.out-of-range` |
+| `floatWindowTicks` | ushort | Required | ticks | 0 to 65535 | Age threshold for low gravity after an explicit air-clock reset; larger values lengthen that window. Ordinary jumps and walking off a ledge skip it. | `schema.missing`, `value.out-of-range` |
+| `rushTicks` | ushort | Required | reserved ticks | 0 to 65535 | Serialized legacy field ignored by current ground locomotion; changing it has no movement effect. | `schema.missing`, `value.out-of-range` |
+
+<a id="schema-presentation"></a>
+
+### Presentation and model
+
+Location: `character.json.presentation`.
+
+| Field | Type or child schema | Required/default | Unit | Scalar range or tokens | Meaning | Diagnostics |
+| --- | --- | --- | --- | --- | --- | --- |
+| `idle` | string | Required | animation identifier | See meaning and gameplay constraints | Semantic animation for this named presentation role; lowercase IDs refer to bindings supplied during asset assembly. | `schema.missing`, `value.out-of-range` |
+| `run` | string | Required | animation identifier | See meaning and gameplay constraints | Semantic animation for this named presentation role; lowercase IDs refer to bindings supplied during asset assembly. | `schema.missing`, `value.out-of-range` |
+| `dash` | string | Required | animation identifier | See meaning and gameplay constraints | Semantic animation for this named presentation role; lowercase IDs refer to bindings supplied during asset assembly. | `schema.missing`, `value.out-of-range` |
+| `jump` | string | Required | animation identifier | See meaning and gameplay constraints | Semantic animation for this named presentation role; lowercase IDs refer to bindings supplied during asset assembly. | `schema.missing`, `value.out-of-range` |
+| `fall` | string | Required | animation identifier | See meaning and gameplay constraints | Semantic animation for this named presentation role; lowercase IDs refer to bindings supplied during asset assembly. | `schema.missing`, `value.out-of-range` |
+| `hitSmall` | string | Required | animation identifier | See meaning and gameplay constraints | Semantic animation for this named presentation role; lowercase IDs refer to bindings supplied during asset assembly. | `schema.missing`, `value.out-of-range` |
+| `hitMedium` | string | Required | animation identifier | See meaning and gameplay constraints | Semantic animation for this named presentation role; lowercase IDs refer to bindings supplied during asset assembly. | `schema.missing`, `value.out-of-range` |
+| `hitHard` | string | Required | animation identifier | See meaning and gameplay constraints | Semantic animation for this named presentation role; lowercase IDs refer to bindings supplied during asset assembly. | `schema.missing`, `value.out-of-range` |
+| `landStartOffsetSeconds` | number | Required | seconds | 32-bit float; see gameplay constraints | Seek offset into a landing animation; larger values start playback farther into that clip. | `schema.missing`, `value.out-of-range` |
+| `modelResourcePath` | string | Required | asset key | See meaning and gameplay constraints | Built-in model lookup key; it does not define a portable Workshop model binding. | `schema.missing`, `value.out-of-range` |
+| `visualScale` | number | Required | ratio | 32-bit float; see gameplay constraints | Rendered model scale; larger values enlarge the visible model without changing the movement capsule. | `schema.missing`, `value.out-of-range` |
+| `hurtboxBoneScale` | number | Required | ratio | 32-bit float; see gameplay constraints | Scales sampled attack-bone geometry; fitted bone hurtboxes use their baked body scale rather than this attack scale. | `schema.missing`, `value.out-of-range` |
+| `modelYOffset` | number | Required | m | 32-bit float; see gameplay constraints | Manual vertical model shift relative to its presentation pivot; larger values raise the model. | `schema.missing`, `value.out-of-range` |
+| `modelSoleOffset` | number | Required | m | 32-bit float; see gameplay constraints | Serialized presentation metadata not read by current rendering; changing it does not adjust floor placement. | `schema.missing`, `value.out-of-range` |
+| `autoModelYOffset` | boolean | Required | boolean | See meaning and gameplay constraints | Serialized fitting hint; current rendering does not compute an automatic offset from this flag. | `schema.missing`, `value.out-of-range` |
+| `tumble` | string or null | `""` | animation identifier | See meaning and gameplay constraints | Semantic animation for the tumble presentation role; empty text omits that role. | `schema.missing`, `value.out-of-range` |
+| `crouch` | string or null | `""` | animation identifier | See meaning and gameplay constraints | Semantic animation for the crouch presentation role; empty text omits that role. | `schema.missing`, `value.out-of-range` |
+| `slide` | string or null | `""` | animation identifier | See meaning and gameplay constraints | Semantic animation for the slide presentation role; empty text omits that role. | `schema.missing`, `value.out-of-range` |
+| `shield` | string or null | `""` | animation identifier | See meaning and gameplay constraints | Semantic animation for the shield presentation role; empty text omits that role. | `schema.missing`, `value.out-of-range` |
+| `grab` | string or null | `""` | animation identifier | See meaning and gameplay constraints | Semantic animation for the grab presentation role; empty text omits that role. | `schema.missing`, `value.out-of-range` |
+| `grabbed` | string or null | `""` | animation identifier | See meaning and gameplay constraints | Semantic animation for the grabbed presentation role; empty text omits that role. | `schema.missing`, `value.out-of-range` |
+| `throwForward` | string or null | `""` | animation identifier | See meaning and gameplay constraints | Semantic animation for the throwForward presentation role; empty text omits that role. | `schema.missing`, `value.out-of-range` |
+| `airDodge` | string or null | `""` | animation identifier | See meaning and gameplay constraints | Semantic animation for the airDodge presentation role; empty text omits that role. | `schema.missing`, `value.out-of-range` |
+| `shell` | string or null | `""` | animation identifier | See meaning and gameplay constraints | Semantic animation for the shell presentation role; empty text omits that role. | `schema.missing`, `value.out-of-range` |
+| `flying` | string or null | `""` | animation identifier | See meaning and gameplay constraints | Semantic animation for the flying presentation role; empty text omits that role. | `schema.missing`, `value.out-of-range` |
+| `mayhemLaugh` | string or null | `""` | animation identifier | See meaning and gameplay constraints | Semantic animation for the mayhemLaugh presentation role; empty text omits that role. | `schema.missing`, `value.out-of-range` |
+| `wallJump` | string or null | `""` | animation identifier | See meaning and gameplay constraints | Semantic animation for the wallJump presentation role; empty text omits that role. | `schema.missing`, `value.out-of-range` |
+
+<a id="schema-formPresentation"></a>
+
+### Alternate form animation roles
+
+Location: `character.json.alternateForm.presentation`.
+
+| Field | Type or child schema | Required/default | Unit | Scalar range or tokens | Meaning | Diagnostics |
+| --- | --- | --- | --- | --- | --- | --- |
+| `idle` | string or null | `""` | animation identifier | See meaning and gameplay constraints | Semantic animation for the idle role; empty text falls back to form zero on the same rig. | `schema.missing`, `value.out-of-range` |
+| `run` | string or null | `""` | animation identifier | See meaning and gameplay constraints | Semantic animation for the run role; empty text falls back to form zero on the same rig. | `schema.missing`, `value.out-of-range` |
+| `dash` | string or null | `""` | animation identifier | See meaning and gameplay constraints | Semantic animation for the dash role; empty text falls back to form zero on the same rig. | `schema.missing`, `value.out-of-range` |
+| `jump` | string or null | `""` | animation identifier | See meaning and gameplay constraints | Semantic animation for the jump role; empty text falls back to form zero on the same rig. | `schema.missing`, `value.out-of-range` |
+| `fall` | string or null | `""` | animation identifier | See meaning and gameplay constraints | Semantic animation for the fall role; empty text falls back to form zero on the same rig. | `schema.missing`, `value.out-of-range` |
+| `hitSmall` | string or null | `""` | animation identifier | See meaning and gameplay constraints | Semantic animation for the hitSmall role; empty text falls back to form zero on the same rig. | `schema.missing`, `value.out-of-range` |
+| `hitMedium` | string or null | `""` | animation identifier | See meaning and gameplay constraints | Semantic animation for the hitMedium role; empty text falls back to form zero on the same rig. | `schema.missing`, `value.out-of-range` |
+| `hitHard` | string or null | `""` | animation identifier | See meaning and gameplay constraints | Semantic animation for the hitHard role; empty text falls back to form zero on the same rig. | `schema.missing`, `value.out-of-range` |
+| `tumble` | string or null | `""` | animation identifier | See meaning and gameplay constraints | Semantic animation for the tumble role; empty text falls back to form zero on the same rig. | `schema.missing`, `value.out-of-range` |
+| `shield` | string or null | `""` | animation identifier | See meaning and gameplay constraints | Semantic animation for the shield role; empty text falls back to form zero on the same rig. | `schema.missing`, `value.out-of-range` |
+| `grab` | string or null | `""` | animation identifier | See meaning and gameplay constraints | Semantic animation for the grab role; empty text falls back to form zero on the same rig. | `schema.missing`, `value.out-of-range` |
+| `grabbed` | string or null | `""` | animation identifier | See meaning and gameplay constraints | Semantic animation for the grabbed role; empty text falls back to form zero on the same rig. | `schema.missing`, `value.out-of-range` |
+| `throwForward` | string or null | `""` | animation identifier | See meaning and gameplay constraints | Semantic animation for the throwForward role; empty text falls back to form zero on the same rig. | `schema.missing`, `value.out-of-range` |
+| `airDodge` | string or null | `""` | animation identifier | See meaning and gameplay constraints | Semantic animation for the airDodge role; empty text falls back to form zero on the same rig. | `schema.missing`, `value.out-of-range` |
+
+<a id="schema-alternateForm"></a>
+
+### Alternate form
+
+Location: `character.json.alternateForm`.
+
+| Field | Type or child schema | Required/default | Unit | Scalar range or tokens | Meaning | Diagnostics |
+| --- | --- | --- | --- | --- | --- | --- |
+| `id` | string | Required | identifier | See meaning and gameplay constraints | Identity of this move or form within its containing object; canonical move IDs preserve uppercase special letters. | `schema.missing`, `value.out-of-range` |
+| `displayName` | string | Required | text | See meaning and gameplay constraints | Name shown for the fighter or alternate form; does not install a menu entry. | `schema.missing`, `value.out-of-range` |
+| `movement` | object of [Movement](#schema-movement) | Required | object | See meaning and gameplay constraints | Movement tuning used by the Shared simulation; see the movement field descriptions. | `schema.missing`, `value.out-of-range` |
+| `presentation` | object of [Alternate form animation roles](#schema-formPresentation) | Required | object | See meaning and gameplay constraints | Semantic animation roles and model placement; these values do not bind asset files. | `schema.missing`, `value.out-of-range` |
+| `slots` | array of [Move](#schema-slot) | Required | list | See meaning and gameplay constraints | Explicit move definitions; aliases must resolve every canonical ground and air entry. | `schema.missing`, `value.out-of-range` |
+| `aliases` | array of [Move alias](#schema-alias) | Required | list | See meaning and gameplay constraints | Source-only move reuse; cooking expands each alias to a complete runtime move. | `schema.missing`, `value.out-of-range` |
+
+<a id="schema-hurtboxCapsule"></a>
+
+### Fallback hurtbox capsule
+
+Location: `character.json.hurtboxCapsules[]`.
+
+| Field | Type or child schema | Required/default | Unit | Scalar range or tokens | Meaning | Diagnostics |
+| --- | --- | --- | --- | --- | --- | --- |
+| `startX` | number | Required | m | 32-bit float; see gameplay constraints | Endpoint in the fallback hurtbox capsule-center facing frame; larger values shift the endpoint along the named axis. | `schema.missing`, `value.out-of-range` |
+| `startY` | number | Required | m | 32-bit float; see gameplay constraints | Endpoint in the fallback hurtbox capsule-center facing frame; larger values shift the endpoint along the named axis. | `schema.missing`, `value.out-of-range` |
+| `startZ` | number | Required | m | 32-bit float; see gameplay constraints | Endpoint in the fallback hurtbox capsule-center facing frame; larger values shift the endpoint along the named axis. | `schema.missing`, `value.out-of-range` |
+| `endX` | number | Required | m | 32-bit float; see gameplay constraints | Endpoint in the fallback hurtbox capsule-center facing frame; larger values shift the endpoint along the named axis. | `schema.missing`, `value.out-of-range` |
+| `endY` | number | Required | m | 32-bit float; see gameplay constraints | Endpoint in the fallback hurtbox capsule-center facing frame; larger values shift the endpoint along the named axis. | `schema.missing`, `value.out-of-range` |
+| `endZ` | number | Required | m | 32-bit float; see gameplay constraints | Endpoint in the fallback hurtbox capsule-center facing frame; larger values shift the endpoint along the named axis. | `schema.missing`, `value.out-of-range` |
+| `radius` | number | Required | m | 32-bit float; see gameplay constraints | Volume radius; larger values widen the attack, vulnerable body or catch volume. | `schema.missing`, `value.out-of-range` |
+
+<a id="schema-hurtboxBone"></a>
+
+### Bone hurtbox capsule
+
+Location: `character.json.hurtboxBoneDefs[]`.
+
+| Field | Type or child schema | Required/default | Unit | Scalar range or tokens | Meaning | Diagnostics |
+| --- | --- | --- | --- | --- | --- | --- |
+| `boneId` | string | Required | bone identifier | See meaning and gameplay constraints | Bone point used as the local frame; null attack bones select the fighter root frame. | `schema.missing`, `value.out-of-range` |
+| `offsetX` | number | Required | m | 32-bit float; see gameplay constraints | Start-point offset in the containing root or bone frame; larger values shift that endpoint along the named axis. | `schema.missing`, `value.out-of-range` |
+| `offsetY` | number | Required | m | 32-bit float; see gameplay constraints | Start-point offset in the containing root or bone frame; larger values shift that endpoint along the named axis. | `schema.missing`, `value.out-of-range` |
+| `offsetZ` | number | Required | m | 32-bit float; see gameplay constraints | Start-point offset in the containing root or bone frame; larger values shift that endpoint along the named axis. | `schema.missing`, `value.out-of-range` |
+| `radius` | number | Required | m | at least 0 | Volume radius; larger values widen the attack, vulnerable body or catch volume. | `schema.missing`, `value.out-of-range` |
+| `endBoneId` | string or null | `null` | bone identifier | See meaning and gameplay constraints | Bone point used as the local frame; null attack bones select the fighter root frame. | `schema.missing`, `value.out-of-range` |
+| `endOffsetX` | number | `0` | m | 32-bit float; see gameplay constraints | End-point offset for capsule geometry; larger values shift the second endpoint along the named axis. | `schema.missing`, `value.out-of-range` |
+| `endOffsetY` | number | `0` | m | 32-bit float; see gameplay constraints | End-point offset for capsule geometry; larger values shift the second endpoint along the named axis. | `schema.missing`, `value.out-of-range` |
+| `endOffsetZ` | number | `0` | m | 32-bit float; see gameplay constraints | End-point offset for capsule geometry; larger values shift the second endpoint along the named axis. | `schema.missing`, `value.out-of-range` |
+
+<a id="schema-captureGeometry"></a>
+
+### Universal grab geometry
+
+Location: `character.json.captureGeometry`.
+
+| Field | Type or child schema | Required/default | Unit | Scalar range or tokens | Meaning | Diagnostics |
+| --- | --- | --- | --- | --- | --- | --- |
+| `reach` | number | Required | m | greater than 0 | Universal grab distance ahead of the fighter; larger values can reach farther. | `schema.missing`, `value.out-of-range` |
+| `width` | number | Required | m | greater than 0 | Full capture volume dimension; larger values cover a wider or taller region. | `schema.missing`, `value.out-of-range` |
+| `height` | number | Required | m | greater than 0 | Full capture volume dimension; larger values cover a wider or taller region. | `schema.missing`, `value.out-of-range` |
+| `offsetY` | number | Required | m | 32-bit float; see gameplay constraints | Universal capture-volume center height relative to the grabber capsule center; larger values raise the capture box. | `schema.missing`, `value.out-of-range` |
+| `attackerAnchor` | object of [Universal grab anchor](#schema-anchor) | Required | object | See meaning and gameplay constraints | Universal hold placement subtracts this anchor Y from victimAnchor Y; current placement retains X and Z but does not read them. | `schema.missing`, `value.out-of-range` |
+| `victimAnchor` | object of [Universal grab anchor](#schema-anchor) | Required | object | See meaning and gameplay constraints | Victim capsule-center offset in the grabber facing frame; vertical offset is victimAnchor Y minus attackerAnchor Y. | `schema.missing`, `value.out-of-range` |
+
+<a id="schema-anchor"></a>
+
+### Universal grab anchor
+
+Location: `captureGeometry.attackerAnchor or victimAnchor`.
+
+| Field | Type or child schema | Required/default | Unit | Scalar range or tokens | Meaning | Diagnostics |
+| --- | --- | --- | --- | --- | --- | --- |
+| `x` | number | Required | m | 32-bit float; see gameplay constraints | Coordinate along the named axis in the containing frame; see coordinate conventions for that object. | `schema.missing`, `value.out-of-range` |
+| `y` | number | Required | m | 32-bit float; see gameplay constraints | Coordinate along the named axis in the containing frame; see coordinate conventions for that object. | `schema.missing`, `value.out-of-range` |
+| `z` | number | Required | m | 32-bit float; see gameplay constraints | Coordinate along the named axis in the containing frame; see coordinate conventions for that object. | `schema.missing`, `value.out-of-range` |
+
+<a id="schema-capabilityRequirement"></a>
+
+### Capability requirement
+
+Location: `character.json.capabilityRequirements[]`.
+
+| Field | Type or child schema | Required/default | Unit | Scalar range or tokens | Meaning | Diagnostics |
+| --- | --- | --- | --- | --- | --- | --- |
+| `capabilityId` | string | Required | identifier | See meaning and gameplay constraints | Stable engine capability ID; use a public ID and declare the same ID in capabilityRequirements. | `schema.missing`, `value.out-of-range` |
+| `capabilityVersion` | string | Required | version | See meaning and gameplay constraints | Exact capability version string; it must match the supported version and the requirement declaration. | `schema.missing`, `value.out-of-range` |
+
+<a id="schema-slot"></a>
+
+### Move
+
+Location: `character.json.slots[]`.
+
+| Field | Type or child schema | Required/default | Unit | Scalar range or tokens | Meaning | Diagnostics |
+| --- | --- | --- | --- | --- | --- | --- |
+| `id` | string | Required | identifier | See meaning and gameplay constraints | Identity of this move or form within its containing object; canonical move IDs preserve uppercase special letters. | `schema.missing`, `value.out-of-range` |
+| `name` | string | Required | text | See meaning and gameplay constraints | Creator-facing move name; does not change its canonical identity. | `schema.missing`, `value.out-of-range` |
+| `description` | string | Required | text | See meaning and gameplay constraints | Creator-facing move explanation; has no gameplay effect. | `schema.missing`, `value.out-of-range` |
+| `iconId` | string | Required | identifier | See meaning and gameplay constraints | Semantic icon identifier; does not bind an image file. | `schema.missing`, `value.out-of-range` |
+| `behavior` | enum | Required | enum | `meleeCombo`, `chargeAttack`, `aimedProjectile`, `projectile`, `airGroundProjectile`, `selfBuff`, `areaDenial`, `directionalDash` | Selects the move lifecycle; meleeCombo is an ordinary fixed timeline, not a restriction to melee hitboxes. | `schema.missing`, `enum.unknown` |
+| `aimMode` | enum | Required | enum | `none`, `groundCursor`, `cameraForward3D`, `groundVector` | Selects aiming input; none disables aim, groundCursor selects a point, groundVector a horizontal direction, cameraForward3D a 3D direction. | `schema.missing`, `enum.unknown` |
+| `cooldownTicks` | ushort | Required | ticks | 0 to 65535 | Reuse delay applied when the activation ends or is cancelled; larger values delay the shared ground/air input slot longer. | `schema.missing`, `value.out-of-range` |
+| `isRecoveryMove` | boolean | Required | boolean | See meaning and gameplay constraints | Resets the air float clock when the move starts; does not itself grant jumps, dodges, or a once-per-airtime availability gate. | `schema.missing`, `value.out-of-range` |
+| `preserveMomentumOnStart` | boolean | Required | boolean | See meaning and gameplay constraints | Keeps grounded incoming horizontal velocity at ordinary startup; false clears grounded horizontal speed unless slide/run carry applies. Air momentum and capability overrides still follow their own rules. | `schema.missing`, `value.out-of-range` |
+| `timeline` | object of [Move timeline](#schema-timeline) | Required | object | See meaning and gameplay constraints | Ordered stages of this move; each stage has its own zero-based operation clock. | `schema.missing`, `value.out-of-range` |
+| `chargePool` | object of [Move stock](#schema-chargePool) or null | `null` | object | See meaning and gameplay constraints | Optional shared input-slot stock and passive refill; larger stock permits more uses before waiting. | `schema.missing`, `value.out-of-range` |
+| `aimMovement` | enum | `"fixed"` | enum | `fixed`, `mobile` | fixed locks grounded movement during aim; mobile admits stick movement and reserves the right stick for aiming. | `schema.missing`, `enum.unknown` |
+| `aimAnimationId` | string or null | `null` | identifier | See meaning and gameplay constraints | Optional animation while aiming; omit to use the move animation. | `schema.missing`, `value.out-of-range` |
+| `allowSlideCarry` | boolean | `false` | boolean | See meaning and gameplay constraints | Allows an eligible grounded normal to carry a slide; incompatible with move-owned motion and aiming. | `schema.missing`, `value.out-of-range` |
+| `hitPresentationId` | string or null | `null` | identifier | See meaning and gameplay constraints | Cue emitted for a confirmed contact; a hitbox-specific value identifies a sweetspot and overrides the slot cue. | `schema.missing`, `value.out-of-range` |
+| `aimMovementSpeedScale` | number | `1` | ratio | greater than 0; at most 1 | Fraction of run and air speed while mobile aiming; larger values let the fighter move faster during the hold. | `schema.missing`, `value.out-of-range` |
+| `shellPolicy` | enum | `"popOut"` | enum | `popOut`, `tuck`, `ride` | popOut exits the shell, tuck keeps a tucked move, ride starts the shell ride after successful completion. | `schema.missing`, `enum.unknown` |
+
+<a id="schema-chargePool"></a>
+
+### Move stock
+
+Location: `slot.chargePool`.
+
+| Field | Type or child schema | Required/default | Unit | Scalar range or tokens | Meaning | Diagnostics |
+| --- | --- | --- | --- | --- | --- | --- |
+| `maxCharges` | integer | Required | count | at least 1; at most 3 | Number of stored uses; larger values allow more activations before refill is needed. | `schema.missing`, `value.out-of-range` |
+| `regenTicks` | ushort | Required | ticks | greater than 0 | Time between stock refills; larger values refill more slowly. | `schema.missing`, `value.out-of-range` |
+
+<a id="schema-alias"></a>
+
+### Move alias
+
+Location: `character.json.aliases[]`.
+
+| Field | Type or child schema | Required/default | Unit | Scalar range or tokens | Meaning | Diagnostics |
+| --- | --- | --- | --- | --- | --- | --- |
+| `from` | string | Required | canonical slot | See meaning and gameplay constraints | Alias entry being supplied; use a canonical slot ID. | `schema.missing`, `value.out-of-range` |
+| `to` | string | Required | canonical slot | See meaning and gameplay constraints | Explicit move or alias reused by from; alias cycles and unresolved targets are rejected. | `schema.missing`, `value.out-of-range` |
+
+<a id="schema-timeline"></a>
+
+### Move timeline
+
+Location: `slot.timeline`.
+
+| Field | Type or child schema | Required/default | Unit | Scalar range or tokens | Meaning | Diagnostics |
+| --- | --- | --- | --- | --- | --- | --- |
+| `stages` | array of [Timeline stage](#schema-stage) | Required | list | See meaning and gameplay constraints | Successive fixed parts of the move; each stage resets the operation clock. | `schema.missing`, `value.out-of-range` |
+
+<a id="schema-stage"></a>
+
+### Timeline stage
+
+Location: `slot.timeline.stages[]`.
+
+| Field | Type or child schema | Required/default | Unit | Scalar range or tokens | Meaning | Diagnostics |
+| --- | --- | --- | --- | --- | --- | --- |
+| `durationTicks` | ushort | Required | ticks | greater than 0 | Length of this stage, volume or timed effect; larger values keep it alive longer in its owning clock. | `schema.missing`, `value.out-of-range` |
+| `iasaTicks` | ushort | Required | ticks | 0 to 65535 | Earliest early-cancel boundary; zero disables early cancellation, larger nonzero values delay cancellation. | `schema.missing`, `value.out-of-range` |
+| `landingLagTicks` | ushort | Required | ticks | 0 to 65535 | Recovery imposed when an aerial move lands outside auto-cancel windows; larger values delay the next action. | `schema.missing`, `value.out-of-range` |
+| `autoCancelBeforeTicks` | ushort | Required | ticks | 0 to 65535 | Landing at or before this nonzero stage age avoids move landing lag; larger values widen the early window. | `schema.missing`, `value.out-of-range` |
+| `autoCancelAfterTicks` | ushort | Required | ticks | 0 to 65535 | Landing at or after this nonzero stage age avoids move landing lag; larger values delay the late window. | `schema.missing`, `value.out-of-range` |
+| `attackRange` | number | `0` | m | 32-bit float; see gameplay constraints | Legacy authored range metadata; stopInAttackRange instead uses the first later hitbox geometry. | `schema.missing`, `value.out-of-range` |
+| `warpRange` | number | `0` | reserved | 32-bit float; see gameplay constraints | Retired targeting metadata; keep zero, since nonzero values are rejected. | `schema.missing`, `value.out-of-range` |
+| `trackingStrength` | number | `0` | reserved | 32-bit float; see gameplay constraints | Retired targeting metadata; keep zero, since nonzero values are rejected. | `schema.missing`, `value.out-of-range` |
+| `useTargetLock` | boolean | `false` | reserved | See meaning and gameplay constraints | Retired per-stage targeting flag; keep false and use startup aim correction or a public lifecycle. | `schema.missing`, `value.out-of-range` |
+| `rotateTowardTarget` | boolean | `false` | reserved | See meaning and gameplay constraints | Retired per-stage targeting flag; keep false and use startup aim correction or a public lifecycle. | `schema.missing`, `value.out-of-range` |
+| `animationIds` | array | Required | list | See meaning and gameplay constraints | Lowercase semantic animation IDs for this stage; the compiler sorts them and the first is its primary clip. | `schema.missing`, `value.out-of-range` |
+| `operations` | array | Required | list | See meaning and gameplay constraints | Timed effects within this stage; same-tick operations execute in authored array order. | `schema.missing`, `value.out-of-range` |
+
+<a id="schema-hitbox"></a>
+
+### Hitbox and command-grab capture volume
+
+Location: `operation.hitbox or capability hitbox/capture fields`.
+
+| Field | Type or child schema | Required/default | Unit | Scalar range or tokens | Meaning | Diagnostics |
+| --- | --- | --- | --- | --- | --- | --- |
+| `shape` | enum | Required | enum | `sphere`, `capsule` | sphere uses one center; capsule uses start and end points joined by a radius. | `schema.missing`, `enum.unknown` |
+| `radius` | number | Required | m | at least 0 | Volume radius; larger values widen the attack, vulnerable body or catch volume. | `schema.missing`, `value.out-of-range` |
+| `offsetX` | number | Required | m | 32-bit float; see gameplay constraints | Start-point offset in the containing root or bone frame; larger values shift that endpoint along the named axis. | `schema.missing`, `value.out-of-range` |
+| `offsetY` | number | Required | m | 32-bit float; see gameplay constraints | Start-point offset in the containing root or bone frame; larger values shift that endpoint along the named axis. | `schema.missing`, `value.out-of-range` |
+| `offsetZ` | number | Required | m | 32-bit float; see gameplay constraints | Start-point offset in the containing root or bone frame; larger values shift that endpoint along the named axis. | `schema.missing`, `value.out-of-range` |
+| `endOffsetX` | number | Required | m | 32-bit float; see gameplay constraints | End-point offset for capsule geometry; larger values shift the second endpoint along the named axis. | `schema.missing`, `value.out-of-range` |
+| `endOffsetY` | number | Required | m | 32-bit float; see gameplay constraints | End-point offset for capsule geometry; larger values shift the second endpoint along the named axis. | `schema.missing`, `value.out-of-range` |
+| `endOffsetZ` | number | Required | m | 32-bit float; see gameplay constraints | End-point offset for capsule geometry; larger values shift the second endpoint along the named axis. | `schema.missing`, `value.out-of-range` |
+| `startBoneId` | string or null | `null` | bone identifier | See meaning and gameplay constraints | Bone point used as the local frame; null attack bones select the fighter root frame. | `schema.missing`, `value.out-of-range` |
+| `endBoneId` | string or null | `null` | bone identifier | See meaning and gameplay constraints | Bone point used as the local frame; null attack bones select the fighter root frame. | `schema.missing`, `value.out-of-range` |
+| `damage` | number | Required | percent | at least 0 | Damage added on contact; larger values raise the victim percent and the damage contribution to launch strength. | `schema.missing`, `value.out-of-range` |
+| `angle` | number | Required | degrees | at least -90, at most 90 | Vertical launch pitch; larger positive values launch more upward, negative values launch downward. | `schema.missing`, `value.out-of-range` |
+| `baseKnockback` | number | Required | m/s before weight/tuning | at least 0 | Flat term in launch magnitude; larger values strengthen a launch at every victim percent. | `schema.missing`, `value.out-of-range` |
+| `knockbackGrowth` | number | Required | m/s before weight/tuning | at least 0 | Term multiplied by 1 + victimPercent / 100; larger values make high-percent victims fly faster. | `schema.missing`, `value.out-of-range` |
+| `stunTicks` | ushort | Required | gate | 0 to 65535 | Zero disables ordinary hitstun; any positive value enables formula-derived stun and is not the stun duration. | `schema.missing`, `value.out-of-range` |
+| `durationTicks` | ushort | Required | ticks | greater than 0 | Length of this stage, volume or timed effect; larger values keep it alive longer in its owning clock. | `schema.missing`, `value.out-of-range` |
+| `interruptible` | boolean | Required | boolean | See meaning and gameplay constraints | Serialized hitbox flag retained in cooked and snapshot data; current Shared contact simulation does not read it, so it does not grant armor or prevent interruption. | `schema.missing`, `value.out-of-range` |
+| `hitGroup` | byte | Required | group number | 0 to 255 | Zero gives each volume an independent hit history; equal nonzero groups share one hit per victim per activation. | `schema.missing`, `value.out-of-range` |
+| `knockbackDirection` | enum | `"awayFromOwner"` | enum | `awayFromOwner`, `towardOwner` | awayFromOwner pushes away horizontally; towardOwner pulls toward the owner. | `schema.missing`, `enum.unknown` |
+| `fixedHitstunTicks` | ushort | `0` | ticks | at least 0, at most 240 | Nonzero replaces formula-derived hitstun duration and requires a positive stun gate; larger values hold the victim longer. | `schema.missing`, `value.out-of-range` |
+| `hitPresentationId` | string or null | `null` | identifier | See meaning and gameplay constraints | Cue emitted for a confirmed contact; a hitbox-specific value identifies a sweetspot and overrides the slot cue. | `schema.missing`, `value.out-of-range` |
+| `requiresFacingOwner` | boolean | `false` | boolean | See meaning and gameplay constraints | Limits the hitbox contact to victims facing its owner; false admits either facing. | `schema.missing`, `value.out-of-range` |
+
+<a id="schema-projectile"></a>
+
+### Projectile
+
+Location: `operation.projectile or capability.parameters.projectile`.
+
+| Field | Type or child schema | Required/default | Unit | Scalar range or tokens | Meaning | Diagnostics |
+| --- | --- | --- | --- | --- | --- | --- |
+| `launchOffsetX` | number | Required | m | 32-bit float; see gameplay constraints | Projectile start offset in the owner facing frame; larger values move its spawn along the named axis. | `schema.missing`, `value.out-of-range` |
+| `launchOffsetY` | number | Required | m | 32-bit float; see gameplay constraints | Projectile start offset in the owner facing frame; larger values move its spawn along the named axis. | `schema.missing`, `value.out-of-range` |
+| `launchOffsetZ` | number | Required | m | 32-bit float; see gameplay constraints | Projectile start offset in the owner facing frame; larger values move its spawn along the named axis. | `schema.missing`, `value.out-of-range` |
+| `speed` | number | Required | m/s | at least 0 | Travel speed; larger values cover more distance per tick. | `schema.missing`, `value.out-of-range` |
+| `gravity` | number | Required | m/s² | 32-bit float; see gameplay constraints | Downward acceleration; larger values bend flight or falling downward faster. | `schema.missing`, `value.out-of-range` |
+| `radius` | number | Required | m | at least 0 | Volume radius; larger values widen the attack, vulnerable body or catch volume. | `schema.missing`, `value.out-of-range` |
+| `damage` | number | Required | percent | at least 0 | Damage added on contact; larger values raise the victim percent and the damage contribution to launch strength. | `schema.missing`, `value.out-of-range` |
+| `angle` | number | Required | degrees | at least -90, at most 90 | Vertical launch pitch; larger positive values launch more upward, negative values launch downward. | `schema.missing`, `value.out-of-range` |
+| `baseKnockback` | number | Required | m/s before weight/tuning | at least 0 | Flat term in launch magnitude; larger values strengthen a launch at every victim percent. | `schema.missing`, `value.out-of-range` |
+| `knockbackGrowth` | number | Required | m/s before weight/tuning | at least 0 | Term multiplied by 1 + victimPercent / 100; larger values make high-percent victims fly faster. | `schema.missing`, `value.out-of-range` |
+| `stunTicks` | ushort | Required | gate | 0 to 65535 | Zero disables ordinary hitstun; any positive value enables formula-derived stun and is not the stun duration. | `schema.missing`, `value.out-of-range` |
+| `maxFlightTicks` | ushort | Required | ticks | 0 to 65535 | Projectile or flight lifetime limit; larger values allow more time before the lifecycle times out. | `schema.missing`, `value.out-of-range` |
+| `yawOffsetDegrees` | number | Required | degrees | at least -180, at most 180 | Horizontal shot offset around facing or aim; positive values rotate the outgoing direction around world up. | `schema.missing`, `value.out-of-range` |
+| `return` | object of [Returning projectile](#schema-projectileReturn) | `null` | object | See meaning and gameplay constraints | Optional outbound-and-return flight; locks its move slot until the projectile is caught or resolved. | `schema.missing`, `value.out-of-range` |
+| `homing` | object of [Projectile homing](#schema-homing) | `null` | object | See meaning and gameplay constraints | Optional per-tick turn toward the captured target; absence leaves straight flight. | `schema.missing`, `value.out-of-range` |
+| `perch` | object of [Projectile perch](#schema-perch) | `null` | object | See meaning and gameplay constraints | Optional attached mark and pop lifecycle; absence uses ordinary projectile contact. | `schema.missing`, `value.out-of-range` |
+| `challengeTicks` | ushort | `0` | ticks | 0 to 65535 | Projectile parry-challenge window; larger values lengthen the authored challenge period. | `schema.missing`, `value.out-of-range` |
+
+<a id="schema-projectileReturn"></a>
+
+### Returning projectile
+
+Location: `projectile.return`.
+
+| Field | Type or child schema | Required/default | Unit | Scalar range or tokens | Meaning | Diagnostics |
+| --- | --- | --- | --- | --- | --- | --- |
+| `outboundTicks` | ushort | Required | ticks | 0 to 65535 | Maximum outward leg before returning; larger values delay the return. | `schema.missing`, `value.out-of-range` |
+| `returnSpeed` | number | Required | m/s | 32-bit float; see gameplay constraints | Return speed cap; larger values bring the projectile back faster. | `schema.missing`, `value.out-of-range` |
+| `returnAcceleration` | number | Required | m/s² | 32-bit float; see gameplay constraints | Return steering acceleration; larger values change return velocity faster. | `schema.missing`, `value.out-of-range` |
+| `selfHitDamage` | number | Required | percent | 32-bit float; see gameplay constraints | Damage to a busy thrower instead of a catch; larger values punish a failed catch more. | `schema.missing`, `value.out-of-range` |
+| `selfHitStunTicks` | ushort | Required | ticks | 0 to 65535 | Fixed stun applied to a busy thrower; larger values delay the next action. | `schema.missing`, `value.out-of-range` |
+| `catchPresentationId` | string or null | `""` | identifier | See meaning and gameplay constraints | Declared cue for the named lifecycle event; empty text disables optional cues. | `schema.missing`, `value.out-of-range` |
+| `selfHitPresentationId` | string or null | `""` | identifier | See meaning and gameplay constraints | Optional declared lifecycle cue; empty text omits that presentation event. | `schema.missing`, `value.out-of-range` |
+| `hit` | object of [Return-leg contact overrides](#schema-legHit) | `null` | object | See meaning and gameplay constraints | Optional return-leg damage and launch overrides; omission uses the projectile contact settings. | `schema.missing`, `value.out-of-range` |
+
+<a id="schema-legHit"></a>
+
+### Return-leg contact overrides
+
+Location: `projectile.return.hit`.
+
+| Field | Type or child schema | Required/default | Unit | Scalar range or tokens | Meaning | Diagnostics |
+| --- | --- | --- | --- | --- | --- | --- |
+| `damage` | number | Required | percent | 32-bit float; see gameplay constraints | Damage added on contact; larger values raise the victim percent and the damage contribution to launch strength. | `schema.missing`, `value.out-of-range` |
+| `angle` | number | Required | degrees | 32-bit float; see gameplay constraints | Vertical launch pitch; larger positive values launch more upward, negative values launch downward. | `schema.missing`, `value.out-of-range` |
+| `baseKnockback` | number | Required | m/s before weight/tuning | 32-bit float; see gameplay constraints | Flat term in launch magnitude; larger values strengthen a launch at every victim percent. | `schema.missing`, `value.out-of-range` |
+| `knockbackGrowth` | number | Required | m/s before weight/tuning | 32-bit float; see gameplay constraints | Term multiplied by 1 + victimPercent / 100; larger values make high-percent victims fly faster. | `schema.missing`, `value.out-of-range` |
+| `stunTicks` | ushort | Required | gate | 0 to 65535 | Zero disables ordinary hitstun; any positive value enables formula-derived stun and is not the stun duration. | `schema.missing`, `value.out-of-range` |
+| `fixedHitstunTicks` | ushort | `0` | ticks | at least 0, at most 240 | Nonzero replaces formula-derived hitstun duration and requires a positive stun gate; larger values hold the victim longer. | `schema.missing`, `value.out-of-range` |
+
+<a id="schema-homing"></a>
+
+### Projectile homing
+
+Location: `projectile.homing`.
+
+| Field | Type or child schema | Required/default | Unit | Scalar range or tokens | Meaning | Diagnostics |
+| --- | --- | --- | --- | --- | --- | --- |
+| `turnDegreesPerTick` | number | Required | degrees/tick | 32-bit float; see gameplay constraints | Maximum homing turn each simulation tick; larger values track a moving target more tightly. | `schema.missing`, `value.out-of-range` |
+
+<a id="schema-perch"></a>
+
+### Projectile perch
+
+Location: `projectile.perch`.
+
+| Field | Type or child schema | Required/default | Unit | Scalar range or tokens | Meaning | Diagnostics |
+| --- | --- | --- | --- | --- | --- | --- |
+| `perchTicks` | ushort | Required | ticks | 0 to 65535 | Time a projectile mark remains perched; larger values keep the mark available longer. | `schema.missing`, `value.out-of-range` |
+| `pop` | object of [Perch release hit](#schema-pop) | Required | object | See meaning and gameplay constraints | Damage and launch when the perched projectile pops; required when perch is present. | `schema.missing`, `value.out-of-range` |
+| `dive` | object of [Projectile dive](#schema-dive) | `null` | object | See meaning and gameplay constraints | Optional rise, mark and downward dive before perching; omit for ordinary perch flight. | `schema.missing`, `value.out-of-range` |
+| `peck` | object of [Perched periodic damage](#schema-peck) | `null` | object | See meaning and gameplay constraints | Optional periodic damage while perched; omit to disable periodic pecks. | `schema.missing`, `value.out-of-range` |
+| `scatterPresentationId` | string or null | `""` | identifier | See meaning and gameplay constraints | Optional declared lifecycle cue; empty text omits that presentation event. | `schema.missing`, `value.out-of-range` |
+
+<a id="schema-pop"></a>
+
+### Perch release hit
+
+Location: `projectile.perch.pop`.
+
+| Field | Type or child schema | Required/default | Unit | Scalar range or tokens | Meaning | Diagnostics |
+| --- | --- | --- | --- | --- | --- | --- |
+| `damage` | number | Required | percent | 32-bit float; see gameplay constraints | Damage added on contact; larger values raise the victim percent and the damage contribution to launch strength. | `schema.missing`, `value.out-of-range` |
+| `angle` | number | Required | degrees | 32-bit float; see gameplay constraints | Vertical launch pitch; larger positive values launch more upward, negative values launch downward. | `schema.missing`, `value.out-of-range` |
+| `baseKnockback` | number | Required | m/s before weight/tuning | 32-bit float; see gameplay constraints | Flat term in launch magnitude; larger values strengthen a launch at every victim percent. | `schema.missing`, `value.out-of-range` |
+| `knockbackGrowth` | number | Required | m/s before weight/tuning | 32-bit float; see gameplay constraints | Term multiplied by 1 + victimPercent / 100; larger values make high-percent victims fly faster. | `schema.missing`, `value.out-of-range` |
+| `stunTicks` | ushort | Required | gate | 0 to 65535 | Zero disables ordinary hitstun; any positive value enables formula-derived stun and is not the stun duration. | `schema.missing`, `value.out-of-range` |
+| `presentationId` | string or null | `""` | identifier | See meaning and gameplay constraints | Declared semantic cue emitted by this event; asset assembly supplies the corresponding effect or sound. | `schema.missing`, `value.out-of-range` |
+
+<a id="schema-dive"></a>
+
+### Projectile dive
+
+Location: `projectile.perch.dive`.
+
+| Field | Type or child schema | Required/default | Unit | Scalar range or tokens | Meaning | Diagnostics |
+| --- | --- | --- | --- | --- | --- | --- |
+| `hoverHeight` | number | Required | m | 32-bit float; see gameplay constraints | Height above the selected spot during the dive setup; larger values start the dive higher. | `schema.missing`, `value.out-of-range` |
+| `maxRiseTicks` | ushort | Required | ticks | 0 to 65535 | Rise-phase timeout; larger values allow more time to reach the hover height. | `schema.missing`, `value.out-of-range` |
+| `markTicks` | ushort | Required | ticks | 0 to 65535 | Warning hold before the dive; larger values give the victim more time to leave the mark. | `schema.missing`, `value.out-of-range` |
+| `diveSpeed` | number | Required | m/s | 32-bit float; see gameplay constraints | Downward dive speed; larger values reach the marked spot sooner. | `schema.missing`, `value.out-of-range` |
+| `noTargetDistance` | number | Required | m | 32-bit float; see gameplay constraints | Forward fallback distance when there is no eligible target; larger values place the move farther ahead. | `schema.missing`, `value.out-of-range` |
+
+<a id="schema-peck"></a>
+
+### Perched periodic damage
+
+Location: `projectile.perch.peck`.
+
+| Field | Type or child schema | Required/default | Unit | Scalar range or tokens | Meaning | Diagnostics |
+| --- | --- | --- | --- | --- | --- | --- |
+| `intervalTicks` | ushort | Required | ticks | 0 to 65535 | Time between repeated emissions or contacts; larger values reduce their frequency. | `schema.missing`, `value.out-of-range` |
+| `damage` | number | Required | percent | 32-bit float; see gameplay constraints | Damage added on contact; larger values raise the victim percent and the damage contribution to launch strength. | `schema.missing`, `value.out-of-range` |
+| `presentationId` | string or null | `""` | identifier | See meaning and gameplay constraints | Declared semantic cue emitted by this event; asset assembly supplies the corresponding effect or sound. | `schema.missing`, `value.out-of-range` |
+
+<a id="schema-placement"></a>
+
+### Presentation placement
+
+Location: `operation.placement`.
+
+| Field | Type or child schema | Required/default | Unit | Scalar range or tokens | Meaning | Diagnostics |
+| --- | --- | --- | --- | --- | --- | --- |
+| `attachmentMode` | enum | `"world"` | enum | `world`, `bone` | world places a cue in the world; bone follows its named bone attachment. | `schema.missing`, `enum.unknown` |
+| `boneId` | string or null | `null` | bone identifier | See meaning and gameplay constraints | Bone point used as the local frame; null attack bones select the fighter root frame. | `schema.missing`, `value.out-of-range` |
+| `localPositionX` | number | `0` | m | 32-bit float; see gameplay constraints | Presentation-only local position; larger values shift the cue along the named axis. | `schema.missing`, `value.out-of-range` |
+| `localPositionY` | number | `0` | m | 32-bit float; see gameplay constraints | Presentation-only local position; larger values shift the cue along the named axis. | `schema.missing`, `value.out-of-range` |
+| `localPositionZ` | number | `0` | m | 32-bit float; see gameplay constraints | Presentation-only local position; larger values shift the cue along the named axis. | `schema.missing`, `value.out-of-range` |
+| `localRotationX` | number | `0` | degrees | 32-bit float; see gameplay constraints | Presentation-only local Euler rotation around the named axis. | `schema.missing`, `value.out-of-range` |
+| `localRotationY` | number | `0` | degrees | 32-bit float; see gameplay constraints | Presentation-only local Euler rotation around the named axis. | `schema.missing`, `value.out-of-range` |
+| `localRotationZ` | number | `0` | degrees | 32-bit float; see gameplay constraints | Presentation-only local Euler rotation around the named axis. | `schema.missing`, `value.out-of-range` |
+| `localScaleX` | number | `1` | ratio | 32-bit float; see gameplay constraints | Presentation-only local scale; larger values enlarge the cue along that axis. | `schema.missing`, `value.out-of-range` |
+| `localScaleY` | number | `1` | ratio | 32-bit float; see gameplay constraints | Presentation-only local scale; larger values enlarge the cue along that axis. | `schema.missing`, `value.out-of-range` |
+| `localScaleZ` | number | `1` | ratio | 32-bit float; see gameplay constraints | Presentation-only local scale; larger values enlarge the cue along that axis. | `schema.missing`, `value.out-of-range` |
+| `durationTicks` | ushort | `28` | ticks | greater than 0 | Length of this stage, volume or timed effect; larger values keep it alive longer in its owning clock. | `schema.missing`, `value.out-of-range` |
+
+<a id="schema-shell"></a>
+
+### Shell settings
+
+Location: `character.json.shell`.
+
+| Field | Type or child schema | Required/default | Unit | Scalar range or tokens | Meaning | Diagnostics |
+| --- | --- | --- | --- | --- | --- | --- |
+| `popOutDeceleration` | number | Required | m/s² | at least 0; at most 600 | Braking after leaving a grounded shell ride; larger values shed carried ride speed faster. | `schema.missing`, `value.out-of-range` |
+| `blockedRecoilSpeed` | number | Required | m/s | at least 0; at most 30 | Upward and backward recoil when a ride meets a head-on wall; larger values bounce harder. | `schema.missing`, `value.out-of-range` |
+| `splash` | object of [Tucked landing splash](#schema-splash) | `null` | object | See meaning and gameplay constraints | Landing hit and pop-up lag for tucked moves; omitted when the fighter has no tuck move. | `schema.missing`, `value.out-of-range` |
+| `ride` | object of [Shell wave ride](#schema-ride) | `null` | object | See meaning and gameplay constraints | Wave movement and catch settings after a ride move; omitted when the fighter has no ride move. | `schema.missing`, `value.out-of-range` |
+
+<a id="schema-splash"></a>
+
+### Tucked landing splash
+
+Location: `shell.splash`.
+
+| Field | Type or child schema | Required/default | Unit | Scalar range or tokens | Meaning | Diagnostics |
+| --- | --- | --- | --- | --- | --- | --- |
+| `hitbox` | object of [Hitbox and command-grab capture volume](#schema-hitbox) | Required | object | See meaning and gameplay constraints | Attack or capture volume using the Hitbox schema; its containing lifecycle constrains timing and hit behavior. | `schema.missing`, `value.out-of-range` |
+| `popUpTicks` | ushort | Required | ticks | at least 1; at most 240 | Landing lag after a tucked splash, whether it hits or misses; larger values delay acting longer. | `schema.missing`, `value.out-of-range` |
+| `presentationId` | string or null | `null` | identifier | See meaning and gameplay constraints | Declared semantic cue emitted by this event; asset assembly supplies the corresponding effect or sound. | `schema.missing`, `value.out-of-range` |
+
+<a id="schema-ride"></a>
+
+### Shell wave ride
+
+Location: `shell.ride`.
+
+| Field | Type or child schema | Required/default | Unit | Scalar range or tokens | Meaning | Diagnostics |
+| --- | --- | --- | --- | --- | --- | --- |
+| `ticks` | ushort | Required | ticks | at least 1; at most 600 | Grounded ride duration; larger values ride longer after touchdown. | `schema.missing`, `value.out-of-range` |
+| `speed` | number | Required | m/s | greater than 0; at most 60 | Travel speed; larger values cover more distance per tick. | `schema.missing`, `value.out-of-range` |
+| `turnDegreesPerSecond` | number | Required | degrees/s | at least 0; at most 720 | Maximum turn rate while charging or riding; larger values steer toward the desired heading faster. | `schema.missing`, `value.out-of-range` |
+| `wave` | object of [Hitbox and command-grab capture volume](#schema-hitbox) | Required | object | See meaning and gameplay constraints | Attack or capture volume using the Hitbox schema; its containing lifecycle constrains timing and hit behavior. | `schema.missing`, `value.out-of-range` |
+| `hitPresentationId` | string or null | `null` | identifier | See meaning and gameplay constraints | Cue emitted for a confirmed contact; a hitbox-specific value identifies a sweetspot and overrides the slot cue. | `schema.missing`, `value.out-of-range` |
+
+<a id="schema-op-setVelocity"></a>
+
+### setVelocity operation
+
+Location: `slot.timeline.stages[].operations[]`.
+
+Operation unit: `metersPerSecond`.
+
+Additional budget counters: 0 hitboxes, 0 projectiles, 0 capability starts.
+
+| Field | Type or child schema | Required/default | Unit | Scalar range or tokens | Meaning | Diagnostics |
+| --- | --- | --- | --- | --- | --- | --- |
+| `kind` | enum | Required | enum | `setVelocity` | Chooses the engine operation and its required fields; arbitrary creator code is not accepted. | `schema.missing`, `enum.unknown` |
+| `tick` | ushort | Required | ticks | 0 to 65535 | Zero-based stage age at which this operation executes; larger values execute later and must stay inside the stage. | `schema.missing`, `value.out-of-range` |
+| `unit` | enum | Required | enum | `metersPerSecond` | Required contract token for this operation; it does not convert numeric field values. | `schema.missing`, `unit.unknown` |
+| `velocityMode` | enum | Required | enum | `absolute`, `additive`, `vertical` | absolute replaces world velocity, additive adds world velocity, vertical replaces only vertical speed. | `schema.missing`, `enum.unknown` |
+| `x` | number | Required | m/s | 32-bit float; see gameplay constraints | World-axis velocity component; absolute replaces it, additive adds it, vertical uses only Y. | `schema.missing`, `value.out-of-range` |
+| `y` | number | Required | m/s | 32-bit float; see gameplay constraints | World-axis velocity component; absolute replaces it, additive adds it, vertical uses only Y. | `schema.missing`, `value.out-of-range` |
+| `z` | number | Required | m/s | 32-bit float; see gameplay constraints | World-axis velocity component; absolute replaces it, additive adds it, vertical uses only Y. | `schema.missing`, `value.out-of-range` |
+
+<a id="schema-op-forwardLunge"></a>
+
+### forwardLunge operation
+
+Location: `slot.timeline.stages[].operations[]`.
+
+Operation unit: `metersPerSecond`.
+
+Additional budget counters: 0 hitboxes, 0 projectiles, 0 capability starts.
+
+| Field | Type or child schema | Required/default | Unit | Scalar range or tokens | Meaning | Diagnostics |
+| --- | --- | --- | --- | --- | --- | --- |
+| `kind` | enum | Required | enum | `forwardLunge` | Chooses the engine operation and its required fields; arbitrary creator code is not accepted. | `schema.missing`, `enum.unknown` |
+| `tick` | ushort | Required | ticks | 0 to 65535 | Zero-based stage age at which this operation executes; larger values execute later and must stay inside the stage. | `schema.missing`, `value.out-of-range` |
+| `unit` | enum | Required | enum | `metersPerSecond` | Required contract token for this operation; it does not convert numeric field values. | `schema.missing`, `unit.unknown` |
+| `speed` | number | Required | m/s | greater than 0 | Travel speed; larger values cover more distance per tick. | `schema.missing`, `value.out-of-range` |
+| `durationTicks` | ushort | Required | ticks | greater than 0 | Length of this stage, volume or timed effect; larger values keep it alive longer in its owning clock. | `schema.missing`, `value.out-of-range` |
+| `stopInAttackRange` | boolean | `false` | boolean | See meaning and gameplay constraints | Stops the lunge when its first later hitbox geometry can reach an opponent; requires that same-stage hitbox. | `schema.missing`, `value.out-of-range` |
+
+<a id="schema-op-gravityWindow"></a>
+
+### gravityWindow operation
+
+Location: `slot.timeline.stages[].operations[]`.
+
+Operation unit: `normalized`.
+
+Additional budget counters: 0 hitboxes, 0 projectiles, 0 capability starts.
+
+| Field | Type or child schema | Required/default | Unit | Scalar range or tokens | Meaning | Diagnostics |
+| --- | --- | --- | --- | --- | --- | --- |
+| `kind` | enum | Required | enum | `gravityWindow` | Chooses the engine operation and its required fields; arbitrary creator code is not accepted. | `schema.missing`, `enum.unknown` |
+| `tick` | ushort | Required | ticks | 0 to 65535 | Zero-based stage age at which this operation executes; larger values execute later and must stay inside the stage. | `schema.missing`, `value.out-of-range` |
+| `unit` | enum | Required | enum | `normalized` | Required contract token for this operation; it does not convert numeric field values. | `schema.missing`, `unit.unknown` |
+| `gravityScale` | number | Required | ratio | at least 0, at most 1 | Fraction of ordinary airborne gravity; larger values increase falling acceleration, zero suppresses gravity. | `schema.missing`, `value.out-of-range` |
+| `durationTicks` | ushort | Required | ticks | greater than 0 | Length of this stage, volume or timed effect; larger values keep it alive longer in its owning clock. | `schema.missing`, `value.out-of-range` |
+
+<a id="schema-op-armorWindow"></a>
+
+### armorWindow operation
+
+Location: `slot.timeline.stages[].operations[]`.
+
+Operation unit: `ticks`.
+
+Additional budget counters: 0 hitboxes, 0 projectiles, 0 capability starts.
+
+| Field | Type or child schema | Required/default | Unit | Scalar range or tokens | Meaning | Diagnostics |
+| --- | --- | --- | --- | --- | --- | --- |
+| `kind` | enum | Required | enum | `armorWindow` | Chooses the engine operation and its required fields; arbitrary creator code is not accepted. | `schema.missing`, `enum.unknown` |
+| `tick` | ushort | Required | ticks | 0 to 65535 | Zero-based stage age at which this operation executes; larger values execute later and must stay inside the stage. | `schema.missing`, `value.out-of-range` |
+| `unit` | enum | Required | enum | `ticks` | Required contract token for this operation; it does not convert numeric field values. | `schema.missing`, `unit.unknown` |
+| `durationTicks` | ushort | Required | ticks | greater than 0 | Length of this stage, volume or timed effect; larger values keep it alive longer in its owning clock. | `schema.missing`, `value.out-of-range` |
+
+<a id="schema-op-spawnHitbox"></a>
+
+### spawnHitbox operation
+
+Location: `slot.timeline.stages[].operations[]`.
+
+Operation unit: `meters`.
+
+Additional budget counters: 1 hitboxes, 0 projectiles, 0 capability starts.
+
+| Field | Type or child schema | Required/default | Unit | Scalar range or tokens | Meaning | Diagnostics |
+| --- | --- | --- | --- | --- | --- | --- |
+| `kind` | enum | Required | enum | `spawnHitbox` | Chooses the engine operation and its required fields; arbitrary creator code is not accepted. | `schema.missing`, `enum.unknown` |
+| `tick` | ushort | Required | ticks | 0 to 65535 | Zero-based stage age at which this operation executes; larger values execute later and must stay inside the stage. | `schema.missing`, `value.out-of-range` |
+| `unit` | enum | Required | enum | `meters` | Required contract token for this operation; it does not convert numeric field values. | `schema.missing`, `unit.unknown` |
+| `hitbox` | object of [Hitbox and command-grab capture volume](#schema-hitbox) | Required | object | See meaning and gameplay constraints | Attack or capture volume using the Hitbox schema; its containing lifecycle constrains timing and hit behavior. | `schema.missing`, `value.out-of-range` |
+
+<a id="schema-op-spawnProjectile"></a>
+
+### spawnProjectile operation
+
+Location: `slot.timeline.stages[].operations[]`.
+
+Operation unit: `meters`.
+
+Additional budget counters: 0 hitboxes, 1 projectiles, 0 capability starts.
+
+| Field | Type or child schema | Required/default | Unit | Scalar range or tokens | Meaning | Diagnostics |
+| --- | --- | --- | --- | --- | --- | --- |
+| `kind` | enum | Required | enum | `spawnProjectile` | Chooses the engine operation and its required fields; arbitrary creator code is not accepted. | `schema.missing`, `enum.unknown` |
+| `tick` | ushort | Required | ticks | 0 to 65535 | Zero-based stage age at which this operation executes; larger values execute later and must stay inside the stage. | `schema.missing`, `value.out-of-range` |
+| `unit` | enum | Required | enum | `meters` | Required contract token for this operation; it does not convert numeric field values. | `schema.missing`, `unit.unknown` |
+| `projectile` | object of [Projectile](#schema-projectile) | Required | object | See meaning and gameplay constraints | Projectile launch and contact settings using the Projectile schema; larger speed travels farther per tick. | `schema.missing`, `value.out-of-range` |
+
+<a id="schema-op-setAimState"></a>
+
+### setAimState operation
+
+Location: `slot.timeline.stages[].operations[]`.
+
+Operation unit: `ticks`.
+
+Additional budget counters: 0 hitboxes, 0 projectiles, 0 capability starts.
+
+| Field | Type or child schema | Required/default | Unit | Scalar range or tokens | Meaning | Diagnostics |
+| --- | --- | --- | --- | --- | --- | --- |
+| `kind` | enum | Required | enum | `setAimState` | Chooses the engine operation and its required fields; arbitrary creator code is not accepted. | `schema.missing`, `enum.unknown` |
+| `tick` | ushort | Required | ticks | 0 to 65535 | Zero-based stage age at which this operation executes; larger values execute later and must stay inside the stage. | `schema.missing`, `value.out-of-range` |
+| `unit` | enum | Required | enum | `ticks` | Required contract token for this operation; it does not convert numeric field values. | `schema.missing`, `unit.unknown` |
+| `aimState` | enum | Required | enum | `none`, `groundCursor`, `cameraForward3D`, `groundVector` | Selects aiming input; none disables aim, groundCursor selects a point, groundVector a horizontal direction, cameraForward3D a 3D direction. | `schema.missing`, `enum.unknown` |
+
+<a id="schema-op-startCapability"></a>
+
+### startCapability operation
+
+Location: `slot.timeline.stages[].operations[]`.
+
+Operation unit: `ticks`.
+
+Additional budget counters: 0 hitboxes, 0 projectiles, 1 capability starts.
+
+| Field | Type or child schema | Required/default | Unit | Scalar range or tokens | Meaning | Diagnostics |
+| --- | --- | --- | --- | --- | --- | --- |
+| `kind` | enum | Required | enum | `startCapability` | Chooses the engine operation and its required fields; arbitrary creator code is not accepted. | `schema.missing`, `enum.unknown` |
+| `tick` | ushort | Required | ticks | 0 to 65535 | Zero-based stage age at which this operation executes; larger values execute later and must stay inside the stage. | `schema.missing`, `value.out-of-range` |
+| `unit` | enum | Required | enum | `ticks` | Required contract token for this operation; it does not convert numeric field values. | `schema.missing`, `unit.unknown` |
+| `capabilityId` | string | Required | identifier | See meaning and gameplay constraints | Stable engine capability ID; use a public ID and declare the same ID in capabilityRequirements. | `schema.missing`, `value.out-of-range` |
+| `capabilityVersion` | string | Required | version | See meaning and gameplay constraints | Exact capability version string; it must match the supported version and the requirement declaration. | `schema.missing`, `value.out-of-range` |
+| `parameters` | object | Required | object | See meaning and gameplay constraints | Parameters for capabilityId; use the matching public capability schema, not a mixed parameter bag. | `schema.missing`, `value.out-of-range` |
+
+<a id="schema-op-emitPresentation"></a>
+
+### emitPresentation operation
+
+Location: `slot.timeline.stages[].operations[]`.
+
+Operation unit: `ticks`.
+
+Additional budget counters: 0 hitboxes, 0 projectiles, 0 capability starts.
+
+| Field | Type or child schema | Required/default | Unit | Scalar range or tokens | Meaning | Diagnostics |
+| --- | --- | --- | --- | --- | --- | --- |
+| `kind` | enum | Required | enum | `emitPresentation` | Chooses the engine operation and its required fields; arbitrary creator code is not accepted. | `schema.missing`, `enum.unknown` |
+| `tick` | ushort | Required | ticks | 0 to 65535 | Zero-based stage age at which this operation executes; larger values execute later and must stay inside the stage. | `schema.missing`, `value.out-of-range` |
+| `unit` | enum | Required | enum | `ticks` | Required contract token for this operation; it does not convert numeric field values. | `schema.missing`, `unit.unknown` |
+| `presentationId` | string | Required | identifier | See meaning and gameplay constraints | Declared semantic cue emitted by this event; asset assembly supplies the corresponding effect or sound. | `schema.missing`, `value.out-of-range` |
+| `placement` | object of [Presentation placement](#schema-placement) | `{}` | object | See meaning and gameplay constraints | Presentation-only attachment and transform; omission uses world attachment and the Placement defaults. | `schema.missing`, `value.out-of-range` |
+| `condition` | enum | `"always"` | enum | `always`, `sweetspotHit` | always plays on every activation; sweetspotHit waits for a confirmed hit from a hitbox with its own hit cue. | `schema.missing`, `enum.unknown` |
+
+<a id="schema-op-completeTimeline"></a>
+
+### completeTimeline operation
+
+Location: `slot.timeline.stages[].operations[]`.
+
+Operation unit: `ticks`.
+
+Additional budget counters: 0 hitboxes, 0 projectiles, 0 capability starts.
+
+| Field | Type or child schema | Required/default | Unit | Scalar range or tokens | Meaning | Diagnostics |
+| --- | --- | --- | --- | --- | --- | --- |
+| `kind` | enum | Required | enum | `completeTimeline` | Chooses the engine operation and its required fields; arbitrary creator code is not accepted. | `schema.missing`, `enum.unknown` |
+| `tick` | ushort | Required | ticks | 0 to 65535 | Zero-based stage age at which this operation executes; larger values execute later and must stay inside the stage. | `schema.missing`, `value.out-of-range` |
+| `unit` | enum | Required | enum | `ticks` | Required contract token for this operation; it does not convert numeric field values. | `schema.missing`, `unit.unknown` |
+
+<a id="schema-op-swapForm"></a>
+
+### swapForm operation
+
+Location: `slot.timeline.stages[].operations[]`.
+
+Operation unit: `ticks`.
+
+Additional budget counters: 0 hitboxes, 0 projectiles, 0 capability starts.
+
+| Field | Type or child schema | Required/default | Unit | Scalar range or tokens | Meaning | Diagnostics |
+| --- | --- | --- | --- | --- | --- | --- |
+| `kind` | enum | Required | enum | `swapForm` | Chooses the engine operation and its required fields; arbitrary creator code is not accepted. | `schema.missing`, `enum.unknown` |
+| `tick` | ushort | Required | ticks | 0 to 65535 | Zero-based stage age at which this operation executes; larger values execute later and must stay inside the stage. | `schema.missing`, `value.out-of-range` |
+| `unit` | enum | Required | enum | `ticks` | Required contract token for this operation; it does not convert numeric field values. | `schema.missing`, `unit.unknown` |
+
+<a id="schema-op-startupAimCorrection"></a>
+
+### startupAimCorrection operation
+
+Location: `slot.timeline.stages[].operations[]`.
+
+Operation unit: `ticks`.
+
+Additional budget counters: 0 hitboxes, 0 projectiles, 0 capability starts.
+
+| Field | Type or child schema | Required/default | Unit | Scalar range or tokens | Meaning | Diagnostics |
+| --- | --- | --- | --- | --- | --- | --- |
+| `kind` | enum | Required | enum | `startupAimCorrection` | Chooses the engine operation and its required fields; arbitrary creator code is not accepted. | `schema.missing`, `enum.unknown` |
+| `tick` | ushort | Required | ticks | 0 to 65535 | Zero-based stage age at which this operation executes; larger values execute later and must stay inside the stage. | `schema.missing`, `value.out-of-range` |
+| `unit` | enum | Required | enum | `ticks` | Required contract token for this operation; it does not convert numeric field values. | `schema.missing`, `unit.unknown` |
+| `endTick` | ushort | Required | ticks | 0 to 65535 | Exclusive end of startup aim correction; larger values allow correction later, before the first launch commitment. | `schema.missing`, `value.out-of-range` |
+| `acquisitionRange` | number | Required | m | greater than 0, at most 32 | Maximum opponent acquisition distance; larger values admit farther targets. | `schema.missing`, `value.out-of-range` |
+| `acquisitionHalfAngleDegrees` | number | Required | degrees | greater than 0, at most 180 | Half-angle around facing for target acquisition; larger values admit targets farther to the side or behind. | `schema.missing`, `value.out-of-range` |
+| `maxYawDegrees` | number | Required | degrees | at least 0, at most 180 | Maximum accumulated horizontal aim correction; larger values allow a greater turn from entry facing. | `schema.missing`, `value.out-of-range` |
+| `maxPitchDegrees` | number | Required | degrees | at least 0, at most 90 | Maximum accumulated vertical pose correction; larger values allow steeper aim without moving the collision capsule. | `schema.missing`, `value.out-of-range` |
+| `yawDegreesPerSecond` | number | Required | degrees/s | at least 0, at most 1440 | Maximum aim correction rate; larger values turn faster within the allowed correction window. | `schema.missing`, `value.out-of-range` |
+| `pitchDegreesPerSecond` | number | Required | degrees/s | at least 0, at most 1440 | Maximum aim correction rate; larger values turn faster within the allowed correction window. | `schema.missing`, `value.out-of-range` |
+
+<a id="schema-cap-aimed-recovery-v1"></a>
+
+### aimed-recovery.v1 parameters
+
+Location: `startCapability.parameters`.
+
+Additional budget counters: 0 hitboxes, 0 projectiles, 0 capability starts.
+
+| Field | Type or child schema | Required/default | Unit | Scalar range or tokens | Meaning | Diagnostics |
+| --- | --- | --- | --- | --- | --- | --- |
+| `startupTicks` | ushort | Required | ticks | at least 1; at most 120 | Automatic recovery setup before the movement-input launch; larger values delay launch. | `schema.missing`, `value.out-of-range` |
+| `verticalSpeed` | number | Required | m/s | greater than 0; at most 60 | Neutral-input recovery launch speed upward; larger values give more height. | `schema.missing`, `value.out-of-range` |
+| `directionalVerticalSpeed` | number | Required | m/s | greater than 0 | Recovery launch speed upward at full directional input; larger values retain more height while traveling sideways. | `schema.missing`, `value.out-of-range` |
+| `horizontalSpeed` | number | Required | m/s | at least 0; at most 60 | Recovery launch horizontal speed at full input; larger values give more sideways reach. | `schema.missing`, `value.out-of-range` |
+| `preparationRiseSpeed` | number | Required | m/s | at least 0; at most 4 | Upward speed during recovery setup with gravity suppressed; larger values rise more before launch. | `schema.missing`, `value.out-of-range` |
+| `hop` | object of [Recovery setup hop](#schema-recoveryHop) | `null` | object | See meaning and gameplay constraints | Optional fixed setup hop before recovery launch; requires zero preparationRiseSpeed. | `schema.missing`, `value.out-of-range` |
+| `riseSteerAcceleration` | number | `0` | m/s² | at least 0; at most 120 | Post-launch stick steering acceleration during recovery; zero disables steering and larger values redirect drift faster. | `schema.missing`, `value.out-of-range` |
+
+<a id="schema-recoveryHop"></a>
+
+### Recovery setup hop
+
+Location: `aimed-recovery.parameters.hop`.
+
+| Field | Type or child schema | Required/default | Unit | Scalar range or tokens | Meaning | Diagnostics |
+| --- | --- | --- | --- | --- | --- | --- |
+| `startTicks` | ushort | Required | ticks | at least 1 | Start of the automatic setup hop; larger values delay the hop within recovery startup. | `schema.missing`, `value.out-of-range` |
+| `contactTicks` | ushort | Required | ticks | 0 to 65535 | End of the setup hop before launch; larger values lengthen its travel interval. | `schema.missing`, `value.out-of-range` |
+| `forwardDistance` | number | Required | m | greater than 0; at most 3 | Setup hop travel along entry facing; larger values move farther forward. | `schema.missing`, `value.out-of-range` |
+| `arcHeight` | number | Required | m | greater than 0; at most 3 | Setup hop height above its endpoint chord; larger values make a taller arc. | `schema.missing`, `value.out-of-range` |
+| `landingHeight` | number | Required | m | at least 0; at most 1 | Setup hop endpoint height above its start; larger values finish the hop higher. | `schema.missing`, `value.out-of-range` |
+
+<a id="schema-cap-charged-projectile-v1"></a>
+
+### charged-projectile.v1 parameters
+
+Location: `startCapability.parameters`.
+
+Additional budget counters: 0 hitboxes, 1 projectiles, 0 capability starts.
+
+| Field | Type or child schema | Required/default | Unit | Scalar range or tokens | Meaning | Diagnostics |
+| --- | --- | --- | --- | --- | --- | --- |
+| `maxChargeTicks` | ushort | Required | ticks | 0 to 65535 | Hold-time cap; larger values permit a longer charge before maximum strength. | `schema.missing`, `value.out-of-range` |
+| `tier2Ticks` | ushort | Required | ticks | 0 to 65535 | Charge threshold for the named projectile radius tier; larger values require a longer hold to reach it. | `schema.missing`, `value.out-of-range` |
+| `tier3Ticks` | ushort | Required | ticks | 0 to 65535 | Charge threshold for the named projectile radius tier; larger values require a longer hold to reach it. | `schema.missing`, `value.out-of-range` |
+| `fireTriggerTick` | ushort | Required | ticks | 0 to 65535 | Shot startup after activation or release, depending on lifecycle; larger values delay the shot. | `schema.missing`, `value.out-of-range` |
+| `tier2Radius` | number | Required | m | 32-bit float; see gameplay constraints | Projectile radius for the named charge tier; larger values make that tier wider. | `schema.missing`, `value.out-of-range` |
+| `tier3Radius` | number | Required | m | 32-bit float; see gameplay constraints | Projectile radius for the named charge tier; larger values make that tier wider. | `schema.missing`, `value.out-of-range` |
+| `projectile` | object of [Projectile](#schema-projectile) | Required | object | See meaning and gameplay constraints | Projectile launch and contact settings using the Projectile schema; larger speed travels farther per tick. | `schema.missing`, `value.out-of-range` |
+
+<a id="schema-cap-charged-stream-v1"></a>
+
+### charged-stream.v1 parameters
+
+Location: `startCapability.parameters`.
+
+Additional budget counters: 0 hitboxes, 0 projectiles, 0 capability starts.
+
+| Field | Type or child schema | Required/default | Unit | Scalar range or tokens | Meaning | Diagnostics |
+| --- | --- | --- | --- | --- | --- | --- |
+| `maxChargeTicks` | ushort | Required | ticks | 0 to 65535 | Hold-time cap; larger values permit a longer charge before maximum strength. | `schema.missing`, `value.out-of-range` |
+| `fireTriggerTick` | ushort | Required | ticks | 0 to 65535 | Shot startup after activation or release, depending on lifecycle; larger values delay the shot. | `schema.missing`, `value.out-of-range` |
+| `emitIntervalTicks` | ushort | Required | ticks | 0 to 65535 | Time between repeated emissions or contacts; larger values reduce their frequency. | `schema.missing`, `value.out-of-range` |
+| `minStreamTicks` | ushort | Required | ticks | 0 to 65535 | Stream duration at minimum or maximum charge; larger values keep the spray running longer. | `schema.missing`, `value.out-of-range` |
+| `maxStreamTicks` | ushort | Required | ticks | 0 to 65535 | Stream duration at minimum or maximum charge; larger values keep the spray running longer. | `schema.missing`, `value.out-of-range` |
+| `recoveryTicks` | ushort | Required | ticks | 0 to 65535 | Committed recovery after the lifecycle action; larger values delay the next action. | `schema.missing`, `value.out-of-range` |
+| `maxBaseKnockback` | number | Required | m/s before weight/tuning | 32-bit float; see gameplay constraints | Stream projectile base launch term at full charge; larger values push harder after a long hold. | `schema.missing`, `value.out-of-range` |
+| `minRecoilSpeed` | number | Required | m/s | 32-bit float; see gameplay constraints | Airborne owner recoil at minimum or maximum charge; larger values push the shooter back faster. | `schema.missing`, `value.out-of-range` |
+| `maxRecoilSpeed` | number | Required | m/s | 32-bit float; see gameplay constraints | Airborne owner recoil at minimum or maximum charge; larger values push the shooter back faster. | `schema.missing`, `value.out-of-range` |
+| `projectile` | object of [Projectile](#schema-projectile) | Required | object | See meaning and gameplay constraints | Projectile launch and contact settings using the Projectile schema; larger speed travels farther per tick. | `schema.missing`, `value.out-of-range` |
+| `sprayAnimationId` | string or null | `""` | animation identifier | See meaning and gameplay constraints | Semantic clip for this named lifecycle phase; list it in the stage as required by that capability. | `schema.missing`, `value.out-of-range` |
+| `sprayLoopTicks` | ushort | `0` | ticks | 0 to 65535 | Playback loop duration for the named phase clip; larger values stretch each visual loop. | `schema.missing`, `value.out-of-range` |
+| `endAnimationId` | string or null | `""` | animation identifier | See meaning and gameplay constraints | Semantic clip for this named lifecycle phase; list it in the stage as required by that capability. | `schema.missing`, `value.out-of-range` |
+
+<a id="schema-cap-finger-guns-v1"></a>
+
+### finger-guns.v1 parameters
+
+Location: `startCapability.parameters`.
+
+Additional budget counters: 0 hitboxes, 0 projectiles, 0 capability starts.
+
+| Field | Type or child schema | Required/default | Unit | Scalar range or tokens | Meaning | Diagnostics |
+| --- | --- | --- | --- | --- | --- | --- |
+| `fireTriggerTick` | ushort | Required | ticks | at least 1; at most 120 | Shot startup after activation or release, depending on lifecycle; larger values delay the shot. | `schema.missing`, `value.out-of-range` |
+| `recoveryTicks` | ushort | Required | ticks | at least 1; at most 240 | Committed recovery after the lifecycle action; larger values delay the next action. | `schema.missing`, `value.out-of-range` |
+| `shotsPerReload` | byte | Required | count | at least 1; at most 24 | Shots fired before the committed reload; larger values allow more shots per reload. | `schema.missing`, `value.out-of-range` |
+| `reloadTicks` | ushort | Required | ticks | at least 1; at most 600 | Committed reload after the last shot; larger values delay the next available shot. | `schema.missing`, `value.out-of-range` |
+| `reloadAnimationId` | string | Required | animation identifier | See meaning and gameplay constraints | Semantic clip for this named lifecycle phase; list it in the stage as required by that capability. | `schema.missing`, `value.out-of-range` |
+| `airMaxFallSpeed` | number | Required | m/s | at least 0; at most 30 | Downward speed cap during the airborne shot; larger values permit a faster fall. | `schema.missing`, `value.out-of-range` |
+| `airRecoilSpeed` | number | Required | m/s | at least 0; at most 30 | Airborne recoil from a finger-gun shot; larger values push the owner back faster. | `schema.missing`, `value.out-of-range` |
+| `projectile` | object of [Projectile](#schema-projectile) | Required | object | See meaning and gameplay constraints | Projectile launch and contact settings using the Projectile schema; larger speed travels farther per tick. | `schema.missing`, `value.out-of-range` |
+
+<a id="schema-cap-dash-strike-v1"></a>
+
+### dash-strike.v1 parameters
+
+Location: `startCapability.parameters`.
+
+Additional budget counters: 2 hitboxes, 0 projectiles, 0 capability starts.
+
+| Field | Type or child schema | Required/default | Unit | Scalar range or tokens | Meaning | Diagnostics |
+| --- | --- | --- | --- | --- | --- | --- |
+| `distance` | number | Required | m | greater than 0; at most 12 | Authored forward travel distance; larger values place the action farther ahead. | `schema.missing`, `value.out-of-range` |
+| `speed` | number | Required | m/s | greater than 0; at most 60 | Travel speed; larger values cover more distance per tick. | `schema.missing`, `value.out-of-range` |
+| `tipPoseTick` | ushort | Required | ticks | 0 to 65535 | Pose sample used for the dash tip contact; larger values sample later in its authored motion. | `schema.missing`, `value.out-of-range` |
+| `recoveryTicks` | ushort | Required | ticks | at least 1; at most 120 | Committed recovery after the lifecycle action; larger values delay the next action. | `schema.missing`, `value.out-of-range` |
+| `lightHitbox` | object of [Hitbox and command-grab capture volume](#schema-hitbox) | Required | object | See meaning and gameplay constraints | Attack or capture volume using the Hitbox schema; its containing lifecycle constrains timing and hit behavior. | `schema.missing`, `value.out-of-range` |
+| `tipHitbox` | object of [Hitbox and command-grab capture volume](#schema-hitbox) | Required | object | See meaning and gameplay constraints | Attack or capture volume using the Hitbox schema; its containing lifecycle constrains timing and hit behavior. | `schema.missing`, `value.out-of-range` |
+| `tipPresentationId` | string | Required | identifier | See meaning and gameplay constraints | Declared cue emitted for the dash endpoint sweetspot contact. | `schema.missing`, `value.out-of-range` |
+
+<a id="schema-cap-flash-cut-v1"></a>
+
+### flash-cut.v1 parameters
+
+Location: `startCapability.parameters`.
+
+Additional budget counters: 1 hitboxes, 0 projectiles, 0 capability starts.
+
+| Field | Type or child schema | Required/default | Unit | Scalar range or tokens | Meaning | Diagnostics |
+| --- | --- | --- | --- | --- | --- | --- |
+| `stanceTicks` | ushort | Required | ticks | at least 1; at most 120 | Flash-cut target collection stance duration; larger values delay the lock and travel. | `schema.missing`, `value.out-of-range` |
+| `lockRange` | number | Required | m | greater than 0; at most 20 | Maximum target distance; larger values allow the lifecycle to reach farther targets. | `schema.missing`, `value.out-of-range` |
+| `maxTargets` | ushort | Required | count | at least 1; at most 7 | Maximum opponents selected by the flash-cut stance; larger values allow more legs. | `schema.missing`, `value.out-of-range` |
+| `legTicks` | ushort | Required | ticks | at least 1; at most 30 | Travel duration for each flash-cut leg; larger values slow each pass. | `schema.missing`, `value.out-of-range` |
+| `passThroughDistance` | number | Required | m | at least 0; at most 3 | Distance beyond a locked victim for a flash-cut leg endpoint; larger values travel farther past them. | `schema.missing`, `value.out-of-range` |
+| `sheatheTicks` | ushort | Required | ticks | at least 1; at most 120 | Delay after the final leg before held cuts release; larger values hold the finish longer. | `schema.missing`, `value.out-of-range` |
+| `revealLeadTicks` | ushort | Required | ticks | 0 to 65535 | Cue lead before the flash-cut release; larger values reveal the finish earlier. | `schema.missing`, `value.out-of-range` |
+| `recoveryTicks` | ushort | Required | ticks | at least 1; at most 120 | Committed recovery after the lifecycle action; larger values delay the next action. | `schema.missing`, `value.out-of-range` |
+| `whiffTicks` | ushort | Required | ticks | at least 1; at most 120 | Flash-cut recovery when no target was locked; larger values punish a missed stance longer. | `schema.missing`, `value.out-of-range` |
+| `cutHitbox` | object of [Hitbox and command-grab capture volume](#schema-hitbox) | Required | object | See meaning and gameplay constraints | Attack or capture volume using the Hitbox schema; its containing lifecycle constrains timing and hit behavior. | `schema.missing`, `value.out-of-range` |
+| `stanceAnimationId` | string | Required | animation identifier | See meaning and gameplay constraints | Semantic clip for this named lifecycle phase; list it in the stage as required by that capability. | `schema.missing`, `value.out-of-range` |
+| `legAnimationId` | string | Required | animation identifier | See meaning and gameplay constraints | Semantic clip for this named lifecycle phase; list it in the stage as required by that capability. | `schema.missing`, `value.out-of-range` |
+| `sheatheAnimationId` | string | Required | animation identifier | See meaning and gameplay constraints | Semantic clip for this named lifecycle phase; list it in the stage as required by that capability. | `schema.missing`, `value.out-of-range` |
+| `lockPresentationId` | string | Required | identifier | See meaning and gameplay constraints | Declared cue for the named lifecycle event; empty text disables optional cues. | `schema.missing`, `value.out-of-range` |
+| `revealPresentationId` | string | Required | identifier | See meaning and gameplay constraints | Declared cue for the named lifecycle event; empty text disables optional cues. | `schema.missing`, `value.out-of-range` |
+| `sheathePresentationId` | string | Required | identifier | See meaning and gameplay constraints | Declared cue for the named lifecycle event; empty text disables optional cues. | `schema.missing`, `value.out-of-range` |
+| `popPresentationId` | string | Required | identifier | See meaning and gameplay constraints | Declared cue for the named lifecycle event; empty text disables optional cues. | `schema.missing`, `value.out-of-range` |
+
+<a id="schema-cap-targeted-leap-v2"></a>
+
+### targeted-leap.v2 parameters
+
+Location: `startCapability.parameters`.
+
+Additional budget counters: 1 hitboxes, 0 projectiles, 0 capability starts.
+
+| Field | Type or child schema | Required/default | Unit | Scalar range or tokens | Meaning | Diagnostics |
+| --- | --- | --- | --- | --- | --- | --- |
+| `riseTicks` | ushort | Required | ticks | at least 1; at most 240 | Targeted-leap upward phase duration; larger values take longer to reach the authored rise height. | `schema.missing`, `value.out-of-range` |
+| `riseHeight` | number | Required | m | greater than 0; at most 30 | Targeted-leap height above the entry position; larger values rise higher before hanging. | `schema.missing`, `value.out-of-range` |
+| `hangTicks` | ushort | Required | ticks | at least 1; at most 240 | Targeted-leap tracking hold before the destination locks; larger values wait longer before dropping. | `schema.missing`, `value.out-of-range` |
+| `dropTicks` | ushort | Required | ticks | at least 1; at most 240 | Targeted-leap drop travel duration; larger values take longer to reach the locked spot. | `schema.missing`, `value.out-of-range` |
+| `maxRange` | number | Required | m | greater than 0; at most 60 | Maximum target distance; larger values allow the lifecycle to reach farther targets. | `schema.missing`, `value.out-of-range` |
+| `noTargetDistance` | number | Required | m | 32-bit float; see gameplay constraints | Forward fallback distance when there is no eligible target; larger values place the move farther ahead. | `schema.missing`, `value.out-of-range` |
+| `maxFallTicks` | ushort | Required | ticks | at least 1; at most 600 | Targeted-leap free-fall timeout after the drop; larger values allow more time to find a real landing. | `schema.missing`, `value.out-of-range` |
+| `hitRecoveryTicks` | ushort | Required | ticks | 0 to 65535 | Recovery after an unshielded hit or a miss/shield contact; larger values delay acting longer for that outcome. | `schema.missing`, `value.out-of-range` |
+| `missRecoveryTicks` | ushort | Required | ticks | at least 0; at most 600 | Recovery after an unshielded hit or a miss/shield contact; larger values delay acting longer for that outcome. | `schema.missing`, `value.out-of-range` |
+| `hitbox` | object of [Hitbox and command-grab capture volume](#schema-hitbox) | Required | object | See meaning and gameplay constraints | Attack or capture volume using the Hitbox schema; its containing lifecycle constrains timing and hit behavior. | `schema.missing`, `value.out-of-range` |
+| `riseAnimationId` | string or null | Required | animation identifier | See meaning and gameplay constraints | Semantic clip for this named lifecycle phase; list it in the stage as required by that capability. | `schema.missing`, `value.out-of-range` |
+| `hangAnimationId` | string or null | Required | animation identifier | See meaning and gameplay constraints | Semantic clip for this named lifecycle phase; list it in the stage as required by that capability. | `schema.missing`, `value.out-of-range` |
+| `hangPoseTick` | ushort | Required | ticks | 0 to 65535 | Pose or animation seek sample for the named leap phase; larger values seek farther into that clip. | `schema.missing`, `value.out-of-range` |
+| `dropAnimationId` | string or null | Required | animation identifier | See meaning and gameplay constraints | Semantic clip for this named lifecycle phase; list it in the stage as required by that capability. | `schema.missing`, `value.out-of-range` |
+| `landingAnimationId` | string or null | Required | animation identifier | See meaning and gameplay constraints | Semantic clip for this named lifecycle phase; list it in the stage as required by that capability. | `schema.missing`, `value.out-of-range` |
+| `hitLandingSeekTick` | ushort | Required | ticks | 0 to 65535 | Pose or animation seek sample for the named leap phase; larger values seek farther into that clip. | `schema.missing`, `value.out-of-range` |
+| `risePresentationId` | string or null | Required | identifier | See meaning and gameplay constraints | Declared cue for the named lifecycle event; empty text disables optional cues. | `schema.missing`, `value.out-of-range` |
+| `hangPresentationId` | string or null | Required | identifier | See meaning and gameplay constraints | Declared cue for the named lifecycle event; empty text disables optional cues. | `schema.missing`, `value.out-of-range` |
+| `lockPresentationId` | string or null | Required | identifier | See meaning and gameplay constraints | Declared cue for the named lifecycle event; empty text disables optional cues. | `schema.missing`, `value.out-of-range` |
+| `landingPresentationId` | string or null | `""` | identifier | See meaning and gameplay constraints | Declared cue for the named lifecycle event; empty text disables optional cues. | `schema.missing`, `value.out-of-range` |
+
+<a id="schema-cap-steered-charge-v2"></a>
+
+### steered-charge.v2 parameters
+
+Location: `startCapability.parameters`.
+
+Additional budget counters: 1 hitboxes, 0 projectiles, 0 capability starts.
+
+| Field | Type or child schema | Required/default | Unit | Scalar range or tokens | Meaning | Diagnostics |
+| --- | --- | --- | --- | --- | --- | --- |
+| `gallopSpeed` | number | Required | m/s | 32-bit float; see gameplay constraints | Charge travel speed; larger values cover more ground each gallop tick. | `schema.missing`, `value.out-of-range` |
+| `turnDegreesPerSecond` | number | Required | degrees/s | at least 0; at most 1440 | Maximum turn rate while charging or riding; larger values steer toward the desired heading faster. | `schema.missing`, `value.out-of-range` |
+| `maxGallopTicks` | ushort | Required | ticks | 0 to 65535 | Charge timeout; larger values allow a longer gallop before the miss ending. | `schema.missing`, `value.out-of-range` |
+| `armored` | boolean | Required | boolean | See meaning and gameplay constraints | Protects the charge from ordinary hit interruption while still taking damage; grabs bypass that protection. | `schema.missing`, `value.out-of-range` |
+| `lanceHitbox` | object of [Hitbox and command-grab capture volume](#schema-hitbox) | Required | object | See meaning and gameplay constraints | Attack or capture volume using the Hitbox schema; its containing lifecycle constrains timing and hit behavior. | `schema.missing`, `value.out-of-range` |
+| `hitEndingTicks` | ushort | Required | ticks | 0 to 65535 | Charge ending duration for the named outcome; larger values impose more recovery. | `schema.missing`, `value.out-of-range` |
+| `missEndingTicks` | ushort | Required | ticks | 0 to 65535 | Charge ending duration for the named outcome; larger values impose more recovery. | `schema.missing`, `value.out-of-range` |
+| `skidTicks` | ushort | Required | ticks | 0 to 65535 | Miss-ending skid duration; larger values take longer to brake the charge. | `schema.missing`, `value.out-of-range` |
+| `turnAroundOnMiss` | boolean | Required | boolean | See meaning and gameplay constraints | Turns the fighter around during the charge miss ending when enabled. | `schema.missing`, `value.out-of-range` |
+| `airStrideTicks` | ushort | Required | ticks | 0 to 65535 | Charge airborne stride or look-down phase duration; larger values delay the fall-free ending. | `schema.missing`, `value.out-of-range` |
+| `lookDownTicks` | ushort | Required | ticks | 0 to 65535 | Charge airborne stride or look-down phase duration; larger values delay the fall-free ending. | `schema.missing`, `value.out-of-range` |
+| `challengedRearTicks` | ushort | Required | ticks | at least 1; at most 120 | Rear-up duration after a challenged charge; larger values delay resuming the gallop. | `schema.missing`, `value.out-of-range` |
+| `trackDegreesPerSecond` | number | Required | degrees/s | at least 0; at most 1440 | Startup target tracking rate normally or after a challenge; larger values turn toward the target faster. | `schema.missing`, `value.out-of-range` |
+| `challengedTrackDegreesPerSecond` | number | Required | degrees/s | at least 0; at most 1440 | Startup target tracking rate normally or after a challenge; larger values turn toward the target faster. | `schema.missing`, `value.out-of-range` |
+| `chestHitbox` | object of [Hitbox and command-grab capture volume](#schema-hitbox) | Required | object | See meaning and gameplay constraints | Attack or capture volume using the Hitbox schema; its containing lifecycle constrains timing and hit behavior. | `schema.missing`, `value.out-of-range` |
+| `carry` | object of [Charge carry and fling](#schema-chargeCarry) | Required | object | See meaning and gameplay constraints | Charge catch anchor, maximum carry time and release launch settings. | `schema.missing`, `value.out-of-range` |
+| `assist` | object of [Charge startup assistance](#schema-chargeAssist) | `null` | object | See meaning and gameplay constraints | Optional charge startup target-acquisition assistance; omission disables the assistance. | `schema.missing`, `value.out-of-range` |
+| `challengePresentationId` | string or null | `""` | identifier | See meaning and gameplay constraints | Declared cue for the named lifecycle event; empty text disables optional cues. | `schema.missing`, `value.out-of-range` |
+| `gallopAnimationId` | string or null | `""` | animation identifier | See meaning and gameplay constraints | Semantic clip for this named lifecycle phase; list it in the stage as required by that capability. | `schema.missing`, `value.out-of-range` |
+| `gallopLoopTicks` | ushort | `0` | ticks | 0 to 65535 | Playback loop duration for the named phase clip; larger values stretch each visual loop. | `schema.missing`, `value.out-of-range` |
+| `hitEndingAnimationId` | string or null | `""` | animation identifier | See meaning and gameplay constraints | Semantic clip for this named lifecycle phase; list it in the stage as required by that capability. | `schema.missing`, `value.out-of-range` |
+| `missEndingAnimationId` | string or null | `""` | animation identifier | See meaning and gameplay constraints | Semantic clip for this named lifecycle phase; list it in the stage as required by that capability. | `schema.missing`, `value.out-of-range` |
+| `airEndingAnimationId` | string or null | `""` | animation identifier | See meaning and gameplay constraints | Semantic clip for this named lifecycle phase; list it in the stage as required by that capability. | `schema.missing`, `value.out-of-range` |
+| `gallopPresentationId` | string or null | `""` | identifier | See meaning and gameplay constraints | Declared cue for the named lifecycle event; empty text disables optional cues. | `schema.missing`, `value.out-of-range` |
+| `hitEndingPresentationId` | string or null | `""` | identifier | See meaning and gameplay constraints | Declared cue for the named lifecycle event; empty text disables optional cues. | `schema.missing`, `value.out-of-range` |
+| `missEndingPresentationId` | string or null | `""` | identifier | See meaning and gameplay constraints | Declared cue for the named lifecycle event; empty text disables optional cues. | `schema.missing`, `value.out-of-range` |
+| `airEndingPresentationId` | string or null | `""` | identifier | See meaning and gameplay constraints | Declared cue for the named lifecycle event; empty text disables optional cues. | `schema.missing`, `value.out-of-range` |
+
+<a id="schema-chargeCarry"></a>
+
+### Charge carry and fling
+
+Location: `steered-charge.parameters.carry`.
+
+| Field | Type or child schema | Required/default | Unit | Scalar range or tokens | Meaning | Diagnostics |
+| --- | --- | --- | --- | --- | --- | --- |
+| `anchorDistance` | number | Required | m | at least 0; at most 3 | Hold point ahead of the owner feet; larger values keep the victim farther forward. | `schema.missing`, `value.out-of-range` |
+| `anchorHeight` | number | Required | m | at least 0; at most 3 | Charge carry anchor height above the owner feet; larger values hold the victim higher. | `schema.missing`, `value.out-of-range` |
+| `maxCarryTicks` | ushort | Required | ticks | at least 1; at most 120 | Charge carry timeout; larger values allow the victim to be carried longer before flinging. | `schema.missing`, `value.out-of-range` |
+| `fling` | object of [Grab or carry release launch](#schema-launch) | Required | object | See meaning and gameplay constraints | Release damage and knockback using the Launch schema; omit command-grab launch for a release lock instead. | `schema.missing`, `value.out-of-range` |
+| `flingTicks` | ushort | Required | ticks | at least 1; at most 120 | Charge fling phase duration; larger values prolong the committed release phase. | `schema.missing`, `value.out-of-range` |
+| `flingAnimationId` | string or null | `""` | animation identifier | See meaning and gameplay constraints | Semantic clip for this named lifecycle phase; list it in the stage as required by that capability. | `schema.missing`, `value.out-of-range` |
+| `scoopPresentationId` | string or null | `""` | identifier | See meaning and gameplay constraints | Declared cue for the named lifecycle event; empty text disables optional cues. | `schema.missing`, `value.out-of-range` |
+| `flingPresentationId` | string or null | `""` | identifier | See meaning and gameplay constraints | Declared cue for the named lifecycle event; empty text disables optional cues. | `schema.missing`, `value.out-of-range` |
+
+<a id="schema-chargeAssist"></a>
+
+### Charge startup assistance
+
+Location: `steered-charge.parameters.assist`.
+
+| Field | Type or child schema | Required/default | Unit | Scalar range or tokens | Meaning | Diagnostics |
+| --- | --- | --- | --- | --- | --- | --- |
+| `assistRange` | number | Required | m | greater than 0; at most 10 | Maximum opponent acquisition distance; larger values admit farther targets. | `schema.missing`, `value.out-of-range` |
+| `assistHalfAngleDegrees` | number | Required | degrees | greater than 0; at most 90 | Half-angle around facing for target acquisition; larger values admit targets farther to the side or behind. | `schema.missing`, `value.out-of-range` |
+| `assistDegreesPerSecond` | number | Required | degrees/s | greater than 0; at most 1440 | Maximum aim correction rate; larger values turn faster within the allowed correction window. | `schema.missing`, `value.out-of-range` |
+
+<a id="schema-cap-thrust-v1"></a>
+
+### thrust.v1 parameters
+
+Location: `startCapability.parameters`.
+
+Additional budget counters: 0 hitboxes, 0 projectiles, 0 capability starts. Add one hitbox when `trailHitbox` is present.
+
+| Field | Type or child schema | Required/default | Unit | Scalar range or tokens | Meaning | Diagnostics |
+| --- | --- | --- | --- | --- | --- | --- |
+| `aim` | enum | Required | enum | `stick`, `targetAhead` | stick chooses input heading; targetAhead may choose an eligible target inside the authored cone. | `schema.missing`, `enum.unknown` |
+| `targetConeDegrees` | number | `0` | degrees | at least 0; at most 180 | Target-ahead acquisition cone; larger values admit targets farther from the forward heading. | `schema.missing`, `value.out-of-range` |
+| `neutralPitchDegrees` | number | Required | degrees | at least -90; at most 90 | Thrust pitch at neutral or full stick; larger positive values point more upward. | `schema.missing`, `value.out-of-range` |
+| `stickPitchDegrees` | number | Required | degrees | at least -90; at most 90 | Thrust pitch at neutral or full stick; larger positive values point more upward. | `schema.missing`, `value.out-of-range` |
+| `speed` | number | Required | m/s | greater than 0 | Travel speed; larger values cover more distance per tick. | `schema.missing`, `value.out-of-range` |
+| `acceleration` | number | Required | m/s² | at least 0; at most 240 | Speed gain along the thrust direction; larger values accelerate toward maxSpeed faster. | `schema.missing`, `value.out-of-range` |
+| `maxSpeed` | number | Required | m/s | ; at most 60 | Thrust speed cap; larger values allow faster travel after acceleration. | `schema.missing`, `value.out-of-range` |
+| `keepIncomingSpeed` | boolean | Required | boolean | See meaning and gameplay constraints | Includes incoming speed when choosing thrust speed; false starts from the authored speed. | `schema.missing`, `value.out-of-range` |
+| `thrustTicks` | ushort | Required | ticks | at least 1; at most 600 | Thrust motion-ownership duration; larger values drive the chosen direction longer. | `schema.missing`, `value.out-of-range` |
+| `trailHitbox` | object of [Hitbox and command-grab capture volume](#schema-hitbox) | `null` | object | See meaning and gameplay constraints | Attack or capture volume using the Hitbox schema; its containing lifecycle constrains timing and hit behavior. | `schema.missing`, `value.out-of-range` |
+
+<a id="schema-cap-tether-v1"></a>
+
+### tether.v1 parameters
+
+Location: `startCapability.parameters`.
+
+Additional budget counters: 0 hitboxes, 0 projectiles, 0 capability starts. Add one hitbox when `atTarget` is present. Add one projectile when `atTarget` is absent.
+
+| Field | Type or child schema | Required/default | Unit | Scalar range or tokens | Meaning | Diagnostics |
+| --- | --- | --- | --- | --- | --- | --- |
+| `throwTick` | ushort | Required | ticks | at least 1; at most 120 | Tether throw or placed-catch warning time; larger values delay its first action. | `schema.missing`, `value.out-of-range` |
+| `projectile` | object of [Projectile](#schema-projectile) | Required when atTarget is absent; otherwise `null` | object | See meaning and gameplay constraints | Projectile launch and contact settings using the Projectile schema; larger speed travels farther per tick. | `schema.missing`, `value.out-of-range` |
+| `reelSpeed` | number | Required | m/s | greater than 0; at most 60 | Per-axis speed pulling a caught fighter toward the anchor; larger values bring the victim in faster. | `schema.missing`, `value.out-of-range` |
+| `anchorDistance` | number | Required | m | at least 0; at most 3 | Hold point ahead of the owner feet; larger values keep the victim farther forward. | `schema.missing`, `value.out-of-range` |
+| `arrivalStunTicks` | ushort | Required | ticks | at least 1; at most 240 | Fixed hold after the tether reaches its anchor; larger values retain the caught fighter longer. | `schema.missing`, `value.out-of-range` |
+| `maxReelTicks` | ushort | Required | ticks | at least 1; at most 600 | Reel timeout; larger values allow a longer pull before the lifecycle releases. | `schema.missing`, `value.out-of-range` |
+| `retractSpeed` | number | Required when atTarget is absent; otherwise `0` | m/s | greater than 0; at most 60 | Empty-ring return speed on a tether miss; larger values retract it faster. | `schema.missing`, `value.out-of-range` |
+| `missRecoveryTicks` | ushort | Required | ticks | at least 0; at most 240 | Recovery after an unshielded hit or a miss/shield contact; larger values delay acting longer for that outcome. | `schema.missing`, `value.out-of-range` |
+| `airGravityScale` | number | Required | ratio | at least 0; at most 1 | Fraction of ordinary airborne gravity; larger values increase falling acceleration, zero suppresses gravity. | `schema.missing`, `value.out-of-range` |
+| `reelAnimationId` | string or null | `""` | animation identifier | See meaning and gameplay constraints | Semantic clip for this named lifecycle phase; list it in the stage as required by that capability. | `schema.missing`, `value.out-of-range` |
+| `retractAnimationId` | string or null | `""` | animation identifier | See meaning and gameplay constraints | Semantic clip for this named lifecycle phase; list it in the stage as required by that capability. | `schema.missing`, `value.out-of-range` |
+| `throwPresentationId` | string or null | `""` | identifier | See meaning and gameplay constraints | Declared cue for the named lifecycle event; empty text disables optional cues. | `schema.missing`, `value.out-of-range` |
+| `retractPresentationId` | string or null | `""` | identifier | See meaning and gameplay constraints | Declared cue for the named lifecycle event; empty text disables optional cues. | `schema.missing`, `value.out-of-range` |
+| `atTarget` | object of [Placed tether catch](#schema-tetherAtTarget) | `null` | object | See meaning and gameplay constraints | Replaces the thrown tether projectile with a placed catch at the selected target spot. | `schema.missing`, `value.out-of-range` |
+
+<a id="schema-tetherAtTarget"></a>
+
+### Placed tether catch
+
+Location: `tether.parameters.atTarget`.
+
+| Field | Type or child schema | Required/default | Unit | Scalar range or tokens | Meaning | Diagnostics |
+| --- | --- | --- | --- | --- | --- | --- |
+| `warningTicks` | ushort | Required | ticks | at least 1; at most 120 | Warning before the placed catch becomes active; larger values give more escape time. | `schema.missing`, `value.out-of-range` |
+| `catchTicks` | ushort | Required | ticks | at least 1; at most 60 | Placed-catch active duration; larger values keep its catch volume active longer. | `schema.missing`, `value.out-of-range` |
+| `radius` | number | Required | m | greater than 0; at most 3 | Volume radius; larger values widen the attack, vulnerable body or catch volume. | `schema.missing`, `value.out-of-range` |
+| `height` | number | Required | m | ; at most 6 | Full capture volume dimension; larger values cover a wider or taller region. | `schema.missing`, `value.out-of-range` |
+| `damage` | number | Required | percent | at least 0; at most 100 | Damage added on contact; larger values raise the victim percent and the damage contribution to launch strength. | `schema.missing`, `value.out-of-range` |
+| `maxRange` | number | Required | m | greater than 0; at most 32 | Maximum target distance; larger values allow the lifecycle to reach farther targets. | `schema.missing`, `value.out-of-range` |
+| `noTargetDistance` | number | Required | m | at least 0 | Forward fallback distance when there is no eligible target; larger values place the move farther ahead. | `schema.missing`, `value.out-of-range` |
+| `warningPresentationId` | string or null | `""` | identifier | See meaning and gameplay constraints | Declared cue for the named lifecycle event; empty text disables optional cues. | `schema.missing`, `value.out-of-range` |
+| `catchPresentationId` | string or null | `""` | identifier | See meaning and gameplay constraints | Declared cue for the named lifecycle event; empty text disables optional cues. | `schema.missing`, `value.out-of-range` |
+| `unmarked` | object of [Unmarked tether attack](#schema-tetherUnmarked) | `null` | object | See meaning and gameplay constraints | Alternate ordinary attack when the placed catch has no eligible owner-marked target. | `schema.missing`, `value.out-of-range` |
+
+<a id="schema-tetherUnmarked"></a>
+
+### Unmarked tether attack
+
+Location: `tether.parameters.atTarget.unmarked`.
+
+| Field | Type or child schema | Required/default | Unit | Scalar range or tokens | Meaning | Diagnostics |
+| --- | --- | --- | --- | --- | --- | --- |
+| `riseTick` | ushort | Required | ticks | at least 1; at most 120 | Activation age at which the unmarked hand rises; larger values delay the attack. | `schema.missing`, `value.out-of-range` |
+| `activeTicks` | ushort | Required | ticks | at least 1; at most 60 | Unmarked hand active duration; larger values leave its attack volume active longer. | `schema.missing`, `value.out-of-range` |
+| `distance` | number | Required | m | at least 0; at most 6 | Authored forward travel distance; larger values place the action farther ahead. | `schema.missing`, `value.out-of-range` |
+| `radius` | number | Required | m | greater than 0; at most 3 | Volume radius; larger values widen the attack, vulnerable body or catch volume. | `schema.missing`, `value.out-of-range` |
+| `height` | number | Required | m | ; at most 6 | Full capture volume dimension; larger values cover a wider or taller region. | `schema.missing`, `value.out-of-range` |
+| `damage` | number | Required | percent | greater than 0; at most 100 | Damage added on contact; larger values raise the victim percent and the damage contribution to launch strength. | `schema.missing`, `value.out-of-range` |
+| `angle` | number | Required | degrees | at least -90; at most 90 | Vertical launch pitch; larger positive values launch more upward, negative values launch downward. | `schema.missing`, `value.out-of-range` |
+| `baseKnockback` | number | Required | m/s before weight/tuning | at least 0 | Flat term in launch magnitude; larger values strengthen a launch at every victim percent. | `schema.missing`, `value.out-of-range` |
+| `knockbackGrowth` | number | Required | m/s before weight/tuning | at least 0 | Term multiplied by 1 + victimPercent / 100; larger values make high-percent victims fly faster. | `schema.missing`, `value.out-of-range` |
+| `stunTicks` | ushort | Required | gate | at least 0; at most 240 | Zero disables ordinary hitstun; any positive value enables formula-derived stun and is not the stun duration. | `schema.missing`, `value.out-of-range` |
+| `recoveryTicks` | ushort | Required | ticks | at least 0; at most 240 | Committed recovery after the lifecycle action; larger values delay the next action. | `schema.missing`, `value.out-of-range` |
+| `presentationId` | string or null | `""` | identifier | See meaning and gameplay constraints | Declared semantic cue emitted by this event; asset assembly supplies the corresponding effect or sound. | `schema.missing`, `value.out-of-range` |
+
+<a id="schema-cap-command-grab-v1"></a>
+
+### command-grab.v1 parameters
+
+Location: `startCapability.parameters`.
+
+Additional budget counters: 1 hitboxes, 0 projectiles, 0 capability starts.
+
+| Field | Type or child schema | Required/default | Unit | Scalar range or tokens | Meaning | Diagnostics |
+| --- | --- | --- | --- | --- | --- | --- |
+| `lungeTicks` | ushort | Required | ticks | at least 0; at most 60 | Command-grab forward lunge duration; larger values drive the approach longer. | `schema.missing`, `value.out-of-range` |
+| `lungeSpeed` | number | Required | m/s | at least 0; at most 60 | Command-grab approach speed; larger values approach the capture point faster. | `schema.missing`, `value.out-of-range` |
+| `stopDistance` | number | Required | m | at least 0; at most 5 | Command-grab lunge stopping gap near its target; larger values stop farther away. | `schema.missing`, `value.out-of-range` |
+| `captureTick` | ushort | Required | ticks | at least 1; at most 120 | Command-grab capture-volume start; larger values delay the catch attempt. | `schema.missing`, `value.out-of-range` |
+| `capture` | object of [Hitbox and command-grab capture volume](#schema-hitbox) | Required | object | See meaning and gameplay constraints | Attack or capture volume using the Hitbox schema; its containing lifecycle constrains timing and hit behavior. | `schema.missing`, `value.out-of-range` |
+| `releaseTick` | ushort | Required | ticks | at least 0; at most 240 | Command-grab release time after the capture phase; larger values hold the victim longer. | `schema.missing`, `value.out-of-range` |
+| `launch` | object of [Grab or carry release launch](#schema-launch) | Required when releaseLockTicks is zero or absent; otherwise `null` | object | See meaning and gameplay constraints | Release damage and knockback using the Launch schema; omit command-grab launch for a release lock instead. | `schema.missing`, `value.out-of-range` |
+| `catchPresentationId` | string or null | `""` | identifier | See meaning and gameplay constraints | Declared cue for the named lifecycle event; empty text disables optional cues. | `schema.missing`, `value.out-of-range` |
+| `releasePresentationId` | string or null | `""` | identifier | See meaning and gameplay constraints | Declared cue for the named lifecycle event; empty text disables optional cues. | `schema.missing`, `value.out-of-range` |
+| `level` | boolean | `false` | boolean | See meaning and gameplay constraints | Keeps the command-grab lunge level with gravity off; a wall that blocks the approach can end the grab empty. | `schema.missing`, `value.out-of-range` |
+| `anchorDistance` | number | `null` | m | at least 0; at most 3 | Hold point ahead of the owner feet; larger values keep the victim farther forward. | `schema.missing`, `value.out-of-range` |
+| `releaseLockTicks` | ushort | Required when launch is absent; otherwise `0` | ticks | at least 0; at most 60 | Victim lock after a no-launch command-grab release; larger values keep the victim unable to act longer. | `schema.missing`, `value.out-of-range` |
+| `whiffRecoveryTicks` | ushort | `0` | ticks | at least 0; at most 120 | Alternate command-grab miss recovery; zero keeps the enclosing stage recovery, larger values extend a nonzero miss ending. | `schema.missing`, `value.out-of-range` |
+
+<a id="schema-launch"></a>
+
+### Grab or carry release launch
+
+Location: `command-grab.parameters.launch or steered-charge.parameters.carry.fling`.
+
+| Field | Type or child schema | Required/default | Unit | Scalar range or tokens | Meaning | Diagnostics |
+| --- | --- | --- | --- | --- | --- | --- |
+| `damage` | number | Required | percent | greater than 0; at most 100 | Damage added on contact; larger values raise the victim percent and the damage contribution to launch strength. | `schema.missing`, `value.out-of-range` |
+| `angle` | number | Required | degrees | at least -90; at most 90 | Vertical launch pitch; larger positive values launch more upward, negative values launch downward. | `schema.missing`, `value.out-of-range` |
+| `baseKnockback` | number | Required | m/s before weight/tuning | at least 0 | Flat term in launch magnitude; larger values strengthen a launch at every victim percent. | `schema.missing`, `value.out-of-range` |
+| `knockbackGrowth` | number | Required | m/s before weight/tuning | at least 0 | Term multiplied by 1 + victimPercent / 100; larger values make high-percent victims fly faster. | `schema.missing`, `value.out-of-range` |
+| `stunTicks` | ushort | Required | gate | at least 0; at most 240 | Zero disables ordinary hitstun; any positive value enables formula-derived stun and is not the stun duration. | `schema.missing`, `value.out-of-range` |
+
+<a id="schema-cap-cannonball-v1"></a>
+
+### cannonball.v1 parameters
+
+Location: `startCapability.parameters`.
+
+Additional budget counters: 0 hitboxes, 0 projectiles, 0 capability starts.
+
+| Field | Type or child schema | Required/default | Unit | Scalar range or tokens | Meaning | Diagnostics |
+| --- | --- | --- | --- | --- | --- | --- |
+| `takeoffTick` | ushort | Required | ticks | at least 0; at most 60 | Cannonball launch time within the move; larger values delay takeoff. | `schema.missing`, `value.out-of-range` |
+| `maxRange` | number | Required | m | ; at most 30 | Maximum target distance; larger values allow the lifecycle to reach farther targets. | `schema.missing`, `value.out-of-range` |
+| `noTargetDistance` | number | Required | m | greater than 0 | Forward fallback distance when there is no eligible target; larger values place the move farther ahead. | `schema.missing`, `value.out-of-range` |
+| `minFlightTicks` | ushort | Required | ticks | at least 2 | Cannonball flight time for a destination at the owner feet; larger values slow short hops. | `schema.missing`, `value.out-of-range` |
+| `maxFlightTicks` | ushort | Required | ticks | ; at most 240 | Projectile or flight lifetime limit; larger values allow more time before the lifecycle times out. | `schema.missing`, `value.out-of-range` |
+| `maxLaunchSpeed` | number | Required | m/s | greater than 0; at most 60 | Cannonball solved-launch speed cap; larger values allow a faster ballistic launch. | `schema.missing`, `value.out-of-range` |
+| `launchPresentationId` | string or null | `""` | identifier | See meaning and gameplay constraints | Declared cue for the named lifecycle event; empty text disables optional cues. | `schema.missing`, `value.out-of-range` |
 
 ### Bone identifiers
 
-`bone.head`, `bone.spine2`, `bone.hips`, `bone.right-hand`, `bone.left-hand`, `bone.right-foot`, `bone.left-foot`, `bone.right-toes`, `bone.left-toes`, `bone.neck`, `bone.right-upper-arm`, `bone.left-upper-arm`, `bone.right-lower-arm`, `bone.left-lower-arm`, `bone.right-upper-leg`, `bone.left-upper-leg`, `bone.right-lower-leg`, `bone.left-lower-leg`, `bone.right-hand-end`, `bone.left-hand-end`, `bone.spine`.
+`bone.head`, `bone.spine2`, `bone.hips`, `bone.right-hand`, `bone.left-hand`, `bone.right-foot`, `bone.left-foot`, `bone.right-toes`, `bone.left-toes`, `bone.neck`, `bone.right-upper-arm`, `bone.left-upper-arm`, `bone.right-lower-arm`, `bone.left-lower-arm`, `bone.right-upper-leg`, `bone.left-upper-leg`, `bone.right-lower-leg`, `bone.left-lower-leg`, `bone.right-hand-end`, `bone.left-hand-end`. `bone.spine` also resolves to `bone.spine2`.
 
-### Validation rules and diagnostics
-
-These rules come directly from validation statements. The condition is the rejected case. `&&` means both, `||` means either, `!` means not, and `x is > a and <= b` means a < x ≤ b. Names with capital letters refer to the matching camelCase JSON fields. Index variables mean the current array entry. Helper predicates below state their accepted case.
-
-| Code | Rejected condition or context | Message |
-| --- | --- | --- |
-| `"schema.missing"` | `packageJson == null` | Package manifest JSON is null. |
-| `"schema.missing"` | `characterJson == null` | Character JSON is null. |
-| `"schema.invalid-json"` | `Load` | ex.Message |
-| `"schema.invalid"` | `Load` | ex.Message |
-| `"schema.unsupported"` | `p.ContainsKey("schemaVersion")` | Legacy schemaVersion is not accepted. |
-| `"source.identity-forbidden"` | `p.ContainsKey("id")` | Package identity belongs in package.json fields. |
-| `"source.class-forbidden"` | `p.ContainsKey("class")` | Character class is not part of the source contract. |
-| `"schema.unsupported"` | `version != ManifestSchemaVersion` | Only manifest schema version 1 is supported. |
-| `"value.out-of-range"` | `dependencyElement.ValueKind != JsonValueKind.Array` | Dependencies must be an array. |
-| `"schema.missing"` | `p.TryGetValue("dependencies", out var dependencyElement)` | Required property is missing. |
-| `"schema.unsupported"` | `p.ContainsKey("schemaVersion")` | Legacy schemaVersion is not accepted. |
-| `"source.identity-forbidden"` | `p.ContainsKey("id")` | Character identity belongs in package.json. |
-| `"source.class-forbidden"` | `p.ContainsKey("class")` | Character class is not part of the source contract. |
-| `"schema.unsupported"` | `version != AuthoringSchemaVersion` | Only authoring schema version 4 is supported. Schema 3 numbered the normals 1, 3 and 4; `python3 tools/slot_renumber.py --packages-only` migrates it. |
-| `"schema.missing"` | `!p.ContainsKey("maxCharges")` | Required integer is missing. |
-| `"value.out-of-range"` | `!max.TryGetInt32(out _)` | 32-bit integer is required. |
-| `"operation.unknown"` | `default:` | Unknown timeline operation. |
-| `"operation.parameter-unknown"` | `!allowed.Contains(name, StringComparer.Ordinal)` | Field is not valid for this operation. |
-| `"operation.parameter-missing"` | `!properties.ContainsKey(name) && !(kind == "emitPresentation" && name is "placement" or "condition")                 && !(kind == "forwardLunge" && name == "stopInAttackRange")` | Field is required for this operation. |
-| `"operation.parameter-missing"` | `parent.TryGetValue(name, out var hitbox)` | Hitbox is required. |
-| `"capability.retired"` | `RetiredCapabilities.TryGetReason(id, out var retiredReason)` | retiredReason |
-| `"operation.parameter-missing"` | `!parent.TryGetValue("parameters", out var element)` | Capability parameters are required. |
-| `"operation.parameter-missing"` | `required is not ("hop" or "riseSteerAcceleration") && !p.ContainsKey(required)` | Required capability parameter is missing. |
-| `"operation.parameter-missing"` | `!string.Equals(required, "explosionPresentationId", StringComparison.Ordinal) && !string.Equals(required, "launchPresentationId", StringComparison.Ordinal) && !string.Equals(required, "landingPresentationId", StringComparison.Ordinal) && !string.Equals(required, "minimumChargeTicks", StringComparison.Ordinal) && !string.Equals(required, "chargeTiers", StringComparison.Ordinal) && !string.Equals(required, "sprayAnimationId", StringComparison.Ordinal) && !string.Equals(required, "sprayLoopTicks", StringComparison.Ordinal) && !string.Equals(required, "endAnimationId", StringComparison.Ordinal) && System.Array.IndexOf(CycloneKickOptional, required) < 0 && !p.ContainsKey(required)` | Required capability parameter is missing. |
-| `"capability.unknown"` | `ParseCapabilityParameters` | Capability parameters are not supported. |
-| `"operation.parameter-unknown"` | `p.ContainsKey(thrown)` | A placed catch (atTarget) throws no ring. |
-| `"operation.parameter-missing"` | `!p.ContainsKey(required)` | Required capability parameter is missing. |
-| `"value.out-of-range"` | `element.ValueKind != JsonValueKind.Object` | Object is required. |
-| `"field.unknown"` | `!set.Contains(property.Name)` | Unknown field. |
-| `"field.duplicate"` | `!result.TryAdd(property.Name, property.Value)` | Duplicate field. |
-| `"value.out-of-range"` | `element.ValueKind != JsonValueKind.Object` | Object is required. |
-| `unknownCode` | `!set.Contains(property.Name)` | Unknown capability parameter. |
-| `"field.duplicate"` | `!result.TryAdd(property.Name, property.Value)` | Duplicate field. |
-| `"schema.missing"` | `MissingObject` | Required object is missing. |
-| `"schema.missing"` | `!parent.TryGetValue(name, out value)` | Required array is missing. |
-| `"value.out-of-range"` | `value.ValueKind != JsonValueKind.Array` | Array is required. |
-| `"value.out-of-range"` | `x.ValueKind != JsonValueKind.String` | String is required. |
-| `"schema.missing"` | `!p.TryGetValue(name, out var x)` | Required string is missing. |
-| `"value.out-of-range"` | `x.ValueKind != JsonValueKind.String` | String is required. |
-| `"value.out-of-range"` | `x.ValueKind != JsonValueKind.Number &#124;&#124; !x.TryGetSingle(out var n)` | Finite number is required. |
-| `"value.out-of-range"` | `x.ValueKind != JsonValueKind.Number &#124;&#124; !x.TryGetUInt16(out var n)` | Unsigned 16-bit integer is required. |
-| `"value.out-of-range"` | `x.ValueKind != JsonValueKind.True && x.ValueKind != JsonValueKind.False` | Boolean is required. |
-| `"schema.missing"` | `!p.TryGetValue(name, out var x)` | Required number is missing. |
-| `"value.out-of-range"` | `x.ValueKind != JsonValueKind.Number &#124;&#124; !x.TryGetSingle(out var n)` | Finite number is required. |
-| `"schema.missing"` | `!p.TryGetValue(name, out var x)` | Required integer is missing. |
-| `"value.out-of-range"` | `x.ValueKind != JsonValueKind.Number &#124;&#124; !x.TryGetUInt16(out var n)` | Unsigned 16-bit integer is required. |
-| `"schema.missing"` | `!p.TryGetValue(name, out var x)` | Required integer is missing. |
-| `"value.out-of-range"` | `x.ValueKind != JsonValueKind.Number &#124;&#124; !x.TryGetByte(out var n)` | Unsigned 8-bit integer is required. |
-| `"schema.missing"` | `!p.TryGetValue(name, out var x)` | Required boolean is missing. |
-| `"value.out-of-range"` | `x.ValueKind != JsonValueKind.True && x.ValueKind != JsonValueKind.False` | Boolean is required. |
-| `"schema.missing"` | `!p.TryGetValue(name, out var element)` | Required enum is missing. |
-| `"enum.unknown"` | `element.ValueKind != JsonValueKind.String` | Enum must be a string token. |
-| `"enum.unknown"` | `!parsed.HasValue` | Unknown enum value. |
-| `"enum.unknown"` | `element.ValueKind != JsonValueKind.String` | Enum must be a string token. |
-| `"enum.unknown"` | `!parsed.HasValue` | Unknown enum value. |
-| `"schema.missing"` | `!p.TryGetValue(name, out var element)` | Required unit is missing. |
-| `"unit.unknown"` | `element.ValueKind != JsonValueKind.String` | Unit must be a string token. |
-| `"unit.unknown"` | `UnknownUnit` | Unknown unit. |
-| `"schema.missing"` | `source == null` | Character package source is null. |
-| `"schema.invalid"` | `Compile` | ex.Message |
-| `"schema.missing"` | `m == null &#124;&#124; c == null` | Manifest and character are required. |
-| `"schema.unsupported"` | `m.ManifestSchemaVersion != ManifestSchemaVersion` | Only manifest schema version 1 is supported. |
-| `"schema.unsupported"` | `c.AuthoringSchemaVersion == 3` | Authoring schema 3 numbers the normals 1, 3 and 4. Run `python3 tools/slot_renumber.py --packages-only` to move them to 1, 2 and 3. |
-| `"schema.unsupported"` | `c.AuthoringSchemaVersion != AuthoringSchemaVersion` | Only authoring schema version 4 is supported. |
-| `"value.out-of-range"` | `string.IsNullOrWhiteSpace(m.Version) &#124;&#124; !IsSemVer(m.Version)` | Version must be SemVer 2.0 text. |
-| `"value.out-of-range"` | `string.IsNullOrWhiteSpace(field.Item1)` | Value must be non-empty. |
-| `"value.out-of-range"` | `string.IsNullOrWhiteSpace(dependency.Version) &#124;&#124; string.IsNullOrWhiteSpace(dependency.CookedHash)` | Dependency version and cooked hash are required. |
-| `"id.duplicate"` | `!capabilityMap.TryAdd(requirement.CapabilityId, requirement.CapabilityVersion)` | Duplicate capability requirement. |
-| `"capability.retired"` | `RetiredCapabilities.TryGetReason(requirement.CapabilityId, out var retiredReason)` | retiredReason |
-| `"capability.untrusted"` | `profile == CharacterCookProfile.Workshop` | Trusted built-in capabilities are not allowed in Workshop profile. |
-| `"capability.unknown"` | `!IsTrustedCapability(requirement.CapabilityId, requirement.CapabilityVersion)` | Capability is not admitted by the trusted profile. |
-| `"capability.version-mismatch"` | `requirement.CapabilityVersion != supportedVersion` | Capability version is not supported. |
-| `"capability.unknown"` | `requirement.CapabilityId == AimedRecoveryCapabilityId &#124;&#124;                      requirement.CapabilityId == TargetedLeapCapabilityId &#124;&#124;                      requirement.CapabilityId == DashStrikeCapabilityId &#124;&#124;                      requirement.CapabilityId == FlashCutCapabilityId &#124;&#124;                      requirement.CapabilityId == ChargedProjectileCapabilityId &#124;&#124;                      requirement.CapabilityId == ChargedStreamCapabilityId &#124;&#124;                      requirement.CapabilityId == FingerGunsCapabilityId &#124;&#124;                      requirement.CapabilityId == SteeredChargeCapabilityId &#124;&#124;                      requirement.CapabilityId == ShellStanceCapabilityId &#124;&#124;                      requirement.CapabilityId == ThrustCapabilityId &#124;&#124;                      requirement.CapabilityId == TetherCapabilityId &#124;&#124;                      requirement.CapabilityId == CommandGrabCapabilityId &#124;&#124;                      requirement.CapabilityId == CannonballCapabilityId &#124;&#124;                      requirement.CapabilityId == FormsCapabilityId` | Capability is not admitted by this profile. |
-| `"budget.exceeded"` | `capabilityCount > CookedBudget.MaxCapabilityRequirements` | Capability requirement budget exceeded. |
-| `"value.out-of-range"` | `c.ShieldRadius <= 0f &#124;&#124; c.ShieldRadius <= c.CapsuleHeight * 0.5f` | Shield radius must be positive and greater than half capsule height. |
-| `"capability.ambiguous"` | `ShellPairingError(c.Shell?.Splash != null, c.Shell?.Ride != null,                 resolved.Select(pair => (pair.Key, pair.Value.ShellPolicy))) is { } pairing` | pairing |
-| `"capability.ambiguous"` | `op.Parameters is SteeredChargeCapabilityParameters or TargetedLeapCapabilityParameters                     && BonkSpecialContract.Slot(slot, op) is { } slotError` | slotError |
-| `"value.out-of-range"` | `FormsBoundsError(definition) is { } formsError` | formsError |
-| `"id.invalid"` | `!CanonicalSlots.Contains(slot.Id)` | Unknown canonical slot ID. |
-| `"id.duplicate"` | `!explicitSlots.TryAdd(slot.Id, slot)` | Duplicate explicit slot. |
-| `"id.invalid"` | `!CanonicalSlots.Contains(alias.From) &#124;&#124; !CanonicalSlots.Contains(alias.To)` | Alias IDs must be canonical slot IDs. |
-| `"id.duplicate"` | `explicitSlots.ContainsKey(alias.From)` | Alias overwrites an explicit slot. |
-| `"id.duplicate"` | `!aliases.TryAdd(alias.From, alias.To)` | Duplicate alias. |
-| `"reference.unresolved"` | `resolved.Count != CanonicalSlots.Length` | Not all canonical slots resolve. |
-| `"reference.unresolved"` | `!c.PresentationIds.Contains(slot.HitPresentationId, StringComparer.Ordinal)` | Presentation ID is not declared. |
-| `"budget.exceeded"` | `slot.Timeline.Stages.Count == 0 &#124;&#124; slot.Timeline.Stages.Count > CookedBudget.MaxStagesPerTimeline` | Timeline stage budget exceeded or empty. |
-| `"value.out-of-range"` | `slot.ChargePool.MaxCharges is < 1 or > 3` | Max charges must be between one and three. |
-| `"value.out-of-range"` | `slot.ChargePool.RegenTicks == 0` | Regen ticks must be positive. |
-| `"capability.ambiguous"` | `recoveries.Length != 1 &#124;&#124; slot.Timeline.Stages.Count != 1 &#124;&#124; stage.IasaTicks != 0                 &#124;&#124; slot.Behavior != AuthoringAbilityBehavior.MeleeCombo &#124;&#124; slot.AimMode != AuthoringAimMode.None                 &#124;&#124; !slot.IsRecoveryMove &#124;&#124; recoveries[0].Tick != 0                 &#124;&#124; recoveries[0].Parameters is not AimedRecoveryCapabilityParameters                 &#124;&#124; stage.Operations.Any(op => op != recoveries[0] && op is not EmitPresentationOperationSource && op is not SpawnHitboxOperationSource)` | Aimed recovery requires one tick-zero lifecycle in one recovery stage, no aim or IASA, and only presentation or hitbox operations alongside it. |
-| `"value.out-of-range"` | `recoveries[0].Parameters is AimedRecoveryCapabilityParameters recovery && recovery.StartupTicks >= stage.DurationTicks` | Aimed recovery must launch before its stage ends. |
-| `"capability.ambiguous"` | `chargedProjectiles.Length != 1 &#124;&#124; slot.Behavior != AuthoringAbilityBehavior.ChargeAttack &#124;&#124;                 slot.Timeline.Stages.Count != 1 &#124;&#124; slot.Timeline.Stages[0].IasaTicks != 0` | Charged projectile requires one chargeAttack lifecycle in one stage with IASA disabled. |
-| `"value.out-of-range"` | `projectile.Tick != 0 &#124;&#124; projectile.Parameters is not ChargedProjectileCapabilityParameters charge &#124;&#124;                     charge.FireTriggerTick >= slot.Timeline.Stages[0].DurationTicks` | Charged projectile must start at tick zero and fire before its release stage ends. |
-| `"capability.ambiguous"` | `slot.Timeline.Stages.SelectMany(stage => stage.Operations).Any(operation =>                 operation is SpawnProjectileOperationSource or SpawnHitboxOperationSource or SetAimStateOperationSource                     or SetVelocityOperationSource or ForwardLungeOperationSource &#124;&#124;                 operation is StartCapabilityOperationSource capability && capability.CapabilityId != ChargedProjectileCapabilityId)` | Charged projectile cannot share a slot with competing motion, aim, projectile, or lifecycle operations. |
-| `"capability.ambiguous"` | `chargedStreams.Length != 1 &#124;&#124; slot.Behavior != AuthoringAbilityBehavior.ChargeAttack &#124;&#124;                 slot.Timeline.Stages.Count != 1 &#124;&#124; slot.Timeline.Stages[0].IasaTicks != 0` | Charged stream requires one chargeAttack lifecycle in one stage with IASA disabled. |
-| `"value.out-of-range"` | `stream.Tick != 0 &#124;&#124; stream.Parameters is not ChargedStreamCapabilityParameters p` | Charged stream must start at tick zero. |
-| `"reference.unresolved"` | `p.SprayAnimationId.Length > 0 && !PhaseClip(p.SprayAnimationId)                     &#124;&#124; p.EndAnimationId.Length > 0 && !PhaseClip(p.EndAnimationId)` | The charged stream's spray and end clips must be listed in its stage and sort after its first clip (name them after it). |
-| `"value.out-of-range"` | `p.SprayLoopTicks > 0 && p.SprayAnimationId.Length == 0` | A charged stream loops only its own spray clip: set sprayAnimationId with sprayLoopTicks. |
-| `"capability.ambiguous"` | `slot.Timeline.Stages.SelectMany(stage => stage.Operations).Any(operation =>                 operation is SpawnProjectileOperationSource or SpawnHitboxOperationSource or SetAimStateOperationSource                     or SetVelocityOperationSource or ForwardLungeOperationSource &#124;&#124;                 operation is StartCapabilityOperationSource capability && capability.CapabilityId != ChargedStreamCapabilityId)` | Charged stream cannot share a slot with competing motion, aim, projectile, or lifecycle operations. |
-| `"capability.ambiguous"` | `fingerGuns.Length != 1 &#124;&#124; slot.Behavior != AuthoringAbilityBehavior.MeleeCombo &#124;&#124;                 slot.Timeline.Stages.Count != 1 &#124;&#124; stage.IasaTicks != 0 &#124;&#124; slot.ChargePool != null &#124;&#124;                 slot.AllowSlideCarry &#124;&#124;                 slot.AimMode is not (AuthoringAimMode.None or AuthoringAimMode.CameraForward3D or AuthoringAimMode.GroundVector) &#124;&#124;                 stage.Operations.Any(operation => operation != fingerGuns[0] && operation is not EmitPresentationOperationSource)` | Finger Guns requires one tick-zero meleeCombo lifecycle, no IASA, slide carry or charge pool, and only presentation operations alongside it. |
-| `"value.out-of-range"` | `guns.Tick != 0 &#124;&#124; guns.Parameters is not FingerGunsCapabilityParameters p` | Finger Guns must start at tick zero. |
-| `"reference.unresolved"` | `string.IsNullOrEmpty(p.ReloadAnimationId) &#124;&#124;                     stage.AnimationIds.OrderBy(id => id, StringComparer.Ordinal).ToList().IndexOf(p.ReloadAnimationId) <= 0` | The reload clip must be listed in the stage and sort after its first clip. |
-| `"capability.ambiguous"` | `targetedLeapCount > 1` | A slot may contain only one targeted-leap lifecycle. |
-| `"capability.ambiguous"` | `DashStrikeContract.SlotError(dashStrikes.Length, slot.Timeline.Stages.Count, dashStrikes[0].Tick,                 slot.Behavior, slot.AimMode, stage.IasaTicks,                 stage.Operations.Any(x => x != dashStrikes[0] && x is not EmitPresentationOperationSource),                 slot.AllowSlideCarry, slot.ChargePool != null, stage.DurationTicks,                 (CookedDashStrikeCapabilityParameters)CookParameters(dashStrike)) is { } error` | error |
-| `"capability.ambiguous"` | `FlashCutContract.SlotError(flashCuts.Length, slot.Timeline.Stages.Count, flashCuts[0].Tick,                 slot.Behavior, slot.AimMode, stage.IasaTicks,                 stage.Operations.Any(x => x != flashCuts[0] && x is not EmitPresentationOperationSource),                 slot.AllowSlideCarry, slot.ChargePool != null, stage.DurationTicks, stage.AnimationIds,                 (CookedFlashCutCapabilityParameters)CookParameters(flashCut)) is { } error` | error |
-| `"capability.ambiguous"` | `slot.Timeline.Stages.SelectMany(stage => stage.Operations)             .Count(operation => operation is SpawnProjectileOperationSource { Projectile.Return: not null }) > 1` | A slot may throw only one returning projectile: its slot waits for it to come back. |
-| `"capability.ambiguous"` | `CommandGrabContract.SlotError(commandGrabs.Length, stages.Count, commandGrabs[0].Tick,                     slot.Behavior, slot.AimMode, slot.ShellPolicy, slot.AllowSlideCarry, slot.ChargePool != null,                     !first.Operations.Contains(commandGrabs[0])                         &#124;&#124; first.Operations.Any(x => x != commandGrabs[0] && x is not EmitPresentationOperationSource),                     first.DurationTicks, first.IasaTicks, hold?.DurationTicks ?? 0, hold?.IasaTicks ?? 0,                     (CookedCommandGrabCapabilityParameters)CookParameters(commandGrab)) is { } error` | error |
-| `"capability.ambiguous"` | `CannonballSlotError(cannonballs.Length, slot.Timeline.Stages.Count, cannonballs[0].Tick, slot.Behavior,                     slot.AimMode, stage.IasaTicks, slot.ShellPolicy, stage.DurationTicks,                     stage.Operations.Any(operation => operation != cannonballs[0] && operation is not EmitPresentationOperationSource),                     cannonballs[0].Parameters is CannonballCapabilityParameters x ? (CookedCannonballCapabilityParameters)CookParameters(x) : null)                 is { } cannonballError` | cannonballError |
-| `"capability.ambiguous"` | `slot.ShellPolicy == ShellPolicy.Ride && RideSlotError(slot.Timeline.Stages.Count,                 slot.Timeline.Stages.Count == 0 ? (ushort)0 : slot.Timeline.Stages[0].IasaTicks,                 slot.Timeline.Stages.SelectMany(stage => stage.Operations).Any(operation => operation is not                     (EmitPresentationOperationSource or StartupAimCorrectionOperationSource or GravityWindowOperationSource)))             is { } rideError` | rideError |
-| `"value.out-of-range"` | `stage.DurationTicks == 0 &#124;&#124; stage.IasaTicks > stage.DurationTicks &#124;&#124; stage.LandingLagTicks > stage.DurationTicks &#124;&#124; stage.AutoCancelBeforeTicks > stage.DurationTicks &#124;&#124; stage.AutoCancelAfterTicks > stage.DurationTicks` | Stage timing is outside its duration. |
-| `"value.non-finite"` | `float.IsNaN(stage.AttackRange) &#124;&#124; float.IsInfinity(stage.AttackRange) &#124;&#124; float.IsNaN(stage.WarpRange) &#124;&#124; float.IsInfinity(stage.WarpRange) &#124;&#124; float.IsNaN(stage.TrackingStrength) &#124;&#124; float.IsInfinity(stage.TrackingStrength)` | Targeting metadata must be finite. |
-| `"value.out-of-range"` | `stage.AttackRange < 0f` | Attack range must be non-negative. |
-| `"value.out-of-range"` | `stage.WarpRange < 0f` | Warp range must be non-negative. |
-| `"value.out-of-range"` | `stage.TrackingStrength < 0f &#124;&#124; stage.TrackingStrength > 1f` | Tracking strength must be between 0 and 1. |
-| `"timeline.targeting.retired"` | `stage.WarpRange != 0f &#124;&#124; stage.UseTargetLock &#124;&#124; stage.RotateTowardTarget &#124;&#124; stage.TrackingStrength != 0f` | Automatic warp and per-stage target tracking are retired. Use authored movement and startup aim correction. |
-| `"budget.exceeded"` | `stage.Operations.Count > CookedBudget.MaxOperationsPerStage` | Stage operation budget exceeded. |
-| `"operation.forward-lunge.no-subsequent-hitbox"` | `!stage.Operations.Any(operation =>                     operation is SpawnHitboxOperationSource hitbox && hitbox.Tick > lunge.Tick)` | A forward lunge that stops in attack range requires a subsequent spawnHitbox in the same stage. |
-| `"reference.unresolved"` | `!IsKnownAnimation(id, c)` | Animation ID is not declared. |
-| `"value.out-of-range"` | `operation.Tick >= stage.DurationTicks` | Operation tick must be within its stage. |
-| `"value.out-of-range"` | `operation is ForwardLungeOperationSource lunge &&                     (int)lunge.Tick + lunge.DurationTicks > stage.DurationTicks` | Forward lunge must end within its stage. |
-| `"value.out-of-range"` | `operation is GravityWindowOperationSource gravity &&                     (int)gravity.Tick + gravity.DurationTicks > stage.DurationTicks` | Gravity window must end within its stage. |
-| `"value.out-of-range"` | `operation is ArmorWindowOperationSource armorWindow &&                     (int)armorWindow.Tick + armorWindow.DurationTicks > stage.DurationTicks` | Armor window must end within its stage. |
-| `"capability.unknown"` | `!capabilities.TryGetValue(capability.CapabilityId, out var version)` | Capability is not declared. |
-| `"capability.version-mismatch"` | `version != capability.CapabilityVersion` | Capability version does not match its declaration. |
-| `"capability.ambiguous"` | `charges.Length != 1 &#124;&#124; slot.Timeline.Stages.Count != 1 &#124;&#124; slot.Timeline.Stages[0].IasaTicks != 0` | Steered charge requires one lifecycle in one stage with IASA disabled. |
-| `"capability.ambiguous"` | `operation is ForwardLungeOperationSource or SetVelocityOperationSource or SpawnHitboxOperationSource                 or SpawnProjectileOperationSource or SetAimStateOperationSource or StartCapabilityOperationSource                 or CompleteTimelineOperationSource` | Steered charge cannot share its stage with motion, hitboxes, projectiles, aim, completion or another lifecycle. |
-| `"operation.cutoff-after-commitment"` | `operation is StartupAimCorrectionOperationSource correction && correction.EndTick > charge.Tick` | Startup aim correction must end no later than the charge starts. |
-| `"value.out-of-range"` | `operation is GravityWindowOperationSource gravity && gravity.Tick + gravity.DurationTicks > charge.Tick` | A gravity window must end no later than the charge starts; the charge owns its own height. |
-| `"value.out-of-range"` | `operation is ArmorWindowOperationSource armor && armor.Tick + armor.DurationTicks > charge.Tick` | An armour window must end no later than the charge starts; the charge owns its own armour. |
-| `"reference.unresolved"` | `clip < 0` | A steered charge phase clip must be listed in its stage's animationIds. |
-| `"value.out-of-range"` | `clip == 0` | The stage's first clip is the startup; phase clips sort after it (name them after it). |
-| `"capability.ambiguous"` | `thrusts.Length != 1 &#124;&#124; slot.Timeline.Stages.Count != 1 &#124;&#124; thrusts[0].Tick != 0             &#124;&#124; slot.Behavior != AuthoringAbilityBehavior.MeleeCombo &#124;&#124; slot.AimMode != AuthoringAimMode.None             &#124;&#124; stage.Operations.Any(operation => operation != thrusts[0]                 && operation is not (EmitPresentationOperationSource or ArmorWindowOperationSource))` | Thrust requires one tick-zero lifecycle in one meleeCombo stage with no aim, and only presentation or armour alongside it. |
-| `"value.out-of-range"` | `thrusts[0].Parameters is ThrustCapabilityParameters thrust && thrust.ThrustTicks > stage.DurationTicks` | The thrust must end within its stage. |
-| `"capability.ambiguous"` | `TetherSlotError(tethers.Length, slot.Timeline.Stages.Count, tethers[0].Tick, slot.Behavior, slot.AimMode,                 stage.IasaTicks, slot.ShellPolicy,                 stage.Operations.Any(operation => operation != tethers[0] && operation is not EmitPresentationOperationSource))             is { } error` | error |
-| `"reference.unresolved"` | `clip < 0` | A tether phase clip must be listed in its stage's animationIds. |
-| `"value.out-of-range"` | `clip == 0` | The stage's first clip is the throw; phase clips sort after it (name them after it). |
-| `"schema.missing"` | `stance` | The shell-stance capability needs a shell block. |
-| `"capability.unknown"` | `!string.IsNullOrEmpty(c.Presentation.Shell)` | A shell pose needs the shell-stance capability and a shell block. |
-| `"capability.unknown"` | `!stance` | A shell block needs the slop.ability.shell-stance.v2 requirement. |
-| `"schema.missing"` | `string.IsNullOrEmpty(c.Presentation.Shell)` | A shell block needs a shell pose. |
-| `"value.out-of-range"` | `ShellBoundsError(CookShell(c.Shell)) is { } error` | error |
-| `"reference.unresolved"` | `id != null && !c.PresentationIds.Contains(id, StringComparer.Ordinal)` | Presentation ID is not declared. |
-| `"schema.missing"` | `forms` | The forms capability needs an alternateForm block. |
-| `"capability.unknown"` | `!forms` | An alternateForm block needs the slop.ability.forms.v1 requirement. |
-| `"value.out-of-range"` | `string.IsNullOrWhiteSpace(form.DisplayName)` | Value must be non-empty. |
-| `"value.out-of-range"` | `slot.ShellPolicy is not (ShellPolicy.Tuck or ShellPolicy.Ride)` | Unknown shell policy. |
-| `"capability.unknown"` | `c.Shell == null` | A tuck or ride move needs the character's shell block. |
-| `"value.out-of-range"` | `!IsSpecial(canonicalId)` | Only specials (A, E, R, F) can tuck or ride. |
-| `"capability.ambiguous"` | `slot.ShellPolicy == ShellPolicy.Tuck && (slot.AllowSlideCarry &#124;&#124; slot.PreserveMomentumOnStart)` | A tuck move already keeps her momentum: leave allowSlideCarry and preserveMomentumOnStart off. |
-| `"operation.ambiguous"` | `windowCount > 1` | A timeline may contain only one startup aim-correction window. |
-| `"value.out-of-range"` | `correction.EndTick <= correction.Tick &#124;&#124; correction.EndTick > slot.Timeline.Stages[stageIndex].DurationTicks` | End tick must be exclusive, after the operation tick, and inside the stage. |
-| `"value.out-of-range"` | `correction.AcquisitionRange <= 0f &#124;&#124; correction.AcquisitionRange > MaxStartupAcquisitionRange` | $"Acquisition range must be greater than zero and at most {MaxStartupAcquisitionRange} meters." |
-| `"value.out-of-range"` | `correction.AcquisitionHalfAngleDegrees <= 0f &#124;&#124; correction.AcquisitionHalfAngleDegrees > MaxStartupAngleDegrees` | $"Acquisition half-angle must be greater than zero and at most {MaxStartupAngleDegrees} degrees." |
-| `"value.out-of-range"` | `correction.MaxYawDegrees < 0f &#124;&#124; correction.MaxYawDegrees > MaxStartupAngleDegrees` | $"Maximum yaw must be between zero and {MaxStartupAngleDegrees} degrees." |
-| `"value.out-of-range"` | `correction.MaxPitchDegrees < 0f &#124;&#124; correction.MaxPitchDegrees > MaxStartupPitchDegrees` | $"Maximum pitch must be between zero and {MaxStartupPitchDegrees} degrees." |
-| `"value.out-of-range"` | `correction.YawDegreesPerSecond < 0f &#124;&#124; correction.YawDegreesPerSecond > MaxStartupRateDegreesPerSecond &#124;&#124;                 correction.MaxYawDegrees > 0f && correction.YawDegreesPerSecond == 0f` | $"Yaw rate must be positive for nonzero yaw correction and at most {MaxStartupRateDegreesPerSecond} degrees per second." |
-| `"value.out-of-range"` | `correction.PitchDegreesPerSecond < 0f &#124;&#124; correction.PitchDegreesPerSecond > MaxStartupRateDegreesPerSecond &#124;&#124;                 correction.MaxPitchDegrees > 0f && correction.PitchDegreesPerSecond == 0f` | $"Pitch rate must be positive for nonzero pitch correction and at most {MaxStartupRateDegreesPerSecond} degrees per second." |
-| `"operation.commitment-precedes-correction"` | `commitments.Any(commitment => commitment < globalStart)` | Startup aim correction cannot follow a prior active or launch commitment. |
-| `"operation.cutoff-after-commitment"` | `nextCommitment.HasValue && cutoff > nextCommitment.Value` | Startup aim correction must end no later than the earliest contact, projectile, or directional launch commitment. |
-| `"value.out-of-range"` | `!(slot.AimMovementSpeedScale > 0f && slot.AimMovementSpeedScale <= 1f)` | Aim movement speed scale must be greater than 0 and at most 1. |
-| `"slot.aim-movement-speed.requires-mobile"` | `slot.AimMovement != AuthoringAimMovementMode.Mobile` | Aim movement speed scale requires aimMovement mobile. |
-| `code` | `canonicalId != "ground.1" && canonicalId != "ground.2" && canonicalId != "ground.3"` | Slide carry is only valid on grounded canonical normals. |
-| `code` | `slot.AimMode != AuthoringAimMode.None` | Slide carry cannot be enabled on an aimed slot. |
-| `code` | `slot.IsRecoveryMove` | Slide carry cannot be enabled on a recovery move. |
-| `code` | `hasPositiveWarp` | Slide carry cannot be enabled on a slot with positive warp range. |
-| `code` | `hasMotionOperation` | Slide carry cannot be enabled on a slot with motion-owning timeline operations. |
-| `"unit.unknown"` | `operation.Unit != expected` | Unit does not match operation contract. |
-| `"value.out-of-range"` | `operation is StartCapabilityOperationSource { Parameters: var embedded }             && embedded switch             {                 ChargedProjectileCapabilityParameters x => x.Projectile,                 FingerGunsCapabilityParameters x => x.Projectile,                 ChargedStreamCapabilityParameters x => x.Projectile,                 TetherCapabilityParameters x => x.Projectile,                 _ => null,             } is { } inner && (inner.Homing != null &#124;&#124; inner.Perch != null)` | homing and perch belong to spawnProjectile operations, not to a capability's projectile. |
-| `"value.out-of-range"` | `!ValidAimedRecovery(recovery.StartupTicks, recovery.VerticalSpeed, recovery.DirectionalVerticalSpeed,                     recovery.HorizontalSpeed, recovery.PreparationRiseSpeed, recovery.Hop, recovery.RiseSteerAcceleration)` | Aimed recovery needs bounded speeds, rise steering 0–120 m/s² and startup 1–120 ticks. An optional hop requires zero preparation rise, start>0, at least 4 flight ticks, contact before launch, forward/arc distances in (0,3] m and landing lift in [0,1] m. |
-| `"value.out-of-range"` | `MankiCapabilityBounds.Error(CookParameters(capability.Parameters)) is { } mankiError` | mankiError |
-| `"value.out-of-range"` | `bazooka.ChargeTicks > 600 &#124;&#124; bazooka.ChargeTicks + bazooka.CastDuration > ushort.MaxValue                     &#124;&#124; rocket.CapabilityId == "slop.internal.manki.bazooka.v3" && bazooka.ChargeTicks == 0` | Bazooka charge must be at most 600 ticks. |
-| `"value.out-of-range"` | `bazooka.HomingTurnDegPerTick <= 0f &#124;&#124; bazooka.HomingTurnDegPerTick > 90f` | Homing turn must be greater than zero and at most 90 degrees per tick. |
-| `"value.out-of-range"` | `lunge.Speed <= 0f` | Speed must be greater than zero. |
-| `"value.out-of-range"` | `lunge.DurationTicks == 0` | Duration must be greater than zero. |
-| `"value.out-of-range"` | `gravity.GravityScale < 0f &#124;&#124; gravity.GravityScale > 1f` | Gravity scale must be between zero and one. |
-| `"value.out-of-range"` | `gravity.DurationTicks == 0` | Duration must be greater than zero. |
-| `"value.out-of-range"` | `armorWindow.DurationTicks == 0` | Duration must be greater than zero. |
-| `"value.out-of-range"` | `hitbox.Hitbox.DurationTicks == 0` | Duration must be greater than zero. |
-| `"reference.unresolved"` | `!c.PresentationIds.Contains(presentation.PresentationId, StringComparer.Ordinal)` | Presentation ID is not declared. |
-| `"value.out-of-range"` | `CommandGrabContract.BoundsError((CookedCommandGrabCapabilityParameters)CookParameters(commandGrab)) is { } grabError` | grabError |
-| `"reference.unresolved"` | `!string.IsNullOrEmpty(id) && !c.PresentationIds.Contains(id, StringComparer.Ordinal)` | Presentation ID is not declared. |
-| `"value.out-of-range"` | `ThrustBoundsError((CookedThrustCapabilityParameters)CookParameters(thrust)) is { } thrustError` | thrustError |
-| `"value.out-of-range"` | `CannonballBoundsError((CookedCannonballCapabilityParameters)CookParameters(cannonball)) is { } cannonballError` | cannonballError |
-| `"reference.unresolved"` | `!string.IsNullOrEmpty(cannonball.LaunchPresentationId)                     && !c.PresentationIds.Contains(cannonball.LaunchPresentationId, StringComparer.Ordinal)` | Presentation ID is not declared. |
-| `"value.out-of-range"` | `TetherBoundsError((CookedTetherCapabilityParameters)CookParameters(tether)) is { } tetherError` | tetherError |
-| `"reference.unresolved"` | `!string.IsNullOrEmpty(id) && !c.PresentationIds.Contains(id, StringComparer.Ordinal)` | Presentation ID is not declared. |
-| `"value.out-of-range"` | `charge.MaxChargeTicks == 0 &#124;&#124; charge.Tier2Ticks == 0 &#124;&#124;                     charge.Tier2Ticks >= charge.Tier3Ticks &#124;&#124; charge.Tier3Ticks > charge.MaxChargeTicks` | Charge thresholds must satisfy 0 < tier2Ticks < tier3Ticks <= maxChargeTicks. |
-| `"value.out-of-range"` | `charge.Projectile.Return != null` | A charged projectile cannot return; use spawnProjectile. |
-| `"value.out-of-range"` | `charge.Projectile.Radius <= 0f &#124;&#124; charge.Tier2Radius <= charge.Projectile.Radius &#124;&#124;                     charge.Tier3Radius <= charge.Tier2Radius &#124;&#124; charge.Projectile.Speed <= 0f &#124;&#124;                     charge.Projectile.MaxFlightTicks == 0 &#124;&#124; charge.FireTriggerTick == 0` | Tier radii must be positive and increasing; speed, flight lifetime, and fire startup must be positive. |
-| `"value.out-of-range"` | `!ValidFingerGuns(guns.FireTriggerTick, guns.RecoveryTicks, guns.ShotsPerReload,                     guns.ReloadTicks, guns.AirMaxFallSpeed, guns.AirRecoilSpeed)` | Finger Guns requires fire ticks 1..120, recovery 1..240, shots 1..24, reload 1..600, and air speeds 0..30 m/s. |
-| `"value.out-of-range"` | `guns.Projectile.Return != null &#124;&#124; guns.Projectile.Radius <= 0f &#124;&#124;                     guns.Projectile.Speed <= 0f &#124;&#124; guns.Projectile.MaxFlightTicks == 0` | Finger Guns needs a non-returning projectile with positive radius, speed and flight lifetime. |
-| `"value.out-of-range"` | `stream.MaxChargeTicks == 0 &#124;&#124; stream.FireTriggerTick == 0 &#124;&#124; stream.EmitIntervalTicks == 0 &#124;&#124;                     stream.MinStreamTicks == 0 &#124;&#124; stream.MaxStreamTicks < stream.MinStreamTicks` | Charge, startup, interval and stream lengths must be positive, and maxStreamTicks at least minStreamTicks. |
-| `"value.out-of-range"` | `stream.MaxBaseKnockback < stream.Projectile.BaseKnockback &#124;&#124; stream.MinRecoilSpeed < 0f &#124;&#124;                     stream.MaxRecoilSpeed < stream.MinRecoilSpeed` | maxBaseKnockback must be at least the projectile's baseKnockback, and 0 <= minRecoilSpeed <= maxRecoilSpeed. |
-| `"value.out-of-range"` | `stream.Projectile.Return != null` | A stream's projectiles cannot return. |
-| `"value.out-of-range"` | `stream.Projectile.Radius <= 0f &#124;&#124; stream.Projectile.Speed <= 0f &#124;&#124; stream.Projectile.MaxFlightTicks == 0` | A stream's projectiles need a positive radius, speed and flight lifetime. |
-| `"reference.unresolved"` | `id != null && CharacterBoneRegistry.Find(id)?.Required != true && !c.HurtboxBoneDefs.Any(x => x.BoneId == id &#124;&#124; x.EndBoneId == id) && !c.AttachmentBoneIds.Contains(id, StringComparer.Ordinal)` | Bone ID is not declared. |
-| `"value.out-of-range"` | `placement.DurationTicks == 0` | Presentation duration must be greater than zero. |
-| `"value.out-of-range"` | `placement.LocalScaleX <= 0f &#124;&#124; placement.LocalScaleY <= 0f &#124;&#124; placement.LocalScaleZ <= 0f` | Presentation scale components must be greater than zero. |
-| `"value.out-of-range"` | `placement.AttachmentMode != AuthoringPresentationAttachmentMode.World &&             placement.AttachmentMode != AuthoringPresentationAttachmentMode.Bone` | Unknown presentation attachment mode. |
-| `"reference.unresolved"` | `placement.AttachmentMode == AuthoringPresentationAttachmentMode.Bone &&             (string.IsNullOrEmpty(placement.BoneId) &#124;&#124;              (placement.BoneId != null && CharacterBoneRegistry.Find(placement.BoneId)?.Required != true && !c.HurtboxBoneDefs.Any(x => x.BoneId == placement.BoneId &#124;&#124; x.EndBoneId == placement.BoneId) &&               !c.AttachmentBoneIds.Contains(placement.BoneId, StringComparer.Ordinal)))` | Presentation bone must be a declared bone. |
-| `"value.out-of-range"` | `DashStrikeContract.BoundsError((CookedDashStrikeCapabilityParameters)CookParameters(x)) is { } error` | error |
-| `"reference.unresolved"` | `!string.IsNullOrEmpty(x.TipPresentationId) && !c.PresentationIds.Contains(x.TipPresentationId, StringComparer.Ordinal)` | Tip presentation ID is not declared. |
-| `"value.out-of-range"` | `FlashCutContract.BoundsError(cooked) is { } error` | error |
-| `"reference.unresolved"` | `!string.IsNullOrEmpty(id) && !c.PresentationIds.Contains(id, StringComparer.Ordinal)` | Flash cut presentation ID is not declared. |
-| `"value.out-of-range"` | `ProjectilePerchContract.BoundsError(cooked) is { } error` | error |
-| `"value.out-of-range"` | `projectile.ChallengeTicks > 600` | challengeTicks must be at most 600. |
-| `"capability.ambiguous"` | `c.AlternateForm == null` | A perched projectile pops on a hit from the thrower's other form: it needs slop.ability.forms.v1. |
-| `"reference.unresolved"` | `id.Length > 0 && !c.PresentationIds.Contains(id, StringComparer.Ordinal)` | Presentation ID is not declared. |
-| `"value.out-of-range"` | `x.Hit is { } hit && BonkSpecialContract.LegHit(hit) is { } hitError` | hitError |
-| `"value.out-of-range"` | `projectile.ChallengeTicks > 600` | challengeTicks must be at most 600. |
-| `"value.out-of-range"` | `!(projectile.Speed > 0f) &#124;&#124; projectile.Gravity != 0f` | A returning projectile needs a positive speed and no gravity. |
-| `"value.out-of-range"` | `x.OutboundTicks == 0 &#124;&#124; x.OutboundTicks >= projectile.MaxFlightTicks` | Outbound time must be positive and shorter than the projectile's flight lifetime. |
-| `"value.out-of-range"` | `!(x.ReturnSpeed > 0f) &#124;&#124; !(x.ReturnAcceleration > 0f)` | Return speed and acceleration must be positive. |
-| `"value.out-of-range"` | `x.SelfHitStunTicks == 0 &#124;&#124; x.SelfHitStunTicks > MaxFixedHitstunTicks` | Self-hit stun must be between 1 and 240 ticks. |
-| `"id.invalid"` | `!id.StartsWith("presentation.", StringComparison.Ordinal)` | Return presentation ID must use the presentation. prefix. |
-| `"reference.unresolved"` | `!c.PresentationIds.Contains(id, StringComparer.Ordinal)` | Return presentation ID is not declared. |
-| `"value.out-of-range"` | `!(x.GallopSpeed > 0f)` | Gallop speed must be positive. |
-| `"value.out-of-range"` | `!(x.TurnDegreesPerSecond >= 0f && x.TurnDegreesPerSecond <= MaxSteeredChargeTurnDegreesPerSecond)` | $"Turn rate must be between 0 and {MaxSteeredChargeTurnDegreesPerSecond} degrees per second." |
-| `"value.out-of-range"` | `x.MaxGallopTicks == 0 &#124;&#124; x.HitEndingTicks == 0 &#124;&#124; x.MissEndingTicks == 0` | Gallop, hit ending and miss ending must be positive. |
-| `"value.out-of-range"` | `x.SkidTicks > x.MissEndingTicks` | The skid must fit within the miss ending. |
-| `"value.out-of-range"` | `!string.IsNullOrEmpty(x.GallopAnimationId) && x.GallopLoopTicks == 0` | A gallop clip needs a positive loop length. |
-| `"value.out-of-range"` | `BonkSpecialContract.Charge((CookedSteeredChargeCapabilityParameters)CookParameters(x)) is { } error` | error |
-| `"value.out-of-range"` | `x.LanceHitbox.HitGroup != 0` | The lance keeps its own hit history (hitGroup 0). |
-| `"reference.unresolved"` | `!IsKnownAnimation(id, c)` | Animation ID is not declared. |
-| `"id.invalid"` | `!id.StartsWith("presentation.", StringComparison.Ordinal)` | Charge presentation ID must use the presentation. prefix. |
-| `"reference.unresolved"` | `!c.PresentationIds.Contains(id, StringComparer.Ordinal)` | Charge presentation ID is not declared. |
-| `"value.out-of-range"` | `x.DurationTicks == 0` | Duration must be positive. |
-| `"value.out-of-range"` | `x.Shape != AuthoringHitboxShape.Sphere && x.Shape != AuthoringHitboxShape.Capsule` | Unknown hitbox shape. |
-| `"value.out-of-range"` | `x.KnockbackDirection != AuthoringKnockbackDirection.AwayFromOwner &&             x.KnockbackDirection != AuthoringKnockbackDirection.TowardOwner` | Unknown knockback direction. |
-| `"reference.unresolved"` | `x.HitPresentationId != null && !c.PresentationIds.Contains(x.HitPresentationId, StringComparer.Ordinal)` | Hit presentation ID is not declared. |
-| `"value.non-finite"` | `float.IsNaN(value) &#124;&#124; float.IsInfinity(value)` | Numeric value must be finite. |
-| `"value.out-of-range"` | `fixedTicks > MaxFixedHitstunTicks` | Fixed hitstun must not exceed 240 ticks. |
-| `"value.out-of-range"` | `fixedTicks > 0 && stunGate == 0` | Fixed hitstun requires a nonzero stun gate. |
-| `"id.invalid"` | `!id.StartsWith("presentation.", StringComparison.Ordinal)` | Leap presentation ID must use the presentation. prefix. |
-| `"reference.unresolved"` | `!character.PresentationIds.Contains(id, StringComparer.Ordinal)` | Leap presentation ID is not declared. |
-| `"value.out-of-range"` | `parameters.RiseHeight <= 0 &#124;&#124; parameters.MaxRange <= 0 &#124;&#124; parameters.NoTargetDistance < 0             &#124;&#124; parameters.NoTargetDistance > parameters.MaxRange &#124;&#124; parameters.RiseTicks == 0 &#124;&#124; parameters.HangTicks == 0             &#124;&#124; parameters.DropTicks == 0 &#124;&#124; parameters.MaxFallTicks == 0 &#124;&#124; parameters.HitRecoveryTicks == 0             &#124;&#124; parameters.MissRecoveryTicks < parameters.HitRecoveryTicks` | Leap beats, range and recoveries are invalid. |
-| `"value.out-of-range"` | `BonkSpecialContract.Leap((CookedTargetedLeapCapabilityParameters)CookParameters(parameters)) is { } leapError` | leapError |
-| `"schema.missing"` | `hitbox == null` | Landing hitbox is required. |
-| `"value.out-of-range"` | `hitbox.DurationTicks == 0 &#124;&#124; hitbox.DurationTicks > parameters.MissRecoveryTicks` | Landing hitbox duration must be positive and fit within recovery. |
-| `"value.out-of-range"` | `hitbox.Shape != AuthoringHitboxShape.Sphere && hitbox.Shape != AuthoringHitboxShape.Capsule` | Unknown hitbox shape. |
-| `"value.out-of-range"` | `hitbox.KnockbackDirection != AuthoringKnockbackDirection.AwayFromOwner &&             hitbox.KnockbackDirection != AuthoringKnockbackDirection.TowardOwner` | Unknown knockback direction. |
-| `"id.duplicate"` | `!seenHurtboxBones.Add(bone.BoneId)` | Duplicate bone ID. |
-| `"reference.unresolved"` | `bone.EndBoneId == null && (bone.EndOffsetX != 0f &#124;&#124; bone.EndOffsetY != 0f &#124;&#124; bone.EndOffsetZ != 0f)` | End offsets require an end bone. |
-| `"id.duplicate"` | `!seenAttachmentBones.Add(id)` | Duplicate attachment bone ID. |
-| `"id.duplicate"` | `!seenPresentation.Add(c.PresentationIds[i])` | Duplicate presentation ID. |
-| `"id.duplicate"` | `!standardAnimations.Add(id)` | Duplicate standard animation ID. |
-| `"id.duplicate"` | `!standardAnimations.Add(c.Presentation.Tumble)` | Duplicate standard animation ID. |
-| `"id.duplicate"` | `!standardAnimations.Add(id)` | Duplicate standard animation ID. |
-| `"presentation.unused-id"` | `!PresentationUsed(stageId, c)` | Declared presentation ID is not referenced by an attack or timeline operation. |
-| `"id.invalid"` | `!id.StartsWith("presentation.", StringComparison.Ordinal)` | Explosion presentation ID must use the presentation. prefix. |
-| `"reference.unresolved"` | `!c.PresentationIds.Contains(id, StringComparer.Ordinal)` | Presentation ID is not declared. |
-| `"value.non-finite"` | `float.IsNaN(value) &#124;&#124; float.IsInfinity(value)` | Numeric value must be finite. |
-| `"value.out-of-range"` | `c.Movement.AirDodgeSpeed <= 0f` | Air-dodge speed must be greater than zero. |
-| `"schema.missing"` | `geometry == null &#124;&#124; geometry.AttackerAnchor == null &#124;&#124; geometry.VictimAnchor == null` | Capture geometry and both anchors are required. |
-| `"value.out-of-range"` | `geometry.Reach <= 0f &#124;&#124; geometry.Width <= 0f &#124;&#124; geometry.Height <= 0f` | Capture reach, width, and height must be greater than zero. |
-| `"alias.cycle"` | `!visiting.Add(id)` | Alias cycle detected. |
-| `"alias.missing-target"` | `aliases.TryGetValue(id, out var target)` | Canonical slot has no explicit definition or alias. |
-| `"budget.exceeded"` | `timelineOperations > CookedBudget.MaxOperationsPerTimeline` | Timeline operation budget exceeded. |
-| `"id.invalid"` | `string.IsNullOrEmpty(value) &#124;&#124; value.Length > 64 &#124;&#124; value[0] != '_' &#124;&#124; value.Skip(1).Any(x => !(x >= 'a' && x <= 'z') && !(x >= '0' && x <= '9') && x != '.' && x != '-' && x != '_')` | Attachment ID must be underscore-prefixed lowercase ASCII. |
-| `"id.invalid"` | `!IsId(value)` | ID must be lowercase ASCII and start with a letter. |
-| `"value.non-finite"` | `float.IsNaN(value) &#124;&#124; float.IsInfinity(value)` | Value must be finite. |
-| `"value.out-of-range"` | `value < 0` | Value must be non-negative. |
-| `"value.out-of-range"` | `value < -90 &#124;&#124; value > 90` | Angle must be between -90 and 90 degrees. |
-| `"value.out-of-range"` | `value < -180 &#124;&#124; value > 180` | Yaw offset must be between -180 and 180 degrees. |
-
-### Accepted bounds predicates
-
-These expressions are the compiler's shared predicates. All terms must hold. They supply the exact coupled limits for the diagnostics above.
-
-- `TetherSlotError(tethers, stages, tick, behavior, aim, iasaTicks, shellPolicy, otherOperations)` accepts `tethers != 1 &#124;&#124; stages != 1 &#124;&#124; tick != 0 &#124;&#124; behavior != AuthoringAbilityBehavior.MeleeCombo             &#124;&#124; aim != AuthoringAimMode.None &#124;&#124; iasaTicks != 0 &#124;&#124; otherOperations             ? "Tether requires one tick-zero lifecycle in one meleeCombo stage with no aim and IASA disabled, and only presentation alongside it."             : shellPolicy == ShellPolicy.Tuck ? "A tether pops her out of the shell; it cannot tuck." : null`.
-
-- `RideSlotError(stages, iasaTicks, otherOperations)` accepts `stages != 1 &#124;&#124; iasaTicks != 0 &#124;&#124; otherOperations             ? "A ride move is one stage with IASA disabled and only presentation, startup aim correction and gravity windows: the ride is the shell's."             : null`.
-
-- `ValidAimedRecovery(startup, vertical, directional, horizontal, preparation, hop, riseSteer)` accepts `startup is > 0 and <= 120 && vertical is > 0f and <= 60f             && directional > 0f && directional <= vertical && horizontal is >= 0f and <= 60f             && preparation is >= 0f and <= 4f && riseSteer is >= 0f and <= 120f             && (hop == null &#124;&#124; preparation == 0f && hop.StartTicks > 0                 && hop.ContactTicks >= hop.StartTicks + 4 && hop.ContactTicks < startup                 && hop.ForwardDistance is > 0f and <= 3f                 && hop.ArcHeight is > 0f and <= 3f && hop.LandingHeight is >= 0f and <= 1f)`.
-
-- `ValidFingerGuns(fire, recovery, shots, reload, fall, recoil)` accepts `fire is > 0 and <= 120 && recovery is > 0 and <= 240 && shots is > 0 and <= 24             && reload is > 0 and <= 600 && fall is >= 0f and <= 30f && recoil is >= 0f and <= 30f`.
-
-- `LegHit(h)` accepts `!Finite(h.Damage, h.Angle, h.BaseKnockback, h.KnockbackGrowth) &#124;&#124; h.Damage < 0 &#124;&#124; h.Damage > 100            &#124;&#124; h.Angle < -90 &#124;&#124; h.Angle > 90 &#124;&#124; h.BaseKnockback < 0 &#124;&#124; h.KnockbackGrowth < 0            &#124;&#124; h.StunTicks > 240 &#124;&#124; h.FixedHitstunTicks > 240 &#124;&#124; h.FixedHitstunTicks > 0 && h.StunTicks == 0             ? "Return hit values are invalid; fixed hitstun needs a nonzero stun gate." : null`.
-
-- `SlotError(count, stages, tick, behavior, aim, iasa, extra, carry, charge, duration, p)` accepts `count != 1 &#124;&#124; stages != 1 &#124;&#124; tick != 0 &#124;&#124; behavior != AuthoringAbilityBehavior.MeleeCombo &#124;&#124;            aim != AuthoringAimMode.None &#124;&#124; iasa != 0 &#124;&#124; extra &#124;&#124; carry &#124;&#124; charge             ? "Dash strike requires one tick-zero meleeCombo lifecycle, no aim, IASA, carry or charge pool, and only presentation alongside it."             : p.TravelTicks + p.TipHitbox.DurationTicks + p.RecoveryTicks > duration &#124;&#124;               (int)p.TipPoseTick + p.TipHitbox.DurationTicks + p.RecoveryTicks > duration                 ? "Dash strike travel, tip pose, tip lifetime and recovery must fit the stage watchdog."                 : null`.
-
-- `SlotError(count, stages, tick, behavior, aim, iasa, extra, carry, charge, duration, clips, p)` accepts `count != 1 &#124;&#124; stages != 1 &#124;&#124; tick != 0 &#124;&#124; behavior != AuthoringAbilityBehavior.MeleeCombo &#124;&#124;            aim != AuthoringAimMode.None &#124;&#124; iasa != 0 &#124;&#124; extra &#124;&#124; carry &#124;&#124; charge             ? "Flash cut requires one tick-zero meleeCombo lifecycle, no aim, IASA, carry or charge pool, and only presentation alongside it."             : p.LongestTicks > duration                 ? "Flash cut stance, legs, sheathe and recovery, and its whiff, must fit the stage watchdog."                 : !clips.Contains(p.StanceAnimationId) &#124;&#124; !clips.Contains(p.LegAnimationId) &#124;&#124;                   p.SheatheAnimationId.Length > 0 && !clips.Contains(p.SheatheAnimationId)                     ? "Flash cut stance, leg and sheathe clips must be listed in its stage."                     : null`.
-
-### Validation constants
-
-| Name | Value |
-| --- | --- |
-| `AimedRecoveryCapabilityId` | `"slop.ability.aimed-recovery.v1"` |
-| `AimedRecoveryCapabilityVersion` | `"1"` |
-| `ChargedProjectileCapabilityId` | `"slop.ability.charged-projectile.v1"` |
-| `ChargedProjectileCapabilityVersion` | `"1"` |
-| `ChargedStreamCapabilityId` | `"slop.ability.charged-stream.v1"` |
-| `ChargedStreamCapabilityVersion` | `"1"` |
-| `FingerGunsCapabilityId` | `"slop.ability.finger-guns.v1"` |
-| `FingerGunsCapabilityVersion` | `"1"` |
-| `DashStrikeCapabilityId` | `"slop.ability.dash-strike.v1"` |
-| `DashStrikeCapabilityVersion` | `"1"` |
-| `FlashCutCapabilityId` | `"slop.ability.flash-cut.v1"` |
-| `FlashCutCapabilityVersion` | `"1"` |
-| `TargetedLeapCapabilityId` | `"slop.ability.targeted-leap.v2"` |
-| `TargetedLeapCapabilityVersion` | `"2"` |
-| `SteeredChargeCapabilityId` | `"slop.ability.steered-charge.v2"` |
-| `SteeredChargeCapabilityVersion` | `"2"` |
-| `ShellStanceCapabilityId` | `"slop.ability.shell-stance.v2"` |
-| `ShellStanceCapabilityVersion` | `"1"` |
-| `CannonballCapabilityId` | `"slop.ability.cannonball.v1"` |
-| `CannonballCapabilityVersion` | `"1"` |
-| `ThrustCapabilityId` | `"slop.ability.thrust.v1"` |
-| `ThrustCapabilityVersion` | `"1"` |
-| `TetherCapabilityId` | `"slop.ability.tether.v1"` |
-| `TetherCapabilityVersion` | `"1"` |
-| `CommandGrabCapabilityId` | `"slop.ability.command-grab.v1"` |
-| `CommandGrabCapabilityVersion` | `"1"` |
-| `FormsCapabilityId` | `"slop.ability.forms.v1"` |
-| `FormsCapabilityVersion` | `"1"` |
-| `MaxSteeredChargeTurnDegreesPerSecond` | `1440f` |
-| `ManifestSchemaVersion` | `1` |
-| `AuthoringSchemaVersion` | `4` |
-| `CookedSchemaVersion` | `5` |
-| `RuntimeApiMin` | `"1.2.0"` |
-| `RuntimeApiMax` | `"1.x"` |
-| `MaxFixedHitstunTicks` | `240` |
-| `MaxStartupAcquisitionRange` | `32f` |
-| `MaxStartupAngleDegrees` | `180f` |
-| `MaxStartupPitchDegrees` | `90f` |
-| `MaxStartupRateDegreesPerSecond` | `1440f` |
-
-### Bounds returned by helper rules
-
-| Rule | Rejected condition | Message |
-| --- | --- | --- |
-| `OptionalString` | `see expression` | String(p, name, path, d) |
-| `TetherBoundsError` | `x.AtTarget is { } at` | x.Projectile != null &#124;&#124; x.RetractSpeed != 0f &#124;&#124; x.RetractAnimationId.Length > 0                 &#124;&#124; x.RetractPresentationId.Length > 0                 ? "A placed catch (atTarget) throws no ring: no projectile, retract speed, retract clip or retract presentation."                 : TetherAtTargetBoundsError(x, at) |
-| `TetherBoundsError` | `ring == null` | A thrown tether needs its projectile. |
-| `TetherBoundsError` | `!AllFinite(x.ReelSpeed, x.AnchorDistance, x.RetractSpeed, x.AirGravityScale, ring.LaunchOffsetX,                 ring.LaunchOffsetY, ring.LaunchOffsetZ, ring.Speed, ring.Gravity, ring.Radius, ring.Damage, ring.Angle,                 ring.BaseKnockback, ring.KnockbackGrowth, ring.YawOffsetDegrees)` | Tether values must be finite. |
-| `TetherBoundsError` | `x.ThrowTick == 0 &#124;&#124; x.ThrowTick > 120` | throwTick must be 1 to 120. |
-| `TetherBoundsError` | `!(ring.Speed > 0f && ring.Speed <= 60f) &#124;&#124; !(ring.Radius > 0f && ring.Radius <= 3f)             &#124;&#124; ring.MaxFlightTicks == 0 &#124;&#124; ring.MaxFlightTicks > 240` | The ring needs 0 < speed <= 60, 0 < radius <= 3 and maxFlightTicks 1 to 240. |
-| `TetherBoundsError` | `ring.Gravity != 0f &#124;&#124; ring.YawOffsetDegrees != 0f &#124;&#124; ring.Return != null` | The ring flies straight: no gravity, no yaw offset and no return block. |
-| `TetherBoundsError` | `ring.Damage < 0f &#124;&#124; ring.BaseKnockback != 0f &#124;&#124; ring.KnockbackGrowth != 0f &#124;&#124; ring.StunTicks != 0` | The ring catches instead of launching: damage >= 0, no knockback and no stun. |
-| `TetherBoundsError` | `!(x.ReelSpeed > 0f && x.ReelSpeed <= 60f) &#124;&#124; !(x.RetractSpeed > 0f && x.RetractSpeed <= 60f)` | reelSpeed and retractSpeed must be above 0 and at most 60. |
-| `TetherBoundsError` | `see expression` | TetherReelBoundsError(x) |
-| `TetherAtTargetBoundsError` | `!AllFinite(x.ReelSpeed, x.AnchorDistance, x.AirGravityScale, at.Radius, at.Height, at.Damage, at.MaxRange,                 at.NoTargetDistance)` | Tether values must be finite. |
-| `TetherAtTargetBoundsError` | `x.ThrowTick == 0 &#124;&#124; x.ThrowTick > 120` | throwTick must be 1 to 120. |
-| `TetherAtTargetBoundsError` | `at.WarningTicks == 0 &#124;&#124; at.WarningTicks > 120` | atTarget.warningTicks must be 1 to 120. |
-| `TetherAtTargetBoundsError` | `at.CatchTicks == 0 &#124;&#124; at.CatchTicks > 60` | atTarget.catchTicks must be 1 to 60. |
-| `TetherAtTargetBoundsError` | `!(at.Radius > 0f && at.Radius <= 3f) &#124;&#124; !(at.Height >= 2f * at.Radius && at.Height <= 6f)` | The catch needs 0 < radius <= 3 and a height of two radii up to 6. |
-| `TetherAtTargetBoundsError` | `!(at.Damage >= 0f && at.Damage <= 100f)` | atTarget.damage must be 0 to 100. |
-| `TetherAtTargetBoundsError` | `!(at.MaxRange > 0f && at.MaxRange <= MaxStartupAcquisitionRange)             &#124;&#124; !(at.NoTargetDistance >= 0f && at.NoTargetDistance <= at.MaxRange)` | atTarget needs 0 < maxRange <= 32 and 0 <= noTargetDistance <= maxRange. |
-| `TetherAtTargetBoundsError` | `!(x.ReelSpeed > 0f && x.ReelSpeed <= 60f)` | reelSpeed must be above 0 and at most 60. |
-| `TetherAtTargetBoundsError` | `see expression` | TetherUnmarkedBoundsError(at.Unmarked) ?? TetherReelBoundsError(x) |
-| `TetherUnmarkedBoundsError` | `!AllFinite(hand.Distance, hand.Radius, hand.Height, hand.Damage, hand.Angle, hand.BaseKnockback,                 hand.KnockbackGrowth)` | atTarget.unmarked values must be finite. |
-| `TetherUnmarkedBoundsError` | `hand.RiseTick == 0 &#124;&#124; hand.RiseTick > 120` | atTarget.unmarked.riseTick must be 1 to 120. |
-| `TetherUnmarkedBoundsError` | `hand.ActiveTicks == 0 &#124;&#124; hand.ActiveTicks > 60` | atTarget.unmarked.activeTicks must be 1 to 60. |
-| `TetherUnmarkedBoundsError` | `hand.RecoveryTicks > 240` | atTarget.unmarked.recoveryTicks must be 0 to 240. |
-| `TetherUnmarkedBoundsError` | `!(hand.Distance >= 0f && hand.Distance <= 6f)` | atTarget.unmarked.distance must be 0 to 6. |
-| `TetherUnmarkedBoundsError` | `!(hand.Radius > 0f && hand.Radius <= 3f) &#124;&#124; !(hand.Height >= 2f * hand.Radius && hand.Height <= 6f)` | The unmarked hand needs 0 < radius <= 3 and a height of two radii up to 6. |
-| `TetherUnmarkedBoundsError` | `!(hand.Damage > 0f && hand.Damage <= 100f)` | atTarget.unmarked.damage must be above 0 and at most 100. |
-| `TetherUnmarkedBoundsError` | `hand.Angle < -90f &#124;&#124; hand.Angle > 90f` | atTarget.unmarked.angle must be -90 to 90. |
-| `TetherUnmarkedBoundsError` | `hand.BaseKnockback < 0f &#124;&#124; hand.KnockbackGrowth < 0f` | The unmarked hand's knockback cannot be negative. |
-| `TetherUnmarkedBoundsError` | `hand.StunTicks > 240` | atTarget.unmarked.stunTicks must be 0 to 240. |
-| `TetherReelBoundsError` | `!(x.AnchorDistance >= 0f && x.AnchorDistance <= 3f)` | anchorDistance must be 0 to 3. |
-| `TetherReelBoundsError` | `x.ArrivalStunTicks == 0 &#124;&#124; x.ArrivalStunTicks > 240` | arrivalStunTicks must be 1 to 240. |
-| `TetherReelBoundsError` | `x.MaxReelTicks == 0 &#124;&#124; x.MaxReelTicks > 600` | maxReelTicks must be 1 to 600. |
-| `TetherReelBoundsError` | `x.MissRecoveryTicks > 240` | missRecoveryTicks must be 0 to 240. |
-| `TetherReelBoundsError` | `!(x.AirGravityScale >= 0f && x.AirGravityScale <= 1f)` | airGravityScale must be 0 to 1. |
-| `FormsBoundsError` | `forms != (x.AlternateForm != null)` | An alternateForm block exists exactly when the slop.ability.forms.v1 capability is required. |
-| `FormsBoundsError` | `x.Slots.Any(slot => slot.Form != 0)` | The top-level grid is form 0. |
-| `FormsBoundsError` | `slot.Timeline.Stages.SelectMany(stage => stage.Operations).Count(op => op is CookedSwapFormOperation) > (forms ? 1 : 0)` | forms ? $"Move {slot.Id} swaps form more than once." : "swapForm needs the forms capability and an alternateForm block." |
-| `FormsBoundsError` | `!IsId(form.Id) &#124;&#124; string.IsNullOrWhiteSpace(form.DisplayName)` | The alternate form needs a lowercase ID and a display name. |
-| `FormsBoundsError` | `form.Slots.Count != CanonicalSlots.Length             &#124;&#124; form.Slots.Where((slot, i) => slot.Form != 1 &#124;&#124; slot.Ordinal != i &#124;&#124; slot.Id != CanonicalSlots[i]).Any()` | The alternate form has its own fourteen canonical slots. |
-| `FormsBoundsError` | `!(form.Movement.AirDodgeSpeed > 0f)` | The alternate form's air-dodge speed must be greater than zero. |
-| `FormsBoundsError` | `id.Length > 0 && !IsId(id)` | Alternate form roles must be lowercase IDs. |
-| `ShellPairingError` | `hasSplash != list.Any(slot => slot.Policy == ShellPolicy.Tuck)` | The shell's splash exists exactly when a slot tucks. |
-| `ShellPairingError` | `hasRide != riders > 0` | The shell's ride exists exactly when a slot rides. |
-| `ShellPairingError` | `see expression` | riders > 1 ? "Only one special (and its air or ground variant) can ride." : null |
-| `CannonballSlotError` | `cannonballs != 1 &#124;&#124; stages != 1 &#124;&#124; tick != 0 &#124;&#124; behavior != AuthoringAbilityBehavior.MeleeCombo             &#124;&#124; aim != AuthoringAimMode.None &#124;&#124; iasaTicks != 0 &#124;&#124; otherOperations` | Cannonball requires one tick-zero lifecycle in one meleeCombo stage with no aim and IASA disabled, and only presentation alongside it. |
-| `CannonballSlotError` | `shellPolicy != ShellPolicy.Tuck` | A cannonball tucks: the shell's splash lands it. |
-| `CannonballSlotError` | `parameters == null` | Cannonball parameters are missing. |
-| `CannonballSlotError` | `see expression` | parameters.TakeoffTick + parameters.MaxFlightTicks >= durationTicks             ? "The cannonball's stage must outlast its takeoff and longest flight." : null |
-| `CannonballBoundsError` | `!AllFinite(x.MaxRange, x.NoTargetDistance, x.MaxLaunchSpeed)` | Cannonball values must be finite. |
-| `CannonballBoundsError` | `x.TakeoffTick > 60` | takeoffTick must be 0 to 60. |
-| `CannonballBoundsError` | `!(x.NoTargetDistance > 0f && x.NoTargetDistance <= x.MaxRange && x.MaxRange <= 30f)` | Ranges need 0 < noTargetDistance <= maxRange <= 30. |
-| `CannonballBoundsError` | `x.MinFlightTicks < 2 &#124;&#124; x.MinFlightTicks > x.MaxFlightTicks &#124;&#124; x.MaxFlightTicks > 240` | Flight ticks need 2 <= minFlightTicks <= maxFlightTicks <= 240. |
-| `CannonballBoundsError` | `!(x.MaxLaunchSpeed > 0f && x.MaxLaunchSpeed <= 60f)` | maxLaunchSpeed must be above 0 and at most 60. |
-| `ShellBoundsError` | `!AllFinite(x.PopOutDeceleration, x.BlockedRecoilSpeed)` | Shell values must be finite. |
-| `ShellBoundsError` | `!(x.PopOutDeceleration >= 0f && x.PopOutDeceleration <= 600f)` | popOutDeceleration must be 0 to 600. |
-| `ShellBoundsError` | `!(x.BlockedRecoilSpeed >= 0f && x.BlockedRecoilSpeed <= 30f)` | blockedRecoilSpeed must be 0 to 30. |
-| `ShellBoundsError` | `x.Splash == null && x.Ride == null` | A shell needs a splash, a ride or both. |
-| `ShellBoundsError` | `splash.Hitbox.StartBoneId != null &#124;&#124; splash.Hitbox.EndBoneId != null &#124;&#124; splash.Hitbox.HitGroup != 0` | The splash hitbox is root-relative with its own hit history (no bones, hitGroup 0). |
-| `ShellBoundsError` | `splash.PopUpTicks == 0 &#124;&#124; splash.PopUpTicks > 240` | splash.popUpTicks must be 1 to 240. |
-| `ShellBoundsError` | `!AllFinite(ride.Speed, ride.TurnDegreesPerSecond)` | Ride values must be finite. |
-| `ShellBoundsError` | `ride.Ticks == 0 &#124;&#124; ride.Ticks > 600` | ride.ticks must be 1 to 600. |
-| `ShellBoundsError` | `!(ride.Speed > 0f && ride.Speed <= 60f)` | ride.speed must be above 0 and at most 60. |
-| `ShellBoundsError` | `!(ride.TurnDegreesPerSecond >= 0f && ride.TurnDegreesPerSecond <= 720f)` | ride.turnDegreesPerSecond must be 0 to 720. |
-| `ShellBoundsError` | `ride.Wave.StartBoneId != null &#124;&#124; ride.Wave.EndBoneId != null &#124;&#124; ride.Wave.HitGroup != 0` | The wave is root-relative with its own hit history (no bones, hitGroup 0). |
-| `ShellBoundsError` | `ride.Wave.StunTicks != 0 &#124;&#124; ride.Wave.FixedHitstunTicks != 0` | The wave carries instead of stunning: stunTicks and fixedHitstunTicks are 0. |
-| `ThrustBoundsError` | `!AllFinite(x.TargetConeDegrees, x.NeutralPitchDegrees, x.StickPitchDegrees, x.Speed, x.Acceleration, x.MaxSpeed)` | Thrust values must be finite. |
-| `ThrustBoundsError` | `x.Aim is not (ThrustAim.Stick or ThrustAim.TargetAhead)` | Unknown thrust aim. |
-| `ThrustBoundsError` | `!(x.TargetConeDegrees >= 0f && x.TargetConeDegrees <= 180f)             &#124;&#124; x.Aim == ThrustAim.Stick && x.TargetConeDegrees != 0f` | targetConeDegrees is 0 to 180 and only applies to targetAhead. |
-| `ThrustBoundsError` | `!(MathF.Abs(x.NeutralPitchDegrees) <= 90f && MathF.Abs(x.StickPitchDegrees) <= 90f)` | Pitches must be -90 to 90 degrees. |
-| `ThrustBoundsError` | `!(x.Speed > 0f && x.Speed <= x.MaxSpeed && x.MaxSpeed <= 60f)` | Speeds need 0 < speed <= maxSpeed <= 60. |
-| `ThrustBoundsError` | `!(x.Acceleration >= 0f && x.Acceleration <= 240f)` | acceleration must be 0 to 240. |
-| `ThrustBoundsError` | `x.ThrustTicks == 0 &#124;&#124; x.ThrustTicks > 600` | thrustTicks must be 1 to 600. |
-| `ThrustBoundsError` | `x.TrailHitbox is { } trail && (trail.StartBoneId != null &#124;&#124; trail.EndBoneId != null &#124;&#124; trail.HitGroup != 0)` | The trail hitbox is root-relative with its own hit history (no bones, hitGroup 0). |
-| `Charge` | `p.Assist is { } a && (!Finite(a.AssistRange, a.AssistHalfAngleDegrees, a.AssistDegreesPerSecond)             &#124;&#124; a.AssistRange <= 0 &#124;&#124; a.AssistRange > 10 &#124;&#124; a.AssistHalfAngleDegrees <= 0 &#124;&#124; a.AssistHalfAngleDegrees > 90             &#124;&#124; a.AssistDegreesPerSecond <= 0 &#124;&#124; a.AssistDegreesPerSecond > 1440)` | Charge assist range, cone or turn rate is invalid. |
-| `Charge` | `!Finite(p.TrackDegreesPerSecond, p.ChallengedTrackDegreesPerSecond, c.AnchorDistance, c.AnchorHeight,                 f.Damage, f.Angle, f.BaseKnockback, f.KnockbackGrowth)             &#124;&#124; p.TrackDegreesPerSecond < 0 &#124;&#124; p.TrackDegreesPerSecond > 1440             &#124;&#124; p.ChallengedTrackDegreesPerSecond < 0 &#124;&#124; p.ChallengedTrackDegreesPerSecond > 1440             &#124;&#124; p.ChallengedRearTicks == 0 &#124;&#124; p.ChallengedRearTicks > 120             &#124;&#124; c.AnchorDistance < 0 &#124;&#124; c.AnchorDistance > 3 &#124;&#124; c.AnchorHeight < 0 &#124;&#124; c.AnchorHeight > 3             &#124;&#124; c.MaxCarryTicks == 0 &#124;&#124; c.MaxCarryTicks > 120 &#124;&#124; c.FlingTicks == 0 &#124;&#124; c.FlingTicks > 120             &#124;&#124; f.Damage <= 0 &#124;&#124; f.Damage > 100 &#124;&#124; f.Angle < -90 &#124;&#124; f.Angle > 90             &#124;&#124; f.BaseKnockback < 0 &#124;&#124; f.KnockbackGrowth < 0 &#124;&#124; f.StunTicks > 240             &#124;&#124; p.ChestHitbox.StartBoneId != null &#124;&#124; p.ChestHitbox.EndBoneId != null &#124;&#124; p.ChestHitbox.HitGroup != 0             &#124;&#124; p.LanceHitbox.Damage <= 0 &#124;&#124; p.ChestHitbox.Damage != p.LanceHitbox.Damage` | Charge tracking, chest contact, anchor, carry or fling values are invalid. |
-| `Leap` | `!Finite(p.RiseHeight, p.MaxRange, p.NoTargetDistance) &#124;&#124; p.RiseHeight <= 0 &#124;&#124; p.RiseHeight > 30             &#124;&#124; p.MaxRange <= 0 &#124;&#124; p.MaxRange > 60 &#124;&#124; p.NoTargetDistance < 0 &#124;&#124; p.NoTargetDistance > p.MaxRange             &#124;&#124; p.RiseTicks == 0 &#124;&#124; p.RiseTicks > 240 &#124;&#124; p.HangTicks == 0 &#124;&#124; p.HangTicks > 240             &#124;&#124; p.DropTicks == 0 &#124;&#124; p.DropTicks > 240 &#124;&#124; p.MaxFallTicks == 0 &#124;&#124; p.MaxFallTicks > 600             &#124;&#124; p.HitRecoveryTicks == 0 &#124;&#124; p.MissRecoveryTicks < p.HitRecoveryTicks &#124;&#124; p.MissRecoveryTicks > 600             &#124;&#124; p.Hitbox.DurationTicks == 0 &#124;&#124; p.Hitbox.DurationTicks > p.HitRecoveryTicks` | Leap heights, ranges, beats or recoveries are invalid. |
-| `Slot` | `stages.Count != 1 &#124;&#124; op.Tick != 0 &#124;&#124; slot.Behavior != AuthoringAbilityBehavior.MeleeCombo             &#124;&#124; slot.AimMode != AuthoringAimMode.None &#124;&#124; slot.AllowSlideCarry &#124;&#124; slot.ChargePool != null             &#124;&#124; stages[0].IasaTicks != 0 &#124;&#124; stages[0].Operations.Any(o => o != op && o is not EmitPresentationOperationSource)` | A v2 special needs one tick-zero lifecycle, one meleeCombo stage, no aim, carry, charge pool or IASA, with only presentation alongside it. |
-| `Slot` | `clips.Any(id => id.Length > 0 && !stages[0].AnimationIds.Contains(id, StringComparer.Ordinal))` | A phase clip must be listed in the stage. |
-| `Slot` | `stages.Count != 1 &#124;&#124; op.Tick != 0 &#124;&#124; slot.Behavior != AuthoringAbilityBehavior.MeleeCombo             &#124;&#124; slot.AimMode != AuthoringAimMode.None &#124;&#124; slot.AllowSlideCarry &#124;&#124; slot.ChargePool != null             &#124;&#124; stages[0].IasaTicks != 0 &#124;&#124; stages[0].Operations.Any(o => o != op && o is not CookedEmitPresentationOperation)` | A v2 special owns one tick-zero lifecycle in one meleeCombo stage, no aim, carry, charge pool or IASA, with only presentation alongside it. |
-| `BoundsError` | `!Finite(x.LungeSpeed, x.StopDistance, x.AnchorDistance ?? 0f, c.Radius, c.OffsetX, c.OffsetY, c.OffsetZ,                 c.EndOffsetX, c.EndOffsetY, c.EndOffsetZ, c.Damage)             &#124;&#124; x.Launch is { } launch && !Finite(launch.Damage, launch.Angle, launch.BaseKnockback, launch.KnockbackGrowth)` | Command grab values must be finite. |
-| `BoundsError` | `x.LungeTicks > 60 &#124;&#124; !(x.LungeSpeed >= 0f && x.LungeSpeed <= 60f) &#124;&#124; !(x.StopDistance >= 0f && x.StopDistance <= 5f)` | The lunge needs lungeTicks 0 to 60, a speed of 0 to 60 and a stopDistance of 0 to 5. |
-| `BoundsError` | `c.RequiresFacingOwner &#124;&#124; c.StartBoneId != null &#124;&#124; c.EndBoneId != null &#124;&#124; c.HitGroup != 0             &#124;&#124; c.Shape is not (AuthoringHitboxShape.Sphere or AuthoringHitboxShape.Capsule)` | The capture is a root-relative sphere or capsule with authored hitGroup 0. |
-| `BoundsError` | `!(c.Radius > 0f && c.Radius <= 3f) &#124;&#124; c.Damage < 0f &#124;&#124; c.BaseKnockback != 0f &#124;&#124; c.KnockbackGrowth != 0f             &#124;&#124; c.StunTicks != 0 &#124;&#124; c.FixedHitstunTicks != 0` | The capture holds instead of launching: a radius above 0 and at most 3, damage >= 0, no knockback or stun. |
-| `BoundsError` | `x.LungeSpeed * Simulation.TickDt > 2f * c.Radius` | The lunge's travel per tick exceeds twice the capture radius, leaving gaps in its reach. |
-| `BoundsError` | `x.CaptureTick == 0 &#124;&#124; x.CaptureTick > 120 &#124;&#124; c.DurationTicks == 0 &#124;&#124; c.DurationTicks > 30` | The capture opens at tick 1 to 120 for 1 to 30 ticks. |
-| `BoundsError` | `x.ReleaseTick < x.CaptureTick + c.DurationTicks &#124;&#124; x.ReleaseTick > 240` | releaseTick must follow the capture window and be at most 240. |
-| `BoundsError` | `x.AnchorDistance is { } anchor && !(anchor >= 0f && anchor <= 3f)` | anchorDistance must be 0 to 3. |
-| `BoundsError` | `!(l.Damage > 0f && l.Damage <= 100f) &#124;&#124; l.Angle < -90f &#124;&#124; l.Angle > 90f &#124;&#124; l.BaseKnockback < 0f                 &#124;&#124; l.KnockbackGrowth < 0f &#124;&#124; l.StunTicks > 240` | The launch needs damage above 0 and at most 100, an angle of -90 to 90, no negative knockback and stun to 240. |
-| `BoundsError` | `x.ReleaseLockTicks != 0` | A release with a launch has no releaseLockTicks. |
-| `BoundsError` | `x.ReleaseLockTicks == 0 &#124;&#124; x.ReleaseLockTicks > 60` | A release without a launch holds the victim for releaseLockTicks 1 to 60 before the timeline's finisher. |
-| `BoundsError` | `x.WhiffRecoveryTicks > 120` | whiffRecoveryTicks must be at most 120. |
-| `SlotError` | `count != 1 &#124;&#124; stages != (p.HasHoldStage ? 2 : 1) &#124;&#124; tick != 0 &#124;&#124; behavior != AuthoringAbilityBehavior.MeleeCombo             &#124;&#124; aim != AuthoringAimMode.None &#124;&#124; carry &#124;&#124; charge &#124;&#124; otherOperations` | "A command grab needs one tick-zero lifecycle in a meleeCombo with no aim, carry or charge pool and only "                 + "presentation beside it: one stage, or with whiffRecoveryTicks a lunge stage and then the hold stage." |
-| `SlotError` | `shellPolicy == ShellPolicy.Tuck` | A command grab cannot tuck. |
-| `SlotError` | `p.ReleaseTick >= firstDuration` | releaseTick must fall inside the stage. |
-| `SlotError` | `firstIasa != 0 && firstIasa <= p.ReleaseTick` | The stage cannot admit IASA before the release. |
-| `SlotError` | `firstDuration != lungeTicks &#124;&#124; firstIasa != 0` | $"The lunge stage ends as the capture closes, after {lungeTicks} ticks, with IASA disabled." |
-| `SlotError` | `p.ReleaseTick <= firstDuration &#124;&#124; p.ReleaseTick >= firstDuration + holdDuration` | releaseTick must fall inside the hold stage. |
-| `SlotError` | `holdIasa != 0 && holdIasa <= p.ReleaseTick - firstDuration` | The hold stage cannot admit IASA before the release. |
-| `BoundsError` | `!Finite(x.Distance) &#124;&#124; x.Distance <= 0 &#124;&#124; x.Distance > 12 &#124;&#124;             !Finite(x.Speed) &#124;&#124; x.Speed <= 0 &#124;&#124; x.Speed > 60 &#124;&#124; x.RecoveryTicks == 0 &#124;&#124; x.RecoveryTicks > 120` | Dash strike requires finite distance (0, 12], speed (0, 60], and recovery 1..120 ticks. |
-| `BoundsError` | `x.Distance / (double)(x.Speed * Simulation.TickDt) > ushort.MaxValue` | Dash strike travel exceeds the supported tick budget. |
-| `BoundsError` | `light.Shape != AuthoringHitboxShape.Sphere &#124;&#124; light.StartBoneId != null &#124;&#124; light.EndBoneId != null &#124;&#124;             tip.StartBoneId != null &#124;&#124; tip.EndBoneId != null &#124;&#124; light.HitGroup != 0 &#124;&#124; tip.HitGroup != 0` | Dash strike requires a root-relative light sphere and root-relative tip, with authored hitGroup 0. |
-| `BoundsError` | `light.BaseKnockback != 0 &#124;&#124; light.KnockbackGrowth != 0 &#124;&#124; light.FixedHitstunTicks == 0 &#124;&#124; tip.DurationTicks == 0` | The light cut needs zero base/growth and positive fixed hitstun; the tip needs a positive lifetime. |
-| `BoundsError` | `x.Speed * Simulation.TickDt > 2 * light.Radius` | Dash strike travel per tick exceeds twice the light radius, leaving gaps in cut coverage. |
-| `BoundsError` | `x.StanceTicks is 0 or > 120 &#124;&#124; x.LegTicks is 0 or > 30 &#124;&#124; x.SheatheTicks is 0 or > 120 &#124;&#124;             x.RecoveryTicks is 0 or > 120 &#124;&#124; x.WhiffTicks is 0 or > 120 &#124;&#124;             x.RevealLeadTicks == 0 &#124;&#124; x.RevealLeadTicks > x.SheatheTicks` | Flash cut requires stance, sheathe, recovery and whiff of 1..120 ticks, legs of 1..30, and a reveal lead of 1..sheatheTicks. |
-| `BoundsError` | `!Finite(x.LockRange) &#124;&#124; x.LockRange <= 0 &#124;&#124; x.LockRange > 20 &#124;&#124;             !Finite(x.PassThroughDistance) &#124;&#124; x.PassThroughDistance < 0 &#124;&#124; x.PassThroughDistance > 3 &#124;&#124;             x.MaxTargets is 0 or > MaxTargetsLimit` | Flash cut requires a lock range in (0, 20] m, a pass-through in [0, 3] m and 1..7 targets. |
-| `BoundsError` | `x.PopAfterLock(x.MaxTargets) > MaxHoldTicks` | Flash cut legs and sheathe hold their victims too long: maxTargets × legTicks + sheatheTicks must be at most 240. |
-| `BoundsError` | `cut.Shape != AuthoringHitboxShape.Sphere &#124;&#124; cut.StartBoneId != null &#124;&#124; cut.EndBoneId != null &#124;&#124; cut.HitGroup != 0` | The flash cut requires a root-relative sphere with authored hitGroup 0. |
-| `BoundsError` | `!(cut.Damage > 0) &#124;&#124; cut.StunTicks == 0 &#124;&#124; !(cut.BaseKnockback > 0 &#124;&#124; cut.KnockbackGrowth > 0)` | The flash cut needs damage, stun and a launch: its knockback is the pop. |
-| `BoundsError` | `x.LongestLeg / x.LegTicks > 2 * cut.Radius` | Flash cut legs can travel twice the lock range plus the pass-through; that per-tick travel must not exceed twice the cut radius, or cuts leave gaps. |
-| `BoundsError` | `!float.IsFinite(homing.TurnDegreesPerTick) &#124;&#124; !(homing.TurnDegreesPerTick > 0f)                     &#124;&#124; homing.TurnDegreesPerTick > MaxTurnDegreesPerTick &#124;&#124; !float.IsFinite(norm)                     &#124;&#124; MathF.Abs(norm - 1f) > .00001f &#124;&#124; homing.TurnCos < 0f &#124;&#124; !(homing.TurnSin > 0f)` | homing.turnDegreesPerTick must be above 0 and at most 90. |
-| `BoundsError` | `!(projectile.Speed > 0f)` | A homing projectile needs a positive speed. |
-| `BoundsError` | `projectile.Homing != null && perch.Dive != null` | A perch with a dive block commits to its line: remove its homing block. |
-| `BoundsError` | `perch.PerchTicks == 0 &#124;&#124; perch.PerchTicks > MaxPerchTicks` | perch.perchTicks must be 1 to 1200. |
-| `BoundsError` | `projectile.Return != null` | A perching projectile cannot return. |
-| `BoundsError` | `projectile.Damage != 0f &#124;&#124; projectile.BaseKnockback != 0f &#124;&#124; projectile.KnockbackGrowth != 0f                 &#124;&#124; projectile.StunTicks != 0` | A perching projectile lands without damage: its own damage, knockback and stun stay zero. |
-| `BoundsError` | `!float.IsFinite(pop.Damage) &#124;&#124; !float.IsFinite(pop.Angle) &#124;&#124; !float.IsFinite(pop.BaseKnockback)                 &#124;&#124; !float.IsFinite(pop.KnockbackGrowth)` | The pop's values must be finite. |
-| `BoundsError` | `!(pop.Damage > 0f && pop.Damage <= 100f)` | perch.pop.damage must be above 0 and at most 100. |
-| `BoundsError` | `pop.Angle < -90f &#124;&#124; pop.Angle > 90f` | perch.pop.angle must be -90 to 90. |
-| `BoundsError` | `pop.BaseKnockback < 0f &#124;&#124; pop.KnockbackGrowth < 0f` | The pop's knockback cannot be negative. |
-| `BoundsError` | `pop.StunTicks > MaxPopStunTicks` | perch.pop.stunTicks must be 0 to 240. |
-| `BoundsError` | `peck.IntervalTicks == 0 &#124;&#124; peck.IntervalTicks > perch.PerchTicks` | perch.peck.intervalTicks must be 1 to perch.perchTicks. |
-| `BoundsError` | `!float.IsFinite(peck.Damage) &#124;&#124; !(peck.Damage >= 1f) &#124;&#124; peck.Damage > MaxPeckDamage                     &#124;&#124; peck.Damage != MathF.Floor(peck.Damage)` | perch.peck.damage must be a whole number from 1 to 20. |
-| `BoundsError` | `projectile.Gravity != 0f` | A diving perch flies without gravity. |
-| `BoundsError` | `!(projectile.Speed > 0f && projectile.Speed <= MaxDiveSpeed)` | A perching projectile rises at its speed: above 0 and at most 60. |
-| `BoundsError` | `!float.IsFinite(dive.HoverHeight) &#124;&#124; !(dive.HoverHeight > 0f) &#124;&#124; dive.HoverHeight > MaxHoverHeight` | perch.dive.hoverHeight must be above 0 and at most 12. |
-| `BoundsError` | `dive.MaxRiseTicks == 0 &#124;&#124; dive.MaxRiseTicks > MaxDivePhaseTicks` | perch.dive.maxRiseTicks must be 1 to 240. |
-| `BoundsError` | `dive.MarkTicks == 0 &#124;&#124; dive.MarkTicks > MaxDivePhaseTicks` | perch.dive.markTicks must be 1 to 240. |
-| `BoundsError` | `!float.IsFinite(dive.DiveSpeed) &#124;&#124; !(dive.DiveSpeed > 0f) &#124;&#124; dive.DiveSpeed > MaxDiveSpeed` | perch.dive.diveSpeed must be above 0 and at most 60. |
-| `BoundsError` | `!float.IsFinite(dive.NoTargetDistance) &#124;&#124; dive.NoTargetDistance < 0f &#124;&#124; dive.NoTargetDistance > MaxNoTargetDistance` | perch.dive.noTargetDistance must be 0 to 20. |
-| `BoundsError` | `projectile.MaxFlightTicks <= dive.MaxRiseTicks + dive.MarkTicks` | A diving perch's maxFlightTicks must outlast its rise and mark, leaving time to dive. |
-
-### Retired capability IDs
-
-These produce `capability.retired`.
-
-| ID | Reason |
-| --- | --- |
-| `slop.internal.bonk.targeted-jump-slam.v1` | The Bonk-only targeted jump slam capability has been retired. |
-| `slop.ability.charged-directional-dash.v1` | Charged directional dash has been retired. Use slop.ability.dash-strike.v1 (Quick Draw, ADR-0052). |
-| `slop.internal.wibou.dash-slash.v1` | The Wibou dash-slash capability has been retired. |
-| `slop.internal.wibou.blade-flurry.v1` | Blade Flurry v1 has been retired. Use slop.ability.flash-cut.v1 (the flash, ADR-0052). |
-| `slop.internal.wibou.blade-flurry.v2` | Blade Flurry (Skyfall) has been retired. Use slop.ability.flash-cut.v1 (the flash, ADR-0052). |
-| `slop.ability.shell-stance.v1` | Shell stance v1 (the skate and the bowl) has been retired. Use slop.ability.shell-stance.v2 with a splash and a ride (ADR-0050). |
-| `slop.ability.steered-charge.v1` | Charge v1 has been retired. Use steered-charge.v2 with rear, tracking, chest and command carry (ADR-0059). |
-| `slop.ability.targeted-leap.v1` | Cursor leap v1 has been retired. Use targeted-leap.v2 with rise, hang and drop (ADR-0059). |
-| `slop.ability.clinch.v1` | Clinch v1 (Title Match) has been retired. Use slop.ability.command-grab.v1 with level, anchorDistance, releaseLockTicks and whiffRecoveryTicks (ADR-0057). |
-
-### Budget accounting rules
-
-| Counter | Increment | Condition |
-| --- | --- | --- |
-| operations | 1 | `each authored operation` |
-| timelineOperations | 1 | `each authored operation` |
-| hitboxes | 1 | `case SpawnHitboxOperationSource x:` |
-| projectiles | 1 | `case SpawnProjectileOperationSource x:` |
-| capabilities | 1 | `case StartCapabilityOperationSource x:` |
-| hitboxes | 1 | `x.Parameters is TargetedLeapCapabilityParameters or SteeredChargeCapabilityParameters                             or ThrustCapabilityParameters { TrailHitbox: not null }` |
-| hitboxes | 2 | `x.Parameters is DashStrikeCapabilityParameters` |
-| hitboxes | 1 | `x.Parameters is FlashCutCapabilityParameters or CommandGrabCapabilityParameters` |
-| projectiles | 1 | `x.Parameters is ChargedProjectileCapabilityParameters or TetherCapabilityParameters { AtTarget: null }` |
-| hitboxes | 1 | `x.Parameters is TetherCapabilityParameters` |
 <!-- END GENERATED CONTRACT -->
+## Gameplay constraints kept in the compiler
+
+These are hand-written descriptions of the existing multi-field and lifecycle checks.
+They are intentionally separate from the generated JSON field contract.
+They remain in the compiler because changing their diagnostic ordering or capability admission would risk changing existing content.
+The checker remains authoritative for these relationships. A future editor must still compile the complete kit before accepting an edit.
+
+All ranges below include their endpoints unless the text says positive, above, below, or exclusive.
+All numeric values used by a successful cook must be finite.
+A field with no further gameplay constraint here has its storage range from the generated tables, not an implied balance recommendation.
+
+### Package, body, and references
+
+Manifest schema is 1 and authoring schema is 4. Version is SemVer 2.0 text.
+Creator, license, and attribution are nonempty. Dependency version and cooked hash are nonempty.
+The source must resolve every canonical move. An alias cannot replace an already explicit entry or make a cycle.
+Capabilities must have unique IDs and supported versions. Unknown IDs raise `capability.unknown`; mismatched versions raise `capability.version-mismatch`.
+`slop.internal.*` requirements raise `capability.untrusted` in Workshop. Retired identities raise `capability.retired` with a replacement reason.
+
+`movement.airDodgeSpeed` is positive. `shieldRadius` is positive and greater than half `capsuleHeight`.
+Capture reach, width, and height are positive; capture anchors and offsets are finite.
+Bone hurtbox radii are nonnegative. End offsets require an end bone.
+Bone IDs used by attacks must be required registry points or be declared by hurtbox bone definitions or attachment points.
+Presentation cues must be declared. Nonempty animation roles use valid lowercase IDs; standard roles cannot reuse one ID.
+Stage animation IDs must also start with `anim.`. Source compilation checks names, not asset availability.
+
+### Stages, movement windows, and presentation
+
+A stage has positive duration. IASA, landing lag, and both auto-cancel boundaries cannot exceed that duration.
+Each operation tick is strictly below the stage duration. A lunge, gravity window, or armor window has positive duration and must end within the same stage.
+Lunge speed is positive. Gravity scale is 0 through 1. A stopping lunge needs a later same-stage hitbox.
+Attack range is nonnegative. Retired warp/tracking fields remain zero or false.
+
+The generated budget tables give the compiler's stage, operation, slot and capability limits, and its per-operation counters.
+The slot ceiling does not add move identities to the canonical grid.
+Counters describe a compiled definition, not the number of runtime emissions a looping capability may later make.
+
+A charge pool has one through three stocks and positive regeneration ticks.
+Nondefault `aimMovementSpeedScale` is above zero and at most one, and requires mobile aim.
+Slide carry is only for grounded normals with no aim, recovery designation, retired warp, or motion-owning operation.
+
+A hitbox has nonnegative radius, damage, base, and growth, pitch -90 through 90, and positive lifetime.
+Fixed hitstun is 0 through 240 and a nonzero override requires nonzero `stunTicks`.
+An ordinary projectile has nonnegative speed, radius, and damage, pitch -90 through 90, and yaw offset -180 through 180.
+Special lifecycles impose stronger projectile limits below.
+A presentation placement has positive duration and positive scale on every axis. Bone attachment requires a declared bone.
+
+Startup aim correction has one window per timeline. `endTick` is after `tick`, no later than stage end, and no later than the first contact or directional launch commitment.
+It cannot begin after a prior commitment. Acquisition range is above zero through 32 m and acquisition half-angle is above zero through 180 degrees.
+Maximum yaw is 0 through 180 degrees, maximum pitch 0 through 90 degrees, and both rates are 0 through 1440 degrees/s.
+A nonzero yaw or pitch allowance requires a positive corresponding rate.
+
+### Aimed recovery and charged shots
+
+Aimed recovery startup is 1 through 120 ticks and precedes stage end.
+Vertical speed is above zero through 60 m/s. Directional vertical speed is positive and cannot exceed neutral vertical speed.
+Horizontal speed is 0 through 60 m/s, preparation rise is 0 through 4 m/s, and rise steering is 0 through 120 m/s².
+For a setup hop, preparation rise is zero, start is positive, contact is at least four ticks after start and before launch.
+Forward distance and arc height are above zero through 3 m; landing height is 0 through 1 m.
+
+Charged projectile uses one tick-zero `chargeAttack` lifecycle in one stage with IASA disabled.
+It cannot share the slot with competing motion, aim changes, hitbox/projectile spawns, or another lifecycle.
+Thresholds satisfy `0 < tier2Ticks < tier3Ticks <= maxChargeTicks`.
+The base projectile radius and successive tier radii are positive and strictly increasing.
+Projectile speed, flight lifetime, and fire startup are positive. Fire startup precedes the release stage end.
+It cannot use returning, homing, or perching projectile blocks.
+
+Charged stream has the same chargeAttack, stage, and competing-operation restrictions.
+Charge, fire startup, interval, and minimum stream duration are positive. Maximum stream duration is at least the minimum.
+Maximum base knockback is at least the projectile's base. Recoil satisfies `0 <= minRecoilSpeed <= maxRecoilSpeed`.
+Its projectile has positive radius, speed, and lifetime, and cannot return, home, or perch.
+A nonempty spray/end clip is listed in the stage and sorts after its primary clip. A positive spray loop requires a spray clip.
+
+Finger guns uses one tick-zero meleeCombo lifecycle, one stage, no IASA, slide carry, or charge pool, and only presentation companions.
+Aim may be none, cameraForward3D, or groundVector.
+Fire startup is 1 through 120 ticks, recovery 1 through 240, shots per reload 1 through 24, and reload 1 through 600.
+Air fall/recoil speeds are 0 through 30 m/s. The reload clip is listed after the stage's first sorted clip.
+Its projectile is non-returning with positive speed, radius, and lifetime, and has no homing or perch block.
+
+### Command grab
+
+Use one tick-zero meleeCombo lifecycle with no aim, slide carry, charge pool, or tuck policy.
+Only presentation operations accompany the lifecycle in its first stage.
+Lunge ticks are 0 through 60, speed 0 through 60 m/s, and stop distance 0 through 5 m.
+Per-tick lunge distance cannot exceed twice the capture radius.
+
+Capture is a root-relative sphere or capsule, with no bones, facing-owner restriction, knockback, stun, or nonzero hit group.
+Radius is above zero through 3 m and capture damage is nonnegative.
+The capture opens at tick 1 through 120 and lasts 1 through 30 ticks.
+Release follows the whole capture window and is at most tick 240.
+An authored anchor distance is 0 through 3 m.
+
+Launch damage is above zero through 100, pitch -90 through 90, base and growth nonnegative, and stun gate 0 through 240.
+A launching release has zero release-lock ticks. A release without launch instead needs release lock 1 through 60 ticks.
+Whiff recovery is at most 120 ticks.
+With zero whiff recovery, one stage must contain release; any IASA is strictly after release.
+With nonzero whiff recovery, there are two stages. The first ends exactly at capture close with IASA disabled.
+Release is strictly inside the second stage, measured from activation, and its IASA cannot precede release.
+
+### Dash strike and flash cut
+
+Dash strike uses one tick-zero meleeCombo stage, no aim, IASA, carry, or charge pool, and only presentation companions.
+Distance is above zero through 12 m, speed above zero through 60 m/s, and recovery 1 through 120 ticks.
+Travel must fit an unsigned 16-bit tick count.
+The light hitbox is a root-relative sphere; the tip is root-relative. Both author hit group zero.
+The light cut has zero base/growth and positive fixed hitstun. Per-tick travel cannot exceed twice its radius.
+Travel plus tip lifetime plus recovery must fit the stage. Tip pose tick plus tip lifetime plus recovery must also fit.
+
+Flash cut has the same one-stage tick-zero meleeCombo, no-aim/IASA/carry/stock restrictions and presentation-only companions.
+Stance, sheathe, recovery, and whiff are 1 through 120 ticks. Legs are 1 through 30 ticks.
+Reveal lead is 1 through sheathe ticks. Lock range is above zero through 20 m, pass-through 0 through 3 m, and target count 1 through 7.
+`maxTargets × legTicks + sheatheTicks` is at most 240 ticks.
+Its cut is a root sphere with group zero, positive damage, nonzero stun, and a positive base or growth launch term.
+`(2 × lockRange + passThroughDistance) / legTicks` cannot exceed twice the cut radius.
+The stage covers stance plus the longer of whiff or maximum legs/sheathe/recovery. Phase clips are listed in the stage and cues are declared.
+
+### Targeted leap, steered charge, and thrust
+
+Targeted leap uses one tick-zero meleeCombo stage with no aim or IASA and presentation-only companions.
+Rise height is above zero through 30 m. Maximum range is above zero through 60 m and fallback distance is between zero and that range.
+Rise, hang, and drop are each 1 through 240 ticks. Fall timeout is 1 through 600.
+Hit recovery is positive; miss recovery is at least hit recovery and at most 600.
+The landing hitbox lifetime is positive and fits hit recovery. All ordinary hitbox constraints still apply.
+Its optional nonempty presentation IDs begin with `presentation.` and are declared. Phase clips and timing must fit the stage watchdog.
+
+Steered charge has one lifecycle in one stage with IASA disabled.
+It admits presentation cues and startup correction, gravity, or armor that all end before charge start.
+It rejects competing motion, aim changes, hitbox/projectile spawns, explicit completion, or another lifecycle.
+Gallop speed and gallop/hit-ending/miss-ending ticks are positive. Turn rate is 0 through 1440 degrees/s.
+Skid fits the miss ending. A gallop clip requires positive loop ticks.
+Tracking rates are 0 through 1440 degrees/s; challenged rear ticks are 1 through 120.
+Carry distance/height are 0 through 3 m; carry and fling durations are 1 through 120 ticks.
+Fling damage is above zero through 100, pitch -90 through 90, base/growth nonnegative, and stun gate at most 240.
+Chest geometry is root-relative with group zero. Lance damage is positive and chest damage equals it.
+Assist range is above zero through 10 m, cone above zero through 90 degrees, and rate above zero through 1440 degrees/s.
+Every nonempty phase clip is listed in the stage and sorts after the primary startup clip.
+
+Thrust uses one tick-zero meleeCombo stage with no aim; presentation and armor may accompany it. IASA is allowed.
+Target cone is 0 through 180 degrees and zero for stick aim. Neutral and stick pitch are -90 through 90 degrees.
+Speed satisfies `0 < speed <= maxSpeed <= 60 m/s`; acceleration is 0 through 240 m/s².
+Thrust ticks are 1 through 600 and fit the stage. An optional trail is root-relative with group zero.
+
+### Tether
+
+Tether uses one tick-zero meleeCombo stage with no aim or IASA and presentation-only companions. It cannot tuck.
+Throw tick is 1 through 120. Reel speed is above zero through 60 m/s, anchor distance 0 through 3 m, arrival stun 1 through 240 ticks,
+maximum reel 1 through 600, miss recovery 0 through 240, and airborne gravity scale 0 through 1.
+
+A thrown tether requires its projectile and positive retract speed at most 60 m/s.
+Ring speed is above zero through 60 m/s, radius above zero through 3 m, and lifetime 1 through 240 ticks.
+It has zero gravity and yaw offset, no return, no knockback or stun, and nonnegative damage.
+
+With `atTarget`, omit projectile, retract speed, retract clip, and retract cue.
+Warning ticks are 1 through 120 and catch ticks 1 through 60.
+Catch radius is above zero through 3 m; height is at least twice radius and at most 6 m. Damage is 0 through 100.
+Range is above zero through 32 m, with fallback distance between zero and that range.
+The optional unmarked branch has rise tick 1 through 120, active ticks 1 through 60, recovery 0 through 240, and distance 0 through 6 m.
+Its radius/height obey the same shape limits. Damage is above zero through 100, pitch -90 through 90, base/growth nonnegative, and stun gate 0 through 240.
+Nonempty tether phase clips sort after the stage primary clip and cues are declared.
+
+### Shell, cannonball, and forms
+
+The shell block exists with the shell-stance requirement and a nonempty shell animation role.
+Pop-out deceleration is 0 through 600 m/s² and blocked recoil speed 0 through 30 m/s.
+A splash exists exactly when a move tucks; a ride exists exactly when a move rides.
+Only specials can tuck or ride. A tuck move has no slide carry or preserve-momentum flag.
+At most one special button, with either or both variants, owns ride policy.
+A ride move has one stage, no IASA, and only presentation, startup correction, or gravity-window operations.
+
+Splash geometry is root-relative with group zero and pop-up lag 1 through 240 ticks.
+Ride duration is 1 through 600 ticks, speed above zero through 60 m/s, and turn rate 0 through 720 degrees/s.
+Wave geometry is root-relative with group zero and zero stun/fixed-hitstun.
+
+Cannonball uses one tick-zero meleeCombo stage with no aim or IASA, only presentation companions, and tuck policy.
+Takeoff tick is 0 through 60. Distances satisfy `0 < noTargetDistance <= maxRange <= 30 m`.
+Flight bounds satisfy `2 <= minFlightTicks <= maxFlightTicks <= 240`.
+Maximum launch speed is above zero through 60 m/s. The stage outlasts takeoff plus the longest flight.
+
+The forms requirement and alternateForm block exist together. The alternate form has its own complete canonical grid and positive air-dodge speed.
+Its nonempty role IDs are lowercase. An empty role falls back to form zero on the same rig.
+A move may swap form at most once and only in a fighter with the forms feature.
+
+### Returning and perching projectiles
+
+A slot may spawn at most one returning projectile. Outbound ticks are positive and strictly below projectile lifetime.
+Return speed and acceleration are positive, projectile gravity is exactly zero, self-hit damage is nonnegative, and self-hit stun is 1 through 240 ticks.
+Return cues are declared and use the `presentation.` prefix. Optional return-leg damage is 0 through 100, pitch -90 through 90,
+base/growth nonnegative, stun gate 0 through 240, and fixed hitstun 0 through 240 with a positive stun gate when overridden.
+
+Homing turn is above zero through 90 degrees per tick and requires positive projectile speed.
+A perch cannot return. It requires an alternate form; contact itself has zero damage, base, growth, and stun.
+Perch duration is 1 through 1200 ticks. Pop damage is above zero through 100, pitch -90 through 90, base/growth nonnegative, and stun gate 0 through 240.
+Peck interval is positive and no longer than the perch duration. Peck damage is an integer 1 through 20.
+A diving perch has no homing block and zero projectile gravity. Rise speed and dive speed are above zero through 60 m/s.
+Hover height is above zero through 12 m, rise and mark are 1 through 240 ticks each, and fallback distance is 0 through 20 m.
+Projectile lifetime outlasts rise plus mark. A projectile with homing or perch has challenge ticks at most 600.

@@ -10,12 +10,12 @@ try
         var start = document.IndexOf(AuthoringReference.Start, StringComparison.Ordinal);
         var end = document.IndexOf(AuthoringReference.End, StringComparison.Ordinal);
         if (start < 0 || end < start) throw new ArgumentException("Generated contract markers are missing.");
-        File.WriteAllText(path, document[..start] + AuthoringReference.Generate(Path.GetFullPath(writeRoot)) + document[(end + AuthoringReference.End.Length)..].TrimStart('\r', '\n'));
+        File.WriteAllText(path, document[..start] + AuthoringReference.Generate() + document[(end + AuthoringReference.End.Length)..].TrimStart('\r', '\n'));
         return 0;
     }
-    if (args is ["reference", var root])
+    if (args is ["reference"] or ["reference", _])
     {
-        Console.Write(AuthoringReference.Generate(Path.GetFullPath(root)));
+        Console.Write(AuthoringReference.Generate());
         return 0;
     }
     if (args is ["template", var folder, var id, var name])
