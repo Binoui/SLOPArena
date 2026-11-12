@@ -310,6 +310,13 @@ what happens to published items when the cooked schema changes. Attach the evide
   before on 57,524 altered sources, and a cold cook reproduced the runtime, pose, and binding
   files of all seven fighters byte for byte. Four manifests were recooked, because a manifest
   stores its compile warnings and their paths now name the entry at fault.
+- 2026-11-12. ADR-0067 unit 1 built: a local Match can hold a fighter with no selector. An
+  admitted fighter is a type only Shared can make. Building a catalog needs a policy, and a
+  standard Room accepts only packages pinned by the roster the application shipped. Local
+  Matches write handle map schema 3, and new local replays store their content map. The online
+  schema 2 bytes and hash are pinned by a test that runs the real server path. The player's
+  class and package can only be set together. Nothing a player sees changes, and no fixture is
+  reachable outside tests.
 
 ## Phase 1. Ship model swaps
 
