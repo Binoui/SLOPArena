@@ -299,6 +299,17 @@ what happens to published items when the cooked schema changes. Attach the evide
   sketched from one census of the code (373 non-test lines in 59 files depend on the fixed
   list) and scored by a third pass. The roll-out has six units. The owner's animation inventory
   and a Steam Deck measurement are needed before units 4c and 4a set their final values.
+- 2026-11-12. Phase 2 step 7 built ahead of the others: the
+  [authoring reference](../characters/workshop-authoring-reference.md) and a kit checker,
+  `tools/KitCheck`. Every source field now sits in one definition in Shared,
+  `CharacterSourceSchema`, that the reader and compiler validate from and the reference is
+  printed from. An editor can read the same definition later. Two fresh agents, given only the
+  reference, the examples, and the checker, each wrote a complete kit that compiled, on the
+  second and on the first checker run. Compiling does not show whether a move plays as meant,
+  so authors still need the in-game preview. The compiler rewrite gives the same output as
+  before on 57,524 altered sources, and a cold cook reproduced the runtime, pose, and binding
+  files of all seven fighters byte for byte. Four manifests were recooked, because a manifest
+  stores its compile warnings and their paths now name the entry at fault.
 
 ## Phase 1. Ship model swaps
 
