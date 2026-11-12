@@ -60,8 +60,7 @@ namespace SlopArena.Client.World
             arena = PrepareArena(arena);
             if (!ClientSession.TryBuildLocalMatchCatalog(out var catalog, out var failure) || catalog == null)
             {
-                Debug.LogError("[Arcade] Local content catalog failed: " + failure);
-                enabled = false;
+                RejectContent("Arcade content preparation failed: " + failure);
                 return;
             }
             var choice = MatchConfig.Selection?.Choice;

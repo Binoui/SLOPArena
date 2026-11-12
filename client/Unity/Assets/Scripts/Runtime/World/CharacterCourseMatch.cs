@@ -124,7 +124,7 @@ namespace SlopArena.Client.World
             if (loaded is not ArenaDefinition arena || arena.Arcade?.Course == null || arena.SpawnPoints.Length != 1)
             { Debug.LogError("[Course] A baked Character Course with one start is required: " + stage); enabled = false; return; }
             if (!ClientSession.TryBuildLocalMatchCatalog(out var catalog, out var failure) || catalog == null)
-            { Debug.LogError("[Course] Local content catalog failed: " + failure); enabled = false; return; }
+            { RejectContent("Course content preparation failed: " + failure); return; }
             var entry = choice?.Resolve(catalog);
             if (entry == null || !arena.Arcade.AllowsPackage(entry.Identity.PackageId))
             { Debug.LogError("[Course] This course does not admit package " + fighter); enabled = false; return; }

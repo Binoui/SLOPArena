@@ -7,6 +7,31 @@ namespace SlopArena.Shared.Tests;
 public partial class PackageFighterContentTests
 {
     [Fact]
+    public void SingleFormChoiceKeepsNyxMenuPreferenceWithoutAdmittingAnInvalidForm()
+    {
+        try
+        {
+            MatchConfig.SetPlayerFighter("nyx"); MatchConfig.PlayerForm = 1;
+            MatchConfig.SetPlayerFighter("fightguy");
+            Assert.Equal(0, MatchConfig.Selection.Choice.StartingForm);
+            Assert.Equal(1, MatchConfig.PreferredFormOf(1));
+            var saved = new FighterChoiceState(MatchConfig.Selection.Choice, MatchConfig.PreferredFormOf(1));
+            MatchConfig.PlayerForm = 0;
+            MatchConfig.SetPlayerFighter(saved);
+            Assert.Equal(1, MatchConfig.PreferredFormOf(1));
+            MatchConfig.SetPlayerFighter("nyx");
+            Assert.Equal(1, MatchConfig.Selection.Choice.StartingForm);
+            var seat = new SoloSeat { Fighter = "nyx", Form = 1 };
+            seat.Fighter = "fightguy";
+            Assert.Equal(0, seat.Choice!.StartingForm);
+            Assert.Equal(1, seat.PreferredForm);
+            seat.Fighter = "nyx";
+            Assert.Equal(1, seat.Choice!.StartingForm);
+        }
+        finally { MatchConfig.PlayerForm = 0; MatchConfig.Reset(); }
+    }
+
+    [Fact]
     public void ChoicePinsRevisionAndRejectsUnsupportedForms()
     {
         var catalog = Bundled();
@@ -33,7 +58,21 @@ public partial class PackageFighterContentTests
             MatchConfig.Seat(3).SetFighter(seatThree);
             Assert.Equal(SeatKind.Cpu, MatchConfig.Seat(3).Kind);
             Assert.Null(seatThree.LegacySelector);
-            var entry = MatchConfig.Seat(3).Choice!.Resolve(catalog)!;
+            var library = (LocalFighterLibrary)Activator.CreateInstance(typeof(LocalFighterLibrary),
+                System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic, null,
+                new object?[] { catalog, catalog.Entries.Select(e => e.Identity.PackageId).ToList().AsReadOnly(), null, MatchContentPolicy.LocalPlay }, null)!;
+            var player = catalog.ResolvePackage("salamander")!.Choose();
+            Assert.False(library.TryPrepare(Array.Empty<FighterChoice>(), out var refused, out _));
+            Assert.Null(refused);
+            var absent = Fixture("local.absent");
+            var absentChoice = AdmittedFighter.TestFixture(absent.Files, absent.Requirement).Choose();
+            Assert.False(library.TryPrepare(new[] { player, absentChoice }, out refused, out _));
+            Assert.Null(refused);
+            Assert.True(library.TryPrepare(new[] { player }, out var bundledOnly, out var failure), failure);
+            Assert.Null(bundledOnly!.ResolvePackage("local.tumbleweed"));
+            Assert.True(library.TryPrepare(new[] { player, MatchConfig.Seat(3).Choice! }, out var prepared, out failure), failure);
+            Assert.Equal(ShippedRoster.ReadApplication().Manifest.Entries.Count + 1, prepared!.Entries.Count);
+            var entry = MatchConfig.Seat(3).Choice!.Resolve(prepared)!;
             var arena = TestHelpers.TestArena();
             var simulation = new SlopArena.Client.Simulation.LocalSimulationBridge(arena);
             simulation.RegisterEntity(3, entry.Definition, TestHelpers.PlayerState() with { EntityId = 3 }, entry.BakedAnimation);
@@ -57,31 +96,6 @@ public partial class PackageFighterContentTests
 
 public sealed class StoredFighterChoiceTests
 {
-    [Fact]
-    public void SingleFormChoiceKeepsNyxMenuPreferenceWithoutAdmittingAnInvalidForm()
-    {
-        try
-        {
-            MatchConfig.SetPlayerFighter("nyx"); MatchConfig.PlayerForm = 1;
-            MatchConfig.SetPlayerFighter("fightguy");
-            Assert.Equal(0, MatchConfig.Selection.Choice.StartingForm);
-            Assert.Equal(1, MatchConfig.PreferredFormOf(1));
-            var saved = new FighterChoiceState(MatchConfig.Selection.Choice, MatchConfig.PreferredFormOf(1));
-            MatchConfig.PlayerForm = 0;
-            MatchConfig.SetPlayerFighter(saved);
-            Assert.Equal(1, MatchConfig.PreferredFormOf(1));
-            MatchConfig.SetPlayerFighter("nyx");
-            Assert.Equal(1, MatchConfig.Selection.Choice.StartingForm);
-            var seat = new SoloSeat { Fighter = "nyx", Form = 1 };
-            seat.Fighter = "fightguy";
-            Assert.Equal(0, seat.Choice!.StartingForm);
-            Assert.Equal(1, seat.PreferredForm);
-            seat.Fighter = "nyx";
-            Assert.Equal(1, seat.Choice!.StartingForm);
-        }
-        finally { MatchConfig.PlayerForm = 0; MatchConfig.Reset(); }
-    }
-
     [Fact]
     public void LegacyNumericSeatChoiceCannotBecomeAPackage()
     {

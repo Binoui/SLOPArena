@@ -125,8 +125,9 @@ namespace SlopArena.Client.UI
             return entry?.Choose(entry.Definition.AlternateForm != null ? _preferredPlayerForm : (byte)0);
         }
 
-        /// <summary>The starting form a seat picked on Fighter Select.</summary>
+        /// <summary>Menu card preference, retained when the selected fighter has only one form.</summary>
         public static byte PreferredFormOf(int playerNumber) => playerNumber == 1 ? _preferredPlayerForm : Seat(playerNumber).PreferredForm;
+        /// <summary>The admitted starting form of the seat's actual choice.</summary>
         public static byte FormOf(int playerNumber) => playerNumber == 1 ? PlayerForm : Seat(playerNumber).Form;
         public static string ArenaName = "training";
         public static bool IsHost = true;

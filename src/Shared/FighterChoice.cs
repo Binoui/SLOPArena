@@ -4,7 +4,7 @@ namespace SlopArena.Shared;
 
 public sealed class FighterChoice : IEquatable<FighterChoice>
 {
-    internal AdmittedFighter Fighter { get; }
+    public AdmittedFighter Fighter { get; }
     public MatchContentIdentity Revision => Fighter.Identity;
     public byte StartingForm { get; }
     public bool HasAlternateForm => Fighter.Loaded.Package!.Definition.AlternateForm != null;

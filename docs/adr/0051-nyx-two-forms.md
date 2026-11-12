@@ -65,7 +65,7 @@ changes only at the swap operation (section 4). A respawn keeps the form she was
 The owner asked for the starting form to be "choosable on char select" (2026-10-29).
 
 - **A. A form byte on the seat's pick, set with a toggle on her card (recommended).** The seat's choice carries a
-  form next to its `CharacterClass`. Her card on Fighter Select shows the picked form's portrait and flips it with one
+  validated starting form inside its exact-package `FighterChoice` (ADR-0067 unit 3). Her card on Fighter Select shows the picked form's portrait and flips it with one
   button, as Melee lets you start as Sheik. Local matches pass the byte to the simulation at spawn. `MatchPlayer`
   gains an optional `form` key, absent meaning form 0, so the game server reads it from the master's match-start
   command. Fighters without forms ignore it.
@@ -442,3 +442,7 @@ recovery cuts it. It is attached to the casting hand, the hand nearer the move's
 Its ink pool sits at her feet on the ground; in the air the pool becomes a flat ink swirl under her boots. Bat
 Scatter and Going Live do not show it. Grasp's cue lasts through the marked catch, so in the unmarked branch it
 fades ten ticks into her recovery.
+
+## Seat selection after ADR-0067 unit 3
+
+An occupied local seat holds one admitted exact-revision `FighterChoice`. Its starting form must be supported by that revision. Fighter Select separately remembers each seat’s Nyx form preference when another fighter is selected, preserving the existing toggle and portrait behavior. A one-form fighter still spawns in form 0. Editor session snapshots retain the menu preference with the package and starting form.

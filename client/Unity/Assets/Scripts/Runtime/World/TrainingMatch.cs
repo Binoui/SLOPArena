@@ -432,7 +432,7 @@ namespace SlopArena.Client.World
             _projectileVFX.SetSimulation(_bridge.InternalSim);
             if (!SlopArena.Client.ClientSession.TryBuildLocalMatchCatalog(out var contentCatalog, out var contentFailure) || contentCatalog == null)
             {
-                Debug.LogError($"[TrainingMatch] Content catalog build failed: {contentFailure}");
+                RejectContent($"Content preparation failed: {contentFailure}");
                 return;
             }
             SlopArena.Client.ClientSession.InstallLocalMatchCatalog(contentCatalog);
@@ -444,7 +444,7 @@ namespace SlopArena.Client.World
             { RejectContent("P1 choice is missing or its exact revision is unavailable."); return; }
             if (solo && MatchConfig.SoloOpponentCount == 0)
             {
-                Debug.LogError("[TrainingMatch] Solo needs at least one opponent.");
+                RejectContent("Solo needs at least one opponent.");
                 return;
             }
             for (int seatNumber = 2; seatNumber <= (solo ? 4 : 2); seatNumber++)

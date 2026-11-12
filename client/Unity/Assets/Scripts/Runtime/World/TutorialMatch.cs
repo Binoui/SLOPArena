@@ -59,7 +59,7 @@ namespace SlopArena.Client.World
             if (loaded is not ArenaDefinition arena || arena.SpawnPoints == null || arena.SpawnPoints.Length < 2)
             { Debug.LogError("[Tutorial] A baked tutorial stage with two spawns is required: " + Layout.ArenaKey); enabled = false; return; }
             if (!ClientSession.TryBuildLocalMatchCatalog(out var catalog, out var failure) || catalog == null)
-            { Debug.LogError("[Tutorial] Local content catalog failed: " + failure); enabled = false; return; }
+            { RejectContent("Tutorial content preparation failed: " + failure); return; }
             var entry = MatchConfig.Selection?.Choice.Resolve(catalog);
             if (entry == null) { RejectContent("Tutorial P1 choice is missing or its exact revision is unavailable."); return; }
             // A different, roomy fighter stands in as the dummy so the two never look alike.

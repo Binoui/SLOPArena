@@ -2,6 +2,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using SlopArena.Client.UI;
 
 namespace SlopArena.Client
 {
@@ -481,20 +482,24 @@ namespace SlopArena.Client
                 return editorDevelopmentContentProvider(out catalog, out failure);
             }
 #endif
-            // Shipped cooked content cannot change while the player runs, and menus ask on every page.
-            if (playerMatchCatalog != null)
+            var choices = new List<Shared.FighterChoice>();
+            var player = MatchConfig.Selection?.Choice;
+            if (player == null)
+            { catalog = null; failure = "content.choice.missing: P1 has no admitted fighter choice."; return false; }
+            choices.Add(player);
+            for (int seat = 2; seat <= 4; seat++)
             {
-                catalog = playerMatchCatalog;
-                failure = null;
-                return true;
+                var selected = MatchConfig.Seat(seat);
+                bool occupied = MatchConfig.Mode == GameMode.Training ? seat == 2
+                    : MatchConfig.Mode == GameMode.Solo ? selected.Kind != SeatKind.Open
+                    : MatchConfig.Mode == GameMode.Arcade && MatchConfig.LocalMode == LocalPlayMode.CharacterCourse && selected.Kind == SeatKind.LocalPlayer;
+                if (!occupied) continue;
+                if (selected.Choice == null)
+                { catalog = null; failure = $"content.choice.missing: P{seat} has no admitted fighter choice."; return false; }
+                choices.Add(selected.Choice);
             }
-            if (!TryBuildPersistedLocalMatchCatalogCore(out catalog, out failure))
-                return false;
-            playerMatchCatalog = catalog;
-            return true;
+            return LocalFighterLibrary.Current.TryPrepare(choices, out catalog, out failure);
         }
-
-        private static Shared.MatchContentCatalog? playerMatchCatalog;
 
         public static bool TryBuildPersistedLocalMatchCatalog(out Shared.MatchContentCatalog? catalog, out string? failure)
             => TryBuildPersistedLocalMatchCatalogCore(out catalog, out failure);
