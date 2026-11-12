@@ -14,9 +14,19 @@ namespace SlopArena.Client.UI
     public struct SoloSeat
     {
         public SeatKind Kind;
-        public CharacterClass Fighter;
+        public FighterChoice? Choice { get; private set; }
+        public string Fighter
+        {
+            get => Choice?.Revision.PackageId ?? "";
+            set => SetFighter(LocalFighterLibrary.Current.Choose(value, LocalFighterLibrary.Current.HasForms(value) ? Form : (byte)0));
+        }
+        public void SetFighter(FighterChoice choice) => Choice = choice ?? throw new System.ArgumentNullException(nameof(choice));
         /// <summary>The picked starting form of a two-form fighter (ADR-0051); others ignore it.</summary>
-        public byte Form;
+        public byte Form
+        {
+            get => Choice?.StartingForm ?? 0;
+            set => SetFighter((Choice ?? throw new System.InvalidOperationException("Seat has no fighter.")).WithForm(value));
+        }
         public CpuDifficulty Difficulty;
         public int DeviceId;
     }
@@ -31,63 +41,63 @@ namespace SlopArena.Client.UI
         public static SteamMatchDescriptor? SteamDescriptor;
         public sealed class PlayerSelection
         {
-            public CharacterClass Selector { get; }
-            public string PackageId { get; }
-            public byte Form { get; }
-
-            public PlayerSelection(CharacterClass selector, string packageId, byte form = 0)
-            {
-                if (selector == CharacterClass.None)
-                {
-                    if (packageId != "" && !MatchContentCatalogBuilder.IsStablePackageId(packageId))
-                        throw new System.ArgumentException("Player package ID is invalid.");
-                }
-                else if (ShippedRoster.ReadApplication().Manifest.Resolve(selector)?.PackageId != packageId || string.IsNullOrEmpty(packageId))
-                    throw new System.ArgumentException("Player selector and package must name the same shipped fighter.");
-                Selector = selector;
-                PackageId = packageId;
-                Form = form;
-            }
-            private PlayerSelection(PlayerSelection source, byte form)
-            { Selector = source.Selector; PackageId = source.PackageId; Form = form; }
-
-            internal PlayerSelection WithForm(byte form) => new(this, form);
+            public FighterChoice Choice { get; }
+            public CharacterClass Selector => Choice.LegacySelector ?? CharacterClass.None;
+            public string PackageId => Choice.Revision.PackageId;
+            public byte Form => Choice.StartingForm;
+            public PlayerSelection(FighterChoice choice)
+                => Choice = choice ?? throw new System.ArgumentNullException(nameof(choice));
+            internal PlayerSelection WithForm(byte form) => new(Choice.WithForm(form));
         }
-        private static PlayerSelection _player = new(CharacterClass.None, "");
-        public static PlayerSelection Selection => _player;
-        public static CharacterClass PlayerClass => _player.Selector;
-        public static string PlayerPackageId => _player.PackageId;
+        private static PlayerSelection? _player;
+        public static PlayerSelection Selection => _player!;
+        public static CharacterClass PlayerClass => _player?.Selector ?? CharacterClass.None;
+        public static string PlayerPackageId => _player?.PackageId ?? "";
         public static byte PlayerForm
         {
-            get => _player.Form;
-            set => _player = _player.WithForm(value);
+            get => _player?.Form ?? 0;
+            set { if (_player != null) _player = _player.WithForm(value); }
         }
-
         public static void SetPlayerFighter(PlayerSelection selection)
             => _player = selection ?? throw new System.ArgumentNullException(nameof(selection));
-
+        public static void SetPlayerFighter(FighterChoice choice) => SetPlayerFighter(new PlayerSelection(choice));
+        public static void SetPlayerFighter(string packageId)
+            => SetPlayerFighter(LocalFighterLibrary.Current.Choose(packageId, LocalFighterLibrary.Current.HasForms(packageId) ? PlayerForm : (byte)0));
         public static void SetPlayerFighter(CharacterClass selector, string packageId)
-            => SetPlayerFighter(new PlayerSelection(selector, packageId, PlayerForm));
-
-        public static void SetPlayerFighter(CharacterClass selector)
         {
-            var entry = ShippedRoster.ReadApplication().Manifest.Resolve(selector)
-                ?? throw new System.ArgumentException("The roster does not contain the selected fighter.");
-            SetPlayerFighter(selector, entry.PackageId);
+            if (ShippedRoster.ReadApplication().Manifest.Resolve(selector)?.PackageId != packageId)
+                throw new System.ArgumentException("Selector and package disagree.");
+            SetPlayerFighter(packageId);
         }
+        public static void SetPlayerFighter(CharacterClass selector)
+            => SetPlayerFighter(ShippedRoster.ReadApplication().Manifest.Resolve(selector)?.PackageId
+                ?? throw new System.ArgumentException("Unknown selector."));
 
         public static bool SetDefaultPlayerFighter()
         {
             if (!ShippedRoster.TryReadApplication(out var roster, out _)) return false;
             var entry = roster!.DefaultFighter;
-            SetPlayerFighter(entry.Selector, entry.PackageId);
+            if (!LocalFighterLibrary.Current.Contains(entry.PackageId)) return false;
+            SetPlayerFighter(entry.PackageId);
             return true;
         }
 
         public static void SetPlayerFighter(MatchContentEntry entry)
         {
             if (entry == null) throw new System.ArgumentNullException(nameof(entry));
-            SetPlayerFighter(new PlayerSelection(entry.LegacySelector ?? CharacterClass.None, entry.Identity.PackageId, PlayerForm));
+            SetPlayerFighter(entry.Choose(entry.Definition.AlternateForm != null ? PlayerForm : (byte)0));
+        }
+
+        public static FighterChoice? ResolveStoredFighter(string packageId, MatchContentCatalog catalog)
+        {
+            var entry = catalog.ResolvePackage(packageId);
+            if (entry == null)
+            {
+                LocalFighterLibrary.ReportDiagnostic("[MatchConfig] Stored fighter cannot be resolved: " + packageId + "; using the default fighter.");
+                if (ShippedRoster.TryReadApplication(out var roster, out _))
+                    entry = catalog.ResolvePackage(roster!.DefaultFighter.PackageId);
+            }
+            return entry?.Choose();
         }
 
         /// <summary>The starting form a seat picked on Fighter Select.</summary>
@@ -112,7 +122,7 @@ namespace SlopArena.Client.UI
             }
         }
 
-        /// <summary>P2–P4 of a Solo match (ADR-0041). P1 is always the local player with PlayerClass.</summary>
+        /// <summary>P2–P4 of a Solo match (ADR-0041). P1 is always the local player with Selection.</summary>
         public static readonly SoloSeat[] SoloSeats = new SoloSeat[3];
 
         static MatchConfig()
@@ -149,7 +159,7 @@ namespace SlopArena.Client.UI
             {
                 ref var seat = ref Seat(player);
                 if (seat.Kind == SeatKind.LocalPlayer) continue;
-                if (seat.Fighter == CharacterClass.None) seat.Fighter = CharacterClass.FightGuy;
+                if (seat.Choice == null) seat.Fighter = ShippedRoster.ReadApplication().DefaultFighter.PackageId;
                 seat.Kind = SeatKind.LocalPlayer;
                 seat.DeviceId = deviceId;
                 return player;
@@ -179,8 +189,10 @@ namespace SlopArena.Client.UI
             System.Array.Clear(SoloSeats, 0, SoloSeats.Length);
             Seat(2) = new SoloSeat
             {
-                Kind = SeatKind.Cpu, Fighter = CharacterClass.FightGuy, Difficulty = CpuDifficulty.Normal,
+                Kind = SeatKind.Cpu, Difficulty = CpuDifficulty.Normal,
             };
+            if (ShippedRoster.TryReadApplication(out var roster, out _) && LocalFighterLibrary.Current.Contains(roster!.DefaultFighter.PackageId))
+                Seat(2).Fighter = roster.DefaultFighter.PackageId;
         }
 
         // Per-match entity IDs assigned by the master server at match start

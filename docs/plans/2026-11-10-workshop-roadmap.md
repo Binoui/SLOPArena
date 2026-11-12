@@ -376,7 +376,7 @@ one GLB, a portrait, and the editable source.
    admitted fighters under a match-content policy. Match presentation retains each entity's
    `FighterAppearance` and `FighterUiArt`; shipped descriptions, WIP flags, and Tutorial hints
    come from `card.json`. Generated UI bindings reach the existing art without moving it.
-   `MenuRoster` remains the Fighter Select grid adapter until unit 3 replaces local seats.
+   `LocalFighterLibrary` supplies the Fighter Select cards and package choices for local seats. Installed sources remain unit 5.
    Installed fighters wait for the loader, portable bindings, and runtime cook before entering
    the grid. See [fighter presentation](../characters/adding-a-new-character.md#fighter-presentation).
 4. **Cook in the game.** Run `CharacterPackageCompiler` with `CharacterCookProfile.Workshop`, bake

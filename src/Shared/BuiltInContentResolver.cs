@@ -18,9 +18,19 @@ public static class BuiltInContentResolver
         => ResolveCatalog(selector, ResolveRoot(cookedRoot), null);
 
     private static MatchContentEntry ResolveCatalog(CharacterClass selector, string cookedRoot, ShippedRoster? shipped)
+        => ReadCatalog(cookedRoot, shipped).Resolve(selector)
+            ?? throw new InvalidDataException($"Catalog selector '{selector}' is unavailable.");
+
+    public static MatchContentCatalog ReadApplicationCatalog()
+    {
+        var shipped = ShippedRoster.ReadApplication();
+        return ReadCatalog(shipped.CookedRoot, shipped);
+    }
+
+    private static MatchContentCatalog ReadCatalog(string cookedRoot, ShippedRoster? shipped)
     {
         var manifest = shipped?.Manifest ?? BuiltInRosterManifestCodec.Load(Path.Combine(cookedRoot, "roster", "manifest.json"));
-        var roster = manifest.Resolve(selector) ?? throw new InvalidDataException($"Roster selector '{selector}' is not available.");
+
         var packages = new Dictionary<string, CookedCharacterPackageLoadResult>(StringComparer.Ordinal);
         foreach (var rosterEntry in manifest.Entries)
         {
@@ -35,7 +45,7 @@ public static class BuiltInContentResolver
             ? builder.Build(manifest, packages, MatchContentPolicy.EditorDevelopment)
             : builder.Build(shipped, packages, MatchContentPolicy.LocalPlay);
         if (!result.IsValid || result.Catalog == null) throw new InvalidDataException(string.Join("; ", result.Diagnostics.Select(x => $"{x.Code}:{x.Message}")));
-        return result.Catalog.Resolve(selector) ?? throw new InvalidDataException($"Catalog selector '{selector}' is unavailable.");
+        return result.Catalog;
     }
 
     private static string ResolveRoot(string root)

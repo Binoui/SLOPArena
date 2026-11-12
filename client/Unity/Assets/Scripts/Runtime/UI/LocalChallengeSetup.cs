@@ -14,7 +14,7 @@ namespace SlopArena.Client.UI
         private FrontendPageContext _context;
         private MatchContentCatalog? _catalog;
         private ArenaDefinition _arena;
-        private CharacterClass _selected;
+        private string _selected;
         private readonly bool _courseSelected;
         private ArenaDefinition? _slopballArena;
         private CharacterCourseInfo? _course;
@@ -38,16 +38,16 @@ namespace SlopArena.Client.UI
         /// A package that fails to compile still reports its error when the match starts.</summary>
         public static bool Available(LocalPlayModeInfo mode)
         {
-            if (MenuRoster.Classes.Length == 0) return false;
+            if (LocalFighterLibrary.Current.PackageIds.Count == 0) return false;
             if (mode.HasStageStep) return true;
             if (mode.Seats == LocalSeatPolicy.FourSeats) return LoadArena(mode.Arena)?.Arcade?.Mayhem != null;
             if (mode.Mode == LocalPlayMode.CharacterCourse) return AvailableCourses().Any();
             return LoadArena(mode.Arena) is ArenaDefinition ball && ball.Arcade?.Slopball != null
-                && MenuRoster.Classes.Any(cls => MenuRoster.PackageId(cls) is { } id && ball.Arcade.AllowsPackage(id));
+                && LocalFighterLibrary.Current.PackageIds.Any(cls => cls is { } id && ball.Arcade.AllowsPackage(id));
         }
 
-        public bool Admits(CharacterClass fighter)
-            => _catalog?.Resolve(fighter) is { } entry && (_courseSelected ? _course != null && _arena.Arcade?.Course != null
+        public bool Admits(string fighter)
+            => _catalog?.ResolvePackage(fighter) is { } entry && (_courseSelected ? _course != null && _arena.Arcade?.Course != null
                 : _slopballArena?.Arcade?.Slopball != null && _arena.Arcade!.AllowsPackage(entry.Identity.PackageId));
 
         public void Bind()
@@ -88,9 +88,9 @@ namespace SlopArena.Client.UI
                     yield return (info, arena);
         }
 
-        public void Select(CharacterClass fighter)
+        public void Select(string fighter)
         {
-            var entry = _catalog?.Resolve(fighter);
+            var entry = _catalog?.ResolvePackage(fighter);
             if (entry == null || !Admits(fighter)) return;
             _selected = fighter;
             MatchConfig.SetPlayerFighter(entry);
@@ -146,7 +146,7 @@ namespace SlopArena.Client.UI
 
         public void Launch()
         {
-            if (!_context.Valid || _key == null || _catalog?.Resolve(_selected) == null || _courseSelected && _course == null) return;
+            if (!_context.Valid || _key == null || _catalog?.ResolvePackage(_selected) == null || _courseSelected && _course == null) return;
             MatchConfig.Mode = GameMode.Arcade;
             MatchConfig.ArenaName = _courseSelected ? _course!.Key : SlopballMatch.ArenaKey;
             MatchConfig.IsHost = true;

@@ -182,7 +182,7 @@ namespace SlopArena.Client.UI
         }
         private string BaseName(string id)
         {
-            foreach (var fighter in MenuRoster.Classes) if (MenuRoster.PackageId(fighter) == id) return MenuRoster.Name(fighter);
+            foreach (var fighter in LocalFighterLibrary.Current.PackageIds) if (fighter == id) return LocalFighterLibrary.Current.Name(fighter);
             return id;
         }
         private void Local()
@@ -228,8 +228,8 @@ namespace SlopArena.Client.UI
                 Status("Put a rigged .glb in " + _library.ImportFolder + ". Use <name>.humanoid.json for a bone map in this shared folder.");
                 Button(_body, "OPEN IMPORT FOLDER", () => Application.OpenURL(new Uri(_library.ImportFolder + Path.DirectorySeparatorChar).AbsoluteUri));
                 var path = Field("GLB path", ""); foreach (var file in files) Button(_body, Path.GetFileName(file), () => path.value = file);
-                var bases = MenuRoster.Classes.Where(c => ModelSwapBases.Accepts(MenuRoster.PackageId(c) ?? "", out _)).ToArray();
-                var fighter = Choice("Base fighter", bases.Select(MenuRoster.Name).ToList());
+                var bases = LocalFighterLibrary.Current.PackageIds.Where(c => ModelSwapBases.Accepts(c ?? "", out _)).ToArray();
+                var fighter = Choice("Base fighter", bases.Select(LocalFighterLibrary.Current.Name).ToList());
                 var title = Field("Title", ""); var creator = Field("Creator", ChatSession.Instance?.SteamAvailable == true ? SteamFriends.GetPersonaName() : "Creator");
                 var license = Field("License", "All rights reserved"); var attribution = Field("Attribution", ""); var ai = new Toggle("AI assisted"); _body.Add(ai);
                 Button(_body, "IMPORT AND CHECK", () => Run(async () =>
@@ -237,7 +237,7 @@ namespace SlopArena.Client.UI
                     if (fighter.Index < 0 || fighter.Index >= bases.Length) throw new InvalidOperationException("No admitted fighter accepts model swaps.");
                     if (!path.value.EndsWith(".glb", StringComparison.OrdinalIgnoreCase)) throw new InvalidDataException("Choose a .glb file.");
                     string source = path.value;
-                    string baseId = MenuRoster.PackageId(bases[fighter.Index])!;
+                    string baseId = bases[fighter.Index]!;
                     string creatorValue = creator.value, licenseValue = license.value, attributionValue = attribution.value;
                     bool aiValue = ai.value;
                     var payload = await Task.Run(() => (Glb: WorkshopLibrary.ReadCapped(Path.GetFullPath(source), SlopArena.Shared.WorkshopGlbLimits.Default.MaxFileBytes), BoneMap: WorkshopLibrary.ImportBoneMap(Path.GetFullPath(source))));
@@ -307,12 +307,12 @@ namespace SlopArena.Client.UI
             Button(_body, "WEAR ON PLAYER 1", () => Run(async () => { await ModelSwapLibrary.Wear(1, item); Status("Player 1 will wear this model on " + BaseName(item.Manifest.BaseFighterPackageId) + ". Saved for next launch."); }));
             Button(_body, "PREVIEW IN TRAINING", () => Run(async () =>
             {
-                var matches = MenuRoster.Classes.Where(c => MenuRoster.PackageId(c) == item.Manifest.BaseFighterPackageId).ToArray();
+                var matches = LocalFighterLibrary.Current.PackageIds.Where(c => c == item.Manifest.BaseFighterPackageId).ToArray();
                 if (matches.Length != 1) throw new InvalidOperationException("This base fighter is missing or ambiguous in the current roster. Choose another item.");
                 await ModelSwapLibrary.Ready;
                 if (!IsOpen) return;
                 MatchConfig.Reset(); MatchConfig.Mode = GameMode.Training;
-                MatchConfig.SetPlayerFighter(matches[0], item.Manifest.BaseFighterPackageId);
+                MatchConfig.SetPlayerFighter(matches[0]);
                 ModelSwapLibrary.Preview(item); Close(); SceneManager.LoadScene("Arena_Offline");
             }));
             Status("Ready. Wear this model or preview it in Training.");

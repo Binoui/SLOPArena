@@ -80,21 +80,15 @@ namespace SlopArena.EditorTools
                 throw new InvalidOperationException("Open the playground in Edit Mode.");
             if (Enumerable.Range(0, SceneManager.sceneCount).Any(i => SceneManager.GetSceneAt(i).isDirty))
                 throw new InvalidOperationException("Save the current scene edits before switching to the playground.");
-            var selected = fighter switch
-            {
-                "fightguy" => CharacterClass.FightGuy, "manki" => CharacterClass.Manki,
-                "wibou" => CharacterClass.Wibou, "bonk" => CharacterClass.Bonk, "bashie" => CharacterClass.Bashie,
-                "salamander" => CharacterClass.Salamander,
-                "nyx" => CharacterClass.Nyx,
-                _ => throw new ArgumentException("Unknown roster fighter.", nameof(fighter))
-            };
+            var selected = LocalFighterLibrary.Current.Choose(fighter);
+
             if (!File.Exists(scenePath)) throw new InvalidOperationException("Run phase1.prepare first.");
             MatchConfig.ClearActiveMatch();
             MatchConfig.LocalMode = scenePath == SlopArenaCharacterCourseCommands.ScenePath ? LocalPlayMode.CharacterCourse : LocalPlayMode.Slopball;
             MatchConfig.Mode = GameMode.Arcade;
-            MatchConfig.SetPlayerFighter(selected, fighter);
+            MatchConfig.SetPlayerFighter(selected);
             MatchConfig.ArenaName = stageKey;
-            SessionState.SetString(ArcadeBallLabMatch.FighterSessionKey, selected.ToString());
+            SessionState.SetString(ArcadeBallLabMatch.FighterSessionKey, selected.Revision.PackageId);
             EditorSceneManager.OpenScene(scenePath, OpenSceneMode.Single);
             return new { success = true, scene = scenePath, fighter };
         }
@@ -171,7 +165,7 @@ namespace SlopArena.EditorTools
                 await completion.Task;
                 var ball = match.Simulation.ArcadeBall!.Value;
                 return new { success = true, startTick, endTick = match.SimulationTick, completedTicks = totalTicks,
-                    fighter = MatchConfig.PlayerClass.ToString(), hitCount = hits.Count, hits, goals,
+                    fighter = MatchConfig.PlayerPackageId, hitCount = hits.Count, hits, goals,
                     challenge = match.Simulation.Slopball.HasValue ? new { phase = match.Simulation.Slopball.Value.Phase.ToString(), returns = match.Simulation.Slopball.Value.Returns } : null,
                     ball = new { id = ball.EntityId.ToString(), x = ball.Position.X, y = ball.Position.Y,
                         z = ball.Position.Z, percent = ball.DamagePercent },

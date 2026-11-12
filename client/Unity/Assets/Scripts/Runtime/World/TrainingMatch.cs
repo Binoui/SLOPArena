@@ -35,7 +35,7 @@ namespace SlopArena.Client.World
         // scene wiring (SlopArenaSceneSetup) and the editor capture harness intact.
 
         [Header("Characters (Player)")]
-        [SerializeField] private CharacterClass _playerClassOverride;
+        [SerializeField] private string _playerPackageOverride = "";
  
         [Header("Arena")]
         [SerializeField] private string _arenaNameOverride = "";
@@ -436,20 +436,27 @@ namespace SlopArena.Client.World
                 return;
             }
             SlopArena.Client.ClientSession.InstallLocalMatchCatalog(contentCatalog);
-            var playerClass = _playerClassOverride != CharacterClass.None ? _playerClassOverride : MatchConfig.PlayerClass;
-            var playerPackage = _playerClassOverride != CharacterClass.None
-                ? contentCatalog.Resolve(_playerClassOverride)?.Identity.PackageId : MatchConfig.PlayerPackageId;
-            var playerEntry = contentCatalog.ResolvePackage(playerPackage);
+            var playerChoice = MatchConfig.Selection?.Choice;
+            if (!string.IsNullOrEmpty(_playerPackageOverride))
+                playerChoice = MatchConfig.ResolveStoredFighter(_playerPackageOverride, contentCatalog);
+            var playerEntry = playerChoice?.Resolve(contentCatalog);
             if (playerEntry == null)
-            {
-                Debug.LogError($"[TrainingMatch] Missing catalog entry for player={playerClass}.");
-                return;
-            }
+            { RejectContent("P1 choice is missing or its exact revision is unavailable."); return; }
             if (solo && MatchConfig.SoloOpponentCount == 0)
             {
                 Debug.LogError("[TrainingMatch] Solo needs at least one opponent.");
                 return;
             }
+            for (int seatNumber = 2; seatNumber <= (solo ? 4 : 2); seatNumber++)
+            {
+                var picked = MatchConfig.Seat(seatNumber);
+                if (solo && picked.Kind == SeatKind.Open) continue;
+                var selected = picked.Choice?.Resolve(contentCatalog);
+                if (selected == null)
+                { RejectContent($"P{seatNumber} choice is missing or its exact revision is unavailable."); return; }
+                if (!BindFighter(NpcEntityId + (ulong)(seatNumber - 2), selected)) return;
+            }
+            MatchConfig.SetPlayerFighter(playerChoice);
             if (!BindFighter(PlayerEntityId, playerEntry)) return;
             var playerDef = playerEntry.Definition;
             _playerDef = playerDef;
@@ -468,8 +475,8 @@ namespace SlopArena.Client.World
             {
                 PX = pSpawn.X, PY = pSpawn.Y, PZ = pSpawn.Z,
                 FacingYaw = pSpawn.Yaw,
-                JumpsLeft = playerDef.ForForm(MatchConfig.PlayerForm).Movement.MaxJumps,
-                Form = new FormState { Active = MatchConfig.PlayerForm },
+                JumpsLeft = playerDef.ForForm(playerChoice.StartingForm).Movement.MaxJumps,
+                Form = new FormState { Active = playerChoice.StartingForm },
             }, playerEntry.BakedAnimation);
             _playerRenderer.transform.position = new Vector3(pSpawn.X, pSpawn.Y, pSpawn.Z);
 
@@ -477,10 +484,10 @@ namespace SlopArena.Client.World
             {
                 var seat = MatchConfig.Seat(player);
                 if (solo && seat.Kind == SeatKind.Open) continue;
-                var entry = contentCatalog.Resolve(seat.Fighter);
+                var entry = seat.Choice?.Resolve(contentCatalog);
                 if (entry == null)
                 {
-                    Debug.LogError($"[TrainingMatch] Missing catalog entry for P{player}={seat.Fighter}.");
+                    RejectContent($"P{player} choice is missing or its exact revision is unavailable: {seat.Fighter}.");
                     return;
                 }
                 if (!BindFighter(NpcEntityId + (ulong)(player - 2), entry)) return;

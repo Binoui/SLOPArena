@@ -52,7 +52,7 @@ namespace SlopArena.EditorTools
             public bool optionsEnabled, gizmos;
             public int options, viewSize;
             public GameMode mode;
-            public MatchConfig.PlayerSelection playerSelection;
+            public FighterChoiceState playerSelection;
             public string arenaName;
         }
 
@@ -69,14 +69,8 @@ namespace SlopArena.EditorTools
                 || Enumerable.Range(0, SceneManager.sceneCount).Any(i => SceneManager.GetSceneAt(i).isDirty))
                 throw new InvalidOperationException("Save and name every open scene before opening the tutorial.");
             if (!File.Exists(ScenePath)) throw new InvalidOperationException("Run sloparena.tutorial.prepare first.");
-            var selected = fighter switch
-            {
-                "fightguy" => CharacterClass.FightGuy, "manki" => CharacterClass.Manki,
-                "wibou" => CharacterClass.Wibou, "bonk" => CharacterClass.Bonk, "bashie" => CharacterClass.Bashie,
-                "salamander" => CharacterClass.Salamander,
-                "nyx" => CharacterClass.Nyx,
-                _ => throw new ArgumentException("Unknown roster fighter.", nameof(fighter)),
-            };
+            var selected = LocalFighterLibrary.Current.Choose(fighter);
+
             var view = GameView();
             // Save before the first mutation so restore also undoes a partial setup.
             SessionState.SetString(SessionKey, JsonConvert.SerializeObject(new Saved
@@ -85,13 +79,13 @@ namespace SlopArena.EditorTools
                 viewSize = (int)view.GetType().GetProperty("selectedSizeIndex", Flags).GetValue(view),
                 gizmos = (bool)view.GetType().GetProperty("drawGizmos", Flags).GetValue(view),
                 options = (int)EditorSettings.enterPlayModeOptions, mode = MatchConfig.Mode,
-                playerSelection = MatchConfig.Selection, arenaName = MatchConfig.ArenaName,
+                playerSelection = new FighterChoiceState(MatchConfig.Selection.Choice), arenaName = MatchConfig.ArenaName,
             }));
             EditorSettings.enterPlayModeOptionsEnabled = true;
             EditorSettings.enterPlayModeOptions = EnterPlayModeOptions.DisableDomainReload;
             MatchConfig.ClearActiveMatch();
             MatchConfig.Mode = GameMode.Tutorial;
-            MatchConfig.SetPlayerFighter(selected, fighter);
+            MatchConfig.SetPlayerFighter(selected);
             MatchConfig.ArenaName = TutorialMatch.Layout.ArenaKey;
             EditorSceneManager.OpenScene(ScenePath, OpenSceneMode.Single);
             return new { success = true, scene = ScenePath, fighter };
@@ -109,7 +103,7 @@ namespace SlopArena.EditorTools
             if (saved?.playerSelection == null) throw new InvalidDataException("Saved session has no player selection snapshot.");
             EditorSettings.enterPlayModeOptionsEnabled = saved.optionsEnabled;
             EditorSettings.enterPlayModeOptions = (EnterPlayModeOptions)saved.options;
-            MatchConfig.Mode = saved.mode; MatchConfig.SetPlayerFighter(saved.playerSelection); MatchConfig.ArenaName = saved.arenaName;
+            MatchConfig.Mode = saved.mode; MatchConfig.SetPlayerFighter(saved.playerSelection.Restore()); MatchConfig.ArenaName = saved.arenaName;
             EditorSceneManager.RestoreSceneManagerSetup(saved.scenes);
             var view = GameView(); var callback = view.GetType().GetMethod("SizeSelectionCallback", Flags);
             callback.Invoke(view, callback.GetParameters().Select(x => x.ParameterType == typeof(int) ? (object)saved.viewSize : null).ToArray());

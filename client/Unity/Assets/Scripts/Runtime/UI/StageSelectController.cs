@@ -824,7 +824,7 @@ namespace SlopArena.Client.UI
                     bool hasCharacter = Enum.TryParse(member.CharacterSelection, true, out CharacterClass selectedClass);
                     _playerCards.Add(BuildPlayerCard(
                         $"P{i + 1}", member.Name,
-                        hasCharacter ? selectedClass : (CharacterClass?)null,
+                        hasCharacter ? LegacyFighterSelection.PackageId(selectedClass.ToString()) : null,
                         member.LockedIn ? "LOCKED" : "WAITING",
                         member.SteamId == ClientSession.SteamId,
                         member.IsLeader));
@@ -836,7 +836,7 @@ namespace SlopArena.Client.UI
             if (MatchConfig.Mode is GameMode.Solo or GameMode.Training)
             {
                 _playerCards.Add(BuildPlayerCard(
-                    "P1", "YOU", MatchConfig.PlayerClass, "READY", true, true));
+                    "P1", "YOU", MatchConfig.PlayerPackageId, "READY", true, true));
                 for (int player = 2; player <= (MatchConfig.Mode == GameMode.Training ? 2 : 4); player++)
                 {
                     var seat = MatchConfig.Seat(player);
@@ -858,7 +858,7 @@ namespace SlopArena.Client.UI
                 _playerCards.Add(BuildPlayerCard(
                     $"P{i + 1}",
                     player.Name,
-                    hasCharacter ? selectedClass : (CharacterClass?)null,
+                    hasCharacter ? LegacyFighterSelection.PackageId(selectedClass.ToString()) : null,
                     hasCharacter && player.LockedIn ? "LOCKED" : "WAITING",
                     player.SteamId == ClientSession.SteamId,
                     player.IsHost));
@@ -868,7 +868,7 @@ namespace SlopArena.Client.UI
         private VisualElement BuildPlayerCard(
             string playerNumber,
             string playerName,
-            CharacterClass? selectedClass,
+            string? selectedClass,
             string statusText,
             bool local,
             bool host)

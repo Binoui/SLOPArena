@@ -31,7 +31,7 @@ namespace SlopArena.EditorTools
             try
             {
                 MatchConfig.Reset();
-                Require(MatchConfig.Seat(2).Kind == SeatKind.Cpu && MatchConfig.Seat(2).Fighter == CharacterClass.FightGuy
+                Require(MatchConfig.Seat(2).Kind == SeatKind.Cpu && MatchConfig.Seat(2).Fighter == "fightguy"
                     && MatchConfig.Seat(2).Difficulty == CpuDifficulty.Normal && MatchConfig.SoloOpponentCount == 1,
                     "Default Solo must have one Normal FightGuy CPU.");
                 Require(MatchConfig.Seat(3).Kind == SeatKind.Open && MatchConfig.Seat(4).Kind == SeatKind.Open,
@@ -267,7 +267,7 @@ namespace SlopArena.EditorTools
                 Require(match.NpcCount == 2, "The live panel did not add a CPU.");
                 var expected = MatchConfig.Seat(2).Fighter;
                 for (int i = 0; i < match.NpcCount; i++)
-                    Require(bridge.InternalSim.GetDefinition(match.GetNpcIdAt(i)).Class == expected, "Practice CPU content differs from P2's fighter.");
+                    Require(match.FighterFor(match.GetNpcIdAt(i)).Revision.PackageId == expected, "Practice CPU content differs from P2's fighter.");
                 await SlopArenaUiCommands.Click("cpu-next");
                 Require(match.SelectedNpcIndex == 1, "The panel did not select the second CPU.");
                 await SlopArenaUiCommands.Click("cpu-remove");

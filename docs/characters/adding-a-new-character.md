@@ -462,7 +462,7 @@ Selector-free content uses the neutral portrait and slot glyphs.
 before renderer or HUD setup. Undrawn fighters retain the same binding.
 HUD, feedback, end cards, and result snapshots consume that binding.
 Result snapshots retain the appearance after the Match scene unloads.
-`MenuRoster` remains a thin grid adapter until the seat and Fighter Select migration in ADR-0067 unit 3.
+`LocalFighterLibrary` lists admitted shipped fighters in roster order and supplies each menu card from the cooked name and generated UI bindings. Local seats retain an exact `FighterChoice` and its validated starting form. Installed fighter discovery remains ADR-0067 unit 5.
 
 The HUD deck takes its focused entity and appearance together. Other local racers only add
 fight cards; their art cannot replace the focused deck. Replay View draws today's stand-in

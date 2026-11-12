@@ -15,8 +15,8 @@ namespace SlopArena.Client.World
     public abstract class ArcadeBallMatch : MatchBase
     {
         protected abstract string StageKey { get; }
-        public const string FighterSessionKey = "SlopArena.ArcadeBallLab.Fighter";
-        [SerializeField] private CharacterClass _characterOverride = CharacterClass.None;
+        public const string FighterSessionKey = "SlopArena.ArcadeBallLab.FighterPackage";
+        [SerializeField] private string _fighterPackageOverride = "";
         [SerializeField] private CombatFeedback _combatFeedback;
         [SerializeField] private ProjectileVFXManager _projectileVFX;
         private LocalSimulationBridge _bridge;
@@ -64,13 +64,20 @@ namespace SlopArena.Client.World
                 enabled = false;
                 return;
             }
-            var selectedClass = _characterOverride != CharacterClass.None ? _characterOverride : MatchConfig.PlayerClass;
+            var choice = MatchConfig.Selection?.Choice;
+            string packageOverride = _fighterPackageOverride;
 #if UNITY_EDITOR
-            if (_characterOverride == CharacterClass.None && Enum.TryParse<CharacterClass>(
-                    UnityEditor.SessionState.GetString(FighterSessionKey, selectedClass.ToString()), out var editorChoice))
-                selectedClass = editorChoice;
+            if (string.IsNullOrEmpty(packageOverride))
+                packageOverride = UnityEditor.SessionState.GetString(FighterSessionKey, "");
+            if (!string.IsNullOrEmpty(UnityEditor.SessionState.GetString("SlopArena.ArcadeBallLab.Fighter", "")))
+            {
+                Debug.LogWarning("[Arcade] Retired fighter selector session value ignored; using the default fighter.");
+                UnityEditor.SessionState.EraseString("SlopArena.ArcadeBallLab.Fighter");
+                packageOverride = ShippedRoster.ReadApplication().DefaultFighter.PackageId;
+            }
 #endif
-            var entry = catalog.Resolve(selectedClass);
+            if (!string.IsNullOrEmpty(packageOverride)) choice = MatchConfig.ResolveStoredFighter(packageOverride, catalog);
+            var entry = choice?.Resolve(catalog);
             if (entry == null || !arena.Arcade.AllowsPackage(entry.Identity.PackageId))
             {
                 Debug.LogError("[Arcade] Fighter is not admitted by this court profile.");

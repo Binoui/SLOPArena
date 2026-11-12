@@ -49,6 +49,9 @@ public sealed class BuiltInRosterManifest
 
 public sealed class MatchContentEntry
 {
+    internal AdmittedFighter? Admission { get; init; }
+    public FighterChoice Choose(byte startingForm = 0) => (Admission
+        ?? throw new InvalidOperationException("Content entry has no admission.")).Choose(startingForm);
     public ContentHandle Handle { get; }
     public CharacterClass? LegacySelector { get; }
     public MatchContentIdentity Identity { get; }
@@ -183,7 +186,7 @@ public sealed class MatchContentCatalogBuilder
         var ordered = fighters.OrderBy(x => x.Identity.PackageId, StringComparer.Ordinal).ToArray();
         var entries = ordered.Select((x, i) => new MatchContentEntry(new ContentHandle((ushort)(i + 1)), x.LegacySelector,
             x.Identity, x.Loaded.Package!.Definition.DisplayName, x.Loaded.ToCharacterDefinition(x.LegacySelector ?? CharacterClass.None),
-            x.Loaded.BakedAnimation, x.Loaded.Package, x.IsBundled)).ToArray();
+            x.Loaded.BakedAnimation, x.Loaded.Package, x.IsBundled) { Admission = x }).ToArray();
         return new(new MatchContentCatalog(entries), diagnostics);
     }
 

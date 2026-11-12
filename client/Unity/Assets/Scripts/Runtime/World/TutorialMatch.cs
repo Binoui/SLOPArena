@@ -60,11 +60,10 @@ namespace SlopArena.Client.World
             { Debug.LogError("[Tutorial] A baked tutorial stage with two spawns is required: " + Layout.ArenaKey); enabled = false; return; }
             if (!ClientSession.TryBuildLocalMatchCatalog(out var catalog, out var failure) || catalog == null)
             { Debug.LogError("[Tutorial] Local content catalog failed: " + failure); enabled = false; return; }
-            // Fighter Select records the class; the package id is only a fallback.
-            var entry = catalog.Resolve(MatchConfig.PlayerClass) ?? catalog.ResolvePackage(MatchConfig.PlayerPackageId);
+            var entry = MatchConfig.Selection?.Choice.Resolve(catalog);
             if (entry == null) { Debug.LogError("[Tutorial] No fighter package for " + MatchConfig.PlayerClass); enabled = false; return; }
             // A different, roomy fighter stands in as the dummy so the two never look alike.
-            _dummyEntry = catalog.Resolve(entry.Definition.Class == CharacterClass.Bonk ? CharacterClass.FightGuy : CharacterClass.Bonk) ?? entry;
+            _dummyEntry = catalog.ResolvePackage(entry.Identity.PackageId == "bonk" ? "fightguy" : "bonk") ?? entry;
             if (!BindFighter(PlayerEntityId, entry) || !BindFighter(DummyEntityId, _dummyEntry)) return;
             ClientSession.InstallLocalMatchCatalog(catalog);
             MatchConfig.SetPlayerFighter(entry);

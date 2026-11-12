@@ -59,7 +59,7 @@ FightGuy's, Wibou's and Manki's effects come from their presentation builders, a
 ## Repository and commits
 
 - Write the game's name as **SLOPArena** (shorthand **SLOPA**, not SA) in player-facing text, docs, comments, log prefixes, Editor menus and shader names. Code identifiers keep the C# spelling `SlopArena` (namespaces, types, files, assemblies), and commands, skills and environment variables stay `sloparena`/`SLOPARENA`.
-- During and after a Match, show fighter identity from the entity's retained `FighterAppearance` and `FighterUiArt`. Names come from its cooked definition. `MenuRoster` is a temporary Fighter Select adapter to generated UI bindings until ADR-0067 unit 3 replaces seats. Never construct resource paths from a fighter name or selector.
+- During and after a Match, show fighter identity from the entity's retained `FighterAppearance` and `FighterUiArt`. Names come from its cooked definition. `LocalFighterLibrary` supplies Fighter Select and menu cards in shipped-roster order. Each local seat retains one admitted `FighterChoice` with its exact revision and starting form. Never construct resource paths from a fighter name or selector.
 - Keep source filenames and semantic IDs consistent and descriptive.
 - Do not commit generated Unity library state, local vendor assets, or transient reports unless a task explicitly makes an artifact canonical.
 - Use one focused squash commit per branch and the repository's Conventional Commit format:
