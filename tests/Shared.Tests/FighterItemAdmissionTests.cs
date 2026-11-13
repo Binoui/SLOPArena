@@ -71,15 +71,26 @@ public sealed class FighterItemAdmissionTests
     private static byte[] MinimalGlb()
     {
         var json = Encoding.UTF8.GetBytes("""
-        {"asset":{"version":"2.0"},"buffers":[{"byteLength":36}],"bufferViews":[{"buffer":0,"byteLength":36}],
-        "accessors":[{"bufferView":0,"componentType":5126,"type":"VEC3","count":3}],"meshes":[{"primitives":[{"attributes":{"POSITION":0}}]}],
-        "nodes":[{"mesh":0,"skin":0}],"skins":[{"joints":[0]}],"animations":[{"name":"fixture","samplers":[],"channels":[]}]}
+        {"asset":{"version":"2.0"},"buffers":[{"byteLength":112}],
+        "bufferViews":[{"buffer":0,"byteLength":36},{"buffer":0,"byteOffset":36,"byteLength":12},
+        {"buffer":0,"byteOffset":48,"byteLength":48},{"buffer":0,"byteOffset":96,"byteLength":4},{"buffer":0,"byteOffset":100,"byteLength":12}],
+        "accessors":[{"bufferView":0,"componentType":5126,"type":"VEC3","count":3,"min":[0,0,0],"max":[1,1,0]},
+        {"bufferView":1,"componentType":5121,"type":"VEC4","count":3},{"bufferView":2,"componentType":5126,"type":"VEC4","count":3},
+        {"bufferView":3,"componentType":5126,"type":"SCALAR","count":1,"min":[0],"max":[0]},
+        {"bufferView":4,"componentType":5126,"type":"VEC3","count":1}],
+        "meshes":[{"primitives":[{"attributes":{"POSITION":0,"JOINTS_0":1,"WEIGHTS_0":2}}]}],
+        "nodes":[{"mesh":0,"skin":0},{"name":"root"}],"skins":[{"joints":[1]}],"scene":0,"scenes":[{"nodes":[0,1]}],
+        "animations":[{"name":"fixture","samplers":[{"input":3,"output":4,"interpolation":"LINEAR"}],
+        "channels":[{"sampler":0,"target":{"node":1,"path":"translation"}}]}]}
         """);
         int length = (json.Length + 3) & ~3;
-        var result = new byte[28 + length + 36];
+        var result = new byte[28 + length + 112];
         void U(int offset, uint value) => System.Buffers.Binary.BinaryPrimitives.WriteUInt32LittleEndian(result.AsSpan(offset), value);
         U(0, 0x46546c67); U(4, 2); U(8, (uint)result.Length); U(12, (uint)length); U(16, 0x4e4f534a);
-        result.AsSpan(20, length).Fill(32); json.CopyTo(result, 20); U(20 + length, 36); U(24 + length, 0x004e4942);
+        result.AsSpan(20, length).Fill(32); json.CopyTo(result, 20); U(20 + length, 112); U(24 + length, 0x004e4942);
+        int bin = 28 + length;
+        U(bin + 12, 0x3f800000); U(bin + 28, 0x3f800000);
+        for (int vertex = 0; vertex < 3; vertex++) U(bin + 48 + vertex * 16, 0x3f800000);
         return result;
     }
 
