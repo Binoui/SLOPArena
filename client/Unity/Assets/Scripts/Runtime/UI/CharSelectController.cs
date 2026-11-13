@@ -98,7 +98,8 @@ namespace SlopArena.Client.UI
             grid?.Clear();
 
             var classes = VisiblePackages;
-            if (grid != null && classes.Count > LocalFighterLibrary.Current.PackagesFor(false).Count && grid.parent is not ScrollView)
+            var gridScroll = grid?.GetFirstAncestorOfType<ScrollView>();
+            if (grid != null && classes.Count > LocalFighterLibrary.Current.PackagesFor(false).Count && gridScroll?.name != "made-fighter-grid-scroll")
             {
                 var parent = grid.parent;
                 grid.RemoveFromHierarchy();
@@ -108,10 +109,10 @@ namespace SlopArena.Client.UI
                 scroll.style.width = Length.Percent(100);
                 parent.Add(scroll); scroll.Add(grid);
             }
-            else if (grid?.parent is ScrollView existingScroll && classes.Count == LocalFighterLibrary.Current.PackagesFor(false).Count)
+            else if (gridScroll?.name == "made-fighter-grid-scroll" && classes.Count == LocalFighterLibrary.Current.PackagesFor(false).Count)
             {
-                var parent = existingScroll.parent;
-                grid.RemoveFromHierarchy(); existingScroll.RemoveFromHierarchy(); parent.Add(grid);
+                var parent = gridScroll.parent;
+                grid.RemoveFromHierarchy(); gridScroll.RemoveFromHierarchy(); parent.Add(grid);
             }
             var meta = _context.Q<Label>("roster-meta");
             if (meta != null && meta.text.Contains(" FIGHTERS //")) meta.text = classes.Count + meta.text.Substring(meta.text.IndexOf(" FIGHTERS //", StringComparison.Ordinal));
