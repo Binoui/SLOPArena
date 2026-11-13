@@ -43,7 +43,7 @@ public sealed class PortableFormatRevisionTests
         var outer = JsonNode.Parse(item["item.json"])!; outer["compilerVersion"] = "0.9.0"; outer["canonicalWriterVersion"] = 7;
         item["item.json"] = Encoding.UTF8.GetBytes(outer.ToJsonString());
         var result = Read(item);
-        Assert.Equal("item.pose-bake.unavailable", Assert.Single(result.Diagnostics).Code);
+        Assert.True(result.IsAccepted, string.Join("\n", result.Diagnostics));
         var cooked = item.Where(f => CookedPackageLimits.FileBytes(f.Key) != 0).ToDictionary(f => f.Key, f => f.Value);
         Assert.True(CookedCharacterPackageLoader.LoadFiles(cooked, CookedPackageEdits.RequirementOf(cooked), CharacterCookProfile.Workshop).IsValid);
     }
@@ -92,7 +92,7 @@ public sealed class PortableFormatRevisionTests
         var item = FighterItemAdmissionTests.Item("local.bashie", kit: "bashie");
         var binding = Bindings(item); Assert.NotEmpty(binding["presentations"]!.AsObject());
         Assert.All(binding["presentations"]!.AsObject(), p => Assert.Equal("none", p.Value!["kind"]!.GetValue<string>()));
-        Assert.Equal("item.pose-bake.unavailable", Assert.Single(Read(item).Diagnostics).Code);
+        Assert.True(Read(item).IsAccepted);
         binding["presentations"]!.AsObject().Remove(binding["presentations"]!.AsObject().First().Key); Repin(item, binding);
         Assert.Contains(Read(item).Diagnostics, d => d.Code is "portable.runtime" or "package.binding.presentation-missing");
     }
@@ -155,7 +155,7 @@ public sealed class PortableFormatRevisionTests
         {
             string card = Path.Combine(path, "card.json"), copy = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"));
             File.Move(card, copy);
-            try { Assert.Equal(0, Link(copy, card)); Assert.Contains(FighterItemAdmission.ReadLocalItem(path).Diagnostics, d => d.Code == "item.pose-bake.unavailable"); }
+            try { Assert.Equal(0, Link(copy, card)); Assert.True(FighterItemAdmission.ReadLocalItem(path).IsAccepted); }
             finally { File.Delete(copy); }
             return true;
         });
@@ -226,7 +226,7 @@ public sealed class PortableFormatRevisionTests
     {
         var item = FighterItemAdmissionTests.Item("local.nyx", kit: "nyx"); var binding = Bindings(item);
         Assert.Equal(2, binding["portraits"]!.AsArray().Count); Assert.Equal(2, binding["icons"]!.AsArray().Count);
-        Assert.Contains(Read(item).Diagnostics, d => d.Code == "item.pose-bake.unavailable");
+        Assert.True(Read(item).IsAccepted);
         binding["icons"]![1]!["icon.unknown"] = null; Repin(item, binding);
         Assert.Contains(Read(item).Diagnostics, d => d.Code == "portable.icon");
     }

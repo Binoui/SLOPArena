@@ -24,6 +24,7 @@
 
   <ItemGroup>
     <EmbeddedResource Include="CharacterSourceSchema.xml" LogicalName="SlopArena.Shared.CharacterSourceSchema.xml" />
+    <EmbeddedResource Include="SharedClips/*" LogicalName="SlopArena.Shared.SharedClips.%(Filename)%(Extension)" />
   </ItemGroup>
   <Target Name="ValidateSourceFieldDescriptions" BeforeTargets="CoreCompile">
     <XmlPeek XmlInputPath="$(MSBuildProjectDirectory)/CharacterSourceSchema.xml"

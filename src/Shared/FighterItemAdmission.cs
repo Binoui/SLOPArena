@@ -12,17 +12,21 @@ internal sealed record FighterItemAdmissionResult(AdmittedFighter? Fighter, IRea
     internal bool IsAccepted => Fighter != null;
 }
 
-internal sealed class FighterItemSnapshot
+/// <summary>The verified bytes of an admitted fighter item and its motion, for presentation; never reread from disk.</summary>
+public sealed class FighterItemSnapshot
 {
     private readonly Dictionary<string, byte[]> files;
-    internal JsonElement Bindings { get; }
-    internal JsonElement Card { get; }
-    internal FighterItemSnapshot(Dictionary<string, byte[]> files, JsonElement bindings, JsonElement card)
+    public JsonElement Bindings { get; }
+    public JsonElement Card { get; }
+    /// <summary>The skeleton and bound clips the bake verified; the renderer samples the same objects.</summary>
+    public PortableFighterMotion Motion { get; }
+    public string ModelFile => Bindings.GetProperty("modelFile").GetString()!;
+    internal FighterItemSnapshot(Dictionary<string, byte[]> files, JsonElement bindings, JsonElement card, PortableFighterMotion motion)
     {
         this.files = files;
-        Bindings = bindings.Clone(); Card = card.Clone();
+        Bindings = bindings.Clone(); Card = card.Clone(); Motion = motion;
     }
-    internal byte[] ReadPayload(string name) => (byte[])files[name].Clone();
+    public byte[] ReadPayload(string name) => (byte[])files[name].Clone();
 }
 
 /// <summary>Host-owned origin boundary. No product caller admits external files yet.</summary>
@@ -104,10 +108,14 @@ internal static class FighterItemAdmission
             var requirement = new MatchContentPackageRequirement(id, m.GetProperty("version").GetString()!, m.GetProperty("cookedContentHash").GetString()!, m.GetProperty("packageHash").GetString()!);
             var loaded = CookedCharacterPackageLoader.LoadFiles(payload, requirement, CharacterCookProfile.Workshop);
             d.AddRange(loaded.Diagnostics);
-            if (loaded.IsValid && binding.RootElement.GetProperty("animations").EnumerateArray().Any(x => x.GetProperty("source").GetProperty("kind").GetString() == "glb"))
-                return Failure("item.pose-bake.unavailable", "Pose bake verification not available. Unit 4c must verify poses.bin against the bound clips before Match admission.");
-            return loaded.IsValid ? new(new AdmittedFighter(loaded, null, null), d.AsReadOnly(), new FighterItemSnapshot(files, binding.RootElement, card.RootElement)) : Result();
+            if (!loaded.IsValid) return Result();
+            // Root rule 1: poses.bin must be the exact bake of the bound clips, by the sampler the renderer uses.
+            var motion = PortableFighterMotion.Read(binding.RootElement, files);
+            var bake = PortablePoseBake.Verify(motion, loaded.Package!.Definition, files[CharacterPackageAssembler.PosePath]);
+            if (bake.Count != 0) { d.AddRange(bake); return Result(); }
+            return new(new AdmittedFighter(loaded, null, null), d.AsReadOnly(), new FighterItemSnapshot(files, binding.RootElement, card.RootElement, motion));
         }
+        catch (GlbMotionException ex) { return Failure(ex.Code, ex.Message); }
         catch (Exception ex) when (ex is InvalidDataException or IOException or UnauthorizedAccessException or JsonException or InvalidOperationException or KeyNotFoundException or ArgumentException or OverflowException or NotSupportedException or System.Security.SecurityException or System.ComponentModel.Win32Exception or TypeLoadException or FormatException)
         { return Failure("item.read", ex.Message); }
     }

@@ -102,9 +102,11 @@ internal static class PortableFighterBindings
                 else if (kind == "shared")
                 {
                     Object(source, "kind", "id", "version");
-                    var reference = System.Text.Json.JsonSerializer.SerializeToElement(new { id = Text(source.GetProperty("id")), version = Text(source.GetProperty("version")) });
+                    string sharedId = Text(source.GetProperty("id")), version = Text(source.GetProperty("version"));
+                    var reference = System.Text.Json.JsonSerializer.SerializeToElement(new { id = sharedId, version });
                     PortableRegistryReference.Validate(reference, "anim");
-                    Error("portable.shared.unsupported", id, "The shared-clip registry is empty; required clip is unavailable.");
+                    if (!SharedClipRegistry.Default.Contains(sharedId, version))
+                        Error("portable.shared.unsupported", id, $"Shared clip {sharedId} {version} is not in the shared-clip registry.");
                 }
                 else Error("portable.source", id, "Expected glb or shared motion source.");
             }
