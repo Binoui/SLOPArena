@@ -393,6 +393,12 @@ one GLB, a portrait, and the editable source.
    The unit 5 review pass adds mode checks at Match resolution, atomic source refreshes,
    workspace path retirement, per-source failures, Steam download back-off, publish retry recovery,
    and changed-only portrait/tag updates. Online grids retain Room locks through local refreshes.
+   Verification used one isolated Win64 player build, all seven unchanged cook checks, 20
+   pixel-equal built-in/online captures, five headless online startup fixtures, and player regressions
+   for mode switching, staged refresh, moved workspaces, locked Room controls and seat removal.
+   Shared passed 5,922 tests and Server 104. The isolated Editor retained only the known line-122
+   failure. Room and unsubscribe player regressions used local host fixtures in the Playtest build;
+   the Unity-free store-app client verified the real private Steam update and downloaded bytes.
    The second-account subscribe-and-play check remains required.
 7. **Generate the authoring reference from code.** List the 12 operation kinds and the 14 public
    capabilities with their fields, bounds, and budget costs, plus one worked example. Write it so

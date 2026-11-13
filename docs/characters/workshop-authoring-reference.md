@@ -1811,8 +1811,8 @@ and cooked files at the [existing admission limits](../systems/cooked-package-ad
 Reads require regular files, refuse symbolic links/reparse points, FIFOs and devices before
 reading, and allow hard links whose actual bytes match the hashes. JPEGs require one frame header.
 
-The model-swap library reports "type not supported here" for a fighter item. Unit 5 will wire the
-fighter adapter to discovery. No product path currently admits external fighters.
+The model-swap library reports "type not supported here" for a fighter item. The fighter adapter
+admits cooked workspaces and Steam fighter subscriptions through their separate host origins.
 See `tools/PortableCookProof/README.md` for the rerunnable isolated Win64/Mono comparison.
 
 ## Cook a fighter in the installed game
