@@ -93,6 +93,9 @@ internal static class FighterItemAdmission
             string expected = steamId.HasValue ? "workshop." + steamId.Value.ToString(System.Globalization.CultureInfo.InvariantCulture) : "local.";
             if (steamId.HasValue ? id != expected : !id.StartsWith(expected, StringComparison.Ordinal) || id.Length == expected.Length)
                 return Failure("item.namespace", "Package namespace disagrees with host origin.");
+            if (!CookedCharacterPackageLoader.SupportsCompatibility(m.GetProperty("cookedSchemaVersion").GetUInt16(),
+                m.GetProperty("runtimeApiMin").GetString()!, m.GetProperty("runtimeApiMax").GetString()!))
+                return Failure("item.needs-update", $"Needs update: cooked by compiler {manifest.Manifest.CompilerVersion}, canonical writer {manifest.Manifest.CanonicalWriterVersion}; runtime API is outside the supported window.");
             if (m.GetProperty("version").GetString() != manifest.Manifest.ItemVersion)
                 return Failure("item.identity", "Cooked and item versions must agree.");
             if (m.GetProperty("sourceHash").GetString() != PortableSourceHash.Compute(files))
@@ -101,8 +104,6 @@ internal static class FighterItemAdmission
             var requirement = new MatchContentPackageRequirement(id, m.GetProperty("version").GetString()!, m.GetProperty("cookedContentHash").GetString()!, m.GetProperty("packageHash").GetString()!);
             var loaded = CookedCharacterPackageLoader.LoadFiles(payload, requirement, CharacterCookProfile.Workshop);
             d.AddRange(loaded.Diagnostics);
-            if (loaded.Diagnostics.Any(x => x.Code == "package.compatibility.unsupported"))
-                d.Add(MatchContentCatalogBuilder.Error("item.needs-update", "item.json", $"Needs update: cooked by compiler {manifest.Manifest.CompilerVersion}, canonical writer {manifest.Manifest.CanonicalWriterVersion}; runtime API is outside the supported window."));
             if (loaded.IsValid && binding.RootElement.GetProperty("animations").EnumerateArray().Any(x => x.GetProperty("source").GetProperty("kind").GetString() == "glb"))
                 return Failure("item.pose-bake.unavailable", "Pose bake verification not available. Unit 4c must verify poses.bin against the bound clips before Match admission.");
             return loaded.IsValid ? new(new AdmittedFighter(loaded, null, null), d.AsReadOnly(), new FighterItemSnapshot(files, binding.RootElement, card.RootElement)) : Result();

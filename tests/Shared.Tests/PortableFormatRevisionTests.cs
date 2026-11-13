@@ -54,7 +54,11 @@ public sealed class PortableFormatRevisionTests
         {
             var root = JsonNode.Parse(item[file])!;
             if (file == "manifest.json") root["runtimeApiMin"] = "999.0.0";
-            else root["metadata"]!["compatibility"]!["runtimeApiMin"] = "999.0.0";
+            else
+            {
+                root["metadata"]!["compatibility"]!["runtimeApiMin"] = "999.0.0";
+                root["character"]!["futureFieldFromNewerApi"] = 1;
+            }
             item[file] = Encoding.UTF8.GetBytes(root.ToJsonString());
         }
         Repin(item);
@@ -204,6 +208,37 @@ public sealed class PortableFormatRevisionTests
         Assert.Contains(WorkshopGlbPrecheck.CheckImage(twice), d => d.Code == "item.jpeg");
         var entropy = new byte[] {255,216}.Concat(frame).Concat(new byte[] {255,218,0,2,1,2,255,0,3}).Concat(frame).Concat(new byte[] {255,217}).ToArray();
         Assert.Contains(WorkshopGlbPrecheck.CheckImage(entropy), d => d.Code == "item.jpeg");
+    }
+    [Fact] public void AdapterRejectsTrustedInternalCapabilityDeclarations()
+    {
+        var item = FighterItemAdmissionTests.Item();
+        var capability = JsonNode.Parse(CookedPackageEdits.Shipped("fightguy")["manifest.json"])!["capabilityRequirements"]!.AsArray()
+            .First(x => x!["capabilityId"]!.GetValue<string>().StartsWith("slop.internal.", StringComparison.Ordinal))!;
+        var manifest = JsonNode.Parse(item["manifest.json"])!;
+        manifest["capabilityRequirements"]!.AsArray().Add(capability.DeepClone());
+        item["manifest.json"] = Encoding.UTF8.GetBytes(manifest.ToJsonString());
+        var runtime = JsonNode.Parse(item["character.runtime.json"])!;
+        runtime["character"]!["capabilityRequirements"]!.AsArray().Add(capability.DeepClone());
+        item["character.runtime.json"] = Encoding.UTF8.GetBytes(runtime.ToJsonString()); Repin(item);
+        Assert.Contains(Read(item).Diagnostics, d => d.Code == "capability.untrusted");
+    }
+    [Fact] public void NyxPortableArtworkHasTwoIndependentForms()
+    {
+        var item = FighterItemAdmissionTests.Item("local.nyx", kit: "nyx"); var binding = Bindings(item);
+        Assert.Equal(2, binding["portraits"]!.AsArray().Count); Assert.Equal(2, binding["icons"]!.AsArray().Count);
+        Assert.Contains(Read(item).Diagnostics, d => d.Code == "item.pose-bake.unavailable");
+        binding["icons"]![1]!["icon.unknown"] = null; Repin(item, binding);
+        Assert.Contains(Read(item).Diagnostics, d => d.Code == "portable.icon");
+    }
+    [Theory] [InlineData("fixed", 2, "portable.schema")] [InlineData("cycle", 2, "portable.presentation.unsupported")]
+    public void AudioPoolsAndProjectileReferencesSharePresentationShape(string selection, int count, string code)
+    {
+        var binding = Bindings(FighterItemAdmissionTests.Item()); var clips = new JsonArray();
+        for (int i = 0; i < count; i++) clips.Add(new JsonObject { ["id"] = "slop.sfx.hit.default.v1", ["version"] = "1.0.0" });
+        binding["presentations"]!["cue.hit"] = new JsonObject { ["kind"] = "engine", ["vfx"] = null,
+            ["projectile"] = new JsonObject { ["id"] = "slop.vfx.projectile.default.v1", ["version"] = "1.0.0" },
+            ["audio"] = new JsonObject { ["selection"] = selection, ["clips"] = clips } };
+        Assert.Contains(Validate(binding), d => d.Code == code);
     }
     [DllImport("libc", EntryPoint="mkfifo")] private static extern int MkFifo(string path, uint mode);
     [DllImport("libc", EntryPoint="link")] private static extern int Link(string source, string target);
