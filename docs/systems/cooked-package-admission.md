@@ -162,3 +162,9 @@ The contract suite has no skips. It exercises the original eight gaps, mutations
 multiple fighters, file bounds, and trusted runtime and pose fingerprints obtained with
 origin/main's loader. The timeout encloses the load itself. Simulation assertions count
 live volumes, volume/body pairs, sweep contact tests, and finite state, without a wall-clock performance threshold. Runtime fingerprints use canonical concrete payload serialization, including budgets, with golden values captured from origin/main in a scratch build.
+
+The cook mutation corpus retains its pre-admission baselines and pins a separate admission
+baseline. A scratch replay of the pre-fix compiler matched all historical digests; comparing
+all 57,524 traces found exactly 99 new refusals in 17 range-edge groups, all carrying
+`package.projectile.limit`, `package.live.limit`, or `package.collision.limit`. Other mutation
+contracts and all successful unmodified built-in payloads remain identical.

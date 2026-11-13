@@ -17,9 +17,21 @@ public sealed class WorkshopMutationContractTests(ITestOutputHelper output)
         var preexisting = original.Zip(head).Where(pair => pair.First.ContractHash != pair.Second.ContractHash).ToArray();
         Assert.Equal(new[] { "manki/Workshop/types", "manki/TrustedBuiltIn/types" },
             preexisting.Select(pair => pair.First.Fighter + "/" + pair.First.Profile + "/" + pair.First.Family));
+        var admission = JsonSerializer.Deserialize<MutationDigest[]>(File.ReadAllText(Fixture("mutation-admission-baseline.json")))!;
+        Assert.Equal(head.Length, admission.Length);
+        var changed = head.Zip(admission).Where(pair => pair.First.ContractHash != pair.Second.ContractHash).ToArray();
+        Assert.Equal(17, changed.Length);
+        Assert.All(changed, pair =>
+        {
+            Assert.Equal("range-edges", pair.First.Family);
+            Assert.Equal((pair.First.Fighter, pair.First.Profile, pair.First.Cases),
+                (pair.Second.Fighter, pair.Second.Profile, pair.Second.Cases));
+            Assert.True(pair.Second.Successful < pair.First.Successful);
+        });
+        Assert.Equal(99, head.Sum(x => x.Successful) - admission.Sum(x => x.Successful));
         var actual = MutationContract.Run(Fixture("mutation-inputs.json"), Fixture("mutation-edges.json"), output.WriteLine);
-        Assert.Equal(head.Length, actual.Count);
-        foreach (var (expected, current) in head.Zip(actual))
+        Assert.Equal(admission.Length, actual.Count);
+        foreach (var (expected, current) in admission.Zip(actual))
         {
             Assert.Equal((expected.Fighter, expected.Profile, expected.Family, expected.Cases, expected.Successful, expected.RoundTrips, expected.ContractHash),
                 (current.Fighter, current.Profile, current.Family, current.Cases, current.Successful, current.RoundTrips, current.ContractHash));
