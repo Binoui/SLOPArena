@@ -44,7 +44,7 @@ public sealed class FighterItemSnapshot
     public byte[] ReadPayload(string name) => (byte[])files[name].Clone();
 }
 
-/// <summary>Host-owned origin boundary. No product caller admits external files yet.</summary>
+/// <summary>Host-owned origin boundary. Only the Steam adapter supplies downloaded identity; item bytes cannot claim it.</summary>
 internal static class FighterItemAdmission
 {
     internal static FighterItemAdmissionResult ReadLocalItem(string folder) => Read(folder, null);

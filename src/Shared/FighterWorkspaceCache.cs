@@ -77,6 +77,10 @@ public static class FighterWorkspaceCache
             {
                 cancel.ThrowIfCancellationRequested();
                 using var publishLock = new FileStream(Path.Combine(root, ".publish.lock"), FileMode.OpenOrCreate, FileAccess.ReadWrite, FileShare.None);
+                string sourcePath = Path.Combine(root, "source.txt");
+                string sourceTemp = sourcePath + "." + Guid.NewGuid().ToString("N");
+                File.WriteAllText(sourceTemp, Path.GetFullPath(sourceFolder));
+                if (File.Exists(sourcePath)) File.Replace(sourceTemp, sourcePath, null); else File.Move(sourceTemp, sourcePath);
                 string name = "revision-" + Guid.NewGuid().ToString("N"), final = Path.Combine(root, name);
                 Directory.Move(pending, final); pending = final;
                 pointer = Path.Combine(root, ".latest-" + Guid.NewGuid().ToString("N"));

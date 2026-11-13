@@ -15,7 +15,12 @@ namespace SlopArena.Client.UI
         static readonly SourceCache source = new(ReadSources, () => ShippedRoster.TryReadApplication(out var roster, out _) ? roster : null);
         static IReadOnlyList<AdmittedFighter> made = Array.Empty<AdmittedFighter>();
         public static void SetMadeFighters(IReadOnlyList<AdmittedFighter> fighters)
-        { made = fighters.ToArray(); Invalidate(); }
+        {
+            var next = Current.WithMadeFighters(fighters);
+            made = fighters.ToArray();
+            source.Publish(next);
+        }
+        public static void ResetMadeSources() { made = Array.Empty<AdmittedFighter>(); source.Invalidate(); }
         public IReadOnlyList<string> PackagesFor(bool allowMade)
             => allowMade ? PackageIds : PackageIds.Where(id => catalog!.ResolvePackage(id)!.IsBundled).ToArray();
         public string OriginLabel(string package) => catalog?.ResolvePackage(package)?.IsBundled != false ? ""
@@ -50,6 +55,7 @@ namespace SlopArena.Client.UI
                 { snapshot = read(); revision = next; }
                 return snapshot;
             }
+            internal void Publish(LocalFighterLibrary value) { snapshot = value; revision = stamp(); }
             internal void Invalidate() => snapshot = null;
             internal LocalFighterLibrary Refresh() { Invalidate(); return Read(); }
         }

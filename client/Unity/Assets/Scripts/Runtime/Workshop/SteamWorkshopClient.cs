@@ -14,10 +14,15 @@ namespace SlopArena.Client.Workshop
         public string Title { get; }
         public string Description { get; }
         public int Visibility { get; }
+        public bool HasContent { get; }
         public ulong Owner { get; }
+        public string ItemType { get; }
         public EItemState State => (EItemState)SteamUGC.GetItemState(new PublishedFileId_t(Id));
         public WorkshopSteamItem(SteamUGCDetails_t detail)
         {
+            ItemType = Array.Exists((detail.m_rgchTags ?? "").Split(','), tag => tag.Trim() == "model-swap") ? "model-swap"
+                : Array.Exists((detail.m_rgchTags ?? "").Split(','), tag => tag.Trim() == "fighter") ? "fighter" : "";
+            HasContent = detail.m_nFileSize > 0;
             Id = detail.m_nPublishedFileId.m_PublishedFileId; Title = detail.m_rgchTitle;
             Description = detail.m_rgchDescription; Visibility = (int)detail.m_eVisibility; Owner = detail.m_ulSteamIDOwner;
         }
@@ -83,7 +88,14 @@ namespace SlopArena.Client.Workshop
             {
                 RequireAvailable(); LastOperation = "Preparing upload";
                 var item = await Task.Run(() => WorkshopLibrary.Verify(folder));
-                if (id != 0) WorkshopPublishEdits.RequireOwner((await GetItem(id)).Owner, SteamUser.GetSteamID().m_SteamID);
+                bool submittedBefore = false;
+                if (id != 0)
+                {
+                    var current = await GetItem(id);
+                    WorkshopPublishEdits.RequireOwner(current.Owner, SteamUser.GetSteamID().m_SteamID);
+                    submittedBefore = current.HasContent;
+                }
+                edits.RequireFirstSubmit(submittedBefore);
                 // Steam reads content asynchronously. Upload a private snapshot, not the mutable library folder.
                 stage = await Task.Run(() =>
                 {

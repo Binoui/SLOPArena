@@ -8,10 +8,10 @@ using System.Text.Json.Nodes;
 
 namespace SlopArena.Shared;
 
-/// <summary>A host may admit local items, but cannot claim Steam provenance.</summary>
+/// <summary>Local workspaces are public. Download admission is restricted to the trusted Steam host.</summary>
 public static class LocalFighterItems
 {
-    public static LocalFighterItemResult ReadDownloaded(string folder, ulong publishedFileId)
+    internal static LocalFighterItemResult ReadDownloaded(string folder, ulong publishedFileId)
     {
         var result = FighterItemAdmission.ReadDownloadedItem(folder, publishedFileId);
         return new(result.Fighter, result.Item, result.Diagnostics);

@@ -137,6 +137,7 @@ namespace SlopArena.Client.Workshop
             var owned = new List<UnityEngine.Object>();
             try
             {
+                cancel.ThrowIfCancellationRequested();
                 if (holder == null)
                 {
                     holder = new GameObject("Made fighter templates");
@@ -201,6 +202,7 @@ namespace SlopArena.Client.Workshop
                 model.Show();
                 var art = new FighterUiArt(entry.Definition, portraits.Select(x => x ?? rendered).ToArray(), icons, FighterCardText.Read(item.Card));
                 var presentation = new MadeFighterPresentation(entry.Identity, model, catalog, art, rendered, motion, owned);
+                cancel.ThrowIfCancellationRequested();
                 Prepared[entry.Identity] = presentation;
                 return presentation;
             }

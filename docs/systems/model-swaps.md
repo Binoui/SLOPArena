@@ -285,14 +285,30 @@ bundled lists. See [ADR-0067](../adr/0067-fighters-by-package.md).
 
 **Make a fighter** lists installed-source status and admission refusals. Subscription scans use
 Steam's install record ID to require `workshop.<PublishedFileId>`, never an ID claimed by the item.
-Pending downloads retry through Steam. Successful installs appear after the next library refresh.
+Model-swap subscriptions are filtered before fighter admission. Downloads retry with exponential back-off,
+using Steam install timestamps and item state to detect updates. Successful installs appear after the next library refresh.
 Unsubscribe removes the menu entry on that refresh. Revision bytes and presentation used by a
-running Match remain pinned in memory.
+running Match remain pinned in memory. Each refresh stages every source before publishing the new
+snapshot, then retires the old menu leases. A failed source becomes a status row. The built-in
+catalog is reused. Play start cancels work from the previous session, including without domain reload.
+
+Workspace caches record their original absolute source path. Moving or deleting a workspace retires
+its old menu entry. Recook a moved workspace at its new path. Two existing workspaces with the
+same local ID are both refused; the status lists both paths and identifies which package ID to rename.
+Every seat is checked against the mode's allowed fighters when resolving a Match. Mode changes and
+library refreshes reset unavailable choices, including P1 while a CPU is being edited. Online Fighter
+Select ignores library refreshes, preserving the Room's allowlist, locks and markers.
+A recording whose made fighter revision was updated or removed refuses playback with a named
+package diagnostic. Practice logs contain recorded facts and remain readable without installed assets.
 
 **Publish latest cook** opens title, description, visibility and content guidelines. The default
 visibility is Private. The Steam client creates an item once and persists its ID before recooking
 verified source under that Steam identity. The local source remains `local.*`. Each upload stages
 an admitted immutable folder, its hash metadata, the `fighter` tag, optional AI tag and the portrait.
-Updates retain the item ID and send only edited title, description and visibility fields. Content
-and preview go through Steam's normal update transfer. Legal-agreement requests open the item page.
+Updates retain the item ID and send only edited title, description, visibility, portrait and tag fields.
+Portraits retain aspect and sRGB colour. The first successful submit sends all required fields,
+including when item creation succeeded before an upload failed. A deleted or foreign saved ID offers
+**Publish as a new item**. The upload uses the admitted bytes shown when publishing opened.
+Downloading a published item for verification does not subscribe to it; subscribe on Steam to add
+that published identity to Fighter Select. Legal-agreement requests open the item page.
 Playtest builds explain that Steam Workshop is unavailable and keep local cooking and play usable.

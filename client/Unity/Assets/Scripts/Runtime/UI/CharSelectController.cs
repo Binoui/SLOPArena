@@ -30,7 +30,7 @@ namespace SlopArena.Client.UI
         // mount time (issue #219).
         private FrontendPageContext _context = null!;
 
-        private IReadOnlyList<string> VisiblePackages => LocalFighterLibrary.Current.PackagesFor(MatchConfig.Mode == GameMode.Training || MatchConfig.Mode == GameMode.Solo && MatchConfig.LocalMode == LocalPlayMode.Brawl);
+        private IReadOnlyList<string> VisiblePackages => MatchConfig.VisibleFighters(LocalFighterLibrary.Current);
         private string _selected = "";
         private LocalChallengeSetup? _challenge;
         private int _editingSeat = 1;
@@ -116,15 +116,11 @@ namespace SlopArena.Client.UI
             }
             var meta = _context.Q<Label>("roster-meta");
             if (meta != null && meta.text.Contains(" FIGHTERS //")) meta.text = classes.Count + meta.text.Substring(meta.text.IndexOf(" FIGHTERS //", StringComparison.Ordinal));
+            MatchConfig.ResetUnavailableSeats(LocalFighterLibrary.Current, classes);
             string prior = EditsSeat ? MatchConfig.Seat(_editingSeat).Fighter : MatchConfig.PlayerPackageId;
             _selected = classes.Contains(prior)
                 ? prior
                 : classes.Count > 0 ? classes[0] : "";
-            if (MatchConfig.Mode is GameMode.Solo or GameMode.Training && classes.Count > 0)
-                for (int player = 2; player <= 4; player++)
-                    if (!classes.Contains(MatchConfig.Seat(player).Fighter))
-                        MatchConfig.Seat(player).Fighter = classes[0];
-
             // Build portrait cards in the admitted manifest's authored order.
             if (grid != null)
             {
@@ -202,7 +198,7 @@ namespace SlopArena.Client.UI
             }
             if (!string.IsNullOrEmpty(_selected))
                 SelectCharacter(_selected, _context);
-            if (focusInGrid) (_gridButtons.FirstOrDefault(b => b.name == focused) ?? _gridButtons.FirstOrDefault())?.Focus();
+            if (focusInGrid) (grid?.Q<Button>(focused) ?? _gridButtons.FirstOrDefault())?.Focus();
 
         }
 
@@ -1376,7 +1372,7 @@ namespace SlopArena.Client.UI
 
         private void Update()
         {
-            if (_context != null && !ReferenceEquals(displayedLibrary, LocalFighterLibrary.Current)) RebuildGrid();
+            if (_context != null && MatchConfig.Mode != GameMode.PvP && !ReferenceEquals(displayedLibrary, LocalFighterLibrary.Current)) RebuildGrid();
             bool active = (HumanCourse || MatchConfig.Mode == GameMode.Solo && LocalPlayModes.Current.Seats == LocalSeatPolicy.FourSeats) && _rosterPanel != null;
             SlopArena.Client.Input.CouchPads.Listening = active;
             if (!active) return;

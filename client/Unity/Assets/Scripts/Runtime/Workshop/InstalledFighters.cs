@@ -17,105 +17,128 @@ namespace SlopArena.Client.Workshop
     {
         sealed class Revision : IDisposable
         {
-            internal string Stamp = "";
-            internal LocalFighterItemResult Result = null!;
+            internal string Stamp = "", Caption = "", Diagnostic = "";
+            internal LocalFighterItemResult? Result;
             internal MadeFighterPresentation.Lease? Lease;
-            internal string Diagnostic = "";
             public void Dispose() { if (Lease != null) FighterPresentationReleases.AfterRenderers(Lease); Lease = null; }
         }
-        static readonly Dictionary<string, Revision> revisions = new(StringComparer.Ordinal);
-        public static IReadOnlyList<string> StatusRows => revisions.Select(p => p.Key + " / " + (p.Value.Diagnostic.Length > 0 ? p.Value.Diagnostic : "Ready")).ToArray();
+        sealed class Source
+        {
+            internal string Key = "", Caption = "", Folder = "", HostStamp = "", Diagnostic = "";
+            internal SteamWorkshopClient.FighterInstallRecord? Install;
+            internal Revision? Retained;
+        }
+        static InstalledFighters? active;
+        readonly FighterRevisionSet<Revision> revisions = new();
+        readonly WorkshopDownloadRetry downloads = new();
+        readonly CancellationTokenSource cancel = new();
+        IReadOnlyList<string> rows = Array.Empty<string>();
+        AdmittedFighter[] visible = Array.Empty<AdmittedFighter>();
+        public static IReadOnlyList<string> StatusRows => active?.rows ?? Array.Empty<string>();
         bool busy;
         float next;
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+        static void ResetSession()
+        { active?.Stop(); active = null; LocalFighterLibrary.ResetMadeSources(); }
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
         static void StartSession()
         {
-            foreach (var revision in revisions.Values) revision.Dispose();
-            revisions.Clear(); LocalFighterLibrary.SetMadeFighters(Array.Empty<AdmittedFighter>());
             var owner = new GameObject("Installed fighters");
-            DontDestroyOnLoad(owner); owner.AddComponent<InstalledFighters>();
+            DontDestroyOnLoad(owner); active = owner.AddComponent<InstalledFighters>();
         }
+        void Stop() { cancel.Cancel(); revisions.Dispose(); }
+        void OnDestroy() { Stop(); if (active == this) active = null; }
         async void Update()
         {
-            if (busy || Time.unscaledTime < next) return;
+            if (busy || cancel.IsCancellationRequested || !Application.isPlaying || Time.unscaledTime < next) return;
             busy = true; next = Time.unscaledTime + 3;
             try { await RefreshSources(); }
+            catch (OperationCanceledException) { }
             catch (Exception e) { Debug.LogWarning("[InstalledFighters] " + e.Message); }
             finally { busy = false; }
         }
+        void RequireSession()
+        { cancel.Token.ThrowIfCancellationRequested(); if (!Application.isPlaying || active != this) throw new OperationCanceledException(); }
         async Task RefreshSources()
         {
+            var token = cancel.Token;
             string root = Path.Combine(Application.persistentDataPath, "Workshop", "FighterCooks");
-            var sources = await Task.Run(() =>
+            var sources = new List<Source>();
+            try
             {
-                var found = new Dictionary<string, (string Folder, ulong Steam)>();
-                if (Directory.Exists(root)) foreach (string workspace in Directory.GetDirectories(root))
-                {
-                    string pointer = Path.Combine(workspace, "latest.txt");
-                    if (!File.Exists(pointer)) continue;
-                    string name = File.ReadAllText(pointer);
-                    if (!name.StartsWith("revision-", StringComparison.Ordinal) || Path.GetFileName(name) != name) continue;
-                    found[workspace] = (Path.Combine(workspace, name), 0);
-                }
-                return found;
-            });
-            bool steam = ChatSession.Instance?.SteamAvailable == true && SteamWorkshopClient.Shared.Available;
-            if (steam)
-            {
-                var ids = new PublishedFileId_t[SteamUGC.GetNumSubscribedItems()];
-                uint count = SteamUGC.GetSubscribedItems(ids, (uint)ids.Length);
-                for (int i = 0; i < count; i++)
-                {
-                    ulong id = ids[i].m_PublishedFileId;
-                    string key = "Steam " + id;
-                    if (SteamWorkshopClient.InstalledCurrent(id, out string folder)) sources[key] = (folder, id);
-                    else
-                    {
-                        SteamUGC.DownloadItem(ids[i], false);
-                        sources[key] = ("", id);
-                        if (revisions.TryGetValue(key, out var pending) && pending.Stamp == "downloading"
-                            && SteamUGC.GetItemDownloadInfo(ids[i], out ulong done, out ulong total))
-                            pending.Diagnostic = $"Downloading {done} / {total} bytes";
-                    }
-                }
+                var local = await Task.Run(() => FighterWorkspaceSources.Read(root), token);
+                RequireSession();
+                sources.AddRange(local.Select(s => new Source { Key = s.Key, Caption = s.SourceFolder ?? "Older workspace cache " + Path.GetFileName(s.Key), Folder = s.ItemFolder ?? "", Diagnostic = s.Diagnostic ?? "" }));
             }
-            bool changed = false;
-            foreach (string removed in revisions.Keys.Except(sources.Keys).ToArray())
-            { revisions[removed].Dispose(); revisions.Remove(removed); changed = true; }
-            foreach (var source in sources)
+            catch (OperationCanceledException) { throw; }
+            catch (Exception e) { sources.Add(new Source { Key = "Workspaces", Caption = root, Diagnostic = e.Message }); }
+            if (ChatSession.Instance?.SteamAvailable == true && SteamWorkshopClient.Shared.Available)
             {
-                var (folder, id) = source.Value;
-                string stamp = folder.Length == 0 ? "downloading" : await Task.Run(() => Stamp(folder));
-                if (revisions.TryGetValue(source.Key, out var old) && old.Stamp == stamp) continue;
-                var revision = new Revision { Stamp = stamp };
                 try
                 {
-                    if (folder.Length == 0) throw new IOException("Downloading from Steam...");
-                    var result = await Task.Run(() => id == 0 ? LocalFighterItems.Read(folder) : LocalFighterItems.ReadDownloaded(folder, id));
-                    revision.Result = result;
-                    if (result.Fighter == null || result.Item == null) throw new InvalidDataException(string.Join("; ", result.Diagnostics.Select(LocalFighterWorkspace.DiagnosticText)));
-                    var library = LocalFighterLibrary.Current.WithLocalItem(result.Fighter);
-                    library.TryGetCatalog(out var catalog, out _);
-                    revision.Lease = await MadeFighterPresentation.PrepareAsync(catalog!.ResolvePackage(result.Fighter.Choose().Revision.PackageId)!, result.Item, CancellationToken.None);
+                    var installed = await SteamWorkshopClient.Shared.SubscribedFighters();
+                    RequireSession();
+                    foreach (var record in installed)
+                    {
+                        string diagnostic = record.Diagnostic;
+                        if (diagnostic.Length == 0 && !record.Current)
+                        {
+                            if (downloads.Request(record.Id, record.Change, Time.realtimeSinceStartupAsDouble, record.Downloading)
+                                && !SteamUGC.DownloadItem(new PublishedFileId_t(record.Id), false)) diagnostic = "Steam refused the download. Retrying with back-off.";
+                            if (diagnostic.Length == 0) diagnostic = SteamUGC.GetItemDownloadInfo(new PublishedFileId_t(record.Id), out ulong done, out ulong total)
+                                ? $"Downloading {done} / {total} bytes" : "Waiting for Steam download. Retrying with back-off.";
+                        }
+                        else if (record.Current) downloads.Complete(record.Id);
+                        sources.Add(new Source { Key = "Steam " + record.Id, Caption = "Steam " + record.Id, Folder = record.Current ? record.Folder : "", HostStamp = record.Change + ":" + (uint)record.State, Diagnostic = diagnostic, Install = record });
+                    }
                 }
-                catch (Exception error) { revision.Diagnostic = error.Message; }
-                old?.Dispose(); revisions[source.Key] = revision; changed = true;
+                catch (OperationCanceledException) { throw; }
+                catch (Exception e)
+                {
+                    sources.Add(new Source { Key = "Steam", Caption = "Steam subscriptions", Diagnostic = e.Message });
+                    foreach (var old in revisions.Current.Where(p => p.Key.StartsWith("Steam ", StringComparison.Ordinal)))
+                        sources.Add(new Source { Key = old.Key, Caption = old.Value.Caption, Retained = old.Value });
+                }
             }
-            if (changed)
+            await revisions.Replace(async (previous, staged) =>
             {
-                foreach (var ready in revisions.Values.Where(r => r.Lease != null)) ready.Diagnostic = "";
-                var admitted = revisions.Values.Where(r => r.Lease != null).Select(r => r.Result.Fighter!).ToArray();
-                var duplicate = admitted.GroupBy(f => f.Choose().Revision.PackageId).Where(g => g.Count() > 1).Select(g => g.Key).ToHashSet();
-                foreach (var r in revisions.Values.Where(r => r.Lease != null && duplicate.Contains(r.Result.Fighter!.Choose().Revision.PackageId)))
-                    r.Diagnostic = "Duplicate package ID. Give each workspace a unique local ID.";
-                LocalFighterLibrary.SetMadeFighters(admitted.Where(f => !duplicate.Contains(f.Choose().Revision.PackageId)).ToArray());
-            }
+                foreach (var source in sources)
+                {
+                    RequireSession();
+                    if (source.Retained != null) { staged[source.Key] = source.Retained; continue; }
+                    var revision = new Revision { Caption = source.Caption, Diagnostic = source.Diagnostic };
+                    try
+                    {
+                        revision.Stamp = source.HostStamp + (source.Folder.Length == 0 ? ":" + source.Diagnostic : await Task.Run(() => Stamp(source.Folder), token));
+                        RequireSession();
+                        if (previous.TryGetValue(source.Key, out var old) && old.Stamp == revision.Stamp)
+                        { staged[source.Key] = old; continue; }
+                        staged[source.Key] = revision;
+                        if (revision.Diagnostic.Length > 0) continue;
+                        if (source.Folder.Length == 0) throw new IOException("No installed fighter folder.");
+                        var result = await Task.Run(() => source.Install == null ? LocalFighterItems.Read(source.Folder) : source.Install.Admit(), token);
+                        RequireSession(); revision.Result = result;
+                        if (result.Fighter == null || result.Item == null) throw new InvalidDataException(string.Join("; ", result.Diagnostics.Select(LocalFighterWorkspace.DiagnosticText)));
+                        var library = LocalFighterLibrary.Current.WithLocalItem(result.Fighter);
+                        library.TryGetCatalog(out var catalog, out _);
+                        revision.Lease = await MadeFighterPresentation.PrepareAsync(catalog!.ResolvePackage(result.Fighter.Choose().Revision.PackageId)!, result.Item, token);
+                        RequireSession();
+                    }
+                    catch (OperationCanceledException) { throw; }
+                    catch (Exception e) { revision.Diagnostic = e.Message; staged[source.Key] = revision; }
+                }
+            }, staged =>
+            {
+                RequireSession();
+                var ready = staged.Values.Where(r => r.Lease != null).ToArray();
+                var duplicates = ready.GroupBy(r => r.Result!.Fighter!.Choose().Revision.PackageId).Where(g => g.Count() > 1)
+                    .ToDictionary(g => g.Key, g => FighterWorkspaceSources.DuplicateDiagnostic(g.Key, g.Select(r => r.Caption)));
+                var nextVisible = ready.Where(r => !duplicates.ContainsKey(r.Result!.Fighter!.Choose().Revision.PackageId)).Select(r => r.Result!.Fighter!).ToArray();
+                if (!visible.SequenceEqual(nextVisible)) { LocalFighterLibrary.SetMadeFighters(nextVisible); visible = nextVisible; }
+                rows = staged.Values.Select(r => r.Caption + " / " + (r.Lease != null && duplicates.TryGetValue(r.Result!.Fighter!.Choose().Revision.PackageId, out string duplicate) ? duplicate : r.Diagnostic.Length > 0 ? r.Diagnostic : "Ready")).ToArray();
+            }, token);
         }
-        static string Stamp(string folder)
-        {
-            if (!Directory.Exists(folder)) return "missing:" + folder;
-            return folder + string.Join("|", Directory.GetFiles(folder).OrderBy(p => p, StringComparer.Ordinal).Select(p =>
-            { var f = new FileInfo(p); return f.Name + ":" + f.Length + ":" + f.LastWriteTimeUtc.Ticks + ":" + f.CreationTimeUtc.Ticks; }));
-        }
+        static string Stamp(string folder) => folder + string.Join("|", Directory.GetFiles(folder).OrderBy(p => p, StringComparer.Ordinal).Select(p =>
+        { var f = new FileInfo(p); return f.Name + ":" + f.Length + ":" + f.LastWriteTimeUtc.Ticks + ":" + f.CreationTimeUtc.Ticks; }));
     }
 }

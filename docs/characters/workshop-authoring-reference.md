@@ -1909,9 +1909,19 @@ The Playtest app 5325920 displays an unavailable message.
 Steam assigns the published ID before upload. The game recooks the verified item as
 `workshop.<PublishedFileId>` and admits that result before uploading. The workspace keeps its
 `local.*` ID. Publishing again updates the saved Steam item. Unedited title, description and visibility
-retain their values from Steam. If Steam requests its legal agreement, the item page opens.
+retain their values from Steam. Portrait and tag updates are sent only when changed in the game.
+A retry after a failed first upload sends the complete title, description and visibility again.
+If the saved item was deleted or belongs to someone else, choose **Publish as a new item**.
+The portrait keeps its aspect and sRGB colour. Publishing pins the admitted cook shown by the view.
+If Steam requests its legal agreement, the item page opens.
 
 Steam subscriptions download automatically while Steam is available. Admission checks the Steam
 install record ID, payload hashes, limits and exact pose bake. A refusal appears in the Workshop
 workspace status list and never becomes a Fighter Select card. A new revision replaces the menu
-entry while Matches retain the revision they started with.
+entry while Matches retain the revision they started with. Verification from the Published list
+requires subscribing separately before the published fighter appears at Fighter Select.
+
+The local library lists only workspace paths that still exist. After moving a workspace, cook its new
+path. If two existing workspaces have the same `local.*` ID, the status names both and identifies the
+`package.json.packageId` to rename. A refresh publishes its complete snapshot before releasing old
+presentation. Restricted modes validate every active seat again when resolving the Match.

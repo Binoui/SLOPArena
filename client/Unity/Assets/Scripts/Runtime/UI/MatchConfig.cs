@@ -57,7 +57,7 @@ namespace SlopArena.Client.UI
         public int DeviceId;
     }
 
-    public static class MatchConfig
+    public static partial class MatchConfig
     {
         public static GameMode Mode = GameMode.Training;
         public static LocalPlayMode LocalMode = LocalPlayMode.Brawl;
@@ -251,7 +251,18 @@ namespace SlopArena.Client.UI
 
         }
 
-        public static bool TryResolveLocalChoices(LocalFighterLibrary library, out IReadOnlyList<FighterChoice> choices, out string? failure, string? playerPackageOverride = null)
+        static partial void ReadModeStage(ref ArcadeStageDefinition? stage);
+        public static bool AllowsMadeFighters => Mode == GameMode.Training || Mode == GameMode.Solo && LocalMode == LocalPlayMode.Brawl && Format != MatchFormat.MankiMayhem;
+        public static IReadOnlyList<string> VisibleFighters(LocalFighterLibrary library, ArcadeStageDefinition? stage = null)
+            => new List<string>(System.Linq.Enumerable.Where(library.PackagesFor(AllowsMadeFighters), id => stage == null || stage.AllowsPackage(id))).AsReadOnly();
+        public static void ResetUnavailableSeats(LocalFighterLibrary library, IReadOnlyList<string> visible)
+        {
+            if (visible.Count == 0) return;
+            if (!System.Linq.Enumerable.Contains(visible, PlayerPackageId)) SetPlayerFighter(library.Choose(visible[0]));
+            for (int number = 2; number <= 4; number++)
+                if (!System.Linq.Enumerable.Contains(visible, SoloSeats[number - 2].Fighter)) SoloSeats[number - 2].SetFighter(library.Choose(visible[0]));
+        }
+        public static bool TryResolveLocalChoices(LocalFighterLibrary library, out IReadOnlyList<FighterChoice> choices, out string? failure, string? playerPackageOverride = null, ArcadeStageDefinition? modeStage = null)
         {
             var resolved = new List<(int Player, FighterChoice Choice)>();
             choices = System.Array.Empty<FighterChoice>();
@@ -270,6 +281,15 @@ namespace SlopArena.Client.UI
             }
             if (!validPlayer)
             { failure = "content.choice.unavailable: P1 package is unavailable."; return false; }
+            ArcadeStageDefinition? stage = modeStage;
+            if ((Mode == GameMode.Arcade || IsLocalMayhem) && stage == null)
+            {
+                ReadModeStage(ref stage);
+                if (stage == null) { failure = "content.mode.unavailable: The mode's stage and fighter list are unavailable."; return false; }
+            }
+            var visible = VisibleFighters(library, stage);
+            if (!System.Linq.Enumerable.Contains(visible, player!.Revision.PackageId))
+            { failure = "content.mode.fighter: P1 fighter is not allowed in this mode."; return false; }
             resolved.Add((1, player!));
             for (int number = 2; number <= 4; number++)
             {
@@ -280,6 +300,8 @@ namespace SlopArena.Client.UI
                 if (!occupied) continue;
                 if (!library.TryRefreshChoice(seat.Choice, out var choice))
                 { failure = $"content.choice.unavailable: P{number} package is unavailable."; return false; }
+                if (!System.Linq.Enumerable.Contains(visible, choice!.Revision.PackageId))
+                { failure = $"content.mode.fighter: P{number} fighter is not allowed in this mode."; return false; }
                 resolved.Add((number, choice!));
             }
             foreach (var selection in resolved)
