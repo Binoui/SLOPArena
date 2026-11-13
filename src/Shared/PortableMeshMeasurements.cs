@@ -4,17 +4,35 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Numerics;
+using System.Threading;
+using System.Runtime.CompilerServices;
 using System.Text.Json;
 
 namespace SlopArena.Shared;
 
-public sealed record PortableMeshFit(float ModelYOffset, IReadOnlyList<HurtboxBoneSource> Hurtboxes);
+public sealed record PortableMeshFit(float ModelYOffset, IReadOnlyList<HurtboxBoneSource> Hurtboxes, IReadOnlyList<CharacterDiagnostic> Diagnostics);
+internal readonly struct MeshPoint
+{
+    internal readonly double X, Y, Z;
+    internal MeshPoint(double x, double y, double z) { X = x; Y = y; Z = z; }
+    [MethodImpl(MethodImplOptions.NoInlining | MethodImplOptions.NoOptimization)]
+    public static MeshPoint operator +(MeshPoint a, MeshPoint b) => new(a.X + b.X, a.Y + b.Y, a.Z + b.Z);
+    [MethodImpl(MethodImplOptions.NoInlining | MethodImplOptions.NoOptimization)]
+    public static MeshPoint operator -(MeshPoint a, MeshPoint b) => new(a.X - b.X, a.Y - b.Y, a.Z - b.Z);
+    [MethodImpl(MethodImplOptions.NoInlining | MethodImplOptions.NoOptimization)]
+    public static MeshPoint operator *(double s, MeshPoint p) => new(s * p.X, s * p.Y, s * p.Z);
+    [MethodImpl(MethodImplOptions.NoInlining | MethodImplOptions.NoOptimization)]
+    internal static double Dot(MeshPoint a, MeshPoint b) => (a.X * b.X + a.Y * b.Y) + a.Z * b.Z;
+    internal double Length() => Math.Sqrt(Dot(this, this));
+}
 
 /// <summary>Measures the drawn skin at idle frame zero in root-rule-1 coordinates.</summary>
 public static class PortableMeshMeasurements
 {
-    public static PortableMeshFit Measure(byte[] glb, string? humanoidJson, string idleClip, float visualScale)
+    [MethodImpl(MethodImplOptions.NoInlining | MethodImplOptions.NoOptimization)]
+    public static PortableMeshFit Measure(byte[] glb, string? humanoidJson, string idleClip, float visualScale, CancellationToken cancel = default)
     {
+        var diagnostics = new List<CharacterDiagnostic>();
         var rig = GlbMotionRig.Read(glb, humanoidJson);
         var clip = rig.Clip(idleClip);
         var local = new GlbNodePose[rig.NodeCount];
@@ -50,13 +68,13 @@ public static class PortableMeshMeasurements
                 }
             return values;
         }
-        Vector3 Model(double x, double y, double z)
+        MeshPoint Model(double x, double y, double z)
         {
             rig.Root.Apply(x, y, z, visualScale, out double ox, out double oy, out double oz);
-            return new Vector3((float)ox, (float)oy, (float)oz);
+            return new MeshPoint(ox, oy, oz);
         }
-        Vector3 BoneNode(int n) => Model(world[n * 12 + 3], world[n * 12 + 7], world[n * 12 + 11]);
-        Vector3? Bone(string id)
+        MeshPoint BoneNode(int n) => Model(world[n * 12 + 3], world[n * 12 + 7], world[n * 12 + 11]);
+        MeshPoint? Bone(string id)
         {
             var human = CharacterBoneRegistry.Find(id)?.HumanoidBone;
             string? name = human == null ? null : rig.BoneMap.NodeFor(human);
@@ -74,11 +92,33 @@ public static class PortableMeshMeasurements
             }
             return "other";
         }
-        var points = new List<Vector3>(); var regions = new List<string>();
+        var points = new List<MeshPoint>(); var regions = new List<string>();
         foreach (int node in rig.SceneOrder)
         {
+            cancel.ThrowIfCancellationRequested();
             var n = root.GetProperty("nodes")[node];
-            if (!n.TryGetProperty("mesh", out var mesh) || !n.TryGetProperty("skin", out var skinIndex)) continue;
+            if (!n.TryGetProperty("mesh", out var mesh)) continue;
+            if (!n.TryGetProperty("skin", out var skinIndex))
+            {
+                string region = RegionOf(node);
+                if (region == "other")
+                {
+                    diagnostics.Add(new CharacterDiagnostic(CharacterDiagnosticSeverity.Warning, "mesh.fit.detached", "nodes[" + node + "]", "Rigid mesh '" + (rig.NodeNames[node] ?? node.ToString()) + "' is outside the mapped skeleton and is not included in hurtboxes or the sole. Parent it to a mapped joint to include it."));
+                    continue;
+                }
+                foreach (var primitive in root.GetProperty("meshes")[mesh.GetInt32()].GetProperty("primitives").EnumerateArray())
+                {
+                    var positions = Accessor(primitive.GetProperty("attributes").GetProperty("POSITION").GetInt32(), 3);
+                    if (points.Count + positions.Length / 3 > 250000) throw new InvalidDataException("Too many mesh vertices to fit.");
+                    for (int i = 0; i < positions.Length; i += 3)
+                    {
+                        double x = -positions[i], y = positions[i + 1], z = positions[i + 2]; int w = node * 12;
+                        points.Add(Model(world[w] * x + world[w + 1] * y + world[w + 2] * z + world[w + 3], world[w + 4] * x + world[w + 5] * y + world[w + 6] * z + world[w + 7], world[w + 8] * x + world[w + 9] * y + world[w + 10] * z + world[w + 11]));
+                        regions.Add(region);
+                    }
+                }
+                continue;
+            }
             var skin = root.GetProperty("skins")[skinIndex.GetInt32()];
             var joints = skin.GetProperty("joints").EnumerateArray().Select(j => j.GetInt32()).ToArray();
             double[]? inverse = skin.TryGetProperty("inverseBindMatrices", out var ibm) ? Accessor(ibm.GetInt32(), 16) : null;
@@ -125,10 +165,15 @@ public static class PortableMeshMeasurements
         if (points.Count == 0) throw new InvalidDataException("No skinned mesh vertices to measure.");
         var soles = points.Where((p, i) => regions[i] == "foot").Select(p => p.Y).ToArray();
         if (soles.Length == 0) throw new InvalidDataException("No foot vertices to measure the idle sole.");
-        return new PortableMeshFit((float)Math.Round(-soles.Min(), 4), FitCapsules(points, regions, Bone));
+        var fit = FitCapsules(points, regions, Bone, diagnostics);
+        return new PortableMeshFit((float)Math.Round(-soles.Min(), 4), fit, diagnostics);
     }
-        internal static HurtboxBoneSource[] FitCapsules(IReadOnlyList<Vector3> points, IReadOnlyList<string> regions,
-            Func<string, Vector3?> bone)
+        internal static HurtboxBoneSource[] FitCapsules(IReadOnlyList<Vector3> points, IReadOnlyList<string> regions, Func<string, Vector3?> bone)
+            => FitCapsules(points.Select(p => new MeshPoint(p.X, p.Y, p.Z)).ToArray(), regions,
+                id => bone(id) is { } p ? new MeshPoint(p.X, p.Y, p.Z) : (MeshPoint?)null, new List<CharacterDiagnostic>());
+        [MethodImpl(MethodImplOptions.NoInlining | MethodImplOptions.NoOptimization)]
+        internal static HurtboxBoneSource[] FitCapsules(IReadOnlyList<MeshPoint> points, IReadOnlyList<string> regions,
+            Func<string, MeshPoint?> bone, List<CharacterDiagnostic> diagnostics)
         {
             var segs = new List<(string Start, string End, string Region)>();
             void Segment(string start, string end, string region)
@@ -147,40 +192,48 @@ public static class PortableMeshMeasurements
                 Segment($"bone.{side}-lower-leg", $"bone.{side}-foot", "shin");
                 Segment($"bone.{side}-foot", $"bone.{side}-toes", "foot");
             }
-            float Pct(List<float> values, float f)
+            double Pct(List<double> values, double f)
             {
-                if (values.Count == 0) return 0f;
+                if (values.Count == 0) return 0;
                 values.Sort();
                 return values[Math.Min(values.Count - 1, (int)(values.Count * f))];
             }
             var head = bone("bone.head")!.Value;
-            var headUp = new List<float>();
+            var headUp = new List<double>();
             for (int i = 0; i < points.Count; i++)
-                if (regions[i] == "head") headUp.Add(Math.Max(0f, points[i].Y - head.Y));
-            float headEnd = (float)Math.Round(Pct(headUp, .95f) * .5f, 4);
+                if (regions[i] == "head") headUp.Add(Math.Max(0, points[i].Y - head.Y));
+            double headEnd = Math.Round(Pct(headUp, .95) * .5, 4);
             var starts = segs.Select(s => bone(s.Start)!.Value).ToArray();
-            var ends = segs.Select((s, k) => bone(s.End)!.Value + (k == 0 ? new Vector3(0, headEnd, 0) : Vector3.Zero)).ToArray();
-            float Dist(Vector3 p, Vector3 a, Vector3 b)
+            var ends = segs.Select((s, k) => bone(s.End)!.Value + (k == 0 ? new MeshPoint(0, headEnd, 0) : new MeshPoint(0, 0, 0))).ToArray();
+            double Dist(MeshPoint p, MeshPoint a, MeshPoint b)
             {
                 var d = b - a;
-                float dd = Vector3.Dot(d, d);
-                float t = dd >= 1e-10f ? Math.Min(1f, Math.Max(0f, Vector3.Dot(p - a, d) / dd)) : 0f;
+                double dd = MeshPoint.Dot(d, d);
+                double t = dd >= 1e-10 ? Math.Min(1, Math.Max(0, MeshPoint.Dot(p - a, d) / dd)) : 0;
                 return (p - a - t * d).Length();
             }
             var result = new List<HurtboxBoneSource>();
             for (int k = 0; k < segs.Count; k++)
             {
-                var kept = new List<float>();
+                var kept = new List<double>();
                 for (int i = 0; i < points.Count; i++)
                 {
                     if (regions[i] != segs[k].Region) continue;
-                    float mine = Dist(points[i], starts[k], ends[k]), best = mine;
+                    double mine = Dist(points[i], starts[k], ends[k]), best = mine;
                     for (int j = 0; j < segs.Count; j++)
                         if (segs[j].Region == segs[k].Region) best = Math.Min(best, Dist(points[i], starts[j], ends[j]));
-                    if (mine <= best + 1e-5f) kept.Add(mine);
+                    if (mine <= best + 1e-5) kept.Add(mine);
                 }
-                float radius = (float)Math.Round(Math.Max(.015f, Pct(kept, .85f)), 4);
-                result.Add(new HurtboxBoneSource(segs[k].Start, 0f, 0f, 0f, radius, segs[k].End, 0f, k == 0 ? headEnd : 0f, 0f));
+                if (segs[k].Region == "torso" && kept.Count > 0)
+                {
+                    double width = (bone("bone.left-upper-arm")!.Value - bone("bone.right-upper-arm")!.Value).Length();
+                    double limit = Math.Max(.015, width * .5);
+                    int excluded = kept.Count(x => x > limit);
+                    if (excluded > 0) diagnostics.Add(new CharacterDiagnostic(CharacterDiagnosticSeverity.Warning, "mesh.fit.loose-torso", "hurtboxBoneDefs[1]", excluded + " torso-weighted vertices extend beyond the shoulder-width body envelope. Capes, coats, skirts and tails are not body thickness; the torso radius is capped at " + limit.ToString("G9", System.Globalization.CultureInfo.InvariantCulture) + " m. Inspect the fit."));
+                    kept = kept.Select(x => Math.Min(x, limit)).ToList();
+                }
+                float radius = (float)Math.Round(Math.Max(.015, Pct(kept, .85)), 4);
+                result.Add(new HurtboxBoneSource(segs[k].Start, 0f, 0f, 0f, radius, segs[k].End, 0f, k == 0 ? (float)headEnd : 0f, 0f));
             }
             return result.ToArray();
         }

@@ -69,7 +69,7 @@ public sealed class PortableFighterMotion
 public static class PortablePoseBake
 {
     /// <summary>Bake every bound animation, ordered by pose track ID.</summary>
-    public static byte[] Bake(PortableFighterMotion motion, CookedCharacterDefinition definition)
+    public static byte[] Bake(PortableFighterMotion motion, CookedCharacterDefinition definition, System.Threading.CancellationToken cancel = default)
     {
         var rig = motion.Rig;
         var pointIds = CharacterBoneRegistry.HumanoidPoints.Where(x => x.Required).Select(x => x.Id)
@@ -93,6 +93,7 @@ public static class PortablePoseBake
             int at = 0;
             for (int tick = 0; tick < clip.FrameCount; tick++)
             {
+                cancel.ThrowIfCancellationRequested();
                 rig.SampleLocal(clip, tick, local, inChain);
                 rig.World(local, chain, world);
                 Model(rig.Hips, out double hx, out double hy, out double hz);

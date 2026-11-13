@@ -1494,6 +1494,24 @@ Additional budget counters: 0 hitboxes, 0 projectiles, 0 capability starts.
 | `maxLaunchSpeed` | number | Required | m/s | greater than 0, at most 60 [Relationships](#constraint-cannonball). | Cannonball solved-launch speed cap; larger values allow a faster ballistic launch. | `schema.missing`, `value.out-of-range` |
 | `launchPresentationId` | string or null | `""` | identifier | Text; naming and reference rules apply [Relationships](#constraint-cannonball). | Declared cue for the named lifecycle event; empty text disables optional cues. | `schema.missing`, `value.out-of-range` |
 
+### cook.json
+
+Generated from `FighterCookDocument.Fields`, the schema used by the game and KitCheck. Unknown fields and duplicate keys are errors. Null is allowed only where explicitly listed.
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `model` | GLB filename | Yes | One GLB directly in this folder. |
+| `animations` | map of semantic ID to nonempty clip name | Yes | Exactly the animation IDs referenced by the compiled kit; names resolve against the GLB. |
+| `creator` | nonempty string | Yes | Creator credited in the item manifest. |
+| `license` | nonempty string | Yes | License for the item. |
+| `attribution` | string | Yes | Required attribution; empty text is allowed. |
+| `aiAssisted` | boolean | Yes | Whether AI assisted creation. |
+| `portraits` | array of image filename or null | No | One entry per form; omitted art is rendered from the model. |
+| `icons` | array of icon maps | No | One map per form; keys are icon.1, icon.2, icon.3, icon.a, icon.e, icon.r, icon.f; values are image filenames or null. |
+| `humanoid` | JSON filename | No | Bone map filename; defaults to humanoid.json when that file exists. |
+
+Only declared files are read as payloads. Unreferenced PNG and JPEG files are ignored. The optional standard bone map is `humanoid.json`, limited to 64 KiB. Image filenames must end in .png or .jpg. Animation IDs must match the kit exactly. `KitCheck cook <source-folder> [glb]` checks this schema and, when a GLB exists or is supplied, its clip names. Icons and portraits follow the form counts and canonical IDs of portable bindings.
+
 ### Bone identifiers
 
 `bone.head`, `bone.spine2`, `bone.hips`, `bone.right-hand`, `bone.left-hand`, `bone.right-foot`, `bone.left-foot`, `bone.right-toes`, `bone.left-toes`, `bone.neck`, `bone.right-upper-arm`, `bone.left-upper-arm`, `bone.right-lower-arm`, `bone.left-lower-arm`, `bone.right-upper-leg`, `bone.left-upper-leg`, `bone.right-lower-leg`, `bone.left-lower-leg`, `bone.right-hand-end`, `bone.left-hand-end`. `bone.spine` also resolves to `bone.spine2`.
@@ -1855,3 +1873,27 @@ Optional `cook.json` fields `portraits` and `icons` use the portable bindings sh
 canonical icon IDs to image filenames or null. Referenced images live directly in
 the source folder. Omitted art uses the made fighter's rendered portrait and neutral
 move glyphs.
+
+### Workspace saves and fitted parts
+
+Only the model, portraits, icons, and bone map named by `cook.json` become payloads.
+The standard optional bone map is `humanoid.json`. Unreferenced images, including
+notes and work-in-progress renders, are ignored. The bone-map limit is the same
+64 KiB used by item admission.
+
+Rigid meshes parented under mapped joints participate in fitting and sole measurement.
+This includes helmets, held props, and shoes. A mesh outside the mapped skeleton
+produces `mesh.fit.detached`; it is not silently counted as body geometry.
+Torso geometry beyond half the shoulder width is capped with `mesh.fit.loose-torso`.
+Capes, coats, skirts, and torso-weighted tails are therefore reported rather than
+silently enlarging the torso. Inspect those warnings in Training.
+
+Each workspace keeps its latest cooked revision and any revision pinned by Training.
+Cooks publish complete temporary folders atomically. A failed revision stays on screen
+until the source changes or **Cook again** requests another attempt. Requests made
+during a cook queue another attempt. Periodic source checks continue if file watching
+fails or misses an event.
+
+Applying the sole suggestion changes only the `presentation.modelYOffset` number.
+The game preserves the remaining bytes, checks for a newer save, and replaces the
+file atomically. A conflicting save is refused rather than silently overwritten.

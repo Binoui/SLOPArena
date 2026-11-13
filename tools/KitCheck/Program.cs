@@ -23,21 +23,25 @@ try
         KitTemplate.Write(folder, id, name);
         return 0;
     }
-    if (args.Length == 1 || args is ["moves", _])
+    if (args.Length == 1 || args is ["moves", _] or ["cook", _] or ["cook", _, _])
     {
-        string directory = args[^1];
+        string directory = args.Length > 1 ? args[1] : args[0];
         var result = CharacterPackageCompiler.Compile(
             File.ReadAllText(Path.Combine(directory, "package.json")),
             File.ReadAllText(Path.Combine(directory, "character.json")), CharacterCookProfile.Workshop);
-        foreach (var d in result.Diagnostics)
+        var diagnostics = result.Diagnostics.ToList();
+        if (args[0] == "cook" || File.Exists(Path.Combine(directory, "cook.json")))
+            diagnostics.AddRange(FighterCookDocument.CheckFolder(directory, result, args.Length == 3 ? args[2] : null));
+        foreach (var d in diagnostics)
         {
             Console.WriteLine(LocalFighterWorkspace.DiagnosticText(d));
         }
-        Console.WriteLine(result.HasErrors ? "COMPILE FAILED" : $"COMPILE OK ({result.Diagnostics.Count} diagnostics)");
-        if (!result.HasErrors && args.Length == 2) MovesReport.Write(result.CookedPackage!, Console.Out);
-        return result.HasErrors ? 1 : 0;
+        bool failed = diagnostics.Any(d => d.Severity == CharacterDiagnosticSeverity.Error);
+        Console.WriteLine(failed ? "COMPILE FAILED" : $"COMPILE OK ({diagnostics.Count} diagnostics)");
+        if (!failed && args is ["moves", _]) MovesReport.Write(result.CookedPackage!, Console.Out);
+        return failed ? 1 : 0;
     }
-    Console.Error.WriteLine("Usage: KitCheck <source-folder> | moves <source-folder> | template <folder> <package-id> <display-name> | reference [--write] <repo-root>");
+    Console.Error.WriteLine("Usage: KitCheck <source-folder> | cook <source-folder> [glb] | moves <source-folder> | template <folder> <package-id> <display-name> | reference [--write] <repo-root>");
     return 2;
 }
 catch (Exception e) when (e is IOException or UnauthorizedAccessException or ArgumentException)

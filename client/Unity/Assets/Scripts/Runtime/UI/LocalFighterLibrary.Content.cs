@@ -119,9 +119,9 @@ namespace SlopArena.Client.UI
         {
             if (catalog == null) throw new InvalidOperationException(Diagnostic);
             var admitted = catalog.Entries.Where(e => e.IsBundled).Select(e => e.Choose().Fighter).Append(fighter).ToArray();
-            var built = new MatchContentCatalogBuilder().Build(admitted, MatchContentPolicy.LocalPlay);
+            var built = new MatchContentCatalogBuilder().Build(admitted, policy);
             if (!built.IsValid) throw new InvalidOperationException(string.Join("; ", built.Diagnostics.Select(LocalFighterWorkspace.DiagnosticText)));
-            return new LocalFighterLibrary(built.Catalog, PackageIds.Append(fighter.Identity.PackageId).ToArray(), null);
+            return new LocalFighterLibrary(built.Catalog, built.Catalog!.Entries.Select(e => e.Identity.PackageId).ToArray(), null, policy);
         }
         public bool Contains(string package) => catalog?.ResolvePackage(package) != null;
         public bool HasForms(string package) => catalog?.ResolvePackage(package)?.Definition.AlternateForm != null;

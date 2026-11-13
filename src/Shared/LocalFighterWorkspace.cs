@@ -21,98 +21,173 @@ public static class LocalFighterItems
 public sealed record LocalFighterItemResult(AdmittedFighter? Fighter, FighterItemSnapshot? Item,
     IReadOnlyList<CharacterDiagnostic> Diagnostics);
 
-/// <summary>An immutable read of a creator folder. Call disk operations on a worker.</summary>
+/// <summary>A bounded source snapshot, including read failures, rather than a partially readable folder.</summary>
 public sealed class LocalFighterWorkspace
 {
     private readonly Dictionary<string, byte[]> files;
+    private readonly IReadOnlyList<CharacterDiagnostic> readDiagnostics;
     public string Stamp { get; }
     public float? SuggestedModelYOffset { get; private set; }
-    private LocalFighterWorkspace(Dictionary<string, byte[]> files)
+    public static int HumanoidByteLimit => PortableItemFiles.HumanoidBytes;
+    private LocalFighterWorkspace(Dictionary<string, byte[]> files, IReadOnlyList<CharacterDiagnostic> diagnostics, string probe)
     {
-        this.files = files;
-        Stamp = string.Join("|", files.OrderBy(x => x.Key, StringComparer.Ordinal)
-            .Select(x => x.Key + ":" + WorkshopItemManifestCodec.HashPayload(x.Value)));
+        this.files = files; readDiagnostics = diagnostics;
+        Stamp = probe + "|" + string.Join("|", files.OrderBy(x => x.Key, StringComparer.Ordinal).Select(x => x.Key + ":" + WorkshopItemManifestCodec.HashPayload(x.Value)));
     }
-    public static LocalFighterWorkspace Read(string folder)
+    public static string Probe(string folder)
     {
-        if ((File.GetAttributes(folder) & FileAttributes.ReparsePoint) != 0)
-            throw new InvalidDataException("Choose a regular source folder, not a link.");
-        var files = new Dictionary<string, byte[]>(StringComparer.Ordinal);
-        long total = 0;
-        foreach (string path in Directory.EnumerateFileSystemEntries(folder))
-        {
-            string name = Path.GetFileName(path);
-            bool glb = name.EndsWith(".glb", StringComparison.Ordinal);
-            if (!(glb || name.EndsWith(".json", StringComparison.Ordinal) || name.EndsWith(".png", StringComparison.Ordinal) || name.EndsWith(".jpg", StringComparison.Ordinal))) continue;
-            int limit = glb ? (int)WorkshopGlbLimits.Default.MaxFileBytes : name.EndsWith(".json", StringComparison.Ordinal) ? 2 * 1024 * 1024 : 4 * 1024 * 1024;
-            files.Add(name, PortableItemFiles.Read(path, limit, ref total));
-        }
-        return new LocalFighterWorkspace(files);
-    }
-    private byte[] Bytes(string name) => files.TryGetValue(name, out var bytes) ? bytes : throw new InvalidDataException("Missing " + name + " in the source folder.");
-    public (Dictionary<string, byte[]>? Item, IReadOnlyList<CharacterDiagnostic> Diagnostics) Cook()
-    {
-        string file = "cook.json";
         try
         {
-            using var cook = JsonDocument.Parse(Bytes(file));
-            var c = cook.RootElement;
-            PortableFighterBindings.Object(c, new[] { "model", "animations", "creator", "license", "attribution", "aiAssisted" }
-                .Concat(new[] { "portraits", "icons" }.Where(name => c.TryGetProperty(name, out _))).ToArray());
-            string model = c.GetProperty("model").GetString()!;
-            if (Path.GetFileName(model) != model || !model.EndsWith(".glb", StringComparison.Ordinal)) throw new InvalidDataException("model must name a .glb directly in this folder.");
-            var animations = c.GetProperty("animations").EnumerateObject().ToDictionary(x => x.Name,
-                x => new JsonObject { ["kind"] = "glb", ["clipName"] = x.Value.GetString() }, StringComparer.Ordinal);
-            file = "package.json";
-            using var package = JsonDocument.Parse(Bytes(file));
-            string id = package.RootElement.GetProperty("packageId").GetString()!;
-            if (!id.StartsWith("local.", StringComparison.Ordinal) || id.Length == 6)
-                return (null, new[] { MatchContentCatalogBuilder.Error("item.namespace", "manifest.packageId", "Use a package ID beginning with local., such as local.my-fighter.") });
-            file = "character.json";
-            var source = new PortableFighterSource(Bytes("package.json"), Bytes(file), Bytes("card.json"), model, Bytes(model), animations,
-                c.GetProperty("creator").GetString()!, c.GetProperty("license").GetString()!, c.GetProperty("attribution").GetString()!, c.GetProperty("aiAssisted").GetBoolean(),
-                files.TryGetValue("humanoid.json", out var map) ? map : null,
-                files.Where(x => x.Key.EndsWith(".png", StringComparison.Ordinal) || x.Key.EndsWith(".jpg", StringComparison.Ordinal)).ToDictionary(x => x.Key, x => x.Value),
-                c.TryGetProperty("portraits", out var portraits) ? portraits.EnumerateArray().Select(p => p.GetString()).ToArray() : null,
-                c.TryGetProperty("icons", out var icons) ? icons.EnumerateArray().Select(form => (IReadOnlyDictionary<string, string?>)form.EnumerateObject().ToDictionary(p => p.Name, p => p.Value.GetString())).ToArray() : null);
-            var compiled = CharacterPackageCompiler.CompilePortable(Encoding.UTF8.GetString(source.PackageJson), Encoding.UTF8.GetString(source.CharacterJson));
-
-            var clipDiagnostics = new List<CharacterDiagnostic>();
-            var rig = GlbMotionRig.Read(source.Model, source.HumanoidJson == null ? null : Encoding.UTF8.GetString(source.HumanoidJson));
-            foreach (var animation in animations)
+            var dir = new DirectoryInfo(folder);
+            if (!dir.Exists) return "missing:" + folder;
+            var names = new HashSet<string>(new[] { "package.json", "character.json", "card.json", "cook.json", "humanoid.json" }, StringComparer.Ordinal);
+            string recipe = Path.Combine(folder, "cook.json");
+            if (File.Exists(recipe) && new FileInfo(recipe).Length <= 65536)
             {
-                try { rig.Clip(animation.Value["clipName"]!.GetValue<string>()); }
-                catch (GlbMotionException e) { clipDiagnostics.Add(MatchContentCatalogBuilder.Error(e.Code, "cook.json.animations." + animation.Key, e.Message)); }
+                long total = 0;
+                var parsed = FighterCookDocument.Read(PortableItemFiles.Read(recipe, 65536, ref total));
+                if (parsed.Document is { } cook)
+                { names.Add(cook.Model); names.Add(cook.Humanoid); foreach (string image in cook.Images) names.Add(image); }
             }
-            if (compiled.HasErrors || compiled.CookedPackage == null || clipDiagnostics.Count != 0)
-                return (null, compiled.Diagnostics.Concat(clipDiagnostics).ToArray());
-            var definition = compiled.CookedPackage.Definition;
-            if (!animations.TryGetValue(definition.Presentation.Idle, out var idle))
-                return PortableFighterCook.Cook(source);
-            file = model;
-            var fit = PortableMeshMeasurements.Measure(source.Model, source.HumanoidJson == null ? null : Encoding.UTF8.GetString(source.HumanoidJson),
-                idle["clipName"]!.GetValue<string>(), definition.Presentation.VisualScale);
-            SuggestedModelYOffset = (float)Math.Round(fit.ModelYOffset - definition.CapsuleHeight * .5f, 4);
-            var character = JsonNode.Parse(source.CharacterJson)!;
-            character["hurtboxBoneDefs"] = JsonSerializer.SerializeToNode(fit.Hurtboxes, new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase });
-            var cooked = PortableFighterCook.Cook(source with { CharacterJson = Encoding.UTF8.GetBytes(character.ToJsonString()) });
-            return cooked;
+            return string.Join("|", names.OrderBy(x => x, StringComparer.Ordinal).Select(name =>
+            {
+                var f = new FileInfo(Path.Combine(folder, name));
+                return name + (f.Exists ? ":" + f.Length + ":" + f.LastWriteTimeUtc.Ticks + ":" + f.CreationTimeUtc.Ticks : ":missing");
+            }));
         }
-        catch (GlbMotionException e) { return (null, new[] { MatchContentCatalogBuilder.Error(e.Code, "model.glb", e.Message) }); }
-        catch (Exception e) when (e is JsonException or InvalidDataException or InvalidOperationException or KeyNotFoundException or ArgumentException)
-        { return (null, new[] { MatchContentCatalogBuilder.Error("workspace.source", file, e.Message) }); }
+        catch (Exception e) when (BoundaryFailure(e)) { return "unreadable:" + folder + ":" + e.GetType().Name + ":" + e.Message; }
     }
-    public void ApplyModelYOffset(string folder)
+    internal static bool BoundaryFailure(Exception e) => e is IOException or InvalidDataException or UnauthorizedAccessException or InvalidOperationException or ArgumentException or System.Security.SecurityException or NotSupportedException or OverflowException;
+    public static LocalFighterWorkspace Read(string folder)
+    {
+        var files = new Dictionary<string, byte[]>(StringComparer.Ordinal); var d = new List<CharacterDiagnostic>();
+        string probe = Probe(folder); long total = 0;
+        void ReadFile(string name, int limit, bool optional = false)
+        {
+            if (files.ContainsKey(name)) return;
+            try
+            {
+                if (!FighterCookDocument.FileName(name)) throw new InvalidDataException("Expected a filename directly in the source folder.");
+                if (optional && !File.Exists(Path.Combine(folder, name))) return;
+                files[name] = PortableItemFiles.Read(Path.Combine(folder, name), limit, ref total);
+            }
+            catch (Exception e) when (BoundaryFailure(e)) { d.Add(FighterCookDocument.Error("workspace.read", name, e.Message)); }
+        }
+        try
+        {
+            if ((File.GetAttributes(folder) & FileAttributes.ReparsePoint) != 0) throw new InvalidDataException("Choose a regular source folder, not a link.");
+            ReadFile("cook.json", 65536);
+            foreach (string name in new[] { "package.json", "character.json", "card.json" }) ReadFile(name, 2 * 1024 * 1024);
+            if (files.TryGetValue("cook.json", out var bytes))
+            {
+                var parsed = FighterCookDocument.Read(bytes); d.AddRange(parsed.Diagnostics);
+                if (parsed.Document is { } cook)
+                {
+                    ReadFile(cook.Model, (int)WorkshopGlbLimits.Default.MaxFileBytes);
+                    ReadFile(cook.Humanoid, HumanoidByteLimit, !cook.ExplicitHumanoid);
+                    foreach (string name in cook.Images) ReadFile(name, 4 * 1024 * 1024);
+                }
+            }
+            if (Probe(folder) != probe) d.Add(FighterCookDocument.Error("workspace.changed", "cook.json", "Source files changed while reading. Wait for the save to finish."));
+        }
+        catch (Exception e) when (BoundaryFailure(e)) { d.Add(FighterCookDocument.Error("workspace.read", folder, e.Message)); }
+        return new LocalFighterWorkspace(files, d, probe);
+    }
+    public (Dictionary<string, byte[]>? Item, IReadOnlyList<CharacterDiagnostic> Diagnostics) Cook(System.Threading.CancellationToken cancel = default)
+    {
+        cancel.ThrowIfCancellationRequested();
+        var d = new List<CharacterDiagnostic>(readDiagnostics); string file = "cook.json";
+        try
+        {
+            CharacterCompileResult? compiled = null;
+            if (files.TryGetValue("package.json", out var package) && files.TryGetValue("character.json", out var character))
+            {
+                bool validJson = true;
+                foreach (var input in new[] { (Name: "package.json", Bytes: package), (Name: "character.json", Bytes: character) })
+                    try { using var parsedJson = JsonDocument.Parse(input.Bytes); }
+                    catch (JsonException e) { validJson = false; d.Add(FighterCookDocument.Error("schema.invalid-json", input.Name + (e.Path == "$" ? "" : e.Path?.TrimStart('$')), e.Message)); }
+                if (validJson) compiled = CharacterPackageCompiler.CompilePortable(Encoding.UTF8.GetString(package), Encoding.UTF8.GetString(character));
+                if (compiled != null) d.AddRange(compiled.Diagnostics);
+            }
+            var required = compiled?.CookedPackage == null ? null : CharacterPackageAssembler.RequiredAnimations(compiled.CookedPackage, d);
+            FighterCookDocument? cook = null;
+            if (files.TryGetValue("cook.json", out var recipe))
+            {
+                var parsed = FighterCookDocument.Read(recipe, required); cook = parsed.Document;
+                foreach (var diagnostic in parsed.Diagnostics) if (!d.Contains(diagnostic)) d.Add(diagnostic);
+            }
+            if (cook != null && compiled?.CookedPackage != null) d.AddRange(cook.CheckKit(compiled.CookedPackage.Definition));
+            if (cook != null && files.TryGetValue(cook.Model, out var model))
+            {
+                string? map = files.TryGetValue(cook.Humanoid, out var m) ? Encoding.UTF8.GetString(m) : null;
+                d.AddRange(cook.CheckClips(model, map));
+            }
+            if (d.Any(x => x.Severity == CharacterDiagnosticSeverity.Error) || compiled?.CookedPackage == null || cook == null) return (null, d);
+            if (!compiled.CookedPackage.Metadata.PackageId.StartsWith("local.", StringComparison.Ordinal) || compiled.CookedPackage.Metadata.PackageId.Length == 6)
+                return (null, new[] { FighterCookDocument.Error("item.namespace", "package.json.packageId", "Use a package ID beginning with local., such as local.my-fighter.") });
+            file = cook.Model;
+            var definition = compiled.CookedPackage.Definition;
+            var fit = PortableMeshMeasurements.Measure(files[cook.Model], files.TryGetValue(cook.Humanoid, out var mapBytes) ? Encoding.UTF8.GetString(mapBytes) : null,
+                cook.Animations[definition.Presentation.Idle], definition.Presentation.VisualScale, cancel);
+            d.AddRange(fit.Diagnostics.Select(x => x with { Path = file + "." + x.Path }));
+            SuggestedModelYOffset = (float)Math.Round((double)fit.ModelYOffset - (double)definition.CapsuleHeight * .5, 4);
+            var effective = JsonNode.Parse(files["character.json"])!;
+            effective["hurtboxBoneDefs"] = JsonSerializer.SerializeToNode(fit.Hurtboxes, new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase });
+            var animations = cook.Animations.ToDictionary(x => x.Key, x => new JsonObject { ["kind"] = "glb", ["clipName"] = x.Value }, StringComparer.Ordinal);
+            var source = new PortableFighterSource(files["package.json"], PortableCanonicalJson.Normalize(Encoding.UTF8.GetBytes(effective.ToJsonString())), files["card.json"], cook.Model, files[cook.Model], animations,
+                cook.Creator, cook.License, cook.Attribution, cook.AiAssisted, mapBytes,
+                cook.Images.ToDictionary(x => x, x => files[x], StringComparer.Ordinal), cook.Portraits, cook.Icons);
+            var result = PortableFighterCook.Cook(source, cancel);
+            return (result.Item, d.Concat(result.Diagnostics).Distinct().ToArray());
+        }
+        catch (GlbMotionException e) { d.Add(FighterCookDocument.Error(e.Code, file, e.Message)); }
+        catch (Exception e) when (BoundaryFailure(e) || e is JsonException or KeyNotFoundException or IndexOutOfRangeException or FormatException)
+        { d.Add(FighterCookDocument.Error("workspace.source", file, e.Message)); }
+        return (null, d);
+    }
+    public void ApplyModelYOffset(string folder) => ApplyModelYOffset(folder, null);
+    internal void ApplyModelYOffset(string folder, Action? beforeCommit)
     {
         if (!SuggestedModelYOffset.HasValue) throw new InvalidOperationException("Cook the fighter before applying the sole suggestion.");
-        if (Read(folder).Stamp != Stamp) throw new IOException("Files changed. Wait for the next cook before applying the suggestion.");
-        var character = JsonNode.Parse(Bytes("character.json"))!;
-        character["presentation"]!["modelYOffset"] = SuggestedModelYOffset.Value;
-        File.WriteAllText(Path.Combine(folder, "character.json"), character.ToJsonString(new JsonSerializerOptions { WriteIndented = true }));
+        byte[] original = files["character.json"];
+        byte[] replacement = ReplaceOffset(original, SuggestedModelYOffset.Value);
+        string path = Path.Combine(folder, "character.json"), temporary = Path.Combine(folder, ".workspace-" + Guid.NewGuid().ToString("N"));
+        string backup = temporary + ".backup";
+        try
+        {
+            using (var stream = new FileStream(temporary, FileMode.CreateNew, FileAccess.Write, FileShare.None)) { stream.Write(replacement, 0, replacement.Length); stream.Flush(true); }
+            beforeCommit?.Invoke();
+            if (Read(folder).Stamp != Stamp || !File.ReadAllBytes(path).SequenceEqual(original)) throw new IOException("character.json changed. Wait for the next cook before applying the suggestion.");
+            File.Replace(temporary, path, backup);
+            if (!File.ReadAllBytes(backup).SequenceEqual(original))
+            {
+                if (File.ReadAllBytes(path).SequenceEqual(replacement)) File.Replace(backup, path, temporary);
+                throw new IOException("character.json changed during replacement. The newer edit was preserved in " + backup);
+            }
+        }
+        finally { if (File.Exists(temporary)) File.Delete(temporary); if (File.Exists(backup) && File.ReadAllBytes(backup).SequenceEqual(original)) File.Delete(backup); }
+    }
+    internal static byte[] ReplaceOffset(byte[] original, float value)
+    {
+        int bom = original.Length >= 3 && original[0] == 239 && original[1] == 187 && original[2] == 191 ? 3 : 0;
+        var reader = new Utf8JsonReader(original.AsSpan(bom)); bool presentation = false, offset = false;
+        while (reader.Read())
+        {
+            if (reader.TokenType == JsonTokenType.PropertyName && reader.CurrentDepth == 1) presentation = reader.ValueTextEquals("presentation");
+            if (presentation && reader.TokenType == JsonTokenType.PropertyName && reader.CurrentDepth == 2 && reader.ValueTextEquals("modelYOffset")) { offset = true; continue; }
+            if (offset)
+            {
+                if (reader.TokenType != JsonTokenType.Number) throw new InvalidDataException("character.json.presentation.modelYOffset must be a number.");
+                int start = bom + (int)reader.TokenStartIndex, end = bom + (int)reader.BytesConsumed;
+                byte[] number = Encoding.UTF8.GetBytes(PortableCanonicalJson.FloatDecimal(value));
+                return original.Take(start).Concat(number).Concat(original.Skip(end)).ToArray();
+            }
+        }
+        throw new InvalidDataException("character.json.presentation.modelYOffset is missing.");
     }
     public static string DiagnosticPath(CharacterDiagnostic d)
-        => d.Path.StartsWith("manifest", StringComparison.Ordinal) ? "package.json" + d.Path.Substring(8)
-         : d.Path.StartsWith("character", StringComparison.Ordinal) ? "character.json" + d.Path.Substring(9)
-         : d.Path;
+        => d.Path == "manifest" || d.Path.StartsWith("manifest.", StringComparison.Ordinal) ? "package.json" + d.Path.Substring(8)
+         : d.Path == "character" || d.Path.StartsWith("character.", StringComparison.Ordinal) && !d.Path.StartsWith("character.json", StringComparison.Ordinal) ? "character.json" + d.Path.Substring(9)
+         : d.Path == "json" || d.Path.StartsWith("json.", StringComparison.Ordinal) ? "character.json." + d.Path : d.Path;
     public static string DiagnosticText(CharacterDiagnostic d) => $"{d.Severity} {d.Code} {DiagnosticPath(d)}: {d.Message}";
 }

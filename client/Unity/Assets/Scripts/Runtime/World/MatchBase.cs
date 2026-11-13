@@ -226,7 +226,7 @@ namespace SlopArena.Client.World
         protected virtual void OnDestroy()
         {
             if (Active == this) Active = null;
-            foreach (var lease in _madeFighterLeases) lease.Dispose();
+            foreach (var lease in _madeFighterLeases) Workshop.FighterPresentationReleases.AfterRenderers(lease);
             _madeFighterLeases.Clear();
             PresentationFloor.Clear();
             _aimHandler?.ResetPresentation();

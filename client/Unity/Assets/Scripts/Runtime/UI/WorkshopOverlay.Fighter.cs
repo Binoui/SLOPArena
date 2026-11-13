@@ -15,9 +15,11 @@ namespace SlopArena.Client.UI
     public sealed partial class WorkshopOverlay
     {
         private string? workspaceFolder;
-        private LocalFighterWorkspace? pendingSource;
         private string? cookedStamp;
-        private double stableSince;
+        private FighterWorkspaceSchedule cookSchedule = new();
+        private string? workspaceCookFolder;
+        private double nextProbe;
+        private CancellationTokenSource? workspaceCancel;
         private bool polling;
         private int workspaceGeneration;
         private FileSystemWatcher? workspaceWatcher;
@@ -32,10 +34,12 @@ namespace SlopArena.Client.UI
         private TextField? workspacePath;
         private void StopWorkspace()
         {
+            workspaceCancel?.Cancel(); workspaceCancel?.Dispose(); workspaceCancel = null;
             workspacePoll?.Pause(); workspacePoll = null;
             workspaceWatcher?.Dispose(); workspaceWatcher = null;
             workspaceGeneration++;
-            workspaceFolder = null; pendingSource = null; cookedStamp = null; workspaceItem = null;
+            cookSchedule = new FighterWorkspaceSchedule(); workspaceCookFolder = null;
+            workspaceFolder = null; cookedStamp = null; workspaceItem = null;
         }
         public async void OpenFighterWorkspace(string folder)
         {
@@ -59,13 +63,13 @@ namespace SlopArena.Client.UI
             {
                 if (workspaceFolder != null) Application.OpenURL(new Uri(workspaceFolder + Path.DirectorySeparatorChar).AbsoluteUri);
             });
-            Button(_body, "COOK AGAIN", () => { cookedStamp = null; pendingSource = null; workspaceItem = null; workspaceTry?.SetEnabled(false); });
+            Button(_body, "COOK AGAIN", () => { cookSchedule.Request(); workspaceItem = null; workspaceTry?.SetEnabled(false); });
             workspaceOffset = Button(_body, "COOK TO MEASURE IDLE SOLE", () => Run(async () =>
             {
                 if (measuredSource == null || workspaceFolder == null) return;
                 var source = measuredSource; string folder = workspaceFolder;
                 await Task.Run(() => source.ApplyModelYOffset(folder));
-                cookedStamp = null; workspaceItem = null; workspaceTry?.SetEnabled(false);
+                cookSchedule.Request(); workspaceItem = null; workspaceTry?.SetEnabled(false);
             }));
             workspaceOffset.SetEnabled(false);
             workspaceDiagnostics = Text("Choose a folder. Saves cook automatically after files settle.");
@@ -81,12 +85,16 @@ namespace SlopArena.Client.UI
         {
             try
             {
+                workspaceCancel?.Cancel(); workspaceCancel?.Dispose(); workspaceCancel = new CancellationTokenSource();
+                cookSchedule = new FighterWorkspaceSchedule(); nextProbe = 0;
                 workspaceWatcher?.Dispose(); workspaceWatcher = null;
                 workspaceFolder = Path.GetFullPath(folder);
                 if (workspacePath != null) workspacePath.value = workspaceFolder;
-                pendingSource = null; cookedStamp = null; workspaceItem = null;
+                cookedStamp = null; workspaceItem = null;
                 workspaceTry?.SetEnabled(false); workspaceOffset?.SetEnabled(false); measuredSource = null;
                 observedRevision = -1;
+                try
+                {
                 workspaceWatcher = new FileSystemWatcher(workspaceFolder)
                 {
                     NotifyFilter = NotifyFilters.FileName | NotifyFilters.LastWrite | NotifyFilters.Size,
@@ -98,6 +106,8 @@ namespace SlopArena.Client.UI
                 workspaceWatcher.Renamed += (_, _) => Interlocked.Increment(ref workspaceRevision);
                 workspaceWatcher.Error += (_, _) => Interlocked.Increment(ref workspaceRevision);
                 workspaceWatcher.EnableRaisingEvents = true;
+                }
+                catch (Exception) { workspaceWatcher?.Dispose(); workspaceWatcher = null; }
 
                 Status("Watching " + workspaceFolder);
                 PollWorkspace();
@@ -108,38 +118,35 @@ namespace SlopArena.Client.UI
         {
             if (polling || _busy || workspaceFolder == null) return;
             long revision = Interlocked.Read(ref workspaceRevision);
-            if (cookedStamp != null && observedRevision == revision) return;
+            double now = Time.realtimeSinceStartupAsDouble;
+            if (now < nextProbe && revision == observedRevision && cookSchedule.Requested == cookSchedule.Handled) return;
+            nextProbe = now + 1; observedRevision = revision;
             polling = true;
             string folder = workspaceFolder;
             int generation = workspaceGeneration;
+            var cancel = workspaceCancel!.Token;
+            LocalFighterWorkspace? snapshot = null;
+            string probe = "";
             try
             {
-                var snapshot = await Task.Run(() => LocalFighterWorkspace.Read(folder));
-                if (!IsOpen || generation != workspaceGeneration || folder != workspaceFolder) return;
-                if (pendingSource?.Stamp != snapshot.Stamp)
+                probe = await Task.Run(() => LocalFighterWorkspace.Probe(folder), cancel);
+                if (!IsOpen || generation != workspaceGeneration || folder != workspaceFolder || cancel.IsCancellationRequested) return;
+                if (cookSchedule.Pending != probe)
                 {
-                    pendingSource = snapshot; stableSince = Time.realtimeSinceStartupAsDouble;
+                    cookSchedule.Observe(probe, Time.realtimeSinceStartupAsDouble);
                     workspaceItem = null; workspaceTry!.SetEnabled(false); workspaceOffset?.SetEnabled(false);
                     Status("Files changed. Waiting for saves to finish..."); return;
                 }
-                if (snapshot.Stamp == cookedStamp) { observedRevision = revision; return; }
-                if (Time.realtimeSinceStartupAsDouble - stableSince < .75) return;
+                if (!cookSchedule.Observe(probe, Time.realtimeSinceStartupAsDouble)) return;
+                cookSchedule.Begin(probe);
+                snapshot = await Task.Run(() => LocalFighterWorkspace.Read(folder), cancel);
                 Status("Cooking fighter. You can keep using the menu...");
                 var watch = System.Diagnostics.Stopwatch.StartNew();
-                var result = await Task.Run(() =>
-                {
-                    var cooked = snapshot.Cook();
-                    if (cooked.Item == null) return (Admission: (LocalFighterItemResult?)null, cooked.Diagnostics);
-                    string output = Path.Combine(_library.Root, "FighterCooks", WorkshopItemManifestCodec.HashPayload(System.Text.Encoding.UTF8.GetBytes(snapshot.Stamp)));
-                    Directory.CreateDirectory(output);
-                    foreach (var file in cooked.Item) File.WriteAllBytes(Path.Combine(output, file.Key), file.Value);
-                    var admitted = LocalFighterItems.Read(output);
-                    return (Admission: (LocalFighterItemResult?)admitted, Diagnostics: cooked.Diagnostics.Concat(admitted.Diagnostics).ToArray() as System.Collections.Generic.IReadOnlyList<CharacterDiagnostic>);
-                });
-                var after = await Task.Run(() => LocalFighterWorkspace.Read(folder));
-                if (!IsOpen || generation != workspaceGeneration || folder != workspaceFolder) return;
-                if (after.Stamp != snapshot.Stamp) { pendingSource = after; stableSince = Time.realtimeSinceStartupAsDouble; return; }
-                cookedStamp = snapshot.Stamp; observedRevision = revision; workspaceItem = result.Admission;
+                var result = await Task.Run(() => FighterWorkspaceCache.Cook(Path.Combine(_library.Root, "FighterCooks"), folder, snapshot, cancel), cancel);
+                string after = await Task.Run(() => LocalFighterWorkspace.Probe(folder), cancel);
+                if (!IsOpen || generation != workspaceGeneration || folder != workspaceFolder || cancel.IsCancellationRequested) return;
+                if (after != probe) { cookSchedule.Observe(after, Time.realtimeSinceStartupAsDouble); return; }
+                cookedStamp = snapshot.Stamp; workspaceItem = result.Admission; workspaceCookFolder = result.Folder;
                 measuredSource = snapshot;
                 workspaceOffset!.SetEnabled(snapshot.SuggestedModelYOffset.HasValue);
                 workspaceOffset.text = snapshot.SuggestedModelYOffset.HasValue ? $"APPLY SUGGESTED modelYOffset {snapshot.SuggestedModelYOffset.Value:0.0000} (idle sole)" : "No sole suggestion available";
@@ -153,10 +160,16 @@ namespace SlopArena.Client.UI
                 workspaceTry!.SetEnabled(accepted);
                 Status($"{(accepted ? "Admitted" : "Needs fixes")} / {watch.Elapsed.TotalMilliseconds:0} ms");
             }
+            catch (OperationCanceledException) { }
             catch (Exception e)
             {
                 if (IsOpen && generation == workspaceGeneration && folder == workspaceFolder)
-                { cookedStamp = null; pendingSource = null; workspaceItem = null; workspaceTry?.SetEnabled(false); workspaceDiagnostics!.text = "Source folder / " + e.Message; }
+                {
+                    cookedStamp = snapshot?.Stamp;
+                    workspaceItem = null; workspaceTry?.SetEnabled(false);
+                    workspaceDiagnostics!.text = "Error workspace.cook " + Path.Combine(_library.Root, "FighterCooks") + ": " + e.Message + " Press Cook again after fixing the problem.";
+                    Status("Needs fixes");
+                }
             }
             finally { polling = false; }
         }
@@ -165,6 +178,8 @@ namespace SlopArena.Client.UI
             string path = LocalFighterWorkspace.DiagnosticPath(diagnostic);
             foreach (string file in new[] { "package.json", "character.json", "cook.json", "card.json" })
                 if (path.StartsWith(file, StringComparison.Ordinal)) return file;
+            int glb = path.IndexOf(".glb", StringComparison.Ordinal);
+            if (glb >= 0) return path.Substring(0, glb + 4);
             return path == "portable" || diagnostic.Code.StartsWith("glb.", StringComparison.Ordinal) || diagnostic.Code.StartsWith("item.pose-bake.", StringComparison.Ordinal) ? "GLB / poses.bin" : path;
         }
         private async Task StartWorkspaceTraining()
@@ -178,11 +193,14 @@ namespace SlopArena.Client.UI
             var choice = admitted.Fighter.Choose();
             if (!library.TryPrepare(new[] { choice, library.Choose(library.PackageIds[0]) }, out var catalog, out var failure)) throw new InvalidOperationException(failure);
             var entry = catalog!.ResolvePackage(choice.Revision.PackageId)!;
-            var lease = await MadeFighterPresentation.PrepareAsync(entry, admitted.Item, _cancel.Token);
-            if (!IsOpen) { lease.Dispose(); return; }
+            var diskLease = FighterWorkspaceCache.Pin(workspaceCookFolder!);
+            MadeFighterPresentation.Lease lease;
+            try { lease = await MadeFighterPresentation.PrepareAsync(entry, admitted.Item, _cancel.Token); }
+            catch { diskLease.Dispose(); throw; }
+            if (!IsOpen) { lease.Dispose(); diskLease.Dispose(); return; }
             MatchConfig.Reset(); MatchConfig.Mode = GameMode.Training;
             MatchConfig.SetPlayerFighter(choice);
-            FighterWorkspaceTraining.Begin(library, lease, folder);
+            FighterWorkspaceTraining.Begin(library, lease, folder, diskLease);
             Close(); SceneManager.LoadScene("Arena_Offline");
         }
     }

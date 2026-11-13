@@ -57,6 +57,10 @@ public static class AuthoringReference
             }
             text.AppendLine();
         }
+        text.AppendLine("### cook.json\n\nGenerated from `FighterCookDocument.Fields`, the schema used by the game and KitCheck. Unknown fields and duplicate keys are errors. Null is allowed only where explicitly listed.\n\n| Field | Type | Required | Meaning |\n| --- | --- | --- | --- |");
+        foreach (var field in FighterCookDocument.Fields)
+            text.AppendLine($"| `{field.Name}` | {field.Type} | {(field.Required ? "Yes" : "No")} | {field.Description} |");
+        text.AppendLine("\nOnly declared files are read as payloads. Unreferenced PNG and JPEG files are ignored. The optional standard bone map is `humanoid.json`, limited to 64 KiB. Image filenames must end in .png or .jpg. Animation IDs must match the kit exactly. `KitCheck cook <source-folder> [glb]` checks this schema and, when a GLB exists or is supplied, its clip names. Icons and portraits follow the form counts and canonical IDs of portable bindings.\n");
         text.AppendLine("### Bone identifiers\n");
         text.AppendLine(string.Join(", ", CharacterBoneRegistry.HumanoidPoints.Select(x => "`" + x.Id + "`")) + ". `bone.spine` also resolves to `bone.spine2`.\n");
         text.AppendLine(End);
