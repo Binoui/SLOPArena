@@ -6,7 +6,7 @@ namespace SlopArena.Shared;
 
 public enum MatchContentPolicy : byte { LocalPlay, StandardRoom, WorkshopRoom, EditorDevelopment }
 
-/// <summary>Verified gameplay admitted by Shared. External file admission is deliberately unavailable.</summary>
+/// <summary>Verified gameplay admitted by Shared. External file admission is internal to the Workshop item adapter.</summary>
 public sealed class AdmittedFighter
 {
     internal CookedCharacterPackageLoadResult Loaded { get; }

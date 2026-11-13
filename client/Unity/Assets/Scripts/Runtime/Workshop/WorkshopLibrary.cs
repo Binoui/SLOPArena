@@ -98,6 +98,7 @@ namespace SlopArena.Client.Workshop
             var read = WorkshopItemManifestCodec.Read(ReadCapped(Path.Combine(folder, "item.json"), WorkshopItemManifestCodec.MaxManifestBytes));
             if (!read.IsAccepted) throw new InvalidDataException(string.Join("; ", read.Diagnostics.Select(x => x.Code + ": " + x.Message)));
             var manifest = read.Manifest!;
+            if (manifest.ItemType != "model-swap") throw new InvalidDataException("item.kind.unsupported: type not supported here: " + manifest.ItemType);
             if (!ModelSwapBases.Accepts(manifest.BaseFighterPackageId, out string refusal)) throw new InvalidDataException(refusal);
             var files = new Dictionary<string, byte[]>();
             foreach (var file in Directory.EnumerateFiles(folder))

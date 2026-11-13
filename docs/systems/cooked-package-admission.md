@@ -175,10 +175,22 @@ The float ceiling covers sample storage; it does not measure total managed alloc
 
 ## Next integration
 
-Unit 4b needs an internal external-admission adapter that selects Workshop explicitly,
-enforces host provenance namespaces, and resolves portable bindings before admission.
-Do not expose external files in Fighter Select yet. The external admission policy still requires
-implementation before player-created fighters ship.
+Unit 4b adds `FighterItemAdmission.ReadLocalItem` and `ReadDownloadedItem` as internal host
+adapters. They verify a flat schema-2 fighter item, reject symbolic links, special files and
+extra files, and pin all bytes. Hard links are allowed. They
+validate schema-3 portable bindings and the framed source hash, then call the Workshop loader
+with its profile selected explicitly. The included source is editable material, not a second
+runtime authority. Producer versions are recorded in item.json and named on needs-update errors.
+GLB-bound fighters currently stop at `item.pose-bake.unavailable` until unit 4c verifies the bake.
+The Steam entry point takes its PublishedFileId from the
+host. Neither an item field nor a claimed package namespace grants provenance.
+
+`FighterItemSnapshot` retains the verified bytes and cloned binding/card data for subsequent
+presentation work. Unit 4c must consume these bytes instead of reopening mutable disk paths.
+Unit 5 must wire discovery and UI to this admission result. No product path calls it yet.
+The shared-clip registry is empty, so required shared clips fail. See the
+[authoring reference](../characters/workshop-authoring-reference.md#fighter-items-and-portable-bindings)
+for the portable file contract.
 
 The contract suite has no skips. It exercises the original eight gaps, mutations across
 multiple fighters, file bounds, and trusted runtime and pose fingerprints obtained with

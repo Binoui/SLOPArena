@@ -32,8 +32,12 @@ public sealed class CookedCharacterPackageLoadResult
 }
 public static class CookedCharacterPackageLoader
 {
+    internal static CookedCharacterPackage ParsePortableDefinition(byte[] bytes) => RuntimeParser.Parse(bytes);
     private static readonly HashSet<string> SupportedRuntimeApiMinimums = new(
         Enumerable.Range(0, 23).Select(minor => $"1.{minor}.0"), StringComparer.Ordinal);
+
+    internal static bool SupportsCompatibility(ushort schema, string minimum, string maximum)
+        => schema == 5 && SupportedRuntimeApiMinimums.Contains(minimum) && maximum == "1.x";
 
     /// <summary>True when an admitted 1.N.0 runtime API minimum is at least 1.<paramref name="minor"/>.0.</summary>
     private static bool ApiAtLeast(string runtimeApiMin, int minor)
@@ -127,7 +131,7 @@ public static class CookedCharacterPackageLoader
             if(m.PackageId!=requirement!.PackageId||m.Version!=requirement.Version||m.CookedContentHash!=requirement.CookedContentHash||m.PackageHash!=requirement.PackageHash) d.Add(Error("package.identity.mismatch","manifest","Package identity does not match the requested requirement."));
             if (d.Count != 0) return Failure(d);
             if (!CookedPackageLimits.CheckRuntime(copied[CharacterPackageAssembler.RuntimePath], d, profile)) return Failure(d);
-            if(m.CookedSchemaVersion!=5||!SupportedRuntimeApiMinimums.Contains(m.RuntimeApiMin)||m.RuntimeApiMax!="1.x") d.Add(Error("package.compatibility.unsupported","manifest","Cooked package schema/API is not supported."));
+            if(!SupportsCompatibility(m.CookedSchemaVersion, m.RuntimeApiMin, m.RuntimeApiMax)) d.Add(Error("package.compatibility.unsupported","manifest","Cooked package schema/API is not supported."));
             if(m.Dependencies.Count!=0) d.Add(Error("package.dependencies.unsupported","manifest.dependencies","Unresolved package dependencies are not supported."));
             foreach (var c in m.Capabilities)
             {

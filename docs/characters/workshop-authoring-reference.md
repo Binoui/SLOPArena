@@ -1729,3 +1729,67 @@ Peck interval is positive and no longer than the perch duration. Peck damage is 
 A diving perch has no homing block and zero projectile gravity. Rise speed and dive speed are above zero through 60 m/s.
 Hover height is above zero through 12 m, rise and mark are 1 through 240 ticks each, and fallback distance is 0 through 20 m.
 Projectile lifetime outlasts rise plus mark. A projectile with homing or perch has challenge ticks at most 600.
+
+## Fighter items and portable bindings
+
+The fighter format remains open until the first fighter is published in unit 5.
+The authoritative contract is [ADR-0065](../adr/0065-workshop-item-format.md#portable-bindings).
+
+A fighter is a flat schema-2 `item.json` folder with type `fighter`, `itemVersion`, creator,
+license, attribution, AI flag, `compilerVersion`, `canonicalWriterVersion`, and a filename-to-SHA-256
+`payloads` map. Required files are the four cooked files, one lowercase `.glb`, editable
+`package.json` and `character.json`, and `card.json`. Optional files are `humanoid.json` and
+`.png` or `.jpg` images. Card descriptions, WIP flags and Tutorial hints live only in `card.json`.
+Display names come from the cooked definition.
+
+Schema-3 portable bindings have these fields.
+
+| Fields | Value |
+| --- | --- |
+| `packageId`, `sourceHash` | Package ID and framed hash of the two source files |
+| `catalogSchemaVersion`, `bindingSchemaVersion` | Both 3 |
+| `poseFormat`, `poseVersion`, `sampleRate`, `rootRuleVersion` | `SKEL`, 1, 60, 1 |
+| `payloads`, `modelFile` | All non-cooked file hashes and the GLB role |
+| `portraits` | Nullable image filename per form |
+| `icons` | Per-form maps of exactly the runtime slots' canonical icon IDs to image or null |
+| `animations` | Semantic ID, pose track, frame count, and GLB/shared source |
+| `presentations` | Every declared ID bound to explicit none or an engine presentation |
+
+Icon IDs are `icon.1`, `icon.2`, `icon.3`, `icon.a`, `icon.e`, `icon.r`, and `icon.f`.
+A source is `{"kind":"glb","clipName":"..."}` or
+`{"kind":"shared","id":"slop.anim.idle.default.v1","version":"1.0.0"}`.
+A presentation is `{"kind":"none"}` or `{"kind":"engine","vfx":null,"audio":null,"projectile":null}`
+with at least one non-null role. VFX/projectile roles are `slop.vfx.*` references; audio has
+`selection` and `clips` with `slop.sfx.*` references. Fixed pools have one clip and cycle pools
+have one to sixteen. Registry references use lowercase dot segments ending `.vN` and exact numeric
+`N.MINOR.PATCH` versions. Missing registries refuse required references; no registry fallback exists.
+
+Sample rule 1 uses 60 Hz from clipStart, the original authored duration in GLB animation extras
+`slop.durationSecondsBits`, and `slop.frameCount = max(1, ceil(binary32(durationSeconds * 60)))`.
+clipStart is the earliest first key of the referenced samplers; channels clamp outside their key
+ranges. Duration is not inferred from the last key. Root rule 1 resets rest transforms, reflects
+glTF X into game coordinates, and uses hips-relative points,
+`_hips_offset`, the authored visual scale and the existing weapon marker scale rule.
+`poses.bin` must exactly equal the deterministic bake. Unit 4c must verify that equality using
+the same sampler as display. Until then, GLB-bound items fail with `item.pose-bake.unavailable`.
+The shared registries are empty, so no external fighter can enter a Match yet.
+
+The source hash frames `package.json` then `character.json`, each with little-endian int32
+filename byte length, UTF-8 filename, int32 content byte length, and exact content bytes.
+Admission verifies this hash but does not recompile source. The cooked artifact is authoritative
+within the loader's compatibility window. Outside it, `item.needs-update` names the recorded
+compiler and canonical writer versions. `LoadPortable` rounds decimal rationals once to binary32,
+ties to even; `CompilePortable` normalizes negative zero in both definitions and canonical bytes.
+Legacy parsers and writers are unchanged.
+
+Filenames have at most 128 ASCII letters, digits, dots, hyphens or underscores. Leading dots,
+reserved device stems and case aliases fail. There are at most 40 payloads, with an additional
+exact Steam metadata limit below 5,000 bytes. The complete item is capped at 64 MiB. GLB is capped
+at 30,000,000 bytes, images at 4 MiB, source/card files at 2 MiB, humanoid.json at 65,536 bytes,
+and cooked files at the [existing admission limits](../systems/cooked-package-admission.md).
+Reads require regular files, refuse symbolic links/reparse points, FIFOs and devices before
+reading, and allow hard links whose actual bytes match the hashes. JPEGs require one frame header.
+
+The model-swap library reports "type not supported here" for a fighter item. Unit 5 will wire the
+fighter adapter to discovery after unit 4c. No product path currently admits external fighters.
+See `tools/PortableCookProof/README.md` for the rerunnable isolated Win64/Mono comparison.

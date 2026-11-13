@@ -185,6 +185,29 @@ public static class CharacterPackageCompiler
         _ => false,
     };
 
+    public const string PortableCompilerVersion = "1.0.0";
+    public const int PortableCanonicalWriterVersion = 1;
+
+    public static CharacterCompileResult CompilePortable(string packageManifestJson, string characterJson)
+    {
+        var parsed = CharacterPackageSourceCodec.LoadPortable(packageManifestJson, characterJson);
+        return parsed.IsValid ? PortableResult(Compile(parsed.Source!, CharacterCookProfile.Workshop)) : new CharacterCompileResult(null, parsed.Diagnostics);
+    }
+
+    public static CharacterCompileResult CompilePortable(CharacterPackageSource source)
+        => source == null ? Compile(source!, CharacterCookProfile.Workshop)
+            : CompilePortable(CharacterPackageSourceCodec.SerializeManifest(source.Manifest), CharacterPackageSourceCodec.SerializeCharacter(source.Character));
+
+    private static CharacterCompileResult PortableResult(CharacterCompileResult result)
+    {
+        if (result.HasErrors || result.CookedPackage == null) return result;
+        var p = result.CookedPackage;
+        var bytes = PortableCanonicalJson.Normalize(p.CanonicalBytes);
+        var normalized = CookedCharacterPackageLoader.ParsePortableDefinition(bytes);
+        return new CharacterCompileResult(new CookedCharacterPackage(p.Metadata, normalized.Definition, p.Budget,
+            p.Diagnostics, bytes), result.Diagnostics);
+    }
+
     public static CharacterCompileResult Compile(string packageManifestJson, string characterJson, CharacterCookProfile profile = CharacterCookProfile.Workshop)
     {
         var parsed = CharacterPackageSourceCodec.Load(packageManifestJson, characterJson);
@@ -348,6 +371,7 @@ public static class CharacterPackageCompiler
         }
         var budget = ComputeBudget(definition);
         var bytes = WriteCanonical(metadata, definition, budget);
+
         var limits = new List<CharacterDiagnostic>();
         if (bytes.Length > CookedPackageLimits.RuntimeBytes)
             d.Error("package.file.limit", CharacterPackageAssembler.RuntimePath, "Runtime exceeds the admission byte limit.");

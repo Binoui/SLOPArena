@@ -53,6 +53,20 @@ public static class CharacterPackageSourceCodec
         Indented = true,
     };
 
+    public static CharacterPackageSourceLoadResult LoadPortable(string packageJson, string characterJson)
+    {
+        try
+        {
+            return Load(Encoding.UTF8.GetString(PortableCanonicalJson.Normalize(Encoding.UTF8.GetBytes(packageJson))),
+                Encoding.UTF8.GetString(PortableCanonicalJson.Normalize(Encoding.UTF8.GetBytes(characterJson))));
+        }
+        catch (Exception ex) when (ex is JsonException or FormatException or OverflowException or ArgumentException)
+        {
+            return new CharacterPackageSourceLoadResult(null, new[] { new CharacterDiagnostic(CharacterDiagnosticSeverity.Error,
+                "source.portable.number", "source", ex.Message) });
+        }
+    }
+
     public static CharacterPackageSourceLoadResult Load(string packageJson, string characterJson)
     {
         var diagnostics = new DiagnosticBag();
