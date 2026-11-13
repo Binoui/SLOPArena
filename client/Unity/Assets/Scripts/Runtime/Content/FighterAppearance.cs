@@ -27,7 +27,8 @@ namespace SlopArena.Client
         {
             Content = content;
             var binding = content.IsBundled ? FighterPresentation.Binding(content.Identity.PackageId) : null;
-            Art = new FighterUiArt(content.Definition, binding);
+            Art = !content.IsBundled && Workshop.MadeFighterPresentation.TryGet(content.Identity, out var made)
+                ? made.Art : new FighterUiArt(content.Definition, binding);
             string? weapon = binding?.GetProperty("legacyWeapon").GetString();
             LegacyWeapon = string.IsNullOrEmpty(weapon) ? null : Resources.Load<Entities.WeaponAttachConfig>(weapon);
         }
@@ -39,6 +40,8 @@ namespace SlopArena.Client
         readonly Texture2D?[] portraits;
         readonly Dictionary<string, UiImage>[] icons;
         readonly bool[] neutralForms;
+        // A made fighter's missing art falls back to neutral art, never to another fighter's.
+        readonly bool madeFighter;
         public FighterCardText Card { get; }
         public string StyleAlias { get; }
         public bool HasForms => names.Length > 1;
@@ -76,13 +79,33 @@ namespace SlopArena.Client
             }
         }
 
+        /// <summary>A made fighter's art: its item images or rendered portrait, its card, neutral art for anything missing.</summary>
+        internal FighterUiArt(CharacterDefinition definition, Texture2D?[] formPortraits, Dictionary<string, UiImage>[] formIcons, FighterCardText card)
+        {
+            names = definition.AlternateForm != null ? new[] { definition.DisplayName, definition.ForForm(1).DisplayName } : new[] { definition.DisplayName };
+            neutralForms = new bool[names.Length];
+            portraits = new Texture2D?[names.Length];
+            icons = new Dictionary<string, UiImage>[names.Length];
+            for (int form = 0; form < names.Length; form++)
+            {
+                portraits[form] = form < formPortraits.Length ? formPortraits[form] : null;
+                icons[form] = form < formIcons.Length ? formIcons[form] : new Dictionary<string, UiImage>(StringComparer.Ordinal);
+            }
+            Card = card;
+            StyleAlias = "";
+            madeFighter = true;
+        }
+
         int Form(byte form) => form < names.Length ? form : 0;
         public string Name(byte form = 0) => names[Form(form)];
-        public Texture2D? Portrait(byte form = 0) => neutralForms[Form(form)] ? NeutralPortrait : portraits[Form(form)];
+        public Texture2D? Portrait(byte form = 0) => neutralForms[Form(form)] ? NeutralPortrait
+            : madeFighter ? portraits[Form(form)] ?? NeutralPortrait : portraits[Form(form)];
         public UiImage MoveIcon(byte form, string? iconId, byte slot, bool normal)
         {
             if (neutralForms[Form(form)]) return new UiImage(NeutralGlyph(slot), null, Color.white);
             if (string.IsNullOrEmpty(iconId)) return default;
+            if (madeFighter && (!icons[Form(form)].TryGetValue(iconId, out var own) || own.Texture == null))
+                return new UiImage(NeutralGlyph(slot), null, Color.white);
             Color tint = normal ? new Color32(27, 26, 24, 255) : Color.white;
             return icons[Form(form)].TryGetValue(iconId, out var image) && image.Sprite != null
                 ? image : new UiImage(image.Texture, null, tint);

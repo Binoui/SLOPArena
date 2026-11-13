@@ -93,6 +93,8 @@ namespace SlopArena.Client.Workshop
         internal readonly List<Mesh> InkedSources = new();
         internal bool IsDisposed;
         internal string? ImageRefusal;
+        /// <summary>The instantiated transform of each glTF node index, or null for nodes outside the scene.</summary>
+        internal Transform?[] Nodes = Array.Empty<Transform?>();
 
         public GameObject? Root { get; internal set; }
         public Animator? Animator { get; internal set; }
@@ -187,14 +189,68 @@ namespace SlopArena.Client.Workshop
             return result.IsAccepted ? null : string.Join(" ", result.Diagnostics.Select(d => $"{d.Code}: {d.Message}"));
         }
 
-        private static async Task<ModelSwapImportResult> Build(
-            ImportedSwapModel model, byte[] glb, string? boneMapJson, ModelSwapTarget target, CancellationToken cancel)
+        /// <summary>
+        /// A portable fighter's own model (ADR-0065 path A): the same load, texture budget and fighter material as a
+        /// swap, turned by the Shared root correction instead of a fit, with a generic Animator for its GLB clip states.
+        /// The admission already checked the file. <see cref="ImportedSwapModel.Nodes"/> maps glTF node indices.
+        /// </summary>
+        public static async Task<ModelSwapImportResult> ImportFighterAsync(byte[] glb, GlbRootCorrection correction, Color rim, CancellationToken cancel)
+        {
+            var model = new ImportedSwapModel();
+            try
+            {
+                var total = Stopwatch.StartNew();
+                var scene = await LoadScene(model, glb, rim, "Fighter model (loading)", "Upright", cancel);
+                if (scene.Refusal != null) { model.Dispose(); return scene.Refusal; }
+                var upright = scene.Root!.parent;
+                upright.localRotation = Quaternion.Inverse(Quaternion.LookRotation(
+                    new Vector3((float)correction.ForwardX, (float)correction.ForwardY, (float)correction.ForwardZ),
+                    new Vector3((float)correction.UpX, (float)correction.UpY, (float)correction.UpZ)));
+                upright.localPosition = new Vector3((float)correction.OriginX, (float)correction.OriginY, (float)correction.OriginZ);
+                var animator = model.Root!.AddComponent<Animator>();
+                // A generic avatar lets the Animator bind the runtime hierarchy by path; it is never humanoid.
+                var avatar = model.Avatar = AvatarBuilder.BuildGenericAvatar(model.Root, "");
+                avatar.name = "Made fighter avatar";
+                animator.avatar = avatar;
+                animator.applyRootMotion = false;
+                animator.cullingMode = AnimatorCullingMode.AlwaysAnimate;
+                var animancer = model.Root.AddComponent<AnimancerComponent>();
+                animancer.Animator = animator;
+                if (StageLook.Active.Fighters.Ink > 0f)
+                    foreach (var skin in scene.Skins!)
+                    {
+                        var source = skin.sharedMesh;
+                        if (FighterInk.Apply(skin)) model.InkedSources.Add(source);
+                    }
+                model.Animator = animator;
+                model.Animancer = animancer;
+                model.Stats.TotalMs = total.Elapsed.TotalMilliseconds;
+                return ModelSwapImportResult.Accept(model);
+            }
+            catch (OperationCanceledException) { model.Dispose(); throw; }
+            catch (Exception exception)
+            {
+                model.Dispose();
+                Debug.LogException(exception);
+                return ModelSwapImportResult.Refuse(ModelSwapRefusalReason.ImportFailed, exception.Message);
+            }
+        }
+
+        private sealed class LoadedScene
+        {
+            public ModelSwapImportResult? Refusal;
+            public Transform? Root;
+            public SkinnedMeshRenderer[]? Skins;
+            public CollectingLogger Logger = new();
+        }
+
+        private static async Task<LoadedScene> LoadScene(ImportedSwapModel model, byte[] glb, Color rim, string name, string holder, CancellationToken cancel)
         {
             var stats = model.Stats;
-            var total = Stopwatch.StartNew();
+            var result = new LoadedScene();
             var shader = MatchVisualStyle.FighterShader;
-            var materials = new SwapMaterialGenerator(shader, target.Rim, model.Materials);
-            var logger = new CollectingLogger();
+            var materials = new SwapMaterialGenerator(shader, rim, model.Materials);
+            var logger = result.Logger;
             var gltf = model.Gltf = new GltfImport(NoDownloads.Instance, null, materials, logger);
             if (TextureMaxSide > 0) gltf.AddImportAddonInstance(new ModelSwapTextures.PngLoader(TextureMaxSide, model));
             var settings = new ImportSettings
@@ -206,37 +262,60 @@ namespace SlopArena.Client.Workshop
             var watch = Stopwatch.StartNew();
             bool loaded = await gltf.Load(glb, null, settings, cancel);
             if (model.ImageRefusal != null)
-                return ModelSwapImportResult.Refuse(ModelSwapRefusalReason.ImageUnreadable, model.ImageRefusal);
+            { result.Refusal = ModelSwapImportResult.Refuse(ModelSwapRefusalReason.ImageUnreadable, model.ImageRefusal); return result; }
             if (!loaded)
-                return ModelSwapImportResult.Refuse(ModelSwapRefusalReason.GltfLoadFailed, FirstError(logger, "glTFast could not read the file."));
+            { result.Refusal = ModelSwapImportResult.Refuse(ModelSwapRefusalReason.GltfLoadFailed, FirstError(logger, "glTFast could not read the file.")); return result; }
             stats.LoadMs = watch.Elapsed.TotalMilliseconds;
 
             watch.Restart();
             await KeepTexturesInBudget(model, gltf, cancel);
             stats.TexturesMs = watch.Elapsed.TotalMilliseconds;
 
-            var container = new GameObject("Model swap (loading)");
+            var container = new GameObject(name);
             model.Root = container;
-            var fit = new GameObject("Fit").transform;
+            var fit = new GameObject(holder).transform;
             fit.SetParent(container.transform, false);
             var instantiator = new GameObjectInstantiator(gltf, fit, logger, new InstantiationSettings
             {
                 Mask = ComponentType.Mesh,
                 SceneObjectCreation = SceneObjectCreation.Always,
             });
+            var nodes = new Transform?[gltf.GetSourceRoot().Nodes?.Count ?? 0];
+            instantiator.NodeCreated += (index, node) => { if (index < nodes.Length) nodes[index] = node.transform; };
+            model.Nodes = nodes;
             watch.Restart();
             if (!await gltf.InstantiateMainSceneAsync(instantiator, cancel) || instantiator.SceneTransform == null)
-                return ModelSwapImportResult.Refuse(ModelSwapRefusalReason.GltfLoadFailed, FirstError(logger, "The file has no scene to show."));
+            { result.Refusal = ModelSwapImportResult.Refuse(ModelSwapRefusalReason.GltfLoadFailed, FirstError(logger, "The file has no scene to show.")); return result; }
             stats.InstantiateMs = watch.Elapsed.TotalMilliseconds;
             Transform root = instantiator.SceneTransform;
             foreach (var renderer in container.GetComponentsInChildren<Renderer>(true)) renderer.forceRenderingOff = true;
 
             var skins = root.GetComponentsInChildren<SkinnedMeshRenderer>(true).Where(x => x.sharedMesh != null).ToArray();
             if (skins.Length == 0)
-                return ModelSwapImportResult.Refuse(ModelSwapRefusalReason.NoSkinnedMesh,
+            {
+                result.Refusal = ModelSwapImportResult.Refuse(ModelSwapRefusalReason.NoSkinnedMesh,
                     "The model has no skinned mesh, so it cannot follow the fighter's moves.");
+                return result;
+            }
             stats.Skins = skins.Length;
             stats.Vertices = skins.Sum(x => x.sharedMesh.vertexCount);
+            result.Root = root;
+            result.Skins = skins;
+            return result;
+        }
+
+        private static async Task<ModelSwapImportResult> Build(
+            ImportedSwapModel model, byte[] glb, string? boneMapJson, ModelSwapTarget target, CancellationToken cancel)
+        {
+            var stats = model.Stats;
+            var total = Stopwatch.StartNew();
+            var scene = await LoadScene(model, glb, target.Rim, "Model swap (loading)", "Fit", cancel);
+            if (scene.Refusal != null) return scene.Refusal;
+            var container = model.Root!;
+            var fit = scene.Root!.parent;
+            Transform root = scene.Root;
+            var skins = scene.Skins!;
+            var watch = Stopwatch.StartNew();
 
             var nodes = new Dictionary<string, Transform>(StringComparer.Ordinal);
             foreach (var node in root.GetComponentsInChildren<Transform>(true)) nodes.TryAdd(node.name, node);

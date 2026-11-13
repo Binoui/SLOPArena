@@ -1764,15 +1764,18 @@ with at least one non-null role. VFX/projectile roles are `slop.vfx.*` reference
 have one to sixteen. Registry references use lowercase dot segments ending `.vN` and exact numeric
 `N.MINOR.PATCH` versions. Missing registries refuse required references; no registry fallback exists.
 
-Sample rule 1 uses 60 Hz from clipStart, the original authored duration in GLB animation extras
-`slop.durationSecondsBits`, and `slop.frameCount = max(1, ceil(binary32(durationSeconds * 60)))`.
-clipStart is the earliest first key of the referenced samplers; channels clamp outside their key
-ranges. Duration is not inferred from the last key. Root rule 1 resets rest transforms, reflects
-glTF X into game coordinates, and uses hips-relative points,
-`_hips_offset`, the authored visual scale and the existing weapon marker scale rule.
-`poses.bin` must exactly equal the deterministic bake. Unit 4c must verify that equality using
-the same sampler as display. Until then, GLB-bound items fail with `item.pose-bake.unavailable`.
-The shared registries are empty, so no external fighter can enter a Match yet.
+Root and sampling rule 1 is defined in
+[ADR-0065](../adr/0065-workshop-item-format.md#motion-sampling-and-the-pose-bake-root-rule-1).
+A bound GLB clip records `extras.slop.durationSecondsBits`, `extras.slop.frameCount` (equal to
+`max(1, ceil(binary32(durationSeconds * 60)))`) and optionally `extras.slop.loop`. Its keys sit on
+60 Hz ticks from clipStart, one per tick. A gap is allowed only between equal LINEAR keys or after a
+STEP key, and CUBICSPLINE is refused. Export from Blender at 60 fps with sampled animation. The rest
+skeleton is stood upright, its hips are put on the model origin and `visualScale` applies. Set
+`modelYOffset` so that the feet meet the capsule bottom. An attachment point such as `_weapon_tip`
+is baked from the GLB node with the same name. Admission re-bakes every bound clip and requires
+`poses.bin` to be byte-equal, or fails with `item.pose-bake.mismatch`. The shared-clip table is
+empty, so shared references fail with `portable.shared.unsupported`. `PortableFighterCook.Cook`
+writes a verified item from source, card and GLB.
 
 The source hash frames `package.json` then `character.json`, each with little-endian int32
 filename byte length, UTF-8 filename, int32 content byte length, and exact content bytes.
@@ -1791,5 +1794,5 @@ Reads require regular files, refuse symbolic links/reparse points, FIFOs and dev
 reading, and allow hard links whose actual bytes match the hashes. JPEGs require one frame header.
 
 The model-swap library reports "type not supported here" for a fighter item. Unit 5 will wire the
-fighter adapter to discovery after unit 4c. No product path currently admits external fighters.
+fighter adapter to discovery. No product path currently admits external fighters.
 See `tools/PortableCookProof/README.md` for the rerunnable isolated Win64/Mono comparison.

@@ -48,6 +48,44 @@ the [character workflow](../characters/adding-a-new-character.md).
 Animancer plays clips directly. AnimatorController transitions and animation callbacks
 do not own gameplay timing or hit results.
 
+## GLB motion for portable fighters
+
+A made fighter plays its own GLB clips ([ADR-0065](../adr/0065-workshop-item-format.md), path A).
+Admission returns a `FighterItemSnapshot` whose `PortableFighterMotion` holds the parsed skeleton and
+every bound clip. `MadeFighterPresentation.PrepareAsync` turns that into what the generated assets
+give a built-in fighter, once per revision for the session:
+
+```text
+FighterItemSnapshot (verified bytes + PortableFighterMotion)
+  -> ModelSwapImporter.ImportFighterAsync   (glTFast; upright node from the Shared root correction;
+                                             generic Animator, no avatar)
+  -> GlbMotionClip per clip                 (GlbMotionRig.SampleLocal at every tick)
+  -> GlbMotionBinder + placeholder clips    (one legacy key clip per semantic ID: length and loop only)
+  -> runtime CharacterAnimationCatalog      (CookedCharacterClientAssetResolver finds it by revision)
+  -> PlayerRenderer                         (AdoptModel binds one GlbMotionState per key)
+```
+
+`GlbMotionState` is an Animancer `AnimationJobState`. Its job writes the sampled local transforms of
+every node any of the fighter's clips animates, through `TransformStreamHandle`s. Ticks are the
+sampled keys exactly, and between ticks the display blends the two neighbours. Animancer runs its
+pre-updates before playable time advances, so each GLB state hands its job the time its playable
+reaches in this evaluation, the time a clip state samples, rather than the previous frame's. In the first
+evaluation after a state's time is set (a seek, `Stop`, a new state), Unity leaves the playable's time where
+it is, so the job draws that time then, as a clip state does. A resume from pause advances as usual. The state's key is the
+semantic ID's placeholder clip, so the renderer's existing `Play(clip, fade)` calls work unchanged.
+Fades between GLB clips, from a GLB clip into idle, landing and hitstun all happen in Animancer's
+mixer, not in a pass written after it. The bake reads the same sampler, so the drawn bones sit on
+`poses.bin` at every tick. Built-in fighters keep their generated catalogs and clip states.
+A GLB-driven model leaves the shared humanoid grab and throw clips unloaded, because shared
+clips stay closed to made fighters.
+
+A revision's model, clips, catalog and art live while anyone uses them. `PrepareAsync` returns a
+`MadeFighterPresentation.Lease` for the caller (the menu that offers the fighter), and
+`MatchBase.SetupRenderer` takes another for each Match that draws it and disposes it when the Match
+is destroyed. The last lease destroys the assets, so a menu can let go mid-Match. A cached
+presentation whose Unity objects no longer exist is dropped, never served, and every Play session
+starts with an empty cache.
+
 ## Cooked poses
 
 Server hitboxes use cooked pose tracks and semantic bone IDs. The client receives the
@@ -67,3 +105,5 @@ those tracks; the legacy skeleton-bake menu is not the roster authoring path.
 - [`MatchContentCatalog`](../../src/Shared/MatchContentCatalog.cs) admits cooked roster content.
 - [`MatchBase.SetupRenderer`](../../client/Unity/Assets/Scripts/Runtime/World/MatchBase.cs) resolves package bindings.
 - [`PlayerRenderer`](../../client/Unity/Assets/Scripts/Runtime/Entities/PlayerRenderer.cs) selects and plays clips from Shared state.
+- [`GlbMotion`](../../src/Shared/GlbMotion.cs) is the rule-1 sampler; [`PortablePoseBake`](../../src/Shared/PortablePoseBake.cs) bakes and verifies with it.
+- [`GlbMotionState`](../../client/Unity/Assets/Scripts/Runtime/Workshop/GlbMotionState.cs) and [`MadeFighterPresentation`](../../client/Unity/Assets/Scripts/Runtime/Workshop/MadeFighterPresentation.cs) draw a made fighter.

@@ -42,7 +42,8 @@ Steam metadata, which queries return without a download.
 Card descriptions, work-in-progress flags, and Tutorial hints live only in `card.json`, using
 ADR-0067's existing card contract. `item.json` refuses these fields. The cooked definition owns
 the display name. Keeping one card format avoids divergent metadata for bundled and made fighters.
-When no portrait is supplied, the client renders one from the model in the later presentation unit.
+When no portrait is supplied, the client renders one from the model once per session (unit 4c):
+idle frame 0 posed by the Shared sampler, framed on the head and upper chest from the front.
 
 ### Portable bindings
 
@@ -107,44 +108,89 @@ underflow rounds to zero. Negative zero becomes positive zero in the definition 
 `CompilePortable` uses this parser and exact finite IEEE-754 decimal expansions for runtime
 JSON. Integer fields retain their values. Legacy parsers and built-in writers stay unchanged.
 
-### Motion sampling and the unit 4c gate
+### Motion sampling and the pose bake (root rule 1)
 
-Root and sampling rule 1 samples bound motion at `clipStart + k/60` seconds for
-`k = 0 .. frameCount-1`. clipStart is the minimum first-key timestamp among the samplers referenced by the clip's
-channels. Channel values outside their key range clamp to the nearest key. glTF interpolation
-and node hierarchy apply before the root correction.
-The authored clip duration is preserved in GLB animation extras under
-`slop.durationSecondsBits` as finite positive binary32 bits, with `slop.frameCount` alongside.
-The frame count is `max(1, ceil(binary32(durationSeconds * 60)))`. The recorded binding count,
-GLB count, and pose-track count must agree. Sampling excludes a duplicate terminal endpoint.
-The duration must cover the clip's keys and samples, with key times on the 60 Hz grid from
-clipStart. Unit 4c must define and verify the binary32 representation of those grid times in
-its shared sampler rather than recover a duration from the last key alone.
+Unit 4c made this rule concrete in `src/Shared/GlbMotion.cs` and `src/Shared/PortablePoseBake.cs`.
+`GlbMotionRig.SampleLocal` is the one sampler. The admission bake and the renderer both read it.
 
-This preserves the existing bake's ceil rule and explicit duration. Step 0.2 found that deriving
-counts only from GLB last-key times lost a frame in 7 of 22 FightGuy clips and changed combat.
-The original duration/count metadata prevents that loss; adding an endpoint to every clip would
-also change clips that already matched. The reference evidence is the retained step 0.2
-`pose-bake/bake.py` and `results.txt` spike.
+**Clips.** A bound clip records `extras.slop.durationSecondsBits`, a finite positive binary32 as
+its int32 bits, and `extras.slop.frameCount`. `extras.slop.loop` is an optional boolean for the
+renderer. Unknown `extras.slop` fields fail. The frame count must equal
+`max(1, ceil(binary32(durationSeconds * 60)))`, at most 4096, and the binding and pose-track
+counts must agree with it. That range is checked in floating point before anything converts to an
+integer, so an overflowing duration fails rather than wrapping to one frame. clipStart is the minimum first-key time among the clip's samplers.
+A key belongs to tick `j = round((t - clipStart) * 60)`, computed in double, and must sit within
+1/1000 tick of it. Binary32 times up to 4096 frames err below 1/10000 tick, so this tolerance
+names the grid without accepting another frame rate. A tick holds at most one key, so an accessor
+may hold at most `frameCount + 1` keys; a larger count fails with `glb.clip.keys` before the
+accessor is read. A channel's keys must be consecutive ticks. A gap is allowed only between
+bitwise-equal keys under LINEAR, as written by exporters that drop duplicate keys, or after any key
+under STEP. Keys stay sparse: a tick reads the last key at or before it, so a gap never expands. CUBICSPLINE is refused. Inputs and outputs are
+32-bit float accessors. A key after the recorded duration fails. A key exactly at tick
+`frameCount` is the duplicate terminal endpoint of a loop and is never sampled. Channels clamp
+outside their key range. Tick `k` therefore always reads a stored key, and no interpolation enters
+the bake. Channels may animate translation, rotation or scale of drawn nodes. Weights and nodes
+with a `matrix` cannot be animated.
 
-Root rule 1 resets the hierarchy to its rest transforms for every sample, reflects the glTF
-X axis into game coordinates, and applies the authored
-visual scale, and the same root placement for bake and display. Every body/attachment point
-is its sampled world position minus sampled hips position. `_hips_offset` records hips position
-plus modelYOffset on the vertical axis. Root translation never moves the authoritative fighter.
-Weapon markers retain their own scale at the sampled attachment position and rotation, as in
-the weapon rule below. Bake and display must share this sampler and correction.
+**Placement.** Every sample starts from the rest transforms. glTF X is reflected into game
+coordinates, as glTFast does, and the node hierarchy is applied. The rest skeleton is then turned
+upright like a model swap: up runs from the hips to the head, right from the left thigh to the
+right thigh, and forward is right × up. The rest hips sit on the model origin, FightGuy's
+convention, and the authored `visualScale` applies last. The character's `modelYOffset` places
+that origin above or below the capsule centre. The rest hips are not lowered to the floor. A
+creator sets `modelYOffset` so that the feet meet the capsule bottom. The turn and the origin come
+from the rest skeleton, use only `+`, `-`, `*`, `/` and `sqrt`, and are the same numbers the
+renderer puts on its upright node.
 
-`poses.bin` must equal the deterministic bake of every bound clip under rule 1, including
-frame counts, bone layout, root correction and finite binary32 samples. Unit 4c owns re-baking
-and comparing these bytes at admission. Until that verifier exists, the internal adapter refuses
-all GLB-bound fighters with `item.pose-bake.unavailable`, "Pose bake verification not available".
-Shared clips are also unavailable. No external fighter may enter a Match before unit 4c lands.
-The unit 4b fixtures can assemble and pass the cooked loader but stop at this final gate.
-`rootRuleVersion` versions the complete sampling, correction and bake contract. Unit 4c must
-retain each published rule implementation throughout the supported runtime-API window.
-A changed sampler or bake rule receives a new version; it must not silently reinterpret older
-pose bytes. Exact shared-clip versions likewise remain available for that window.
+**Points.** `poses.bin` keeps the Editor baker's layout. First come the required humanoid points,
+then hurtbox bones and end bones, deduplicated by baked name in that order. The definition's
+attachment points come next, then `_hips_offset`. Tracks are ordered by pose track ID. Humanoid
+points resolve through the bone map, a `humanoid.json` or Mixamo names. A `rig:` ID names exactly
+one node. Every node the bake reads, the hips, head and thighs of the turn included, must be a joint
+of a skin that a mesh node in the default scene draws, or a node below such a joint; any other
+node fails with `item.pose-bake.point` or `glb.rig.bone`, because nothing the player sees moves it. An attachment point such as `_weapon_tip` is the drawn position of the one node with the
+same name, so a weapon modelled in the GLB carries marker nodes named after its attachment points.
+The built-in weapon prefab rule below exists for a prop attached to a scaled bone and does not
+apply to geometry already in the GLB. Every point is its model-space position minus the hips.
+`_hips_offset` is the hips in model space plus `modelYOffset` on the vertical axis. Root
+translation never moves the authoritative fighter.
+
+**Verification.** Admission parses the GLB once, re-bakes every bound clip and requires the result
+to equal the included `poses.bin` byte for byte. A difference fails with
+`item.pose-bake.mismatch` and names the first track, frame and point, and the distance in
+millimetres. Exact equality was chosen over a tolerance. Every peer runs the simulation from the
+same included bytes, so the check only has to prove that those bytes come from the drawn motion.
+Exact equality proves that without a tolerance to argue about or hand-tuned poses hiding under it.
+The bake makes this possible across runtimes. It computes in double with only `+`, `-`, `*`, `/`
+and `sqrt` and rounds to binary32 once per output value. Node rest values from the GLB JSON
+round once through the portable decimal parser, and keys come bit-exactly from the BIN chunk.
+Release Mono players run float arithmetic in double precision while CoreCLR rounds each float
+operation, so float arithmetic would split them. Double arithmetic without transcendental calls
+does not. In the Win64 player (Mono 6.13), Tumbleweed's admission re-baked its poses to the .NET 8
+bytes and its re-cook reproduced every item file byte for byte. `PortableBakeDeterminismTests` adds an
+adversarial item: binary32 rounding ties, a subnormal output and two decimal node values a hair
+either side of a tie. It bakes to the same pinned bytes on .NET 8 and in that player. Neither runtime
+fuses a multiply and an add, Mono keeps subnormals, and the test pins that the bake calls no `Math`
+function other than `Sqrt`, `Floor`, `Ceiling`, `Abs`, `Max` and `Min`.
+The work is bounded before it is done. Each animation accessor is read once per item, however many
+samplers share it, and the distinct accessors read may total at most the BIN chunk's bytes
+(`glb.limit.animation-bytes`), so aliased accessors cannot multiply the file. Keys per channel are
+bounded by the frame count, and frames by the loader's pose limits: at most 300 nodes, 256
+animations, 4096 frames per track and the pose-memory ceiling. The bake transforms only ancestors
+of baked points and evaluates only their channels, and a clip bound by several animations is
+sampled once. Tumbleweed's 17 tracks bake in well under a second
+in a cook.
+
+`rootRuleVersion` 1 names this rule. A changed sampler, placement or point rule receives a new
+version and keeps rule 1 for every published fighter in the supported window. The Shared suite
+pins the SHA-256 of a fixture's rule-1 bake.
+
+**Shared clips.** `src/Shared/SharedClips/registry.json` lists exact `slop.anim.*` IDs and
+versions, each with a library GLB beside it, its SHA-256 and a clip name. The table and files
+build into Shared, so the client and the GameServer resolve the same bytes. A shared clip's
+channels are applied to the fighter's nodes of the same names, then sampled and baked like a GLB
+clip. This retarget rule is provisional until the owner's clip inventory defines the library.
+The table is empty, so every shared reference fails with `portable.shared.unsupported`.
 
 ### Item resource and filesystem limits
 
@@ -163,9 +209,12 @@ multiple frame headers and concatenated images fail. Model-swap image checks rem
 
 Each item has one GLB, loaded with glTFast.
 
-- **Path A, for fighters,** sets joint transforms from the GLB's own clips at the current tick,
-  because Unity creates only legacy clips at runtime and those cannot use Animancer. It cost 13.4 µs
-  per fighter per frame against 62.5 µs built-in (step 0.1, median).
+- **Path A, for fighters,** plays the GLB's own clips. Unity creates only legacy clips at runtime,
+  and those cannot play in Animancer's graph. Each bound clip therefore becomes an Animancer
+  job state that writes the Shared sampler's per-tick local transforms into the animation stream
+  and blends between neighbouring ticks for display. Animancer's mixer fades between GLB states as
+  it does between clips. The model uses a generic Animator without an avatar. Step 0.1 measured
+  13.4 µs per fighter per frame for writing GLB joints, against 62.5 µs built-in (median).
 - **Path B, for model swaps,** builds a Humanoid avatar at runtime and plays the base fighter's
   built-in clips. It worked for `bonk.glb` and `bashie.glb`, and for a raw Tripo character that
   never went through Unity (step 0.1b, `tmp/workshop-spikes/tripo-swap/`).

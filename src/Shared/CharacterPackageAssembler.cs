@@ -369,7 +369,7 @@ public static class CharacterPackageAssembler
             d.Add(Error("package.pose.hurtbox-missing", "character.hurtboxBoneDefs", $"Hurtbox bone '{id}' is missing from poses.bin."));
     }
 
-    private static HashSet<string> RequiredAnimations(CookedCharacterPackage package, List<CharacterDiagnostic> d)
+    internal static HashSet<string> RequiredAnimations(CookedCharacterPackage package, List<CharacterDiagnostic> d)
     {
         var required = new HashSet<string>(StringComparer.Ordinal);
         Add(required, package.Definition.Presentation.Idle, d, "character.presentation");

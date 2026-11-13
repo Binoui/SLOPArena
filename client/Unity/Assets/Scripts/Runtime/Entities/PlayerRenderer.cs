@@ -35,6 +35,8 @@ namespace SlopArena.Client.Entities
         private AnimationClip _throwClip;
         private AnimationClip _grabHoldClip, _grabbedHoldClip;
         private AnimationClip _grabVictimThrowClip;
+        /// <summary>The model plays its own GLB clips (ADR-0065 path A); shared humanoid clips stay closed to it.</summary>
+        private bool _glbMotion;
         private ProjectileVFXManager _projectileVFX;
 
         [Header("Thresholds")]
@@ -446,8 +448,15 @@ namespace SlopArena.Client.Entities
             _forms = instance != null ? instance.GetComponentInChildren<FormPresentation>(true) : null;
             _animancer = animancer;
             _weaponHips = null;
+            _glbMotion = false;
             if (instance == null) return;
             ApplyModelSettings();
+            if (instance.TryGetComponent<Workshop.GlbMotionBinder>(out var glbMotion))
+            {
+                glbMotion.Bind(_animancer);
+                _glbMotion = true;
+                _grabClip = _throwClip = _grabHoldClip = _grabbedHoldClip = _grabVictimThrowClip = null;
+            }
             var animator = _animancer.Animator;
             _weaponHips = animator.isHuman
                 ? animator.GetBoneTransform(HumanBodyBones.Hips)
@@ -1024,6 +1033,7 @@ namespace SlopArena.Client.Entities
 
         private void LoadSharedAnimations()
         {
+            if (_glbMotion) return;
             if (_grabClip != null && _throwClip != null && _grabHoldClip != null && _grabbedHoldClip != null
                 && _grabVictimThrowClip != null) return;
             var shared = Resources.Load<CharacterAnimationConfig>("AnimationConfigs/Shared_AnimConfig");

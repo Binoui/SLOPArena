@@ -29,7 +29,7 @@ def main():
     item = evidence / "item"
     env = {**os.environ, "DISPLAY": os.environ.get("DISPLAY", ":0"), "SLOP_PORTABLE_PROOF": str(item)}
     run(["dotnet", "test", "tests/Shared.Tests/Shared.Tests.csproj", "-p:SkipUnityPluginCopy=true",
-         "--filter", "FullyQualifiedName~TumbleweedAssemblesAndStopsAtPoseBakeGate"], root, evidence / "fixture.log", env)
+         "--filter", "FullyQualifiedName~TumbleweedIsAdmittedWhenItsBakeVerifies"], root, evidence / "fixture.log", env)
     run(["dotnet", "build", "tools/PortableCookProof", "-p:SkipUnityPluginCopy=true"], root, evidence / "runner-build.log")
     runner = root / "tools/PortableCookProof/bin/Debug/netstandard2.1/PortableCookProof.dll"
     runner.with_suffix(".runtimeconfig.json").write_text(json.dumps({"runtimeOptions": {"tfm": "net8.0", "framework": {"name": "Microsoft.NETCore.App", "version": "8.0.0"}}}))
