@@ -68,6 +68,16 @@ public sealed class FighterItemAdmissionTests
             ["creator"] = "test", ["license"] = "CC0", ["attribution"] = "Tumbleweed proof kit; synthetic fixture media", ["aiAssisted"] = false, ["payloads"] = hashes }.ToJsonString());
     }
 
+    private static void Repin(Dictionary<string, byte[]> item)
+    {
+        var binding = JsonNode.Parse(item["client.bindings"])!;
+        foreach (var name in binding["payloads"]!.AsObject().Select(x => x.Key).ToArray())
+            binding["payloads"]![name] = WorkshopItemManifestCodec.HashPayload(item[name]);
+        item["client.bindings"] = Encoding.UTF8.GetBytes(binding.ToJsonString());
+        item["manifest.json"] = CharacterPackageAssembler.RehashManifest(item);
+        RehashItem(item);
+    }
+
     private static byte[] MinimalGlb()
     {
         var json = Encoding.UTF8.GetBytes("""
@@ -201,6 +211,41 @@ public sealed class FighterItemAdmissionTests
         }
         finally { Directory.Delete(folder, true); }
     }
+    [Fact] public void IncludedSourceMustReproduceRuntime()
+    {
+        var item = Item(); var source = JsonNode.Parse(item["character.json"])!; source["displayName"] = "Different";
+        item["character.json"] = Encoding.UTF8.GetBytes(source.ToJsonString()); Repin(item);
+        Assert.Contains(Read(item).Diagnostics, x => x.Code == "item.source.runtime");
+    }
+    [Fact] public void IncludedSourceVersionMustMatchItem()
+    {
+        var item = Item(); var source = JsonNode.Parse(item["package.json"])!; source["version"] = "9.0.0";
+        item["package.json"] = Encoding.UTF8.GetBytes(source.ToJsonString()); Repin(item);
+        Assert.Contains(Read(item).Diagnostics, x => x.Code == "item.source.identity");
+    }
+    [Theory] [InlineData(false)] [InlineData(true)]
+    public void PoseAndClipReferencesMustExist(bool pose)
+    {
+        var item = Item(); var binding = JsonNode.Parse(item["client.bindings"])!;
+        if (pose) binding["animations"]![0]!["frameCount"] = 2;
+        else binding["animations"]![0]!["source"]!["clipName"] = "missing";
+        item["client.bindings"] = Encoding.UTF8.GetBytes(binding.ToJsonString()); Repin(item);
+        Assert.Contains(Read(item).Diagnostics, x => x.Code == (pose ? "package.pose.frame-count-mismatch" : "portable.clip.missing"));
+    }
+    [Fact] public void InvalidCardAndHumanoidFieldsRefused()
+    {
+        var item = Item(media: true); item["humanoid.json"] = Encoding.UTF8.GetBytes("{\"bones\":[],\"unknown\":1}"); Repin(item);
+        Assert.Contains(Read(item).Diagnostics, x => x.Code == "item.humanoid");
+        item = Item(); item["card.json"] = Encoding.UTF8.GetBytes("{\"description\":\"x\",\"workInProgress\":false,\"tutorialHint\":{\"starter\":\"warp\",\"followUp\":\"1\",\"jump\":false}}"); Repin(item);
+        Assert.Contains(Read(item).Diagnostics, x => x.Code == "item.card");
+    }
+    [Fact] public void ImageDimensionsAreBounded()
+    {
+        var item = Item(media: true);
+        System.Buffers.Binary.BinaryPrimitives.WriteInt32BigEndian(item["portrait.png"].AsSpan(16), 100000);
+        Repin(item); Assert.Contains(Read(item).Diagnostics, x => x.Code == "item.image.limit");
+    }
+    [Fact] public void ZeroSteamIdIsRefused() => Assert.Contains(Read(Item("workshop.42"), 0).Diagnostics, x => x.Code == "item.origin");
     [Fact] public void MissingPayloadRefused()
     { var item = Item(); item.Remove("character.json"); Assert.Contains(Read(item).Diagnostics, x => x.Code == "item.payload.missing"); }
     [Fact] public void PortableNumberRoundTripsEveryFloatClass()
