@@ -82,7 +82,10 @@ namespace SlopArena.Client.UI
             Button(_body, "PUBLISH LATEST COOK", () => Run(FighterPublishView));
             int generation = workspaceGeneration;
             workspacePoll = _root.schedule.Execute(() => { if (generation == workspaceGeneration && IsOpen && _view == View.Fighter) PollWorkspace(); }).Every(250);
-            foreach (string row in InstalledFighters.StatusRows) _body.Add(Text(row));
+            var installedStatus = Text(string.Join("\n", InstalledFighters.StatusRows));
+            installedStatus.style.whiteSpace = WhiteSpace.Normal;
+            _body.Add(installedStatus);
+            installedStatus.schedule.Execute(() => installedStatus.text = string.Join("\n", InstalledFighters.StatusRows)).Every(500);
             FocusBody();
         }
         private void SelectWorkspace(string folder)

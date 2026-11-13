@@ -21,6 +21,23 @@ public partial class PackageFighterContentTests
     }
 
     [Fact]
+    public void InstalledSnapshotsAppendSortedMadeFightersAndKeepPreparedMatchesAfterRemoval()
+    {
+        var bundled = Library(Bundled());
+        var a = Fixture("local.zebra"); var b = Fixture("local.alpha");
+        var made = new[] { AdmittedFighter.TestFixture(a.Files, a.Requirement), AdmittedFighter.TestFixture(b.Files, b.Requirement) };
+        var installed = bundled.WithMadeFighters(made);
+        Assert.Equal(bundled.PackageIds, installed.PackageIds.Take(bundled.PackageIds.Count));
+        Assert.Equal(new[] { "local.alpha", "local.zebra" }, installed.PackageIds.Skip(bundled.PackageIds.Count));
+        var choice = installed.Choose("local.alpha");
+        Assert.True(installed.TryPrepare(new[] { choice, installed.Choose("fightguy") }, out var started, out var failure), failure);
+        var removed = installed.WithMadeFighters(Array.Empty<AdmittedFighter>());
+        Assert.False(removed.Contains("local.alpha"));
+        Assert.NotNull(choice.Resolve(started!));
+        Assert.NotNull(installed.Choose("local.alpha").Resolve(started!));
+        Assert.Equal(bundled.PackageIds, installed.PackagesFor(false));
+    }
+    [Fact]
     public void MadeFightersAreHiddenWhenTheModeRequiresBundledContent()
     {
         var library = Library(RevisionCatalog("1.0.0"));

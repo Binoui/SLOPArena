@@ -73,6 +73,9 @@ namespace SlopArena.Client.Workshop
                     {
                         SteamUGC.DownloadItem(ids[i], false);
                         sources[key] = ("", id);
+                        if (revisions.TryGetValue(key, out var pending) && pending.Stamp == "downloading"
+                            && SteamUGC.GetItemDownloadInfo(ids[i], out ulong done, out ulong total))
+                            pending.Diagnostic = $"Downloading {done} / {total} bytes";
                     }
                 }
             }
