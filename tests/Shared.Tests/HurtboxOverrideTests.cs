@@ -61,7 +61,7 @@ public class HurtboxOverrideTests
         Assert.Equal(0.22f, parsed[0].Radius, 5);
         Assert.Equal(0.1f, parsed[1].OffX, 5);
         Assert.Equal(0.05f, parsed[1].OffZ, 5);
-        Assert.Contains("\"character\": \"Manki\"", json); // stable shape for hand edits
+        Assert.Contains("\"character\": \"manki\"", json); // stable shape for hand edits
     }
 
     [Fact]
@@ -79,9 +79,9 @@ public class HurtboxOverrideTests
     }
 
     [Fact]
-    public void TryParse_UnknownCharacter_ReturnsFalse()
+    public void TryParse_InvalidPackageId_ReturnsFalse()
     {
-        string json = HurtboxOverride.Serialize("manki", Defs).Replace("Manki", "Nobody");
+        string json = HurtboxOverride.Serialize("manki", Defs).Replace("manki", "Nobody");
         Assert.False(HurtboxOverride.TryParse(json, out _, out _));
     }
 

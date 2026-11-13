@@ -226,7 +226,7 @@ public sealed class TrainingArenaTests(ITestOutputHelper output)
         Assert.Contains("single=True", results[0]);
         Assert.Contains("single=False double=True", results[1]);
         bool exception = Spec.GetProperty("solids").EnumerateArray().Single(s => s.GetProperty("name").GetString() == "FarIsland")
-            .GetProperty("double_jump_exceptions").EnumerateArray().Any(s => s.GetString() == fighter.ToString());
+            .GetProperty("double_jump_exceptions").EnumerateArray().Any(s => LegacyFighterProtocol.TryPackageId(s.GetString(), out var packageId) && packageId == fighter);
         Assert.Contains($"single=False double={exception} recovery=True", results[2]);
     }
 }

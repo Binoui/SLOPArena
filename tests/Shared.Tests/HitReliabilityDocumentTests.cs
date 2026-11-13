@@ -6,7 +6,7 @@ namespace SlopArena.Shared.Tests;
 internal static class HitReliabilityGoldenFixture
 {
     internal static readonly MatchContentIdentity Identity = new("fixture", "1.2.3", "source", "0123456789abcdef", "package");
-    internal static MatchContentEntry Target(string cls) => new(new ContentHandle(1), Identity with { PackageId = cls }, cls == "fightguy" ? "FightGuy" : "Manki",
+    internal static MatchContentEntry Target(string cls) => new(new ContentHandle(1), Identity, cls == "fightguy" ? "FightGuy" : "Manki",
         new CharacterDefinition { PackageId = cls, CapsuleHeight = 1.8f, CapsuleRadius = 0.3f, HurtboxRadius = 0.3f });
     internal static MoveReliability Move() => new()
     {
