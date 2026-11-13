@@ -177,8 +177,10 @@ The float ceiling covers sample storage; it does not measure total managed alloc
 
 Unit 4b adds `FighterItemAdmission.ReadLocalItem` and `ReadDownloadedItem` as internal host
 adapters. They verify a flat schema-2 fighter item, reject links and extra files, pin all bytes,
-validate schema-3 portable bindings, and compare included source against `CompilePortable`
-before calling the Workshop loader. The Steam entry point takes its PublishedFileId from the
+validate schema-3 portable bindings and the framed source hash, then call the Workshop loader
+with its profile selected explicitly. The included source is editable material, not a second
+runtime authority. Producer versions are recorded in item.json and named on needs-update errors.
+GLB-bound fighters currently stop at `item.pose-bake.unavailable` until unit 4c verifies the bake. The Steam entry point takes its PublishedFileId from the
 host. Neither an item field nor a claimed package namespace grants provenance.
 
 `FighterItemSnapshot` retains the verified bytes and cloned binding/card data for subsequent

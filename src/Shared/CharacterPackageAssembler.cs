@@ -254,6 +254,12 @@ public static class CharacterPackageAssembler
         try
         {
             BindingData binding = ParseBindings(input.BindingBytes, d);
+            if (input.BindingSchemaVersion == 3)
+            {
+                using var bindingsDocument = JsonDocument.Parse(input.BindingBytes);
+                using var runtimeDocument = JsonDocument.Parse(input.RuntimeBytes);
+                PortableFighterBindings.ValidateRuntime(bindingsDocument.RootElement, runtimeDocument.RootElement, d);
+            }
             PoseData poses = ParsePoses(input.PoseBytes, d);
             HashSet<string> required = RequiredAnimations(input.CookedPackage, d);
             if (binding == null || poses == null) return;
@@ -345,6 +351,11 @@ public static class CharacterPackageAssembler
                     foreach (var id in attachmentIds.EnumerateArray())
                         if (id.ValueKind != JsonValueKind.String || !pose.BoneNames.Contains(id.GetString() ?? ""))
                             d.Add(Error("package.pose.attachment-missing", "character.attachmentBoneIds", "Attachment ID is missing from poses.bin."));
+                if (binding.BindingSchemaVersion == 3)
+                {
+                    using var portableDocument = JsonDocument.Parse(bindings);
+                    PortableFighterBindings.ValidateRuntime(portableDocument.RootElement, root, d);
+                }
                 if (binding.PackageId != manifest.PackageId || binding.SourceHash != manifest.SourceHash || binding.BindingSchemaVersion != manifest.Toolchain.BindingSchemaVersion || binding.PoseFormat != manifest.Toolchain.PoseFormat || binding.PoseVersion != manifest.Toolchain.PoseVersion || binding.SampleRate != manifest.Toolchain.SampleRate)
                     d.Add(Error("package.binding.metadata-mismatch", BindingPath, "Binding metadata does not match manifest."));
             }
@@ -496,7 +507,7 @@ public static class CharacterPackageAssembler
         foreach (string id in requiredPresentationSet)
             if (!requiredPresentations.Contains(id, StringComparer.Ordinal))
                 d.Add(Error("package.binding.presentation-undeclared", id, "Hit presentation ID is not declared by the cooked definition."));
-        if (binding.BindingSchemaVersion == 2 || binding.HasPresentations)
+        if (binding.BindingSchemaVersion >= 2 || binding.HasPresentations)
             requiredPresentationSet.UnionWith(requiredPresentations);
         foreach (string id in requiredPresentationSet)
             if (!binding.Presentations.Contains(id))
@@ -529,6 +540,8 @@ public static class CharacterPackageAssembler
                     portable.BySemantic.TryAdd(item.SemanticId, item);
                     portable.ByPose.TryAdd(item.PoseTrackId, item);
                 }
+                portable.HasPresentations = true;
+                foreach (var entry in root.GetProperty("presentations").EnumerateObject()) portable.Presentations.Add(entry.Name);
                 return portable;
             }
             if (version is not (1 or 2) || GetInt(root, "catalogSchemaVersion") != version)

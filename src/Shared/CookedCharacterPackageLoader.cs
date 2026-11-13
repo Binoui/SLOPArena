@@ -32,6 +32,7 @@ public sealed class CookedCharacterPackageLoadResult
 }
 public static class CookedCharacterPackageLoader
 {
+    internal static CookedCharacterPackage ParsePortableDefinition(byte[] bytes) => RuntimeParser.Parse(bytes);
     private static readonly HashSet<string> SupportedRuntimeApiMinimums = new(
         Enumerable.Range(0, 23).Select(minor => $"1.{minor}.0"), StringComparer.Ordinal);
 

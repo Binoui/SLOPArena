@@ -43,18 +43,8 @@ internal static class FighterItemAdmission
         {
             if ((File.GetAttributes(folder) & FileAttributes.ReparsePoint) != 0)
                 return Failure("item.path", "Item folder cannot be a link.");
-            byte[] ReadBounded(string path, int limit)
-            {
-                if ((File.GetAttributes(path) & (FileAttributes.ReparsePoint | FileAttributes.Directory)) != 0)
-                    throw new InvalidDataException("Payloads must be regular files.");
-                using var stream = File.OpenRead(path);
-                if (stream.Length > limit) throw new InvalidDataException("Byte limit exceeded for " + Path.GetFileName(path));
-                var bytes = new byte[checked((int)stream.Length)];
-                int offset = 0, read;
-                while (offset < bytes.Length && (read = stream.Read(bytes, offset, bytes.Length - offset)) > 0) offset += read;
-                if (offset != bytes.Length || stream.ReadByte() != -1) throw new InvalidDataException("File changed while reading.");
-                return bytes;
-            }
+            long totalBytes = 0;
+            byte[] ReadBounded(string path, int limit) => PortableItemFiles.Read(path, limit, ref totalBytes);
             var manifest = WorkshopItemManifestCodec.Read(ReadBounded(Path.Combine(folder, "item.json"), WorkshopItemManifestCodec.MaxManifestBytes));
             d.AddRange(manifest.Diagnostics);
             if (!manifest.IsAccepted) return Result();
@@ -67,7 +57,7 @@ internal static class FighterItemAdmission
                 if (!manifest.Manifest.Payloads.ContainsKey(name)) return Failure("item.payload.extra", "Unexpected payload " + name);
                 int limit = CookedPackageLimits.FileBytes(name);
                 if (limit == 0) limit = name.EndsWith(".glb", StringComparison.Ordinal) ? (int)WorkshopGlbLimits.Default.MaxFileBytes
-                    : name.EndsWith(".png", StringComparison.Ordinal) || name.EndsWith(".jpg", StringComparison.Ordinal) ? 4 * 1024 * 1024 : 2 * 1024 * 1024;
+                    : name.EndsWith(".png", StringComparison.Ordinal) || name.EndsWith(".jpg", StringComparison.Ordinal) ? 4 * 1024 * 1024 : name == "humanoid.json" ? PortableItemFiles.HumanoidBytes : 2 * 1024 * 1024;
                 files.Add(name, ReadBounded(path, limit));
             }
             d.AddRange(WorkshopItemManifestCodec.Verify(manifest.Manifest, files));
@@ -77,8 +67,8 @@ internal static class FighterItemAdmission
                     d.AddRange(WorkshopGlbPrecheck.CheckImage(file.Value));
             if (files.TryGetValue("humanoid.json", out var map) && !HumanoidBoneMap.TryParseMapFile(Encoding.UTF8.GetString(map), out _, out var mapError))
                 return Failure("item.humanoid", mapError);
-            string model = files.Keys.Single(x => x.EndsWith(".glb", StringComparison.OrdinalIgnoreCase));
-            d.AddRange(WorkshopGlbPrecheck.Check(files[model], WorkshopGlbLimits.Default).Diagnostics);
+            string model = files.Keys.Single(x => x.EndsWith(".glb", StringComparison.Ordinal));
+            d.AddRange(WorkshopGlbPrecheck.Check(files[model], WorkshopGlbLimits.Default, portableImages: true).Diagnostics);
             if (d.Count != 0) return Result();
             using var binding = JsonDocument.Parse(files[CharacterPackageAssembler.BindingPath]);
             PortableFighterBindings.Validate(binding.RootElement, d, files);
@@ -97,29 +87,27 @@ internal static class FighterItemAdmission
                         return Failure("item.card", "Tutorial hint must name canonical slots.");
                 hint.GetProperty("jump").GetBoolean();
             }
-            var source = CharacterPackageSourceCodec.Load(Encoding.UTF8.GetString(files["package.json"]), Encoding.UTF8.GetString(files["character.json"]));
-            d.AddRange(source.Diagnostics);
             using var cooked = JsonDocument.Parse(files[CharacterPackageAssembler.ManifestPath]);
             var m = cooked.RootElement;
             string id = m.GetProperty("packageId").GetString()!;
             string expected = steamId.HasValue ? "workshop." + steamId.Value.ToString(System.Globalization.CultureInfo.InvariantCulture) : "local.";
             if (steamId.HasValue ? id != expected : !id.StartsWith(expected, StringComparison.Ordinal) || id.Length == expected.Length)
                 return Failure("item.namespace", "Package namespace disagrees with host origin.");
-            if (source.Source == null || source.Source.Manifest.PackageId != id || source.Source.Manifest.Version != manifest.Manifest.ItemVersion
-                || m.GetProperty("version").GetString() != manifest.Manifest.ItemVersion)
-                return Failure("item.source.identity", "Source, cooked and item identity must agree.");
-            if (d.Count != 0) return Result();
-            var compiled = CharacterPackageCompiler.CompilePortable(source.Source);
-            d.AddRange(compiled.Diagnostics);
-            if (compiled.CookedPackage == null || !compiled.CookedPackage.CanonicalBytes.SequenceEqual(files[CharacterPackageAssembler.RuntimePath]))
-                return Failure("item.source.runtime", "Portable runtime must match the Workshop compilation of the included source.");
+            if (m.GetProperty("version").GetString() != manifest.Manifest.ItemVersion)
+                return Failure("item.identity", "Cooked and item versions must agree.");
+            if (m.GetProperty("sourceHash").GetString() != PortableSourceHash.Compute(files))
+                return Failure("item.source.hash", "Source hash does not match the included source file bytes.");
             var payload = files.Where(x => CookedPackageLimits.FileBytes(x.Key) != 0).ToDictionary(x => x.Key, x => x.Value, StringComparer.Ordinal);
             var requirement = new MatchContentPackageRequirement(id, m.GetProperty("version").GetString()!, m.GetProperty("cookedContentHash").GetString()!, m.GetProperty("packageHash").GetString()!);
-            var loaded = CookedCharacterPackageLoader.LoadFiles(payload, requirement);
+            var loaded = CookedCharacterPackageLoader.LoadFiles(payload, requirement, CharacterCookProfile.Workshop);
             d.AddRange(loaded.Diagnostics);
+            if (loaded.Diagnostics.Any(x => x.Code == "package.compatibility.unsupported"))
+                d.Add(MatchContentCatalogBuilder.Error("item.needs-update", "item.json", $"Needs update: cooked by compiler {manifest.Manifest.CompilerVersion}, canonical writer {manifest.Manifest.CanonicalWriterVersion}; runtime API is outside the supported window."));
+            if (loaded.IsValid && binding.RootElement.GetProperty("animations").EnumerateArray().Any(x => x.GetProperty("source").GetProperty("kind").GetString() == "glb"))
+                return Failure("item.pose-bake.unavailable", "Pose bake verification not available. Unit 4c must verify poses.bin against the bound clips before Match admission.");
             return loaded.IsValid ? new(new AdmittedFighter(loaded, null, null), d.AsReadOnly(), new FighterItemSnapshot(files, binding.RootElement, card.RootElement)) : Result();
         }
-        catch (Exception ex) when (ex is InvalidDataException or IOException or UnauthorizedAccessException or JsonException or InvalidOperationException or KeyNotFoundException or ArgumentException or OverflowException)
+        catch (Exception ex) when (ex is InvalidDataException or IOException or UnauthorizedAccessException or JsonException or InvalidOperationException or KeyNotFoundException or ArgumentException or OverflowException or NotSupportedException or System.Security.SecurityException or System.ComponentModel.Win32Exception or TypeLoadException)
         { return Failure("item.read", ex.Message); }
     }
 }

@@ -11,18 +11,26 @@ namespace SlopArena.Shared.Tests;
 
 public sealed class FighterItemAdmissionTests
 {
-    internal static Dictionary<string, byte[]> Item(string id = "local.tumbleweed", bool media = false)
+    internal static Dictionary<string, byte[]> Item(string id = "local.tumbleweed", bool media = false, string kit = "Tumbleweed", bool midpoint = false)
     {
         string root = CookedPackageEdits.Root;
         var sourceFiles = new[] { "package.json", "character.json" }.ToDictionary(x => x,
-            x => File.ReadAllBytes(Path.Combine(root, "tests/Shared.Tests/Fixtures/Tumbleweed", x)));
+            x => File.ReadAllBytes(Path.Combine(root, kit == "Tumbleweed" ? "tests/Shared.Tests/Fixtures/Tumbleweed" : "client/Unity/Assets/CharacterPackages/" + kit, x)));
         var package = JsonNode.Parse(sourceFiles["package.json"])!;
         package["packageId"] = id;
         sourceFiles["package.json"] = Encoding.UTF8.GetBytes(package.ToJsonString());
+        if (midpoint)
+        {
+            var source = JsonNode.Parse(sourceFiles["character.json"])!;
+            source["movement"]!["airAccelBase"] = JsonNode.Parse("1.00000005960464477539062500000001");
+            source["movement"]!["airFloatGravity"] = JsonNode.Parse("-0.0");
+            sourceFiles["character.json"] = Encoding.UTF8.GetBytes(source.ToJsonString());
+        }
         var compiled = CharacterPackageCompiler.CompilePortable(Encoding.UTF8.GetString(sourceFiles["package.json"]), Encoding.UTF8.GetString(sourceFiles["character.json"]));
         Assert.False(compiled.HasErrors, string.Join("\n", compiled.Diagnostics));
         var input = CharacterPackageAssemblerTests.BuildInput(compiled.CookedPackage!, Array.Empty<PackageDependencySource>(), compiled.CookedPackage!.Definition.CapabilityRequirements, Array.Empty<CharacterDiagnostic>());
         var old = JsonNode.Parse(input.BindingBytes)!;
+        string sourceHash = PortableSourceHash.Compute(sourceFiles);
         var animations = new JsonArray();
         foreach (var animation in old["animations"]!.AsArray())
             animations.Add(new JsonObject { ["semanticId"] = animation!["semanticId"]!.DeepClone(), ["poseTrackId"] = animation["poseTrackId"]!.DeepClone(), ["frameCount"] = 1,
@@ -43,12 +51,23 @@ public sealed class FighterItemAdmissionTests
         foreach (var f in sourceFiles) hashes[f.Key] = WorkshopItemManifestCodec.HashPayload(f.Value);
         var bindings = new JsonObject
         {
-            ["packageId"] = id, ["sourceHash"] = input.SourceHash, ["catalogSchemaVersion"] = 3, ["bindingSchemaVersion"] = 3,
+            ["packageId"] = id, ["sourceHash"] = sourceHash, ["catalogSchemaVersion"] = 3, ["bindingSchemaVersion"] = 3,
             ["poseFormat"] = "SKEL", ["poseVersion"] = 1, ["sampleRate"] = 60, ["rootRuleVersion"] = 1,
-            ["payloads"] = hashes, ["modelFile"] = "tumbleweed.glb", ["portraitFile"] = media ? "portrait.png" : null, ["icons"] = media ? new JsonObject { ["jab"] = "move.png" } : new JsonObject(), ["animations"] = animations,
+            ["payloads"] = hashes, ["modelFile"] = "tumbleweed.glb", ["portraits"] = new JsonArray(media ? JsonValue.Create("portrait.png") : null),
+            ["icons"] = new JsonArray(), ["animations"] = animations, ["presentations"] = new JsonObject(),
         };
+        foreach (var form in new[] { input.CookedPackage.Definition }.SelectMany(definition => definition.AlternateForm == null
+            ? new[] { definition.Slots } : new[] { definition.Slots, definition.AlternateForm.Slots }))
+        {
+            var icons = new JsonObject();
+            foreach (string icon in form.Select(slot => slot.IconId).Where(x => !string.IsNullOrEmpty(x)).Distinct()) icons[icon] = media ? "move.png" : null;
+            bindings["icons"]!.AsArray().Add(icons);
+        }
+        if (input.CookedPackage.Definition.AlternateForm != null) bindings["portraits"]!.AsArray().Add((JsonNode?)null);
+        foreach (string presentation in input.CookedPackage.Definition.PresentationIds)
+            bindings["presentations"]![presentation] = new JsonObject { ["kind"] = "none" };
         var assembly = CharacterPackageAssembler.Assemble(new CharacterPackageAssemblyInput(id, input.Version, input.Creator, input.License, input.Attribution,
-            input.AuthoringSchemaVersion, input.CookedSchemaVersion, input.RuntimeApiMin, input.RuntimeApiMax, input.SourceHash, input.Dependencies,
+            input.AuthoringSchemaVersion, input.CookedSchemaVersion, input.RuntimeApiMin, input.RuntimeApiMax, sourceHash, input.Dependencies,
             input.CapabilityRequirements, "portable-1", "portable", 3, "SKEL", 1, 60, input.Warnings, input.RuntimeBytes, input.PoseBytes,
             Encoding.UTF8.GetBytes(bindings.ToJsonString()), input.CookedPackage));
         Assert.True(assembly.IsValid, string.Join("\n", assembly.Diagnostics));
@@ -64,7 +83,8 @@ public sealed class FighterItemAdmissionTests
     {
         var hashes = new JsonObject();
         foreach (var f in files.Where(x => x.Key != "item.json")) hashes[f.Key] = WorkshopItemManifestCodec.HashPayload(f.Value);
-        files["item.json"] = Encoding.UTF8.GetBytes(new JsonObject { ["schemaVersion"] = 2, ["itemType"] = "fighter", ["itemVersion"] = "0.1.0",
+        files["item.json"] = Encoding.UTF8.GetBytes(new JsonObject { ["schemaVersion"] = 2, ["itemType"] = "fighter", ["itemVersion"] = JsonNode.Parse(files["manifest.json"])!["version"]!.DeepClone(),
+            ["compilerVersion"] = CharacterPackageCompiler.PortableCompilerVersion, ["canonicalWriterVersion"] = CharacterPackageCompiler.PortableCanonicalWriterVersion,
             ["creator"] = "test", ["license"] = "CC0", ["attribution"] = "Tumbleweed proof kit; synthetic fixture media", ["aiAssisted"] = false, ["payloads"] = hashes }.ToJsonString());
     }
 
@@ -73,6 +93,9 @@ public sealed class FighterItemAdmissionTests
         var binding = JsonNode.Parse(item["client.bindings"])!;
         foreach (var name in binding["payloads"]!.AsObject().Select(x => x.Key).ToArray())
             binding["payloads"]![name] = WorkshopItemManifestCodec.HashPayload(item[name]);
+        string sourceHash = PortableSourceHash.Compute(item); binding["sourceHash"] = sourceHash;
+        var manifest = JsonNode.Parse(item["manifest.json"])!; manifest["sourceHash"] = sourceHash;
+        item["manifest.json"] = Encoding.UTF8.GetBytes(manifest.ToJsonString());
         item["client.bindings"] = Encoding.UTF8.GetBytes(binding.ToJsonString());
         item["manifest.json"] = CharacterPackageAssembler.RehashManifest(item);
         RehashItem(item);
@@ -90,7 +113,7 @@ public sealed class FighterItemAdmissionTests
         {"bufferView":4,"componentType":5126,"type":"VEC3","count":1}],
         "meshes":[{"primitives":[{"attributes":{"POSITION":0,"JOINTS_0":1,"WEIGHTS_0":2}}]}],
         "nodes":[{"mesh":0,"skin":0},{"name":"root"}],"skins":[{"joints":[1]}],"scene":0,"scenes":[{"nodes":[0,1]}],
-        "animations":[{"name":"fixture","samplers":[{"input":3,"output":4,"interpolation":"LINEAR"}],
+        "animations":[{"name":"fixture","extras":{"slop":{"durationSecondsBits":1015580809,"frameCount":1}},"samplers":[{"input":3,"output":4,"interpolation":"LINEAR"}],
         "channels":[{"sampler":0,"target":{"node":1,"path":"translation"}}]}]}
         """);
         int length = (json.Length + 3) & ~3;
@@ -116,27 +139,23 @@ public sealed class FighterItemAdmissionTests
         finally { Directory.Delete(path, true); }
     }
 
-    [Fact] public void TumbleweedAdmittedEndToEnd()
+    [Fact] public void TumbleweedAssemblesAndStopsAtPoseBakeGate()
     {
-        var item = Item(); var result = Read(item);
+        var item = Item(midpoint: Environment.GetEnvironmentVariable("SLOP_PORTABLE_PROOF") != null); var result = Read(item);
         if (Environment.GetEnvironmentVariable("SLOP_PORTABLE_PROOF") is { } output)
         {
             Directory.CreateDirectory(output);
             foreach (var f in item) File.WriteAllBytes(Path.Combine(output, f.Key), f.Value);
         }
-        Assert.True(result.IsAccepted, string.Join("\n", result.Diagnostics));
-        Assert.Equal("local.tumbleweed", result.Fighter!.Identity.PackageId);
-        Assert.Null(result.Fighter.LegacySelector);
-        var bytes = result.Item!.ReadPayload("tumbleweed.glb"); bytes[0] ^= 1;
-        Assert.Equal(item["tumbleweed.glb"], result.Item.ReadPayload("tumbleweed.glb"));
-        Assert.Equal("Tumbleweed test kit", result.Item.Card.GetProperty("description").GetString());
+        Assert.False(result.IsAccepted);
+        Assert.Contains(result.Diagnostics, x => x.Code == "item.pose-bake.unavailable");
         var manifest = WorkshopItemManifestCodec.Read(item["item.json"]).Manifest!;
         Assert.Equal(WorkshopItemManifestCodec.Write(manifest), WorkshopItemManifestCodec.Write(WorkshopItemManifestCodec.Read(WorkshopItemManifestCodec.Write(manifest)).Manifest!));
     }
     [Fact] public void ChangedByteInEveryPayloadFails()
     {
         var item = Item(media: true);
-        Assert.True(Read(item).IsAccepted);
+        Assert.Contains(Read(item).Diagnostics, x => x.Code == "item.pose-bake.unavailable");
         foreach (var file in item.Keys.Where(x => x != "item.json").ToArray())
         {
             item[file][0] ^= 1;
@@ -147,7 +166,7 @@ public sealed class FighterItemAdmissionTests
     [Theory] [InlineData("fightguy", 0UL)] [InlineData("workshop.42", 0UL)] [InlineData("local.tumbleweed", 42UL)] [InlineData("workshop.41", 42UL)]
     public void HostNamespaceIsEnforced(string id, ulong steam)
     { Assert.Contains(Read(Item(id), steam == 0 ? null : steam).Diagnostics, x => x.Code == "item.namespace"); }
-    [Fact] public void DownloadUsesHostSteamId() => Assert.True(Read(Item("workshop.42"), 42).IsAccepted);
+    [Fact] public void DownloadUsesHostSteamId() => Assert.Contains(Read(Item("workshop.42"), 42).Diagnostics, x => x.Code == "item.pose-bake.unavailable");
     [Fact] public void ExtraFileFails() { var item = Item(); item["other.txt"] = new byte[1]; Assert.Contains(Read(item).Diagnostics, x => x.Code == "item.payload.extra"); }
     [Fact] public void RenamedFileFails() { var item = Item(); item["renamed.glb"] = item["tumbleweed.glb"]; item.Remove("tumbleweed.glb"); Assert.False(Read(item).IsAccepted); }
     [Fact] public void OuterRehashCannotHideChangedMedia() { var item = Item(); item["card.json"][1] ^= 1; RehashItem(item); Assert.Contains(Read(item).Diagnostics, x => x.Code == "portable.payload.mismatch"); }
@@ -164,7 +183,7 @@ public sealed class FighterItemAdmissionTests
     [Fact] public void SharedClipsAreUnavailable()
     {
         var root = JsonNode.Parse(Item()["client.bindings"])!;
-        root["animations"]![0]!["source"] = new JsonObject { ["kind"] = "shared", ["id"] = "slop.anim.idle", ["version"] = "1" };
+        root["animations"]![0]!["source"] = new JsonObject { ["kind"] = "shared", ["id"] = "slop.anim.idle.default.v1", ["version"] = "1.0.0" };
         Assert.Contains(CharacterPackageAssembler.ValidateClientBindings(Encoding.UTF8.GetBytes(root.ToJsonString())), x => x.Code == "portable.shared.unsupported");
     }
     [Theory] [InlineData("../a.glb")] [InlineData("a/b.glb")] [InlineData("C:a.glb")] [InlineData("CON.glb")] [InlineData("a.glb ")] [InlineData(".model.glb")]
@@ -211,17 +230,17 @@ public sealed class FighterItemAdmissionTests
         }
         finally { Directory.Delete(folder, true); }
     }
-    [Fact] public void IncludedSourceMustReproduceRuntime()
+    [Fact] public void IncludedSourceIsNotRuntimeAuthority()
     {
         var item = Item(); var source = JsonNode.Parse(item["character.json"])!; source["displayName"] = "Different";
         item["character.json"] = Encoding.UTF8.GetBytes(source.ToJsonString()); Repin(item);
-        Assert.Contains(Read(item).Diagnostics, x => x.Code == "item.source.runtime");
+        Assert.Contains(Read(item).Diagnostics, x => x.Code == "item.pose-bake.unavailable");
     }
-    [Fact] public void IncludedSourceVersionMustMatchItem()
+    [Fact] public void IncludedSourceVersionIsEditable()
     {
         var item = Item(); var source = JsonNode.Parse(item["package.json"])!; source["version"] = "9.0.0";
         item["package.json"] = Encoding.UTF8.GetBytes(source.ToJsonString()); Repin(item);
-        Assert.Contains(Read(item).Diagnostics, x => x.Code == "item.source.identity");
+        Assert.Contains(Read(item).Diagnostics, x => x.Code == "item.pose-bake.unavailable");
     }
     [Theory] [InlineData(false)] [InlineData(true)]
     public void PoseAndClipReferencesMustExist(bool pose)

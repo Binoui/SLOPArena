@@ -29,7 +29,7 @@ internal static class PortableCanonicalJson
                 writer.WriteStartArray(); foreach (var x in value.EnumerateArray()) Write(x, writer); writer.WriteEndArray(); break;
             case JsonValueKind.Number:
                 if (value.TryGetInt32(out var integer)) writer.WriteNumberValue(integer);
-                else writer.WriteRawValue(FloatDecimal(value.GetSingle()));
+                else writer.WriteRawValue(FloatDecimal(PortableDecimal.Parse(value.GetRawText())));
                 break;
             default: value.WriteTo(writer); break;
         }

@@ -38,6 +38,9 @@ public sealed record WorkshopGlbPrecheckResult(bool IsAccepted, IReadOnlyList<Ch
 public static class WorkshopGlbPrecheck
 {
     public static WorkshopGlbPrecheckResult Check(ReadOnlySpan<byte> glb, WorkshopGlbLimits limits)
+        => Check(glb, limits, false);
+
+    internal static WorkshopGlbPrecheckResult Check(ReadOnlySpan<byte> glb, WorkshopGlbLimits limits, bool portableImages)
     {
         if (limits == null) throw new ArgumentNullException(nameof(limits));
         var m = new WorkshopGlbMeasurements { FileBytes = glb.Length };
@@ -130,6 +133,7 @@ public static class WorkshopGlbPrecheck
                 var view = At(views, Number(image, "bufferView"));
                 var bytes = glb.Slice(checked(binOffset + (int)Number(view, "byteOffset", 0)), (int)Number(view, "byteLength"));
                 var size = ImageSize(bytes);
+                if (portableImages) RequireSingleJpegFrame(bytes);
                 if (image.TryGetProperty("mimeType", out var mime))
                     Require(mime.ValueKind == JsonValueKind.String && mime.GetString() == (bytes[0] == 137 ? "image/png" : "image/jpeg"), "glb.image.format", "Image MIME type disagrees with PNG/JPEG header.");
                 sizes.Add(size);
@@ -264,12 +268,49 @@ public static class WorkshopGlbPrecheck
         try
         {
             var size = ImageSize(bytes);
+            RequireSingleJpegFrame(bytes);
             if (size.Width > WorkshopGlbLimits.Default.MaxImageDimension || size.Height > WorkshopGlbLimits.Default.MaxImageDimension
                 || size.Width * size.Height > WorkshopGlbLimits.Default.MaxImagePixels)
                 return new[] { MatchContentCatalogBuilder.Error("item.image.limit", "image", "Image dimensions exceed the GLB texture limits.") };
             return System.Array.Empty<CharacterDiagnostic>();
         }
         catch (Refusal ex) { return new[] { MatchContentCatalogBuilder.Error(ex.Code, "image", ex.Message) }; }
+    }
+
+    private static void RequireSingleJpegFrame(ReadOnlySpan<byte> bytes)
+    {
+        if (bytes.Length < 2 || bytes[0] != 255 || bytes[1] != 216) return;
+        int frames = 0, offset = 2;
+        bool entropy = false;
+        while (offset < bytes.Length)
+        {
+            if (entropy)
+            {
+                while (offset < bytes.Length && bytes[offset] != 255) offset++;
+                if (offset == bytes.Length) break;
+            }
+            Require(bytes[offset++] == 255, "item.jpeg", "Malformed JPEG marker.");
+            while (offset < bytes.Length && bytes[offset] == 255) offset++;
+            Require(offset < bytes.Length, "item.jpeg", "Truncated JPEG marker.");
+            int marker = bytes[offset++];
+            if (entropy && (marker == 0 || marker is >= 208 and <= 215)) continue;
+            if (marker == 217)
+            {
+                Require(frames == 1 && offset == bytes.Length, "item.jpeg", "JPEG requires exactly one frame and no trailing image.");
+                return;
+            }
+            Require(marker != 216 && marker != 0, "item.jpeg", "Multiple JPEG images are refused.");
+            entropy = false;
+            if (marker == 1 || marker is >= 208 and <= 215) continue;
+            Require(bytes.Length - offset >= 2, "item.jpeg", "Truncated JPEG segment.");
+            int length = BinaryPrimitives.ReadUInt16BigEndian(bytes.Slice(offset, 2));
+            Require(length >= 2 && length <= bytes.Length - offset, "item.jpeg", "JPEG segment exceeds image.");
+            if (marker >= 192 && marker <= 207 && marker != 196 && marker != 200 && marker != 204)
+                Require(++frames == 1, "item.jpeg", "Multiple JPEG frame headers are refused.");
+            offset += length;
+            if (marker == 218) entropy = true;
+        }
+        throw new Refusal("item.jpeg", "JPEG must end after exactly one frame.");
     }
 
     private static WorkshopGlbImageSize ImageSize(ReadOnlySpan<byte> b)

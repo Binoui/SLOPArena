@@ -13,6 +13,14 @@ internal static class Program
             File.ReadAllText(Path.Combine(folder, "character.json")));
         if (compiled.HasErrors) throw new Exception(string.Join("\n", compiled.Diagnostics));
         var package = compiled.CookedPackage;
+        if (BitConverter.SingleToInt32Bits(package.Definition.Movement.AirAccelBase) != 0x3f800001
+            || BitConverter.SingleToInt32Bits(package.Definition.Movement.AirFloatGravity) != 0)
+            throw new Exception("Portable midpoint rounding or negative zero differs.");
+        var admission = typeof(CharacterPackageCompiler).Assembly.GetType("SlopArena.Shared.FighterItemAdmission")
+            .GetMethod("ReadLocalItem", System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.NonPublic).Invoke(null, new object[] { folder });
+        var diagnostics = (System.Collections.Generic.IReadOnlyList<CharacterDiagnostic>)admission.GetType().GetProperty("Diagnostics").GetValue(admission);
+        if (diagnostics.Count != 1 || diagnostics[0].Code != "item.pose-bake.unavailable")
+            throw new Exception("Expected the pose bake admission gate: " + string.Join(";", diagnostics));
         using var manifest = JsonDocument.Parse(File.ReadAllBytes(Path.Combine(folder, "manifest.json")));
         var m = manifest.RootElement;
         var result = CharacterPackageAssembler.Assemble(new CharacterPackageAssemblyInput(package.Metadata.PackageId,

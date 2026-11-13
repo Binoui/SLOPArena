@@ -1,31 +1,29 @@
-# Portable cook byte comparison
+# Portable cook comparison in the actual player
 
-The proof compiles the included source with `CompilePortable`, assembles the same package with
-its portable bindings and poses, and requires byte equality for runtime JSON and the complete
-manifest. The manifest comparison covers the payload, cooked, and package hashes.
-
-Generate the synthetic Tumbleweed item and build the runner from the repository root.
+Run from a clean, committed feature checkout with the installed licensed Unity, dotnet, and Wine.
+No tools are installed. The canonical Editor stays open and is not operated.
 
 ```sh
-SLOP_PORTABLE_PROOF=/tmp/portable-item dotnet test tests/Shared.Tests/Shared.Tests.csproj \
-  -p:SkipUnityPluginCopy=true --filter FullyQualifiedName~TumbleweedAdmittedEndToEnd
-dotnet build tools/PortableCookProof -p:SkipUnityPluginCopy=true
+python3 tools/PortableCookProof/run-player-proof.py \
+  --version 0.2.0-playtest.9469 \
+  --local-unity-project /path/to/read-only/licensed/client/Unity
 ```
 
-The runner targets netstandard2.1 so it can run inside Unity's Mono player as well as CoreCLR.
-For CoreCLR, place this runtime configuration beside `PortableCookProof.dll` as
-`PortableCookProof.runtimeconfig.json` and invoke `dotnet PortableCookProof.dll /tmp/portable-item`.
+Choose a fresh version for each attempt. The script generates a synthetic Tumbleweed item,
+runs the .NET compiler/assembler, clones the committed feature into a throwaway build-only branch,
+applies only commit 9e5fb420's origin/main pin skip to the builder, injects a temporary proof hook,
+and runs the isolated Win64 builder with all cook checks enabled. It then runs that player under
+Wine with its actual Mono runtime. No product caller or launch option is added to the feature.
+The source checkout and ignored licensed dependencies are read-only inputs to the builder.
 
-```json
-{"runtimeOptions":{"tfm":"net8.0","framework":{"name":"Microsoft.NETCore.App","version":"8.0.0"}}}
-```
+The item includes the near-midpoint decimal `1.00000005960464477539062500000001` and negative zero.
+Both runtimes must produce bits `3f800001` and `00000000`. Both must assemble the same runtime JSON
+and complete canonical manifest byte-for-byte from identical source, poses and schema-3 bindings.
+The runner also exercises the folder adapter's Linux or Windows regular-file path and requires
+the deliberate unit-4c pose-bake gate. This does not claim pose sampling or rendering is implemented.
 
-The build-only branch used for unit 4b compiles this runner into a temporary Unity script and
-calls it before scene load with `--portable-cook-proof <item-folder> <result-file>`. That script
-and the builder's origin/main pin skip stay on the throwaway branch. They are not product paths.
-A failed comparison writes an exception and exits with status 1. Success writes `PASS` and
-exits with status 0. The feature branch has no launch option or client caller.
-
-Running the Editor's standalone `MonoBleedingEdge/bin/mono` directly is not equivalent to the
-Unity player. On this host it fails resolving `JsonDocument.Parse(ReadOnlyMemory<byte>, ...)`
-before it can compare bytes. Use the player to test the actual managed assembly setup.
+Evidence lives in `build/portable-proof/<version>/`. `proof.json` records feature/build pins,
+matching hashes and build receipts. The build's seven-package cook report remains in its evidence
+folder. `mono-player.log` records actual Unity/Mono initialization, and `mono-result.txt` must be PASS.
+A failed build or comparison raises an error and keeps the evidence for diagnosis. The Editor's
+standalone Mono launcher is not a substitute for the player runtime and managed assembly setup.
