@@ -21,17 +21,17 @@ internal static class MayhemWorld
         return arena;
     }
 
-    internal static readonly CharacterClass[] Four = { CharacterClass.FightGuy, CharacterClass.Manki, CharacterClass.Wibou, CharacterClass.Bonk };
+    internal static readonly string[] Four = { "fightguy", "manki", "wibou", "bonk" };
 
     /// <summary>A begun show. Without a roster every contestant uses the plain engine fighter.</summary>
     internal static ServerSimulation NewShow(uint seed = 1337, FriendlyFireMode fire = FriendlyFireMode.Shoves, int count = 4,
-        bool reverse = false, CharacterClass[]? roster = null, bool begin = true)
+        bool reverse = false, string[]? roster = null, bool begin = true)
     {
         var arena = Arena();
         var sim = new ServerSimulation(arena, new MankiMayhemMatchRule(fire));
         foreach (int index in reverse ? Enumerable.Range(0, count).Reverse() : Enumerable.Range(0, count))
         {
-            var content = roster != null ? BuiltInContentResolver.Resolve(roster[index % roster.Length]) : null;
+            var content = roster != null ? BuiltInContentResolver.ResolvePackage(roster[index % roster.Length]) : null;
             var def = content?.Definition ?? TestHelpers.EngineDef with
             {
                 CaptureGeometry = new CookedCaptureGeometry(1.5f, .8f, 1.2f, .6f,
@@ -96,7 +96,7 @@ internal static class MayhemWorld
 
     /// <summary>A show positioned so its next tick calls this remix.</summary>
     internal static (ServerSimulation Sim, int Episode) Remix(PrimePairId pair, TwistId goal, TwistId hazard, int count = 4,
-        CharacterClass[]? roster = null, bool reverse = false, int skip = 0)
+        string[]? roster = null, bool reverse = false, int skip = 0)
     {
         var (seed, episode) = SeedsWithRemix(pair, goal, hazard, 1, skip).Single();
         var sim = NewShow(seed, count: count, reverse: reverse, roster: roster);
@@ -147,7 +147,7 @@ internal static class MayhemWorld
 
     /// <summary>A show positioned so its next tick calls <paramref name="channel"/> at <paramref name="tier"/>.</summary>
     internal static (ServerSimulation Sim, int Episode) Airing(ChannelId channel, SpeedTier tier, int count = 4,
-        CharacterClass[]? roster = null, FriendlyFireMode fire = FriendlyFireMode.Shoves, bool reverse = false, TwistId? twist = null)
+        string[]? roster = null, FriendlyFireMode fire = FriendlyFireMode.Shoves, bool reverse = false, TwistId? twist = null)
     {
         int act = channel == MayhemChannels.PrimeTime ? 0 : MayhemChannels.Find(channel).Role == ChannelRole.Boss ? MayhemShowTuning.Acts - 1 : (int)tier;
         var (seed, episode) = SeedWith(channel, act, twist);

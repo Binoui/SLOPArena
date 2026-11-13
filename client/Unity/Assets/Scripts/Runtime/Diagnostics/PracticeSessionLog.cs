@@ -66,7 +66,7 @@ namespace SlopArena.Client.Diagnostics
             }
         }
 
-        public static string CharacterKey(MatchContentEntry entry) => entry.LegacySelector?.ToString() ?? entry.Identity.PackageId;
+        public static string CharacterKey(MatchContentEntry entry) => entry.Identity.PackageId;
 
         public static SessionFighter Fighter(ulong entityId, string role, MatchContentEntry entry,
             string? cpuDifficulty = null, string? cpuBehavior = null) => new()

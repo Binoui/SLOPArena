@@ -17,7 +17,7 @@ namespace SlopArena.Shared.Tests;
 internal sealed class NetplayLab
 {
     public const uint DefaultLeadTicks = 3;
-    private static readonly Dictionary<CharacterClass, MatchContentEntry> Content = new();
+    private static readonly Dictionary<string, MatchContentEntry> Content = new();
 
     private readonly Random _rng;
     private readonly List<Player> _players = new();
@@ -27,7 +27,7 @@ internal sealed class NetplayLab
     private readonly InputState[] _bundle = new InputState[InputBundle.MaxInputs];
     private bool _started;
 
-    public NetplayLab(string arenaName, CharacterClass[] roster, int seed,
+    public NetplayLab(string arenaName, string[] roster, int seed,
         Func<ulong, CharacterState, CharacterState>? placement = null,
         MatchFormat format = MatchFormat.Stock, FriendlyFireMode friendlyFire = FriendlyFireMode.Off)
     {
@@ -231,12 +231,12 @@ internal sealed class NetplayLab
         }
     }
 
-    private static MatchContentEntry ContentFor(CharacterClass character)
+    private static MatchContentEntry ContentFor(string character)
     {
         lock (Content)
         {
             if (!Content.TryGetValue(character, out var content))
-                Content[character] = content = BuiltInContentResolver.Resolve(character);
+                Content[character] = content = BuiltInContentResolver.ResolvePackage(character);
             return content;
         }
     }

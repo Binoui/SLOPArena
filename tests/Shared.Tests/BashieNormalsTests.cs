@@ -364,7 +364,7 @@ public sealed class BashieNormalsTests
         var compiled = CharacterPackageCompiler.Compile(File.ReadAllText(Path.Combine(package, "package.json")),
             File.ReadAllText(Path.Combine(package, "character.json")), CharacterCookProfile.TrustedBuiltIn);
         Assert.True(compiled.CookedPackage != null, string.Join("; ", compiled.Diagnostics.Select(d => d.Message)));
-        var definition = CookedCharacterRuntimeAdapter.ToCharacterDefinition(compiled.CookedPackage!, CharacterClass.Bashie);
+        var definition = CookedCharacterRuntimeAdapter.ToCharacterDefinition(compiled.CookedPackage!);
         var cooked = Path.Combine(Root(), "content-cooked/bashie");
         var poses = BakedAnimationData.LoadFromBin(File.ReadAllBytes(Path.Combine(cooked, "poses.bin")));
         using var bindings = JsonDocument.Parse(File.ReadAllBytes(Path.Combine(cooked, "client.bindings")));

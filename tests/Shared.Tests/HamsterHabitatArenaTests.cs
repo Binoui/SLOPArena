@@ -34,8 +34,8 @@ public class HamsterHabitatArenaTests
 
     public static IEnumerable<object[]> Roster()
     {
-        foreach (var cls in new[] { CharacterClass.FightGuy, CharacterClass.Manki, CharacterClass.Wibou,
-                     CharacterClass.Bonk, CharacterClass.Bashie })
+        foreach (var cls in new[] { "fightguy", "manki", "wibou",
+                     "bonk", "bashie" })
             yield return new object[] { cls };
     }
 
@@ -56,7 +56,7 @@ public class HamsterHabitatArenaTests
         return arena.Value;
     }
 
-    private static (ServerSimulation sim, CharacterDefinition def) Place(CharacterClass cls, float x, float floor, float z)
+    private static (ServerSimulation sim, CharacterDefinition def) Place(string cls, float x, float floor, float z)
     {
         var def = TestHelpers.ResolveDef(cls);
         var state = TestHelpers.PlayerState(x, z);
@@ -105,7 +105,7 @@ public class HamsterHabitatArenaTests
 
     [Theory]
     [MemberData(nameof(RosterBothWays))]
-    public void LowTube_CarriesEveryFighterAcrossTheGap(CharacterClass cls, int direction)
+    public void LowTube_CarriesEveryFighterAcrossTheGap(string cls, int direction)
     {
         float startX = -16.9f * direction;
         var (sim, def) = Place(cls, startX, direction > 0 ? Desk : Shelf, 6.5f);
@@ -126,7 +126,7 @@ public class HamsterHabitatArenaTests
 
     [Theory]
     [MemberData(nameof(RosterBothWays))]
-    public void HighTube_RunsBetweenTheHouseRoofAndTheWheelDeck(CharacterClass cls, int direction)
+    public void HighTube_RunsBetweenTheHouseRoofAndTheWheelDeck(string cls, int direction)
     {
         // +1 starts on the roof in front of the tube mouth, -1 on the deck in front of the other mouth.
         var (sim, def) = direction > 0 ? Place(cls, -28f, Roof, -5.2f) : Place(cls, 27.3f, Deck, 0.39f);
@@ -139,7 +139,7 @@ public class HamsterHabitatArenaTests
 
     [Theory]
     [MemberData(nameof(Roster))]
-    public void FoodBowl_DoubleJumpReachesTheHouseRoof(CharacterClass cls)
+    public void FoodBowl_DoubleJumpReachesTheHouseRoof(string cls)
     {
         var (sim, def) = Place(cls, -26.65f, Desk + 1.2f, 1.82f);
         bool second = false;
@@ -155,7 +155,7 @@ public class HamsterHabitatArenaTests
 
     [Theory]
     [MemberData(nameof(Roster))]
-    public void JunctionStep_DoubleJumpPopsOutThroughTheHatch(CharacterClass cls)
+    public void JunctionStep_DoubleJumpPopsOutThroughTheHatch(string cls)
     {
         var (sim, def) = Place(cls, 0f, StepTop, 6.5f);
         bool second = false;
@@ -173,7 +173,7 @@ public class HamsterHabitatArenaTests
 
     [Theory]
     [MemberData(nameof(Roster))]
-    public void OneJumpFromTheShelfFloor_ReachesTheWheelDeck(CharacterClass cls)
+    public void OneJumpFromTheShelfFloor_ReachesTheWheelDeck(string cls)
     {
         var (sim, def) = Place(cls, 15.4f, Shelf, -5.2f);
         bool landed = Run(sim, 150, (tick, _) => TestHelpers.Input(moveX: 1f, jump: tick == 0, jumpHeld: tick < 12),
@@ -183,10 +183,10 @@ public class HamsterHabitatArenaTests
     }
 
     [Theory]
-    [InlineData(CharacterClass.FightGuy, 1)]
-    [InlineData(CharacterClass.FightGuy, -1)]
-    [InlineData(CharacterClass.Bonk, 1)]
-    public void WalkingIntoTheGap_IsAKnockOut(CharacterClass cls, int direction)
+    [InlineData("fightguy", 1)]
+    [InlineData("fightguy", -1)]
+    [InlineData("bonk", 1)]
+    public void WalkingIntoTheGap_IsAKnockOut(string cls, int direction)
     {
         var (sim, _) = Place(cls, -11.7f * direction, direction > 0 ? Desk : Shelf, 0f);
         var inputs = new Dictionary<ulong, InputState>();

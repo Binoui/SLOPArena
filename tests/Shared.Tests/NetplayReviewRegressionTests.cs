@@ -23,7 +23,7 @@ public sealed class NetplayReviewRegressionTests
     [Fact]
     public void RejectedEndedFrameCannotChangeSessionLifecycleOrAcceptedTick()
     {
-        var entry = BuiltInContentResolver.Resolve(CharacterClass.Manki);
+        var entry = BuiltInContentResolver.ResolvePackage("manki");
         var arena = TestHelpers.TestArena();
         var initial = TestHelpers.PlayerState() with { PY = TestHelpers.GroundPY(entry.Definition) };
         var server = new ServerSimulation(arena);
@@ -47,7 +47,7 @@ public sealed class NetplayReviewRegressionTests
     [Fact]
     public void EndedFrameRestoresTheExactFinalWorldAndDiscardsFuturePrediction()
     {
-        var entry = BuiltInContentResolver.Resolve(CharacterClass.Manki);
+        var entry = BuiltInContentResolver.ResolvePackage("manki");
         var arena = TestHelpers.TestArena();
         var initial = TestHelpers.PlayerState() with { PY = TestHelpers.GroundPY(entry.Definition) };
         var server = new ServerSimulation(arena);

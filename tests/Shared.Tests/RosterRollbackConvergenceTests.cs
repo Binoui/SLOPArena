@@ -6,15 +6,15 @@ namespace SlopArena.Shared.Tests;
 public class RosterRollbackConvergenceTests
 {
     [Theory]
-    [InlineData(CharacterClass.FightGuy, 0)]
-    [InlineData(CharacterClass.Manki, 0)]
-    [InlineData(CharacterClass.Wibou, 0)]
-    [InlineData(CharacterClass.Bonk, 0)]
-    [InlineData(CharacterClass.FightGuy, 5)]
-    [InlineData(CharacterClass.Manki, 5)]
-    [InlineData(CharacterClass.Wibou, 5)]
-    [InlineData(CharacterClass.Bonk, 5)]
-    public void DelayedNormal_RecoversAndAcceptsMovementAndAnotherAttack(CharacterClass fighter, int lossDenominator)
+    [InlineData("fightguy", 0)]
+    [InlineData("manki", 0)]
+    [InlineData("wibou", 0)]
+    [InlineData("bonk", 0)]
+    [InlineData("fightguy", 5)]
+    [InlineData("manki", 5)]
+    [InlineData("wibou", 5)]
+    [InlineData("bonk", 5)]
+    public void DelayedNormal_RecoversAndAcceptsMovementAndAnotherAttack(string fighter, int lossDenominator)
     {
         var lab = Match(fighter, lossDenominator);
         lab[1].Input = (_, tick) => new InputState { ActiveSlot = tick == 30 ? AbilitySlots.Normal1 : (byte)0 };
@@ -25,10 +25,10 @@ public class RosterRollbackConvergenceTests
     }
 
     [Theory]
-    [InlineData(CharacterClass.FightGuy, AbilitySlots.A, 0)]
-    [InlineData(CharacterClass.FightGuy, AbilitySlots.A, 5)]
+    [InlineData("fightguy", AbilitySlots.A, 0)]
+    [InlineData("fightguy", AbilitySlots.A, 5)]
     public void DelayedAimRelease_RecoversAndAcceptsMovementAndAnotherAttack(
-        CharacterClass fighter, byte slot, int lossDenominator)
+        string fighter, byte slot, int lossDenominator)
     {
         var lab = Match(fighter, lossDenominator);
         lab[1].Input = (_, tick) => TestHelpers.Input(
@@ -45,7 +45,7 @@ public class RosterRollbackConvergenceTests
     [InlineData(5)]
     public void TapLeapConvergesWithDelayAndLoss(int lossDenominator)
     {
-        var lab = Match(CharacterClass.Bonk, lossDenominator);
+        var lab = Match("bonk", lossDenominator);
         lab[1].Input = (_, tick) => TestHelpers.Input(activeSlot: tick == 30 ? AbilitySlots.E : (byte)0);
         lab.Run(50);
         Assert.Equal(ActionState.Attacking, lab[1].State(1).State);
@@ -60,7 +60,7 @@ public class RosterRollbackConvergenceTests
     [InlineData(5)]
     public void QuickDrawConvergesWithDelayAndLoss(int lossDenominator)
     {
-        var lab = Match(CharacterClass.Wibou, lossDenominator);
+        var lab = Match("wibou", lossDenominator);
         lab[1].Input = (_, tick) => new InputState { ActiveSlot = tick == 30 ? AbilitySlots.R : (byte)0,
             IsAiming = tick is >= 30 and < 65, AimYaw = 9000 };
         lab.Run(50);
@@ -76,7 +76,7 @@ public class RosterRollbackConvergenceTests
     [InlineData(5)]
     public void FlyingBomberConvergesWithDelayAndLoss(int lossDenominator)
     {
-        var lab = Match(CharacterClass.Manki, lossDenominator);
+        var lab = Match("manki", lossDenominator);
         lab[1].Input = (_, tick) => new InputState
         {
             ActiveSlot = tick switch { 30 => AbilitySlots.E, 40 => AbilitySlots.A, 80 => AbilitySlots.R,
@@ -87,9 +87,9 @@ public class RosterRollbackConvergenceTests
         AssertRecoveryAndNextInputs(lab);
     }
 
-    private static NetplayLab Match(CharacterClass fighter, int lossDenominator)
+    private static NetplayLab Match(string fighter, int lossDenominator)
     {
-        var lab = new NetplayLab("slop_pit", new[] { fighter, fighter }, seed: 41 + (int)fighter);
+        var lab = new NetplayLab("slop_pit", new[] { fighter, fighter }, seed: 41 + Array.FindIndex(BuiltInContentResolver.ReadApplicationCatalog().Entries.ToArray(), e => e.Identity.PackageId == fighter));
         foreach (var player in lab.Players)
         {
             player.Up.DelayTicks = 1;

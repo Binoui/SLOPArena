@@ -38,14 +38,14 @@ public sealed class TrainingArenaTests(ITestOutputHelper output)
     });
     private static Solid Piece(string name) => Solids.Single(s => s.Name == name);
     public static IEnumerable<object[]> Fighters() => BuiltInRosterManifestCodec.Load(Path.Combine(Root, "content-cooked/roster/manifest.json"))
-        .Entries.Select(e => new object[] { e.Selector });
+        .Entries.Select(e => new object[] { e.Requirement.PackageId });
     public static IEnumerable<object[]> SpawnCases() => Fighters().SelectMany(f => Enumerable.Range(0, 4).Select(i => new object[] { f[0], i }));
     // These island reach categories pin old recovery tuning; Nyx's package tests cover her retimed recovery instead.
-    public static IEnumerable<object[]> IslandFighters() => Fighters().Where(f => (CharacterClass)f[0] != CharacterClass.Nyx);
+    public static IEnumerable<object[]> IslandFighters() => Fighters().Where(f => (string)f[0] != "nyx");
 
-    private static ServerSimulation Fresh(CharacterClass fighter, float x, float z, float surface, bool grounded = true)
+    private static ServerSimulation Fresh(string fighter, float x, float z, float surface, bool grounded = true)
     {
-        var entry = BuiltInContentResolver.Resolve(fighter);
+        var entry = BuiltInContentResolver.ResolvePackage(fighter);
         var state = TestHelpers.PlayerState(x, z);
         state.PY = surface + entry.Definition.CapsuleHeight * .5f;
         state.IsGrounded = grounded;
@@ -58,7 +58,7 @@ public sealed class TrainingArenaTests(ITestOutputHelper output)
     private static void Tick(ServerSimulation sim, InputState input = default) => sim.Tick(new() { [1] = input });
 
     [Theory, MemberData(nameof(SpawnCases))]
-    public void EverySpawnIsGroundedOnItsNamedSurface(CharacterClass fighter, int index)
+    public void EverySpawnIsGroundedOnItsNamedSurface(string fighter, int index)
     {
         var point = Spec.GetProperty("spawns")[index];
         float x = point[0].GetSingle(), z = point[1].GetSingle();
@@ -90,7 +90,7 @@ public sealed class TrainingArenaTests(ITestOutputHelper output)
     }
 
     [Theory, MemberData(nameof(Fighters))]
-    public void KnockbackKillsThroughNorthAndSouth(CharacterClass fighter)
+    public void KnockbackKillsThroughNorthAndSouth(string fighter)
     {
         foreach (float dz in new[] { -1f, 1f })
         {
@@ -111,7 +111,7 @@ public sealed class TrainingArenaTests(ITestOutputHelper output)
     }
 
     [Theory, MemberData(nameof(Fighters))]
-    public void TrenchFallKillsAndEveryFighterRecoversOutOfIt(CharacterClass fighter)
+    public void TrenchFallKillsAndEveryFighterRecoversOutOfIt(string fighter)
     {
         var yard = Piece("DrillYard"); var pad = Piece("TestPlatform");
         float middle = (yard.X1 + pad.X0) / 2;
@@ -127,7 +127,7 @@ public sealed class TrainingArenaTests(ITestOutputHelper output)
         Assert.True(Search(fighter, new(middle, 0), -.7f, pad with { X0 = -14, X1 = -10, Z0 = -2, Z1 = 2 }, 1, false, true, out string recoveryPlan), recoveryPlan);
     }
 
-    private static bool Jump(CharacterClass fighter, Vector2 start, float surface, Solid target, int jumps, bool running,
+    private static bool Jump(string fighter, Vector2 start, float surface, Solid target, int jumps, bool running,
         int second, int recovery, int charge, out string result)
     {
         var def = TestHelpers.ResolveDef(fighter);
@@ -182,18 +182,18 @@ public sealed class TrainingArenaTests(ITestOutputHelper output)
         result = $"miss maxX={maxX:F2}, apex={apex:F2}, second={second}, recovery={recovery}, final={sim.GetState(1).PX:F2}/{sim.GetState(1).PY:F2}/{sim.GetState(1).PZ:F2}";
         return false;
     }
-    private static bool Search(CharacterClass fighter, Vector2 start, float surface, Solid target, int jumps, bool running, bool recovery, out string result)
+    private static bool Search(string fighter, Vector2 start, float surface, Solid target, int jumps, bool running, bool recovery, out string result)
     {
         result = "no plan";
         foreach (int second in jumps == 1 ? new[] { -1 } : Enumerable.Range(8, 73))
         foreach (int ability in recovery ? new[] { second + 4, second + 12, second + 24, second + 36, second + 48 } : new[] { -1 })
-        foreach (int charge in recovery && fighter == CharacterClass.Bonk ? new[] { 1, 12, 24 } : new[] { -1 })
+        foreach (int charge in recovery && fighter == "bonk" ? new[] { 1, 12, 24 } : new[] { -1 })
             if (Jump(fighter, start, surface, target, jumps, running, second, ability, charge, out result)) return true;
         return false;
     }
 
     [Theory, MemberData(nameof(Fighters))]
-    public void TrainingRigTrenchAndShelfTeachTheirJumpHeights(CharacterClass fighter)
+    public void TrainingRigTrenchAndShelfTeachTheirJumpHeights(string fighter)
     {
         var step = Piece("StepDeck"); var block = Piece("StepBlock"); var yard = Piece("DrillYard"); var shelf = Piece("Shelf");
         foreach (var (start, y, target) in new[]
@@ -211,7 +211,7 @@ public sealed class TrainingArenaTests(ITestOutputHelper output)
     }
 
     [Theory, MemberData(nameof(IslandFighters))]
-    public void IslandLadderMeasuresSingleDoubleAndRecovery(CharacterClass fighter)
+    public void IslandLadderMeasuresSingleDoubleAndRecovery(string fighter)
     {
         var results = new List<string>();
         foreach (string name in new[] { "NearIsland", "MidIsland", "FarIsland" })

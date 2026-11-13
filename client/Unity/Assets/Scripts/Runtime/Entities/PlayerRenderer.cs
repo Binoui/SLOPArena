@@ -253,7 +253,7 @@ namespace SlopArena.Client.Entities
                         animConfig = LoadFallbackAnimationConfig(definition);
                     if (animConfig == null)
                     {
-                        error = $"No animation catalog or AnimConfig is available for {definition.Class}.";
+                        error = $"No animation catalog or AnimConfig is available for {definition.PackageId}.";
                         return false;
                     }
                 }
@@ -292,7 +292,7 @@ namespace SlopArena.Client.Entities
             _hurtboxBoneDefs = definition.HurtboxBoneDefs?.ToArray() ?? Array.Empty<HurtboxBoneDef>();
             _modelPrefab = prefab;
             _modelResourcePath = resourcePath;
-            _modelName = definition.Class.ToString();
+            _modelName = prefab != null ? prefab.name : definition.DisplayName;
             _modelVisualScale = definition.VisualScale;
 
             if (prefab == null)
@@ -625,9 +625,7 @@ namespace SlopArena.Client.Entities
 
         private static CharacterAnimationConfig LoadFallbackAnimationConfig(CharacterDefinition def)
         {
-            var config = Resources.Load<CharacterAnimationConfig>($"AnimationConfigs/{def.Class}_AnimConfig");
-            if (config != null || string.IsNullOrEmpty(def.ModelResourcePath))
-                return config;
+            if (string.IsNullOrEmpty(def.ModelResourcePath)) return null;
             string modelClass = def.ModelResourcePath.Substring(def.ModelResourcePath.LastIndexOf('/') + 1);
             return modelClass.Length > 0
                 ? Resources.Load<CharacterAnimationConfig>($"AnimationConfigs/{modelClass}_AnimConfig") : null;

@@ -198,9 +198,9 @@ public class AbilityLifecycleTests
     }
     public static IEnumerable<object[]> GroundAbilityCases()
     {
-        foreach (var character in new[] { CharacterClass.Manki, CharacterClass.FightGuy, CharacterClass.Wibou, CharacterClass.Bonk })
+        foreach (var character in new[] { "manki", "fightguy", "wibou", "bonk" })
         {
-            var def = BuiltInContentResolver.Resolve(character).Definition;
+            var def = BuiltInContentResolver.ResolvePackage(character).Definition;
             for (byte wireSlot = 1; wireSlot <= AbilitySlots.Count; wireSlot++)
             {
                 if (def.GetCookedSlotAbility(wireSlot, airborne: false) != null)
@@ -211,9 +211,9 @@ public class AbilityLifecycleTests
 
         public static IEnumerable<object[]> GroundAndAirAimingAbilityCases()
     {
-        foreach (var character in new[] { CharacterClass.Manki, CharacterClass.FightGuy, CharacterClass.Wibou, CharacterClass.Bonk })
+        foreach (var character in new[] { "manki", "fightguy", "wibou", "bonk" })
         {
-            var def = BuiltInContentResolver.Resolve(character).Definition;
+            var def = BuiltInContentResolver.ResolvePackage(character).Definition;
             for (byte wireSlot = 1; wireSlot <= AbilitySlots.Count; wireSlot++)
             {
                 for (int air = 0; air < 2; air++)
@@ -233,10 +233,10 @@ public class AbilityLifecycleTests
     {
         foreach (var item in GroundAndAirAimingAbilityCases())
         {
-            var character = (CharacterClass)item[0];
+            var character = (string)item[0];
             byte wireSlot = (byte)item[1];
             bool airborne = (bool)item[2];
-            var def = BuiltInContentResolver.Resolve(character).Definition;
+            var def = BuiltInContentResolver.ResolvePackage(character).Definition;
             var sim = TestHelpers.MakeSim();
             var state = TestHelpers.PlayerState();
             state.PY = TestHelpers.GroundPY(def) + (airborne ? 2f : 0f);
@@ -255,9 +255,9 @@ public class AbilityLifecycleTests
 
 [Theory]
     [MemberData(nameof(GroundAbilityCases))]
-    public void EveryAuthoredGroundAbility_ReleasesAttackState(CharacterClass character, byte wireSlot)
+    public void EveryAuthoredGroundAbility_ReleasesAttackState(string character, byte wireSlot)
     {
-        var def = BuiltInContentResolver.Resolve(character).Definition;
+        var def = BuiltInContentResolver.ResolvePackage(character).Definition;
         var sim = TestHelpers.MakeSim();
         var state = TestHelpers.PlayerState();
         state.PY = TestHelpers.GroundPY(def);

@@ -1,6 +1,6 @@
 # ADR-0067: A fighter is identified by its package
 
-**Status:** Accepted 2026-11-12. The owner approved the design ("agree with design") with three
+**Status:** Accepted 2026-11-12. Units 1 to 5 are merged. Unit 6 removes the remaining identity enum uses; isolated verification is in progress. The owner approved the design ("agree with design") with three
 choices: a Workshop badge in the same Fighter Select grid, Arcade mode support later, and a
 portrait rendered from the model when the creator gives none.
 **Deciders:** @Binoui
@@ -54,7 +54,9 @@ temporary.
    schema 2 map and its hash do not change in Phase 2.
 7. **The enum survives in one adapter.** The Room and launch formats still carry selector
    strings. One protocol adapter reads and writes them until Phase 3 replaces those formats in
-   a single release. Nothing else may use the enum once the roll-out ends.
+   a single release. The enum is private to `LegacyFighterProtocol`; callers pass package IDs.
+   Stored hurtbox files accept old names and write package IDs, and reject numeric identities.
+   `tools/check_fighter_identity.py` guards the source boundary.
 
 ### The owner's choices
 

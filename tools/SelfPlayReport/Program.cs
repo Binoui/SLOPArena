@@ -73,27 +73,27 @@ internal static class Program
         string? htmlPath = ParseArg(args, "--html");
         string? outPath = ParseArg(args, "--out") ?? $"docs/generated/{charName}-selfplay.md";
 
-        CharacterClass cls = charName.ToLowerInvariant() switch
+        string cls = charName.ToLowerInvariant() switch
         {
-            "fightguy" or "fg" => CharacterClass.FightGuy,
-            "wibou" => CharacterClass.Wibou,
-            "manki" => CharacterClass.Manki,
-            "bonk" => CharacterClass.Bonk,
-            _ => CharacterClass.None,
+            "fightguy" or "fg" => "fightguy",
+            "wibou" => "wibou",
+            "manki" => "manki",
+            "bonk" => "bonk",
+            _ => "",
         };
-        if (cls == CharacterClass.None)
+        if (cls == "")
         {
             Console.Error.WriteLine($"Unknown character '{charName}'.");
             return 1;
         }
-        var entry = BuiltInContentResolver.Resolve(cls);
+        var entry = BuiltInContentResolver.ResolvePackage(cls);
         var def = entry.Definition;
-        if (def.Class == CharacterClass.None)
+        if (def.PackageId == "")
         {
             Console.Error.WriteLine($"Unable to resolve character '{charName}'.");
             return 1;
         }
-        Console.WriteLine($"Resolved character: {def.DisplayName} ({def.Class})");
+        Console.WriteLine($"Resolved character: {def.DisplayName} ({def.PackageId})");
         Console.WriteLine($"Difficulty: {BotDifficultyProfile.DisplayName(difficulty)}  Seed: {seed}");
 
         var arena = BuildKillArena();

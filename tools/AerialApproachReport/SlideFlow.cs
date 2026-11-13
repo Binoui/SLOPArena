@@ -145,7 +145,7 @@ internal static partial class Program
             var effective = effectiveDefinitions[entry.Identity.PackageId];
             result.AdmittedRoster.Add(new SlideFlowProvenance
             {
-                Selector = entry.LegacySelector?.ToString().ToLowerInvariant() ?? entry.Identity.PackageId,
+                Selector = entry.Identity.PackageId,
                 PackageId = entry.Identity.PackageId,
                 OriginalIdentity = entry.Identity,
                 ExperimentalFallOverride = options.FallProfile == "previous",
@@ -420,7 +420,7 @@ internal static partial class Program
         if (fallProfile == "current") return entry.Definition;
         if (fallProfile != "previous") throw new ArgumentException("fall profile must be current or previous");
         if (entry.CookedCharacterPackage == null) throw new InvalidDataException($"{entry.Identity.PackageId}: previous fall profile requires an admitted cooked package");
-        var result = CookedCharacterRuntimeAdapter.ToCharacterDefinition(entry.CookedCharacterPackage, entry.LegacySelector ?? CharacterClass.None);
+        var result = CookedCharacterRuntimeAdapter.ToCharacterDefinition(entry.CookedCharacterPackage);
         var movement = result.Movement;
         string package = entry.Identity.PackageId.ToLowerInvariant();
         (movement.MaxFallSpeed, movement.FastFallSpeed) = package switch

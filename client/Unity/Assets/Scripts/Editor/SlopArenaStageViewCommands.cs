@@ -113,7 +113,7 @@ namespace SlopArena.EditorTools
             // In-memory only: restore reopens the saved scenes without saving this one.
             var match = Object.FindFirstObjectByType<TrainingMatch>() ?? throw new InvalidOperationException("The baseline scene has no TrainingMatch.");
             var matchObject = new SerializedObject(match);
-            matchObject.FindProperty("_arenaNameOverride").stringValue = stage;
+            matchObject.FindProperty("_arenaNameOverride").PackageIdValue = stage;
             matchObject.ApplyModifiedPropertiesWithoutUndo();
             var controller = Object.FindFirstObjectByType<VisualBaselineCaptureController>();
             if (controller != null)

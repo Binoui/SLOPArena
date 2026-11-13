@@ -20,8 +20,8 @@ public class TableMannersArenaTests
     private const float CakeTop = 1.5f;
     private const float KillY = -15f;
 
-    private static readonly CharacterClass[] Roster =
-        { CharacterClass.FightGuy, CharacterClass.Manki, CharacterClass.Wibou, CharacterClass.Bonk };
+    private static readonly string[] Roster =
+        { "fightguy", "manki", "wibou", "bonk" };
 
     private static readonly (float X, float Z)[] Table = Circle(TableRadius, TableSegments);
     private static readonly (float X, float Z)[] Cake = Circle(CakeRadius, CakeSegments);
@@ -99,7 +99,7 @@ public class TableMannersArenaTests
     [Theory]
     [MemberData(nameof(ClothContacts))]
     public void ClothWallsBlockInwardMovementAndAllowOutwardMovement(
-        CharacterClass cls, float edgeX, float edgeZ, float outwardX, float outwardZ, float height)
+        string cls, float edgeX, float edgeZ, float outwardX, float outwardZ, float height)
     {
         var arena = Load();
         var def = TestHelpers.ResolveDef(cls);
@@ -129,7 +129,7 @@ public class TableMannersArenaTests
 
     [Theory]
     [MemberData(nameof(CakeContacts))]
-    public void CakeSidesBlockAFighterBelowItsTop(CharacterClass cls, int degrees)
+    public void CakeSidesBlockAFighterBelowItsTop(string cls, int degrees)
     {
         var arena = Load();
         var def = TestHelpers.ResolveDef(cls);
@@ -148,7 +148,7 @@ public class TableMannersArenaTests
 
     [Theory]
     [MemberData(nameof(RosterClasses))]
-    public void EveryFighterReachesTheCakeTopWithOneJump(CharacterClass cls)
+    public void EveryFighterReachesTheCakeTopWithOneJump(string cls)
     {
         var arena = Load();
         var def = TestHelpers.ResolveDef(cls);

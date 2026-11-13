@@ -8,7 +8,7 @@ namespace SlopArena.Tests;
 /// Tests for <see cref="MatchStartRequestCodec"/>: the master server → game
 /// server match-start body (ADR-0008, issue #35). This is the seam that proves
 /// the character classes selected in the lobby reach the game server as the
-/// correct <see cref="CharacterClass"/> values + dynamic entity IDs — the
+/// correct <see cref="string"/> values + dynamic entity IDs — the
 /// ticket's core requirement ("not hardcoded Manki").
 /// </summary>
 public class MatchStartRequestCodecTests
@@ -84,10 +84,10 @@ public class MatchStartRequestCodecTests
         Assert.Equal("split", req.ArenaName);
         Assert.Equal(2, req.Players.Count);
         Assert.Equal(1, req.Players[0].SteamId);
-        Assert.Equal(CharacterClass.Manki, req.Players[0].CharacterClass);
+        Assert.Equal("manki", req.Players[0].PackageId);
         Assert.Equal(1, req.Players[0].EntityId);
         Assert.Equal(2, req.Players[1].SteamId);
-        Assert.Equal(CharacterClass.FightGuy, req.Players[1].CharacterClass);
+        Assert.Equal("fightguy", req.Players[1].PackageId);
         Assert.Equal(2, req.Players[1].EntityId);
     }
 
@@ -170,9 +170,9 @@ public class MatchStartRequestCodecTests
         Assert.Equal(1, req.Players[0].EntityId);
         Assert.Equal(2, req.Players[1].EntityId);
         Assert.Equal(3, req.Players[2].EntityId);
-        Assert.Equal(CharacterClass.Wibou, req.Players[0].CharacterClass);
-        Assert.Equal(CharacterClass.Bonk, req.Players[1].CharacterClass);
-        Assert.Equal(CharacterClass.Manki, req.Players[2].CharacterClass);
+        Assert.Equal("wibou", req.Players[0].PackageId);
+        Assert.Equal("bonk", req.Players[1].PackageId);
+        Assert.Equal("manki", req.Players[2].PackageId);
     }
 
     [Theory]
@@ -265,7 +265,7 @@ public class MatchStartRequestCodecTests
         var req = MatchStartRequestCodec.TryParse(Parse(json));
 
         Assert.NotNull(req);
-        Assert.NotEqual(CharacterClass.None, req!.Players[0].CharacterClass);
+        Assert.NotEqual("", req!.Players[0].PackageId);
     }
 
     [Theory]

@@ -16,7 +16,7 @@ public class NyxPackageTests
     [MemberData(nameof(FormSlots))]
     public void SavedPackage_AllSlotsActivateAndRecover(byte form, byte slot, bool airborne)
     {
-        var content = BuiltInContentResolver.Resolve(CharacterClass.Nyx);
+        var content = BuiltInContentResolver.ResolvePackage("nyx");
         var def = content.Definition;
         Assert.NotNull(content.BakedAnimation);
         var sim = TestHelpers.MakeSim();
@@ -41,7 +41,7 @@ public class NyxPackageTests
     [InlineData(12f, false, false)]
     public void SavedPackage_FirstNormalHitsBlocksAndMisses(float distance, bool shielding, bool contact)
     {
-        var content = BuiltInContentResolver.Resolve(CharacterClass.Nyx);
+        var content = BuiltInContentResolver.ResolvePackage("nyx");
         var def = content.Definition;
         var sim = TestHelpers.MakeSim();
         sim.RegisterEntity(1, def, TestHelpers.PlayerState(x: 20, z: 10) with

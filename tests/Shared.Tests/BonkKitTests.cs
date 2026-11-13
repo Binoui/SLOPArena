@@ -131,7 +131,7 @@ public sealed class BonkKitTests
     [InlineData(AbilitySlots.Normal3, 8f, false, false)]
     public void BonkAerialNormals_CookedSwordPathHitsBlocksAndMisses(byte slot, float distance, bool shielding, bool expectContact)
     {
-        var content = BuiltInContentResolver.Resolve(CharacterClass.Bonk);
+        var content = BuiltInContentResolver.ResolvePackage("bonk");
         var def = content.Definition;
         var baked = content.BakedAnimation;
         Assert.NotNull(baked);

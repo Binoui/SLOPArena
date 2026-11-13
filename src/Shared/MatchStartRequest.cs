@@ -13,10 +13,10 @@ namespace SlopArena.Shared;
 /// game server spawns the right entity instead of hardcoded Manki.
 /// </summary>
 /// <param name="SteamId">Master-verified SteamID (development guests only in development mode).</param>
-/// <param name="CharacterClass">Locked-in character class the game server must spawn.</param>
+/// <param name="PackageId">Fighter package ID resolved from the online selector.</param>
 /// <param name="EntityId">Server entity ID (1..N) the player drives and the server broadcasts state for.</param>
 /// <param name="Form">Starting form of a two-form fighter (ADR-0051): optional key <c>form</c>, 0 or 1, absent meaning 0.</param>
-public sealed record MatchPlayer(long SteamId, CharacterClass CharacterClass, int EntityId, SlopballCamp Camp = SlopballCamp.None, byte Colour = 0,
+public sealed record MatchPlayer(long SteamId, string PackageId, int EntityId, SlopballCamp Camp = SlopballCamp.None, byte Colour = 0,
     byte Form = 0, string? DisplayName = null);
 
 /// <summary>Master match-start command. Protocol 2 adds Steam admission coordinates;
@@ -87,11 +87,7 @@ public static class MatchStartRequestCodec
             string classStr = cc.GetString()!;
             if (string.IsNullOrEmpty(classStr))
                 return null;
-            // Case-insensitive enum parse; reject unknown classes so a typo can't
-            // silently spawn Manki (the exact bug this ticket fixes).
-            if (!System.Enum.TryParse<CharacterClass>(classStr, ignoreCase: true, out var characterClass) ||
-                !System.Enum.IsDefined(typeof(CharacterClass), characterClass) ||
-                characterClass == CharacterClass.None)
+            if (!LegacyFighterProtocol.TryPackageId(classStr, out var characterClass))
                 return null;
 
             if (!item.TryGetProperty("entityId", out var eid) || eid.ValueKind != JsonValueKind.Number ||

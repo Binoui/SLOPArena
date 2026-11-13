@@ -15,7 +15,7 @@ public partial class PackageFighterContentTests
         var forged = Fixture("bonk");
         var loaded = CookedCharacterPackageLoader.LoadFiles(forged.Files, forged.Requirement);
         Assert.True(loaded.IsValid);
-        var dto = new BuiltInRosterManifest(1, new[] { new BuiltInRosterEntry(CharacterClass.Bonk,"bonk",forged.Requirement) });
+        var dto = new BuiltInRosterManifest(1, new[] { new BuiltInRosterEntry("bonk","bonk",forged.Requirement) });
         var packages = new Dictionary<string,CookedCharacterPackageLoadResult> { ["bonk"] = loaded };
         var builder = new MatchContentCatalogBuilder();
         Assert.False(builder.Build(dto,packages,MatchContentPolicy.StandardRoom).IsValid);
@@ -28,7 +28,7 @@ public partial class PackageFighterContentTests
         Assert.True(builder.Build(shipped,all,MatchContentPolicy.StandardRoom).IsValid);
         all["bonk"] = loaded;
         Assert.False(builder.Build(shipped,all,MatchContentPolicy.StandardRoom).IsValid);
-        var development = new AdmittedFighter(loaded,CharacterClass.Bonk,null,true);
+        var development = new AdmittedFighter(loaded,null,true);
         Assert.False(builder.Build(new[] { development },MatchContentPolicy.StandardRoom).IsValid);
     }
 
@@ -37,20 +37,20 @@ public partial class PackageFighterContentTests
     {
         try
         {
-            MatchConfig.SetPlayerFighter(CharacterClass.FightGuy,"fightguy");
-            Assert.Throws<ArgumentException>(() => MatchConfig.SetPlayerFighter(CharacterClass.FightGuy,"salamander"));
-            Assert.Equal(CharacterClass.FightGuy,MatchConfig.PlayerClass);
+            MatchConfig.SetPlayerFighter("fightguy","fightguy");
+            Assert.Throws<ArgumentException>(() => MatchConfig.SetPlayerFighter("fightguy","salamander"));
+            Assert.Equal("fightguy",MatchConfig.PlayerPackageId);
             Assert.Equal("fightguy",MatchConfig.PlayerPackageId);
             MatchConfig.SetPlayerFighter(Bundled().ResolvePackage("salamander")!);
-            Assert.Equal(CharacterClass.Salamander,MatchConfig.PlayerClass);
             Assert.Equal("salamander",MatchConfig.PlayerPackageId);
-            Assert.Null(typeof(MatchConfig).GetProperty(nameof(MatchConfig.PlayerClass))!.SetMethod);
+            Assert.Equal("salamander",MatchConfig.PlayerPackageId);
+            Assert.Null(typeof(MatchConfig).GetProperty(nameof(MatchConfig.PlayerPackageId))!.SetMethod);
             Assert.Null(typeof(MatchConfig).GetProperty(nameof(MatchConfig.PlayerPackageId))!.SetMethod);
             MatchConfig.SetPlayerFighter(Local().ResolvePackage("local.tumbleweed")!);
-            Assert.Equal(CharacterClass.None,MatchConfig.PlayerClass);
+            Assert.Equal("",MatchConfig.PlayerPackageId);
             Assert.Equal("local.tumbleweed",MatchConfig.PlayerPackageId);
             MatchConfig.Reset();
-            Assert.Equal(CharacterClass.FightGuy,MatchConfig.PlayerClass);
+            Assert.Equal("fightguy",MatchConfig.PlayerPackageId);
             Assert.Equal("fightguy",MatchConfig.PlayerPackageId);
         }
         finally { MatchConfig.Reset(); }
@@ -81,7 +81,7 @@ public partial class PackageFighterContentTests
         var map = MatchContentHandleMap.CaptureLocal(Local(),new("slop_pit",new string('d',64)));
         Assert.Throws<ArgumentException>(() => SteamMatchDescriptor.HashContent(map));
         var legacyRecordsInLocalMap = new MatchContentHandleMap(3,Bundled().Entries.Select(e =>
-            new MatchContentHandleRecord(e.Handle,e.LegacySelector,e.Identity,e.DisplayName)).ToArray());
+            new MatchContentHandleRecord(e.Handle,e.Identity.PackageId,e.Identity,e.DisplayName)).ToArray());
         Assert.Throws<ArgumentException>(() => SteamMatchDescriptor.HashCatalog(legacyRecordsInLocalMap));
         var json = MatchContentHandleMapCodec.Serialize(map);
         var obj = JsonNode.Parse(json)!;
@@ -119,7 +119,7 @@ public partial class PackageFighterContentTests
     {
         var fixture = Fixture();
         var loaded = CookedCharacterPackageLoader.LoadFiles(fixture.Files,fixture.Requirement);
-        var dto = new BuiltInRosterManifest(1,new[] { new BuiltInRosterEntry(CharacterClass.Bonk,fixture.Requirement.PackageId,fixture.Requirement) });
+        var dto = new BuiltInRosterManifest(1,new[] { new BuiltInRosterEntry("bonk",fixture.Requirement.PackageId,fixture.Requirement) });
         var serialized = BuiltInRosterManifestCodec.Serialize(dto);
         var read = BuiltInRosterManifestCodec.ParseCooked(serialized);
         Assert.Empty(MatchContentCatalogBuilder.ValidateRoster(read));
@@ -134,7 +134,7 @@ public partial class PackageFighterContentTests
     {
         var basis = Bundled().Entries[0];
         MatchContentCatalog Catalog(int count) => new(Enumerable.Range(1,count).Select(i => new MatchContentEntry(
-            new((ushort)i),null,basis.Identity with { PackageId = "local.bound"+i },new string('x',100),basis.Definition,basis.BakedAnimation,basis.CookedCharacterPackage)).ToArray());
+            new((ushort)i),basis.Identity with { PackageId = "local.bound"+i },new string('x',100),basis.Definition,basis.BakedAnimation,basis.CookedCharacterPackage)).ToArray());
         var content = ReplayWorldTests.Content();
         var arena = content.LoadArena("slop_pit")!;
         ReplayHeader Header(MatchContentCatalog catalog) => new("bound",arena.Definition.Name,new("stock","off",3,false),1,
@@ -186,7 +186,7 @@ public partial class PackageFighterContentTests
         Assert.True(localAttacks>10);
         Assert.True(bundledAttacks>10);
         Assert.Equal(360u,sim.CurrentTick);
-        Assert.Equal(CharacterClass.None,sim.GetDefinition(1)!.Class);
-        Assert.Equal(CharacterClass.Salamander,sim.GetDefinition(2)!.Class);
+        Assert.Equal("",sim.GetDefinition(1)!.PackageId);
+        Assert.Equal("salamander",sim.GetDefinition(2)!.PackageId);
     }
 }

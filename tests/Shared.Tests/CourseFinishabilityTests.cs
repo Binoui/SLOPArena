@@ -22,12 +22,12 @@ public sealed class CourseFinishabilityTests
     /// </summary>
     [Theory]
     [MemberData(nameof(Cases))]
-    public void UniversalMovementAndAttacksFinish(string arenaKey, CharacterClass fighter)
+    public void UniversalMovementAndAttacksFinish(string arenaKey, string fighter)
     {
         var driver = new CourseFinishability(arenaKey, fighter, _output.WriteLine);
         driver.Run(CourseFinishability.Routes.Single(r => r.ArenaKey == arenaKey));
         // Known gap since Sir Bonk's retimed normals (8af5ab79, checks #53 and #56); fix his reach, then delete this.
-        if (arenaKey == "wibou_mall" && fighter == CharacterClass.Bonk)
+        if (arenaKey == "wibou_mall" && fighter == "bonk")
             Assert.Equal(new[] { "escalator_2/A" }, driver.SpecialTargets);
         else
             Assert.Empty(driver.SpecialTargets);
@@ -36,7 +36,7 @@ public sealed class CourseFinishabilityTests
     [Fact]
     public void SoloCourseSnapshotRoundTrips()
     {
-        var driver = new CourseFinishability("fightguy_pier", CharacterClass.FightGuy);
+        var driver = new CourseFinishability("fightguy_pier", "fightguy");
         Assert.True(driver.SnapshotRoundTrips());
     }
 
@@ -49,7 +49,7 @@ public sealed class CourseFinishabilityTests
 
     [Theory]
     [MemberData(nameof(NeoMallShortcuts))]
-    public void NeoMallShortcutsFinishWithPlainJumps(CharacterClass fighter, bool saleBalloon, bool serviceLadder)
+    public void NeoMallShortcutsFinishWithPlainJumps(string fighter, bool saleBalloon, bool serviceLadder)
     {
         var driver = new CourseFinishability("wibou_mall", fighter, _output.WriteLine);
         driver.Run(CourseFinishability.NeoMallShortcutRoute(saleBalloon, serviceLadder));
@@ -67,7 +67,7 @@ public sealed class CourseFinishabilityTests
         Assert.Equal((byte)0, solo.State.Deaths);
         foreach (var shortcut in new[] { saleBalloon ? 1 : 0, serviceLadder ? 2 : 0 }.Where(s => s != 0))
             AssertShortcutTakesLead(driver, shortcut);
-        if (fighter == CharacterClass.FightGuy && saleBalloon && serviceLadder
+        if (fighter == "fightguy" && saleBalloon && serviceLadder
             && Environment.GetEnvironmentVariable("SLOPARENA_NEO_MALL_CAPTURE_OUTPUT") is { } output)
             ExportShortcutCaptures(driver, output);
         _output.WriteLine($"SHORTCUTS S1={saleBalloon} S2={serviceLadder} {fighter}: {driver.Inputs.Count} ticks, zero falls, replay identical");
@@ -131,7 +131,7 @@ public sealed class CourseFinishabilityTests
     [Fact]
     public void FreshSimulationAndCommittedPrefixAlsoFinish()
     {
-        var driver = new CourseFinishability("fightguy_sanctuary", CharacterClass.FightGuy, allowSnapshots: false);
+        var driver = new CourseFinishability("fightguy_sanctuary", "fightguy", allowSnapshots: false);
         driver.Run(CourseFinishability.Routes.Single(r => r.ArenaKey == "fightguy_sanctuary"));
         Assert.False(driver.UsesSnapshots);
     }
@@ -139,10 +139,10 @@ public sealed class CourseFinishabilityTests
     [Fact]
     public void FailedHopNamesTheStepFighterAndMeasuredMiss()
     {
-        var driver = new CourseFinishability("fightguy_pier", CharacterClass.FightGuy);
+        var driver = new CourseFinishability("fightguy_pier", "fightguy");
         var route = new CourseRoute("fightguy_pier", new RouteStep[] { new Hop(100, 100, 100) });
         string message = Assert.Throws<InvalidOperationException>(() => driver.Run(route)).Message;
-        Assert.Contains("fightguy_pier/FightGuy step 0 Hop", message);
+        Assert.Contains("fightguy_pier/fightguy step 0 Hop", message);
         Assert.Contains("position (", message);
         Assert.Contains("closest miss horizontal", message);
         Assert.Contains("vertical shortfall", message);

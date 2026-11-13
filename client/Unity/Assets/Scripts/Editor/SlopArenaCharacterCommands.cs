@@ -82,7 +82,7 @@ public static class SlopArenaCharacterCommands
         Tags = new[] { "authoring/character" })]
     public static CharacterRosterAdmissionResult AdmitRoster(
         [CliArg("package-id", "Stable package ID.", Required = true)] string packageId,
-        [CliArg("selector", "CharacterClass roster selector.", Required = true)] string selector,
+        [CliArg("selector", "string roster selector.", Required = true)] string selector,
         [CliArg("version", "Verified package version.", Required = false)] string version,
         [CliArg("cooked-hash", "Verified cooked content hash.", Required = false)] string cookedHash,
         [CliArg("package-hash", "Verified package hash.", Required = false)] string packageHash)

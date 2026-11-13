@@ -1,0 +1,108 @@
+group	file	line	source
+AI, modes and special cases	src/Shared/FighterWorkspaceCache.cs	74	if (admitted.Fighter == null) return new(null, diagnostics, null);
+AI, modes and special cases	src/Shared/LegacyFighterProtocol.cs	8	private enum CharacterClass : byte
+AI, modes and special cases	src/Shared/LegacyFighterProtocol.cs	18	foreach (var name in Enum.GetNames(typeof(CharacterClass)))
+AI, modes and special cases	src/Shared/LegacyFighterProtocol.cs	20	if (name == nameof(CharacterClass.None) || !string.Equals(name, selector, StringComparison.OrdinalIgnoreCase)) continue;
+AI, modes and special cases	src/Shared/LegacyFighterProtocol.cs	29	foreach (var name in Enum.GetNames(typeof(CharacterClass)))
+AI, modes and special cases	src/Shared/LegacyFighterProtocol.cs	30	if (name != nameof(CharacterClass.None) && name.ToLowerInvariant() == packageId) return name;
+AI, modes and special cases	src/Shared/LocalFighterWorkspace.cs	17	return new(result.Fighter, result.Item, result.Diagnostics);
+AI, modes and special cases	src/Shared/LocalFighterWorkspace.cs	22	return new(result.Fighter, result.Item, result.Diagnostics);
+AI, modes and special cases	client/Unity/Assets/Scripts/Runtime/UI/LocalFighterLibrary.Content.cs	123	.Select(entry => entry.Choose().Fighter).ToArray();
+AI, modes and special cases	client/Unity/Assets/Scripts/Runtime/UI/LocalFighterLibrary.Content.cs	135	var admitted = catalog.Entries.Where(e => e.IsBundled).Select(e => e.Choose().Fighter).Concat(fighters).ToArray();
+AI, modes and special cases	client/Unity/Assets/Scripts/Runtime/UI/WorkshopOverlay.Fighter.cs	55	BeginView(View.Fighter);
+AI, modes and special cases	client/Unity/Assets/Scripts/Runtime/UI/WorkshopOverlay.Fighter.cs	84	workspacePoll = _root.schedule.Execute(() => { if (generation == workspaceGeneration && IsOpen && _view == View.Fighter) PollWorkspace(); }).Every(250);
+AI, modes and special cases	client/Unity/Assets/Scripts/Runtime/UI/WorkshopOverlay.Fighter.cs	166	bool accepted = workspaceItem?.Fighter != null;
+AI, modes and special cases	client/Unity/Assets/Scripts/Runtime/UI/WorkshopOverlay.Fighter.cs	218	if (admitted?.Fighter == null || admitted.Item == null) throw new InvalidOperationException("Wait for an admitted cook before publishing.");
+AI, modes and special cases	client/Unity/Assets/Scripts/Runtime/UI/WorkshopOverlay.Fighter.cs	222	var settings = await Task.Run(() => WorkshopPublishSettings.Read(statePath, admitted.Fighter.Choose().Revision.PackageId));
+AI, modes and special cases	client/Unity/Assets/Scripts/Runtime/UI/WorkshopOverlay.Fighter.cs	234	var library = LocalFighterLibrary.Current.WithLocalItem(admitted.Fighter);
+AI, modes and special cases	client/Unity/Assets/Scripts/Runtime/UI/WorkshopOverlay.Fighter.cs	236	using var lease = await MadeFighterPresentation.PrepareAsync(catalog!.ResolvePackage(admitted.Fighter.Choose().Revision.PackageId)!, admitted.Item, _cancel.Token);
+AI, modes and special cases	client/Unity/Assets/Scripts/Runtime/UI/WorkshopOverlay.Fighter.cs	294	if (admitted?.Fighter == null || admitted.Item == null) throw new InvalidOperationException("Fix the cook diagnostics before starting Training.");
+AI, modes and special cases	client/Unity/Assets/Scripts/Runtime/UI/WorkshopOverlay.Fighter.cs	297	var library = LocalFighterLibrary.Current.WithLocalItem(admitted.Fighter);
+AI, modes and special cases	client/Unity/Assets/Scripts/Runtime/UI/WorkshopOverlay.Fighter.cs	298	var choice = admitted.Fighter.Choose();
+AI, modes and special cases	client/Unity/Assets/Scripts/Runtime/Workshop/InstalledFighters.cs	121	if (result.Fighter == null || result.Item == null) throw new InvalidDataException(string.Join("; ", result.Diagnostics.Select(LocalFighterWorkspace.DiagnosticText)));
+AI, modes and special cases	client/Unity/Assets/Scripts/Runtime/Workshop/InstalledFighters.cs	122	var library = LocalFighterLibrary.Current.WithLocalItem(result.Fighter);
+AI, modes and special cases	client/Unity/Assets/Scripts/Runtime/Workshop/InstalledFighters.cs	124	revision.Lease = await MadeFighterPresentation.PrepareAsync(catalog!.ResolvePackage(result.Fighter.Choose().Revision.PackageId)!, result.Item, token);
+AI, modes and special cases	client/Unity/Assets/Scripts/Runtime/Workshop/InstalledFighters.cs	134	var duplicates = ready.GroupBy(r => r.Result!.Fighter!.Choose().Revision.PackageId).Where(g => g.Count() > 1)
+AI, modes and special cases	client/Unity/Assets/Scripts/Runtime/Workshop/InstalledFighters.cs	136	var nextVisible = ready.Where(r => !duplicates.ContainsKey(r.Result!.Fighter!.Choose().Revision.PackageId)).Select(r => r.Result!.Fighter!).ToArray();
+AI, modes and special cases	client/Unity/Assets/Scripts/Runtime/Workshop/InstalledFighters.cs	138	rows = staged.Values.Select(r => r.Caption + " / " + (r.Lease != null && duplicates.TryGetValue(r.Result!.Fighter!.Choose().Revision.PackageId, out string duplicate) ? duplicate : r.Diagnostic.Length > 0 ? r.Diagnostic : "Ready")).ToArray();
+AI, modes and special cases	client/Unity/Assets/Scripts/Runtime/Workshop/SteamWorkshopClient.Fighters.cs	51	if (admitted.Fighter == null) throw new InvalidDataException(string.Join("; ", admitted.Diagnostics.Select(LocalFighterWorkspace.DiagnosticText)));
+AI, modes and special cases	client/Unity/Assets/Scripts/Runtime/World/ArcadeBallMatch.cs	52	if (!string.IsNullOrEmpty(UnityEditor.SessionState.GetString("SlopArena.ArcadeBallLab.Fighter", "")))
+AI, modes and special cases	client/Unity/Assets/Scripts/Runtime/World/ArcadeBallMatch.cs	54	var legacy = UnityEditor.SessionState.GetString("SlopArena.ArcadeBallLab.Fighter", "");
+AI, modes and special cases	client/Unity/Assets/Scripts/Runtime/World/ArcadeBallMatch.cs	65	UnityEditor.SessionState.EraseString("SlopArena.ArcadeBallLab.Fighter");
+AI, modes and special cases	client/Unity/Assets/Scripts/Runtime/World/TrainingMatch.cs	489	RejectContent($"P{player} choice is missing or its exact revision is unavailable: {seat.Fighter}.");
+AI, modes and special cases	client/Unity/Assets/Scripts/Runtime/World/TrainingMatch.cs	950	var winnerArt = winner.Fighter?.Art;
+AI, modes and special cases	client/Unity/Assets/Scripts/Runtime/World/TrainingMatch.cs	954	string result = $"{entry.Name} {(entry.Fighter == null ? "" : PracticeSessionLog.CharacterKey(entry.Fighter.Content))} place={entry.Placement} falls={entry.Falls}";
+Network and storage	src/Shared/LobbyPayloadCodec.cs	205	|| snap.Players.Select(p => p.CharacterSelection).Distinct().Count() != 1)) return null;
+Network and storage	src/Shared/LobbyPlayerInfo.cs	17	string? CharacterSelection,
+Network and storage	client/Unity/Assets/Scripts/Runtime/ClientSession.cs	301	var playerEntry = catalog.ResolveLegacySelection(local.CharacterSelection,
+Network and storage	client/Unity/Assets/Scripts/Runtime/ClientSession.cs	341	var opponentClass = ParseClass(player.CharacterSelection,
+Network and storage	client/Unity/Assets/Scripts/Runtime/Network/LobbyClient.cs	19	public string? CharacterSelection { get; set; }
+Tests	client/Unity/Assets/Scripts/Editor/LocalFighterRefreshSelfTest.cs	55	string oldKey = "SlopArena.ArcadeBallLab.Fighter";
+Tests	client/Unity/Assets/Scripts/Editor/SoloSeatsSelfTest.cs	34	Require(MatchConfig.Seat(2).Kind == SeatKind.Cpu && MatchConfig.Seat(2).Fighter == "fightguy"
+Tests	client/Unity/Assets/Scripts/Editor/SoloSeatsSelfTest.cs	268	var expected = MatchConfig.Seat(2).Fighter;
+Tests	tests/Shared.Tests/FighterChoiceTests.cs	25	seat.Fighter = "fightguy";
+Tests	tests/Shared.Tests/FighterChoiceTests.cs	28	seat.Fighter = "nyx";
+Tests	tests/Shared.Tests/FighterItemAdmissionTests.cs	151	Assert.Equal("workshop.42", downloaded.Fighter!.Choose().Revision.PackageId);
+Tests	tests/Shared.Tests/FighterItemAdmissionTests.cs	153	Assert.Equal("local.tumbleweed", local.Fighter!.Choose().Revision.PackageId);
+Tests	tests/Shared.Tests/FighterWorkspaceReviewTests.cs	73	var s=LocalFighterWorkspace.Read(folder); var a=FighterWorkspaceCache.Cook(cache,folder,s);Assert.NotNull(a.Admission?.Fighter); Assert.False(Directory.Exists(Path.Combine(cache,"legacy")));
+Tests	tests/Shared.Tests/FighterWorkspaceReviewTests.cs	76	for(int i=0;i<4;i++) Assert.NotNull(FighterWorkspaceCache.Cook(cache,folder,s).Admission?.Fighter);
+Tests	tests/Shared.Tests/FighterWorkspaceReviewTests.cs	82	Assert.NotNull(FighterWorkspaceCache.Cook(cache,folder,s).Admission?.Fighter);Assert.False(Directory.Exists(orphan));
+Tests	tests/Shared.Tests/FighterWorkspaceReviewTests.cs	85	{ Assert.NotNull(FighterWorkspaceCache.Cook(cache,folder,s).Admission?.Fighter);Assert.True(Directory.Exists(active)); }
+Tests	tests/Shared.Tests/FighterWorkspaceReviewTests.cs	86	Assert.NotNull(FighterWorkspaceCache.Cook(cache,folder,s).Admission?.Fighter);Assert.False(Directory.Exists(active));
+Tests	tests/Shared.Tests/FighterWorkspaceReviewTests.cs	92	Assert.All(results,r=>Assert.NotNull(r.Admission?.Fighter));Assert.Equal(4,results.Select(r=>r.Folder).Distinct().Count());
+Tests	tests/Shared.Tests/LobbyPayloadCodecTests.cs	30	Assert.Null(p.CharacterSelection);
+Tests	tests/Shared.Tests/LobbyPayloadCodecTests.cs	44	Assert.Equal("Manki", p.CharacterSelection);
+Tests	tests/Shared.Tests/LobbyPayloadCodecTests.cs	57	Assert.Null(p!.CharacterSelection);
+Tests	tests/Shared.Tests/LobbyPayloadCodecTests.cs	142	Assert.Equal("FightGuy", cfg.Players[1].CharacterSelection);
+Tests	tests/Shared.Tests/LobbyPayloadCodecTests.cs	217	Assert.Equal("Manki", cfg.Players[0].CharacterSelection);
+Tests	tests/Shared.Tests/LobbyPayloadCodecTests.cs	218	Assert.Equal("FightGuy", cfg.Players[1].CharacterSelection);
+Tests	tests/Shared.Tests/LocalFighterRefreshTests.cs	185	seat.Fighter = "fightguy";
+Tests	tests/Shared.Tests/LocalFighterWorkspaceTests.cs	43	Assert.NotNull(admission.Fighter);
+Tests	tests/Shared.Tests/MatchStartRequestCodecTests.cs	212	public void TryParse_UnknownCharacterClass_ReturnsNull()
+Tests	tests/Shared.Tests/MatchStartRequestCodecTests.cs	227	public void TryParse_RetiredCharacterClass_ReturnsNull(string characterClass)
+Tests	tests/Shared.Tests/MatchStartRequestCodecTests.cs	240	public void TryParse_CharacterClassNone_ReturnsNull()
+Tests	tests/Shared.Tests/MatchStartRequestCodecTests.cs	256	public void TryParse_CharacterClass_CaseInsensitive(string className)
+Tests	tests/Shared.Tests/MayhemRemixTests.cs	33	=> KitWaivers.Any(w => w.Fighter == fighter && w.Goal == pair.Goal && w.Twist == goal);
+Tests	tests/Shared.Tests/MayhemRemixTests.cs	280	foreach (var waiver in KitWaivers.Where(w => w.Goal == pair.Goal && !waived.Any(line => line.Contains($"all {w.Fighter}:") && line.Contains(Twist(w.Goal, w.Twist)))))
+Tests	tests/Shared.Tests/MayhemRemixTests.cs	281	problems.Add($"waiver for {waiver.Fighter} on {Twist(waiver.Goal, waiver.Twist)} is no longer needed");
+Tests	tests/Shared.Tests/NyxManorTests.cs	171	var s = d.State; s.PX = 0; s.PY = y + d.Fighter.CapsuleHeight * .5f; s.PZ = z;
+Tests	tests/Shared.Tests/NyxManorTests.cs	178	Assert.InRange(d.State.PY - d.Fighter.CapsuleHeight * .5f, landing - .05f, landing + .05f);
+Tests	tests/Shared.Tests/NyxManorTests.cs	274	var s=d.State; s.PX=x; s.PY=y+d.Fighter.CapsuleHeight*.5f; s.PZ=z;
+Tests	tests/Shared.Tests/Unit5ReviewTests.cs	38	Assert.All(MatchConfig.SoloSeats, s => Assert.Equal("fightguy", s.Fighter));
+Tests	tests/Shared.Tests/Unit5ReviewTests.cs	55	Assert.All(MatchConfig.SoloSeats, s => Assert.Contains(s.Fighter, after.PackageIds));
+Tests	tests/Shared.Tests/WorkshopMutationContractTests.cs	19	preexisting.Select(pair => pair.First.Fighter + "/" + pair.First.Profile + "/" + pair.First.Family));
+Tests	tests/Shared.Tests/WorkshopMutationContractTests.cs	27	Assert.Equal((pair.First.Fighter, pair.First.Profile, pair.First.Cases),
+Tests	tests/Shared.Tests/WorkshopMutationContractTests.cs	28	(pair.Second.Fighter, pair.Second.Profile, pair.Second.Cases));
+Tests	tests/Shared.Tests/WorkshopMutationContractTests.cs	36	Assert.Equal((expected.Fighter, expected.Profile, expected.Family, expected.Cases, expected.Successful, expected.RoundTrips, expected.ContractHash),
+Tests	tests/Shared.Tests/WorkshopMutationContractTests.cs	37	(current.Fighter, current.Profile, current.Family, current.Cases, current.Successful, current.RoundTrips, current.ContractHash));
+Editor tooling	client/Unity/Assets/Scripts/Editor/MoveReview/MoveRecipe.cs	459	r.Fighter.State == ActionState.Attacking && r.Fighter.Form.Active == move.Form
+Editor tooling	client/Unity/Assets/Scripts/Editor/MoveReview/MoveRecipe.cs	460	&& r.Fighter.AttackSlot == CanonicalSlotProjection.ToWire(move.Slot));
+Editor tooling	client/Unity/Assets/Scripts/Editor/MoveReview/MoveRecipe.cs	467	var hits = take.Records.SelectMany(r => r.Hits.Where(h => h.OwnerEntityId == r.Fighter.EntityId).Select(_ => r.Frame)).ToArray();
+Editor tooling	client/Unity/Assets/Scripts/Editor/MoveReview/MoveRecipe.cs	476	PhaseAnchor.Cue => take.Records.Where(r => r.Cues.Any(c => c.EntityId == r.Fighter.EntityId && c.PresentationId == phase.CueId)).Select(r => (int?)r.Frame).FirstOrDefault(),
+Editor tooling	client/Unity/Assets/Scripts/Editor/MoveReview/SlopArenaMoveReviewCommands.cs	115	var hits = result.Records.SelectMany(r => r.Hits.Where(h => h.OwnerEntityId == r.Fighter.EntityId)
+Menus and selection	client/Unity/Assets/Scripts/Runtime/UI/CharSelectController.cs	120	string prior = EditsSeat ? MatchConfig.Seat(_editingSeat).Fighter : MatchConfig.PlayerPackageId;
+Menus and selection	client/Unity/Assets/Scripts/Runtime/UI/CharSelectController.cs	361	joined ? MatchConfig.Seat(player).Fighter : null, joined ? "LB/RB · B LEAVES" : "PAD: PRESS A TO JOIN", interactive: false,
+Menus and selection	client/Unity/Assets/Scripts/Runtime/UI/CharSelectController.cs	412	_selected = playerNumber == 1 ? MatchConfig.PlayerPackageId : MatchConfig.Seat(playerNumber).Fighter;
+Menus and selection	client/Unity/Assets/Scripts/Runtime/UI/CharSelectController.cs	452	var picked = EditsSeat ? MatchConfig.Seat(_editingSeat).Fighter : MatchConfig.PlayerPackageId;
+Menus and selection	client/Unity/Assets/Scripts/Runtime/UI/CharSelectController.cs	491	var fighter = player == 1 ? MatchConfig.PlayerPackageId : MatchConfig.Seat(player).Fighter;
+Menus and selection	client/Unity/Assets/Scripts/Runtime/UI/CharSelectController.cs	505	var fighter = player == 1 ? MatchConfig.PlayerPackageId : MatchConfig.Seat(player).Fighter;
+Menus and selection	client/Unity/Assets/Scripts/Runtime/UI/CharSelectController.cs	803	string cls = LegacyFighterSelection.DisplayKey(member.CharacterSelection);
+Menus and selection	client/Unity/Assets/Scripts/Runtime/UI/CharSelectController.cs	965	string cls = LegacyFighterSelection.PackageId(members[i].CharacterSelection);
+Menus and selection	client/Unity/Assets/Scripts/Runtime/UI/CharSelectController.cs	1182	Debug.Log($"[CharSelect] CharacterSelected: {player.Name} locked={player.LockedIn} char={player.CharacterSelection} host={player.IsHost}");
+Menus and selection	client/Unity/Assets/Scripts/Runtime/UI/CharSelectController.cs	1247	string selectedClass = LegacyFighterSelection.DisplayKey(player.CharacterSelection);
+Menus and selection	client/Unity/Assets/Scripts/Runtime/UI/CharSelectController.cs	1306	$"{p.Name}(locked={p.LockedIn},char={p.CharacterSelection ?? "?"},host={p.IsHost},steam={p.SteamId})");
+Menus and selection	client/Unity/Assets/Scripts/Runtime/UI/CharSelectController.cs	1322	MatchConfig.Seat(_editingSeat).Fighter = cls;
+Menus and selection	client/Unity/Assets/Scripts/Runtime/UI/CharSelectController.cs	1348	string cls = LegacyFighterSelection.PackageId(player.CharacterSelection);
+Menus and selection	client/Unity/Assets/Scripts/Runtime/UI/CharSelectController.cs	1370	: _gridButtons.FirstOrDefault(button => button.name == $"char-{MatchConfig.Seat(player).Fighter}");
+Menus and selection	client/Unity/Assets/Scripts/Runtime/UI/CharSelectController.cs	1393	int index = classes.ToList().IndexOf(MatchConfig.Seat(player).Fighter);
+Menus and selection	client/Unity/Assets/Scripts/Runtime/UI/CharSelectController.cs	1394	MatchConfig.Seat(player).Fighter = classes[((index < 0 ? 0 : index) + step + classes.Count) % classes.Count];
+Menus and selection	client/Unity/Assets/Scripts/Runtime/UI/LobbyRoomUI.cs	767	if (!string.IsNullOrWhiteSpace(member.CharacterSelection))
+Menus and selection	client/Unity/Assets/Scripts/Runtime/UI/LobbyRoomUI.cs	768	slot.Add(new Label(LocalFighterLibrary.Current.Name(LegacyFighterSelection.DisplayKey(member.CharacterSelection)).ToUpperInvariant()) { name = "room-character" });
+Menus and selection	client/Unity/Assets/Scripts/Runtime/UI/MatchConfig.cs	253	if (!System.Linq.Enumerable.Contains(visible, SoloSeats[number - 2].Fighter)) SoloSeats[number - 2].SetFighter(library.Choose(visible[0]));
+Menus and selection	client/Unity/Assets/Scripts/Runtime/UI/StageSelectController.cs	824	string selectedClass = LegacyFighterSelection.DisplayKey(member.CharacterSelection);
+Menus and selection	client/Unity/Assets/Scripts/Runtime/UI/StageSelectController.cs	846	seat.Kind == SeatKind.LocalPlayer ? "PLAYER" : "CPU", seat.Fighter,
+Menus and selection	client/Unity/Assets/Scripts/Runtime/UI/StageSelectController.cs	857	string selectedClass = LegacyFighterSelection.DisplayKey(player.CharacterSelection);
+Menus and selection	client/Unity/Assets/Scripts/Runtime/UI/WorkshopOverlay.cs	56	_tabs[View.Fighter] = Button(tabs, "MAKE A FIGHTER", FighterWorkspace);
+Menus and selection	client/Unity/Assets/Scripts/Runtime/UI/WorkshopOverlay.cs	392	Status(fighter.Fighter == null ? string.Join("; ", fighter.Diagnostics.Select(LocalFighterWorkspace.DiagnosticText)) : "Fighter admitted. Subscribe on Steam to add it to Fighter Select; subscribed fighters appear after the library refresh.");
+Match presentation	client/Unity/Assets/Scripts/Runtime/UI/HUDManager.cs	780	FighterUiArt Fighter(ClientSession.ResultEntry entry) => entry.Fighter?.Art;
+Match presentation	client/Unity/Assets/Scripts/Runtime/UI/ResultsUI.cs	363	var art = entry.Fighter?.Art;

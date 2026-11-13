@@ -15,7 +15,7 @@ if (!Application.isPlaying) throw new InvalidOperationException("Run inside the 
 var flags = System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic;
 var defField = typeof(SlopArena.Client.Entities.PlayerRenderer).GetField("_charDef", flags);
 var renderer = UnityEngine.Object.FindObjectsByType<SlopArena.Client.Entities.PlayerRenderer>(FindObjectsSortMode.None)
-    .FirstOrDefault(r => (defField.GetValue(r) as SlopArena.Shared.CharacterDefinition)?.Class == SlopArena.Shared.CharacterClass.Manki)
+    .FirstOrDefault(r => (defField.GetValue(r) as SlopArena.Shared.CharacterDefinition)?.PackageId == "manki")
     ?? throw new InvalidOperationException("No Manki fighter in this session.");
 var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(PrefabPath)
     ?? throw new InvalidOperationException("Import Bashie first (unity_import.eval.cs).");

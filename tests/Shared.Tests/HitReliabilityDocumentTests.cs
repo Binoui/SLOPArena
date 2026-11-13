@@ -6,8 +6,8 @@ namespace SlopArena.Shared.Tests;
 internal static class HitReliabilityGoldenFixture
 {
     internal static readonly MatchContentIdentity Identity = new("fixture", "1.2.3", "source", "0123456789abcdef", "package");
-    internal static MatchContentEntry Target(CharacterClass cls) => new(new ContentHandle(1), cls, Identity, cls.ToString(),
-        new CharacterDefinition { Class = cls, CapsuleHeight = 1.8f, CapsuleRadius = 0.3f, HurtboxRadius = 0.3f });
+    internal static MatchContentEntry Target(string cls) => new(new ContentHandle(1), Identity with { PackageId = cls }, cls == "fightguy" ? "FightGuy" : "Manki",
+        new CharacterDefinition { PackageId = cls, CapsuleHeight = 1.8f, CapsuleRadius = 0.3f, HurtboxRadius = 0.3f });
     internal static MoveReliability Move() => new()
     {
         Slot = "ground.2", Name = "Blade <swing> ×", DurationTicks = 24, BakedFrames = 36, PlaybackSpeed = 1.5f,
@@ -27,8 +27,8 @@ public sealed class HitReliabilityDocumentTests
     [Xunit.Fact]
     public void JsonAndMarkdown_MatchPreExtractionSyntheticGolden()
     {
-        var medium = HitReliabilityGoldenFixture.Target(CharacterClass.FightGuy);
-        var targets = new HitReliabilityTargets(medium, HitReliabilityGoldenFixture.Target(CharacterClass.Manki));
+        var medium = HitReliabilityGoldenFixture.Target("fightguy");
+        var targets = new HitReliabilityTargets(medium, HitReliabilityGoldenFixture.Target("manki"));
         var moves = new[] { HitReliabilityGoldenFixture.Move() };
         var document = new HitReliabilityDocument(HitReliabilityGoldenFixture.Identity, moves, targets,
             new DateTime(2026, 10, 31, 12, 34, 56, DateTimeKind.Utc));
@@ -40,8 +40,8 @@ public sealed class HitReliabilityDocumentTests
     [Xunit.Fact]
     public void Measure_RejectsForgedSlotsAndSkipsEmptyCanonicalSlots()
     {
-        var targets = new HitReliabilityTargets(HitReliabilityGoldenFixture.Target(CharacterClass.FightGuy),
-            HitReliabilityGoldenFixture.Target(CharacterClass.Manki));
+        var targets = new HitReliabilityTargets(HitReliabilityGoldenFixture.Target("fightguy"),
+            HitReliabilityGoldenFixture.Target("manki"));
         var definition = new CharacterDefinition();
         Xunit.Assert.Null(HitReliability.Measure(definition, null, CanonicalSlotProjection.All[0], targets));
         Xunit.Assert.Throws<ArgumentException>(() => HitReliability.Measure(definition, null,

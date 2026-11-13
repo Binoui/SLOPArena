@@ -13,7 +13,7 @@ public partial class PackageFighterContentTests
         string target = Path.Combine(root, "cooked");
         Directory.CreateDirectory(Path.Combine(target,"roster"));
         var shipped = ShippedRoster.ReadApplication();
-        var entries = shipped.Manifest.Entries.Where(e => e.Selector is CharacterClass.FightGuy or CharacterClass.Manki).ToArray();
+        var entries = shipped.Manifest.Entries.Where(e => e.Selector is "fightguy" or "manki").ToArray();
         File.WriteAllText(Path.Combine(target,"roster/manifest.json"),BuiltInRosterManifestCodec.Serialize(new(1,entries)));
         foreach(var entry in entries)
         {
@@ -31,8 +31,8 @@ public partial class PackageFighterContentTests
         try
         {
             string root = CopyTwoFighterRoot(temp);
-            var medium = BuiltInContentResolver.Resolve(CharacterClass.FightGuy,root);
-            var small = BuiltInContentResolver.Resolve(CharacterClass.Manki,root);
+            var medium = BuiltInContentResolver.ResolvePackage("fightguy",root);
+            var small = BuiltInContentResolver.ResolvePackage("manki",root);
             Assert.Equal((ushort)1,medium.Handle.Value);
             Assert.Equal((ushort)2,small.Handle.Value);
             var targets = HitReliabilityTargets.Load(root);
@@ -54,13 +54,13 @@ public partial class PackageFighterContentTests
             MatchConfig.PlayerForm=1;
             var saved=MatchConfig.Selection;
             string json=JsonSerializer.Serialize(new FighterChoiceState(saved.Choice), new JsonSerializerOptions { IncludeFields = true });
-            MatchConfig.SetPlayerFighter(CharacterClass.FightGuy,"fightguy");
+            MatchConfig.SetPlayerFighter("fightguy","fightguy");
             MatchConfig.PlayerForm=0;
             MatchConfig.SetPlayerFighter(JsonSerializer.Deserialize<FighterChoiceState>(json, new JsonSerializerOptions { IncludeFields = true })!.Restore());
-            Assert.Equal(CharacterClass.Nyx,MatchConfig.PlayerClass);
+            Assert.Equal("nyx",MatchConfig.PlayerPackageId);
             Assert.Equal("nyx",MatchConfig.PlayerPackageId);
             Assert.Equal((byte)1,MatchConfig.PlayerForm);
-            Assert.Equal(CharacterClass.Nyx,saved.Selector);
+            Assert.Equal("nyx",saved.PackageId);
             Assert.Equal((byte)1,saved.Form);
             Assert.Equal("nyx",saved.PackageId);
         }
@@ -76,12 +76,12 @@ public partial class PackageFighterContentTests
     {
         try
         {
-            MatchConfig.SetPlayerFighter(CharacterClass.FightGuy,"fightguy");
+            MatchConfig.SetPlayerFighter("fightguy","fightguy");
             var previous=MatchConfig.Selection;
-            Assert.Null(Bundled().ResolveLegacySelection(selection,CharacterClass.Manki));
+            Assert.Null(Bundled().ResolveLegacySelection(selection,"manki"));
             Assert.Same(previous,MatchConfig.Selection);
             Assert.Equal("fightguy",MatchConfig.PlayerPackageId);
-            Assert.NotNull(Bundled().ResolveLegacySelection("Salamander",CharacterClass.Manki));
+            Assert.NotNull(Bundled().ResolveLegacySelection("Salamander","manki"));
         }
         finally { MatchConfig.Reset(); }
     }
@@ -150,11 +150,11 @@ public partial class PackageFighterContentTests
         {
             string root=CopyTwoFighterRoot(temp),path=Path.Combine(root,"roster/manifest.json");
             var manifest=BuiltInRosterManifestCodec.Load(path);
-            var entries=manifest.Entries.Select(e=>e.Selector==CharacterClass.FightGuy
+            var entries=manifest.Entries.Select(e=>e.Selector=="fightguy"
                 ? e with { PackageId="curated.fighter",Requirement=e.Requirement with { PackageId="curated.fighter" } }:e).ToArray();
             File.WriteAllText(path,BuiltInRosterManifestCodec.Serialize(new(1,entries)));
             var roster=new ShippedRoster.Cache(()=>(root,false)).Read();
-            Assert.Equal(CharacterClass.FightGuy,roster.DefaultFighter.Selector);
+            Assert.Equal("fightguy",roster.DefaultFighter.Selector);
             Assert.Equal("curated.fighter",roster.DefaultFighter.PackageId);
         }
         finally { if(Directory.Exists(temp))Directory.Delete(temp,true); }

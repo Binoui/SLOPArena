@@ -50,7 +50,7 @@ foreach (var (semantic, _, dst) in promote)
     for (int i = 0; i < bindings.arraySize; i++)
     {
         var entry = bindings.GetArrayElementAtIndex(i);
-        if (entry.FindPropertyRelative("_semanticId").stringValue != semantic) continue;
+        if (entry.FindPropertyRelative("_semanticId").PackageIdValue != semantic) continue;
         var clip = entry.FindPropertyRelative("_clip");
         rebound.Add(semantic + ": " + AssetDatabase.GetAssetPath(clip.objectReferenceValue) + " -> " + dst);
         clip.objectReferenceValue = AssetDatabase.LoadAssetAtPath<AnimationClip>(dst);

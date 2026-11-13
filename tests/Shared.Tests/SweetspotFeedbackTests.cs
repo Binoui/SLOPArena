@@ -17,7 +17,7 @@ public sealed class SweetspotFeedbackTests
     private const string SourHit = "presentation.fightguy.rising-dragon.hit";
     private const string Finger = "presentation.fightguy.rising-dragon.apex";
     private static readonly CharacterDefinition Def = TestHelpers.ResolveSourceDef("fightguy");
-    private static readonly BakedAnimationData Poses = BuiltInContentResolver.Resolve(CharacterClass.FightGuy).BakedAnimation!;
+    private static readonly BakedAnimationData Poses = BuiltInContentResolver.ResolvePackage("fightguy").BakedAnimation!;
 
     [Fact]
     public void ASweetspotHitPlaysTheGoldBurstAndTheFinger()

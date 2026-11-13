@@ -7,11 +7,11 @@ public static class RosterFighters
 {
     private static readonly string Root = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "../../../../../"));
 
-    public static TheoryData<CharacterClass> All()
+    public static TheoryData<string> All()
     {
-        var data = new TheoryData<CharacterClass>();
+        var data = new TheoryData<string>();
         foreach (var entry in BuiltInRosterManifestCodec.Load(Path.Combine(Root, "content-cooked/roster/manifest.json")).Entries)
-            data.Add(entry.Selector);
+            data.Add(entry.Requirement.PackageId);
         return data;
     }
 }

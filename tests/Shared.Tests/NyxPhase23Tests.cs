@@ -10,7 +10,7 @@ public sealed class NyxPhase23Tests
     private static ServerSimulation Make(byte form, bool target = false, bool saved = false)
     {
         if (!saved) return FormsFixture.Sim(TestHelpers.ResolveSourceDef("nyx"), form, dummy: target);
-        var content = BuiltInContentResolver.Resolve(CharacterClass.Nyx);
+        var content = BuiltInContentResolver.ResolvePackage("nyx");
         var sim = FormsFixture.Sim(content.Definition, form, dummy: target);
         sim.RegisterEntity(FormsFixture.Nyx, content.Definition, sim.GetState(FormsFixture.Nyx), content.BakedAnimation);
         return sim;

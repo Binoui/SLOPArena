@@ -13,8 +13,8 @@ public class MankiMayhemArenaTests
 {
     private const float KillY = -11f;
 
-    private static readonly CharacterClass[] Roster =
-        { CharacterClass.FightGuy, CharacterClass.Manki, CharacterClass.Wibou, CharacterClass.Bonk };
+    private static readonly string[] Roster =
+        { "fightguy", "manki", "wibou", "bonk" };
 
     private static readonly (float X, float Z)[] Floor =
     {
@@ -123,7 +123,7 @@ public class MankiMayhemArenaTests
     [Theory]
     [MemberData(nameof(RecoveryContacts))]
     public void RecoveryWallsBlockInwardMovementAndAllowOutwardMovement(
-        CharacterClass cls, float edgeX, float edgeZ, float outwardX, float outwardZ, float height)
+        string cls, float edgeX, float edgeZ, float outwardX, float outwardZ, float height)
     {
         var arena = Load();
         var def = TestHelpers.ResolveDef(cls);
@@ -146,7 +146,7 @@ public class MankiMayhemArenaTests
 
     [Theory]
     [MemberData(nameof(RosterClasses))]
-    public void AllFourSpawnsGroundEveryRosterFighter(CharacterClass cls)
+    public void AllFourSpawnsGroundEveryRosterFighter(string cls)
     {
         var arena = Load();
         var def = TestHelpers.ResolveDef(cls);

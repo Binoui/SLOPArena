@@ -28,9 +28,9 @@ public static class FighterAppearanceSelfTest
         var package = compiled.CookedPackage;
         var definition = CookedCharacterRuntimeAdapter.ToCharacterDefinition(package);
         var identity = new MatchContentIdentity(package.Metadata.PackageId, package.Metadata.Version, "fixture", "fixture", "fixture");
-        var content = new MatchContentEntry(new ContentHandle(1), null, identity, definition.DisplayName, definition, cookedCharacterPackage: package);
+        var content = new MatchContentEntry(new ContentHandle(1), identity, definition.DisplayName, definition, cookedCharacterPackage: package);
         var appearance = FighterPresentation.Resolve(content);
-        Require(appearance.Art.Name() == "Fixture Fighter" && definition.Class == CharacterClass.None, "Fixture lost its cooked name or borrowed a selector.");
+        Require(appearance.Art.Name() == "Fixture Fighter" && definition.PackageId == "", "Fixture lost its cooked name or borrowed a selector.");
         Require(appearance.Art.Portrait() == FighterUiArt.NeutralPortrait, "Fixture borrowed a portrait.");
         foreach (byte slot in new[] { AbilitySlots.Normal1, AbilitySlots.Normal2, AbilitySlots.Normal3, AbilitySlots.A, AbilitySlots.E, AbilitySlots.R, AbilitySlots.F })
         {
@@ -64,7 +64,7 @@ public static class FighterAppearanceSelfTest
             Require(probe.DescribeFeedbackFighters().Count == 2, "Undrawn fighters disappeared from feedback.");
             Require(Hud(1), "HUD must accept bound content without a renderer.");
             Require(probe.FighterFor(3).Content == wibou, "P3 lost its exact admitted content.");
-            var changed = new MatchContentEntry(manki.Handle, manki.LegacySelector, manki.Identity with { Version = "different" }, manki.DisplayName, manki.Definition);
+            var changed = new MatchContentEntry(manki.Handle, manki.Identity with { Version = "different" }, manki.DisplayName, manki.Definition);
             bool rendered = (bool)typeof(MatchBase).GetMethod("SetupRenderer", BindingFlags.Instance | BindingFlags.NonPublic)
                 .Invoke(probe, new object[] { go.AddComponent<PlayerRenderer>(), changed, null, 1UL, false });
             Require(!rendered && probe.ContentFailure.Contains("revision"), "Revision mismatch must fail without throwing.");
@@ -100,7 +100,7 @@ public static class FighterAppearanceSelfTest
             {
                 bindingRows.Remove("manki");
                 var missingProbe = missingGo.AddComponent<PvPMatch>();
-                var unbound = new MatchContentEntry(manki.Handle, manki.LegacySelector, manki.Identity, manki.DisplayName, manki.Definition, isBundled: true);
+                var unbound = new MatchContentEntry(manki.Handle, manki.Identity, manki.DisplayName, manki.Definition, isBundled: true);
                 Require((bool)typeof(MatchBase).GetMethod("BindFighter", BindingFlags.Instance | BindingFlags.NonPublic).Invoke(missingProbe, new object[] { 8UL, unbound })
                     && missingProbe.FighterFor(8).Art.Portrait() == FighterUiArt.NeutralPortrait && missingProbe.ContentFailure == "",
                     "A bundled fighter with no UI binding must bind with neutral art.");
@@ -128,9 +128,9 @@ public static class FighterAppearanceSelfTest
             string assets = Application.dataPath;
             string cards = Path.Combine(assets, "CharacterPackages/bonk/card.json");
             string generated = Path.Combine(assets, "Resources/Generated/FighterUi.json");
-            Require(CharacterPackageAuthoringService.HasRosterPresentation("bonk", CharacterClass.Bonk, cards, generated), "Prepared presentation must admit.");
-            Require(!CharacterPackageAuthoringService.HasRosterPresentation("local.new-fighter", CharacterClass.Bonk, cards, generated)
-                && !CharacterPackageAuthoringService.HasRosterPresentation("bonk", CharacterClass.Bonk, cards + ".missing", generated), "Missing card/binding must refuse admission.");
+            Require(CharacterPackageAuthoringService.HasRosterPresentation("bonk", "bonk", cards, generated), "Prepared presentation must admit.");
+            Require(!CharacterPackageAuthoringService.HasRosterPresentation("local.new-fighter", "bonk", cards, generated)
+                && !CharacterPackageAuthoringService.HasRosterPresentation("bonk", "bonk", cards + ".missing", generated), "Missing card/binding must refuse admission.");
             var slug = typeof(SlopArena.Client.Diagnostics.PracticeSessionLog).GetMethod("Slug", BindingFlags.Static | BindingFlags.NonPublic);
             Require((string)slug.Invoke(null, new object[] { "Bonk" }) == "bonk", "Legacy filename slug changed.");
             var texture = FighterUiArt.NeutralPortrait;

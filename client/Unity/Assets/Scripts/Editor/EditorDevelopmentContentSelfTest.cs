@@ -28,10 +28,10 @@ public static class EditorDevelopmentContentSelfTest
         {
             var persistedRoster = resolver.ResolveRoster();
             Require(persistedRoster.Success && persistedRoster.Roster != null, Format(persistedRoster.Diagnostics));
-            Require(persistedRoster.Roster.TryGetBySelector(CharacterClass.FightGuy, out var persistedRosterEntry), "Persisted FightGuy roster entry is missing.");
+            Require(persistedRoster.Roster.TryGetByPackageId("fightguy", out var persistedRosterEntry), "Persisted FightGuy roster entry is missing.");
             Require(ClientSession.TryBuildPersistedLocalMatchCatalog(out var persistedCatalog, out var persistedFailure) && persistedCatalog != null,
                 persistedFailure ?? "Persisted local catalog failed.");
-            var persistedEntry = persistedCatalog.Resolve(CharacterClass.FightGuy);
+            var persistedEntry = persistedCatalog.ResolvePackage("fightguy");
             Require(persistedEntry != null && persistedEntry.Identity.PackageId == persistedRosterEntry.PackageId &&
                 persistedEntry.Identity.Version == persistedRosterEntry.Requirement.Version &&
                 persistedEntry.Identity.CookedContentHash == persistedRosterEntry.Requirement.CookedContentHash &&
@@ -55,7 +55,7 @@ public static class EditorDevelopmentContentSelfTest
 
             Require(ClientSession.TryBuildLocalMatchCatalog(out var changedCatalog, out var changedFailure) && changedCatalog != null,
                 changedFailure ?? "Editor development catalog failed for valid source.");
-            var changedEntry = changedCatalog.Resolve(CharacterClass.FightGuy);
+            var changedEntry = changedCatalog.ResolvePackage("fightguy");
             Require(changedEntry != null && Math.Abs(changedEntry.Definition.Movement.RunSpeed - changedRunSpeed) < 0.0001f,
                 "Editor development catalog did not use the changed RunSpeed.");
             Require(changedEntry.CookedCharacterPackage != null && changedEntry.BakedAnimation != null,
@@ -81,7 +81,7 @@ public static class EditorDevelopmentContentSelfTest
                 invalidFailure.Contains(invalidTickPath, StringComparison.Ordinal),
                 "Invalid source diagnostic did not include value.out-of-range at " + invalidTickPath + ": " + invalidFailure);
             Require(ClientSession.TryBuildPersistedLocalMatchCatalog(out var restoredPersistedCatalog, out var restoredPersistedFailure) &&
-                restoredPersistedCatalog != null && restoredPersistedCatalog.Resolve(CharacterClass.FightGuy)?.Identity == persistedEntry.Identity,
+                restoredPersistedCatalog != null && restoredPersistedCatalog.ResolvePackage("fightguy")?.Identity == persistedEntry.Identity,
                 restoredPersistedFailure ?? "Persisted path failed after invalid Editor source.");
             Require(SameSnapshot(SnapshotDirectory(Path.Combine(repositoryRoot, "content-cooked", "fightguy")), cookedSnapshot) &&
                 File.ReadAllBytes(generatedPath).SequenceEqual(generatedSnapshot),
@@ -116,7 +116,7 @@ public static class EditorDevelopmentContentSelfTest
             Require(ClientSession.TryBuildLocalMatchCatalog(out var placeholderCatalog, out var placeholderFailure) &&
                 placeholderCatalog != null,
                 placeholderFailure ?? "Editor development catalog failed with an uninstalled clip.");
-            var entry = placeholderCatalog.Resolve(CharacterClass.FightGuy);
+            var entry = placeholderCatalog.ResolvePackage("fightguy");
             Require(entry?.CookedCharacterPackage != null && entry.BakedAnimation != null,
                 "Editor development catalog did not use the committed pose data.");
             Require(CookedCharacterClientAssetResolver.TryResolve(

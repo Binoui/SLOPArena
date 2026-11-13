@@ -29,7 +29,7 @@ public sealed class CharacterCourseTests
     {
         var arena = Arena();
         var original = arena.Arcade!;
-        var fighter = BuiltInContentResolver.Resolve(CharacterClass.FightGuy);
+        var fighter = BuiltInContentResolver.ResolvePackage("fightguy");
         string record = ArcadeRecordCompatibility.Course(arena, fighter);
         if (empty)
             arena.Arcade = ArcadeStageDefinition.ForCourse(original.ProfileId, original.GameplayRevision,
@@ -46,10 +46,10 @@ public sealed class CharacterCourseTests
 
     [Theory]
     [MemberData(nameof(CourseFinishabilityTests.Cases), MemberType = typeof(CourseFinishabilityTests))]
-    public void EveryCourseAndRosterFighterCanCreateAPersonalBestKey(string arenaKey, CharacterClass fighter)
+    public void EveryCourseAndRosterFighterCanCreateAPersonalBestKey(string arenaKey, string fighter)
     {
         var arena = ArenaBinaryFormat.LoadFromFile(Path.Combine(CourseFinishability.Root, "data/arenas", arenaKey + ".arena"))!.Value;
-        var entry = BuiltInContentResolver.Resolve(fighter);
+        var entry = BuiltInContentResolver.ResolvePackage(fighter);
         Assert.True(arena.Arcade!.AllowsPackage(entry.Identity.PackageId));
         var key = new ArcadeRecordKey("character-course", arena.Arcade.ProfileId, entry.Identity.PackageId,
             ArcadeRecordCompatibility.Course(arena, entry));
@@ -214,7 +214,7 @@ public sealed class CharacterCourseTests
     [Fact]
     public void CourseFingerprintIncludesMarkersAndRulesButExcludesPresentation()
     {
-        var arena = Arena(); var entry = BuiltInContentResolver.Resolve(CharacterClass.FightGuy);
+        var arena = Arena(); var entry = BuiltInContentResolver.ResolvePackage("fightguy");
         string hash = ArcadeRecordCompatibility.Course(arena, entry);
         arena.DisplayName = "Cosmetic name"; arena.PreviewColor = "#ffffff";
         Assert.Equal(hash, ArcadeRecordCompatibility.Course(arena, entry));
@@ -224,7 +224,7 @@ public sealed class CharacterCourseTests
         arena.Arcade = ArcadeStageDefinition.ForCourse("fixture", 1, new[] { "fightguy" }, new CharacterCourseDefinition(
             new[] { new CourseTargetDefinition("first", new(3, 1, 0), .5f), c.Targets[1] }, c.Checkpoints, c.Finish));
         Assert.NotEqual(hash, ArcadeRecordCompatibility.Course(arena, entry));
-        Assert.NotEqual(hash, ArcadeRecordCompatibility.Course(arena, BuiltInContentResolver.Resolve(CharacterClass.Manki)));
+        Assert.NotEqual(hash, ArcadeRecordCompatibility.Course(arena, BuiltInContentResolver.ResolvePackage("manki")));
     }
 
     [Fact]
@@ -283,7 +283,7 @@ public sealed class CharacterCourseTests
     [Fact]
     public void HitCountsChangeOnlyBonusCourseFingerprints()
     {
-        var entry = BuiltInContentResolver.Resolve(CharacterClass.FightGuy);
+        var entry = BuiltInContentResolver.ResolvePackage("fightguy");
         // Single-hit courses project exactly as they did before hit counts existed.
         var options = new System.Text.Json.JsonSerializerOptions { IncludeFields = true };
         Assert.DoesNotContain("Hits", System.Text.Json.JsonSerializer.Serialize(Arena().Arcade!.Course, options));

@@ -409,12 +409,12 @@ public static class PlaytestReleaseBuilder
             throw new InvalidDataException("Cooked roster failed canonical Shared catalog admission: " + Diagnostics(built.Diagnostics));
         var identities = built.Catalog.Entries.Select(entry =>
         {
-            if (!entry.LegacySelector.HasValue) throw new InvalidDataException("Canonical roster entry has no selector.");
-            return new PackageIdentityRow(entry.LegacySelector.Value.ToString(), entry.Identity.PackageId, entry.Identity.Version,
+            if (!entry.IsBundled) throw new InvalidDataException("Canonical roster entry is not bundled.");
+            return new PackageIdentityRow(LegacyFighterProtocol.Selector(entry.Identity.PackageId), entry.Identity.PackageId, entry.Identity.Version,
                 entry.Identity.SourceHash, entry.Identity.CookedContentHash, entry.Identity.PackageHash);
         }).OrderBy(x => x.packageId, StringComparer.Ordinal).ToArray();
         var mapRows = built.Catalog.Entries.Select(entry => new MatchContentHandleRecord(
-            entry.Handle, entry.LegacySelector ?? CharacterClass.None, entry.Identity, entry.DisplayName)).ToArray();
+            entry.Handle, entry.Identity.PackageId, entry.Identity, entry.DisplayName)).ToArray();
         var handleMap = new MatchContentHandleMap(MatchContentHandleMap.CurrentSchemaVersion, mapRows);
         return new PackageVerification(identities, SteamMatchDescriptor.HashCatalog(handleMap));
     }

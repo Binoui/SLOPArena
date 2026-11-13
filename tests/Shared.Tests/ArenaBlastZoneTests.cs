@@ -93,7 +93,7 @@ public class ArenaBlastZoneTests
         var state = TestHelpers.PlayerState();
         state.PY = 40f;
         state.IsGrounded = false;
-        sim.RegisterEntity(1, BuiltInContentResolver.Resolve(CharacterClass.FightGuy).Definition, state);
+        sim.RegisterEntity(1, BuiltInContentResolver.ResolvePackage("fightguy").Definition, state);
 
         sim.Tick(new Dictionary<ulong, InputState> { { 1, default } });
 
@@ -111,7 +111,7 @@ public class ArenaBlastZoneTests
         var sim = new ServerSimulation(arena);
         var state = TestHelpers.PlayerState();
         state.PX = 15f;
-        sim.RegisterEntity(1, BuiltInContentResolver.Resolve(CharacterClass.FightGuy).Definition, state);
+        sim.RegisterEntity(1, BuiltInContentResolver.ResolvePackage("fightguy").Definition, state);
 
         sim.Tick(new Dictionary<ulong, InputState> { { 1, default } });
 
@@ -128,7 +128,7 @@ public class ArenaBlastZoneTests
         var sim = new ServerSimulation(arena);
         var state = TestHelpers.PlayerState();
         state.PX = -15f;
-        sim.RegisterEntity(1, BuiltInContentResolver.Resolve(CharacterClass.FightGuy).Definition, state);
+        sim.RegisterEntity(1, BuiltInContentResolver.ResolvePackage("fightguy").Definition, state);
 
         sim.Tick(new Dictionary<ulong, InputState> { { 1, default } });
 
@@ -144,7 +144,7 @@ public class ArenaBlastZoneTests
         var sim = new ServerSimulation(arena);
         var state = TestHelpers.PlayerState();
         state.PZ = 15f;
-        sim.RegisterEntity(1, BuiltInContentResolver.Resolve(CharacterClass.FightGuy).Definition, state);
+        sim.RegisterEntity(1, BuiltInContentResolver.ResolvePackage("fightguy").Definition, state);
 
         sim.Tick(new Dictionary<ulong, InputState> { { 1, default } });
 
@@ -160,7 +160,7 @@ public class ArenaBlastZoneTests
         var sim = new ServerSimulation(arena);
         var state = TestHelpers.PlayerState();
         state.PY = 2f;
-        sim.RegisterEntity(1, BuiltInContentResolver.Resolve(CharacterClass.FightGuy).Definition, state);
+        sim.RegisterEntity(1, BuiltInContentResolver.ResolvePackage("fightguy").Definition, state);
 
         sim.Tick(new Dictionary<ulong, InputState> { { 1, default } });
 

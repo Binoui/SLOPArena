@@ -22,12 +22,12 @@ internal static class Program
     private const int AttributionWindowTicks = 90;
     private const int NormalReactionDelayTicks = 18;
     private static readonly int[] DefaultSeeds = { 42, 43, 44, 45, 46 };
-    private static readonly CharacterClass[] AdmittedCharacters =
+    private static readonly string[] AdmittedCharacters =
     {
-        CharacterClass.Manki,
-        CharacterClass.FightGuy,
-        CharacterClass.Wibou,
-        CharacterClass.Bonk,
+        "manki",
+        "fightguy",
+        "wibou",
+        "bonk",
     };
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
@@ -616,7 +616,7 @@ internal static class Program
             bool deterministicChecked = false;
             foreach (var provenance in roster)
             {
-                var entry = BuiltInContentResolver.Resolve(ToCharacterClass(provenance.Character));
+                var entry = BuiltInContentResolver.ResolvePackage(ResolvePackageId(provenance.Character));
                 foreach (var scenario in Scenarios)
                 {
                     var accumulator = new AggregateAccumulator(provenance.Character, scenario);
@@ -1246,9 +1246,9 @@ internal static class Program
         return Convert.ToHexString(SHA256.HashData(bytes)).ToLowerInvariant();
     }
 
-    private static RosterProvenance ResolveProvenance(CharacterClass selector)
+    private static RosterProvenance ResolveProvenance(string selector)
     {
-        var entry = BuiltInContentResolver.Resolve(selector);
+        var entry = BuiltInContentResolver.ResolvePackage(selector);
         if (entry.CookedCharacterPackage == null || entry.BakedAnimation == null)
             throw new InvalidDataException($"{selector}: resolver did not return cooked roster+baked data");
         return new RosterProvenance
@@ -1266,13 +1266,13 @@ internal static class Program
         };
     }
 
-    private static CharacterClass ToCharacterClass(string packageId)
+    private static string ResolvePackageId(string packageId)
         => packageId.ToLowerInvariant() switch
         {
-            "manki" => CharacterClass.Manki,
-            "fightguy" => CharacterClass.FightGuy,
-            "wibou" => CharacterClass.Wibou,
-            "bonk" => CharacterClass.Bonk,
+            "manki" => "manki",
+            "fightguy" => "fightguy",
+            "wibou" => "wibou",
+            "bonk" => "bonk",
             _ => throw new InvalidDataException($"unknown admitted package '{packageId}'"),
         };
 

@@ -194,7 +194,7 @@ var converted = new List<object>();
 for (int i = 0; i < entries.arraySize; i++)
 {
     var e = entries.GetArrayElementAtIndex(i);
-    string bone = e.FindPropertyRelative("BoneName").stringValue;
+    string bone = e.FindPropertyRelative("BoneName").PackageIdValue;
     var turn = Quaternion.Inverse(RestRotation(PrefabPath, bone)) * RestRotation(LivePrefab, bone);
     foreach (var (pos, rot) in new[] { ("PositionOffset", "RotationOffset"), ("FirePositionOffset", "FireRotationOffset") })
     {

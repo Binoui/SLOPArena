@@ -27,7 +27,7 @@ internal static partial class Program
             if (jsonDir != null)
             {
                 Directory.CreateDirectory(jsonDir);
-                File.WriteAllText(Path.Combine(jsonDir, $"{def.Class}-run{run + 1}.json"), json);
+                File.WriteAllText(Path.Combine(jsonDir, $"{def.PackageId}-run{run + 1}.json"), json);
             }
         }
 

@@ -140,8 +140,7 @@ public sealed class GraspTests
             CharacterPackageAssembler.Assemble(ArmorAuthoringTests.BuildInput(compiled)));
         Assert.True(admitted.IsValid, string.Join("; ", admitted.Diagnostics));
         Assert.Equal(compiled.CanonicalBytes, admitted.Package!.CanonicalBytes);
-        Assert.Equal(tether, RingDuel.TetherOf(CookedCharacterRuntimeAdapter.ToCharacterDefinition(admitted.Package!,
-            CharacterClass.Bashie)));
+        Assert.Equal(tether, RingDuel.TetherOf(CookedCharacterRuntimeAdapter.ToCharacterDefinition(admitted.Package!)));
     }
 
     public static TheoryData<string, Action<JsonObject>> InvalidCatches() => new()

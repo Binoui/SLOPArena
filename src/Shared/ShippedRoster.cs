@@ -31,7 +31,7 @@ public sealed class ShippedRoster
         { diagnostic = ex.Message; return false; }
     }
 
-    public BuiltInRosterEntry DefaultFighter => Manifest.Resolve(CharacterClass.FightGuy) ?? Manifest.Entries[0];
+    public BuiltInRosterEntry DefaultFighter => Manifest.ResolvePackage("fightguy") ?? Manifest.Entries[0];
 
     internal static (string Root, bool Watch) LocateApplication(string assemblyLocation, string baseDirectory, bool server)
     {

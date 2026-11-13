@@ -626,7 +626,7 @@ public sealed class CharacterPackageAssemblerTests
         foreach (string id in new[] { "ground.F", "air.F" })
             Assert.Single(grid.Single(s => s.Id == id).Timeline.Stages.SelectMany(st => st.Operations).OfType<CookedSwapFormOperation>());
 
-        var real = loaded.ToCharacterDefinition(CharacterClass.FightGuy);
+        var real = loaded.ToCharacterDefinition();
         var fake = real.ForForm(1);
         Assert.Equal(1, fake.Form);
         Assert.Same(real, fake.ForForm(0));
@@ -860,7 +860,7 @@ public sealed class CharacterPackageAssemblerTests
 
         Assert.True(loaded.IsValid, string.Join("\n", loaded.Diagnostics.Select(x => x.Message)));
         Assert.Equal(1.05f, loaded.Package!.Definition.ShieldRadius);
-        Assert.Equal(1.05f, loaded.ToCharacterDefinition(CharacterClass.FightGuy).ShieldRadius);
+        Assert.Equal(1.05f, loaded.ToCharacterDefinition().ShieldRadius);
     }
     [Fact]
     public void TargetedLeap_LoadedCookedPackageProducesLandingImpactAndRecovery()

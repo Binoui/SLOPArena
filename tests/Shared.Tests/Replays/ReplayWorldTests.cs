@@ -37,7 +37,7 @@ public class ReplayWorldTests
 
     internal static ReplayContent Content(MatchContentCatalog? catalog = null) => new(catalog ?? Roster.Value, LoadArena, "fightguy");
 
-    static MatchContentEntry Entry(CharacterClass c) => Roster.Value.Resolve(c)!;
+    static MatchContentEntry Entry(string c) => Roster.Value.ResolvePackage(c)!;
 
     internal sealed record Recording(byte[] Bytes, ReplayHeader Header, List<ReplayViewTick> Views);
 
@@ -53,7 +53,7 @@ public class ReplayWorldTests
     /// A same-build CPU Match recorded through the real capture and writer, as the GameHost records it: arena, rule,
     /// starts and the mode's Begin call per format (MatchInstance.InitializeSimulation), with the mode's events per frame.
     /// </summary>
-    static Recording RecordBots(CharacterClass[] fighters, int ticks, int seed = 7, string? alternate = null,
+    static Recording RecordBots(string[] fighters, int ticks, int seed = 7, string? alternate = null,
         MatchFormat format = MatchFormat.Stock)
     {
         var arena = LoadArena(ArenaFor(format))!;
@@ -61,8 +61,8 @@ public class ReplayWorldTests
         var camps = entries.Select((_, i) => format == MatchFormat.SlopballVersus ? (i % 2 == 0 ? SlopballCamp.Teal : SlopballCamp.Clay) : SlopballCamp.None).ToArray();
         var roster = entries.Select((e, i) => new ReplayParticipant((ulong)i + 1, "cpu", i.ToString(), e.Identity,
             e.Identity.PackageId == alternate ? "alternate" : "base", camps[i].ToWire(), i.ToString())).ToArray();
-        var records = Roster.Value.Entries.Where(e => e.LegacySelector.HasValue)
-            .Select(e => new MatchContentHandleRecord(e.Handle, e.LegacySelector!.Value, e.Identity, e.DisplayName)).ToList();
+        var records = Roster.Value.Entries.Where(e => (e.IsBundled))
+            .Select(e => new MatchContentHandleRecord(e.Handle, e.Identity.PackageId, e.Identity, e.DisplayName)).ToList();
         string hash = SteamMatchDescriptor.HashContent(new MatchContentHandleMap(MatchContentHandleMap.CurrentSchemaVersion, records,
             new MatchArenaRecord(arena.Definition.Name, arena.Digest)));
         var header = new ReplayHeader("bots", arena.Definition.Name, new(format.ToWire(), "off", 250, false), 1, roster,
@@ -113,8 +113,8 @@ public class ReplayWorldTests
         return new(stream.ToArray(), header, views);
     }
 
-    internal static readonly Lazy<Recording> Duel = new(() => RecordBots(new[] { CharacterClass.FightGuy, CharacterClass.Nyx }, 1800, alternate: "nyx"));
-    static readonly Lazy<Recording> FourWay = new(() => RecordBots(new[] { CharacterClass.Bonk, CharacterClass.Manki, CharacterClass.Nyx, CharacterClass.Bashie }, 1800, seed: 11));
+    internal static readonly Lazy<Recording> Duel = new(() => RecordBots(new[] { "fightguy", "nyx" }, 1800, alternate: "nyx"));
+    static readonly Lazy<Recording> FourWay = new(() => RecordBots(new[] { "bonk", "manki", "nyx", "bashie" }, 1800, seed: 11));
 
     sealed class Probe : IReplayPresenter
     {
@@ -316,12 +316,12 @@ public class ReplayWorldTests
 
     static readonly Dictionary<MatchFormat, Lazy<Recording>> Modes = new()
     {
-        [MatchFormat.SlopballCoop] = new(() => RecordBots(new[] { CharacterClass.FightGuy, CharacterClass.Bonk }, 1800, format: MatchFormat.SlopballCoop)),
-        [MatchFormat.SlopballVersus] = new(() => RecordBots(new[] { CharacterClass.FightGuy, CharacterClass.Manki }, 1800, format: MatchFormat.SlopballVersus)),
-        [MatchFormat.CourseRace] = new(() => RecordBots(new[] { CharacterClass.FightGuy, CharacterClass.Nyx }, 1800, format: MatchFormat.CourseRace)),
-        [MatchFormat.CourseCoop] = new(() => RecordBots(new[] { CharacterClass.Wibou, CharacterClass.Bashie }, 1800, format: MatchFormat.CourseCoop)),
-        [MatchFormat.CourseScramble] = new(() => RecordBots(new[] { CharacterClass.FightGuy, CharacterClass.Manki, CharacterClass.Bonk }, 1800, format: MatchFormat.CourseScramble)),
-        [MatchFormat.MankiMayhem] = new(() => RecordBots(new[] { CharacterClass.FightGuy, CharacterClass.Nyx, CharacterClass.Bashie, CharacterClass.Bonk },
+        [MatchFormat.SlopballCoop] = new(() => RecordBots(new[] { "fightguy", "bonk" }, 1800, format: MatchFormat.SlopballCoop)),
+        [MatchFormat.SlopballVersus] = new(() => RecordBots(new[] { "fightguy", "manki" }, 1800, format: MatchFormat.SlopballVersus)),
+        [MatchFormat.CourseRace] = new(() => RecordBots(new[] { "fightguy", "nyx" }, 1800, format: MatchFormat.CourseRace)),
+        [MatchFormat.CourseCoop] = new(() => RecordBots(new[] { "wibou", "bashie" }, 1800, format: MatchFormat.CourseCoop)),
+        [MatchFormat.CourseScramble] = new(() => RecordBots(new[] { "fightguy", "manki", "bonk" }, 1800, format: MatchFormat.CourseScramble)),
+        [MatchFormat.MankiMayhem] = new(() => RecordBots(new[] { "fightguy", "nyx", "bashie", "bonk" },
             (int)MayhemShowPlan.For((uint)MayhemSeed).PlayStart(MayhemShowTuning.RegularPerAct) + 60, seed: MayhemSeed, format: MatchFormat.MankiMayhem)),
     };
 

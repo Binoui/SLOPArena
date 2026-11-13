@@ -13,7 +13,7 @@ namespace SlopArena.Shared.Tests;
 /// </summary>
 public class NetplaySessionTests
 {
-    private static readonly CharacterClass[] Duel = { CharacterClass.FightGuy, CharacterClass.Manki };
+    private static readonly string[] Duel = { "fightguy", "manki" };
     private const uint StartTick = 301;
     private const double Tick = 1.0 / 60.0;
 
@@ -30,7 +30,7 @@ public class NetplaySessionTests
             Session = new NetplaySession(arena, 1, new StockMatchRule(250));
             for (int slot = 0; slot < Duel.Length; slot++)
             {
-                var content = BuiltInContentResolver.Resolve(Duel[slot]);
+                var content = BuiltInContentResolver.ResolvePackage(Duel[slot]);
                 ulong id = (ulong)(slot + 1);
                 Session.RegisterEntity(id, content.Definition, Server.GetState(id), content.BakedAnimation);
             }

@@ -8,7 +8,7 @@ namespace SlopArena.Shared.Tests;
 /// <summary>The control gate at its four points: raw input, buffered slots, actual activation and movement admission.</summary>
 public class MayhemGateTests
 {
-    private static readonly CharacterClass[] FightGuys = { CharacterClass.FightGuy };
+    private static readonly string[] FightGuys = { "fightguy" };
     private static readonly byte[] Normals = { AbilitySlots.Normal1, AbilitySlots.Normal2, AbilitySlots.Normal3 };
     private static readonly byte[] Specials = { AbilitySlots.A, AbilitySlots.E, AbilitySlots.R, AbilitySlots.F };
     private static readonly byte[] Retired = { AbilitySlots.Lmb, AbilitySlots.Rmb, AbilitySlots.RetiredNormal, AbilitySlots.RetiredFifthNormal };
@@ -100,7 +100,7 @@ public class MayhemGateTests
     public void MovementAdmissionAppliesTheGateBeforeDefenseGrabJumpDownAndBuffer()
     {
         var arena = MayhemWorld.Arena();
-        var def = BuiltInContentResolver.Resolve(CharacterClass.FightGuy).Definition;
+        var def = BuiltInContentResolver.ResolvePackage("fightguy").Definition;
         CharacterState Fresh() => new()
         {
             EntityId = 1, PY = def.CapsuleHeight * .5f, IsGrounded = true, State = ActionState.Idle,

@@ -423,7 +423,7 @@ public sealed class CookedPackageLoaderContractTests
         var loaded = RunWithWallClock(() => CookedCharacterPackageLoader.LoadFiles(CookedPackageEdits.Shipped("bonk"),
             CookedPackageEdits.Roster.ResolvePackage("bonk")!.Requirement, CharacterCookProfile.TrustedBuiltIn));
         Assert.True(loaded.IsValid);
-        Assert.Throws<ArgumentException>(() => new AdmittedFighter(loaded, null, null));
+        Assert.Throws<ArgumentException>(() => new AdmittedFighter(loaded, null));
     }
 
     [Fact]

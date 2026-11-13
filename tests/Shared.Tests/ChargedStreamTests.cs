@@ -235,7 +235,7 @@ public sealed class ChargedStreamTests
     private static CharacterDefinition Definition(Action<JsonObject>? slot = null)
     {
         var def = TestHelpers.ResolveSourceDef("fightguy", character => UseStream(character, slot));
-        def = def with { Class = CharacterClass.FightGuy };
+        def = def with { PackageId = "fightguy" };
         return def;
     }
 

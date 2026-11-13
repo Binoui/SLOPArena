@@ -10,7 +10,7 @@ public class ServerSimulationTests
     {
         return new CharacterDefinition
         {
-            Class = CharacterClass.Manki,
+            PackageId = "manki",
             Movement = new MovementStats
             {
                 RunSpeed = 5f,
@@ -311,7 +311,7 @@ public class ServerSimulationTests
     {
         var arena = MakeTestArena();
         var sim = new ServerSimulation(arena);
-        var def = BuiltInContentResolver.Resolve(CharacterClass.Manki).Definition;
+        var def = BuiltInContentResolver.ResolvePackage("manki").Definition;
         var state = MakeIdleState(1);
         sim.RegisterEntity(1, def, state);
 
@@ -323,7 +323,7 @@ public class ServerSimulationTests
     {
         var arena = MakeTestArena();
         var sim = new ServerSimulation(arena);
-        var def = BuiltInContentResolver.Resolve(CharacterClass.Manki).Definition;
+        var def = BuiltInContentResolver.ResolvePackage("manki").Definition;
 
         var pState = MakeIdleState(1);
         sim.RegisterEntity(1, def, pState);
@@ -586,7 +586,7 @@ public class ServerSimulationTests
             }));
         var def = new CharacterDefinition
         {
-            Class = CharacterClass.Manki,
+            PackageId = "manki",
             DisplayName = "Cooked Test",
             CapsuleHeight = 1.7f,
             CapsuleRadius = .35f,
@@ -873,14 +873,14 @@ public class ServerSimulationTests
     }
 
     [Theory]
-    [InlineData(CharacterClass.FightGuy, 6.666667f, 11f, 3.025755f)]
-    [InlineData(CharacterClass.Manki, 6f, 11f, 3.025755f)]
-    [InlineData(CharacterClass.Wibou, 5.866667f, 12.1f, 3.328333f)]
-    [InlineData(CharacterClass.Bonk, 6.666667f, 11f, 3.025755f)]
+    [InlineData("fightguy", 6.666667f, 11f, 3.025755f)]
+    [InlineData("manki", 6f, 11f, 3.025755f)]
+    [InlineData("wibou", 5.866667f, 12.1f, 3.328333f)]
+    [InlineData("bonk", 6.666667f, 11f, 3.025755f)]
     public void CookedAirDodgeBurstIsShorterThanOldAirDash(
-        CharacterClass character, float oldTravel, float dodgeSpeed, float burstTravel)
+        string character, float oldTravel, float dodgeSpeed, float burstTravel)
     {
-        var def = BuiltInContentResolver.Resolve(character).Definition;
+        var def = BuiltInContentResolver.ResolvePackage(character).Definition;
         Assert.Equal(dodgeSpeed, def.Movement.AirDodgeSpeed);
         var state = GroundedState(1, def);
         state.IsGrounded = false;
@@ -1450,13 +1450,13 @@ public class ServerSimulationTests
     }
 
     [Theory]
-    [InlineData(CharacterClass.FightGuy)]
-    [InlineData(CharacterClass.Manki)]
-    [InlineData(CharacterClass.Wibou)]
-    [InlineData(CharacterClass.Bonk)]
-    public void CookedRosterCaptureGeometryReachesCloseFrontTarget(CharacterClass character)
+    [InlineData("fightguy")]
+    [InlineData("manki")]
+    [InlineData("wibou")]
+    [InlineData("bonk")]
+    public void CookedRosterCaptureGeometryReachesCloseFrontTarget(string character)
     {
-        var content = BuiltInContentResolver.Resolve(character);
+        var content = BuiltInContentResolver.ResolvePackage(character);
         var def = content.Definition;
         var sim = new ServerSimulation(TestHelpers.TestArena());
         sim.RegisterEntity(1, def, GroundedState(1, def), content.Baked);

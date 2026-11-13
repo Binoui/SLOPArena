@@ -7,11 +7,11 @@ namespace SlopArena.Shared.Tests;
 public sealed class RosterLowPoseTests
 {
     [Theory]
-    [InlineData(CharacterClass.FightGuy)]
-    [InlineData(CharacterClass.Wibou)]
-    public void AdmittedLowPostures_DuckHighContactButRemainHittableLow(CharacterClass character)
+    [InlineData("fightguy")]
+    [InlineData("wibou")]
+    public void AdmittedLowPostures_DuckHighContactButRemainHittableLow(string character)
     {
-        var entry = BuiltInContentResolver.Resolve(character);
+        var entry = BuiltInContentResolver.ResolvePackage(character);
         var def = entry.Definition;
         ServerSimulation Make(ActionState action)
         {

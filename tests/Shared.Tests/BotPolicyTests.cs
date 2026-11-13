@@ -787,11 +787,11 @@ public class BotPolicyTests
     }
 
     [Theory]
-    [InlineData(CharacterClass.FightGuy)]
-    [InlineData(CharacterClass.Manki)]
-    [InlineData(CharacterClass.Wibou)]
-    [InlineData(CharacterClass.Bonk)]
-    public void StageRecovery_ReturnsToAStageSurface(CharacterClass character)
+    [InlineData("fightguy")]
+    [InlineData("manki")]
+    [InlineData("wibou")]
+    [InlineData("bonk")]
+    public void StageRecovery_ReturnsToAStageSurface(string character)
     {
         var arena = RecoveryArena();
         var def = TestHelpers.ResolveDef(character);
@@ -838,11 +838,11 @@ public class BotPolicyTests
     }
 
     [Theory]
-    [InlineData(CharacterClass.FightGuy)]
-    [InlineData(CharacterClass.Manki)]
-    [InlineData(CharacterClass.Wibou)]
-    [InlineData(CharacterClass.Bonk)]
-    public void RecoveryMove_IsReservedWhenOffstage(CharacterClass character)
+    [InlineData("fightguy")]
+    [InlineData("manki")]
+    [InlineData("wibou")]
+    [InlineData("bonk")]
+    public void RecoveryMove_IsReservedWhenOffstage(string character)
     {
         var arena = RecoveryArena();
         var def = TestHelpers.ResolveDef(character);

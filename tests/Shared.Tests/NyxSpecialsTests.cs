@@ -24,7 +24,7 @@ public sealed class NyxSpecialsTests
         if (!saved) sim = FormsFixture.Sim(TestHelpers.ResolveSourceDef("nyx"), form);
         else
         {
-            var content = BuiltInContentResolver.Resolve(CharacterClass.Nyx);
+            var content = BuiltInContentResolver.ResolvePackage("nyx");
             sim = FormsFixture.Sim(content.Definition, form);
             sim.RegisterEntity(Nyx, content.Definition, sim.GetState(Nyx), content.BakedAnimation);
         }

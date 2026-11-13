@@ -50,7 +50,7 @@ public class AfterHoursArenaTests
             float length = MathF.Sqrt((nx + px) * (nx + px) + (nz + pz) * (nz + pz));
             contacts.Add((a.X, a.Z, (nx + px) / length, (nz + pz) / length));
         }
-        foreach (var cls in new[] { CharacterClass.FightGuy, CharacterClass.Manki, CharacterClass.Wibou, CharacterClass.Bonk })
+        foreach (var cls in new[] { "fightguy", "manki", "wibou", "bonk" })
         foreach (var contact in contacts)
         foreach (float height in new[] { -2f, -9f })
             yield return new object[] { cls, contact.x, contact.z, contact.dx, contact.dz, height };
@@ -78,7 +78,7 @@ public class AfterHoursArenaTests
     [Theory]
     [MemberData(nameof(RecoveryContacts))]
     public void RecoveryWallsBlockInwardMovementAndAllowOutwardMovement(
-        CharacterClass cls, float edgeX, float edgeZ, float outwardX, float outwardZ, float height)
+        string cls, float edgeX, float edgeZ, float outwardX, float outwardZ, float height)
     {
         string root = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", ".."));
         var arena = ArenaBinaryFormat.LoadFromFile(Path.Combine(root, "data", "arenas", "after_hours.arena"))!.Value;

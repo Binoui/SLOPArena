@@ -8,17 +8,17 @@ namespace SlopArena.Shared.Tests;
 /// </summary>
 public sealed class RecoveryTurnTests
 {
-    public static TheoryData<CharacterClass> StickRecoveries => new()
+    public static TheoryData<string> StickRecoveries => new()
     {
-        CharacterClass.FightGuy, CharacterClass.Wibou, CharacterClass.Manki,
-        CharacterClass.Bashie, CharacterClass.Salamander,
+        "fightguy", "wibou", "manki",
+        "bashie", "salamander",
     };
 
     private static readonly InputState Back = new() { MoveY = -1f };
 
     [Theory]
     [MemberData(nameof(StickRecoveries))]
-    public void StickHeldOnThePressTurnsTheMoveAround(CharacterClass fighter)
+    public void StickHeldOnThePressTurnsTheMoveAround(string fighter)
     {
         var sim = AirborneFacingForward(fighter);
         Tick(sim, Back with { ActiveSlot = AbilitySlots.E });
@@ -33,7 +33,7 @@ public sealed class RecoveryTurnTests
     {
         foreach (var fighter in StickRecoveries)
         {
-            if (fighter == CharacterClass.Manki) continue;
+            if (fighter == "manki") continue;
             var sim = AirborneFacingForward(fighter);
             Tick(sim, new InputState { ActiveSlot = AbilitySlots.E });
             for (int tick = 1; tick <= stickTick; tick++)
@@ -45,11 +45,11 @@ public sealed class RecoveryTurnTests
     }
 
     [Theory]
-    [InlineData(CharacterClass.Wibou, 0)]
-    [InlineData(CharacterClass.Wibou, 2)]
-    [InlineData(CharacterClass.Bashie, 0)]
-    [InlineData(CharacterClass.Bashie, 2)]
-    public void ATurnedRecoveryTravelsTheNewWay(CharacterClass fighter, int stickTick)
+    [InlineData("wibou", 0)]
+    [InlineData("wibou", 2)]
+    [InlineData("bashie", 0)]
+    [InlineData("bashie", 2)]
+    public void ATurnedRecoveryTravelsTheNewWay(string fighter, int stickTick)
     {
         var sim = AirborneFacingForward(fighter);
         float startZ = sim.GetState(1).PZ;
@@ -66,7 +66,7 @@ public sealed class RecoveryTurnTests
     [Fact]
     public void ALaterTurnWinsWithoutSteepeningHydroJet()
     {
-        var sim = AirborneFacingForward(CharacterClass.Bashie);
+        var sim = AirborneFacingForward("bashie");
         Tick(sim, Back with { ActiveSlot = AbilitySlots.E });
         float flatRise = sim.GetState(1).VY;
         Tick(sim, new InputState { MoveX = 0.3f });
@@ -78,7 +78,7 @@ public sealed class RecoveryTurnTests
 
     [Theory]
     [MemberData(nameof(StickRecoveries))]
-    public void ANeutralStickKeepsFacingAndIgnoresTheCamera(CharacterClass fighter)
+    public void ANeutralStickKeepsFacingAndIgnoresTheCamera(string fighter)
     {
         var sim = AirborneFacingForward(fighter);
         Tick(sim, new InputState { ActiveSlot = AbilitySlots.E, AimYaw = 9000 });
@@ -86,7 +86,7 @@ public sealed class RecoveryTurnTests
         Assert.InRange(sim.GetState(1).FacingYaw, -0.01f, 0.01f);
     }
 
-    private static ServerSimulation AirborneFacingForward(CharacterClass fighter)
+    private static ServerSimulation AirborneFacingForward(string fighter)
     {
         var def = TestHelpers.ResolveDef(fighter);
         var sim = TestHelpers.MakeSim();

@@ -35,7 +35,7 @@ public sealed class FighterPresentationBindingsTests
             Assert.False(string.IsNullOrWhiteSpace(card.RootElement.GetProperty("description").GetString()));
             Assert.Contains(card.RootElement.GetProperty("workInProgress").ValueKind, new[] { JsonValueKind.True, JsonValueKind.False });
             var binding = bindings[entry.PackageId];
-            Assert.Equal(entry.Selector.ToString(), binding.GetProperty("alias").GetString());
+            Assert.Equal(LegacyFighterProtocol.Selector(entry.PackageId), binding.GetProperty("alias").GetString());
             Assert.Equal(JsonSerializer.Serialize(card.RootElement), JsonSerializer.Serialize(binding.GetProperty("card")));
             using var runtime = JsonDocument.Parse(File.ReadAllBytes(Path.Combine(Root, "content-cooked", entry.PackageId, "character.runtime.json")));
             var definition = runtime.RootElement.GetProperty("character");

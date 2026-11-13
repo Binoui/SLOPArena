@@ -71,16 +71,16 @@ internal static class Program
                 return 1;
             }
 
-        CharacterClass cls = charName.ToLowerInvariant() switch
+        string cls = charName.ToLowerInvariant() switch
         {
-            "fightguy" or "fg" => CharacterClass.FightGuy,
-            "wibou" => CharacterClass.Wibou,
-            "manki" => CharacterClass.Manki,
+            "fightguy" or "fg" => "fightguy",
+            "wibou" => "wibou",
+            "manki" => "manki",
             _ => throw new ArgumentException($"unknown character: {charName}"),
         };
-        var entry = BuiltInContentResolver.Resolve(cls);
+        var entry = BuiltInContentResolver.ResolvePackage(cls);
         var def = entry.Definition;
-        if (def.Class == CharacterClass.None)
+        if (def.PackageId == "")
         {
             Console.Error.WriteLine($"Unknown character '{charName}'.");
             return 1;

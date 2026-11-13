@@ -52,7 +52,7 @@ public static class HurtboxOverride
     }
 
     /// <summary>Serialize the full def list to the override file format (tool-side writer).</summary>
-    public static string Serialize(CharacterClass character, HurtboxBoneDef[] defs)
+    public static string Serialize(string character, HurtboxBoneDef[] defs)
     {
         var dto = new OverrideDto
         {
@@ -81,9 +81,9 @@ public static class HurtboxOverride
     /// Parse an override file. Returns false (defs = null) on malformed JSON, a
     /// missing character name, or an empty bone list — callers fall back to C# defs.
     /// </summary>
-    public static bool TryParse(string json, out CharacterClass character, out HurtboxBoneDef[]? defs)
+    public static bool TryParse(string json, out string character, out HurtboxBoneDef[]? defs)
     {
-        character = CharacterClass.None;
+        character = "";
         defs = null;
         OverrideDto? dto;
         try
@@ -96,7 +96,7 @@ public static class HurtboxOverride
         }
         if (dto == null || string.IsNullOrEmpty(dto.Character) || dto.BoneDefs == null || dto.BoneDefs.Length == 0)
             return false;
-        if (!Enum.TryParse(dto.Character, ignoreCase: true, out CharacterClass parsed))
+        if (!TryStoredPackageId(dto.Character, out string parsed))
             return false;
 
         var result = new HurtboxBoneDef[dto.BoneDefs.Length];
@@ -109,6 +109,13 @@ public static class HurtboxOverride
         character = parsed;
         defs = result;
         return true;
+    }
+
+    private static bool TryStoredPackageId(string value, out string packageId)
+    {
+        if (LegacyFighterProtocol.TryPackageId(value, out packageId)) return true;
+        packageId = value;
+        return MatchContentCatalogBuilder.IsStablePackageId(value) && value != "nilus" && value != "none";
     }
 
     /// <summary>

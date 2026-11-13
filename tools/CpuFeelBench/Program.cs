@@ -128,13 +128,13 @@ internal static partial class Program
         }
     }
 
-    private static IEnumerable<CharacterClass> Roster()
+    private static IEnumerable<string> Roster()
     {
-        foreach (var character in Enum.GetValues<CharacterClass>())
+        foreach (var character in BuiltInContentResolver.ReadApplicationCatalog().Entries.Select(e => e.Identity.PackageId))
         {
-            if (character == CharacterClass.None) continue;
+            if (character == "") continue;
             bool admitted;
-            try { admitted = BuiltInContentResolver.Resolve(character) != null; }
+            try { admitted = BuiltInContentResolver.ResolvePackage(character) != null; }
             catch (Exception) { admitted = false; }
             if (admitted) yield return character;
         }
@@ -302,7 +302,7 @@ internal static partial class Program
 
     private static void Reach()
     {
-        var fighter = BuiltInContentResolver.Resolve(CharacterClass.FightGuy);
+        var fighter = BuiltInContentResolver.ResolvePackage("fightguy");
         foreach (var difficulty in new[] { CpuDifficulty.Normal, CpuDifficulty.Hard })
         {
             Line();
@@ -378,7 +378,7 @@ internal static partial class Program
 
     private static void Edge()
     {
-        var fighter = BuiltInContentResolver.Resolve(CharacterClass.FightGuy);
+        var fighter = BuiltInContentResolver.ResolvePackage("fightguy");
         Line();
         Line("## Edge approach, FightGuy CPU Normal");
         Line("An idle target stands within 1.5 m of a drop; the CPU starts 6 m inward. Reached = within 2 m in 5 s.");
@@ -446,7 +446,7 @@ internal static partial class Program
 
     private static void Contact()
     {
-        var fighter = BuiltInContentResolver.Resolve(CharacterClass.FightGuy);
+        var fighter = BuiltInContentResolver.ResolvePackage("fightguy");
         var arena = LoadArena("training");
         Line();
         Line("## Contact and footwork, FightGuy CPU vs a scripted FightGuy on Training");
@@ -517,7 +517,7 @@ internal static partial class Program
         Line("|---|---|---|---|");
         foreach (var character in Roster())
         {
-            var entry = BuiltInContentResolver.Resolve(character);
+            var entry = BuiltInContentResolver.ResolvePackage(character);
             var counts = new Dictionary<string, int>();
             int total = 0, normals = 0;
             foreach (var pattern in new[] { "still", "in-out" })
@@ -561,7 +561,7 @@ internal static partial class Program
         Line("|---|---|---|---|---|");
         foreach (var character in Roster())
         {
-            var entry = BuiltInContentResolver.Resolve(character);
+            var entry = BuiltInContentResolver.ResolvePackage(character);
             int grabs = 0, held = 0, blocked = 0, presses = 0;
             for (int seed = 1; seed <= 3; seed++)
             {
@@ -590,9 +590,9 @@ internal static partial class Program
     private static void Cost()
     {
         var arena = LoadArena("hamster_habitat");
-        var roster = new[] { CharacterClass.FightGuy, CharacterClass.Manki, CharacterClass.Wibou }
-            .Select(character => BuiltInContentResolver.Resolve(character)).ToArray();
-        var target = BuiltInContentResolver.Resolve(CharacterClass.FightGuy);
+        var roster = new[] { "fightguy", "manki", "wibou" }
+            .Select(character => BuiltInContentResolver.ResolvePackage(character)).ToArray();
+        var target = BuiltInContentResolver.ResolvePackage("fightguy");
         var sim = new ServerSimulation(arena);
         var policy = new HeuristicBotPolicy();
         var memories = new BotMemory[roster.Length];
@@ -674,7 +674,7 @@ internal static partial class Program
     /// </summary>
     private static void CostMap(in ArenaDefinition arena)
     {
-        var fighter = BuiltInContentResolver.Resolve(CharacterClass.FightGuy);
+        var fighter = BuiltInContentResolver.ResolvePackage("fightguy");
         var worst = new List<double>();
         var all = new List<double>();
         int maxProbes = 0;

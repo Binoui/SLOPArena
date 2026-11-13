@@ -43,7 +43,7 @@ public class MatchControlHealthTests
         orchestrator.StopAcceptingMatches();
 
         var admitted = orchestrator.TryAssignMatch("not-started", "slop_pit",
-            new[] { new MatchPlayer(1, CharacterClass.Manki, 1), new MatchPlayer(2, CharacterClass.FightGuy, 2) },
+            new[] { new MatchPlayer(1, "manki", 1), new MatchPlayer(2, "fightguy", 2) },
             3, null, null, out var port, out _, out _, out var error);
 
         Assert.False(admitted);

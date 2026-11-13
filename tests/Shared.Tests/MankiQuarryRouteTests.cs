@@ -34,7 +34,7 @@ public sealed class MankiQuarryRouteTests
             while (root != null && !Directory.Exists(Path.Combine(root.FullName, "data", "arenas"))) root = root.Parent;
             Assert.NotNull(root);
             Arena = ArenaBinaryFormat.LoadFromFile(Path.Combine(root!.FullName, "data", "arenas", "manki_quarry.arena"))!.Value;
-            var entry = BuiltInContentResolver.Resolve(CharacterClass.Manki);
+            var entry = BuiltInContentResolver.ResolvePackage("manki");
             Def = entry.Definition; Body = Def.CapsuleHeight * .5f;
             Sim = new ServerSimulation(Arena, NoWinMatchRule.Instance);
             var spawn = Arena.SpawnPoints[0];

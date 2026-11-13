@@ -61,14 +61,14 @@ public static class TestHelpers
         return CookedCharacterRuntimeAdapter.ToCharacterDefinition(compiled.CookedPackage!);
     }
 
-    public static CharacterDefinition MankiDef => BuiltInContentResolver.Resolve(CharacterClass.Manki).Definition;
+    public static CharacterDefinition MankiDef => BuiltInContentResolver.ResolvePackage("manki").Definition;
 
-    public static CharacterDefinition FightGuyDef => BuiltInContentResolver.Resolve(CharacterClass.FightGuy).Definition;
+    public static CharacterDefinition FightGuyDef => BuiltInContentResolver.ResolvePackage("fightguy").Definition;
 
-    public static CharacterDefinition WibouDef => BuiltInContentResolver.Resolve(CharacterClass.Wibou).Definition;
+    public static CharacterDefinition WibouDef => BuiltInContentResolver.ResolvePackage("wibou").Definition;
 
-    public static CharacterDefinition ResolveDef(CharacterClass selector)
-        => BuiltInContentResolver.Resolve(selector).Definition;
+    public static CharacterDefinition ResolveDef(string selector)
+        => BuiltInContentResolver.ResolvePackage(selector).Definition;
 
     /// <summary>Fresh engine-only data. Roster tuning must not change mechanics fixtures.</summary>
     public static CharacterDefinition EngineDef
@@ -91,7 +91,7 @@ public static class TestHelpers
             }
             return new CharacterDefinition
             {
-                Class = CharacterClass.Manki,
+                PackageId = "manki",
                 DisplayName = "Engine fixture",
                 CapsuleRadius = 0.3f,
                 CapsuleHeight = 1.5f,
@@ -302,7 +302,7 @@ public static class TestHelpers
             var src = MankiDef;
             return new CharacterDefinition
             {
-                Class = src.Class,
+                PackageId = src.PackageId,
                 DisplayName = src.DisplayName,
                 CapsuleRadius = src.CapsuleRadius,
                 CapsuleHeight = src.CapsuleHeight,
@@ -369,7 +369,7 @@ public static class TestHelpers
             var src = MankiDef;
             return new CharacterDefinition
             {
-                Class = src.Class,
+                PackageId = src.PackageId,
                 DisplayName = src.DisplayName,
                 CapsuleRadius = src.CapsuleRadius,
                 CapsuleHeight = src.CapsuleHeight,
@@ -430,7 +430,7 @@ public static class TestHelpers
         var mov = movement ?? src.Movement;
         return new CharacterDefinition
         {
-            Class = src.Class,
+            PackageId = src.PackageId,
             DisplayName = src.DisplayName,
             Movement = mov,
             Weight = src.Weight,
@@ -507,7 +507,7 @@ public static class TestHelpers
     public static BakedAnimationData? LoadBakedData(CharacterDefinition def)
     {
         if (def.CookedSlots != null)
-            return BuiltInContentResolver.Resolve(def.Class).BakedAnimation;
+            return BuiltInContentResolver.ResolvePackage(def.PackageId).BakedAnimation;
         if (string.IsNullOrEmpty(def.BakedDataPath)) return null;
         string relative = def.BakedDataPath.Replace("res://", "");
         // Test runs from tests/Shared.Tests/bin/Debug/net8.0/

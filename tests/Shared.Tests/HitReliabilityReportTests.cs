@@ -164,7 +164,7 @@ public sealed class HitReliabilityReportTests
 
     private static (MoveReliability Move, MatchContentIdentity Identity) SwingMove(Func<int, float> angle, bool singleBone = false)
     {
-        var entry = BuiltInContentResolver.Resolve(CharacterClass.FightGuy);
+        var entry = BuiltInContentResolver.ResolvePackage("fightguy");
         var slots = entry.Definition.CookedSlots!.ToArray();
         slots[7] = new CookedSlotDefinition(7, "air.1", true, "Synthetic swing", "", "",
             AuthoringAbilityBehavior.MeleeCombo, AuthoringAimMode.None, 0, false, false,

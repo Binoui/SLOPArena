@@ -74,7 +74,7 @@ public sealed class SteamMatchRoutingWireTests
     {
         var original = new MatchContentHandleMap(1, new[]
         {
-            new MatchContentHandleRecord(new ContentHandle(1), CharacterClass.FightGuy,
+            new MatchContentHandleRecord(new ContentHandle(1), "fightguy",
                 new MatchContentIdentity("fightguy", "0.0.0-dev",
                     new string('a', 64), new string('b', 64), new string('c', 64)), "FightGuy")
         });

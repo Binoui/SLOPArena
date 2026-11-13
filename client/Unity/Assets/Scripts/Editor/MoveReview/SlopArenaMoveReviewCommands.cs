@@ -83,8 +83,8 @@ namespace SlopArena.EditorTools.MoveReview
             var coverage = PackageCheck.Check(parsed);
             if (TakeSession.IsActive || SlopArenaPhotoCommands.LiveActive || SlopArenaGamepadCommands.Active || VirtualPadTimeline.Active)
                 throw new InvalidOperationException("Another input/capture session is active.");
-            if (match.CaptureSimulation.GetDefinition(MatchConfig.LocalEntityId).Class != coverage.Definition.Class
-                || match.CaptureSimulation.GetDefinition(match.SelectedNpcId).Class != coverage.DummyClass)
+            if (match.CaptureSimulation.GetDefinition(MatchConfig.LocalEntityId).PackageId != coverage.Definition.PackageId
+                || match.CaptureSimulation.GetDefinition(match.SelectedNpcId).PackageId != coverage.DummyClass)
                 throw new InvalidOperationException("The Training fighter or selected dummy does not match the recipe.");
             var mount = Object.FindFirstObjectByType<CameraMount>();
             if (mount == null || !mount.isActiveAndEnabled || mount.RenderCamera == null) throw new InvalidOperationException("An enabled gameplay CameraMount is required.");

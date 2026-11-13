@@ -11,12 +11,12 @@ namespace SlopArena.Shared;
 public sealed class HitReliabilityTargets
 {
     public static HitReliabilityTargets Load(string cookedRoot = "content-cooked")
-        => new(BuiltInContentResolver.Resolve(CharacterClass.FightGuy, cookedRoot),
-            BuiltInContentResolver.Resolve(CharacterClass.Manki, cookedRoot));
+        => new(BuiltInContentResolver.ResolvePackage("fightguy", cookedRoot),
+            BuiltInContentResolver.ResolvePackage("manki", cookedRoot));
 
     internal HitReliabilityTargets(MatchContentEntry medium, MatchContentEntry small)
     {
-        if (medium.Definition.Class != CharacterClass.FightGuy || small.Definition.Class != CharacterClass.Manki)
+        if (medium.Definition.PackageId != "fightguy" || small.Definition.PackageId != "manki")
             throw new ArgumentException("Reliability targets must be FightGuy (medium) and Manki (small).");
         Medium = new HitReliabilityTarget(medium);
         Small = new HitReliabilityTarget(small);
@@ -32,7 +32,7 @@ public sealed class HitReliabilityTarget
 {
     internal HitReliabilityTarget(MatchContentEntry entry)
     {
-        Name = entry.Definition.Class.ToString();
+        Name = entry.DisplayName;
         Identity = entry.Identity;
         Definition = entry.Definition;
         Poses = entry.BakedAnimation;

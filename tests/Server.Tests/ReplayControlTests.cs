@@ -102,7 +102,7 @@ public sealed class ReplayControlTests
     public async Task ActiveWriterIsExcludedAndDownloadConflicts()
     {
         using var r = new Rig(); r.Auth();
-        var entries = new[] { BuiltInContentResolver.Resolve(CharacterClass.FightGuy), BuiltInContentResolver.Resolve(CharacterClass.Manki) };
+        var entries = new[] { BuiltInContentResolver.ResolvePackage("fightguy"), BuiltInContentResolver.ResolvePackage("manki") };
         string root = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "../../../../../"));
         var arena = ArenaBinaryFormat.LoadFromFile(Path.Combine(root, "data/arenas/slop_pit.arena"))!.Value;
         string id = Guid.NewGuid().ToString();

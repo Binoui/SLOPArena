@@ -7,10 +7,10 @@ namespace SlopArena.Shared;
 
 public static class CookedCharacterRuntimeAdapter
 {
-    public static CharacterDefinition ToCharacterDefinition(CookedCharacterPackage package, CharacterClass legacySelector = CharacterClass.None)
-        => ToCharacterDefinition(package, legacySelector, CharacterCookProfile.Workshop);
+    public static CharacterDefinition ToCharacterDefinition(CookedCharacterPackage package)
+        => ToCharacterDefinition(package, CharacterCookProfile.Workshop);
 
-    internal static CharacterDefinition ToCharacterDefinition(CookedCharacterPackage package, CharacterClass legacySelector,
+    internal static CharacterDefinition ToCharacterDefinition(CookedCharacterPackage package,
         CharacterCookProfile profile)
     {
         if (package == null) throw new InvalidDataException("Cooked package is not valid.");
@@ -18,7 +18,7 @@ public static class CookedCharacterRuntimeAdapter
         var result = new CharacterDefinition
         {
             AdmissionProfile = profile,
-            Class = legacySelector,
+            PackageId = package.Metadata.PackageId,
             DisplayName = c.DisplayName,
             Weight = c.Weight,
             Movement = ToMovementStats(c.Movement),

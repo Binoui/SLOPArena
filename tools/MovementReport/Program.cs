@@ -44,7 +44,7 @@ internal static partial class Program
         if (charName == "all")
         {
             var roster = BuiltInRosterManifestCodec.Load(Path.Combine("content-cooked", "roster", "manifest.json"));
-            foreach (var entry in roster.Entries) defs.Add(BuiltInContentResolver.Resolve(entry.Selector).Definition);
+            foreach (var entry in roster.Entries) defs.Add(BuiltInContentResolver.ResolvePackage(entry.Selector).Definition);
         }
         else
         {
@@ -65,7 +65,7 @@ internal static partial class Program
         {
             Directory.CreateDirectory(jsonDir);
             foreach (var (def, m) in measured)
-                File.WriteAllText(Path.Combine(jsonDir, $"movement-{def.Class.ToString().ToLowerInvariant()}.json"),
+                File.WriteAllText(Path.Combine(jsonDir, $"movement-{def.PackageId.ToString().ToLowerInvariant()}.json"),
                     JsonSerializer.Serialize(m, JsonOpts));
         }
 
@@ -91,12 +91,12 @@ internal static partial class Program
     {
         var cls = which.ToLowerInvariant() switch
         {
-            "fightguy" => CharacterClass.FightGuy,
-            "manki" => CharacterClass.Manki,
-            "wibou" => CharacterClass.Wibou,
+            "fightguy" => "fightguy",
+            "manki" => "manki",
+            "wibou" => "wibou",
             _ => throw new ArgumentException($"unknown character: {which} (expected one of: fightguy, manki, wibou, all)"),
         };
-        return BuiltInContentResolver.Resolve(cls).Definition;
+        return BuiltInContentResolver.ResolvePackage(cls).Definition;
     }
 
     /// <summary>Load a real baked stage for stage-relative reads. Falls back to the flat

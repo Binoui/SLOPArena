@@ -122,10 +122,10 @@ internal static class Program
     {
         return which.ToLowerInvariant() switch
         {
-            "fightguy" => BuiltInContentResolver.Resolve(CharacterClass.FightGuy),
-            "manki"    => BuiltInContentResolver.Resolve(CharacterClass.Manki),
-            "wibou"    => BuiltInContentResolver.Resolve(CharacterClass.Wibou),
-            "bonk"     => BuiltInContentResolver.Resolve(CharacterClass.Bonk),
+            "fightguy" => BuiltInContentResolver.ResolvePackage("fightguy"),
+            "manki"    => BuiltInContentResolver.ResolvePackage("manki"),
+            "wibou"    => BuiltInContentResolver.ResolvePackage("wibou"),
+            "bonk"     => BuiltInContentResolver.ResolvePackage("bonk"),
             var c => throw new ArgumentException(
                 $"unknown character: {c} (expected one of: fightguy, manki, wibou, bonk)"),
         };

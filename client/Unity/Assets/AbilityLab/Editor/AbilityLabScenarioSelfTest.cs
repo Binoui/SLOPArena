@@ -83,7 +83,7 @@ public static class AbilityLabScenarioSelfTest
 
     private static void VerifyTargetedLeapScenario()
     {
-        var package = BuiltInContentResolver.Resolve(CharacterClass.Bonk);
+        var package = BuiltInContentResolver.ResolvePackage("bonk");
         var def = package.Definition;
         var origin = new Vector3(0f, def.CapsuleHeight * 0.5f, 0f);
         var controller = new AbilityLabSimulationController();
@@ -123,7 +123,7 @@ public static class AbilityLabScenarioSelfTest
             }));
         return new CharacterDefinition
         {
-            Class = CharacterClass.None,
+            PackageId = "",
             CapsuleHeight = 1.7f,
             CapsuleRadius = 0.35f,
             ShieldRadius = 1.05f,

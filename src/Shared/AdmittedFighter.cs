@@ -17,12 +17,11 @@ public sealed class AdmittedFighter
         return new FighterChoice(this, startingForm);
     }
     public MatchContentIdentity Identity => Loaded.Identity;
-    public CharacterClass? LegacySelector { get; }
     readonly ShippedRoster? trustedRoster;
     internal bool IsBundled => trustedRoster != null || development;
     readonly bool development;
 
-    internal AdmittedFighter(CookedCharacterPackageLoadResult loaded, CharacterClass? selector,
+    internal AdmittedFighter(CookedCharacterPackageLoadResult loaded,
         ShippedRoster? trustedRoster, bool development = false)
     {
         if (!loaded.IsValid) throw new ArgumentException("Invalid cooked package.", nameof(loaded));
@@ -31,7 +30,6 @@ public sealed class AdmittedFighter
         if (trustedRoster == null && !development && loaded.Profile != CharacterCookProfile.Workshop)
             throw new ArgumentException("External admission requires the Workshop profile.", nameof(loaded));
         Loaded = loaded;
-        LegacySelector = selector;
         this.trustedRoster = trustedRoster;
         this.development = development;
     }
@@ -50,6 +48,6 @@ public sealed class AdmittedFighter
         var loaded = CookedCharacterPackageLoader.LoadFiles(files, requirement, CharacterCookProfile.Workshop);
         if (!loaded.IsValid || !loaded.Identity.PackageId.StartsWith("local.", StringComparison.Ordinal))
             throw new ArgumentException("Invalid local fixture: " + string.Join("; ", loaded.Diagnostics.Select(x => x.Code)));
-        return new AdmittedFighter(loaded, null, null);
+        return new AdmittedFighter(loaded, null);
     }
 }

@@ -118,7 +118,7 @@ public sealed class MankiKitScenarioTests : KitScenarioTests
             [CharacterPackageAssembler.BindingPath] = File.ReadAllBytes(Path.Combine(root, "client.bindings")),
         };
         var roster = BuiltInRosterManifestCodec.Load(RepoFile("content-cooked/roster/manifest.json"));
-        var rosterEntry = roster.Resolve(CharacterClass.Manki);
+        var rosterEntry = roster.ResolvePackage("manki");
         Assert.NotNull(rosterEntry);
         Assert.Equal("manki", rosterEntry!.PackageId);
         var loaded = CookedCharacterPackageLoader.LoadFiles(files, rosterEntry.Requirement);

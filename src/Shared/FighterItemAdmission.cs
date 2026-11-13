@@ -128,7 +128,7 @@ internal static class FighterItemAdmission
             var motion = PortableFighterMotion.Read(binding.RootElement, files);
             var bake = PortablePoseBake.Verify(motion, loaded.Package!.Definition, files[CharacterPackageAssembler.PosePath]);
             if (bake.Count != 0) { d.AddRange(bake); return Result(); }
-            return new(new AdmittedFighter(loaded, null, null), d.AsReadOnly(), new FighterItemSnapshot(new Dictionary<string, byte[]>(files) { ["item.json"] = WorkshopItemManifestCodec.Write(manifest.Manifest!) }, binding.RootElement, card.RootElement, motion));
+            return new(new AdmittedFighter(loaded, null), d.AsReadOnly(), new FighterItemSnapshot(new Dictionary<string, byte[]>(files) { ["item.json"] = WorkshopItemManifestCodec.Write(manifest.Manifest!) }, binding.RootElement, card.RootElement, motion));
         }
         catch (GlbMotionException ex) { return Failure(ex.Code, ex.Message); }
         catch (Exception ex) when (ex is InvalidDataException or IOException or UnauthorizedAccessException or JsonException or InvalidOperationException or KeyNotFoundException or ArgumentException or OverflowException or NotSupportedException or System.Security.SecurityException or System.ComponentModel.Win32Exception or TypeLoadException or FormatException)

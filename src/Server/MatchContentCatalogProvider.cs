@@ -28,7 +28,7 @@ public sealed class MatchContentCatalogProvider
             var shipped = ShippedRoster.ReadApplication();
             var manifest = _manifestPath == null ? shipped.Manifest : BuiltInRosterManifestCodec.Load(_manifestPath);
             if (manifest.Entries.Count == 0 || manifest.Entries.Count != shipped.Manifest.Entries.Count
-                || manifest.Entries.Any(e => shipped.Manifest.Resolve(e.Selector) != e))
+                || manifest.Entries.Any(e => shipped.Manifest.ResolvePackage(e.Selector) != e))
                 throw new InvalidDataException("Server roster must contain the complete application shipped roster.");
             var packages = new Dictionary<string, CookedCharacterPackageLoadResult>(StringComparer.Ordinal);
             foreach (var rosterEntry in manifest.Entries)
@@ -45,8 +45,8 @@ public sealed class MatchContentCatalogProvider
             catalog = result.Catalog;
             var records = new List<MatchContentHandleRecord>();
             foreach (var entry in catalog.Entries)
-                if (entry.LegacySelector.HasValue)
-                    records.Add(new MatchContentHandleRecord(entry.Handle, entry.LegacySelector.Value, entry.Identity, entry.DisplayName));
+                if ((entry.IsBundled))
+                    records.Add(new MatchContentHandleRecord(entry.Handle, entry.Identity.PackageId, entry.Identity, entry.DisplayName));
             handleMap = new MatchContentHandleMap(MatchContentHandleMap.CurrentSchemaVersion, records);
             return true;
         }

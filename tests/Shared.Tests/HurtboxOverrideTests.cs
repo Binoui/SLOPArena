@@ -43,7 +43,7 @@ public class HurtboxOverrideTests
     public void CapsuleOverrideKeepsItsEndpointAndOffset()
     {
         var capsule = new HurtboxBoneDef("start", .1f, .2f, .3f, .2f, "end", -.1f, .4f, .6f);
-        string json = HurtboxOverride.Serialize(CharacterClass.Manki, new[] { capsule });
+        string json = HurtboxOverride.Serialize("manki", new[] { capsule });
         Assert.True(HurtboxOverride.TryParse(json, out _, out var parsed));
         Assert.Equal(capsule, Assert.Single(parsed!));
     }
@@ -51,10 +51,10 @@ public class HurtboxOverrideTests
     [Fact]
     public void SerializeParse_RoundTrips()
     {
-        string json = HurtboxOverride.Serialize(CharacterClass.Manki, Defs);
+        string json = HurtboxOverride.Serialize("manki", Defs);
 
         Assert.True(HurtboxOverride.TryParse(json, out var character, out var parsed));
-        Assert.Equal(CharacterClass.Manki, character);
+        Assert.Equal("manki", character);
         Assert.NotNull(parsed);
         Assert.Equal(2, parsed!.Length);
         Assert.Equal("mixamorig:Head", parsed[0].BoneName);
@@ -74,21 +74,21 @@ public class HurtboxOverrideTests
     [Fact]
     public void TryParse_EmptyBoneList_ReturnsFalse()
     {
-        string json = HurtboxOverride.Serialize(CharacterClass.Manki, System.Array.Empty<HurtboxBoneDef>());
+        string json = HurtboxOverride.Serialize("manki", System.Array.Empty<HurtboxBoneDef>());
         Assert.False(HurtboxOverride.TryParse(json, out _, out _));
     }
 
     [Fact]
     public void TryParse_UnknownCharacter_ReturnsFalse()
     {
-        string json = HurtboxOverride.Serialize(CharacterClass.Manki, Defs).Replace("Manki", "Nobody");
+        string json = HurtboxOverride.Serialize("manki", Defs).Replace("Manki", "Nobody");
         Assert.False(HurtboxOverride.TryParse(json, out _, out _));
     }
 
     [Fact]
     public void TryParse_MissingBoneName_ReturnsFalse()
     {
-        string json = HurtboxOverride.Serialize(CharacterClass.Manki, Defs).Replace("mixamorig:Head", "");
+        string json = HurtboxOverride.Serialize("manki", Defs).Replace("mixamorig:Head", "");
         Assert.False(HurtboxOverride.TryParse(json, out _, out _));
     }
 

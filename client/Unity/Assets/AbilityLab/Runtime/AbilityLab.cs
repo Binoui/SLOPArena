@@ -186,7 +186,7 @@ namespace SlopArena.Client.Tools
         public UnityEngine.Camera PreviewCamera => _camera;
 
         // ── Selection state ──
-        public CharacterClass Character { get; private set; } = CharacterClass.None;
+        public string Character { get; private set; } = "";
         public string SelectedPackageId { get; private set; } = "";
         public string SelectedPackageHash { get; private set; } = "";
         public string SelectedSlotId { get; private set; } = "";
@@ -798,7 +798,7 @@ namespace SlopArena.Client.Tools
                 return;
             }
 
-            var definition = CookedCharacterRuntimeAdapter.ToCharacterDefinition(package, CharacterClass.None).ForForm(SelectedForm);
+            var definition = CookedCharacterRuntimeAdapter.ToCharacterDefinition(package).ForForm(SelectedForm);
             string priorSlotId = SelectedSlotId;
             ClearScenario();
             int priorStage = StageIndex;
@@ -822,7 +822,7 @@ namespace SlopArena.Client.Tools
                 _previewAnimationCatalog = persistedPreview.AnimationCatalog;
             }
             _previewRig = persistedPreview.Rig;
-            Character = CharacterClass.None;
+            Character = "";
             SelectedPackageId = package.Metadata.PackageId;
             SelectedSlotId = priorAddress.Id;
             Airborne = priorAddress.IsAirborne;
@@ -876,9 +876,9 @@ namespace SlopArena.Client.Tools
                 _previewAnimationCatalog = animationCatalog;
             }
             _previewRig = rig;
-            var definition = CookedCharacterRuntimeAdapter.ToCharacterDefinition(package, CharacterClass.None).ForForm(SelectedForm);
+            var definition = CookedCharacterRuntimeAdapter.ToCharacterDefinition(package).ForForm(SelectedForm);
             SelectedPackageHash = packageHash;
-            Character = CharacterClass.None;
+            Character = "";
             SelectedPackageId = packageId;
             Def = definition;
             Baked = baked;
@@ -904,7 +904,7 @@ namespace SlopArena.Client.Tools
             ReleaseRendererAttachments();
             DestroyPreviewCatalog();
             _previewRig = null;
-            Character = CharacterClass.None;
+            Character = "";
             SelectedPackageId = "";
             SelectedPackageHash = "";
             SelectedSlotId = "";
@@ -945,7 +945,7 @@ namespace SlopArena.Client.Tools
 
         private static BakedAnimationData? LoadBaked(CharacterDefinition def)
         {
-            if (def.Class == CharacterClass.FightGuy || string.IsNullOrEmpty(def.BakedDataPath)) return null;
+            if (def.PackageId == "fightguy" || string.IsNullOrEmpty(def.BakedDataPath)) return null;
             string? path = BakedContentPaths.ResolveBaked(def.BakedDataPath);
             if (path == null) return null;
             try { return BakedAnimationData.LoadFromBin(File.ReadAllBytes(path)); }
@@ -1023,8 +1023,8 @@ namespace SlopArena.Client.Tools
                 ? _weaponAttachConfigOverride
                 : _previewAnimationCatalog != null
                     ? _previewAnimationCatalog.WeaponConfig
-                    : def != null && def.Class != CharacterClass.None
-                        ? Resources.Load<WeaponAttachConfig>($"WeaponConfigs/{def.Class}")
+                    : def != null && def.PackageId != ""
+                        ? Resources.Load<WeaponAttachConfig>($"WeaponConfigs/{def.PackageId}")
                         : null;
             attach.Init(renderer, config);
             return attach;
@@ -1716,7 +1716,7 @@ namespace SlopArena.Client.Tools
                  camera.scene != gameObject.scene)) return;
 #endif
             if (Def == null) return;
-            if (Character == CharacterClass.None ? !IsPackagePreview : !Application.isPlaying) return;
+            if (Character == "" ? !IsPackagePreview : !Application.isPlaying) return;
             var mat = LineMat;
             if (mat == null) return;
             mat.SetPass(0);

@@ -10,7 +10,7 @@ internal static partial class Program
 {
     private static MatchContentEntry WhiffFighter(ushort iasa)
     {
-        var source = BuiltInContentResolver.Resolve(CharacterClass.FightGuy);
+        var source = BuiltInContentResolver.ResolvePackage("fightguy");
         var slots = source.Definition.CookedSlots!.ToArray();
         CanonicalSlotProjection.TryGet(AbilitySlots.Normal1, false, out var address);
         var hit = new CookedHitbox(AuthoringHitboxShape.Sphere, 0.35f, 0f, 0f, 0.8f,
@@ -19,13 +19,13 @@ internal static partial class Program
             "Bench whiff", "", "", AuthoringAbilityBehavior.MeleeCombo, AuthoringAimMode.None, 0, false, false,
             new CookedTimeline(new[] { new CookedStage(90, iasa, 0, 0, 0, Array.Empty<string>(),
                 new CookedTimelineOperation[] { new CookedSpawnHitboxOperation(8, AuthoringUnit.Meters, hit) }) }));
-        return new MatchContentEntry(source.Handle, source.LegacySelector, source.Identity, source.DisplayName,
+        return new MatchContentEntry(source.Handle, source.Identity, source.DisplayName,
             source.Definition with { CookedSlots = slots }, source.Baked);
     }
 
     private static MatchContentEntry ContactFighter(ushort hitstun)
     {
-        var source = BuiltInContentResolver.Resolve(CharacterClass.FightGuy);
+        var source = BuiltInContentResolver.ResolvePackage("fightguy");
         var slots = source.Definition.CookedSlots!.ToArray();
         foreach (bool air in new[] { false, true })
         {
@@ -37,7 +37,7 @@ internal static partial class Program
                 new CookedTimeline(new[] { new CookedStage(18, 12, 0, 0, 0, Array.Empty<string>(),
                     new CookedTimelineOperation[] { new CookedSpawnHitboxOperation(2, AuthoringUnit.Ticks, hit) }) }));
         }
-        return new MatchContentEntry(source.Handle, source.LegacySelector, source.Identity, source.DisplayName,
+        return new MatchContentEntry(source.Handle, source.Identity, source.DisplayName,
             source.Definition with { CookedSlots = slots }, source.Baked);
     }
 
@@ -60,12 +60,12 @@ internal static partial class Program
         Line("Paired seeds 1..32 for plans/approaches, 1..8 otherwise. 900 ticks per trial; identical scripts for all tiers.");
         Line("Whiff/threat use a declared 90-tick move fixture. Pressure uses a 2-tick poke, 12-tick IASA and 42/13-tick fixed Hitstun. Gap uses the admitted Log Off rim/stump spot.");
         Line("Trace is explanatory; inputs, accepted states, resolver contacts and damage supply behavior counts. Legacy policy has trace serial 0.");
-        Line("Roster identities: " + string.Join(", ", Roster().Select(c => BuiltInContentResolver.Resolve(c).Identity.ToString())));
+        Line("Roster identities: " + string.Join(", ", Roster().Select(c => BuiltInContentResolver.ResolvePackage(c).Identity.ToString())));
         Line();
         Line("| Tier | Fighter | Stage/script | Trials | Actions | Hits | Blocks | True contacts | Walk ticks | Retreat ticks | Jumps | Dashes/arrivals/followups/misses | Shield edges | Openings eligible/expired | Recovery contacts/off-window attacks | Plans/median duration/replacements | Max pressure actions | Damage taken | Deaths |");
         Line("|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|");
-        var fighters = scenario == "tiers" ? new[] { CharacterClass.Manki, CharacterClass.FightGuy, CharacterClass.Wibou, CharacterClass.Bonk }
-            : new[] { CharacterClass.FightGuy };
+        var fighters = scenario == "tiers" ? new[] { "manki", "fightguy", "wibou", "bonk" }
+            : new[] { "fightguy" };
         var stages = scenario == "plans" ? new[] { "training", "log_off", "hamster_habitat" } : new[] { "training" };
         var scripts = scenario switch
         {
@@ -85,9 +85,9 @@ internal static partial class Program
         {
             string actualStage = script == "gap" ? "log_off" : stage;
             var arena = LoadArena(actualStage);
-            var fighter = BuiltInContentResolver.Resolve(cls);
+            var fighter = BuiltInContentResolver.ResolvePackage(cls);
             var opponent = script.Contains("whiff") || script.Contains("threat") ? WhiffFighter(script == "expired-whiff" ? (ushort)18 : (ushort)70)
-                : BuiltInContentResolver.Resolve(CharacterClass.FightGuy);
+                : BuiltInContentResolver.ResolvePackage("fightguy");
             if (scenario == "pressure") fighter = ContactFighter(script == "short-confirm" ? (ushort)13 : (ushort)42);
             int seeds = scenario is "plans" or "approaches" ? 32 : 8;
             int trials = 0, actions = 0, hits = 0, blocks = 0, trueContacts = 0, walk = 0, retreat = 0,

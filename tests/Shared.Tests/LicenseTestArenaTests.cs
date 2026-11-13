@@ -19,7 +19,7 @@ public sealed class LicenseTestArenaTests
 
     public static IEnumerable<object[]> Fighters()
     {
-        foreach (var cls in new[] { CharacterClass.FightGuy, CharacterClass.Manki, CharacterClass.Wibou, CharacterClass.Bonk })
+        foreach (var cls in new[] { "fightguy", "manki", "wibou", "bonk" })
             yield return new object[] { cls };
     }
 
@@ -43,7 +43,7 @@ public sealed class LicenseTestArenaTests
         var arena = Load();
         float tower = arena.Heightmap.Sample(-0.5f, 10.5f);
         float wall = arena.Heightmap.Sample(0f, 15.5f);
-        foreach (var cls in new[] { CharacterClass.FightGuy, CharacterClass.Manki, CharacterClass.Wibou, CharacterClass.Bonk })
+        foreach (var cls in new[] { "fightguy", "manki", "wibou", "bonk" })
         {
             var move = TestHelpers.ResolveDef(cls).Movement;
             float full = move.JumpForce * move.JumpForce / (2f * move.Gravity);
@@ -54,7 +54,7 @@ public sealed class LicenseTestArenaTests
 
     [Theory]
     [MemberData(nameof(Fighters))]
-    public void OnlyTheEastEdgeLetsAFighterLeave(CharacterClass cls)
+    public void OnlyTheEastEdgeLetsAFighterLeave(string cls)
     {
         var arena = Load();
         var def = TestHelpers.ResolveDef(cls);
@@ -74,7 +74,7 @@ public sealed class LicenseTestArenaTests
 
     [Theory]
     [MemberData(nameof(Fighters))]
-    public void ALaunchFromTheKnockoutSpotKillsThroughTheEastEdge(CharacterClass cls)
+    public void ALaunchFromTheKnockoutSpotKillsThroughTheEastEdge(string cls)
     {
         var arena = Load();
         var def = TestHelpers.ResolveDef(cls);

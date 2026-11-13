@@ -85,8 +85,8 @@ public class SteamGameServerAdmissionTests
     {
         var clock = new TestClock(DateTimeOffset.Parse("2026-10-11T15:00:00Z"));
         var match = NewSteamMatch(Guid.NewGuid().ToString("D"), LoadCatalog(), clock,
-            new[] { new MatchPlayer(1001, CharacterClass.FightGuy, 1),
-                new MatchPlayer(1002, CharacterClass.Manki, 2) }, clock.GetUtcNow().AddSeconds(60));
+            new[] { new MatchPlayer(1001, "fightguy", 1),
+                new MatchPlayer(1002, "manki", 2) }, clock.GetUtcNow().AddSeconds(60));
         Assert.True(match.TryBindSteamPlayer(1001, 11, ContentHash, out _, out _, out _));
         Assert.True(match.TryBindSteamPlayer(1002, 22, ContentHash, out _, out _, out _));
 
@@ -120,8 +120,8 @@ public class SteamGameServerAdmissionTests
         var countdown = new TaskCompletionSource<uint>(TaskCreationOptions.RunContinuationsAsynchronously);
         var catalog = LoadCatalog();
         var match = new MatchInstance(0, Guid.NewGuid().ToString("D"), ArenaRegistry.Get("slop_pit")!.Value,
-            new[] { new MatchPlayer(1001, CharacterClass.FightGuy, 1),
-                new MatchPlayer(1002, CharacterClass.Manki, 2) },
+            new[] { new MatchPlayer(1001, "fightguy", 1),
+                new MatchPlayer(1002, "manki", 2) },
             catalog, _ => { }, admissionDeadlineUtc: clock.GetUtcNow().AddSeconds(60),
             contentHash: ContentHash,
             steamSend: (_, recipient, frame, _) =>
@@ -199,9 +199,9 @@ public class SteamGameServerAdmissionTests
         var catalog = LoadCatalog();
         var deadline = clock.GetUtcNow().AddSeconds(60);
         var first = NewSteamMatch(Guid.NewGuid().ToString("D"), catalog, clock,
-            new[] { new MatchPlayer(1001, CharacterClass.FightGuy, 1), new MatchPlayer(1002, CharacterClass.Manki, 2) }, deadline);
+            new[] { new MatchPlayer(1001, "fightguy", 1), new MatchPlayer(1002, "manki", 2) }, deadline);
         var second = NewSteamMatch(Guid.NewGuid().ToString("D"), catalog, clock,
-            new[] { new MatchPlayer(2001, CharacterClass.FightGuy, 1), new MatchPlayer(2002, CharacterClass.Manki, 2) }, deadline);
+            new[] { new MatchPlayer(2001, "fightguy", 1), new MatchPlayer(2002, "manki", 2) }, deadline);
 
         Assert.False(first.TryBindSteamPlayer(9999, 11, ContentHash, out _, out _, out _));
         Assert.False(first.TryBindSteamPlayer(1001, 11, "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb", out _, out _, out _));
@@ -226,7 +226,7 @@ public class SteamGameServerAdmissionTests
         var clock = new TestClock(DateTimeOffset.Parse("2026-09-26T12:00:00Z"));
         var catalog = LoadCatalog();
         var match = NewSteamMatch(Guid.NewGuid().ToString("D"), catalog, clock,
-            new[] { new MatchPlayer(1001, CharacterClass.FightGuy, 1), new MatchPlayer(1002, CharacterClass.Manki, 2) },
+            new[] { new MatchPlayer(1001, "fightguy", 1), new MatchPlayer(1002, "manki", 2) },
             clock.GetUtcNow().AddSeconds(60));
         match.Start();
         try
@@ -268,8 +268,8 @@ public class SteamGameServerAdmissionTests
         var matchId = Guid.NewGuid();
         var firstState = new TaskCompletionSource<byte[]>(TaskCreationOptions.RunContinuationsAsynchronously);
         var match = new MatchInstance(0, matchId.ToString("D"), ArenaRegistry.Get("slop_pit")!.Value,
-            new[] { new MatchPlayer(1001, CharacterClass.FightGuy, 1),
-                new MatchPlayer(1002, CharacterClass.Manki, 2) },
+            new[] { new MatchPlayer(1001, "fightguy", 1),
+                new MatchPlayer(1002, "manki", 2) },
             catalog, _ => { }, admissionDeadlineUtc: clock.GetUtcNow().AddSeconds(60),
             contentHash: ContentHash,
             steamSend: (_, _, frame, _) =>
@@ -309,14 +309,14 @@ public class SteamGameServerAdmissionTests
         var catalog = LoadCatalog();
         // The opponent's view: a simulation restored from every World Frame it receives.
         var view = new ServerSimulation(ArenaRegistry.GetPvP("slop_pit")!.Value);
-        foreach (var (entity, character) in new[] { (1UL, CharacterClass.Wibou), (2UL, CharacterClass.FightGuy) })
+        foreach (var (entity, character) in new[] { (1UL, "wibou"), (2UL, "fightguy") })
         {
-            var content = catalog.Resolve(character)!;
+            var content = catalog.ResolvePackage(character)!;
             view.RegisterEntity(entity, content.Definition, new CharacterState(), content.BakedAnimation);
         }
         var match = new MatchInstance(0, Guid.NewGuid().ToString("D"), ArenaRegistry.Get("slop_pit")!.Value,
-            new[] { new MatchPlayer(1001, CharacterClass.Wibou, 1),
-                new MatchPlayer(1002, CharacterClass.FightGuy, 2) },
+            new[] { new MatchPlayer(1001, "wibou", 1),
+                new MatchPlayer(1002, "fightguy", 2) },
             catalog, _ => { }, contentHash: ContentHash,
             admissionDeadlineUtc: clock.GetUtcNow().AddSeconds(60),
             steamSend: (_, recipient, frame, _) =>
@@ -383,7 +383,7 @@ public class SteamGameServerAdmissionTests
         int resultReports = 0;
         var waitingReason = new TaskCompletionSource<string>(TaskCreationOptions.RunContinuationsAsynchronously);
         var waiting = NewSteamMatch(Guid.NewGuid().ToString("D"), catalog, clock,
-            new[] { new MatchPlayer(1001, CharacterClass.FightGuy, 1), new MatchPlayer(1002, CharacterClass.Manki, 2) },
+            new[] { new MatchPlayer(1001, "fightguy", 1), new MatchPlayer(1002, "manki", 2) },
             clock.GetUtcNow().AddSeconds(60), (_, reason) => waitingReason.TrySetResult(reason),
             _ => Interlocked.Increment(ref resultReports));
         waiting.Start();
@@ -392,7 +392,7 @@ public class SteamGameServerAdmissionTests
 
         var absenceReason = new TaskCompletionSource<string>(TaskCreationOptions.RunContinuationsAsynchronously);
         var active = NewSteamMatch(Guid.NewGuid().ToString("D"), catalog, clock,
-            new[] { new MatchPlayer(2001, CharacterClass.FightGuy, 1), new MatchPlayer(2002, CharacterClass.Manki, 2) },
+            new[] { new MatchPlayer(2001, "fightguy", 1), new MatchPlayer(2002, "manki", 2) },
             clock.GetUtcNow().AddSeconds(60), (_, reason) => absenceReason.TrySetResult(reason),
             _ => Interlocked.Increment(ref resultReports));
         active.Start();
@@ -424,8 +424,8 @@ public class SteamGameServerAdmissionTests
         var canceled = new TaskCompletionSource<string>(TaskCreationOptions.RunContinuationsAsynchronously);
         int resultReports = 0;
         var match = new MatchInstance(0, Guid.NewGuid().ToString("D"), ArenaRegistry.Get("slop_pit")!.Value,
-            new[] { new MatchPlayer(1001, CharacterClass.FightGuy, 1),
-                new MatchPlayer(1002, CharacterClass.Manki, 2) }, catalog, _ => { },
+            new[] { new MatchPlayer(1001, "fightguy", 1),
+                new MatchPlayer(1002, "manki", 2) }, catalog, _ => { },
             onMatchResult: _ => Interlocked.Increment(ref resultReports),
             onMatchCancelled: (_, reason) => canceled.TrySetResult(reason),
             admissionDeadlineUtc: clock.GetUtcNow().AddSeconds(60), clock: clock);

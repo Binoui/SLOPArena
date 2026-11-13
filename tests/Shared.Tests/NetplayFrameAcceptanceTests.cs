@@ -141,7 +141,7 @@ public sealed class NetplayFrameAcceptanceTests
     public void FinishRestoresHistoricalWorldAndRetractsSpeculativeCombatExactlyOnce(bool corrected)
     {
         var arena = TestHelpers.TestArena();
-        var content = BuiltInContentResolver.Resolve(CharacterClass.FightGuy);
+        var content = BuiltInContentResolver.ResolvePackage("fightguy");
         var server = new ServerSimulation(arena);
         var session = new NetplaySession(arena, 1, new StockMatchRule(3));
         foreach (ulong id in new ulong[] { 1, 2 })

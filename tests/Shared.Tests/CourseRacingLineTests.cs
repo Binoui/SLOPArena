@@ -150,7 +150,7 @@ public sealed class CourseRacingLineTests
     public void CourseV8RoundTripsAndRacingLineDoesNotArchiveSoloRecords()
     {
         var arena = CharacterCourseTests.Arena();
-        var fighter = BuiltInContentResolver.Resolve(CharacterClass.FightGuy);
+        var fighter = BuiltInContentResolver.ResolvePackage("fightguy");
         string before = ArcadeRecordCompatibility.Course(arena, fighter);
         arena.Arcade = WithLine(arena.Arcade!);
         var bytes = ArenaBinaryFormat.Serialize(arena);

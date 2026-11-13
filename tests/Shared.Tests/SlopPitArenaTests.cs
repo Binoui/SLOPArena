@@ -17,8 +17,8 @@ public class SlopPitArenaTests
     private const float RingHalf = 8f;
     private const float KillY = -11f;
 
-    private static readonly CharacterClass[] Roster =
-        { CharacterClass.FightGuy, CharacterClass.Manki, CharacterClass.Wibou, CharacterClass.Bonk };
+    private static readonly string[] Roster =
+        { "fightguy", "manki", "wibou", "bonk" };
 
     // Ringside floor: 32 x 32 with 5 m chamfered corners (CCW in the X/Z plane).
     private static readonly (float X, float Z)[] Floor =
@@ -113,7 +113,7 @@ public class SlopPitArenaTests
     [Theory]
     [MemberData(nameof(RecoveryContacts))]
     public void RecoveryWallsBlockInwardMovementAndAllowOutwardMovement(
-        CharacterClass cls, float edgeX, float edgeZ, float outwardX, float outwardZ, float height)
+        string cls, float edgeX, float edgeZ, float outwardX, float outwardZ, float height)
     {
         var arena = Load();
         var def = TestHelpers.ResolveDef(cls);
@@ -143,7 +143,7 @@ public class SlopPitArenaTests
 
     [Theory]
     [MemberData(nameof(RingContacts))]
-    public void RingSidesBlockAFighterBelowItsTop(CharacterClass cls, int degrees)
+    public void RingSidesBlockAFighterBelowItsTop(string cls, int degrees)
     {
         var arena = Load();
         var def = TestHelpers.ResolveDef(cls);
@@ -162,7 +162,7 @@ public class SlopPitArenaTests
 
     [Theory]
     [MemberData(nameof(RosterClasses))]
-    public void EveryFighterReachesTheRingWithOneJump(CharacterClass cls)
+    public void EveryFighterReachesTheRingWithOneJump(string cls)
     {
         var arena = Load();
         var def = TestHelpers.ResolveDef(cls);
@@ -192,7 +192,7 @@ public class SlopPitArenaTests
 
     [Theory]
     [MemberData(nameof(RosterClasses))]
-    public void WalkingOutOfTheRingLandsRingside(CharacterClass cls)
+    public void WalkingOutOfTheRingLandsRingside(string cls)
     {
         var arena = Load();
         var def = TestHelpers.ResolveDef(cls);

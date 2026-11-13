@@ -24,10 +24,10 @@ public sealed class CookedCharacterPackageLoadResult
         Diagnostics = new ReadOnlyCollection<CharacterDiagnostic>(new List<CharacterDiagnostic>(diagnostics));
     }
 
-    public CharacterDefinition ToCharacterDefinition(CharacterClass legacySelector = CharacterClass.None)
+    public CharacterDefinition ToCharacterDefinition()
     {
         if (!IsValid || Package == null) throw new InvalidDataException("Cooked package is not valid.");
-        return CookedCharacterRuntimeAdapter.ToCharacterDefinition(Package, legacySelector, Profile);
+        return CookedCharacterRuntimeAdapter.ToCharacterDefinition(Package, Profile);
     }
 }
 public static class CookedCharacterPackageLoader

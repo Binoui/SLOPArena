@@ -69,7 +69,7 @@ public class FightGuyAbilityTests
     private static CharacterDefinition ChargedQDefinition()
     {
         var def = TestHelpers.ResolveSourceDef("fightguy");
-        def = def with { Class = CharacterClass.FightGuy };
+        def = def with { PackageId = "fightguy" };
         return def;
     }
 

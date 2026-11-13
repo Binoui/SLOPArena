@@ -10,11 +10,11 @@ namespace SlopArena.ReplayBudget;
 
 internal static class Program
 {
-    static readonly CharacterClass[] Roster ={
-CharacterClass.FightGuy,
-CharacterClass.Manki,
-CharacterClass.Wibou,
-CharacterClass.Bonk};
+    static readonly string[] Roster ={
+"fightguy",
+"manki",
+"wibou",
+"bonk"};
     static int Main(string[] args)
     {
         CultureInfo.CurrentCulture = CultureInfo.InvariantCulture;

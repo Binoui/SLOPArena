@@ -9,7 +9,7 @@ namespace SlopArena.Shared.Tests;
 /// <summary>The director's rules: the deadline, latching, withdrawal, the reset at every Call, splat, falls and contacts.</summary>
 public class MayhemDirectorTests
 {
-    private static readonly CharacterClass[] FightGuys = { CharacterClass.FightGuy };
+    private static readonly string[] FightGuys = { "fightguy" };
 
     internal static void RunTo(ServerSimulation sim, uint tick, Func<uint, Dictionary<ulong, InputState>>? inputs = null)
     { while (sim.CurrentTick < tick) sim.Tick(inputs?.Invoke(sim.CurrentTick + 1) ?? new()); }

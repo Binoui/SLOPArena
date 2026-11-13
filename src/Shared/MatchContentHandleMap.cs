@@ -6,7 +6,7 @@ using System.Text.Json;
 
 namespace SlopArena.Shared;
 
-public sealed record MatchContentHandleRecord(ContentHandle Handle, CharacterClass? Selector, MatchContentIdentity Identity, string DisplayName);
+public sealed record MatchContentHandleRecord(ContentHandle Handle, string? Selector, MatchContentIdentity Identity, string DisplayName);
 
 public sealed class MatchContentHandleMap
 {
@@ -26,7 +26,7 @@ public sealed class MatchContentHandleMap
             throw new ArgumentException("Handle map contains an invalid or duplicate handle.", nameof(entries));
         if (schemaVersion != CatalogSchemaVersion && schemaVersion != CurrentSchemaVersion && schemaVersion != LocalSchemaVersion)
             throw new ArgumentOutOfRangeException(nameof(schemaVersion));
-        if (schemaVersion != LocalSchemaVersion && copy.Any(x => !x.Selector.HasValue || x.Selector == CharacterClass.None))
+        if (schemaVersion != LocalSchemaVersion && copy.Any(x => !(x.Selector != null) || x.Selector == ""))
             throw new ArgumentException("Online maps require selectors.", nameof(entries));
         if (copy.Select(x => x.Identity.PackageId).Distinct(StringComparer.Ordinal).Count() != copy.Count)
             throw new ArgumentException("One revision per package is allowed.", nameof(entries));
@@ -36,7 +36,7 @@ public sealed class MatchContentHandleMap
     }
     public static MatchContentHandleMap CaptureBundled(MatchContentCatalog catalog, MatchArenaRecord? arena = null)
         => new(CurrentSchemaVersion, catalog.Entries.Where(e => e.IsBundled).OrderBy(e => e.Identity.PackageId, StringComparer.Ordinal)
-            .Select((e, i) => new MatchContentHandleRecord(new ContentHandle((ushort)(i + 1)), e.LegacySelector, e.Identity, e.DisplayName)).ToArray(), arena);
+            .Select((e, i) => new MatchContentHandleRecord(new ContentHandle((ushort)(i + 1)), e.Identity.PackageId, e.Identity, e.DisplayName)).ToArray(), arena);
 
     public static MatchContentHandleMap CaptureLocal(MatchContentCatalog catalog, MatchArenaRecord? arena = null)
         => new(LocalSchemaVersion, catalog.Entries.Select(e => new MatchContentHandleRecord(e.Handle, null, e.Identity, e.DisplayName)).ToArray(), arena);
@@ -61,7 +61,7 @@ public static class MatchContentHandleMapCodec
         writer.WriteStartObject(); writer.WriteNumber("schemaVersion", map.SchemaVersion); writer.WritePropertyName("entries"); writer.WriteStartArray();
         foreach (var x in map.Entries.OrderBy(x => x.Handle.Value))
         {
-            writer.WriteStartObject(); writer.WriteNumber("handle", x.Handle.Value); if (map.SchemaVersion != MatchContentHandleMap.LocalSchemaVersion) writer.WriteString("selector", x.Selector!.Value.ToString()); writer.WritePropertyName("identity"); writer.WriteStartObject(); writer.WriteString("packageId", x.Identity.PackageId); writer.WriteString("version", x.Identity.Version); writer.WriteString("sourceHash", x.Identity.SourceHash); writer.WriteString("cookedContentHash", x.Identity.CookedContentHash); writer.WriteString("packageHash", x.Identity.PackageHash); writer.WriteEndObject(); writer.WriteString("displayName", x.DisplayName); writer.WriteEndObject();
+            writer.WriteStartObject(); writer.WriteNumber("handle", x.Handle.Value); if (map.SchemaVersion != MatchContentHandleMap.LocalSchemaVersion) writer.WriteString("selector", LegacyFighterProtocol.Selector(x.Selector!)); writer.WritePropertyName("identity"); writer.WriteStartObject(); writer.WriteString("packageId", x.Identity.PackageId); writer.WriteString("version", x.Identity.Version); writer.WriteString("sourceHash", x.Identity.SourceHash); writer.WriteString("cookedContentHash", x.Identity.CookedContentHash); writer.WriteString("packageHash", x.Identity.PackageHash); writer.WriteEndObject(); writer.WriteString("displayName", x.DisplayName); writer.WriteEndObject();
         }
         writer.WriteEndArray();
         if (map.Arena is { } arena)
@@ -96,7 +96,7 @@ public static class MatchContentHandleMapCodec
             {
                 if (!HasOnly(item, schema == MatchContentHandleMap.LocalSchemaVersion ? new[] { "handle", "identity", "displayName" } : new[] { "handle", "selector", "identity", "displayName" })) return false;
                 if (item.ValueKind != JsonValueKind.Object || !TryGetUShort(item,"handle",out var value) || value == 0 || !handles.Add(value) || !item.TryGetProperty("displayName",out var display) || display.ValueKind != JsonValueKind.String || string.IsNullOrWhiteSpace(display.GetString())) return false;
-                CharacterClass? cls = null;
+                string? cls = null;
                 if (schema != MatchContentHandleMap.LocalSchemaVersion)
                 {
                     if (!item.TryGetProperty("selector", out var selector) || selector.ValueKind != JsonValueKind.String || !TrySelector(selector.GetString()!, out var parsedSelector)) return false;
@@ -118,12 +118,12 @@ public static class MatchContentHandleMapCodec
         foreach (var record in map.Entries)
         {
             var entry = catalog.Resolve(record.Handle);
-            if (entry == null || (map.SchemaVersion != MatchContentHandleMap.LocalSchemaVersion && entry.LegacySelector != record.Selector) || entry.Identity != record.Identity || entry.DisplayName != record.DisplayName) { map = null; return false; }
+            if (entry == null || (map.SchemaVersion != MatchContentHandleMap.LocalSchemaVersion && entry.Identity.PackageId != record.Selector) || entry.Identity != record.Identity || entry.DisplayName != record.DisplayName) { map = null; return false; }
         }
         return map.Entries.Count == catalog.Entries.Count;
     }
     private static bool TryGetUShort(JsonElement e,string n,out ushort v){v=0;return e.TryGetProperty(n,out var p)&&p.TryGetUInt16(out v);}
     private static string Required(JsonElement e,string n)=>e.TryGetProperty(n,out var p)&&p.ValueKind==JsonValueKind.String?p.GetString()!:throw new InvalidDataException();
     private static bool HasOnly(JsonElement e,params string[] fields){if(e.ValueKind!=JsonValueKind.Object)return false;var allowed=new HashSet<string>(fields,StringComparer.Ordinal);var seen=new HashSet<string>(StringComparer.Ordinal);foreach(var p in e.EnumerateObject())if(!allowed.Contains(p.Name)||!seen.Add(p.Name))return false;return seen.Count==allowed.Count;}
-    private static bool TrySelector(string value,out CharacterClass cls){cls=value switch{"Manki"=>CharacterClass.Manki,"manki"=>CharacterClass.Manki,"FightGuy"=>CharacterClass.FightGuy,"fightguy"=>CharacterClass.FightGuy,"Wibou"=>CharacterClass.Wibou,"wibou"=>CharacterClass.Wibou,"Bonk"=>CharacterClass.Bonk,"bonk"=>CharacterClass.Bonk,"Bashie"=>CharacterClass.Bashie,"bashie"=>CharacterClass.Bashie,"Salamander"=>CharacterClass.Salamander,"salamander"=>CharacterClass.Salamander,"Nyx"=>CharacterClass.Nyx,"nyx"=>CharacterClass.Nyx,_=>CharacterClass.None};return cls!=CharacterClass.None;}
+    private static bool TrySelector(string value, out string packageId) => LegacyFighterProtocol.TryPackageId(value, out packageId);
 }

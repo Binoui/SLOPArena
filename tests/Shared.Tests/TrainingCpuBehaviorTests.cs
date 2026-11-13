@@ -32,11 +32,11 @@ public sealed class TrainingCpuBehaviorTests
     }
 
     [Theory]
-    [InlineData(CharacterClass.FightGuy)]
-    [InlineData(CharacterClass.Manki)]
-    [InlineData(CharacterClass.Wibou)]
-    [InlineData(CharacterClass.Bonk)]
-    public void ShieldModeHoldsGuardAgainstAnIdleOpponent(CharacterClass character)
+    [InlineData("fightguy")]
+    [InlineData("manki")]
+    [InlineData("wibou")]
+    [InlineData("bonk")]
+    public void ShieldModeHoldsGuardAgainstAnIdleOpponent(string character)
     {
         var def = TestHelpers.ResolveDef(character);
         var arena = Stage();

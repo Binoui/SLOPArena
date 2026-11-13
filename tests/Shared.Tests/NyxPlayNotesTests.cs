@@ -12,7 +12,7 @@ public sealed class NyxPlayNotesTests(ITestOutputHelper output)
     [InlineData(true)]
     public void RealFormJumpAndAirJumpHaveLowerApexes(bool saved)
     {
-        var content = BuiltInContentResolver.Resolve(CharacterClass.Nyx);
+        var content = BuiltInContentResolver.ResolvePackage("nyx");
         var def = saved ? content.Definition : TestHelpers.ResolveSourceDef("nyx");
         var sim = FormsFixture.Sim(def, dummy: false);
         sim.RegisterEntity(1, def, sim.GetState(1), content.BakedAnimation);
@@ -44,7 +44,7 @@ public sealed class NyxPlayNotesTests(ITestOutputHelper output)
     [InlineData(true)]
     public void RotorFollowsTheRisingFighterAndHitsAboveHer(bool saved)
     {
-        var content = BuiltInContentResolver.Resolve(CharacterClass.Nyx);
+        var content = BuiltInContentResolver.ResolvePackage("nyx");
         var def = saved ? content.Definition : TestHelpers.ResolveSourceDef("nyx");
         var sim = FormsFixture.Sim(def, 1);
         sim.RegisterEntity(1, def, sim.GetState(1), content.BakedAnimation);
@@ -87,7 +87,7 @@ public sealed class NyxPlayNotesTests(ITestOutputHelper output)
     [InlineData(true, true)]
     public void RotorEndsOnHitOrFinishesAfterLanding(bool landing, bool saved)
     {
-        var content = BuiltInContentResolver.Resolve(CharacterClass.Nyx);
+        var content = BuiltInContentResolver.ResolvePackage("nyx");
         var def = saved ? content.Definition : TestHelpers.ResolveSourceDef("nyx");
         var sim = FormsFixture.Sim(def, 1, dummy: false);
         sim.RegisterEntity(1, def, sim.GetState(1), content.BakedAnimation);

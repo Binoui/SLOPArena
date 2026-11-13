@@ -407,9 +407,9 @@ internal static partial class ContactCoverageReport
             movement.AirSpeedMax *= airScale;
             victimDefinition = victimDefinition with { Movement = movement };
         }
-        var isolatedAttacker = new MatchContentEntry(attacker.Handle, attacker.LegacySelector, attacker.Identity,
+        var isolatedAttacker = new MatchContentEntry(attacker.Handle, attacker.Identity,
             attacker.DisplayName, attackerDefinition, attacker.BakedAnimation, attacker.CookedCharacterPackage);
-        var isolatedVictim = new MatchContentEntry(victim.Handle, victim.LegacySelector, victim.Identity,
+        var isolatedVictim = new MatchContentEntry(victim.Handle, victim.Identity,
             victim.DisplayName, victimDefinition, victim.BakedAnimation, victim.CookedCharacterPackage);
         return new CoverageContext(attacker, victim, isolatedAttacker, isolatedVictim, airScale, arena);
     }
@@ -887,7 +887,7 @@ internal static partial class ContactCoverageReport
     private static CoverageIdentityData Identity(MatchContentEntry entry, CharacterDefinition def, string note)
         => new()
         {
-            Selector = entry.LegacySelector?.ToString().ToLowerInvariant() ?? entry.Identity.PackageId,
+            Selector = entry.Identity.PackageId,
             DisplayName = entry.DisplayName,
             Identity = entry.Identity,
             OverrideNote = note,

@@ -68,7 +68,7 @@ public class ArcadeSnapshotTests
     public void CoopRunRestoredMidRallyMatchesTheContinuousOneEveryTick(bool friendlyFire)
     {
         var arena = WorldSnapshotTests.LoadArena("slopball");
-        var roster = new[] { CharacterClass.FightGuy, CharacterClass.Manki, CharacterClass.Bonk };
+        var roster = new[] { "fightguy", "manki", "bonk" };
         var ids = Enumerable.Range(1, roster.Length).Select(i => (ulong)i).ToArray();
         var continuous = NewRun(arena, roster, reverseRegistration: false, friendlyFire);
         var restored = NewRun(arena, roster, reverseRegistration: true, friendlyFire);
@@ -111,7 +111,7 @@ public class ArcadeSnapshotTests
     public void SnapshotFromAnotherKindOfSimulationIsRejected()
     {
         var court = WorldSnapshotTests.LoadArena("slopball");
-        var roster = new[] { CharacterClass.FightGuy, CharacterClass.Manki };
+        var roster = new[] { "fightguy", "manki" };
         var run = NewRun(court, roster, reverseRegistration: false);
         var fight = WorldSnapshotTests.NewMatch(WorldSnapshotTests.LoadArena("slop_pit"), roster, reverseRegistration: false);
         var before = run.CaptureSnapshot();
@@ -121,7 +121,7 @@ public class ArcadeSnapshotTests
     }
 
     /// <summary>A co-op run as the GameHost sets it up: fighters 1..N on the co-op starts.</summary>
-    internal static ServerSimulation NewRun(ArenaDefinition arena, CharacterClass[] roster, bool reverseRegistration,
+    internal static ServerSimulation NewRun(ArenaDefinition arena, string[] roster, bool reverseRegistration,
         bool friendlyFire = false)
     {
         var sim = new ServerSimulation(arena, new SlopballCoopMatchRule(friendlyFire: friendlyFire ? FriendlyFireMode.On : FriendlyFireMode.Off));
@@ -129,7 +129,7 @@ public class ArcadeSnapshotTests
         if (reverseRegistration) order.Reverse();
         foreach (int slot in order)
         {
-            var content = BuiltInContentResolver.Resolve(roster[slot]);
+            var content = BuiltInContentResolver.ResolvePackage(roster[slot]);
             var start = MatchFormat.SlopballCoop.StartFor(arena, slot, roster.Length);
             sim.RegisterEntity((ulong)(slot + 1), content.Definition, new CharacterState
             {

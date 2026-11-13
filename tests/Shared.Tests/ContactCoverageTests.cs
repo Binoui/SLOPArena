@@ -33,12 +33,12 @@ public sealed class ContactCoverageTests
     }
 
     [Theory]
-    [InlineData(CharacterClass.FightGuy)]
-    [InlineData(CharacterClass.Wibou)]
-    public void AuthoredGroundOne_ReportMatchesSimulationWithoutPinningTuning(CharacterClass character)
+    [InlineData("fightguy")]
+    [InlineData("wibou")]
+    public void AuthoredGroundOne_ReportMatchesSimulationWithoutPinningTuning(string character)
     {
-        var entry = BuiltInContentResolver.Resolve(character);
-        var victim = BuiltInContentResolver.Resolve(CharacterClass.FightGuy);
+        var entry = BuiltInContentResolver.ResolvePackage(character);
+        var victim = BuiltInContentResolver.ResolvePackage("fightguy");
         Assert.True(CanonicalSlotProjection.TryGet("ground.1", out var slot));
         var context = ContactCoverageReport.PrepareContext(entry, victim, 1f, Arena);
         foreach (var (x, z) in new[] { (0f, 0f), (4f, 6f) })
@@ -293,15 +293,15 @@ public sealed class ContactCoverageTests
 
     private static MatchContentEntry EngineEntry()
     {
-        var source = BuiltInContentResolver.Resolve(CharacterClass.FightGuy);
+        var source = BuiltInContentResolver.ResolvePackage("fightguy");
         var definition = TestHelpers.EngineDef;
-        definition = definition with { Class = source.Definition.Class };
+        definition = definition with { PackageId = source.Definition.PackageId };
         var slots = definition.CookedSlots!.ToArray();
         slots[0] = NormalSlot(0, "ground.1", 30);
         slots[1] = NormalSlot(1, "ground.2", 120);
         slots[7] = NormalSlot(7, "air.1", 30);
         definition = definition with { CookedSlots = slots };
-        return new MatchContentEntry(source.Handle, source.LegacySelector, source.Identity,
+        return new MatchContentEntry(source.Handle, source.Identity,
             "engine report fixture", definition, SyntheticBake(), source.CookedCharacterPackage);
     }
 

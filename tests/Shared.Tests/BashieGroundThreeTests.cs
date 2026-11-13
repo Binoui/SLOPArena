@@ -144,8 +144,8 @@ public sealed class BashieGroundThreeTests
         internal Duel(float yaw, float distance, bool shield = false, bool moving = false)
         {
             string root = CookedRoot();
-            var content = BuiltInContentResolver.Resolve(CharacterClass.Bashie, root);
-            _victim = BuiltInContentResolver.Resolve(CharacterClass.Manki, root);
+            var content = BuiltInContentResolver.ResolvePackage("bashie", root);
+            _victim = BuiltInContentResolver.ResolvePackage("manki", root);
             Sim = new ServerSimulation(TestHelpers.TestArena());
             _yaw = yaw * MathF.PI / 180f;
             _shield = shield;

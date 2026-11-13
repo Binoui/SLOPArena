@@ -299,7 +299,7 @@ namespace SlopArena.Client
                 return;
             }
             var playerEntry = catalog.ResolveLegacySelection(local.CharacterSelection,
-                descriptor == null ? Shared.CharacterClass.Manki : Shared.CharacterClass.None);
+                descriptor == null ? "manki" : "");
             if (playerEntry == null)
             {
                 RejectMatchStart("Master roster selected an unavailable player character.");
@@ -339,9 +339,9 @@ namespace SlopArena.Client
                 if (player.SteamId == SteamId) continue;
                 if (player.EntityId <= 0) continue;
                 var opponentClass = ParseClass(player.CharacterSelection,
-                    descriptor == null ? Shared.CharacterClass.Manki : Shared.CharacterClass.None);
-                if (descriptor != null && (opponentClass == Shared.CharacterClass.None ||
-                    catalog.Resolve(opponentClass) == null))
+                    descriptor == null ? "manki" : "");
+                if (descriptor != null && (opponentClass == "" ||
+                    catalog.ResolvePackage(opponentClass) == null))
                 {
                     RejectMatchStart("Master roster selected an unavailable opponent character.");
                     return;
@@ -349,7 +349,7 @@ namespace SlopArena.Client
                 UI.MatchConfig.Opponents.Add(new UI.MatchConfig.OpponentInfo(
                     (ulong)player.EntityId,
                     opponentClass,
-                    catalog.Resolve(opponentClass)?.Identity.PackageId ?? string.Empty));
+                    catalog.ResolvePackage(opponentClass)?.Identity.PackageId ?? string.Empty));
             }
 
             MatchRoster = config.Players;
@@ -566,7 +566,7 @@ namespace SlopArena.Client
             foreach (var record in received.Entries)
             {
                 var local = builtCatalog.Resolve(record.Handle);
-                if (local == null || local.Identity != record.Identity || local.LegacySelector != record.Selector)
+                if (local == null || local.Identity != record.Identity || local.Identity.PackageId != record.Selector)
                 {
                     failure = $"Content handle {record.Handle.Value} identity mismatch.";
                     return false;
@@ -577,11 +577,11 @@ namespace SlopArena.Client
             return true;
         }
 
-        private static Shared.CharacterClass ParseClass(string? name, Shared.CharacterClass fallback)
+        private static string ParseClass(string? name, string fallback)
         {
             if (string.IsNullOrEmpty(name))
                 return fallback;
-            return System.Enum.TryParse<Shared.CharacterClass>(name, ignoreCase: true, out var c) && c != Shared.CharacterClass.None
+            return Shared.LegacyFighterProtocol.TryPackageId(name, out var c)
                 ? c
                 : fallback;
         }

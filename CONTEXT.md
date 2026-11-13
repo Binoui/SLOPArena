@@ -554,7 +554,7 @@ One running match — 2-4 rostered players, one dedicated UDP port, one thread, 
 _Avoid_: match (too generic), game session, server instance
 
 **Roster**:
-The ordered player list the master server sends at match start. Each entry pairs a player's SteamId with their locked-in CharacterClass and an assigned EntityId (1..N by lobby join order). Drives entity spawning on the GameServer — replaces the old hardcoded-Manki path.
+The ordered player list the master server sends at match start. Each entry pairs a player's SteamId with their locked-in fighter package ID and an assigned EntityId (1..N by lobby join order). The launch codec translates the legacy selector string through LegacyFighterProtocol. Drives entity spawning on the GameServer — replaces the old hardcoded-Manki path.
 _Avoid_: player list, team, lineup
 
 **PortAllocation**:

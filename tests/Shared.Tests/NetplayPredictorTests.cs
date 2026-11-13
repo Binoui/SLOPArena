@@ -118,7 +118,7 @@ public class NetplayPredictorTests
         Assert.Equal(Walls(lab.Server).Select(w => w with { PhaseTick = 0 }), Walls(predictor.Simulation).Select(w => w with { PhaseTick = 0 }));
     }
 
-    private static readonly CharacterClass[] Duel = { CharacterClass.FightGuy, CharacterClass.Manki };
+    private static readonly string[] Duel = { "fightguy", "manki" };
 
     [Fact]
     public void IdleAndMovementNeedNoCorrections()
@@ -290,7 +290,7 @@ public class NetplayPredictorTests
     [Fact]
     public void SimultaneousAttacksTradeOnEveryClient()
     {
-        var mirror = new[] { CharacterClass.FightGuy, CharacterClass.FightGuy };
+        var mirror = new[] { "fightguy", "fightguy" };
         var lab = new NetplayLab("slop_pit", mirror, seed: 7, FacingPair(1.0f));
         lab[1].Input = (p, tick) => Toward(p, 2, slot: tick == 30 ? AbilitySlots.Normal1 : (byte)0);
         lab[2].Input = (p, tick) => Toward(p, 1, slot: tick == 30 ? AbilitySlots.Normal1 : (byte)0);
@@ -392,8 +392,8 @@ public class NetplayPredictorTests
         var arena = WorldSnapshotTests.LoadArena("slop_pit");
         var reference = WorldSnapshotTests.NewMatch(arena, Duel, reverseRegistration: false);
         var predictor = new NetplayPredictor(arena, 1, new StockMatchRule(250));
-        var fightGuy = BuiltInContentResolver.Resolve(CharacterClass.FightGuy);
-        var manki = BuiltInContentResolver.Resolve(CharacterClass.Manki);
+        var fightGuy = BuiltInContentResolver.ResolvePackage("fightguy");
+        var manki = BuiltInContentResolver.ResolvePackage("manki");
         predictor.RegisterEntity(1, fightGuy.Definition, reference.GetState(1), fightGuy.BakedAnimation);
         Assert.True(predictor.SetTimeline(100));
         Assert.True(predictor.Advance(default));
@@ -412,7 +412,7 @@ public class NetplayPredictorTests
         var you = lab[1].Predictor;
         uint anchor = you.AnchorTick;
         var stranger = WorldSnapshotTests.NewMatch(WorldSnapshotTests.LoadArena("slop_pit"),
-            new[] { CharacterClass.FightGuy, CharacterClass.Manki, CharacterClass.Bonk }, false);
+            new[] { "fightguy", "manki", "bonk" }, false);
         for (int i = 0; i < 100; i++)
             stranger.Tick(new Dictionary<ulong, InputState>());
         you.IngestFrame(new WorldFramePacket(MatchState.Ended, stranger.CaptureSnapshot(), Array.Empty<RelayedInput>(),
@@ -442,15 +442,15 @@ public class NetplayPredictorTests
 
     public static IEnumerable<object[]> Fights()
     {
-        yield return new object[] { "slop_pit", new[] { CharacterClass.FightGuy, CharacterClass.Manki }, 21, 1, 0, 0.0 };
-        yield return new object[] { "table_manners", new[] { CharacterClass.Wibou, CharacterClass.Bonk }, 22, 2, 1, 0.02 };
-        yield return new object[] { "slop_pit", new[] { CharacterClass.Manki, CharacterClass.Wibou }, 23, 1, 2, 0.05 };
-        yield return new object[] { "last_stop", new[] { CharacterClass.FightGuy, CharacterClass.Manki, CharacterClass.Wibou, CharacterClass.Bonk }, 24, 2, 2, 0.03 };
+        yield return new object[] { "slop_pit", new[] { "fightguy", "manki" }, 21, 1, 0, 0.0 };
+        yield return new object[] { "table_manners", new[] { "wibou", "bonk" }, 22, 2, 1, 0.02 };
+        yield return new object[] { "slop_pit", new[] { "manki", "wibou" }, 23, 1, 2, 0.05 };
+        yield return new object[] { "last_stop", new[] { "fightguy", "manki", "wibou", "bonk" }, 24, 2, 2, 0.03 };
     }
 
     [Theory]
     [MemberData(nameof(Fights))]
-    public void FightsOverImperfectLinksStayConsistent(string arena, CharacterClass[] roster, int seed,
+    public void FightsOverImperfectLinksStayConsistent(string arena, string[] roster, int seed,
         int delay, int jitter, double loss)
     {
         var lab = new NetplayLab(arena, roster, seed);

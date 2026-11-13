@@ -7,14 +7,14 @@ namespace SlopArena.Shared.Tests;
 public class JumpTakeoffCalibrationTests
 {
     [Theory]
-    [InlineData(CharacterClass.Wibou, 10.6f, 7f, 8.4f)]
-    [InlineData(CharacterClass.Bashie, 9.8f, 9f, 9.8f)]
+    [InlineData("wibou", 10.6f, 7f, 8.4f)]
+    [InlineData("bashie", 9.8f, 9f, 9.8f)]
     public void RunningStandingJumpUsesTheLowerRunOrAirBasedCap(
-        CharacterClass fighter, float runSpeed, float airSpeed, float expected)
+        string fighter, float runSpeed, float airSpeed, float expected)
     {
         var def = TestHelpers.EngineDef with
         {
-            Class = fighter,
+            PackageId = fighter,
             Movement = TestHelpers.EngineDef.Movement with
             {
                 RunSpeed = runSpeed, AirSpeedMax = airSpeed,

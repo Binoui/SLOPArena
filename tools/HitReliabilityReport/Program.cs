@@ -30,13 +30,13 @@ internal static class Program
         --slots picks canonical slots (1-3, A, E, R, F), ground and air; the default is the normals.
         """;
 
-    private static readonly Dictionary<string, CharacterClass> Characters = new(StringComparer.Ordinal)
+    private static readonly Dictionary<string, string> Characters = new(StringComparer.Ordinal)
     {
-        ["fightguy"] = CharacterClass.FightGuy, ["manki"] = CharacterClass.Manki,
-        ["wibou"] = CharacterClass.Wibou, ["bonk"] = CharacterClass.Bonk,
-        ["bashie"] = CharacterClass.Bashie,
-        ["salamander"] = CharacterClass.Salamander,
-        ["nyx"] = CharacterClass.Nyx,
+        ["fightguy"] = "fightguy", ["manki"] = "manki",
+        ["wibou"] = "wibou", ["bonk"] = "bonk",
+        ["bashie"] = "bashie",
+        ["salamander"] = "salamander",
+        ["nyx"] = "nyx",
     };
 
     private static int Main(string[] args)
@@ -81,12 +81,12 @@ internal static class Program
         Directory.CreateDirectory(output);
         foreach (var (name, cls) in Characters.Where(x => selector == "all" || x.Key == selector))
         {
-            var attacker = BuiltInContentResolver.Resolve(cls, cookedRoot);
+            var attacker = BuiltInContentResolver.ResolvePackage(cls, cookedRoot);
             if (form != 0)
             {
                 if (attacker.Definition.AlternateForm == null)
                 { Console.Error.WriteLine($"{name} has no alternate form."); return 2; }
-                attacker = new MatchContentEntry(attacker.Handle, attacker.LegacySelector, attacker.Identity,
+                attacker = new MatchContentEntry(attacker.Handle, attacker.Identity,
                     attacker.DisplayName + " form " + form, attacker.Definition.ForForm(form), attacker.BakedAnimation,
                     attacker.CookedCharacterPackage);
             }

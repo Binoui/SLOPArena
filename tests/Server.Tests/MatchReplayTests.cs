@@ -31,8 +31,8 @@ public class MatchReplayTests(ITestOutputHelper output)
             Catalog = catalog!; Map = map!.WithArena(identity!); Hash = SteamMatchDescriptor.HashContent(Map);
         }
         public MatchInstance Match(MatchReplayStore? store, Action<Guid, ulong, byte[], bool>? send = null, string? displayName = null) => new(0,
-            Guid.NewGuid().ToString(), Arena, new[] { new MatchPlayer(1001, CharacterClass.FightGuy, 1, Colour: 2, DisplayName: displayName),
-                new MatchPlayer(1002, CharacterClass.Manki, 2, Colour: 3) }, Catalog, _ => { },
+            Guid.NewGuid().ToString(), Arena, new[] { new MatchPlayer(1001, "fightguy", 1, Colour: 2, DisplayName: displayName),
+                new MatchPlayer(1002, "manki", 2, Colour: 3) }, Catalog, _ => { },
             maxStocks: 1, contentHash: Hash, contentHandleMap: Map, clock: new Clock(),
             steamSend: send ?? ((_, _, _, _) => { }), replays: store);
         public void Dispose() { if (Directory.Exists(Dir)) Directory.Delete(Dir, true); }
@@ -152,7 +152,7 @@ public class MatchReplayTests(ITestOutputHelper output)
         MatchResultPacket? wireResult = null;
         bool sawPlaying = false;
         match = new MatchInstance(0, Guid.NewGuid().ToString(), rig.Arena,
-            new[] { new MatchPlayer(1001, CharacterClass.FightGuy, 1), new MatchPlayer(1002, CharacterClass.Manki, 2) },
+            new[] { new MatchPlayer(1001, "fightguy", 1), new MatchPlayer(1002, "manki", 2) },
             rig.Catalog, _ => finished.Set(), maxStocks: 1, contentHash: rig.Hash, contentHandleMap: rig.Map,
             clock: clock, replays: store,
             steamSend: (_, id, bytes, _) =>

@@ -43,7 +43,7 @@ public sealed class FightGuyPierRouteTests
         public Run(float? x = null, float? y = null, float? z = null, float yaw = 0f)
         {
             Arena = LoadArena();
-            var entry = BuiltInContentResolver.Resolve(CharacterClass.FightGuy);
+            var entry = BuiltInContentResolver.ResolvePackage("fightguy");
             Def = entry.Definition; Body = Def.CapsuleHeight * .5f;
             Sim = new ServerSimulation(Arena, NoWinMatchRule.Instance);
             var spawn = Arena.SpawnPoints[0];

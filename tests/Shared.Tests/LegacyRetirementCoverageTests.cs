@@ -331,7 +331,7 @@ public class LegacyRetirementCoverageTests
     [InlineData(107)]
     public void BothPlayersAttackOverImperfectLinksWithoutInvalidStatesAndConverge(int seed)
     {
-        var lab = new NetplayLab("slop_pit", new[] { CharacterClass.FightGuy, CharacterClass.Manki }, seed);
+        var lab = new NetplayLab("slop_pit", new[] { "fightguy", "manki" }, seed);
         foreach (var player in lab.Players)
         {
             var driver = new WorldSnapshotTests.FightDriver(seed + (int)player.Id, lab.Ids.ToArray());

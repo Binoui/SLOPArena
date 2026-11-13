@@ -15,7 +15,7 @@ var clips = new Dictionary<string, AnimationClip>();
 for (int i = 0; i < bindings.arraySize; i++)
 {
     var b = bindings.GetArrayElementAtIndex(i);
-    clips[b.FindPropertyRelative("_semanticId").stringValue] = b.FindPropertyRelative("_clip").objectReferenceValue as AnimationClip;
+    clips[b.FindPropertyRelative("_semanticId").PackageIdValue] = b.FindPropertyRelative("_clip").objectReferenceValue as AnimationClip;
 }
 var scene = UnityEditor.SceneManagement.EditorSceneManager.NewPreviewScene();
 var report = new Dictionary<string, object>();

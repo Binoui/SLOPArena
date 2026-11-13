@@ -9,9 +9,9 @@ namespace SlopArena.Shared.Tests;
 /// <summary>The rules two adversarial reviews proved broken in ADR-0063 units 4 to 9. A mistake costs only its maker.</summary>
 public class MayhemVarietyFixTests
 {
-    private static readonly CharacterClass[] Fg = { CharacterClass.FightGuy };
+    private static readonly string[] Fg = { "fightguy" };
     private static readonly byte[] Normals = { AbilitySlots.Normal1, AbilitySlots.Normal2, AbilitySlots.Normal3 };
-    private static CharacterClass[] Roster { get { var list = new List<CharacterClass>(); foreach (var f in RosterFighters.All()) list.Add(f); return list.ToArray(); } }
+    private static string[] Roster { get { var list = new List<string>(); foreach (var f in RosterFighters.All()) list.Add(f); return list.ToArray(); } }
 
     private static void Hit(ServerSimulation sim, TargetCue target, ulong owner, ulong activation)
         => sim.Resolver.Spawn(new Hitbox { OwnerId = owner, ActivationId = activation, AttackSlot = AbilitySlots.Normal1,
@@ -184,7 +184,7 @@ public class MayhemVarietyFixTests
     public void AShoverCannotCancelAShieldedRivalAndKeepTheirOwnPass()
     {
         var wins = new List<string>();
-        foreach (var fighter in new[] { CharacterClass.Manki, CharacterClass.FightGuy })
+        foreach (var fighter in new[] { "manki", "fightguy" })
         for (int lead = 4; lead <= 45; lead++)
         {
             var (sim, e) = MayhemWorld.Airing(MayhemChannels.Block, SpeedTier.One, count: 2, roster: new[] { fighter }, twist: new(1));
@@ -239,7 +239,7 @@ public class MayhemVarietyFixTests
 
     // Problem 3: a swing aimed at a channel target lands whether or not a rival stands to the side.
 
-    private static (ServerSimulation Sim, TargetCue Target, float X, float Z) SwingFrom(ChannelId channel, CharacterClass fighter, FriendlyFireMode fire, byte twist)
+    private static (ServerSimulation Sim, TargetCue Target, float X, float Z) SwingFrom(ChannelId channel, string fighter, FriendlyFireMode fire, byte twist)
     {
         var (sim, e) = MayhemWorld.Airing(channel, channel == MayhemChannels.GetHim ? SpeedTier.Three : SpeedTier.One, count: 2,
             roster: new[] { fighter }, fire: fire, twist: new(twist));
@@ -257,7 +257,7 @@ public class MayhemVarietyFixTests
         return target.HitsLeft - view.Scene.Targets.Single(t => t.EntityId == target.EntityId).HitsLeft;
     }
 
-    private static int Swing(ChannelId channel, CharacterClass fighter, byte slot, FriendlyFireMode fire, float? bearing, float reach, byte twist = 1, bool softTargetRival = false)
+    private static int Swing(ChannelId channel, string fighter, byte slot, FriendlyFireMode fire, float? bearing, float reach, byte twist = 1, bool softTargetRival = false)
     {
         var (sim, target, px, pz) = SwingFrom(channel, fighter, fire, twist);
         MayhemDirectorTests.Place(sim, 1, px, pz);
@@ -303,8 +303,8 @@ public class MayhemVarietyFixTests
     {
         var channel = new ChannelId(id);
         foreach (byte slot in Normals)
-            if (Swing(channel, CharacterClass.Wibou, slot, FriendlyFireMode.Shoves, null, 0) > 0)
-                Assert.True(Swing(channel, CharacterClass.Wibou, slot, FriendlyFireMode.Shoves, 60, 2, softTargetRival: true) > 0, $"slot {slot}");
+            if (Swing(channel, "wibou", slot, FriendlyFireMode.Shoves, null, 0) > 0)
+                Assert.True(Swing(channel, "wibou", slot, FriendlyFireMode.Shoves, 60, 2, softTargetRival: true) > 0, $"slot {slot}");
     }
 
     private static float YawAfterSwing(ServerSimulation sim, byte slot)
@@ -325,7 +325,7 @@ public class MayhemVarietyFixTests
 
     private static float YawBesideHead(MayhemTargetKind kind)
     {
-        var (sim, e) = MayhemWorld.Airing(MayhemChannels.Bonk, SpeedTier.One, count: 2, roster: new[] { CharacterClass.Wibou }, twist: new(2));
+        var (sim, e) = MayhemWorld.Airing(MayhemChannels.Bonk, SpeedTier.One, count: 2, roster: new[] { "wibou" }, twist: new(2));
         MayhemDirectorTests.RunTo(sim, MayhemWorld.Plan(sim).PlayStart(e) + 2);
         var head = MayhemWorld.View(sim).Scene.Targets.Single(t => t.Kind == kind);
         MayhemDirectorTests.Place(sim, 2, -head.Center.X, -head.Center.Z);
@@ -337,7 +337,7 @@ public class MayhemVarietyFixTests
     [Fact]
     public void AimCorrectionIgnoresARivalsBoards()
     {
-        var (sim, e) = MayhemWorld.Airing(MayhemChannels.BreakBoards, SpeedTier.One, count: 2, roster: new[] { CharacterClass.Wibou }, twist: new(2));
+        var (sim, e) = MayhemWorld.Airing(MayhemChannels.BreakBoards, SpeedTier.One, count: 2, roster: new[] { "wibou" }, twist: new(2));
         MayhemDirectorTests.RunTo(sim, MayhemWorld.Plan(sim).PlayStart(e) + 2);
         var rival = MayhemWorld.View(sim).Scene.Targets.Single(t => t.OwnerSeat == 1);
         const float bearing = 60f * MathF.PI / 180f;
@@ -351,7 +351,7 @@ public class MayhemVarietyFixTests
     {
         foreach (byte slot in Normals)
         {
-            var (sim, e) = MayhemWorld.Airing(MayhemChannels.Spot, SpeedTier.One, count: 2, roster: new[] { CharacterClass.Wibou }, fire: FriendlyFireMode.Off);
+            var (sim, e) = MayhemWorld.Airing(MayhemChannels.Spot, SpeedTier.One, count: 2, roster: new[] { "wibou" }, fire: FriendlyFireMode.Off);
             MayhemDirectorTests.RunTo(sim, MayhemWorld.Plan(sim).PlayStart(e) + 2);
             MayhemDirectorTests.Place(sim, 1, 0, 0); MayhemDirectorTests.Place(sim, 2, 1.5f, 1.5f);
             Assert.True(MathF.Abs(YawAfterSwing(sim, slot)) < 1f, $"slot {slot}");
@@ -361,7 +361,7 @@ public class MayhemVarietyFixTests
     [Fact]
     public void ShovesStillCorrectTowardARivalWhenNoChannelTargetIsNear()
     {
-        var (sim, e) = MayhemWorld.Airing(MayhemChannels.Spot, SpeedTier.One, count: 2, roster: new[] { CharacterClass.Wibou });
+        var (sim, e) = MayhemWorld.Airing(MayhemChannels.Spot, SpeedTier.One, count: 2, roster: new[] { "wibou" });
         MayhemDirectorTests.RunTo(sim, MayhemWorld.Plan(sim).PlayStart(e) + 2);
         MayhemDirectorTests.Place(sim, 1, 0, 0); MayhemDirectorTests.Place(sim, 2, 1.5f, 1.5f);
         Assert.True(Normals.Any(slot => { float yaw = YawAfterSwing(sim, slot); MayhemWorld.Step(sim, 90); return yaw > 5f; }));

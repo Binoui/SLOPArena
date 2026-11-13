@@ -27,7 +27,7 @@ public static class CharacterPackageAuthoringSelfTest
         var service = new CharacterPackageAuthoringService(UnityCharacterAssetCooker.ProjectRoot());
         string rosterPath = Path.Combine(UnityCharacterAssetCooker.ProjectRoot(), "..", "..", "content-cooked/roster/manifest.json");
         BuiltInRosterManifest rosterBefore = BuiltInRosterManifestCodec.Load(rosterPath);
-        BuiltInRosterEntry fightGuyBefore = rosterBefore.Resolve(CharacterClass.FightGuy)!;
+        BuiltInRosterEntry fightGuyBefore = rosterBefore.ResolvePackage("fightguy")!;
         CharacterPackageInspectionResult initial = service.Inspect("fightguy");
         Require(initial.Success, "FightGuy inspection failed.");
         Require(initial.PackageId == "fightguy", "Inspection returned the wrong package ID.");
@@ -49,7 +49,7 @@ public static class CharacterPackageAuthoringSelfTest
         Require(directCook.Success, "Direct FightGuy cook failed.");
         Require(!string.IsNullOrEmpty(directCook.SourceHash) && !string.IsNullOrEmpty(directCook.CookedContentHash) && !string.IsNullOrEmpty(directCook.PackageHash),
             "Successful cook did not return hashes.");
-        BuiltInRosterEntry fightGuyAfter = BuiltInRosterManifestCodec.Load(rosterPath).Resolve(CharacterClass.FightGuy)!;
+        BuiltInRosterEntry fightGuyAfter = BuiltInRosterManifestCodec.Load(rosterPath).ResolvePackage("fightguy")!;
         Require(fightGuyAfter.Selector == fightGuyBefore.Selector &&
             fightGuyAfter.Requirement.PackageId == "fightguy" &&
             fightGuyAfter.Requirement.Version == fightGuyBefore.Requirement.Version &&

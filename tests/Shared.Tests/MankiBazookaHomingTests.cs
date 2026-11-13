@@ -17,9 +17,9 @@ public sealed class MankiBazookaHomingTests
     {
         var roster = BuiltInRosterManifestCodec.Load(Path.Combine(Root(), "content-cooked/roster/manifest.json"));
         var loaded = CookedCharacterPackageLoader.LoadDirectory(Path.Combine(Root(), "content-cooked/manki"),
-            roster.Resolve(CharacterClass.Manki)!.Requirement);
+            roster.ResolvePackage("manki")!.Requirement);
         Assert.True(loaded.IsValid, string.Join("; ", loaded.Diagnostics.Select(d => d.Code)));
-        return loaded.ToCharacterDefinition(CharacterClass.Manki);
+        return loaded.ToCharacterDefinition();
     }
 
     private static Hitbox Rocket() => new()

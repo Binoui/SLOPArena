@@ -86,7 +86,7 @@ public sealed class CpuMoveChoiceTests
     [Fact]
     public void BashieMixesHerNormals()
     {
-        var bashie = BuiltInContentResolver.Resolve(CharacterClass.Bashie);
+        var bashie = BuiltInContentResolver.ResolvePackage("bashie");
         var presses = Presses(bashie.Definition, 0.6f, 400, baked: bashie.BakedAnimation);
         int total = presses.Values.Sum();
         Assert.True(total > 100, $"only {total} presses");

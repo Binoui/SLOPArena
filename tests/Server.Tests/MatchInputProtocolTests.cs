@@ -36,7 +36,7 @@ public class MatchInputProtocolTests
         using var accepted = new UdpClient(new IPEndPoint(IPAddress.Loopback, 0));
         using var ended = new ManualResetEventSlim();
         var match = new MatchInstance(port, Guid.NewGuid().ToString(), ArenaRegistry.All.First(arena => arena.Purpose == ArenaPurpose.PvP),
-            new[] { new MatchPlayer(101, CharacterClass.FightGuy, 1), new MatchPlayer(102, CharacterClass.Manki, 2) },
+            new[] { new MatchPlayer(101, "fightguy", 1), new MatchPlayer(102, "manki", 2) },
             catalog.Catalog!, _ => ended.Set());
         var endpoint = new IPEndPoint(IPAddress.Loopback, port);
         byte[] Input(ulong id)
@@ -147,15 +147,15 @@ public class MatchInputProtocolTests
         using var ended = new ManualResetEventSlim();
         var arena = ArenaRegistry.All.First(candidate => candidate.Purpose == ArenaPurpose.PvP);
         var match = new MatchInstance(port, Guid.NewGuid().ToString(), arena,
-            new[] { new MatchPlayer(101, CharacterClass.Wibou, 1),
-                new MatchPlayer(102, CharacterClass.FightGuy, 2) },
+            new[] { new MatchPlayer(101, "wibou", 1),
+                new MatchPlayer(102, "fightguy", 2) },
             catalog.Catalog!, _ => ended.Set());
         var endpoint = new IPEndPoint(IPAddress.Loopback, port);
         // The opponent's view: its own simulation restored from each received World Frame.
         var view = new ServerSimulation(arena);
-        foreach (var (entity, character) in new[] { (1UL, CharacterClass.Wibou), (2UL, CharacterClass.FightGuy) })
+        foreach (var (entity, character) in new[] { (1UL, "wibou"), (2UL, "fightguy") })
         {
-            var content = catalog.Catalog!.Resolve(character)!;
+            var content = catalog.Catalog!.ResolvePackage(character)!;
             view.RegisterEntity(entity, content.Definition, new CharacterState(), content.BakedAnimation);
         }
         WorldFramePacket? ReceiveFrame(UdpClient client)

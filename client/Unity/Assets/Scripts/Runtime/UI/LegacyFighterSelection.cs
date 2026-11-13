@@ -7,10 +7,7 @@ namespace SlopArena.Client.UI
     public static class LegacyFighterSelection
     {
         public static string PackageId(string selector)
-            => Enum.GetNames(typeof(CharacterClass)).Any(name => string.Equals(name, selector, StringComparison.OrdinalIgnoreCase))
-                && Enum.TryParse<CharacterClass>(selector, true, out var legacy)
-                && ShippedRoster.TryReadApplication(out var roster, out _)
-                ? roster.Manifest.Resolve(legacy)?.PackageId ?? "" : "";
+            => LegacyFighterProtocol.TryPackageId(selector, out var packageId) ? packageId : "";
         public static string DisplayKey(string selector)
         {
             var package = PackageId(selector);
@@ -18,6 +15,6 @@ namespace SlopArena.Client.UI
         }
         public static string Selector(string package)
             => ShippedRoster.TryReadApplication(out var roster, out _)
-                ? roster.Manifest.ResolvePackage(package)?.Selector.ToString() ?? "" : "";
+                ? roster.Manifest.ResolvePackage(package) is { } entry ? LegacyFighterProtocol.Selector(entry.PackageId) : "" : "";
     }
 }

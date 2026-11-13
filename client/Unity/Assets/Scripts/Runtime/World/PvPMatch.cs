@@ -187,7 +187,7 @@ namespace SlopArena.Client.World
 
         protected override void OnMatchStart()
         {
-            Debug.Log($"[{GetType().Name}] Starting match: mode={MatchConfig.Mode} char={MatchConfig.PlayerClass} arena={MatchConfig.ArenaName}");
+            Debug.Log($"[{GetType().Name}] Starting match: mode={MatchConfig.Mode} char={MatchConfig.PlayerPackageId} arena={MatchConfig.ArenaName}");
             var arenaIdentity = ClientSession.MatchContentHandleMap?.Arena;
             if (arenaIdentity == null || !string.Equals(arenaIdentity.Name, MatchConfig.ArenaName, StringComparison.Ordinal))
             {
@@ -248,7 +248,7 @@ namespace SlopArena.Client.World
             }
             if (!BindFighter(PlayerEntityId, playerEntry)) return;
             foreach (var opponent in MatchConfig.Opponents)
-                if (!BindFighter(opponent.EntityId, contentCatalog.Resolve(opponent.Class))) return;
+                if (!BindFighter(opponent.EntityId, contentCatalog.ResolvePackage(opponent.PackageId))) return;
             var playerDef = playerEntry.Definition;
             _playerDef = playerDef;
 
@@ -286,10 +286,10 @@ namespace SlopArena.Client.World
             for (int i = 0; i < MatchConfig.Opponents.Count; i++)
             {
                 var opp = MatchConfig.Opponents[i];
-                var opponentEntry = contentCatalog.Resolve(opp.Class);
+                var opponentEntry = contentCatalog.ResolvePackage(opp.PackageId);
                 if (opponentEntry == null)
                 {
-                    ClientSession.RejectMatchStart($"Opponent selector {opp.Class} is absent from the admitted content catalog.");
+                    ClientSession.RejectMatchStart($"Opponent selector {opp.PackageId} is absent from the admitted content catalog.");
                     return;
                 }
                 var def = opponentEntry.Definition;
