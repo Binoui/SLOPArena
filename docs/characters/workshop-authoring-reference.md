@@ -1766,7 +1766,9 @@ have one to sixteen. Registry references use lowercase dot segments ending `.vN`
 
 Sample rule 1 uses 60 Hz from clipStart, the original authored duration in GLB animation extras
 `slop.durationSecondsBits`, and `slop.frameCount = max(1, ceil(binary32(durationSeconds * 60)))`.
-It does not derive duration from the last GLB key. Root rule 1 uses hips-relative points,
+clipStart is the earliest first key of the referenced samplers; channels clamp outside their key
+ranges. Duration is not inferred from the last key. Root rule 1 resets rest transforms, reflects
+glTF X into game coordinates, and uses hips-relative points,
 `_hips_offset`, the authored visual scale and the existing weapon marker scale rule.
 `poses.bin` must exactly equal the deterministic bake. Unit 4c must verify that equality using
 the same sampler as display. Until then, GLB-bound items fail with `item.pose-bake.unavailable`.

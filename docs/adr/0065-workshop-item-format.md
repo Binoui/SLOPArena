@@ -110,7 +110,9 @@ JSON. Integer fields retain their values. Legacy parsers and built-in writers st
 ### Motion sampling and the unit 4c gate
 
 Root and sampling rule 1 samples bound motion at `clipStart + k/60` seconds for
-`k = 0 .. frameCount-1`. glTF interpolation and node hierarchy apply before the root correction.
+`k = 0 .. frameCount-1`. clipStart is the minimum first-key timestamp among the samplers referenced by the clip's
+channels. Channel values outside their key range clamp to the nearest key. glTF interpolation
+and node hierarchy apply before the root correction.
 The authored clip duration is preserved in GLB animation extras under
 `slop.durationSecondsBits` as finite positive binary32 bits, with `slop.frameCount` alongside.
 The frame count is `max(1, ceil(binary32(durationSeconds * 60)))`. The recorded binding count,
@@ -125,7 +127,8 @@ The original duration/count metadata prevents that loss; adding an endpoint to e
 also change clips that already matched. The reference evidence is the retained step 0.2
 `pose-bake/bake.py` and `results.txt` spike.
 
-Root rule 1 uses a rest-reset hierarchy, glTF-to-game handedness conversion, the authored
+Root rule 1 resets the hierarchy to its rest transforms for every sample, reflects the glTF
+X axis into game coordinates, and applies the authored
 visual scale, and the same root placement for bake and display. Every body/attachment point
 is its sampled world position minus sampled hips position. `_hips_offset` records hips position
 plus modelYOffset on the vertical axis. Root translation never moves the authoritative fighter.
