@@ -21,6 +21,7 @@ def main():
     root = Path(__file__).resolve().parents[2]
     if subprocess.check_output(["git", "status", "--porcelain"], cwd=root).strip():
         raise RuntimeError("Commit the feature first; proof clones only committed bytes.")
+    feature_revision = subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=root, text=True).strip()
     evidence = root / "build" / "portable-proof" / args.version
     evidence.mkdir(parents=True, exist_ok=False)
     source = evidence / "source"
@@ -33,9 +34,10 @@ def main():
     runner.with_suffix(".runtimeconfig.json").write_text(json.dumps({"runtimeOptions": {"tfm": "net8.0", "framework": {"name": "Microsoft.NETCore.App", "version": "8.0.0"}}}))
     run(["dotnet", str(runner), str(item)], root, evidence / "dotnet.log")
     run(["git", "clone", "--no-hardlinks", str(root), str(source)], root, evidence / "clone.log")
+    run(["git", "checkout", "--detach", feature_revision], source, evidence / "checkout.log")
     run(["git", "switch", "-c", "build-only/portable-proof-" + args.version], source, evidence / "branch.log")
     # This is the same sole builder bypass as commit 9e5fb420. Cook checks remain enabled.
-    patch = subprocess.check_output(["git", "show", "9e5fb420", "--format=", "--", "scripts/build-playtest-local.py"], cwd=root)
+    patch = (root / "tools/PortableCookProof/origin-pin.patch").read_bytes()
     subprocess.run(["git", "apply", "-"], cwd=source, input=patch, check=True)
     program = (source / "tools/PortableCookProof/Program.cs").read_text().replace("internal static class Program", "internal static class PortableCookProof")
     hook = '''    [UnityEngine.RuntimeInitializeOnLoadMethod(UnityEngine.RuntimeInitializeLoadType.BeforeSceneLoad)]
@@ -70,7 +72,7 @@ def main():
          "--portable-cook-proof", windows(item), windows(result)], source, evidence / "wine.log", {**env, "WINEDEBUG": "-all"})
     if result.read_text() != "PASS":
         raise RuntimeError(result.read_text())
-    summary = {"result": "PASS", "buildRevision": revision, "featureRevision": subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=root, text=True).strip(),
+    summary = {"result": "PASS", "buildRevision": revision, "featureRevision": feature_revision,
                "hashes": (evidence / "dotnet.log").read_text().strip(), "build": receipt, "midpointBits": "3f800001", "negativeZeroBits": "00000000"}
     (evidence / "proof.json").write_text(json.dumps(summary, indent=2) + "\n")
     print(evidence / "proof.json")

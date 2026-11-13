@@ -11,10 +11,12 @@ python3 tools/PortableCookProof/run-player-proof.py \
 
 Choose a fresh version for each attempt. The script generates a synthetic Tumbleweed item,
 runs the .NET compiler/assembler, clones the committed feature into a throwaway build-only branch,
-applies only commit 9e5fb420's origin/main pin skip to the builder, injects a temporary proof hook,
+applies the committed `origin-pin.patch` containing only commit 9e5fb420's origin/main pin skip, injects a temporary proof hook,
 and runs the isolated Win64 builder with all cook checks enabled. It then runs that player under
 Wine with its actual Mono runtime. No product caller or launch option is added to the feature.
 The source checkout and ignored licensed dependencies are read-only inputs to the builder.
+The script captures the feature SHA at start and checks out that exact SHA in its clone.
+No local-only branch or Git object is needed; the pin patch travels in this directory.
 
 The item includes the near-midpoint decimal `1.00000005960464477539062500000001` and negative zero.
 Both runtimes must produce bits `3f800001` and `00000000`. Both must assemble the same runtime JSON
