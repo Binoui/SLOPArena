@@ -161,7 +161,8 @@ and `sqrt` and rounds to binary32 once per output value. Node rest values from t
 round once through the portable decimal parser, and keys come bit-exactly from the BIN chunk.
 Release Mono players run float arithmetic in double precision while CoreCLR rounds each float
 operation, so float arithmetic would split them. Double arithmetic without transcendental calls
-does not. The Win64 Mono player re-baked and re-cooked the proof items to the same bytes as .NET 8.
+does not. In the Win64 player (Mono 6.13), Tumbleweed's admission re-baked its poses to the .NET 8
+bytes and its re-cook reproduced every item file byte for byte.
 The work is bounded by the existing limits: at most 300 nodes, 256 animations, 4096 frames per
 track and the pose-memory ceiling. Only ancestors of baked points are transformed, and a clip
 bound by several animations is sampled once. Tumbleweed's 17 tracks bake in well under a second

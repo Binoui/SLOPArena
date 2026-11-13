@@ -67,7 +67,9 @@ FighterItemSnapshot (verified bytes + PortableFighterMotion)
 
 `GlbMotionState` is an Animancer `AnimationJobState`. Its job writes the sampled local transforms of
 every node any of the fighter's clips animates, through `TransformStreamHandle`s. Ticks are the
-sampled keys exactly, and between ticks the display blends the two neighbours. The state's key is the
+sampled keys exactly, and between ticks the display blends the two neighbours. Animancer runs its
+pre-updates before playable time advances, so each GLB state hands its job the time its playable
+reaches in this evaluation, the time a clip state samples, rather than the previous frame's. The state's key is the
 semantic ID's placeholder clip, so the renderer's existing `Play(clip, fade)` calls work unchanged.
 Fades between GLB clips, from a GLB clip into idle, landing and hitstun all happen in Animancer's
 mixer, not in a pass written after it. The bake reads the same sampler, so the drawn bones sit on
