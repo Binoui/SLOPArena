@@ -226,6 +226,8 @@ namespace SlopArena.Client.World
         protected virtual void OnDestroy()
         {
             if (Active == this) Active = null;
+            foreach (var lease in _madeFighterLeases) lease.Dispose();
+            _madeFighterLeases.Clear();
             PresentationFloor.Clear();
             _aimHandler?.ResetPresentation();
             _timelinePresentations.Clear();
@@ -258,6 +260,8 @@ namespace SlopArena.Client.World
 
         // ── Shared setup helpers ────────────────────────────────────────────
 
+        private readonly List<Workshop.MadeFighterPresentation.Lease> _madeFighterLeases = new();
+
         protected bool SetupPlayerRenderer(MatchContentEntry entry, ArenaDefinition arena)
             => SetupRenderer(_playerRenderer, entry, arena, PlayerEntityId, true);
 
@@ -286,6 +290,9 @@ namespace SlopArena.Client.World
                 return false;
             }
 
+            // A made fighter's model, clips and art stay alive while this Match draws it.
+            if (!entry.IsBundled && Workshop.MadeFighterPresentation.TryGet(entry.Identity, out var made))
+                _madeFighterLeases.Add(made.Acquire());
             var animationOverride = local && entry.CookedCharacterPackage == null ? _playerAnimConfig : null;
             if (!renderer.Configure(def, entry.BakedAnimation, animationCatalog,
                     rig ?? (local ? _playerModelPrefab : null), out var configurationError, animationOverride, entry.Identity.PackageId))

@@ -12,14 +12,19 @@ using UnityEngine;
 namespace SlopArena.Client.Workshop
 {
     /// <summary>
-    /// How an admitted portable fighter is drawn for the session: its GLB model as a hidden template with one GLB motion
-    /// state per bound animation, a runtime animation catalog, and its UI art. Built once from the admission's verified
-    /// bytes and motion, then found by exact revision wherever a built-in fighter's generated assets would be.
+    /// How an admitted portable fighter is drawn: its GLB model as a hidden template with one GLB motion state per bound
+    /// animation, a runtime animation catalog, and its UI art. Built once per revision from the admission's verified
+    /// bytes and motion, then found by exact revision wherever a built-in fighter's generated assets would be. Every
+    /// user (the menu that offers it, each Match that draws it) holds a <see cref="Lease"/>; the last one to let go
+    /// destroys the revision's assets.
     /// </summary>
     public sealed class MadeFighterPresentation
     {
         private static readonly Dictionary<MatchContentIdentity, MadeFighterPresentation> Prepared = new();
+        private static readonly Dictionary<MatchContentIdentity, Task<MadeFighterPresentation>> Pending = new();
         private static GameObject? holder;
+        private int _users;
+        private bool _destroyed;
 
         public MatchContentIdentity Identity { get; }
         public GameObject Template { get; }
@@ -38,13 +43,94 @@ namespace SlopArena.Client.Workshop
             Motion = motion; _owned = owned;
         }
 
-        public static bool TryGet(MatchContentIdentity identity, out MadeFighterPresentation presentation)
-            => Prepared.TryGetValue(identity, out presentation!);
+        /// <summary>Live leases; zero once the revision's assets are destroyed.</summary>
+        public int Users => _users;
+        private bool Alive => !_destroyed && Template != null && Catalog != null;
 
-        /// <summary>Import the item's model, bind its clips and render a portrait if it has none. Idempotent per revision.</summary>
-        public static async Task<MadeFighterPresentation> PrepareAsync(MatchContentEntry entry, FighterItemSnapshot item, CancellationToken cancel)
+        /// <summary>The revision's presentation while its Unity objects exist; a stale entry is dropped, never returned.</summary>
+        public static bool TryGet(MatchContentIdentity identity, out MadeFighterPresentation presentation)
         {
-            if (Prepared.TryGetValue(entry.Identity, out var existing)) return existing;
+            if (Prepared.TryGetValue(identity, out presentation!) && presentation.Alive) return true;
+            if (presentation != null) presentation.Teardown();
+            presentation = null!;
+            return false;
+        }
+
+        /// <summary>One more user for this revision; dispose the lease when that user no longer draws or offers it.</summary>
+        public Lease Acquire()
+        {
+            if (!Alive) throw new ObjectDisposedException(nameof(MadeFighterPresentation), $"{Identity.PackageId} was released.");
+            _users++;
+            return new Lease(this);
+        }
+
+        public sealed class Lease : IDisposable
+        {
+            private MadeFighterPresentation? _presentation;
+            internal Lease(MadeFighterPresentation presentation) { _presentation = presentation; }
+            public MadeFighterPresentation Presentation => _presentation ?? throw new ObjectDisposedException(nameof(Lease));
+            public void Dispose()
+            {
+                var presentation = _presentation;
+                _presentation = null;
+                presentation?.Leave();
+            }
+        }
+
+        private void Leave()
+        {
+            if (--_users <= 0) Teardown();
+        }
+
+        private void Teardown()
+        {
+            if (_destroyed) return;
+            _destroyed = true;
+            _users = 0;
+            if (Prepared.TryGetValue(Identity, out var current) && current == this) Prepared.Remove(Identity);
+            foreach (var asset in _owned) DestroyAsset(asset);
+            _model.Dispose();
+        }
+
+        private static void DestroyAsset(UnityEngine.Object? asset)
+        {
+            if (asset == null) return;
+            if (Application.isPlaying) UnityEngine.Object.Destroy(asset);
+            else UnityEngine.Object.DestroyImmediate(asset);
+        }
+
+        // An Editor Play without a domain reload keeps statics; DontSave assets from the last session would leak and its
+        // destroyed templates would be served. Each session starts empty, as the fighter art does.
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+        private static void ResetPlaySession()
+        {
+            ReleaseAll();
+            Application.quitting -= ReleaseAll;
+            Application.quitting += ReleaseAll;
+        }
+
+        private static void ReleaseAll()
+        {
+            foreach (var presentation in Prepared.Values.ToArray()) presentation.Teardown();
+            Prepared.Clear();
+            Pending.Clear();
+            holder = null;
+        }
+
+        /// <summary>
+        /// Import the item's model, bind its clips and render a portrait if it has none, once per revision; the caller
+        /// receives a lease for itself.
+        /// </summary>
+        public static async Task<Lease> PrepareAsync(MatchContentEntry entry, FighterItemSnapshot item, CancellationToken cancel)
+        {
+            if (TryGet(entry.Identity, out var existing)) return existing.Acquire();
+            if (!Pending.TryGetValue(entry.Identity, out var build)) Pending[entry.Identity] = build = BuildAsync(entry, item, cancel);
+            try { return (await build).Acquire(); }
+            finally { if (Pending.TryGetValue(entry.Identity, out var current) && current == build) Pending.Remove(entry.Identity); }
+        }
+
+        private static async Task<MadeFighterPresentation> BuildAsync(MatchContentEntry entry, FighterItemSnapshot item, CancellationToken cancel)
+        {
             var motion = item.Motion;
             var import = await ModelSwapImporter.ImportFighterAsync(item.ReadPayload(item.ModelFile), motion.Rig.Root, Color.white, cancel);
             var model = import.Model ?? throw new InvalidOperationException("Fighter model refused: " + import.Refusal);
@@ -120,18 +206,10 @@ namespace SlopArena.Client.Workshop
             }
             catch
             {
-                foreach (var asset in owned) if (asset != null) UnityEngine.Object.Destroy(asset);
+                foreach (var asset in owned) DestroyAsset(asset);
                 model.Dispose();
                 throw;
             }
-        }
-
-        /// <summary>Drop a revision the session no longer offers; Matches already running keep their instances.</summary>
-        public static void Release(MatchContentIdentity identity)
-        {
-            if (!Prepared.Remove(identity, out var presentation)) return;
-            foreach (var asset in presentation._owned) if (asset != null) UnityEngine.Object.Destroy(asset);
-            presentation._model.Dispose();
         }
 
         private static Texture2D?[] Images(FighterItemSnapshot item, string?[] files, List<UnityEngine.Object> owned)
