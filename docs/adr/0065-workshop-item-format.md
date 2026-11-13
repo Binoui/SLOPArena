@@ -98,18 +98,13 @@ files, so only the `item.json` schema version gates it.
 
 ### Trust at load
 
-Step 0.4 reproduced eight gaps (`loader-contract-tests/`). The loader, on clients and the
-GameServer, must close them.
-
-- It takes a cook profile and refuses `slop.internal.*` under `Workshop`. Today such a package
-  plays.
-- It recomputes budgets. Today it keeps stored values as written.
-- It refuses an empty timeline, an out-of-range enum value, and a missing canonical slot. Today an
-  empty timeline throws inside `ServerSimulation.Tick`.
-- It limits operations per stage and timeline, live hitboxes and projectiles, projectile speed and
-  lifetime, file size, and pose memory. Today 2,000 hitboxes cost one tick of 410 to 700 ms,
-  against a median near 0.03 ms.
-- It counts limits in units the simulation controls, not wall-clock time, and bounds the load call.
+Shared's loader now selects a host trust profile, rejects internal capabilities under
+Workshop, recomputes compiler budgets, and rejects malformed timelines, enums, and slot grids.
+It bounds file reads, JSON depth, pose memory, operation counts, projectile speed, and lifetime.
+The contract suite enables all eight formerly skipped cases and counts simulation work.
+See [cooked package admission](../systems/cooked-package-admission.md) for constants,
+measurements, diagnostics, and remaining capability lifetime-accounting work.
+External admission remains internal or test-only until the subsequent roll-out units.
 
 The GLB importer refuses files over its size, triangle, bone, and texture limits, naming the limit.
 

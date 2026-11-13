@@ -657,17 +657,20 @@ public static class CharacterPackageAssembler
             reader.ReadUInt32("version", 1);
             uint boneCount = reader.ReadUInt32("boneCount");
             uint animationCount = reader.ReadUInt32("animationCount");
-            if (boneCount == 0 || animationCount == 0 || boneCount > 4096 || animationCount > 4096) throw new InvalidDataException("Pose counts are outside safe bounds.");
+            if (boneCount == 0 || animationCount == 0 || boneCount > CookedPackageLimits.PoseBones || animationCount > CookedPackageLimits.PoseAnimations) throw new InvalidDataException("Pose counts are outside safe bounds.");
             var result = new PoseData();
+            long totalValues = 0;
             for (uint i = 0; i < boneCount; i++) result.BoneNames.Add(reader.ReadString("bone name"));
             for (uint i = 0; i < animationCount; i++)
             {
                 string name = reader.ReadString("animation name");
                 uint frameCount = reader.ReadUInt32("frame count");
-                if (string.IsNullOrEmpty(name) || frameCount == 0 || frameCount > 1_000_000) throw new InvalidDataException("Pose animation name or frame count is invalid.");
+                if (string.IsNullOrEmpty(name) || frameCount == 0 || frameCount > CookedPackageLimits.PoseFrames) throw new InvalidDataException("Pose animation name or frame count is invalid.");
                 if (!result.Names.Add(name)) throw new InvalidDataException("Duplicate pose animation name.");
                 result.FrameCounts.Add(name, checked((int)frameCount));
                 long values = checked((long)frameCount * boneCount * 3);
+                totalValues += values;
+                if (totalValues > CookedPackageLimits.PoseFloatValues) throw new InvalidDataException("Pose memory limit exceeded.");
                 reader.SkipFloats(values);
             }
             reader.RequireEnd();
@@ -762,6 +765,19 @@ public static class CharacterPackageAssembler
             byte[] path = Encoding.UTF8.GetBytes(payload.Path); Span<byte> u32 = stackalloc byte[4]; Span<byte> u64 = stackalloc byte[8]; BinaryPrimitives.WriteUInt32LittleEndian(u32, (uint)path.Length); BinaryPrimitives.WriteUInt64LittleEndian(u64, (ulong)payload.Bytes.LongLength); stream.Write(u32.ToArray(), 0, 4); stream.Write(path, 0, path.Length); stream.Write(u64.ToArray(), 0, 8); stream.Write(payload.Bytes, 0, payload.Bytes.Length);
         }
         return stream.ToArray();
+    }
+    /// <summary>Test seam: the canonical manifest whose payload, cooked and package hashes match <paramref name="files"/>.</summary>
+    internal static byte[] RehashManifest(IReadOnlyDictionary<string, byte[]> files)
+    {
+        var diagnostics = new List<CharacterDiagnostic>();
+        ManifestData manifest = ParseManifest(files[ManifestPath], diagnostics)
+            ?? throw new InvalidDataException(string.Join("; ", diagnostics.Select(x => x.Message)));
+        var payloads = Payloads(files);
+        manifest.Payloads.Clear();
+        manifest.Payloads.AddRange(payloads.Select(x => new CharacterPackagePayloadInfo(x.Path, Hash(x.Bytes), x.Bytes.LongLength)));
+        manifest.CookedContentHash = HashFramed(payloads);
+        manifest.PackageHash = Hash(Concat(FramedBytes(payloads), WriteManifest(manifest, "")));
+        return WriteManifest(manifest, manifest.PackageHash);
     }
     private static string HashFramed(IEnumerable<(string Path, byte[] Bytes)> payloads) => Hash(FramedBytes(payloads));
     private static string Hash(byte[] bytes) { using var sha = SHA256.Create(); return BitConverter.ToString(sha.ComputeHash(bytes)).Replace("-", "").ToLowerInvariant(); }

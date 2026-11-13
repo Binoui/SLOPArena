@@ -55,7 +55,7 @@ public static partial class Demo
             [CharacterPackageAssembler.PosePath] = poses,
             [CharacterPackageAssembler.BindingPath] = bindings,
         };
-        var result = CookedCharacterPackageLoader.LoadFiles(files, entry.Requirement);
+        var result = CookedCharacterPackageLoader.LoadFiles(files, entry.Requirement, CharacterCookProfile.TrustedBuiltIn);
         // A shared working tree can hold a fresh cook whose roster pin lags a few seconds behind. Load the package
         // by its own identity so local play keeps working; scripts/package.mjs refuses to publish such a set.
         string warning = "";
@@ -65,7 +65,7 @@ public static partial class Demo
             var m = doc.RootElement;
             var own = new MatchContentPackageRequirement(m.GetProperty("packageId").GetString()!, m.GetProperty("version").GetString()!,
                 m.GetProperty("cookedContentHash").GetString()!, m.GetProperty("packageHash").GetString()!);
-            result = CookedCharacterPackageLoader.LoadFiles(files, own);
+            result = CookedCharacterPackageLoader.LoadFiles(files, own, CharacterCookProfile.TrustedBuiltIn);
             _ownIdentity[packageId] = own;
             warning = "stale roster pin, loaded by the package's own identity";
         }

@@ -43,7 +43,7 @@ public sealed class AdmittedFighter
 
     internal static AdmittedFighter TestFixture(IReadOnlyDictionary<string, byte[]> files, MatchContentPackageRequirement requirement)
     {
-        var loaded = CookedCharacterPackageLoader.LoadFiles(files, requirement);
+        var loaded = CookedCharacterPackageLoader.LoadFiles(files, requirement, CharacterCookProfile.Workshop);
         if (!loaded.IsValid || !loaded.Identity.PackageId.StartsWith("local.", StringComparison.Ordinal))
             throw new ArgumentException("Invalid local fixture: " + string.Join("; ", loaded.Diagnostics.Select(x => x.Code)));
         return new AdmittedFighter(loaded, null, null);

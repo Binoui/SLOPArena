@@ -346,7 +346,7 @@ public static class CharacterPackageCompiler
             d.Error("value.out-of-range", "character.alternateForm", formsError);
             return;
         }
-        var budget = new CookedBudget(cookedSlots.Count + (alternateForm?.Slots.Count ?? 0), stageCount, operationCount, hitboxCount, projectileCount, capabilityOperationCount, maxDuration);
+        var budget = ComputeBudget(definition);
         var bytes = WriteCanonical(metadata, definition, budget);
         package = new CookedCharacterPackage(metadata, definition, budget, d.ToList(), bytes);
 
@@ -1874,6 +1874,36 @@ public static class CharacterPackageCompiler
             MankiBazookaCapabilityParameters x => x with { },
             _ => throw new InvalidDataException("Unknown capability parameters.")
         };
+
+    internal static CookedBudget ComputeBudget(CookedCharacterDefinition definition)
+    {
+        int slots = 0, stages = 0, operations = 0, hitboxes = 0, projectiles = 0, capabilities = 0, duration = 0;
+        foreach (var slot in definition.AllSlots)
+        {
+            slots++;
+            int ticks = 0;
+            foreach (var stage in slot.Timeline.Stages)
+            {
+                stages++;
+                ticks += stage.DurationTicks;
+                duration = Math.Max(duration, ticks);
+                foreach (var operation in stage.Operations)
+                {
+                    operations += CharacterSourceSchema.OperationEntryCost;
+                    if (operation is CookedSpawnHitboxOperation) hitboxes += CharacterSourceSchema.Operation("spawnHitbox")!.HitboxCost;
+                    if (operation is CookedSpawnProjectileOperation) projectiles += CharacterSourceSchema.Operation("spawnProjectile")!.ProjectileCost;
+                    if (operation is CookedStartCapabilityOperation capability)
+                    {
+                        capabilities += CharacterSourceSchema.Operation("startCapability")!.CapabilityCost;
+                        var cost = CharacterSourceSchema.CookedCapabilityBudget(capability);
+                        hitboxes += cost.Hitboxes;
+                        projectiles += cost.Projectiles;
+                    }
+                }
+            }
+        }
+        return new CookedBudget(slots, stages, operations, hitboxes, projectiles, capabilities, duration);
+    }
 
     private static CookedTimeline CookTimeline(CharacterTimelineSource source, DiagnosticBag d, ref int stages, ref int operations, ref int hitboxes, ref int projectiles, ref int capabilities, ref int maxDuration, ref int operationOrdinal)
     {

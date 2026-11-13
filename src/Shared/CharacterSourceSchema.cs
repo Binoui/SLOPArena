@@ -237,6 +237,20 @@ public static class CharacterSourceSchema
             schema.ProjectileCost + (schema.ProjectileUnlessField is { } p && !Present(p) ? 1 : 0));
     }
 
+    internal static (int Hitboxes, int Projectiles) CookedCapabilityBudget(CookedStartCapabilityOperation operation)
+    {
+        var schema = Capability(operation.CapabilityId);
+        if (schema == null) return (0, 0);
+        bool Present(string field) => field switch
+        {
+            "trailHitbox" => operation.Parameters is CookedThrustCapabilityParameters { TrailHitbox: not null },
+            "atTarget" => operation.Parameters is CookedTetherCapabilityParameters { AtTarget: not null },
+            _ => throw new InvalidOperationException("Unknown conditional budget field " + field),
+        };
+        return (schema.HitboxCost + (schema.ConditionalHitboxField is { } h && Present(h) ? 1 : 0),
+            schema.ProjectileCost + (schema.ProjectileUnlessField is { } p && !Present(p) ? 1 : 0));
+    }
+
     public static CharacterSourceRange Range(string id) => ByRange.TryGetValue(id, out var range) ? range : throw new ArgumentException("Unknown source range " + id);
     public static CharacterSourceObject Object(string id) => ById.TryGetValue(id, out var schema) ? schema : throw new ArgumentException("Unknown source schema " + id);
     public static CharacterSourceObject? Operation(string kind) => ByOperation.TryGetValue(kind, out var schema) ? schema : null;
