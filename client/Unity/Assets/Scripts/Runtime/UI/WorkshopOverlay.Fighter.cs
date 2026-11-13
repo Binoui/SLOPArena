@@ -36,8 +36,10 @@ namespace SlopArena.Client.UI
             workspaceGeneration++;
             workspaceFolder = null; pendingSource = null; cookedStamp = null; workspaceItem = null;
         }
-        public void OpenFighterWorkspace(string folder)
+        public async void OpenFighterWorkspace(string folder)
         {
+            while (IsOpen && _busy) await Task.Yield();
+            if (!IsOpen) return;
             FighterWorkspace(); SelectWorkspace(folder);
         }
         private void FighterWorkspace()
