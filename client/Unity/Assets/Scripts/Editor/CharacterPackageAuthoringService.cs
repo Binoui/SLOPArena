@@ -196,7 +196,7 @@ public sealed class CharacterPackageAuthoringService
 
         var compilerResult = package.Source == null
             ? null
-            : CharacterPackageCompiler.Compile(package.PackageJson, package.CharacterJson, ProfileFor(package.PackageId));
+            : CharacterPackageCompiler.Compile(package.PackageJson, package.CharacterJson, ProfileFor(package.PackageId, package.ProjectRelativeRoot, _projectRoot));
         AddUnique(diagnostics, compilerResult?.Diagnostics);
 
         string currentSourceHash = null;
@@ -205,7 +205,7 @@ public sealed class CharacterPackageAuthoringService
             if (UnityCharacterAssetCooker.TryComputeSourceHash(
                     package.ProjectRelativeRoot,
                     package.Catalog,
-                    ProfileFor(package.PackageId),
+                    ProfileFor(package.PackageId, package.ProjectRelativeRoot, _projectRoot),
                     out var computedHash,
                     out var hashDiagnostics))
             {
@@ -262,7 +262,7 @@ public sealed class CharacterPackageAuthoringService
                 package.ProjectRelativeRoot,
                 CookedPath(package.PackageId),
                 artifact.Manifest,
-                ProfileFor(package.PackageId),
+                ProfileFor(package.PackageId, package.ProjectRelativeRoot, _projectRoot),
                 cookStatus);
         (bool rostered, string selector) roster = ReadRosterState(package.PackageId);
         bool previewReady = artifact.Manifest != null && !artifact.IsInvalid && !artifact.IsMissing;
@@ -619,7 +619,7 @@ public sealed class CharacterPackageAuthoringService
         {
             cooked = UnityCharacterAssetCooker.CookWithCommittedPoses(
                 package.ProjectRelativeRoot,
-                ProfileFor(package.PackageId),
+                ProfileFor(package.PackageId, package.ProjectRelativeRoot, _projectRoot),
                 committed.Package,
                 files[CharacterPackageAssembler.PosePath],
                 files[CharacterPackageAssembler.BindingPath],
@@ -689,7 +689,7 @@ public sealed class CharacterPackageAuthoringService
                 package.ProjectRelativeRoot,
                 package.Catalog,
                 CharacterCookOutput.For(package.PackageId),
-                ProfileFor(package.PackageId));
+                ProfileFor(package.PackageId, package.ProjectRelativeRoot, _projectRoot));
         }
         catch (Exception ex)
         {
@@ -762,7 +762,7 @@ public sealed class CharacterPackageAuthoringService
         string packageRoot = PackageRootFor(packageId);
         string catalogPath = packageRoot + "/CharacterAssetCatalog.asset";
         var catalog = AssetDatabase.LoadAssetAtPath<CharacterAssetCatalog>(catalogPath);
-        if (catalog != null && UnityCharacterAssetCooker.TryComputeSourceHash(packageRoot, catalog, ProfileFor(packageId), out string currentHash, out _))
+        if (catalog != null && UnityCharacterAssetCooker.TryComputeSourceHash(packageRoot, catalog, ProfileFor(packageId, packageRoot, _projectRoot), out string currentHash, out _))
         {
             status.SourceHash = currentHash;
             status.CurrentSourceHash = currentHash;
@@ -1098,7 +1098,7 @@ public sealed class CharacterPackageAuthoringService
                 if (!UnityCharacterAssetCooker.TryComputeSourceHash(
                         package.ProjectRelativeRoot,
                         package.Catalog,
-                        ProfileFor(package.PackageId),
+                        ProfileFor(package.PackageId, package.ProjectRelativeRoot, _projectRoot),
                         out string currentHash,
                         out var hashDiagnostics))
                 {
@@ -1508,9 +1508,10 @@ public sealed class CharacterPackageAuthoringService
         => parent.TryGetProperty(name, out var value) && value.TryGetUInt16(out ushort result) ? result : (ushort)0;
 
 
-    internal static CharacterCookProfile ProfileFor(string packageId)
-        => packageId == "fightguy" || packageId == "wibou" || packageId == "bonk" || packageId == "manki" || packageId == "bashie"
-           || packageId == "salamander" || packageId == "nyx" ? CharacterCookProfile.TrustedBuiltIn : CharacterCookProfile.Workshop;
+    internal static CharacterCookProfile ProfileFor(string packageId, string packageRoot, string projectRoot = null)
+        => ShippedRoster.TryReadApplication(out var roster, out _)
+           && roster.AuthorizesCookSource(projectRoot ?? UnityCharacterAssetCooker.ProjectRoot(), packageRoot, packageId)
+            ? CharacterCookProfile.TrustedBuiltIn : CharacterCookProfile.Workshop;
 
     private string CharacterPackagesFullRoot() => Path.Combine(_projectRoot, CharacterPackagesRoot.Replace('/', Path.DirectorySeparatorChar));
     private string PackageRootFor(string packageId) => CharacterPackagesRoot + "/" + packageId;

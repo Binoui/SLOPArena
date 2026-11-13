@@ -235,7 +235,7 @@
     <field name="launchOffsetX" type="number" required="true" unit="m" description="Projectile start offset in the owner facing frame; larger values move its spawn along the named axis." missingCode="schema.missing" invalidCode="value.out-of-range" />
     <field name="launchOffsetY" type="number" required="true" unit="m" description="Projectile start offset in the owner facing frame; larger values move its spawn along the named axis." missingCode="schema.missing" invalidCode="value.out-of-range" />
     <field name="launchOffsetZ" type="number" required="true" unit="m" description="Projectile start offset in the owner facing frame; larger values move its spawn along the named axis." missingCode="schema.missing" invalidCode="value.out-of-range" />
-    <field name="speed" type="number" required="true" unit="m/s" description="Travel speed; larger values cover more distance per tick." missingCode="schema.missing" invalidCode="value.out-of-range" rangeRule="nonnegative">
+    <field name="speed" gameMin="0" gameMax="120" maxCode="CookedPackageLimits.ProjectileSpeed" type="number" required="true" unit="m/s" description="Travel speed; larger values cover more distance per tick." missingCode="schema.missing" invalidCode="value.out-of-range" rangeRule="nonnegative">
       <range context="thrown tether" min="0" max="60" exclusiveMin="true" maxCode="CharacterRuntimeLimits.TetherMaxProjectileSpeed" />
       <range context="diving perch" min="0" max="60" exclusiveMin="true" maxCode="ProjectilePerchContract.MaxDiveSpeed" />
     </field>
@@ -248,7 +248,7 @@
     <field name="baseKnockback" type="number" required="true" unit="m/s before weight/tuning" description="Flat term in launch magnitude; larger values strengthen a launch at every victim percent." missingCode="schema.missing" invalidCode="value.out-of-range" rangeRule="nonnegative" />
     <field name="knockbackGrowth" type="number" required="true" unit="m/s before weight/tuning" description="Term multiplied by 1 + victimPercent / 100; larger values make high-percent victims fly faster." missingCode="schema.missing" invalidCode="value.out-of-range" rangeRule="nonnegative" />
     <field name="stunTicks" type="ushort" required="true" unit="gate" description="Zero disables ordinary hitstun; any positive value enables formula-derived stun and is not the stun duration." min="0" max="65535" missingCode="schema.missing" invalidCode="value.out-of-range" />
-    <field name="maxFlightTicks" type="ushort" required="true" unit="ticks" description="Projectile or flight lifetime limit; larger values allow more time before the lifecycle times out." min="0" max="65535" missingCode="schema.missing" invalidCode="value.out-of-range">
+    <field name="maxFlightTicks" gameMin="1" gameMax="960" maxCode="CookedPackageLimits.ProjectileLifetime" type="ushort" required="true" unit="ticks" description="Projectile or flight lifetime limit; larger values allow more time before the lifecycle times out." min="0" max="65535" missingCode="schema.missing" invalidCode="value.out-of-range">
       <range context="thrown tether" min="1" max="240" maxCode="CharacterRuntimeLimits.TetherMaxProjectileFlightTicks" />
     </field>
     <field name="yawOffsetDegrees" type="number" required="true" unit="degrees" description="Horizontal shot offset around facing or aim; positive values rotate the outgoing direction around world up." missingCode="schema.missing" invalidCode="value.out-of-range" rangeRule="yaw" />

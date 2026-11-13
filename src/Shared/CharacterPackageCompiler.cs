@@ -346,8 +346,15 @@ public static class CharacterPackageCompiler
             d.Error("value.out-of-range", "character.alternateForm", formsError);
             return;
         }
-        var budget = new CookedBudget(cookedSlots.Count + (alternateForm?.Slots.Count ?? 0), stageCount, operationCount, hitboxCount, projectileCount, capabilityOperationCount, maxDuration);
+        var budget = ComputeBudget(definition);
         var bytes = WriteCanonical(metadata, definition, budget);
+        var limits = new List<CharacterDiagnostic>();
+        if (bytes.Length > CookedPackageLimits.RuntimeBytes)
+            d.Error("package.file.limit", CharacterPackageAssembler.RuntimePath, "Runtime exceeds the admission byte limit.");
+        CookedPackageLimits.CheckRuntime(bytes, limits, profile);
+        CookedPackageLimits.CheckResources(definition, limits);
+        foreach (var diagnostic in limits) d.Error(diagnostic.Code, diagnostic.Path, diagnostic.Message);
+        if (d.HasErrors) return;
         package = new CookedCharacterPackage(metadata, definition, budget, d.ToList(), bytes);
 
         List<CookedSlotDefinition> CookGrid(CharacterAuthoringDocument doc, byte form, DiagnosticBag bag,
@@ -1875,6 +1882,36 @@ public static class CharacterPackageCompiler
             _ => throw new InvalidDataException("Unknown capability parameters.")
         };
 
+    internal static CookedBudget ComputeBudget(CookedCharacterDefinition definition)
+    {
+        int slots = 0, stages = 0, operations = 0, hitboxes = 0, projectiles = 0, capabilities = 0, duration = 0;
+        foreach (var slot in definition.AllSlots)
+        {
+            slots++;
+            int ticks = 0;
+            foreach (var stage in slot.Timeline.Stages)
+            {
+                stages++;
+                ticks += stage.DurationTicks;
+                duration = Math.Max(duration, ticks);
+                foreach (var operation in stage.Operations)
+                {
+                    operations += CharacterSourceSchema.OperationEntryCost;
+                    if (operation is CookedSpawnHitboxOperation) hitboxes += CharacterSourceSchema.Operation("spawnHitbox")!.HitboxCost;
+                    if (operation is CookedSpawnProjectileOperation) projectiles += CharacterSourceSchema.Operation("spawnProjectile")!.ProjectileCost;
+                    if (operation is CookedStartCapabilityOperation capability)
+                    {
+                        capabilities += CharacterSourceSchema.Operation("startCapability")!.CapabilityCost;
+                        var cost = CharacterSourceSchema.CookedCapabilityBudget(capability);
+                        hitboxes += cost.Hitboxes;
+                        projectiles += cost.Projectiles;
+                    }
+                }
+            }
+        }
+        return new CookedBudget(slots, stages, operations, hitboxes, projectiles, capabilities, duration);
+    }
+
     private static CookedTimeline CookTimeline(CharacterTimelineSource source, DiagnosticBag d, ref int stages, ref int operations, ref int hitboxes, ref int projectiles, ref int capabilities, ref int maxDuration, ref int operationOrdinal)
     {
         var cookedStages = new List<CookedStage>();
@@ -2012,7 +2049,7 @@ public static class CharacterPackageCompiler
             new CaptureAnchor(x.AttackerAnchor.X, x.AttackerAnchor.Y, x.AttackerAnchor.Z),
             new CaptureAnchor(x.VictimAnchor.X, x.VictimAnchor.Y, x.VictimAnchor.Z));
 
-    private static byte[] WriteCanonical(CookedPackageMetadata metadata, CookedCharacterDefinition definition, CookedBudget budget)
+    internal static byte[] WriteCanonical(CookedPackageMetadata metadata, CookedCharacterDefinition definition, CookedBudget budget)
     {
         using var stream = new MemoryStream();
         using (var writer = new Utf8JsonWriter(stream, new JsonWriterOptions { Encoder = JavaScriptEncoder.Default, Indented = false }))

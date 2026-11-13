@@ -190,3 +190,5 @@ These documents inform design but do not override the Shared implementation or a
 
 The [FightGuy cooking cutover](plans/2026-08-26-fightguy-character-cooking-cutover.md) is a
 historical migration record, not current execution work.
+
+Cooked fighter trust and resource bounds are described in [cooked package admission](systems/cooked-package-admission.md).

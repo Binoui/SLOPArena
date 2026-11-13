@@ -390,6 +390,8 @@ A presentation event contains stable match-tick/entity/operation identity. Clien
 
 ## Trusted temporary capabilities
 
+The compiler and cooked loader both enforce the host's trust profile. Workshop loads reject internal declarations and operations with `capability.untrusted`. The loader recomputes compiler budgets and applies the Shared [cooked admission limits](cooked-package-admission.md) before returning usable simulation content. The compiler applies those limits too. `SpellResolver.Spawn` bounds Workshop owners using live volume counts and sweep-weighted collision work per owner and world. Trusted built-in emissions count toward world totals but are never refused. Excess Workshop emissions are refused identically during prediction and rollback.
+
 The compiler's trusted capability list identifies temporary `slop.internal.*` exceptions, including FightGuy's native behavior. These IDs are available only to the trusted built-in cook profile. A package cannot grant itself access, and Workshop content cannot reference them. Each exception needs an owner, reason, scope, and migration path under [ADR-0022](../adr/0022-workshop-first-content-architecture.md).
 
 The kit named below owns its authored behavior; Shared combat owns the native

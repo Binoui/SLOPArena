@@ -102,6 +102,29 @@ public sealed class ShippedRoster
         return new ShippedRoster(root, manifest);
     }
 
+    /// <summary>Only source beside this application's shipped roster can use the first-party cook profile.</summary>
+    public bool AuthorizesCookSource(string projectRoot, string packageRoot, string packageId)
+    {
+        if (Manifest.ResolvePackage(packageId) == null) return false;
+        string expectedProject = Path.GetFullPath(Path.Combine(CookedRoot, "../client/Unity"));
+        string project = Path.GetFullPath(projectRoot);
+        string source = Path.GetFullPath(Path.Combine(project, packageRoot));
+        string expected = Path.Combine(expectedProject, "Assets/CharacterPackages", packageId);
+        if (!string.Equals(project, expectedProject, StringComparison.Ordinal)
+            || !string.Equals(source, expected, StringComparison.Ordinal)) return false;
+        foreach (string file in new[] { "package.json", "character.json" })
+        {
+            var info = new FileInfo(Path.Combine(source, file));
+            if (!info.Exists || (info.Attributes & FileAttributes.ReparsePoint) != 0) return false;
+        }
+        for (var directory = new DirectoryInfo(source); directory != null; directory = directory.Parent)
+        {
+            if (!directory.Exists || (directory.Attributes & FileAttributes.ReparsePoint) != 0) return false;
+            if (string.Equals(directory.FullName, expectedProject, StringComparison.Ordinal)) return true;
+        }
+        return false;
+    }
+
     internal bool Authorizes(MatchContentIdentity identity)
     {
         var pin = Manifest.ResolvePackage(identity.PackageId)?.Requirement;

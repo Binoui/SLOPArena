@@ -167,6 +167,7 @@ namespace SlopArena.Shared
                 || !_states.ContainsKey(id) && (_states.Count >= 4 || _mayhem.Begun)))
                 throw new ArgumentException("Mayhem reserves object identities and admits up to four fighters before Begin.", nameof(id));
 			_defs[id] = def;
+            _spellResolver.RegisterOwner(id, def.AdmissionProfile);
                 if (_onlineCourse != null) _onlineCourse.Register(id, initialState);
 			initialState.EntityId = id;
 			// The seat's starting form (ADR-0051); fighters without forms ignore it.

@@ -657,17 +657,20 @@ public static class CharacterPackageAssembler
             reader.ReadUInt32("version", 1);
             uint boneCount = reader.ReadUInt32("boneCount");
             uint animationCount = reader.ReadUInt32("animationCount");
-            if (boneCount == 0 || animationCount == 0 || boneCount > 4096 || animationCount > 4096) throw new InvalidDataException("Pose counts are outside safe bounds.");
+            if (boneCount == 0 || animationCount == 0 || boneCount > CookedPackageLimits.PoseBones || animationCount > CookedPackageLimits.PoseAnimations) throw new InvalidDataException("Pose counts are outside safe bounds.");
             var result = new PoseData();
+            long totalValues = 0;
             for (uint i = 0; i < boneCount; i++) result.BoneNames.Add(reader.ReadString("bone name"));
             for (uint i = 0; i < animationCount; i++)
             {
                 string name = reader.ReadString("animation name");
                 uint frameCount = reader.ReadUInt32("frame count");
-                if (string.IsNullOrEmpty(name) || frameCount == 0 || frameCount > 1_000_000) throw new InvalidDataException("Pose animation name or frame count is invalid.");
+                if (string.IsNullOrEmpty(name) || frameCount == 0 || frameCount > CookedPackageLimits.PoseFrames) throw new InvalidDataException("Pose animation name or frame count is invalid.");
                 if (!result.Names.Add(name)) throw new InvalidDataException("Duplicate pose animation name.");
                 result.FrameCounts.Add(name, checked((int)frameCount));
                 long values = checked((long)frameCount * boneCount * 3);
+                totalValues += values;
+                if (totalValues > CookedPackageLimits.PoseFloatValues) throw new InvalidDataException("Pose memory limit exceeded.");
                 reader.SkipFloats(values);
             }
             reader.RequireEnd();
@@ -763,6 +766,19 @@ public static class CharacterPackageAssembler
         }
         return stream.ToArray();
     }
+    /// <summary>Test seam: the canonical manifest whose payload, cooked and package hashes match <paramref name="files"/>.</summary>
+    internal static byte[] RehashManifest(IReadOnlyDictionary<string, byte[]> files)
+    {
+        var diagnostics = new List<CharacterDiagnostic>();
+        ManifestData manifest = ParseManifest(files[ManifestPath], diagnostics)
+            ?? throw new InvalidDataException(string.Join("; ", diagnostics.Select(x => x.Message)));
+        var payloads = Payloads(files);
+        manifest.Payloads.Clear();
+        manifest.Payloads.AddRange(payloads.Select(x => new CharacterPackagePayloadInfo(x.Path, Hash(x.Bytes), x.Bytes.LongLength)));
+        manifest.CookedContentHash = HashFramed(payloads);
+        manifest.PackageHash = Hash(Concat(FramedBytes(payloads), WriteManifest(manifest, "")));
+        return WriteManifest(manifest, manifest.PackageHash);
+    }
     private static string HashFramed(IEnumerable<(string Path, byte[] Bytes)> payloads) => Hash(FramedBytes(payloads));
     private static string Hash(byte[] bytes) { using var sha = SHA256.Create(); return BitConverter.ToString(sha.ComputeHash(bytes)).Replace("-", "").ToLowerInvariant(); }
     private static byte[] Concat(byte[] first, byte[] second) { var result = new byte[first.Length + second.Length]; Buffer.BlockCopy(first, 0, result, 0, first.Length); Buffer.BlockCopy(second, 0, result, first.Length, second.Length); return result; }
@@ -809,7 +825,7 @@ public static class CharacterPackageAssembler
         private readonly byte[] _bytes; private int _offset;
         public PoseReader(byte[] bytes) { _bytes = bytes; }
         public uint ReadUInt32(string field, uint? expected = null) { Ensure(4); uint value = BinaryPrimitives.ReadUInt32LittleEndian(_bytes.AsSpan(_offset, 4)); _offset += 4; if (expected.HasValue && value != expected.Value) throw new InvalidDataException($"Unexpected {field}."); return value; }
-        public string ReadString(string field) { uint length = ReadUInt32(field + " length"); if (length > int.MaxValue) throw new InvalidDataException($"{field} is too long."); Ensure((int)length); string value = new UTF8Encoding(false, true).GetString(_bytes, _offset, (int)length); _offset += (int)length; return value; }
+        public string ReadString(string field) { uint length = ReadUInt32(field + " length"); if (length > CookedPackageLimits.PoseIdentifierBytes) throw new InvalidDataException($"{field} exceeds the pose identifier byte limit."); Ensure((int)length); string value = new UTF8Encoding(false, true).GetString(_bytes, _offset, (int)length); _offset += (int)length; return value; }
         public void SkipFloats(long count)
         {
             long bytes = checked(count * 4);

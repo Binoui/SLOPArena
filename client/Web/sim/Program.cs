@@ -13,6 +13,20 @@ public static partial class Program
 // everything gameplay goes through ServerSimulation exactly as Unity's local matches do.
 public static partial class Demo
 {
+    static readonly BuiltInRosterManifest BundledRoster = ReadBundledRoster();
+    static BuiltInRosterManifest ReadBundledRoster()
+    {
+        using var stream = typeof(Demo).Assembly.GetManifestResourceStream("BundledRoster.json")!;
+        using var reader = new StreamReader(stream);
+        return BuiltInRosterManifestCodec.ParseCooked(reader.ReadToEnd());
+    }
+    static CharacterCookProfile ProfileFor(MatchContentPackageRequirement requirement)
+    {
+        var pin = BundledRoster.ResolvePackage(requirement.PackageId)?.Requirement;
+        return pin != null && pin.Version == requirement.Version
+            && pin.CookedContentHash == requirement.CookedContentHash && pin.PackageHash == requirement.PackageHash
+            ? CharacterCookProfile.TrustedBuiltIn : CharacterCookProfile.Workshop;
+    }
     static BuiltInRosterManifest? _roster;
     static readonly Dictionary<string, CookedCharacterPackageLoadResult> _packages = new(StringComparer.Ordinal);
     static readonly Dictionary<string, MatchContentPackageRequirement> _ownIdentity = new(StringComparer.Ordinal);
@@ -55,7 +69,7 @@ public static partial class Demo
             [CharacterPackageAssembler.PosePath] = poses,
             [CharacterPackageAssembler.BindingPath] = bindings,
         };
-        var result = CookedCharacterPackageLoader.LoadFiles(files, entry.Requirement);
+        var result = CookedCharacterPackageLoader.LoadFiles(files, entry.Requirement, ProfileFor(entry.Requirement));
         // A shared working tree can hold a fresh cook whose roster pin lags a few seconds behind. Load the package
         // by its own identity so local play keeps working; scripts/package.mjs refuses to publish such a set.
         string warning = "";
@@ -65,7 +79,7 @@ public static partial class Demo
             var m = doc.RootElement;
             var own = new MatchContentPackageRequirement(m.GetProperty("packageId").GetString()!, m.GetProperty("version").GetString()!,
                 m.GetProperty("cookedContentHash").GetString()!, m.GetProperty("packageHash").GetString()!);
-            result = CookedCharacterPackageLoader.LoadFiles(files, own);
+            result = CookedCharacterPackageLoader.LoadFiles(files, own, ProfileFor(own));
             _ownIdentity[packageId] = own;
             warning = "stale roster pin, loaded by the package's own identity";
         }

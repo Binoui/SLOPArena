@@ -51,6 +51,8 @@ namespace SlopArena.Shared
 
     public sealed record CharacterDefinition
     {
+        // Host admission metadata; absent from cooked payloads and world snapshots.
+        internal CharacterCookProfile AdmissionProfile { get; init; } = CharacterCookProfile.Workshop;
         public CharacterClass Class { get; init; }
         public string DisplayName { get; init; } = "";
         public MovementStats Movement { get; init; }

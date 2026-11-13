@@ -577,6 +577,10 @@ public sealed class CharacterPackageAssemblerTests
         {
             var c = JsonNode.Parse(File.ReadAllText(Path.Combine(root, "character.json")))!.AsObject();
             FightGuyFixture.WithoutTitleMatch(c);
+            // This fixture verifies two-form serialization, not two full lingering FightGuy kits.
+            foreach (var operation in c["slots"]!.AsArray().SelectMany(s => s!["timeline"]!["stages"]!.AsArray())
+                         .SelectMany(s => s!["operations"]!.AsArray()))
+                if (operation!["hitbox"] is { } hitbox) hitbox["durationTicks"] = 1;
             if (capability)
                 c["capabilityRequirements"]!.AsArray().Add(new JsonObject
                     { ["capabilityId"] = CharacterPackageCompiler.FormsCapabilityId, ["capabilityVersion"] = "1" });
@@ -852,7 +856,7 @@ public sealed class CharacterPackageAssemblerTests
         var assembled = AssembleFixture();
         var requirement = new MatchContentPackageRequirement(
             "fightguy", "0.0.0-dev", assembled.CookedContentHash, assembled.PackageHash);
-        var loaded = CookedCharacterPackageLoader.LoadFiles(Files(assembled), requirement);
+        var loaded = CookedCharacterPackageLoader.LoadFiles(Files(assembled), requirement, CharacterCookProfile.TrustedBuiltIn);
 
         Assert.True(loaded.IsValid, string.Join("\n", loaded.Diagnostics.Select(x => x.Message)));
         Assert.Equal(1.05f, loaded.Package!.Definition.ShieldRadius);
@@ -1010,7 +1014,7 @@ public sealed class CharacterPackageAssemblerTests
 
         var requirement = new MatchContentPackageRequirement(
             "fightguy", "0.0.0-dev", assembled.CookedContentHash, assembled.PackageHash);
-        var loaded = CookedCharacterPackageLoader.LoadFiles(Files(assembled), requirement);
+        var loaded = CookedCharacterPackageLoader.LoadFiles(Files(assembled), requirement, CharacterCookProfile.TrustedBuiltIn);
         Assert.False(loaded.IsValid);
         Assert.Contains(loaded.Diagnostics, x => x.Code == "package.compatibility.unsupported");
         Assert.Null(loaded.Package);

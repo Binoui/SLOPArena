@@ -13,6 +13,14 @@ namespace SlopArena.Shared
     {
         private readonly List<Hitbox> _hitboxes = new();
         private ulong _lastEmissionId;
+        private readonly HashSet<ulong> _trustedOwners = new();
+
+        // Match content configuration survives snapshots and owner removal, including lingering emissions.
+        internal void RegisterOwner(ulong ownerId, CharacterCookProfile profile)
+        {
+            if (profile == CharacterCookProfile.TrustedBuiltIn) _trustedOwners.Add(ownerId);
+            else _trustedOwners.Remove(ownerId);
+        }
         private readonly List<Hitbox> _lastTickChecked = new();
         private readonly List<EntityData> _orderedEntities = new();
         private readonly ContactDistanceComparer _contactDistance = new();
@@ -162,27 +170,82 @@ namespace SlopArena.Shared
             public IReadOnlyList<SphereMotionSegment>? MotionPath;
         }
 
-        /// <summary>
-        /// Spawn a new hitbox. Call this from ability code.
-        /// </summary>
+        /// <summary>Contact tests, including intermediate sweep poses; observational, not snapshotted.</summary>
+        public long CollisionChecksLastTick { get; private set; }
+        public long VolumeHurtboxPairsLastTick { get; private set; }
+
+        /// <summary>Observational only; never used by admission, snapshots, or simulation decisions.</summary>
+        public long RefusedSpawns { get; private set; }
+        public long SpawnAttempts { get; private set; }
+        internal int PeakLiveVolumes { get; private set; }
+        internal int PeakOwnedVolumes { get; private set; }
+        internal int PeakProjectileVolumes { get; private set; }
+        internal int PeakOwnedProjectileVolumes { get; private set; }
+        internal int PeakCollisionPoseUnits { get; private set; }
+        internal int PeakOwnedCollisionPoseUnits { get; private set; }
+
+        // These two identities are assigned only by engine-owned arena/Mayhem code, never package operations.
+        private static bool EngineOwned(in Hitbox hb)
+            => hb.OwnerId == StageHazards.StageHazardOwner.EntityId || hb.OwnerId == ServerSimulation.MayhemHostEntityId;
+
+        private static int CollisionPoseUnits(in Hitbox hb)
+            => hb.TracksBone || hb.Sweep != null ? CookedPackageLimits.SweepPoseUnits : 1;
+
+        /// <summary>Refuses excess Workshop volumes deterministically before allocating history or an emission ID.</summary>
         public void Spawn(Hitbox hb)
+        {
+            SpawnAttempts++;
+            if (EngineOwned(in hb)) { AddVolume(hb); return; }
+            int replacement = -1, mines = 0;
+            if (hb.MinePhase != MinePhase.None)
+            {
+                for (int i = 0; i < _hitboxes.Count; i++)
+                    if (_hitboxes[i].OwnerId == hb.OwnerId && _hitboxes[i].MinePhase != MinePhase.None)
+                    {
+                        mines++;
+                        if (replacement < 0 || _hitboxes[i].EmissionId < _hitboxes[replacement].EmissionId) replacement = i;
+                    }
+                if (mines < hb.MineMaxCount) replacement = -1;
+            }
+            int world = 0, owner = 0, projectiles = 0, ownedProjectiles = 0, work = 0, ownedWork = 0;
+            for (int i = 0; i < _hitboxes.Count; i++)
+            {
+                var live = _hitboxes[i];
+                if (!live.Active || i == replacement || EngineOwned(in live)) continue;
+                world++; work += CollisionPoseUnits(in live);
+                if (!live.FreezesOwner) projectiles++;
+                if (live.OwnerId != hb.OwnerId) continue;
+                owner++; ownedWork += CollisionPoseUnits(in live);
+                if (!live.FreezesOwner) ownedProjectiles++;
+            }
+            int units = CollisionPoseUnits(in hb);
+            if (!_trustedOwners.Contains(hb.OwnerId)
+                && (owner >= CookedPackageLimits.LiveVolumesPerOwner || world >= CookedPackageLimits.LiveVolumesPerWorld
+                || ownedWork + units > CookedPackageLimits.CollisionPoseUnitsPerOwner
+                || work + units > CookedPackageLimits.CollisionPoseUnitsPerWorld
+                || !hb.FreezesOwner && (ownedProjectiles >= CookedPackageLimits.ProjectileVolumesPerOwner
+                    || projectiles >= CookedPackageLimits.ProjectileVolumesPerWorld)))
+            {
+                RefusedSpawns++;
+                return;
+            }
+            PeakLiveVolumes = Math.Max(PeakLiveVolumes, world + 1);
+            PeakOwnedVolumes = Math.Max(PeakOwnedVolumes, owner + 1);
+            PeakProjectileVolumes = Math.Max(PeakProjectileVolumes, projectiles + (hb.FreezesOwner ? 0 : 1));
+            PeakOwnedProjectileVolumes = Math.Max(PeakOwnedProjectileVolumes, ownedProjectiles + (hb.FreezesOwner ? 0 : 1));
+            PeakCollisionPoseUnits = Math.Max(PeakCollisionPoseUnits, work + units);
+            PeakOwnedCollisionPoseUnits = Math.Max(PeakOwnedCollisionPoseUnits, ownedWork + units);
+            if (replacement >= 0) _hitboxes.RemoveAt(replacement);
+            AddVolume(hb);
+        }
+
+        private void AddVolume(Hitbox hb)
         {
             hb.EmissionId = _lastEmissionId = checked(_lastEmissionId + 1);
             hb.Active = true;
             hb.AgeTicks = 0;
             if (hb.HitsMultipleOpponents && hb.HitEntities == null)
                 hb.HitEntities = new HashSet<ulong>();
-            if (hb.MinePhase != MinePhase.None)
-            {
-                int count = 0, oldest = -1;
-                for (int i = 0; i < _hitboxes.Count; i++)
-                    if (_hitboxes[i].OwnerId == hb.OwnerId && _hitboxes[i].MinePhase != MinePhase.None)
-                    {
-                        count++;
-                        if (oldest < 0 || _hitboxes[i].EmissionId < _hitboxes[oldest].EmissionId) oldest = i;
-                    }
-                if (count >= hb.MineMaxCount && oldest >= 0) _hitboxes.RemoveAt(oldest);
-            }
             _hitboxes.Add(hb);
         }
 
@@ -823,6 +886,8 @@ namespace SlopArena.Shared
             HashSet<ulong>? frozenOwners = null, Func<ulong, ulong, bool>? canHitTarget = null,
             IReadOnlyDictionary<ulong, CharacterState>? fighters = null)
         {
+            CollisionChecksLastTick = 0;
+            VolumeHurtboxPairsLastTick = 0;
             var results = new List<HitResult>();
             var hitThisTick = new HashSet<(ulong Target, ulong Attacker)>();
             _lastTickChecked.Clear();
@@ -919,6 +984,7 @@ namespace SlopArena.Shared
                     // A swept bone hitbox tests the poses it passed through since the
                     // previous tick, earliest first, then its current pose. The first
                     // pose in contact supplies the contact point and launch geometry.
+                    VolumeHurtboxPairsLastTick++;
                     var contact = hb;
                     bool hit = false;
                     float dist = 0f, dx = 0f, dy = 0f, dz = 0f;
@@ -1107,6 +1173,8 @@ namespace SlopArena.Shared
                     {
                         if (!entity.Active || entity.Id == mine.OwnerId || entity.RuntimeSolid
                             || canHitTarget != null && !canHitTarget(mine.OwnerId, entity.Id)) continue;
+                        CollisionChecksLastTick++;
+                        VolumeHurtboxPairsLastTick++;
                         if (!OverlapsAtCurrentPosition(probe, entity)) continue;
                         mine.MinePhase = MinePhase.Triggered;
                         mine.MineTicksLeft = mine.MineWarningTicks;
@@ -1127,10 +1195,11 @@ namespace SlopArena.Shared
             return dx * dx + dy * dy + dz * dz <= radius * radius;
         }
 
-        private static bool TryContact(in Hitbox hb, in EntityData entity, float prevX, float prevY, float prevZ,
+        private bool TryContact(in Hitbox hb, in EntityData entity, float prevX, float prevY, float prevZ,
             out float dist, out float dx, out float dy, out float dz, out float hitX, out float hitY, out float hitZ,
             out float contactTime, out float movingTargetY)
         {
+            CollisionChecksLastTick++;
             bool hit = false;
             dist = dx = dy = dz = 0f;
             hitX = hitY = hitZ = 0f;

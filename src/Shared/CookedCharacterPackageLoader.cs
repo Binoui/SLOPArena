@@ -13,11 +13,13 @@ public sealed class CookedCharacterPackageLoadResult
     public CookedCharacterPackage? Package { get; }
     public BakedAnimationData? BakedAnimation { get; }
     public MatchContentIdentity Identity { get; }
+    internal CharacterCookProfile Profile { get; }
     public IReadOnlyList<CharacterDiagnostic> Diagnostics { get; }
     public bool IsValid => Package != null && Diagnostics.All(x => x.Severity != CharacterDiagnosticSeverity.Error);
 
-    internal CookedCharacterPackageLoadResult(CookedCharacterPackage? package, BakedAnimationData? baked, MatchContentIdentity identity, IReadOnlyList<CharacterDiagnostic> diagnostics)
+    internal CookedCharacterPackageLoadResult(CookedCharacterPackage? package, BakedAnimationData? baked, MatchContentIdentity identity, IReadOnlyList<CharacterDiagnostic> diagnostics, CharacterCookProfile profile = CharacterCookProfile.Workshop)
     {
+        Profile = profile;
         Package = package; BakedAnimation = baked; Identity = identity;
         Diagnostics = new ReadOnlyCollection<CharacterDiagnostic>(new List<CharacterDiagnostic>(diagnostics));
     }
@@ -25,7 +27,7 @@ public sealed class CookedCharacterPackageLoadResult
     public CharacterDefinition ToCharacterDefinition(CharacterClass legacySelector = CharacterClass.None)
     {
         if (!IsValid || Package == null) throw new InvalidDataException("Cooked package is not valid.");
-        return CookedCharacterRuntimeAdapter.ToCharacterDefinition(Package, legacySelector);
+        return CookedCharacterRuntimeAdapter.ToCharacterDefinition(Package, legacySelector, Profile);
     }
 }
 public static class CookedCharacterPackageLoader
@@ -44,6 +46,14 @@ public static class CookedCharacterPackageLoader
             return Failure(new List<CharacterDiagnostic> { Error("package.assembly.missing", "assembly", "Assembly result is required.") });
         try
         {
+            var sizeDiagnostics = new List<CharacterDiagnostic>();
+            if (!CookedPackageLimits.CheckFiles(new Dictionary<string, byte[]>
+            {
+                [CharacterPackageAssembler.ManifestPath] = assembly.ManifestBytes,
+                [CharacterPackageAssembler.RuntimePath] = assembly.RuntimeBytes,
+                [CharacterPackageAssembler.PosePath] = assembly.PoseBytes,
+                [CharacterPackageAssembler.BindingPath] = assembly.BindingBytes,
+            }, sizeDiagnostics)) return Failure(sizeDiagnostics);
             using var document = JsonDocument.Parse(assembly.ManifestBytes);
             var root = document.RootElement;
             var requirement = new MatchContentPackageRequirement(
@@ -58,7 +68,7 @@ public static class CookedCharacterPackageLoader
                 [CharacterPackageAssembler.PosePath] = assembly.PoseBytes,
                 [CharacterPackageAssembler.BindingPath] = assembly.BindingBytes,
             };
-            return LoadFiles(files, requirement);
+            return LoadFiles(files, requirement, CharacterCookProfile.TrustedBuiltIn);
         }
         catch (Exception ex)
         {
@@ -72,17 +82,41 @@ public static class CookedCharacterPackageLoader
         var files = new Dictionary<string,byte[]>(StringComparer.Ordinal);
         foreach (var name in new[]{CharacterPackageAssembler.ManifestPath,CharacterPackageAssembler.RuntimePath,CharacterPackageAssembler.PosePath,CharacterPackageAssembler.BindingPath})
         {
-            try { files[name]=File.ReadAllBytes(Path.Combine(directory,name)); }
+            try
+            {
+                using var stream = File.OpenRead(Path.Combine(directory, name));
+                if (stream.Length > CookedPackageLimits.FileBytes(name))
+                { d.Add(Error("package.file.limit", name, "File exceeds the admission byte limit.")); continue; }
+                using var output = new MemoryStream();
+                var buffer = new byte[8192];
+                int count;
+                while ((count = stream.Read(buffer, 0, buffer.Length)) != 0)
+                {
+                    if (output.Length + count > CookedPackageLimits.FileBytes(name)) throw new InvalidDataException("Package file grew past its limit.");
+                    output.Write(buffer, 0, count);
+                }
+                files[name] = output.ToArray();
+            }
+            catch (InvalidDataException ex) { d.Add(Error("package.file.limit", name, ex.Message)); }
             catch(Exception ex) when(ex is IOException||ex is UnauthorizedAccessException||ex is ArgumentException||ex is NotSupportedException) { d.Add(Error("package.file.missing",name,ex.Message)); }
         }
         return d.Any(x=>x.Severity==CharacterDiagnosticSeverity.Error) ? Failure(d) : LoadFiles(files,requirement);
     }
 
     public static CookedCharacterPackageLoadResult LoadFiles(IReadOnlyDictionary<string,byte[]> files, MatchContentPackageRequirement requirement)
+        => LoadFiles(files, requirement, ShippedProfile(requirement));
+
+    private static CharacterCookProfile ShippedProfile(MatchContentPackageRequirement requirement)
+        => requirement != null && ShippedRoster.TryReadApplication(out var roster, out _)
+            && roster!.Authorizes(new MatchContentIdentity(requirement.PackageId, requirement.Version, "", requirement.CookedContentHash, requirement.PackageHash))
+            ? CharacterCookProfile.TrustedBuiltIn : CharacterCookProfile.Workshop;
+
+    internal static CookedCharacterPackageLoadResult LoadFiles(IReadOnlyDictionary<string,byte[]> files, MatchContentPackageRequirement requirement, CharacterCookProfile profile)
     {
         var d=new List<CharacterDiagnostic>();
         if(requirement==null) d.Add(Error("package.requirement.missing","requirement","Package requirement is required."));
         else if(!MatchContentCatalogBuilder.IsStablePackageId(requirement.PackageId)||string.IsNullOrWhiteSpace(requirement.Version)||!MatchContentCatalogBuilder.IsSha(requirement.CookedContentHash)||!MatchContentCatalogBuilder.IsSha(requirement.PackageHash)) d.Add(Error("package.requirement.invalid","requirement","Package requirement is incomplete or invalid."));
+        if (!CookedPackageLimits.CheckFiles(files, d)) return Failure(d);
         var copied=new Dictionary<string,byte[]>(StringComparer.Ordinal);
         if(files!=null) foreach(var p in files) copied[p.Key]=p.Value==null?null!:(byte[])p.Value.Clone();
         d.AddRange(CharacterPackageAssembler.Verify(copied).Diagnostics);
@@ -91,10 +125,14 @@ public static class CookedCharacterPackageLoader
         {
             var m=ParseManifest(copied[CharacterPackageAssembler.ManifestPath]);
             if(m.PackageId!=requirement!.PackageId||m.Version!=requirement.Version||m.CookedContentHash!=requirement.CookedContentHash||m.PackageHash!=requirement.PackageHash) d.Add(Error("package.identity.mismatch","manifest","Package identity does not match the requested requirement."));
+            if (d.Count != 0) return Failure(d);
+            if (!CookedPackageLimits.CheckRuntime(copied[CharacterPackageAssembler.RuntimePath], d, profile)) return Failure(d);
             if(m.CookedSchemaVersion!=5||!SupportedRuntimeApiMinimums.Contains(m.RuntimeApiMin)||m.RuntimeApiMax!="1.x") d.Add(Error("package.compatibility.unsupported","manifest","Cooked package schema/API is not supported."));
             if(m.Dependencies.Count!=0) d.Add(Error("package.dependencies.unsupported","manifest.dependencies","Unresolved package dependencies are not supported."));
             foreach (var c in m.Capabilities)
             {
+                if (profile != CharacterCookProfile.TrustedBuiltIn && c.CapabilityId.StartsWith("slop.internal.", StringComparison.Ordinal))
+                    d.Add(Error("capability.untrusted", c.CapabilityId, "Internal capabilities require the trusted built-in profile."));
                 if (RetiredCapabilities.TryGetReason(c.CapabilityId, out var retiredReason))
                     d.Add(Error("package.capability.retired", c.CapabilityId, retiredReason));
                 else if (!CharacterPackageCompiler.IsRuntimeCapability(c.CapabilityId, c.CapabilityVersion))
@@ -106,6 +144,15 @@ public static class CookedCharacterPackageLoader
                 if (stage.WarpRange != 0f || stage.UseTargetLock || stage.RotateTowardTarget || stage.TrackingStrength != 0f)
                     d.Add(Error("package.targeting.retired", slot.Id,
                         "Cooked automatic warp and per-stage target tracking are retired."));
+            if (profile != CharacterCookProfile.TrustedBuiltIn && package.Definition.CapabilityRequirements.Any(c => c.CapabilityId.StartsWith("slop.internal.", StringComparison.Ordinal)))
+                d.Add(Error("capability.untrusted", "character.capabilityRequirements", "Internal capabilities require the trusted built-in profile."));
+            if (package.Budget != CharacterPackageCompiler.ComputeBudget(package.Definition))
+                d.Add(Error("package.budget.mismatch", "budget", "Stored budget differs from the runtime definition."));
+            if (profile != CharacterCookProfile.TrustedBuiltIn)
+                foreach (var operation in package.Definition.AllSlots.SelectMany(slot => slot.Timeline.Stages).SelectMany(stage => stage.Operations).OfType<CookedStartCapabilityOperation>())
+                    if (operation.CapabilityId.StartsWith("slop.internal.", StringComparison.Ordinal))
+                        d.Add(Error("capability.untrusted", operation.CapabilityId, "Internal capabilities require the trusted built-in profile."));
+            CookedPackageLimits.CheckResources(package.Definition, d);
             ValidateCapabilityOperations(package.Definition, d);
             ValidateMankiBazookas(package.Definition, d);
             ValidateDashStrikes(package.Definition, m.RuntimeApiMin, d);
@@ -140,7 +187,7 @@ public static class CookedCharacterPackageLoader
                 Animations = baked.Animations.Select(animation => animation.WithName(semanticByPose[animation.Name])).ToArray(),
             };
             if(d.Any(x=>x.Severity==CharacterDiagnosticSeverity.Error)) return Failure(d);
-            return new CookedCharacterPackageLoadResult(package,baked,new MatchContentIdentity(m.PackageId,m.Version,m.SourceHash,m.CookedContentHash,m.PackageHash),d);
+            return new CookedCharacterPackageLoadResult(package,baked,new MatchContentIdentity(m.PackageId,m.Version,m.SourceHash,m.CookedContentHash,m.PackageHash),d,profile);
         }
         catch (RetiredCapabilityException ex)
         {
