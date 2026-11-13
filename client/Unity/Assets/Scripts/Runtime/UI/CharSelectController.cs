@@ -108,10 +108,10 @@ namespace SlopArena.Client.UI
                 scroll.style.width = Length.Percent(100);
                 parent.Add(scroll); scroll.Add(grid);
             }
-            else if (grid?.parent is ScrollView scroll && classes.Count == LocalFighterLibrary.Current.PackagesFor(false).Count)
+            else if (grid?.parent is ScrollView existingScroll && classes.Count == LocalFighterLibrary.Current.PackagesFor(false).Count)
             {
-                var parent = scroll.parent;
-                grid.RemoveFromHierarchy(); scroll.RemoveFromHierarchy(); parent.Add(grid);
+                var parent = existingScroll.parent;
+                grid.RemoveFromHierarchy(); existingScroll.RemoveFromHierarchy(); parent.Add(grid);
             }
             var meta = _context.Q<Label>("roster-meta");
             if (meta != null && meta.text.Contains(" FIGHTERS //")) meta.text = classes.Count + meta.text.Substring(meta.text.IndexOf(" FIGHTERS //", StringComparison.Ordinal));
