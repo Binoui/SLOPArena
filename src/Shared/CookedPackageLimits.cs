@@ -18,13 +18,14 @@ internal static class CookedPackageLimits
     internal const int PoseFloatValues = 1024 * 1024;
     internal const int OperationsPerStage = CookedBudget.MaxOperationsPerStage;
     internal const int OperationsPerTimeline = CookedBudget.MaxOperationsPerTimeline;
-    internal const int SpawnsPerTick = 64;
-    internal const int LiveHitboxes = 4096;
-    internal const int LiveProjectiles = 2160;
+    internal const int SpawnsPerTick = 128;
+    internal const int LiveHitboxes = 2048;
+    internal const int LiveProjectiles = 4560;
     internal const int HitboxesPerTimeline = 64;
     internal const int ProjectilesPerTimeline = 16;
     internal const float ProjectileSpeed = 120f;
     internal const int ProjectileLifetime = 960;
+    internal const int AttachedProjectileLifetime = 2280;
 
     internal static int FileBytes(string path) => path switch
     {
@@ -45,19 +46,13 @@ internal static class CookedPackageLimits
         return diagnostics.Count == 0;
     }
 
-    internal static bool CheckRuntime(byte[] bytes, List<CharacterDiagnostic> diagnostics)
+    internal static bool CheckRuntime(byte[] bytes, List<CharacterDiagnostic> diagnostics, CharacterCookProfile profile)
     {
         using var document = JsonDocument.Parse(bytes, new JsonDocumentOptions { MaxDepth = 64 });
         var character = document.RootElement.GetProperty("character");
         CheckSlots(character.GetProperty("slots"), diagnostics);
         if (character.TryGetProperty("alternateForm", out var form)) CheckSlots(form.GetProperty("slots"), diagnostics);
-        var emitters = CountEmitters(character);
-        if (emitters.Hitboxes + emitters.Projectiles > SpawnsPerTick)
-            Add(diagnostics, "package.spawns.limit", "character", "Per fighter emitter limit exceeded.");
-        var envelope = LiveEnvelope(character);
-        if (envelope.Hitboxes > LiveHitboxes || envelope.Projectiles > LiveProjectiles)
-            Add(diagnostics, "package.live.limit", "character", "Conservative live effect envelope exceeds the fighter limit.");
-        CheckValues(character, diagnostics);
+        CheckValues(character, diagnostics, profile);
         return diagnostics.Count == 0;
     }
 
@@ -85,6 +80,7 @@ internal static class CookedPackageLimits
             foreach (var stage in stages.EnumerateArray())
             {
                 int duration = stage.GetProperty("durationTicks").GetInt32();
+                if (duration <= 0) Add(diagnostics, "package.timeline.duration", id, "Stage duration must be positive.");
                 var operations = stage.GetProperty("operations");
                 total += operations.GetArrayLength();
                 if (operations.GetArrayLength() > OperationsPerStage) Add(diagnostics, "package.operations.limit", id, "Stage operation limit exceeded.");
@@ -115,68 +111,66 @@ internal static class CookedPackageLimits
         if (expected.Count != 0) Add(diagnostics, "package.slot.missing", "slots", "Every form requires the canonical fourteen slots.");
     }
 
-    // Assume each authored emitter can run every tick. This also covers overlap between activations.
-    private static (long Hitboxes, long Projectiles) LiveEnvelope(JsonElement value, int capabilityLifetime = 0)
+    internal static (long Hitboxes, long Projectiles, int Emitters) ResourceEnvelope(CookedCharacterDefinition definition)
     {
         long hitboxes = 0, projectiles = 0;
-        if (value.ValueKind == JsonValueKind.Array)
-            foreach (var item in value.EnumerateArray())
-            {
-                var child = LiveEnvelope(item, capabilityLifetime);
-                hitboxes += child.Hitboxes; projectiles += child.Projectiles;
-            }
-        if (value.ValueKind == JsonValueKind.Object)
+        int emitters = 0;
+        void Hitbox(int lifetime) { hitboxes += Math.Max(1, lifetime); emitters++; }
+        void Projectile(CookedProjectile projectile)
         {
-            if (value.TryGetProperty("capabilityId", out _) && value.TryGetProperty("parameters", out var parameters))
-                capabilityLifetime = MaxTicks(parameters) + 1;
-            if (value.TryGetProperty("shape", out _) && value.TryGetProperty("durationTicks", out var duration))
-                hitboxes += Math.Min(LiveHitboxes + 1L, Math.Max(capabilityLifetime, Math.Max(0, duration.GetInt64())));
-            if (value.TryGetProperty("maxFlightTicks", out var flight)) projectiles += Math.Min(LiveProjectiles + 1L, Math.Max(0, flight.GetInt64()));
-            foreach (var property in value.EnumerateObject())
+            projectiles += projectile.MaxFlightTicks + (projectile.Perch?.PerchTicks ?? 0);
+            emitters++;
+        }
+        foreach (var operation in definition.AllSlots.SelectMany(slot => slot.Timeline.Stages).SelectMany(stage => stage.Operations))
+        {
+            if (operation is CookedSpawnHitboxOperation hitbox) Hitbox(hitbox.Hitbox.DurationTicks);
+            if (operation is CookedSpawnProjectileOperation projectile) Projectile(projectile.Projectile);
+            if (operation is not CookedStartCapabilityOperation capability) continue;
+            // Internal capabilities are engine-owned behavior and are refused under Workshop before admission.
+            if (capability.CapabilityId.StartsWith("slop.internal.", StringComparison.Ordinal)) continue;
+            switch (capability.Parameters)
             {
-                var child = LiveEnvelope(property.Value, capabilityLifetime);
-                hitboxes += child.Hitboxes; projectiles += child.Projectiles;
+                case CookedTargetedLeapCapabilityParameters leap: Hitbox(leap.Hitbox.DurationTicks); break;
+                case CookedThrustCapabilityParameters thrust:
+                    if (thrust.TrailHitbox != null) Hitbox(thrust.ThrustTicks);
+                    break;
+                case CookedDashStrikeCapabilityParameters dash:
+                    Hitbox(1); Hitbox(dash.TipHitbox.DurationTicks); break;
+                case CookedFlashCutCapabilityParameters flash: Hitbox(flash.LegTicks + 1); break;
+                case CookedCommandGrabCapabilityParameters: Hitbox(1); break;
+                case CookedSteeredChargeCapabilityParameters:
+                    // Both volumes are removed together on leaving gallop or on cancellation. They cannot overlap a later activation.
+                    Hitbox(1); Hitbox(1); break;
+                case CookedChargedProjectileCapabilityParameters charged: Projectile(charged.Projectile); break;
+                case CookedChargedStreamCapabilityParameters stream: Projectile(stream.Projectile); break;
+                case CookedFingerGunsCapabilityParameters guns: Projectile(guns.Projectile); break;
+                case CookedTetherCapabilityParameters tether:
+                    if (tether.Projectile != null) Projectile(tether.Projectile);
+                    if (tether.AtTarget is { } at)
+                    {
+                        Hitbox(at.CatchTicks);
+                        if (at.Unmarked is { } hand) Hitbox(hand.ActiveTicks);
+                    }
+                    break;
+                case CookedAimedRecoveryCapabilityParameters:
+                case CookedCannonballCapabilityParameters: break;
+                default: throw new System.IO.InvalidDataException("Capability has no resource accounting contract.");
             }
         }
-        return (hitboxes, projectiles);
+        if (definition.Shell?.Splash is { } splash) Hitbox(splash.Hitbox.DurationTicks);
+        // The simulation maintains one owner wave window, replacing it rather than accumulating waves.
+        if (definition.Shell?.Ride != null) Hitbox(1);
+        return (hitboxes, projectiles, emitters);
     }
 
-    private static (int Hitboxes, int Projectiles) CountEmitters(JsonElement value)
+    internal static void CheckResources(CookedCharacterDefinition definition, List<CharacterDiagnostic> diagnostics)
     {
-        int hitboxes = 0, projectiles = 0;
-        if (value.ValueKind == JsonValueKind.Object)
-        {
-            if (value.TryGetProperty("shape", out _) && value.TryGetProperty("durationTicks", out _)) hitboxes++;
-            if (value.TryGetProperty("maxFlightTicks", out _)) projectiles++;
-            foreach (var property in value.EnumerateObject())
-            {
-                var child = CountEmitters(property.Value);
-                hitboxes += child.Hitboxes; projectiles += child.Projectiles;
-            }
-        }
-        if (value.ValueKind == JsonValueKind.Array)
-            foreach (var item in value.EnumerateArray())
-            {
-                var child = CountEmitters(item);
-                hitboxes += child.Hitboxes; projectiles += child.Projectiles;
-            }
-        return (hitboxes, projectiles);
-    }
-
-    private static int MaxTicks(JsonElement value)
-    {
-        int maximum = 0;
-        if (value.ValueKind == JsonValueKind.Object)
-            foreach (var property in value.EnumerateObject())
-            {
-                if (property.Name.EndsWith("Ticks", StringComparison.Ordinal) && property.Value.TryGetInt32(out int ticks))
-                    maximum = Math.Max(maximum, Math.Min(ushort.MaxValue, ticks));
-                if (property.Value.ValueKind is JsonValueKind.Object or JsonValueKind.Array)
-                    maximum = Math.Max(maximum, MaxTicks(property.Value));
-            }
-        if (value.ValueKind == JsonValueKind.Array)
-            foreach (var item in value.EnumerateArray()) maximum = Math.Max(maximum, MaxTicks(item));
-        return maximum;
+        // Each public emitter runs at most once per owner simulation tick. Summing all slots also bounds overlap between activations.
+        var envelope = ResourceEnvelope(definition);
+        if (envelope.Emitters > SpawnsPerTick)
+            Add(diagnostics, "package.spawns.limit", "character", "Per fighter emitter limit exceeded.");
+        if (envelope.Hitboxes > LiveHitboxes || envelope.Projectiles > LiveProjectiles)
+            Add(diagnostics, "package.live.limit", "character", "Conservative live effect envelope exceeds the fighter limit.");
     }
 
     private static void CheckEnum<T>(JsonElement value, string field, List<CharacterDiagnostic> diagnostics) where T : struct, Enum
@@ -185,19 +179,27 @@ internal static class CookedPackageLimits
             Add(diagnostics, "package.enum.invalid", field, "Unknown enum value.");
     }
 
-    private static void CheckValues(JsonElement value, List<CharacterDiagnostic> diagnostics)
+    private static void CheckValues(JsonElement value, List<CharacterDiagnostic> diagnostics, CharacterCookProfile profile)
     {
         if (value.ValueKind == JsonValueKind.Array)
-            foreach (var child in value.EnumerateArray()) CheckValues(child, diagnostics);
+            foreach (var child in value.EnumerateArray()) CheckValues(child, diagnostics, profile);
         if (value.ValueKind != JsonValueKind.Object) return;
+        if (profile != CharacterCookProfile.TrustedBuiltIn && value.TryGetProperty("capabilityId", out var capability)
+            && capability.GetString()!.StartsWith("slop.internal.", StringComparison.Ordinal))
+            Add(diagnostics, "capability.untrusted", "capabilityId", "Internal capabilities require the trusted built-in profile.");
         if (value.TryGetProperty("maxFlightTicks", out var lifetime))
         {
-            if (lifetime.GetInt32() <= 0 || lifetime.GetInt32() > ProjectileLifetime)
+            long totalLifetime = lifetime.GetInt64();
+            if (value.TryGetProperty("perch", out var perch) && perch.TryGetProperty("perchTicks", out var perched))
+                totalLifetime += perched.GetInt64();
+            if (totalLifetime > AttachedProjectileLifetime || lifetime.GetInt32() <= 0 || lifetime.GetInt32() > ProjectileLifetime)
                 Add(diagnostics, "package.projectile.limit", "maxFlightTicks", "Projectile lifetime limit exceeded.");
             foreach (string name in new[] { "speed", "projectileSpeed", "returnSpeed" })
                 if (value.TryGetProperty(name, out var speed) && Math.Abs(speed.GetSingle()) > ProjectileSpeed)
                     Add(diagnostics, "package.projectile.limit", name, "Projectile speed limit exceeded.");
         }
+        if (value.TryGetProperty("returnSpeed", out var returnSpeed) && Math.Abs(returnSpeed.GetSingle()) > ProjectileSpeed)
+            Add(diagnostics, "package.projectile.limit", "returnSpeed", "Projectile return speed limit exceeded.");
         CheckEnum<AuthoringHitboxShape>(value, "shape", diagnostics);
         CheckEnum<AuthoringKnockbackDirection>(value, "knockbackDirection", diagnostics);
         CheckEnum<AuthoringVelocityMode>(value, "velocityMode", diagnostics);
@@ -209,7 +211,7 @@ internal static class CookedPackageLimits
         {
             if (property.Value.ValueKind == JsonValueKind.Number && (!property.Value.TryGetSingle(out var number) || float.IsNaN(number) || float.IsInfinity(number)))
                 Add(diagnostics, "package.number.invalid", property.Name, "Finite number required.");
-            CheckValues(property.Value, diagnostics);
+            CheckValues(property.Value, diagnostics, profile);
         }
     }
 

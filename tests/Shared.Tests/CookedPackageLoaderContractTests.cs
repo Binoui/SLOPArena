@@ -102,10 +102,12 @@ public sealed class CookedPackageLoaderContractTests
         AssertRefusedOrPlays(files);
     }
 
-    [Fact]
-    public void A4a_OperationListFarPastTheCompilerLimit_IsRefused()
+    [Theory]
+    [InlineData("fightguy")]
+    [InlineData("bonk")]
+    public void A4a_OperationListFarPastTheCompilerLimit_IsRefused(string packageId)
     {
-        var files = CookedPackageEdits.Edit("fightguy", p =>
+        var files = CookedPackageEdits.Edit(packageId, p =>
         {
             var operations = p.Slot("ground.1")["timeline"]!["stages"]![0]!["operations"]!.AsArray();
             var presentation = operations.Last(op => op!["kind"]!.GetValue<int>() == (int)CookedOperationKind.EmitPresentation)!;
@@ -114,10 +116,12 @@ public sealed class CookedPackageLoaderContractTests
         AssertRefused(files, _ => true);
     }
 
-    [Fact]
-    public void A4b_ThousandsOfHitboxesOnOneTick_AreRefused()
+    [Theory]
+    [InlineData("fightguy")]
+    [InlineData("bonk")]
+    public void A4b_ThousandsOfHitboxesOnOneTick_AreRefused(string packageId)
     {
-        var files = CookedPackageEdits.Edit("fightguy", p =>
+        var files = CookedPackageEdits.Edit(packageId, p =>
         {
             var operations = p.Slot("ground.1")["timeline"]!["stages"]![0]!["operations"]!.AsArray();
             int at = operations.ToList().FindIndex(op => op!["kind"]!.GetValue<int>() == (int)CookedOperationKind.SpawnHitbox);
@@ -358,6 +362,51 @@ public sealed class CookedPackageLoaderContractTests
         Assert.Equal(poseHash, Hash(loaded.BakedAnimation!));
     }
 
+    [Theory]
+    [InlineData("bonk", "ground.A")]
+    [InlineData("nyx", "ground.A")]
+    [InlineData("salamander", "ground.R")]
+    public void ProjectileAndLiveLimitsRejectRehashedData(string packageId, string slotId)
+    {
+        foreach (string field in new[] { "speed", "maxFlightTicks" })
+        {
+            var files = CookedPackageEdits.Edit(packageId, p =>
+            {
+                var projectile = p.Slot(slotId)["timeline"]!["stages"]![0]!["operations"]!.AsArray()
+                    .First(o => o!["projectile"] != null)!["projectile"]!;
+                projectile[field] = 60_000;
+            });
+            var result = RunWithWallClock(() => CookedCharacterPackageLoader.LoadFiles(files,
+                CookedPackageEdits.RequirementOf(files), CharacterCookProfile.Workshop));
+            Assert.False(result.IsValid);
+            Assert.Contains(result.Diagnostics, d => d.Code is "package.projectile.limit" or "package.live.limit");
+        }
+    }
+
+    [Theory]
+    [MemberData(nameof(Packages))]
+    public void LiveHitboxLifetimeLimitRejectsSmallOperationLists(string packageId)
+    {
+        var files = CookedPackageEdits.Edit(packageId, p =>
+        {
+            var hitbox = p.Slot("ground.1")["timeline"]!["stages"]![0]!["operations"]!.AsArray()
+                .First(o => o!["hitbox"] != null)!["hitbox"]!;
+            hitbox["durationTicks"] = ushort.MaxValue;
+        });
+        var result = RunWithWallClock(() => CookedCharacterPackageLoader.LoadFiles(files,
+            CookedPackageEdits.RequirementOf(files), CharacterCookProfile.TrustedBuiltIn));
+        Assert.Contains(result.Diagnostics, d => d.Code == "package.live.limit");
+    }
+
+    [Fact]
+    public void TrustedLoadCannotBecomeAnExternalAdmission()
+    {
+        var loaded = CookedCharacterPackageLoader.LoadFiles(CookedPackageEdits.Shipped("bonk"),
+            CookedPackageEdits.Roster.ResolvePackage("bonk")!.Requirement, CharacterCookProfile.TrustedBuiltIn);
+        Assert.True(loaded.IsValid);
+        Assert.Throws<ArgumentException>(() => new AdmittedFighter(loaded, null, null));
+    }
+
     private static JsonObject Capability(string id) => new() { ["capabilityId"] = id, ["capabilityVersion"] = "1" };
 
     private CookedCharacterPackageLoadResult Load(IReadOnlyDictionary<string, byte[]> files)
@@ -402,7 +451,7 @@ public sealed class CookedPackageLoaderContractTests
         var report = RunWithWallClock(() => RunMatch(packageId, loaded, CookedPackageEdits.RequirementOf(files)));
         Assert.True(report.TicksRun == MatchTicks, $"Match stopped at tick {report.TicksRun} of {MatchTicks}.");
         Assert.True(report.AllFinite, $"A fighter left finite space by tick {report.FirstNonFiniteTick}.");
-        Assert.True(report.PeakHitboxes <= CookedPackageLimits.HitboxesPerTimeline, report.ToString());
+        Assert.True(report.PeakHitboxes <= CookedPackageLimits.LiveHitboxes, report.ToString());
         return report;
     }
 

@@ -103,7 +103,7 @@ Workshop, recomputes compiler budgets, and rejects malformed timelines, enums, a
 It bounds file reads, JSON depth, pose memory, operation counts, projectile speed, and lifetime.
 The contract suite enables all eight formerly skipped cases and counts simulation work.
 See [cooked package admission](../systems/cooked-package-admission.md) for constants,
-measurements, diagnostics, and remaining capability lifetime-accounting work.
+measurements, diagnostics, and typed capability lifetime accounting.
 External admission remains internal or test-only until the subsequent roll-out units.
 
 The GLB importer refuses files over its size, triangle, bone, and texture limits, naming the limit.

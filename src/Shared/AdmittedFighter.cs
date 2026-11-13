@@ -26,6 +26,10 @@ public sealed class AdmittedFighter
         ShippedRoster? trustedRoster, bool development = false)
     {
         if (!loaded.IsValid) throw new ArgumentException("Invalid cooked package.", nameof(loaded));
+        if (trustedRoster != null && (loaded.Profile != CharacterCookProfile.TrustedBuiltIn || !trustedRoster.Authorizes(loaded.Identity)))
+            throw new ArgumentException("Trusted admission requires a package loaded through the shipped roster.", nameof(loaded));
+        if (trustedRoster == null && !development && loaded.Profile != CharacterCookProfile.Workshop)
+            throw new ArgumentException("External admission requires the Workshop profile.", nameof(loaded));
         Loaded = loaded;
         LegacySelector = selector;
         this.trustedRoster = trustedRoster;

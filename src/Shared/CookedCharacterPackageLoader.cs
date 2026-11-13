@@ -13,11 +13,13 @@ public sealed class CookedCharacterPackageLoadResult
     public CookedCharacterPackage? Package { get; }
     public BakedAnimationData? BakedAnimation { get; }
     public MatchContentIdentity Identity { get; }
+    internal CharacterCookProfile Profile { get; }
     public IReadOnlyList<CharacterDiagnostic> Diagnostics { get; }
     public bool IsValid => Package != null && Diagnostics.All(x => x.Severity != CharacterDiagnosticSeverity.Error);
 
-    internal CookedCharacterPackageLoadResult(CookedCharacterPackage? package, BakedAnimationData? baked, MatchContentIdentity identity, IReadOnlyList<CharacterDiagnostic> diagnostics)
+    internal CookedCharacterPackageLoadResult(CookedCharacterPackage? package, BakedAnimationData? baked, MatchContentIdentity identity, IReadOnlyList<CharacterDiagnostic> diagnostics, CharacterCookProfile profile = CharacterCookProfile.Workshop)
     {
+        Profile = profile;
         Package = package; BakedAnimation = baked; Identity = identity;
         Diagnostics = new ReadOnlyCollection<CharacterDiagnostic>(new List<CharacterDiagnostic>(diagnostics));
     }
@@ -120,7 +122,7 @@ public static class CookedCharacterPackageLoader
         if(d.Any(x=>x.Severity==CharacterDiagnosticSeverity.Error)) return Failure(d);
         try
         {
-            if (!CookedPackageLimits.CheckRuntime(copied[CharacterPackageAssembler.RuntimePath], d)) return Failure(d);
+            if (!CookedPackageLimits.CheckRuntime(copied[CharacterPackageAssembler.RuntimePath], d, profile)) return Failure(d);
             var m=ParseManifest(copied[CharacterPackageAssembler.ManifestPath]);
             if(m.PackageId!=requirement!.PackageId||m.Version!=requirement.Version||m.CookedContentHash!=requirement.CookedContentHash||m.PackageHash!=requirement.PackageHash) d.Add(Error("package.identity.mismatch","manifest","Package identity does not match the requested requirement."));
             if(m.CookedSchemaVersion!=5||!SupportedRuntimeApiMinimums.Contains(m.RuntimeApiMin)||m.RuntimeApiMax!="1.x") d.Add(Error("package.compatibility.unsupported","manifest","Cooked package schema/API is not supported."));
@@ -148,6 +150,7 @@ public static class CookedCharacterPackageLoader
                 foreach (var operation in package.Definition.AllSlots.SelectMany(slot => slot.Timeline.Stages).SelectMany(stage => stage.Operations).OfType<CookedStartCapabilityOperation>())
                     if (operation.CapabilityId.StartsWith("slop.internal.", StringComparison.Ordinal))
                         d.Add(Error("capability.untrusted", operation.CapabilityId, "Internal capabilities require the trusted built-in profile."));
+            CookedPackageLimits.CheckResources(package.Definition, d);
             ValidateCapabilityOperations(package.Definition, d);
             ValidateMankiBazookas(package.Definition, d);
             ValidateDashStrikes(package.Definition, m.RuntimeApiMin, d);
@@ -182,7 +185,7 @@ public static class CookedCharacterPackageLoader
                 Animations = baked.Animations.Select(animation => animation.WithName(semanticByPose[animation.Name])).ToArray(),
             };
             if(d.Any(x=>x.Severity==CharacterDiagnosticSeverity.Error)) return Failure(d);
-            return new CookedCharacterPackageLoadResult(package,baked,new MatchContentIdentity(m.PackageId,m.Version,m.SourceHash,m.CookedContentHash,m.PackageHash),d);
+            return new CookedCharacterPackageLoadResult(package,baked,new MatchContentIdentity(m.PackageId,m.Version,m.SourceHash,m.CookedContentHash,m.PackageHash),d,profile);
         }
         catch (RetiredCapabilityException ex)
         {
