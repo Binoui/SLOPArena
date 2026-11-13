@@ -18,11 +18,8 @@ internal static class DashPairsReport
     private const float StartX = 50f, StartZ = 50f;
     private const int PressLead = 4;
     private static readonly float[] Distances = { 3f, 6f, 9f, 12f };
-    private static readonly (string Name, string PackageId)[] Roster =
-    {
-        ("FightGuy", "fightguy"), ("Wibou", "wibou"), ("Manki", "manki"),
-        ("Sir Bonk", "bonk"), ("Bashie", "bashie"), ("Salamander", "salamander"),
-    };
+    private static readonly (string Name, string PackageId)[] Roster = BuiltInContentResolver.ReadApplicationCatalog()
+        .Entries.Select(entry => (entry.DisplayName, entry.Identity.PackageId)).ToArray();
     private static readonly (string Label, byte Wire)[] Normals =
         { ("1", AbilitySlots.Normal1), ("2", AbilitySlots.Normal2), ("3", AbilitySlots.Normal3) };
 

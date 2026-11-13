@@ -46,9 +46,7 @@ public sealed class CollisionWorkLimitTests(ITestOutputHelper output)
         Assert.InRange(report.MeanChecks,60000,79200);
     }
 
-    [Theory]
-    [InlineData("manki")][InlineData("fightguy")][InlineData("wibou")][InlineData("bonk")]
-    [InlineData("bashie")][InlineData("salamander")][InlineData("nyx")]
+    [Theory, MemberData(nameof(RosterFighters.All), MemberType = typeof(RosterFighters))]
     public void FourSeatBuiltInMatchExercisesEveryMoveWithoutHittingCaps(string id)
     {
         var report=CollisionWorkScenario.BuiltIn(id);

@@ -10,14 +10,7 @@ public sealed class CpuGrabTests
 {
     private const ulong Cpu = 100, Target = 1;
 
-    [Theory]
-    [InlineData("fightguy")]
-    [InlineData("manki")]
-    [InlineData("wibou")]
-    [InlineData("bonk")]
-    [InlineData("bashie")]
-    [InlineData("salamander")]
-    [InlineData("nyx")]
+    [Theory, MemberData(nameof(RosterFighters.All), MemberType = typeof(RosterFighters))]
     public void EveryFighterGrabsAndThrowsAShieldingTarget(string fighter)
     {
         var arena = BashieShellTests.Floor();

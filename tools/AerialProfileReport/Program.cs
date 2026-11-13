@@ -22,13 +22,8 @@ internal static class Program
     private const int AttributionWindowTicks = 90;
     private const int NormalReactionDelayTicks = 18;
     private static readonly int[] DefaultSeeds = { 42, 43, 44, 45, 46 };
-    private static readonly string[] AdmittedCharacters =
-    {
-        "manki",
-        "fightguy",
-        "wibou",
-        "bonk",
-    };
+    private static readonly string[] AdmittedCharacters = BuiltInContentResolver.ReadApplicationCatalog()
+        .Entries.Select(entry => entry.Identity.PackageId).ToArray();
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
         IncludeFields = true,
@@ -1267,14 +1262,7 @@ internal static class Program
     }
 
     private static string ResolvePackageId(string packageId)
-        => packageId.ToLowerInvariant() switch
-        {
-            "manki" => "manki",
-            "fightguy" => "fightguy",
-            "wibou" => "wibou",
-            "bonk" => "bonk",
-            _ => throw new InvalidDataException($"unknown admitted package '{packageId}'"),
-        };
+        => BuiltInContentResolver.ResolvePackage(packageId).Identity.PackageId;
 
     private static string BuildAggregateCsv(IEnumerable<AggregateRow> rows)
     {
