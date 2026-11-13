@@ -138,6 +138,24 @@ public sealed class FighterItemAdmissionTests
     [Theory] [InlineData("fightguy", 0UL)] [InlineData("workshop.42", 0UL)] [InlineData("local.tumbleweed", 42UL)] [InlineData("workshop.41", 42UL)]
     public void HostNamespaceIsEnforced(string id, ulong steam)
     { Assert.Contains(Read(Item(id), steam == 0 ? null : steam).Diagnostics, x => x.Code == "item.namespace"); }
+    [Fact]
+    public void PublishRecooksVerifiedSourceUnderSteamIdentityWithoutChangingLocalCopy()
+    {
+        var local = Read(Item(media: true));
+        Assert.True(local.IsAccepted);
+        var original = local.Item!.ReadPayload("package.json");
+        var published = local.Item.RecookForSteam(42);
+        Assert.NotNull(published.Item);
+        var downloaded = Read(published.Item!, 42);
+        Assert.True(downloaded.IsAccepted, string.Join("; ", downloaded.Diagnostics));
+        Assert.Equal("workshop.42", downloaded.Fighter!.Choose().Revision.PackageId);
+        Assert.Equal(original, local.Item.ReadPayload("package.json"));
+        Assert.Equal("local.tumbleweed", local.Fighter!.Choose().Revision.PackageId);
+        Assert.False(Read(published.Item!, 43).IsAccepted);
+        Assert.False(Read(published.Item!).IsAccepted);
+        var again = local.Item.RecookForSteam(42);
+        foreach (var file in published.Item!) Assert.Equal(file.Value, again.Item![file.Key]);
+    }
     [Fact] public void DownloadUsesHostSteamId() => Assert.True(Read(Item("workshop.42"), 42).IsAccepted);
     [Fact] public void ExtraFileFails() { var item = Item(); item["other.txt"] = new byte[1]; Assert.Contains(Read(item).Diagnostics, x => x.Code == "item.payload.extra"); }
     [Fact] public void RenamedFileFails() { var item = Item(); item["renamed.glb"] = item["tumbleweed.glb"]; item.Remove("tumbleweed.glb"); Assert.False(Read(item).IsAccepted); }

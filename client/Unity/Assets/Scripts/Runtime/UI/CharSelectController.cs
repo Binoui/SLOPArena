@@ -30,6 +30,7 @@ namespace SlopArena.Client.UI
         // mount time (issue #219).
         private FrontendPageContext _context = null!;
 
+        private IReadOnlyList<string> VisiblePackages => LocalFighterLibrary.Current.PackagesFor(MatchConfig.Mode is GameMode.Solo or GameMode.Training);
         private string _selected = "";
         private LocalChallengeSetup? _challenge;
         private int _editingSeat = 1;
@@ -71,10 +72,30 @@ namespace SlopArena.Client.UI
                 return;
             }
             _challenge = MatchConfig.Mode == GameMode.Arcade ? new LocalChallengeSetup(_context) : null;
+            RebuildGrid();
+
+            if (MatchConfig.Mode == GameMode.PvP &&
+                ClientSession.SelectedOnlineMode == ClientSession.OnlineSelection.Room)
+                InitRoom(_context);
+            else if (MatchConfig.Mode == GameMode.PvP)
+                InitPvP(_context);
+            else if (MatchConfig.Mode == GameMode.Tutorial)
+                InitTutorial(_context);
+            else if (_challenge != null)
+                InitChallenge(_context);
+            else
+                InitLocal(_context);
+        }
+
+        private LocalFighterLibrary displayedLibrary;
+        private void RebuildGrid()
+        {
+            displayedLibrary = LocalFighterLibrary.Current;
+            _gridButtons.Clear();
             var grid = _context.Q<VisualElement>("char-grid");
             grid?.Clear();
 
-            var classes = LocalFighterLibrary.Current.PackageIds;
+            var classes = VisiblePackages;
             _selected = classes.Contains(MatchConfig.PlayerPackageId)
                 ? MatchConfig.PlayerPackageId
                 : classes.Count > 0 ? classes[0] : "";
@@ -118,6 +139,14 @@ namespace SlopArena.Client.UI
                     btn.Add(name);
                     btn.Add(check);
                     btn.Add(markers);
+                    string origin = LocalFighterLibrary.Current.OriginLabel(cls);
+                    if (origin.Length > 0)
+                    {
+                        var badge = new Label(origin) { name = "char-card-origin", pickingMode = PickingMode.Ignore };
+                        badge.style.fontSize = 11;
+                        badge.style.unityTextAlign = TextAnchor.MiddleCenter;
+                        btn.Add(badge);
+                    }
                     if (LocalFighterLibrary.Current.IsWorkInProgress(cls))
                     {
                         btn.AddToClassList("char-card--wip");
@@ -147,17 +176,6 @@ namespace SlopArena.Client.UI
             if (!string.IsNullOrEmpty(_selected))
                 SelectCharacter(_selected, _context);
 
-            if (MatchConfig.Mode == GameMode.PvP &&
-                ClientSession.SelectedOnlineMode == ClientSession.OnlineSelection.Room)
-                InitRoom(_context);
-            else if (MatchConfig.Mode == GameMode.PvP)
-                InitPvP(_context);
-            else if (MatchConfig.Mode == GameMode.Tutorial)
-                InitTutorial(_context);
-            else if (_challenge != null)
-                InitChallenge(_context);
-            else
-                InitLocal(_context);
         }
 
         /// <summary>The tutorial picks only the player's fighter; its stage and dummy are fixed.</summary>
@@ -171,16 +189,16 @@ namespace SlopArena.Client.UI
             context.Q<VisualElement>("roster-panel")?.style.SetDisplay(false);
             var rosterMeta = context.Q<Label>("roster-meta");
             if (rosterMeta != null)
-                rosterMeta.text = LocalFighterLibrary.Current.PackageIds.Count == 0
+                rosterMeta.text = VisiblePackages.Count == 0
                     ? "NO ADMITTED FIGHTERS"
-                    : $"{LocalFighterLibrary.Current.PackageIds.Count} FIGHTERS // TUTORIAL";
+                    : $"{VisiblePackages.Count} FIGHTERS // TUTORIAL";
 
             var startButton = context.Q<Button>("btn-select");
             if (startButton != null)
             {
                 startButton.style.display = DisplayStyle.Flex;
                 startButton.text = "START TUTORIAL";
-                startButton.SetEnabled(LocalFighterLibrary.Current.PackageIds.Count > 0);
+                startButton.SetEnabled(VisiblePackages.Count > 0);
                 startButton.clicked += () =>
                 {
                     if (string.IsNullOrEmpty(_selected)) return;
@@ -198,7 +216,7 @@ namespace SlopArena.Client.UI
             ConfigureNavigation(context, _gridButtons.FirstOrDefault(b => b.name == $"char-{_selected}")
                 ?? _gridButtons.FirstOrDefault(), btnBack, back, startButton);
 
-            if (LocalFighterLibrary.Current.PackageIds.Count == 0)
+            if (VisiblePackages.Count == 0)
                 ShowRosterUnavailable(context, "NO ADMITTED FIGHTERS", "Cooked fighter content is unavailable. Return to the menu.");
         }
 
@@ -215,9 +233,9 @@ namespace SlopArena.Client.UI
             context.Q<Label>("char-name")?.style.SetDisplay(false);
             var rosterMeta = context.Q<Label>("roster-meta");
             if (rosterMeta != null)
-                rosterMeta.text = LocalFighterLibrary.Current.PackageIds.Count == 0
+                rosterMeta.text = VisiblePackages.Count == 0
                     ? "NO ADMITTED FIGHTERS"
-                    : $"{LocalFighterLibrary.Current.PackageIds.Count} FIGHTERS // {(training ? "TRAINING" : mode.Title)}";
+                    : $"{VisiblePackages.Count} FIGHTERS // {(training ? "TRAINING" : mode.Title)}";
             // Local modes show both participant cards and CPU editing.
             context.Q<VisualElement>("pvp-action-area")?.style.SetDisplay(false);
 
@@ -226,7 +244,7 @@ namespace SlopArena.Client.UI
             {
                 selectButton.style.display = DisplayStyle.Flex;
                 selectButton.text = training ? "SELECT STAGE" : mode.FighterAction;
-                selectButton.SetEnabled(LocalFighterLibrary.Current.PackageIds.Count > 0);
+                selectButton.SetEnabled(VisiblePackages.Count > 0);
             }
 
             _rosterPanel = context.Q<VisualElement>("roster-panel");
@@ -264,11 +282,11 @@ namespace SlopArena.Client.UI
             Action back = () => FrontendController.Show(training ? FrontendPage.Home : FrontendPage.ModeSelect);
             if (btnBack != null)
                 btnBack.clicked += back;
-            ConfigureNavigation(context, LocalFighterLibrary.Current.PackageIds.Count > 0
+            ConfigureNavigation(context, VisiblePackages.Count > 0
                 ? _rosterPanel?.Q<Button>("solo-slot-p1") ?? _gridButtons.FirstOrDefault()
                 : null, btnBack, back, selectButton);
 
-            if (LocalFighterLibrary.Current.PackageIds.Count == 0)
+            if (VisiblePackages.Count == 0)
                 ShowRosterUnavailable(context, "NO ADMITTED FIGHTERS", "Cooked fighter content is unavailable. Return to the menu.");
         }
 
@@ -437,7 +455,7 @@ namespace SlopArena.Client.UI
             if (_rosterPanel == null) return;
             string? focusedName = (_rosterPanel.panel?.focusController.focusedElement as VisualElement)?.name;
             _rosterPanel.Clear();
-            if (LocalFighterLibrary.Current.PackageIds.Count == 0) return;
+            if (VisiblePackages.Count == 0) return;
             foreach (var button in _gridButtons)
             {
                 var markers = button.Q<VisualElement>("char-markers");
@@ -1018,9 +1036,9 @@ namespace SlopArena.Client.UI
             var rosterMeta = context.Q<Label>("roster-meta");
             _snapshot = ClientSession.LobbyRoster;
             if (rosterMeta != null)
-                rosterMeta.text = LocalFighterLibrary.Current.PackageIds.Count == 0
+                rosterMeta.text = VisiblePackages.Count == 0
                     ? "NO ADMITTED FIGHTERS"
-                    : $"{LocalFighterLibrary.Current.PackageIds.Count} FIGHTERS // {_snapshot?.Players.Count ?? 0} PLAYERS";
+                    : $"{VisiblePackages.Count} FIGHTERS // {_snapshot?.Players.Count ?? 0} PLAYERS";
             _rosterPanel   = context.Q<VisualElement>("roster-panel");
             _btnLockIn     = context.Q<Button>("btn-lockin");
             _btnStartMatch = context.Q<Button>("btn-start-match");
@@ -1032,7 +1050,7 @@ namespace SlopArena.Client.UI
             if (_btnLockIn != null)
             {
                 _btnLockIn.text = "LOCK IN";
-                _btnLockIn.SetEnabled(LocalFighterLibrary.Current.PackageIds.Count > 0);
+                _btnLockIn.SetEnabled(VisiblePackages.Count > 0);
                 _btnLockIn.clicked += OnLockInClicked;
             }
 
@@ -1074,7 +1092,7 @@ namespace SlopArena.Client.UI
             _lobby.Error            += OnPvPError;
 
             if (_lblPvPStatus != null)
-                _lblPvPStatus.text = LocalFighterLibrary.Current.PackageIds.Count == 0
+                _lblPvPStatus.text = VisiblePackages.Count == 0
                     ? "Fighter content is unavailable. Return to the menu."
                     : "Choose your fighter, then lock in.";
             RenderRoster();
@@ -1330,6 +1348,7 @@ namespace SlopArena.Client.UI
 
         private void Update()
         {
+            if (_context != null && !ReferenceEquals(displayedLibrary, LocalFighterLibrary.Current)) RebuildGrid();
             bool active = (HumanCourse || MatchConfig.Mode == GameMode.Solo && LocalPlayModes.Current.Seats == LocalSeatPolicy.FourSeats) && _rosterPanel != null;
             SlopArena.Client.Input.CouchPads.Listening = active;
             if (!active) return;
@@ -1345,7 +1364,7 @@ namespace SlopArena.Client.UI
                     continue;
                 }
                 int step = pad.rightShoulder.wasPressedThisFrame ? 1 : pad.leftShoulder.wasPressedThisFrame ? -1 : 0;
-                var classes = LocalFighterLibrary.Current.PackageIds;
+                var classes = VisiblePackages;
                 if (step == 0 || classes.Count == 0) continue;
                 int index = classes.ToList().IndexOf(MatchConfig.Seat(player).Fighter);
                 MatchConfig.Seat(player).Fighter = classes[((index < 0 ? 0 : index) + step + classes.Count) % classes.Count];

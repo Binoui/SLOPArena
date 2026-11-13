@@ -379,7 +379,15 @@ namespace SlopArena.Client.UI
                 Button(_body, "OPEN ON STEAM", () => SteamWorkshopClient.OpenPage(item.Id));
                 Button(_body, "DOWNLOAD AND VERIFY", () => Run(async () =>
                 {
-                    var installed = await _steam.Download(item.Id);
+                    string folder = await _steam.DownloadFolder(item.Id);
+                    var kind = await Task.Run(() => WorkshopItemManifestCodec.Read(WorkshopLibrary.ReadCapped(Path.Combine(folder, "item.json"), WorkshopItemManifestCodec.MaxManifestBytes)));
+                    if (kind.Manifest?.ItemType == "fighter")
+                    {
+                        var fighter = await Task.Run(() => LocalFighterItems.ReadDownloaded(folder, item.Id));
+                        Status(fighter.Fighter == null ? string.Join("; ", fighter.Diagnostics.Select(LocalFighterWorkspace.DiagnosticText)) : "Fighter admitted. It will appear at Fighter Select after the library refresh.");
+                        return;
+                    }
+                    var installed = await Task.Run(() => WorkshopLibrary.Verify(folder));
                     if (!IsOpen) return;
                     var payload = installed.Payload();
                     using var model = await Load(payload.Glb, payload.BoneMap, verified: true);

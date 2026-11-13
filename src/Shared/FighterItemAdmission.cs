@@ -26,6 +26,21 @@ public sealed class FighterItemSnapshot
         this.files = files;
         Bindings = bindings.Clone(); Card = card.Clone(); Motion = motion;
     }
+    public (Dictionary<string, byte[]>? Item, IReadOnlyList<CharacterDiagnostic> Diagnostics) RecookForSteam(ulong publishedFileId)
+    {
+        if (publishedFileId == 0) throw new ArgumentOutOfRangeException(nameof(publishedFileId));
+        var package = System.Text.Json.Nodes.JsonNode.Parse(files["package.json"])!;
+        package["packageId"] = "workshop." + publishedFileId.ToString(System.Globalization.CultureInfo.InvariantCulture);
+        var manifest = WorkshopItemManifestCodec.Read(files["item.json"]).Manifest!;
+        var animations = Bindings.GetProperty("animations").EnumerateArray().ToDictionary(
+            a => a.GetProperty("semanticId").GetString()!, a => System.Text.Json.Nodes.JsonNode.Parse(a.GetProperty("source").GetRawText())!.AsObject());
+        return PortableFighterCook.Cook(new PortableFighterSource(Encoding.UTF8.GetBytes(package.ToJsonString()), files["character.json"], files["card.json"],
+            ModelFile, files[ModelFile], animations, manifest.Creator, manifest.License, manifest.Attribution, manifest.AiAssisted,
+            files.TryGetValue("humanoid.json", out var map) ? map : null,
+            files.Where(f => f.Key.EndsWith(".png", StringComparison.Ordinal) || f.Key.EndsWith(".jpg", StringComparison.Ordinal)).ToDictionary(f => f.Key, f => f.Value),
+            Bindings.GetProperty("portraits").EnumerateArray().Select(p => p.ValueKind == JsonValueKind.Null ? null : p.GetString()).ToArray(),
+            Bindings.GetProperty("icons").EnumerateArray().Select(form => (IReadOnlyDictionary<string, string?>)form.EnumerateObject().ToDictionary(p => p.Name, p => p.Value.ValueKind == JsonValueKind.Null ? null : p.Value.GetString())).ToArray()));
+    }
     public byte[] ReadPayload(string name) => (byte[])files[name].Clone();
 }
 
@@ -113,7 +128,7 @@ internal static class FighterItemAdmission
             var motion = PortableFighterMotion.Read(binding.RootElement, files);
             var bake = PortablePoseBake.Verify(motion, loaded.Package!.Definition, files[CharacterPackageAssembler.PosePath]);
             if (bake.Count != 0) { d.AddRange(bake); return Result(); }
-            return new(new AdmittedFighter(loaded, null, null), d.AsReadOnly(), new FighterItemSnapshot(files, binding.RootElement, card.RootElement, motion));
+            return new(new AdmittedFighter(loaded, null, null), d.AsReadOnly(), new FighterItemSnapshot(new Dictionary<string, byte[]>(files) { ["item.json"] = WorkshopItemManifestCodec.Write(manifest.Manifest!) }, binding.RootElement, card.RootElement, motion));
         }
         catch (GlbMotionException ex) { return Failure(ex.Code, ex.Message); }
         catch (Exception ex) when (ex is InvalidDataException or IOException or UnauthorizedAccessException or JsonException or InvalidOperationException or KeyNotFoundException or ArgumentException or OverflowException or NotSupportedException or System.Security.SecurityException or System.ComponentModel.Win32Exception or TypeLoadException or FormatException)

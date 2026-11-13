@@ -13,6 +13,13 @@ namespace SlopArena.Client.UI
         public IReadOnlyList<string> PackageIds { get; }
         public string? Diagnostic { get; }
         static readonly SourceCache source = new(ReadSources, () => ShippedRoster.TryReadApplication(out var roster, out _) ? roster : null);
+        static IReadOnlyList<AdmittedFighter> made = Array.Empty<AdmittedFighter>();
+        public static void SetMadeFighters(IReadOnlyList<AdmittedFighter> fighters)
+        { made = fighters.ToArray(); Invalidate(); }
+        public IReadOnlyList<string> PackagesFor(bool allowMade)
+            => allowMade ? PackageIds : PackageIds.Where(id => catalog!.ResolvePackage(id)!.IsBundled).ToArray();
+        public string OriginLabel(string package) => catalog?.ResolvePackage(package)?.IsBundled != false ? ""
+            : package.StartsWith("workshop.", StringComparison.Ordinal) ? "WORKSHOP" : "YOURS";
         static readonly HashSet<string> warned = new(StringComparer.Ordinal);
         public static LocalFighterLibrary Current => source.Read();
         public static void Invalidate() => source.Invalidate();
@@ -56,7 +63,15 @@ namespace SlopArena.Client.UI
                 ReadDevelopmentContent(ref content, ref policy, ref failure);
                 if (failure != null) throw new InvalidOperationException(failure);
                 content ??= BuiltInContentResolver.ReadApplicationCatalog();
-                var ids = ShippedRoster.ReadApplication().Manifest.Entries.Select(p => p.PackageId).ToList().AsReadOnly();
+                var ids = ShippedRoster.ReadApplication().Manifest.Entries.Select(p => p.PackageId).ToList();
+                if (made.Count > 0)
+                {
+                    var built = new MatchContentCatalogBuilder().Build(content.Entries.Select(e => e.Choose().Fighter).Concat(made).ToArray(), policy);
+                    if (!built.IsValid) throw new InvalidOperationException(string.Join("; ", built.Diagnostics.Select(LocalFighterWorkspace.DiagnosticText)));
+                    content = built.Catalog!;
+                    ids.AddRange(made.Select(f => f.Choose().Revision.PackageId).Distinct(StringComparer.Ordinal)
+                        .OrderBy(id => content.ResolvePackage(id)!.DisplayName, StringComparer.OrdinalIgnoreCase).ThenBy(id => id, StringComparer.Ordinal));
+                }
                 return new LocalFighterLibrary(content, ids, null, policy);
             }
             catch (Exception error)

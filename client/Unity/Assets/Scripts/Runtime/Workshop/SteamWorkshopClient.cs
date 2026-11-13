@@ -24,7 +24,7 @@ namespace SlopArena.Client.Workshop
     }
 
     // ChatSession keeps pumping callbacks after the screen closes. These operations retain their terminal results.
-    public sealed class SteamWorkshopClient
+    public sealed partial class SteamWorkshopClient
     {
         public static SteamWorkshopClient Shared { get; } = new();
         public const uint AppId = 5324910;
@@ -159,7 +159,7 @@ namespace SlopArena.Client.Workshop
             return items;
         }
         public Task<WorkshopLibraryItem> Download(ulong id) => Downloads.Start("download:" + id, () => DownloadCore(id));
-        private static bool InstalledCurrent(ulong id, out string folder)
+        public static bool InstalledCurrent(ulong id, out string folder)
         {
             var file = new PublishedFileId_t(id);
             var state = (EItemState)SteamUGC.GetItemState(file);
@@ -169,8 +169,13 @@ namespace SlopArena.Client.Workshop
         }
         private async Task<WorkshopLibraryItem> DownloadCore(ulong id)
         {
+            string folder = await DownloadFolder(id);
+            return await Task.Run(() => WorkshopLibrary.Verify(folder));
+        }
+        public async Task<string> DownloadFolder(ulong id)
+        {
             RequireAvailable();
-            if (InstalledCurrent(id, out string folder)) return await Task.Run(() => WorkshopLibrary.Verify(folder));
+            if (InstalledCurrent(id, out string folder)) return folder;
             var completion = new TaskCompletionSource<EResult>();
             using var callback = Callback<DownloadItemResult_t>.Create(result =>
             {
@@ -180,11 +185,11 @@ namespace SlopArena.Client.Workshop
             while (!completion.Task.IsCompleted)
             {
                 await Task.WhenAny(completion.Task, Task.Delay(500));
-                if (!completion.Task.IsCompleted && InstalledCurrent(id, out folder)) return await Task.Run(() => WorkshopLibrary.Verify(folder));
+                if (!completion.Task.IsCompleted && InstalledCurrent(id, out folder)) return folder;
             }
             Result(await completion.Task);
             Require(SteamUGC.GetItemInstallInfo(new PublishedFileId_t(id), out _, out folder, 32768, out _), "install folder");
-            return await Task.Run(() => WorkshopLibrary.Verify(folder));
+            return folder;
         }
         public static void OpenPage(ulong id = 0) => SteamFriends.ActivateGameOverlayToWebPage(id == 0
             ? $"https://steamcommunity.com/app/{AppId}/workshop/" : $"https://steamcommunity.com/sharedfiles/filedetails/?id={id}");

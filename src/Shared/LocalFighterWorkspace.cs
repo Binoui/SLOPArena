@@ -11,6 +11,11 @@ namespace SlopArena.Shared;
 /// <summary>A host may admit local items, but cannot claim Steam provenance.</summary>
 public static class LocalFighterItems
 {
+    public static LocalFighterItemResult ReadDownloaded(string folder, ulong publishedFileId)
+    {
+        var result = FighterItemAdmission.ReadDownloadedItem(folder, publishedFileId);
+        return new(result.Fighter, result.Item, result.Diagnostics);
+    }
     public static LocalFighterItemResult Read(string folder)
     {
         var result = FighterItemAdmission.ReadLocalItem(folder);

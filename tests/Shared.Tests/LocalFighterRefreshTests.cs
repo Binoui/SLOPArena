@@ -21,6 +21,15 @@ public partial class PackageFighterContentTests
     }
 
     [Fact]
+    public void MadeFightersAreHiddenWhenTheModeRequiresBundledContent()
+    {
+        var library = Library(RevisionCatalog("1.0.0"));
+        Assert.Empty(library.PackagesFor(false));
+        Assert.Equal(2, library.PackagesFor(true).Count);
+        Assert.Equal("YOURS", library.OriginLabel("local.refresh-player"));
+        Assert.Empty(Library(Bundled()).OriginLabel("fightguy"));
+    }
+    [Fact]
     public void WorkspaceLibraryRetainsDevelopmentPolicyAndListsOnlyResolvedPackages()
     {
         var entry = Bundled().Entries.First();

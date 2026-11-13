@@ -4,6 +4,8 @@ using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Threading;
+using System.Text.Json;
+using Steamworks;
 using SlopArena.Client.Workshop;
 using SlopArena.Shared;
 using UnityEngine;
@@ -77,8 +79,10 @@ namespace SlopArena.Client.UI
             _body.Add(workspaceDiagnostics);
             workspaceTry = Button(_body, "TRY IN TRAINING", () => Run(StartWorkspaceTraining));
             workspaceTry.SetEnabled(false);
+            Button(_body, "PUBLISH LATEST COOK", () => Run(FighterPublishView));
             int generation = workspaceGeneration;
             workspacePoll = _root.schedule.Execute(() => { if (generation == workspaceGeneration && IsOpen && _view == View.Fighter) PollWorkspace(); }).Every(250);
+            foreach (string row in InstalledFighters.StatusRows) _body.Add(Text(row));
             FocusBody();
         }
         private void SelectWorkspace(string folder)
@@ -182,6 +186,50 @@ namespace SlopArena.Client.UI
             int glb = path.IndexOf(".glb", StringComparison.Ordinal);
             if (glb >= 0) return path.Substring(0, glb + 4);
             return path == "portable" || diagnostic.Code.StartsWith("glb.", StringComparison.Ordinal) || diagnostic.Code.StartsWith("item.pose-bake.", StringComparison.Ordinal) ? "GLB / poses.bin" : path;
+        }
+        private async Task FighterPublishView()
+        {
+            if (!SteamReady) throw new InvalidOperationException(SteamWorkshopClient.Unavailable);
+            var admitted = workspaceItem;
+            string sourceFolder = workspaceFolder ?? throw new InvalidOperationException("Choose a workspace first.");
+            if (admitted?.Fighter == null || admitted.Item == null) throw new InvalidOperationException("Wait for an admitted cook before publishing.");
+            var source = await Task.Run(() => LocalFighterWorkspace.Read(sourceFolder));
+            if (source.Stamp != cookedStamp) throw new InvalidOperationException("Files changed. Wait for the next cook.");
+            string statePath = Path.Combine(_library.Root, WorkshopLibrary.ItemKey(sourceFolder) + ".fighter-publish.json");
+            var settings = await Task.Run(() => WorkshopPublishSettings.Read(statePath, admitted.Fighter.Choose().Revision.PackageId));
+            WorkshopSteamItem? current = settings.Id == 0 ? null : await _steam.GetItem(settings.Id);
+            if (current != null) WorkshopPublishEdits.RequireOwner(current.Owner, SteamUser.GetSteamID().m_SteamID);
+            string beforeTitle = current?.Title ?? settings.Title, beforeDescription = current?.Description ?? settings.Description;
+            int beforeVisibility = current?.Visibility ?? settings.Visibility;
+            var library = LocalFighterLibrary.Current.WithLocalItem(admitted.Fighter);
+            library.TryGetCatalog(out var catalog, out _);
+            using var lease = await MadeFighterPresentation.PrepareAsync(catalog!.ResolvePackage(admitted.Fighter.Choose().Revision.PackageId)!, admitted.Item, _cancel.Token);
+            var portrait = lease.Presentation.Art.Portrait() ?? throw new InvalidOperationException("A portrait is required for publishing.");
+            byte[] previewBytes = portrait.EncodeToPNG();
+            string preview = Path.Combine(_library.Root, WorkshopLibrary.ItemKey(sourceFolder) + ".fighter-preview.png");
+            await Task.Run(() => File.WriteAllBytes(preview, previewBytes));
+            if (!IsOpen) return;
+            ClearBody();
+            var title = Field("Title", beforeTitle); var description = Field("Description", beforeDescription);
+            var visibility = Choice("Visibility", new System.Collections.Generic.List<string> { "Public", "Friends only", "Private", "Unlisted" }, beforeVisibility);
+            _body.Add(Text("Credit your sources, respect creators, and mark AI-assisted work. Rights claims follow Steam's takedown process."));
+            var guidelines = new Toggle("I have read the content guidelines"); _body.Add(guidelines);
+            Button(_body, settings.Id == 0 ? "PUBLISH FIGHTER" : "UPDATE FIGHTER " + settings.Id, () => Run(async () =>
+            {
+                if (!guidelines.value) throw new InvalidOperationException("Read and accept the content guidelines before publishing.");
+                var latestSource = await Task.Run(() => LocalFighterWorkspace.Read(sourceFolder));
+                if (latestSource.Stamp != source.Stamp) throw new InvalidOperationException("Files changed. Return to Make a fighter and publish the latest cook.");
+                var saved = await Task.Run(() => WorkshopPublishSettings.Read(statePath, beforeTitle));
+                if (saved.Id != settings.Id) throw new InvalidOperationException("Published ID changed. Reopen publishing before updating.");
+                var edits = settings.Id == 0 ? new WorkshopPublishEdits(title.value, description.value, visibility.Index)
+                    : WorkshopPublishEdits.Changed(beforeTitle, beforeDescription, beforeVisibility, title.value, description.value, visibility.Index);
+                settings.Title = title.value; settings.Description = description.value; settings.Visibility = visibility.Index;
+                await Task.Run(() => File.WriteAllText(statePath, JsonSerializer.Serialize(settings)));
+                ulong id = await _steam.PublishFighter(settings.Id, sourceFolder, admitted.Item, preview, edits,
+                    created => { settings.Id = created; File.WriteAllText(statePath, JsonSerializer.Serialize(settings)); }, SteamWorkshopClient.OpenPage);
+                Status("Published fighter " + id + ". The workspace keeps its local identity.");
+            }));
+            Button(_body, "BACK TO WORKSPACE", () => { FighterWorkspace(); SelectWorkspace(sourceFolder); });
         }
         private async Task StartWorkspaceTraining()
         {
