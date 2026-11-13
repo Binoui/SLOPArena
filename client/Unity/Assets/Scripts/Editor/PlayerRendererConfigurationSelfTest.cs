@@ -135,10 +135,11 @@ namespace SlopArena.EditorTools
             var graph = renderer.GetComponentInChildren<AnimancerComponent>();
             Require(graph.States.Current?.Clip == manki.Idle, "The Resources fallback did not resolve Manki's idle.");
 
+            // The fallback is keyed by model path, so Wibou's definition also swaps the model and its graph.
             definition = Definition("wibou");
             Require(renderer.Configure(definition, null, null, catalog.Rig, out error), error);
-            Require(renderer.GetComponentInChildren<AnimancerComponent>() == graph
-                && graph.States.Current?.Clip == wibou.Idle,
+            graph = renderer.GetComponentInChildren<AnimancerComponent>();
+            Require(graph != null && graph.States.Current?.Clip == wibou.Idle,
                 "A new fallback source retained cached clips from the previous definition.");
 
             Require(renderer.Configure(definition, null, catalog, catalog.Rig, out error), error);
