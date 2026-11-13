@@ -12,6 +12,7 @@ public sealed record FighterCookField(string Name, string Type, bool Required, s
 /// <summary>The schema used by both the installed game and KitCheck.</summary>
 public sealed class FighterCookDocument
 {
+    private FighterCookDocument() { }
     public static IReadOnlyList<FighterCookField> Fields { get; } = Array.AsReadOnly(new[] {
         new FighterCookField("model", "GLB filename", true, "One GLB directly in this folder."),
         new FighterCookField("animations", "map of semantic ID to nonempty clip name", true, "Exactly the animation IDs referenced by the compiled kit; names resolve against the GLB."),

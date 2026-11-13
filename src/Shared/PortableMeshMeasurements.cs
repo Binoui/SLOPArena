@@ -92,7 +92,7 @@ public static class PortableMeshMeasurements
             }
             return "other";
         }
-        var points = new List<MeshPoint>(); var regions = new List<string>();
+        var points = new List<MeshPoint>(); var regions = new List<string>(); var rigid = new List<bool>();
         foreach (int node in rig.SceneOrder)
         {
             cancel.ThrowIfCancellationRequested();
@@ -115,7 +115,7 @@ public static class PortableMeshMeasurements
                     {
                         double x = -positions[i], y = positions[i + 1], z = positions[i + 2]; int w = node * 12;
                         points.Add(Model(world[w] * x + world[w + 1] * y + world[w + 2] * z + world[w + 3], world[w + 4] * x + world[w + 5] * y + world[w + 6] * z + world[w + 7], world[w + 8] * x + world[w + 9] * y + world[w + 10] * z + world[w + 11]));
-                        regions.Add(region);
+                        regions.Add(region); rigid.Add(true);
                     }
                 }
                 continue;
@@ -159,14 +159,14 @@ public static class PortableMeshMeasurements
                         if (weight > best) { best = weight; dominant = joints[j]; }
                     }
                     if (sum <= 0) throw new InvalidDataException("Skin vertex has no positive weights.");
-                    points.Add(Model(x / sum, y / sum, z / sum)); regions.Add(RegionOf(dominant));
+                    points.Add(Model(x / sum, y / sum, z / sum)); regions.Add(RegionOf(dominant)); rigid.Add(false);
                 }
             }
         }
         if (points.Count == 0) throw new InvalidDataException("No skinned mesh vertices to measure.");
         var soles = points.Where((p, i) => regions[i] == "foot").Select(p => p.Y).ToArray();
         if (soles.Length == 0) throw new InvalidDataException("No foot vertices to measure the idle sole.");
-        var fit = FitCapsules(points, regions, Bone, diagnostics);
+        var fit = FitCapsules(points, regions, Bone, diagnostics, rigid);
         return new PortableMeshFit((float)Math.Round(-soles.Min(), 4), fit, diagnostics);
     }
         internal static HurtboxBoneSource[] FitCapsules(IReadOnlyList<Vector3> points, IReadOnlyList<string> regions, Func<string, Vector3?> bone)
@@ -174,7 +174,7 @@ public static class PortableMeshMeasurements
                 id => bone(id) is { } p ? new MeshPoint(p.X, p.Y, p.Z) : (MeshPoint?)null, new List<CharacterDiagnostic>());
         [MethodImpl(MethodImplOptions.NoInlining | MethodImplOptions.NoOptimization)]
         internal static HurtboxBoneSource[] FitCapsules(IReadOnlyList<MeshPoint> points, IReadOnlyList<string> regions,
-            Func<string, MeshPoint?> bone, List<CharacterDiagnostic> diagnostics)
+            Func<string, MeshPoint?> bone, List<CharacterDiagnostic> diagnostics, IReadOnlyList<bool>? rigid = null)
         {
             var segs = new List<(string Start, string End, string Region)>();
             void Segment(string start, string end, string region)
@@ -203,7 +203,9 @@ public static class PortableMeshMeasurements
             var headUp = new List<double>();
             for (int i = 0; i < points.Count; i++)
                 if (regions[i] == "head") headUp.Add(Math.Max(0, points[i].Y - head.Y));
-            double headEnd = Math.Round(Pct(headUp, .95) * .5, 4);
+            double rigidHeadUp = 0;
+            for (int i = 0; i < points.Count; i++) if (rigid != null && rigid[i] && regions[i] == "head") rigidHeadUp = Math.Max(rigidHeadUp, points[i].Y - head.Y);
+            double headEnd = Math.Round(Math.Max(Pct(headUp, .95), rigidHeadUp) * .5, 4);
             var starts = segs.Select(s => bone(s.Start)!.Value).ToArray();
             var ends = segs.Select((s, k) => bone(s.End)!.Value + (k == 0 ? new MeshPoint(0, headEnd, 0) : new MeshPoint(0, 0, 0))).ToArray();
             double Dist(MeshPoint p, MeshPoint a, MeshPoint b)
@@ -216,14 +218,14 @@ public static class PortableMeshMeasurements
             var result = new List<HurtboxBoneSource>();
             for (int k = 0; k < segs.Count; k++)
             {
-                var kept = new List<double>();
+                var kept = new List<double>(); double rigidRadius = 0;
                 for (int i = 0; i < points.Count; i++)
                 {
                     if (regions[i] != segs[k].Region) continue;
                     double mine = Dist(points[i], starts[k], ends[k]), best = mine;
                     for (int j = 0; j < segs.Count; j++)
                         if (segs[j].Region == segs[k].Region) best = Math.Min(best, Dist(points[i], starts[j], ends[j]));
-                    if (mine <= best + 1e-5) kept.Add(mine);
+                    if (mine <= best + 1e-5) { kept.Add(mine); if (rigid != null && rigid[i]) rigidRadius = Math.Max(rigidRadius, mine); }
                 }
                 if (segs[k].Region == "torso" && kept.Count > 0)
                 {
@@ -232,8 +234,9 @@ public static class PortableMeshMeasurements
                     int excluded = kept.Count(x => x > limit);
                     if (excluded > 0) diagnostics.Add(new CharacterDiagnostic(CharacterDiagnosticSeverity.Warning, "mesh.fit.loose-torso", "hurtboxBoneDefs[1]", excluded + " torso-weighted vertices extend beyond the shoulder-width body envelope. Capes, coats, skirts and tails are not body thickness; the torso radius is capped at " + limit.ToString("G9", System.Globalization.CultureInfo.InvariantCulture) + " m. Inspect the fit."));
                     kept = kept.Select(x => Math.Min(x, limit)).ToList();
+                    rigidRadius = Math.Min(rigidRadius, limit);
                 }
-                float radius = (float)Math.Round(Math.Max(.015, Pct(kept, .85)), 4);
+                float radius = (float)Math.Round(Math.Max(.015, Math.Max(Pct(kept, .85), rigidRadius)), 4);
                 result.Add(new HurtboxBoneSource(segs[k].Start, 0f, 0f, 0f, radius, segs[k].End, 0f, k == 0 ? (float)headEnd : 0f, 0f));
             }
             return result.ToArray();

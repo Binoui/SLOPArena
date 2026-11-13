@@ -88,6 +88,7 @@ namespace SlopArena.Client.UI
                 workspaceCancel?.Cancel(); workspaceCancel?.Dispose(); workspaceCancel = new CancellationTokenSource();
                 cookSchedule = new FighterWorkspaceSchedule(); nextProbe = 0;
                 workspaceWatcher?.Dispose(); workspaceWatcher = null;
+                workspaceItem = null; workspaceFolder = null; workspaceTry?.SetEnabled(false); workspaceOffset?.SetEnabled(false); measuredSource = null;
                 workspaceFolder = Path.GetFullPath(folder);
                 if (workspacePath != null) workspacePath.value = workspaceFolder;
                 cookedStamp = null; workspaceItem = null;
@@ -112,7 +113,7 @@ namespace SlopArena.Client.UI
                 Status("Watching " + workspaceFolder);
                 PollWorkspace();
             }
-            catch (Exception e) { Status(e.Message); }
+            catch (Exception e) { workspaceDiagnostics!.text = "Error workspace.path " + folder + "/cook.json: " + e.Message; Status("Needs fixes"); }
         }
         private async void PollWorkspace()
         {

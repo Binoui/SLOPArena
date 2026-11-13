@@ -104,7 +104,20 @@ public sealed class LocalFighterWorkspace
             {
                 bool validJson = true;
                 foreach (var input in new[] { (Name: "package.json", Bytes: package), (Name: "character.json", Bytes: character) })
-                    try { using var parsedJson = JsonDocument.Parse(input.Bytes); }
+                    try
+                    {
+                        using var parsedJson = JsonDocument.Parse(input.Bytes);
+                        void Numbers(JsonElement value, string path)
+                        {
+                            if (value.ValueKind == JsonValueKind.Object) foreach (var p in value.EnumerateObject()) Numbers(p.Value, path + "." + p.Name);
+                            else if (value.ValueKind == JsonValueKind.Array) { int i = 0; foreach (var child in value.EnumerateArray()) Numbers(child, path + "[" + i++ + "]"); }
+                            else if (value.ValueKind == JsonValueKind.Number && !value.TryGetInt32(out _))
+                                try { PortableDecimal.Parse(value.GetRawText()); }
+                                catch (Exception e) when (e is ArgumentException or FormatException or OverflowException)
+                                { validJson = false; d.Add(FighterCookDocument.Error("value.out-of-range", path, e.Message)); }
+                        }
+                        Numbers(parsedJson.RootElement, input.Name);
+                    }
                     catch (JsonException e) { validJson = false; d.Add(FighterCookDocument.Error("schema.invalid-json", input.Name + (e.Path == "$" ? "" : e.Path?.TrimStart('$')), e.Message)); }
                 if (validJson) compiled = CharacterPackageCompiler.CompilePortable(Encoding.UTF8.GetString(package), Encoding.UTF8.GetString(character));
                 if (compiled != null) d.AddRange(compiled.Diagnostics);

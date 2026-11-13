@@ -76,7 +76,14 @@ public sealed class FighterWorkspaceReviewTests : IDisposable
             for(int i=0;i<4;i++) Assert.NotNull(FighterWorkspaceCache.Cook(cache,folder,s).Admission?.Fighter);
             Assert.True(Directory.Exists(a.Folder)); Assert.Equal(2,Directory.GetDirectories(Path.GetDirectoryName(a.Folder!)!).Length);
         }
-        Assert.Single(Directory.GetDirectories(Path.GetDirectoryName(a.Folder!)!));
+        string parent=Path.GetDirectoryName(a.Folder!)!;
+        Assert.Single(Directory.GetDirectories(parent));
+        string orphan=Path.Combine(parent,".pending-abandoned");Directory.CreateDirectory(orphan);File.WriteAllText(orphan+".lock","");
+        Assert.NotNull(FighterWorkspaceCache.Cook(cache,folder,s).Admission?.Fighter);Assert.False(Directory.Exists(orphan));
+        string active=Path.Combine(parent,".pending-active");Directory.CreateDirectory(active);
+        using(var owner=new FileStream(active+".lock",FileMode.CreateNew,FileAccess.ReadWrite,FileShare.None))
+        { Assert.NotNull(FighterWorkspaceCache.Cook(cache,folder,s).Admission?.Fighter);Assert.True(Directory.Exists(active)); }
+        Assert.NotNull(FighterWorkspaceCache.Cook(cache,folder,s).Admission?.Fighter);Assert.False(Directory.Exists(active));
     }
     [Fact] public async Task ConcurrentCooksNeverShareTheirWriteDirectory()
     {
@@ -96,6 +103,13 @@ public sealed class FighterWorkspaceReviewTests : IDisposable
         MeshPoint? Bone(string id) => id switch { "bone.head" => new MeshPoint(0,1,0), "bone.neck" => new MeshPoint(0,.8,0), "bone.left-upper-arm"=>new MeshPoint(.2,.8,0), "bone.right-upper-arm"=>new MeshPoint(-.2,.8,0), _=>new MeshPoint(0,0,0) };
         var diagnostics=new List<CharacterDiagnostic>(); var fit=PortableMeshMeasurements.FitCapsules(points,points.Select(_=>"torso").ToArray(),Bone,diagnostics);
         Assert.Equal(.2f,fit[1].Radius);Assert.Contains(diagnostics,d=>d.Code=="mesh.fit.loose-torso");
+    }
+    [Fact] public void LowPolygonRigidHatIsNotDiscardedByTheSkinPercentile()
+    {
+        var points=Enumerable.Range(0,1000).Select(_=>new MeshPoint(.01,1,0)).Append(new MeshPoint(.3,1,0)).ToArray();
+        var rigid=points.Select((p,i)=>i==1000).ToArray();
+        var fit=PortableMeshMeasurements.FitCapsules(points,points.Select(_=>"head").ToArray(),id=>id=="bone.head"?new MeshPoint(0,1,0):new MeshPoint(0,0,0),new List<CharacterDiagnostic>(),rigid);
+        Assert.Equal(.3f,fit[0].Radius);
     }
     [Fact] public void RigidShoeChangesTheMeasuredSole()
     {
