@@ -98,6 +98,23 @@ namespace SlopArena.Client.UI
             grid?.Clear();
 
             var classes = VisiblePackages;
+            if (grid != null && classes.Count > LocalFighterLibrary.Current.PackagesFor(false).Count && grid.parent is not ScrollView)
+            {
+                var parent = grid.parent;
+                grid.RemoveFromHierarchy();
+                var scroll = new ScrollView(ScrollViewMode.Vertical) { name = "made-fighter-grid-scroll" };
+                scroll.style.flexGrow = 1;
+                scroll.style.minHeight = 0;
+                scroll.style.width = Length.Percent(100);
+                parent.Add(scroll); scroll.Add(grid);
+            }
+            else if (grid?.parent is ScrollView scroll && classes.Count == LocalFighterLibrary.Current.PackagesFor(false).Count)
+            {
+                var parent = scroll.parent;
+                grid.RemoveFromHierarchy(); scroll.RemoveFromHierarchy(); parent.Add(grid);
+            }
+            var meta = _context.Q<Label>("roster-meta");
+            if (meta != null && meta.text.Contains(" FIGHTERS //")) meta.text = classes.Count + meta.text.Substring(meta.text.IndexOf(" FIGHTERS //", StringComparison.Ordinal));
             string prior = EditsSeat ? MatchConfig.Seat(_editingSeat).Fighter : MatchConfig.PlayerPackageId;
             _selected = classes.Contains(prior)
                 ? prior
