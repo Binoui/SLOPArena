@@ -127,8 +127,8 @@ public static class PortableMeshMeasurements
         if (soles.Length == 0) throw new InvalidDataException("No foot vertices to measure the idle sole.");
         return new PortableMeshFit((float)Math.Round(-soles.Min(), 4), FitCapsules(points, regions, Bone));
     }
-        public static HurtboxBoneSource[] FitCapsules(IReadOnlyList<Vector3> points, IReadOnlyList<string> regions,
-            Func<string, Vector3?> bone, Action<string>? log = null)
+        internal static HurtboxBoneSource[] FitCapsules(IReadOnlyList<Vector3> points, IReadOnlyList<string> regions,
+            Func<string, Vector3?> bone)
         {
             var segs = new List<(string Start, string End, string Region)>();
             void Segment(string start, string end, string region)
@@ -180,7 +180,6 @@ public static class PortableMeshMeasurements
                     if (mine <= best + 1e-5f) kept.Add(mine);
                 }
                 float radius = (float)Math.Round(Math.Max(.015f, Pct(kept, .85f)), 4);
-                log?.Invoke($"fit {segs[k].Start} -> {segs[k].End} ({segs[k].Region}): {kept.Count} vertices, radius {radius:0.0000}");
                 result.Add(new HurtboxBoneSource(segs[k].Start, 0f, 0f, 0f, radius, segs[k].End, 0f, k == 0 ? headEnd : 0f, 0f));
             }
             return result.ToArray();

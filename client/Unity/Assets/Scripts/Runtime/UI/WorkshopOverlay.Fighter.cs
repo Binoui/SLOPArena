@@ -3,6 +3,7 @@ using System;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
+using System.Threading;
 using SlopArena.Client.Workshop;
 using SlopArena.Shared;
 using UnityEngine;
@@ -19,6 +20,9 @@ namespace SlopArena.Client.UI
         private double stableSince;
         private bool polling;
         private int workspaceGeneration;
+        private FileSystemWatcher? workspaceWatcher;
+        private long workspaceRevision;
+        private long observedRevision = -1;
         private IVisualElementScheduledItem? workspacePoll;
         private LocalFighterItemResult? workspaceItem;
         private LocalFighterWorkspace? measuredSource;
@@ -28,6 +32,7 @@ namespace SlopArena.Client.UI
         private void StopWorkspace()
         {
             workspacePoll?.Pause(); workspacePoll = null;
+            workspaceWatcher?.Dispose(); workspaceWatcher = null;
             workspaceGeneration++;
             workspaceFolder = null; pendingSource = null; cookedStamp = null; workspaceItem = null;
         }
@@ -73,9 +78,23 @@ namespace SlopArena.Client.UI
         {
             try
             {
+                workspaceWatcher?.Dispose(); workspaceWatcher = null;
                 workspaceFolder = Path.GetFullPath(folder);
                 pendingSource = null; cookedStamp = null; workspaceItem = null;
                 workspaceTry?.SetEnabled(false); workspaceOffset?.SetEnabled(false); measuredSource = null;
+                observedRevision = -1;
+                workspaceWatcher = new FileSystemWatcher(workspaceFolder)
+                {
+                    NotifyFilter = NotifyFilters.FileName | NotifyFilters.LastWrite | NotifyFilters.Size,
+                    IncludeSubdirectories = false,
+                };
+                workspaceWatcher.Changed += (_, _) => Interlocked.Increment(ref workspaceRevision);
+                workspaceWatcher.Created += (_, _) => Interlocked.Increment(ref workspaceRevision);
+                workspaceWatcher.Deleted += (_, _) => Interlocked.Increment(ref workspaceRevision);
+                workspaceWatcher.Renamed += (_, _) => Interlocked.Increment(ref workspaceRevision);
+                workspaceWatcher.Error += (_, _) => Interlocked.Increment(ref workspaceRevision);
+                workspaceWatcher.EnableRaisingEvents = true;
+
                 Status("Watching " + workspaceFolder);
                 PollWorkspace();
             }
@@ -84,6 +103,8 @@ namespace SlopArena.Client.UI
         private async void PollWorkspace()
         {
             if (polling || _busy || workspaceFolder == null) return;
+            long revision = Interlocked.Read(ref workspaceRevision);
+            if (cookedStamp != null && observedRevision == revision) return;
             polling = true;
             string folder = workspaceFolder;
             int generation = workspaceGeneration;
@@ -97,7 +118,8 @@ namespace SlopArena.Client.UI
                     workspaceItem = null; workspaceTry!.SetEnabled(false);
                     Status("Files changed. Waiting for saves to finish..."); return;
                 }
-                if (snapshot.Stamp == cookedStamp || Time.realtimeSinceStartupAsDouble - stableSince < .75) return;
+                if (snapshot.Stamp == cookedStamp) { observedRevision = revision; return; }
+                if (Time.realtimeSinceStartupAsDouble - stableSince < .75) return;
                 Status("Cooking fighter. You can keep using the menu...");
                 var watch = System.Diagnostics.Stopwatch.StartNew();
                 var result = await Task.Run(() =>
@@ -113,7 +135,7 @@ namespace SlopArena.Client.UI
                 var after = await Task.Run(() => LocalFighterWorkspace.Read(folder));
                 if (!IsOpen || generation != workspaceGeneration || folder != workspaceFolder) return;
                 if (after.Stamp != snapshot.Stamp) { pendingSource = after; stableSince = Time.realtimeSinceStartupAsDouble; return; }
-                cookedStamp = snapshot.Stamp; workspaceItem = result.Admission;
+                cookedStamp = snapshot.Stamp; observedRevision = revision; workspaceItem = result.Admission;
                 measuredSource = snapshot;
                 workspaceOffset!.SetEnabled(snapshot.SuggestedModelYOffset.HasValue);
                 workspaceOffset.text = snapshot.SuggestedModelYOffset.HasValue ? $"APPLY SUGGESTED modelYOffset {snapshot.SuggestedModelYOffset.Value:0.0000} (idle sole)" : "No sole suggestion available";
