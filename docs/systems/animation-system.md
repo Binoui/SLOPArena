@@ -48,6 +48,33 @@ the [character workflow](../characters/adding-a-new-character.md).
 Animancer plays clips directly. AnimatorController transitions and animation callbacks
 do not own gameplay timing or hit results.
 
+## GLB motion for portable fighters
+
+A made fighter plays its own GLB clips ([ADR-0065](../adr/0065-workshop-item-format.md), path A).
+Admission returns a `FighterItemSnapshot` whose `PortableFighterMotion` holds the parsed skeleton and
+every bound clip. `MadeFighterPresentation.PrepareAsync` turns that into what the generated assets
+give a built-in fighter, once per revision for the session:
+
+```text
+FighterItemSnapshot (verified bytes + PortableFighterMotion)
+  -> ModelSwapImporter.ImportFighterAsync   (glTFast; upright node from the Shared root correction;
+                                             generic Animator, no avatar)
+  -> GlbMotionClip per clip                 (GlbMotionRig.SampleLocal at every tick)
+  -> GlbMotionBinder + placeholder clips    (one legacy key clip per semantic ID: length and loop only)
+  -> runtime CharacterAnimationCatalog      (CookedCharacterClientAssetResolver finds it by revision)
+  -> PlayerRenderer                         (AdoptModel binds one GlbMotionState per key)
+```
+
+`GlbMotionState` is an Animancer `AnimationJobState`. Its job writes the sampled local transforms of
+every node any of the fighter's clips animates, through `TransformStreamHandle`s. Ticks are the
+sampled keys exactly, and between ticks the display blends the two neighbours. The state's key is the
+semantic ID's placeholder clip, so the renderer's existing `Play(clip, fade)` calls work unchanged.
+Fades between GLB clips, from a GLB clip into idle, landing and hitstun all happen in Animancer's
+mixer, not in a pass written after it. The bake reads the same sampler, so the drawn bones sit on
+`poses.bin` at every tick. Built-in fighters keep their generated catalogs and clip states.
+A GLB-driven model leaves the shared humanoid grab and throw clips unloaded, because shared
+clips stay closed to made fighters.
+
 ## Cooked poses
 
 Server hitboxes use cooked pose tracks and semantic bone IDs. The client receives the
@@ -67,3 +94,5 @@ those tracks; the legacy skeleton-bake menu is not the roster authoring path.
 - [`MatchContentCatalog`](../../src/Shared/MatchContentCatalog.cs) admits cooked roster content.
 - [`MatchBase.SetupRenderer`](../../client/Unity/Assets/Scripts/Runtime/World/MatchBase.cs) resolves package bindings.
 - [`PlayerRenderer`](../../client/Unity/Assets/Scripts/Runtime/Entities/PlayerRenderer.cs) selects and plays clips from Shared state.
+- [`GlbMotion`](../../src/Shared/GlbMotion.cs) is the rule-1 sampler; [`PortablePoseBake`](../../src/Shared/PortablePoseBake.cs) bakes and verifies with it.
+- [`GlbMotionState`](../../client/Unity/Assets/Scripts/Runtime/Workshop/GlbMotionState.cs) and [`MadeFighterPresentation`](../../client/Unity/Assets/Scripts/Runtime/Workshop/MadeFighterPresentation.cs) draw a made fighter.

@@ -80,6 +80,11 @@ mesh copies, and `Dispose` frees them. The renderer destroys the model object it
 takes off. If wearing fails after the built-in model was discarded, the renderer
 builds the built-in model again and the import is disposed.
 
+A made fighter's own model goes through `ModelSwapImporter.ImportFighterAsync`, which shares the
+load, texture budget, material and ink steps. It skips the bone map, fit, palms and avatar. Its upright
+node takes the Shared root correction, and it gets a generic Animator for GLB motion states. See
+[the animation system](animation-system.md#glb-motion-for-portable-fighters).
+
 ## Wearing it
 
 `PlayerRenderer.WearModel` poses both models on the idle clip, builds weapon

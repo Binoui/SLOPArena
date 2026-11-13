@@ -181,12 +181,14 @@ extra files, and pin all bytes. Hard links are allowed. They
 validate schema-3 portable bindings and the framed source hash, then call the Workshop loader
 with its profile selected explicitly. The included source is editable material, not a second
 runtime authority. Producer versions are recorded in item.json and named on needs-update errors.
-GLB-bound fighters currently stop at `item.pose-bake.unavailable` until unit 4c verifies the bake.
+Admission then re-bakes `poses.bin` from the bound GLB clips under root rule 1 and requires the
+bytes to be equal (`item.pose-bake.mismatch` otherwise).
 The Steam entry point takes its PublishedFileId from the
 host. Neither an item field nor a claimed package namespace grants provenance.
 
-`FighterItemSnapshot` retains the verified bytes and cloned binding/card data for subsequent
-presentation work. Unit 4c must consume these bytes instead of reopening mutable disk paths.
+`FighterItemSnapshot` retains the verified bytes, cloned binding and card data, and the parsed
+motion the bake verified. `MadeFighterPresentation.PrepareAsync` builds the renderer's model,
+GLB motion states, catalog and portrait from it and never reopens disk paths.
 Unit 5 must wire discovery and UI to this admission result. No product path calls it yet.
 The shared-clip registry is empty, so required shared clips fail. See the
 [authoring reference](../characters/workshop-authoring-reference.md#fighter-items-and-portable-bindings)
