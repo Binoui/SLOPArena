@@ -16,6 +16,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--version", required=True, help="Fresh X.Y.Z-playtest.N build version")
     parser.add_argument("--local-unity-project", required=True, type=Path, help="Read-only licensed input project")
+    parser.add_argument("--build-cache", type=Path, help="Optional release-owned import cache; native cook checks still run")
     parser.add_argument("--endpoint", default="https://master-test.sloparena.barakaslurp.fr")
     args = parser.parse_args()
     root = Path(__file__).resolve().parents[2]
@@ -61,8 +62,9 @@ def main():
                     "client/Unity/Assets/Scripts/PortableCookProof.cs.meta", "client/Unity/Assets/Scripts/PortableProof/link.xml"], cwd=source, check=True)
     run(["git", "commit", "-m", "build-only: portable player proof with origin pin skip"], source, evidence / "commit.log")
     revision = subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=source, text=True).strip()
+    build_cache = ["--build-cache", str(args.build_cache.resolve())] if args.build_cache else []
     run(["python3", "scripts/build-playtest-local.py", "--version", args.version, "--source-revision", revision,
-         "--endpoint", args.endpoint, "--local-unity-project", str(args.local_unity_project.resolve())], source, evidence / "build.log", env)
+         "--endpoint", args.endpoint, "--local-unity-project", str(args.local_unity_project.resolve())] + build_cache, source, evidence / "build.log", env)
     receipt = json.loads((evidence / "build.log").read_text())
     player = Path(receipt["releaseOutput"]) / "SLOPArena.exe"
     def windows(path):

@@ -9,7 +9,8 @@ python3 tools/PortableCookProof/run-player-proof.py \
   --local-unity-project /path/to/read-only/licensed/client/Unity
 ```
 
-Choose a fresh version for each attempt. The script generates a synthetic Tumbleweed item,
+Choose a fresh version for each attempt. `--build-cache /path/to/release-owned-cache` optionally
+reuses installed imports through the existing builder cache. Every native cook check still runs. The script generates a synthetic Tumbleweed item,
 runs the .NET compiler/assembler, clones the committed feature into a throwaway build-only branch,
 applies the committed `origin-pin.patch` containing only commit 9e5fb420's origin/main pin skip, injects a temporary proof hook,
 and runs the isolated Win64 builder with all cook checks enabled. It then runs that player under

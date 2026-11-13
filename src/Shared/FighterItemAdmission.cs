@@ -89,7 +89,7 @@ internal static class FighterItemAdmission
             }
             using var cooked = JsonDocument.Parse(files[CharacterPackageAssembler.ManifestPath]);
             var m = cooked.RootElement;
-            string id = m.GetProperty("packageId").GetString()!;
+            string id = m.GetProperty("packageId").GetString() ?? throw new InvalidDataException("Cooked package ID must be a string.");
             string expected = steamId.HasValue ? "workshop." + steamId.Value.ToString(System.Globalization.CultureInfo.InvariantCulture) : "local.";
             if (steamId.HasValue ? id != expected : !id.StartsWith(expected, StringComparison.Ordinal) || id.Length == expected.Length)
                 return Failure("item.namespace", "Package namespace disagrees with host origin.");
@@ -108,7 +108,7 @@ internal static class FighterItemAdmission
                 return Failure("item.pose-bake.unavailable", "Pose bake verification not available. Unit 4c must verify poses.bin against the bound clips before Match admission.");
             return loaded.IsValid ? new(new AdmittedFighter(loaded, null, null), d.AsReadOnly(), new FighterItemSnapshot(files, binding.RootElement, card.RootElement)) : Result();
         }
-        catch (Exception ex) when (ex is InvalidDataException or IOException or UnauthorizedAccessException or JsonException or InvalidOperationException or KeyNotFoundException or ArgumentException or OverflowException or NotSupportedException or System.Security.SecurityException or System.ComponentModel.Win32Exception or TypeLoadException)
+        catch (Exception ex) when (ex is InvalidDataException or IOException or UnauthorizedAccessException or JsonException or InvalidOperationException or KeyNotFoundException or ArgumentException or OverflowException or NotSupportedException or System.Security.SecurityException or System.ComponentModel.Win32Exception or TypeLoadException or FormatException)
         { return Failure("item.read", ex.Message); }
     }
 }

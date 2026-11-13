@@ -240,6 +240,14 @@ public sealed class PortableFormatRevisionTests
             ["audio"] = new JsonObject { ["selection"] = selection, ["clips"] = clips } };
         Assert.Contains(Validate(binding), d => d.Code == code);
     }
+    [Theory] [InlineData("packageId", "null")] [InlineData("cookedSchemaVersion", "65536")]
+    public void MalformedCookedIdentityReturnsDiagnostics(string field, string value)
+    {
+        var item = FighterItemAdmissionTests.Item(); var manifest = JsonNode.Parse(item["manifest.json"])!;
+        manifest[field] = JsonNode.Parse(value); item["manifest.json"] = Encoding.UTF8.GetBytes(manifest.ToJsonString());
+        FighterItemAdmissionTests.RehashItem(item);
+        Assert.Contains(Read(item).Diagnostics, d => d.Code == "item.read");
+    }
     [DllImport("libc", EntryPoint="mkfifo")] private static extern int MkFifo(string path, uint mode);
     [DllImport("libc", EntryPoint="link")] private static extern int Link(string source, string target);
 }
