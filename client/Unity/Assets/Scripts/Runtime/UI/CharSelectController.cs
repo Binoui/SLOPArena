@@ -30,7 +30,7 @@ namespace SlopArena.Client.UI
         // mount time (issue #219).
         private FrontendPageContext _context = null!;
 
-        private IReadOnlyList<string> VisiblePackages => LocalFighterLibrary.Current.PackagesFor(MatchConfig.Mode is GameMode.Solo or GameMode.Training);
+        private IReadOnlyList<string> VisiblePackages => LocalFighterLibrary.Current.PackagesFor(MatchConfig.Mode == GameMode.Training || MatchConfig.Mode == GameMode.Solo && MatchConfig.LocalMode == LocalPlayMode.Brawl);
         private string _selected = "";
         private LocalChallengeSetup? _challenge;
         private int _editingSeat = 1;
