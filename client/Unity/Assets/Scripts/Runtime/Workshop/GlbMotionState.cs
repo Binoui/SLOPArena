@@ -50,6 +50,8 @@ namespace SlopArena.Client.Workshop
         /// <summary>Per handle: 1 position, 2 rotation, 4 scale; the paths any clip of the fighter animates.</summary>
         public NativeArray<byte> Paths;
         public NativeArray<float> Frames;
+        /// <summary>The state's time for this evaluation; see <see cref="GlbMotionState.Update"/>.</summary>
+        public NativeArray<double> Clock;
         public int FrameCount;
         public float Duration;
         public bool Loop;
@@ -62,7 +64,7 @@ namespace SlopArena.Client.Workshop
         // Ticks hold the sampled keys exactly; between ticks the display blends neighbours (looping clips wrap to frame 0).
         public readonly void ProcessAnimation(AnimationStream stream, double time)
         {
-            double frame = time * 60.0;
+            double frame = Clock[0] * 60.0;
             int f0, f1;
             if (Loop)
             {
@@ -106,6 +108,7 @@ namespace SlopArena.Client.Workshop
             Handles = new NativeArray<TransformStreamHandle>(Handles, Allocator.Persistent),
             Paths = new NativeArray<byte>(Paths, Allocator.Persistent),
             Frames = new NativeArray<float>(Frames, Allocator.Persistent),
+            Clock = new NativeArray<double>(Clock, Allocator.Persistent),
             FrameCount = FrameCount, Duration = Duration, Loop = Loop,
         };
 
@@ -114,6 +117,7 @@ namespace SlopArena.Client.Workshop
             if (Handles.IsCreated) Handles.Dispose();
             if (Paths.IsCreated) Paths.Dispose();
             if (Frames.IsCreated) Frames.Dispose();
+            if (Clock.IsCreated) Clock.Dispose();
         }
     }
 
@@ -130,6 +134,26 @@ namespace SlopArena.Client.Workshop
 
         public override AnimationClip Clip { get => _key; set => base.Clip = value; }
         public override Object MainObject { get => _key; set => base.MainObject = value; }
+
+        // Animancer runs pre-updates before playable time advances, so the base job time lags a clip state by one
+        // frame. The clock holds the time this evaluation reaches, which is where a clip state samples.
+        public override void Update()
+        {
+            base.Update();
+            var clock = Job.Clock;
+            clock[0] = RawTime + AnimancerGraph.DeltaTime * EffectiveSpeed;
+        }
+
+        public override double RawTime
+        {
+            get => base.RawTime;
+            set
+            {
+                base.RawTime = value;
+                var clock = Job.Clock;
+                clock[0] = value;
+            }
+        }
 
         public override AnimancerState Clone(CloneContext context)
         {
@@ -181,6 +205,7 @@ namespace SlopArena.Client.Workshop
                     Handles = handles,
                     Paths = new NativeArray<byte>(_paths, Allocator.Persistent),
                     Frames = new NativeArray<float>(motion.Frames, Allocator.Persistent),
+                    Clock = new NativeArray<double>(1, Allocator.Persistent),
                     FrameCount = motion.FrameCount, Duration = motion.DurationSeconds, Loop = motion.Loop,
                 });
                 state.SetParent(layer);
