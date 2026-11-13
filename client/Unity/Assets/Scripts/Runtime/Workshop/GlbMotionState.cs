@@ -129,19 +129,28 @@ namespace SlopArena.Client.Workshop
     public sealed class GlbMotionState : AnimationJobState<GlbMotionJob>
     {
         private readonly AnimationClip _key;
+        private bool _starting;
 
         public GlbMotionState(AnimationClip key, GlbMotionJob job) : base(job) { _key = key; }
 
         public override AnimationClip Clip { get => _key; set => base.Clip = value; }
         public override Object MainObject { get => _key; set => base.MainObject = value; }
 
+        protected override void OnSetIsPlaying()
+        {
+            base.OnSetIsPlaying();
+            if (IsPlaying) _starting = true;
+        }
+
         // Animancer runs pre-updates before playable time advances, so the base job time lags a clip state by one
-        // frame. The clock holds the time this evaluation reaches, which is where a clip state samples.
+        // frame. The clock holds the time this evaluation reaches, which is where a clip state samples: Unity leaves
+        // a playable's time alone in the first evaluation after it starts playing and advances it in later ones.
         public override void Update()
         {
             base.Update();
             var clock = Job.Clock;
-            clock[0] = RawTime + AnimancerGraph.DeltaTime * EffectiveSpeed;
+            clock[0] = _starting ? RawTime : RawTime + AnimancerGraph.DeltaTime * EffectiveSpeed;
+            _starting = false;
         }
 
         public override double RawTime
