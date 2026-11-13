@@ -1841,8 +1841,9 @@ workspace keeps its authored capsule rows.
 The game suggests `modelYOffset` from the lowest idle foot vertex and the capsule
 bottom. **Apply suggested modelYOffset** writes that value to the workspace's
 `character.json`, which triggers another cook. A newer edit prevents that write.
-Capsule radii and endpoints are computed automatically from the idle mesh. The game
-does not infer movement speeds, damage, shield size, or attack timing.
+Capsule radii and endpoints are computed automatically from the idle mesh. Mesh
+fitting supports up to four skin influences per vertex and no morph targets. The
+game does not infer movement speeds, damage, shield size, or attack timing.
 
 **Try in Training** becomes available after admission. It starts player 1 as that
 exact fighter revision against a built-in CPU. Returning to Home reopens the
