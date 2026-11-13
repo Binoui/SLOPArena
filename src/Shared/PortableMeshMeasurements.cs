@@ -60,7 +60,7 @@ public static class PortableMeshMeasurements
                 for (int k = 0; k < width; k++)
                 {
                     int at = checked(offset + i * stride + k * size);
-                    double value = type == 5126 ? BitConverter.Int32BitsToSingle(BinaryPrimitives.ReadInt32LittleEndian(glb.AsSpan(at, 4)))
+                    double value = type == 5126 ? (double)BitConverter.Int32BitsToSingle(BinaryPrimitives.ReadInt32LittleEndian(glb.AsSpan(at, 4)))
                         : type == 5125 ? BinaryPrimitives.ReadUInt32LittleEndian(glb.AsSpan(at, 4)) : type == 5123 ? BinaryPrimitives.ReadUInt16LittleEndian(glb.AsSpan(at, 2)) : glb[at];
                     if (normalized && type != 5126) value /= type == 5121 ? 255.0 : 65535.0;
                     if (double.IsNaN(value) || double.IsInfinity(value)) throw new InvalidDataException("Mesh contains a non-finite value.");
