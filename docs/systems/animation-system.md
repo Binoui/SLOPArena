@@ -77,6 +77,13 @@ mixer, not in a pass written after it. The bake reads the same sampler, so the d
 A GLB-driven model leaves the shared humanoid grab and throw clips unloaded, because shared
 clips stay closed to made fighters.
 
+A revision's model, clips, catalog and art live while anyone uses them. `PrepareAsync` returns a
+`MadeFighterPresentation.Lease` for the caller (the menu that offers the fighter), and
+`MatchBase.SetupRenderer` takes another for each Match that draws it and disposes it when the Match
+is destroyed. The last lease destroys the assets, so a menu can let go mid-Match. A cached
+presentation whose Unity objects no longer exist is dropped, never served, and every Play session
+starts with an empty cache.
+
 ## Cooked poses
 
 Server hitboxes use cooked pose tracks and semantic bone IDs. The client receives the

@@ -117,12 +117,15 @@ Unit 4c made this rule concrete in `src/Shared/GlbMotion.cs` and `src/Shared/Por
 its int32 bits, and `extras.slop.frameCount`. `extras.slop.loop` is an optional boolean for the
 renderer. Unknown `extras.slop` fields fail. The frame count must equal
 `max(1, ceil(binary32(durationSeconds * 60)))`, at most 4096, and the binding and pose-track
-counts must agree with it. clipStart is the minimum first-key time among the clip's samplers.
+counts must agree with it. That range is checked in floating point before anything converts to an
+integer, so an overflowing duration fails rather than wrapping to one frame. clipStart is the minimum first-key time among the clip's samplers.
 A key belongs to tick `j = round((t - clipStart) * 60)`, computed in double, and must sit within
 1/1000 tick of it. Binary32 times up to 4096 frames err below 1/10000 tick, so this tolerance
-names the grid without accepting another frame rate. A channel's keys must be consecutive ticks.
-A gap is allowed only between bitwise-equal keys under LINEAR, as written by exporters that drop
-duplicate keys, or after any key under STEP. CUBICSPLINE is refused. Inputs and outputs are
+names the grid without accepting another frame rate. A tick holds at most one key, so an accessor
+may hold at most `frameCount + 1` keys; a larger count fails with `glb.clip.keys` before the
+accessor is read. A channel's keys must be consecutive ticks. A gap is allowed only between
+bitwise-equal keys under LINEAR, as written by exporters that drop duplicate keys, or after any key
+under STEP. Keys stay sparse: a tick reads the last key at or before it, so a gap never expands. CUBICSPLINE is refused. Inputs and outputs are
 32-bit float accessors. A key after the recorded duration fails. A key exactly at tick
 `frameCount` is the duplicate terminal endpoint of a loop and is never sampled. Channels clamp
 outside their key range. Tick `k` therefore always reads a stored key, and no interpolation enters
@@ -143,7 +146,9 @@ renderer puts on its upright node.
 then hurtbox bones and end bones, deduplicated by baked name in that order. The definition's
 attachment points come next, then `_hips_offset`. Tracks are ordered by pose track ID. Humanoid
 points resolve through the bone map, a `humanoid.json` or Mixamo names. A `rig:` ID names exactly
-one node. An attachment point such as `_weapon_tip` is the drawn position of the one node with the
+one node. Every node the bake reads, the hips, head and thighs of the turn included, must be a joint
+of a skin that a mesh node in the default scene draws, or a node below such a joint; any other
+node fails with `item.pose-bake.point` or `glb.rig.bone`, because nothing the player sees moves it. An attachment point such as `_weapon_tip` is the drawn position of the one node with the
 same name, so a weapon modelled in the GLB carries marker nodes named after its attachment points.
 The built-in weapon prefab rule below exists for a prop attached to a scaled bone and does not
 apply to geometry already in the GLB. Every point is its model-space position minus the hips.
@@ -162,10 +167,18 @@ round once through the portable decimal parser, and keys come bit-exactly from t
 Release Mono players run float arithmetic in double precision while CoreCLR rounds each float
 operation, so float arithmetic would split them. Double arithmetic without transcendental calls
 does not. In the Win64 player (Mono 6.13), Tumbleweed's admission re-baked its poses to the .NET 8
-bytes and its re-cook reproduced every item file byte for byte.
-The work is bounded by the existing limits: at most 300 nodes, 256 animations, 4096 frames per
-track and the pose-memory ceiling. Only ancestors of baked points are transformed, and a clip
-bound by several animations is sampled once. Tumbleweed's 17 tracks bake in well under a second
+bytes and its re-cook reproduced every item file byte for byte. `PortableBakeDeterminismTests` adds an
+adversarial item: binary32 rounding ties, a subnormal output and two decimal node values a hair
+either side of a tie. It bakes to the same pinned bytes on .NET 8 and in that player. Neither runtime
+fuses a multiply and an add, Mono keeps subnormals, and the test pins that the bake calls no `Math`
+function other than `Sqrt`, `Floor`, `Ceiling`, `Abs`, `Max` and `Min`.
+The work is bounded before it is done. Each animation accessor is read once per item, however many
+samplers share it, and the distinct accessors read may total at most the BIN chunk's bytes
+(`glb.limit.animation-bytes`), so aliased accessors cannot multiply the file. Keys per channel are
+bounded by the frame count, and frames by the loader's pose limits: at most 300 nodes, 256
+animations, 4096 frames per track and the pose-memory ceiling. The bake transforms only ancestors
+of baked points and evaluates only their channels, and a clip bound by several animations is
+sampled once. Tumbleweed's 17 tracks bake in well under a second
 in a cook.
 
 `rootRuleVersion` 1 names this rule. A changed sampler, placement or point rule receives a new
