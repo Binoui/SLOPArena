@@ -1750,7 +1750,7 @@ Projectile lifetime outlasts rise plus mark. A projectile with homing or perch h
 
 ## Fighter items and portable bindings
 
-The fighter format remains open until the first fighter is published in unit 5.
+The first private fighter item was published in unit 5 on 2026-11-13. Published items keep their declared schema and root sampling rule.
 The authoritative contract is [ADR-0065](../adr/0065-workshop-item-format.md#portable-bindings).
 
 A fighter is a flat schema-2 `item.json` folder with type `fighter`, `itemVersion`, creator,

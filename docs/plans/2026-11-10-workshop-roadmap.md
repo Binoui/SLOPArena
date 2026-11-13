@@ -387,8 +387,9 @@ one GLB, a portrait, and the editable source.
    one, so those seven moves cannot be forked yet. A fork keeps the gameplay and loses the
    fighter's bespoke presentation scripts.
 6. **Publish and subscribe to fighters.** Unit 5 implements the local library, Workshop badge,
-   identity recook and upload, and subscription admission. Steam round-trip acceptance remains
-   open until a logged-in store-app session can create, update and download the private test item.
+   identity recook and upload, and subscription admission. The store-app console client created
+   private Tumbleweed item `3839108801`, updated it once, subscribed, downloaded and admitted it
+   on 2026-11-13. Every downloaded file equals the verified local recook.
    The second-account subscribe-and-play check remains required.
 7. **Generate the authoring reference from code.** List the 12 operation kinds and the 14 public
    capabilities with their fields, bounds, and budget costs, plus one worked example. Write it so
