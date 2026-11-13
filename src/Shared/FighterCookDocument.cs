@@ -150,7 +150,7 @@ public sealed class FighterCookDocument
                     byte[] model = PortableItemFiles.Read(file, (int)WorkshopGlbLimits.Default.MaxFileBytes, ref total);
                     string mapPath = Path.Combine(folder, cook.Humanoid);
                     string? map = File.Exists(mapPath) ? Encoding.UTF8.GetString(PortableItemFiles.Read(mapPath, PortableItemFiles.HumanoidBytes, ref total)) : null;
-                    d.AddRange(cook.CheckClips(model, map));
+                    d.AddRange(cook.CheckClips(model, map).Select(x => x.Path == cook.Model ? x with { Path = file } : x));
                 }
             }
         }

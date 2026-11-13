@@ -108,6 +108,7 @@ public static class PortableMeshMeasurements
                 }
                 foreach (var primitive in root.GetProperty("meshes")[mesh.GetInt32()].GetProperty("primitives").EnumerateArray())
                 {
+                    if (primitive.TryGetProperty("targets", out _)) throw new InvalidDataException("Rigid mesh fitting does not support morph targets.");
                     var positions = Accessor(primitive.GetProperty("attributes").GetProperty("POSITION").GetInt32(), 3);
                     if (points.Count + positions.Length / 3 > 250000) throw new InvalidDataException("Too many mesh vertices to fit.");
                     for (int i = 0; i < positions.Length; i += 3)
