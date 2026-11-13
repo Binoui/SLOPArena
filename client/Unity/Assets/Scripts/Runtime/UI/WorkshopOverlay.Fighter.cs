@@ -29,6 +29,7 @@ namespace SlopArena.Client.UI
         private Button? workspaceOffset;
         private Label? workspaceDiagnostics;
         private Button? workspaceTry;
+        private TextField? workspacePath;
         private void StopWorkspace()
         {
             workspacePoll?.Pause(); workspacePoll = null;
@@ -50,7 +51,7 @@ namespace SlopArena.Client.UI
             Directory.CreateDirectory(root);
             _body.Add(Text("Put package.json, character.json, card.json, cook.json and your GLB in one folder. Package ID must start with local."));
             Button(_body, "OPEN WORKSPACES FOLDER", () => Application.OpenURL(new Uri(root + Path.DirectorySeparatorChar).AbsoluteUri));
-            var path = Field("Fighter source folder", "");
+            var path = Field("Fighter source folder", ""); workspacePath = path;
             Button(_body, "USE THIS FOLDER", () => SelectWorkspace(path.value));
             foreach (string folder in Directory.GetDirectories(root))
                 Button(_body, Path.GetFileName(folder), () => { path.value = folder; SelectWorkspace(folder); });
@@ -82,6 +83,7 @@ namespace SlopArena.Client.UI
             {
                 workspaceWatcher?.Dispose(); workspaceWatcher = null;
                 workspaceFolder = Path.GetFullPath(folder);
+                if (workspacePath != null) workspacePath.value = workspaceFolder;
                 pendingSource = null; cookedStamp = null; workspaceItem = null;
                 workspaceTry?.SetEnabled(false); workspaceOffset?.SetEnabled(false); measuredSource = null;
                 observedRevision = -1;
@@ -117,7 +119,7 @@ namespace SlopArena.Client.UI
                 if (pendingSource?.Stamp != snapshot.Stamp)
                 {
                     pendingSource = snapshot; stableSince = Time.realtimeSinceStartupAsDouble;
-                    workspaceItem = null; workspaceTry!.SetEnabled(false);
+                    workspaceItem = null; workspaceTry!.SetEnabled(false); workspaceOffset?.SetEnabled(false);
                     Status("Files changed. Waiting for saves to finish..."); return;
                 }
                 if (snapshot.Stamp == cookedStamp) { observedRevision = revision; return; }
@@ -144,7 +146,7 @@ namespace SlopArena.Client.UI
                 var diagnostics = result.Diagnostics.OrderBy(d => d.Severity == CharacterDiagnosticSeverity.Error ? 0 : 1)
                     .ThenBy(d => LocalFighterWorkspace.DiagnosticPath(d), StringComparer.Ordinal)
                     .GroupBy(d => (d.Severity, File: DiagnosticFile(d)))
-                    .Select(group => group.Key.File + " / " + group.Key.Severity + "\n" + string.Join("\n", group.Select(LocalFighterWorkspace.DiagnosticText)));
+                    .Select(group => group.Key.File + " / " + group.Key.Severity + "\n" + string.Join("\n", group.Select(d => LocalFighterWorkspace.DiagnosticText(d) + (d.Code == "value.out-of-range" && d.Message == "Expected byte." ? "\nUse a whole number from 0 to 255." : ""))));
                 workspaceDiagnostics!.text = string.Join("\n\n", diagnostics);
                 bool accepted = workspaceItem?.Fighter != null;
                 if (workspaceDiagnostics.text.Length == 0) workspaceDiagnostics.text = accepted ? "Fighter admitted. Ready for Training." : "Cook refused.";
