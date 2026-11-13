@@ -103,6 +103,7 @@ namespace SlopArena.Client.Workshop
             }
             if (changed)
             {
+                foreach (var ready in revisions.Values.Where(r => r.Lease != null)) ready.Diagnostic = "";
                 var admitted = revisions.Values.Where(r => r.Lease != null).Select(r => r.Result.Fighter!).ToArray();
                 var duplicate = admitted.GroupBy(f => f.Choose().Revision.PackageId).Where(g => g.Count() > 1).Select(g => g.Key).ToHashSet();
                 foreach (var r in revisions.Values.Where(r => r.Lease != null && duplicate.Contains(r.Result.Fighter!.Choose().Revision.PackageId)))
