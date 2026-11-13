@@ -21,6 +21,26 @@ public partial class PackageFighterContentTests
     }
 
     [Fact]
+    public void WorkspaceLibraryRetainsDevelopmentPolicyAndListsOnlyResolvedPackages()
+    {
+        var entry = Bundled().Entries.First();
+        var loaded = CookedCharacterPackageLoader.LoadDirectory(Path.Combine(Root, "content-cooked", entry.Identity.PackageId),
+            new(entry.Identity.PackageId, entry.Identity.Version, entry.Identity.CookedContentHash, entry.Identity.PackageHash));
+        var development = new AdmittedFighter(loaded, entry.LegacySelector, null, development: true);
+        var old = Fixture("local.old-workspace"); var fresh = Fixture("local.new-workspace");
+        var catalog = new MatchContentCatalogBuilder().Build(new[] { development, AdmittedFighter.TestFixture(old.Files, old.Requirement) }, MatchContentPolicy.EditorDevelopment).Catalog!;
+        var library = (LocalFighterLibrary)Activator.CreateInstance(typeof(LocalFighterLibrary), BindingFlags.NonPublic | BindingFlags.Instance,
+            null, new object?[] { catalog, catalog.Entries.Select(e=>e.Identity.PackageId).ToArray(), null, MatchContentPolicy.EditorDevelopment }, null)!;
+        var withLocal = library.WithLocalItem(AdmittedFighter.TestFixture(fresh.Files, fresh.Requirement));
+        Assert.True(withLocal.TryGetCatalog(out var content, out var failure), failure);
+        Assert.All(withLocal.PackageIds, id=>Assert.NotNull(content!.ResolvePackage(id)));
+        Assert.DoesNotContain("local.old-workspace", withLocal.PackageIds);
+        var cpu = withLocal.ChooseTrainingCpu();
+        Assert.Equal(entry.Identity.PackageId, cpu.Revision.PackageId);
+        Assert.NotNull(cpu.Resolve(content!));
+        Assert.True(withLocal.TryPrepare(new[] { withLocal.Choose(entry.Identity.PackageId), withLocal.Choose("local.new-workspace") },out _,out failure), failure);
+    }
+    [Fact]
     public void LaunchRefreshesPlayerAndCpuButStartedCatalogRemainsPinned()
     {
         var started = RevisionCatalog("1.0.0");

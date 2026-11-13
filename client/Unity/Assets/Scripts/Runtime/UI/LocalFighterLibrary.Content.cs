@@ -115,6 +115,21 @@ namespace SlopArena.Client.UI
             failure = null;
             return true;
         }
+        public LocalFighterLibrary WithLocalItem(AdmittedFighter fighter)
+        {
+            if (catalog == null) throw new InvalidOperationException(Diagnostic);
+            var admitted = catalog.Entries.Where(e => e.IsBundled).Select(e => e.Choose().Fighter).Append(fighter).ToArray();
+            var built = new MatchContentCatalogBuilder().Build(admitted, policy);
+            if (!built.IsValid) throw new InvalidOperationException(string.Join("; ", built.Diagnostics.Select(LocalFighterWorkspace.DiagnosticText)));
+            return new LocalFighterLibrary(built.Catalog, built.Catalog!.Entries.Select(e => e.Identity.PackageId).ToArray(), null, policy);
+        }
+        public FighterChoice ChooseTrainingCpu()
+        {
+            var builtIns = new HashSet<string>(ShippedRoster.ReadApplication().Manifest.Entries.Select(e => e.PackageId), StringComparer.Ordinal);
+            if (TryDefault(out var preferred) && preferred!.Resolve(catalog!)?.IsBundled == true) return preferred;
+            return (catalog?.Entries.FirstOrDefault(entry => entry.IsBundled && builtIns.Contains(entry.Identity.PackageId))
+                ?? throw new InvalidOperationException("Training requires an available built-in CPU fighter.")).Choose();
+        }
         public bool Contains(string package) => catalog?.ResolvePackage(package) != null;
         public bool HasForms(string package) => catalog?.ResolvePackage(package)?.Definition.AlternateForm != null;
         public FighterChoice Choose(string package, byte form = 0)

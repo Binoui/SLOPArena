@@ -15,9 +15,9 @@ using UnityEngine.UIElements;
 
 namespace SlopArena.Client.UI
 {
-    public sealed class WorkshopOverlay
+    public sealed partial class WorkshopOverlay
     {
-        private enum View { Local, Import, Published, Subscribed }
+        private enum View { Local, Import, Fighter, Published, Subscribed }
         private readonly VisualElement _root;
         private readonly ScrollView _body;
         private readonly Label _status;
@@ -48,10 +48,11 @@ namespace SlopArena.Client.UI
             _root.style.paddingTop = _root.style.paddingBottom = 12;
             host.Add(_root); _root.BringToFront();
             UiModalState.Push(); context.SetModalAction(HandleBack); context.AddReleaseAction(Close);
-            var title = Text("WORKSHOP / MODEL SWAPS"); title.style.fontSize = 28; _root.Add(title);
+            var title = Text("WORKSHOP"); title.style.fontSize = 28; _root.Add(title);
             var tabs = new VisualElement(); tabs.style.flexDirection = FlexDirection.Row; _root.Add(tabs);
             _tabs[View.Local] = Button(tabs, "LOCAL LIBRARY", Local);
             _tabs[View.Import] = Button(tabs, "IMPORT FROM DISK", Import);
+            _tabs[View.Fighter] = Button(tabs, "MAKE A FIGHTER", FighterWorkspace);
             _tabs[View.Published] = Button(tabs, "MY ITEMS", () => Run(() => SteamList(true)));
             _tabs[View.Subscribed] = Button(tabs, "SUBSCRIBED", () => Run(() => SteamList(false)));
             Button(tabs, "STEAM PAGE", () => { if (SteamReady) SteamWorkshopClient.OpenPage(); else Status(SteamWorkshopClient.Unavailable); });
@@ -77,7 +78,7 @@ namespace SlopArena.Client.UI
         public void Close()
         {
             if (_closed) return;
-            _closed = true; _cancel.Cancel(); _keyboard?.Dispose(); _keyboard = null;
+            _closed = true; StopWorkspace(); _cancel.Cancel(); _keyboard?.Dispose(); _keyboard = null;
             _root.RemoveFromHierarchy(); UiModalState.Pop(); _context.SetModalAction(null);
             FrontendController.FocusRouter?.NotifyModalClosed();
         }
@@ -89,7 +90,7 @@ namespace SlopArena.Client.UI
         }
         private void BeginView(View view)
         {
-            _view = view; ClearBody();
+            StopWorkspace(); _view = view; ClearBody();
             foreach (var tab in _tabs) tab.Value.EnableInClassList("workshop-tab--selected", tab.Key == view);
         }
         private void ClearBody() { _body.Clear(); _editButtons.Clear(); _choices.Clear(); _libraryRows.Clear(); }

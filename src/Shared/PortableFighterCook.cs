@@ -29,8 +29,9 @@ public sealed record PortableFighterSource(
 /// </summary>
 public static class PortableFighterCook
 {
-    public static (Dictionary<string, byte[]>? Item, IReadOnlyList<CharacterDiagnostic> Diagnostics) Cook(PortableFighterSource source)
+    public static (Dictionary<string, byte[]>? Item, IReadOnlyList<CharacterDiagnostic> Diagnostics) Cook(PortableFighterSource source, System.Threading.CancellationToken cancel = default)
     {
+        cancel.ThrowIfCancellationRequested();
         var compiled = CharacterPackageCompiler.CompilePortable(Encoding.UTF8.GetString(source.PackageJson), Encoding.UTF8.GetString(source.CharacterJson));
         if (compiled.HasErrors || compiled.CookedPackage == null) return (null, compiled.Diagnostics);
         var package = compiled.CookedPackage;
@@ -82,7 +83,7 @@ public static class PortableFighterCook
             var motion = PortableFighterMotion.Read(draft.RootElement, files, bindsFrameCounts: false);
             foreach (var animation in animations)
                 animation!["frameCount"] = motion.Animations.Single(x => x.SemanticId == animation["semanticId"]!.GetValue<string>()).Clip.FrameCount;
-            poses = PortablePoseBake.Bake(motion, definition);
+            poses = PortablePoseBake.Bake(motion, definition, cancel);
         }
         catch (GlbMotionException ex) { return (null, new[] { MatchContentCatalogBuilder.Error(ex.Code, "portable", ex.Message) }); }
 
@@ -97,7 +98,7 @@ public static class PortableFighterCook
         files[CharacterPackageAssembler.BindingPath] = assembly.BindingBytes;
         files[CharacterPackageAssembler.PosePath] = assembly.PoseBytes;
         WriteItemManifest(files, source.Creator, source.License, source.Attribution, source.AiAssisted);
-        return (files, Array.Empty<CharacterDiagnostic>());
+        return (files, compiled.Diagnostics);
     }
 
     internal static void WriteItemManifest(Dictionary<string, byte[]> files, string creator, string license, string attribution, bool aiAssisted)

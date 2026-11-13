@@ -106,7 +106,7 @@ namespace SlopArena.Client.Workshop
         {
             ReleaseAll();
             Application.quitting -= ReleaseAll;
-            Application.quitting += ReleaseAll;
+
         }
 
         private static void ReleaseAll()

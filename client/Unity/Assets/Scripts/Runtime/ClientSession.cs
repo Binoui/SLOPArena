@@ -491,7 +491,7 @@ namespace SlopArena.Client
         public static bool TryBuildLocalMatchCatalog(out Shared.MatchContentCatalog? catalog, out string? failure, string? playerPackageOverride = null)
         {
             if (!TryBuildAvailableFighterCatalog(out catalog, out failure)) return false;
-            var library = LocalFighterLibrary.Current;
+            var library = MatchConfig.Mode == GameMode.Training ? Workshop.FighterWorkspaceTraining.Library ?? LocalFighterLibrary.Current : LocalFighterLibrary.Current;
             if (!MatchConfig.TryResolveLocalChoices(library, out var choices, out failure, playerPackageOverride))
             { catalog = null; return false; }
             return library.TryPrepare(choices, out catalog, out failure);

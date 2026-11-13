@@ -253,3 +253,21 @@ debounce timestamps, because Unity's play clock starts over. Settings and Feedba
 normally balance their modal push in `OnDestroy`. Replay list does not use the modal
 counter. The shared reset covers any modal left unbalanced when the previous Play
 stopped; it does not depend on an individual overlay's teardown succeeding.
+
+### Fighter workspaces
+
+**Make a fighter** opens the installed-game authoring loop for local fighters.
+It lists `Workshop/Fighters` source folders and accepts a typed folder path with
+Steam's controller keyboard. The [authoring reference](../characters/workshop-authoring-reference.md#cook-a-fighter-in-the-installed-game)
+describes the files and actions.
+
+`LocalFighterWorkspace` owns bounded source snapshots and diagnostics. The screen
+waits for stable bytes, cooks on a worker, and discards a result if a newer save
+arrived. `LocalFighterItems.Read` is the public local-origin host adapter over the
+same item admission used by Shared. It grants no Steam provenance.
+
+The Training action builds an explicit `LocalFighterLibrary.WithLocalItem` snapshot
+from admitted content and holds a `MadeFighterPresentation` lease through the
+Match. The normal Training catalog preparation validates both seats. The ordinary
+menu library continues to list only the shipped roster. Returning to Home releases
+the preview lease and reopens the workspace.
