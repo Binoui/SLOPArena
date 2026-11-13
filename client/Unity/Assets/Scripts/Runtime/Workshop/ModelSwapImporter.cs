@@ -208,6 +208,10 @@ namespace SlopArena.Client.Workshop
                     new Vector3((float)correction.UpX, (float)correction.UpY, (float)correction.UpZ)));
                 upright.localPosition = new Vector3((float)correction.OriginX, (float)correction.OriginY, (float)correction.OriginZ);
                 var animator = model.Root!.AddComponent<Animator>();
+                // A generic avatar lets the Animator bind the runtime hierarchy by path; it is never humanoid.
+                var avatar = model.Avatar = AvatarBuilder.BuildGenericAvatar(model.Root, "");
+                avatar.name = "Made fighter avatar";
+                animator.avatar = avatar;
                 animator.applyRootMotion = false;
                 animator.cullingMode = AnimatorCullingMode.AlwaysAnimate;
                 var animancer = model.Root.AddComponent<AnimancerComponent>();
