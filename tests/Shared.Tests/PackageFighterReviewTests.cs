@@ -40,17 +40,12 @@ public partial class PackageFighterContentTests
             MatchConfig.SetPlayerFighter("fightguy","fightguy");
             Assert.Throws<ArgumentException>(() => MatchConfig.SetPlayerFighter("fightguy","salamander"));
             Assert.Equal("fightguy",MatchConfig.PlayerPackageId);
-            Assert.Equal("fightguy",MatchConfig.PlayerPackageId);
             MatchConfig.SetPlayerFighter(Bundled().ResolvePackage("salamander")!);
             Assert.Equal("salamander",MatchConfig.PlayerPackageId);
-            Assert.Equal("salamander",MatchConfig.PlayerPackageId);
-            Assert.Null(typeof(MatchConfig).GetProperty(nameof(MatchConfig.PlayerPackageId))!.SetMethod);
             Assert.Null(typeof(MatchConfig).GetProperty(nameof(MatchConfig.PlayerPackageId))!.SetMethod);
             MatchConfig.SetPlayerFighter(Local().ResolvePackage("local.tumbleweed")!);
-            Assert.Equal("",MatchConfig.PlayerPackageId);
             Assert.Equal("local.tumbleweed",MatchConfig.PlayerPackageId);
             MatchConfig.Reset();
-            Assert.Equal("fightguy",MatchConfig.PlayerPackageId);
             Assert.Equal("fightguy",MatchConfig.PlayerPackageId);
         }
         finally { MatchConfig.Reset(); }
@@ -186,7 +181,7 @@ public partial class PackageFighterContentTests
         Assert.True(localAttacks>10);
         Assert.True(bundledAttacks>10);
         Assert.Equal(360u,sim.CurrentTick);
-        Assert.Equal("",sim.GetDefinition(1)!.PackageId);
+        Assert.Equal("local.tumbleweed",sim.GetDefinition(1)!.PackageId);
         Assert.Equal("salamander",sim.GetDefinition(2)!.PackageId);
     }
 }

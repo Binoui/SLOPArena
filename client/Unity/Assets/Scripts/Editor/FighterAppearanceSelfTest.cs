@@ -30,7 +30,7 @@ public static class FighterAppearanceSelfTest
         var identity = new MatchContentIdentity(package.Metadata.PackageId, package.Metadata.Version, "fixture", "fixture", "fixture");
         var content = new MatchContentEntry(new ContentHandle(1), identity, definition.DisplayName, definition, cookedCharacterPackage: package);
         var appearance = FighterPresentation.Resolve(content);
-        Require(appearance.Art.Name() == "Fixture Fighter" && definition.PackageId == "", "Fixture lost its cooked name or borrowed a selector.");
+        Require(appearance.Art.Name() == "Fixture Fighter" && definition.PackageId == package.Metadata.PackageId, "Fixture lost its cooked name or borrowed a selector.");
         Require(appearance.Art.Portrait() == FighterUiArt.NeutralPortrait, "Fixture borrowed a portrait.");
         foreach (byte slot in new[] { AbilitySlots.Normal1, AbilitySlots.Normal2, AbilitySlots.Normal3, AbilitySlots.A, AbilitySlots.E, AbilitySlots.R, AbilitySlots.F })
         {

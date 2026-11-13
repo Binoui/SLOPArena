@@ -67,7 +67,7 @@ public partial class PackageFighterContentTests
         var local = catalog.ResolvePackage("local.tumbleweed")!;
         var salamander = catalog.ResolvePackage("salamander")!;
         Assert.False(local.IsBundled);
-        Assert.Equal("", local.Definition.PackageId);
+        Assert.Equal("local.tumbleweed", local.Definition.PackageId);
         Assert.Same(local, catalog.Resolve(local.Handle));
         Assert.Same(salamander, catalog.Resolve(salamander.Handle));
         Assert.NotEqual(local.Handle, salamander.Handle);
