@@ -1,0 +1,236 @@
+{
+  "success": false,
+  "sourceRevision": "de47acdce937dafa1426f043e23932464dd33853",
+  "packages": [
+    {
+      "packageId": "manki",
+      "success": false,
+      "expectedSourceHash": "dc2b9ccd3372f5e872c6655199362819d760ce81b5bacf47e5c474800708a4f8",
+      "observedSourceHash": "ef9cf153532a1f5a9b18282eac469bf8432ff56e30560ee8ffab7b1e881cdf29",
+      "expectedPackageHash": "82b45c7d9645e65546bb93a75f0edbe76882b7d23aa64cf724921789084ea5df",
+      "observedPackageHash": "b39eb6760346c65d46b375916504423f490859de2c1a7f8e9aed0c2e9369fbde",
+      "diagnostics": [
+        {
+          "severity": "warning",
+          "code": "presentation.unused-id",
+          "path": "character.presentationIds[0]",
+          "message": "Declared presentation ID is not referenced by an attack or timeline operation."
+        },
+        {
+          "severity": "warning",
+          "code": "presentation.unused-id",
+          "path": "character.presentationIds[5]",
+          "message": "Declared presentation ID is not referenced by an attack or timeline operation."
+        },
+        {
+          "severity": "warning",
+          "code": "presentation.unused-id",
+          "path": "character.presentationIds[14]",
+          "message": "Declared presentation ID is not referenced by an attack or timeline operation."
+        },
+        {
+          "severity": "warning",
+          "code": "presentation.unused-id",
+          "path": "character.presentationIds[15]",
+          "message": "Declared presentation ID is not referenced by an attack or timeline operation."
+        },
+        {
+          "severity": "warning",
+          "code": "presentation.unused-id",
+          "path": "character.presentationIds[18]",
+          "message": "Declared presentation ID is not referenced by an attack or timeline operation."
+        },
+        {
+          "severity": "warning",
+          "code": "presentation.unused-id",
+          "path": "character.presentationIds[19]",
+          "message": "Declared presentation ID is not referenced by an attack or timeline operation."
+        },
+        {
+          "severity": "warning",
+          "code": "presentation.unused-id",
+          "path": "character.presentationIds[20]",
+          "message": "Declared presentation ID is not referenced by an attack or timeline operation."
+        },
+        {
+          "severity": "error",
+          "code": "verify.cooked.invalid",
+          "path": "Assets/CharacterPackages/manki",
+          "message": "Package inspection is not a verified, current cooked artifact."
+        },
+        {
+          "severity": "error",
+          "code": "verify.cooked.mismatch",
+          "path": "Assets/CharacterPackages/manki",
+          "message": "Deterministic cook output does not match the installed cooked artifact."
+        },
+        {
+          "severity": "error",
+          "code": "verify.package.mismatch",
+          "path": "Assets/CharacterPackages/manki",
+          "message": "Deterministic package hash does not match the installed cooked artifact."
+        }
+      ]
+    },
+    {
+      "packageId": "fightguy",
+      "success": true,
+      "expectedSourceHash": "d2c899656005a624508860c5da49f704a585e93da67789bd570bcda887aa59ee",
+      "observedSourceHash": "d2c899656005a624508860c5da49f704a585e93da67789bd570bcda887aa59ee",
+      "expectedPackageHash": "eb22305d869d8bb29d8adc9a49ba313d0c11ee5845bd2c72d3e6b3aa03c467ad",
+      "observedPackageHash": "eb22305d869d8bb29d8adc9a49ba313d0c11ee5845bd2c72d3e6b3aa03c467ad",
+      "diagnostics": []
+    },
+    {
+      "packageId": "wibou",
+      "success": false,
+      "expectedSourceHash": "bfee5df8b1dfe5d8f2572bb7ae0b9924f9a2aed2e0123f704b456cd0b485bd77",
+      "observedSourceHash": "c524eeb1725745a7db6f009c884d19dc220bd9f66be24b598703559be20df50f",
+      "expectedPackageHash": "0dda8de85df614da53049ad8d38cc11e9c391990838387092acbcc812ec42e7c",
+      "observedPackageHash": "9f685cb298584bfcf90bec710fef7bb7949df121705a13a387b1f406793e3ea8",
+      "diagnostics": [
+        {
+          "severity": "error",
+          "code": "verify.cooked.invalid",
+          "path": "Assets/CharacterPackages/wibou",
+          "message": "Package inspection is not a verified, current cooked artifact."
+        },
+        {
+          "severity": "error",
+          "code": "verify.cooked.mismatch",
+          "path": "Assets/CharacterPackages/wibou",
+          "message": "Deterministic cook output does not match the installed cooked artifact."
+        },
+        {
+          "severity": "error",
+          "code": "verify.package.mismatch",
+          "path": "Assets/CharacterPackages/wibou",
+          "message": "Deterministic package hash does not match the installed cooked artifact."
+        }
+      ]
+    },
+    {
+      "packageId": "bonk",
+      "success": false,
+      "expectedSourceHash": "88a5ce7ad851b58245ae3e4eb96beb855df262d635dd40bd30b80887d2039ff4",
+      "observedSourceHash": "661df6a5d958aca418fea5c18e57d5794335e2d62dbf21f1257854c798835b88",
+      "expectedPackageHash": "86c86ec5f457686c82bb13b71c1ddf3499ef11750126be399f4777fba57b8bf1",
+      "observedPackageHash": "433e7dcb4f974b594f8df6939aca21aaa773be7bfbfd877d95b3c67c6bfa78d4",
+      "diagnostics": [
+        {
+          "severity": "warning",
+          "code": "presentation.unused-id",
+          "path": "character.presentationIds[2]",
+          "message": "Declared presentation ID is not referenced by an attack or timeline operation."
+        },
+        {
+          "severity": "warning",
+          "code": "presentation.unused-id",
+          "path": "character.presentationIds[4]",
+          "message": "Declared presentation ID is not referenced by an attack or timeline operation."
+        },
+        {
+          "severity": "warning",
+          "code": "presentation.unused-id",
+          "path": "character.presentationIds[8]",
+          "message": "Declared presentation ID is not referenced by an attack or timeline operation."
+        },
+        {
+          "severity": "warning",
+          "code": "presentation.unused-id",
+          "path": "character.presentationIds[9]",
+          "message": "Declared presentation ID is not referenced by an attack or timeline operation."
+        },
+        {
+          "severity": "warning",
+          "code": "presentation.unused-id",
+          "path": "character.presentationIds[10]",
+          "message": "Declared presentation ID is not referenced by an attack or timeline operation."
+        },
+        {
+          "severity": "warning",
+          "code": "presentation.unused-id",
+          "path": "character.presentationIds[33]",
+          "message": "Declared presentation ID is not referenced by an attack or timeline operation."
+        },
+        {
+          "severity": "error",
+          "code": "verify.cooked.invalid",
+          "path": "Assets/CharacterPackages/bonk",
+          "message": "Package inspection is not a verified, current cooked artifact."
+        },
+        {
+          "severity": "error",
+          "code": "verify.cooked.mismatch",
+          "path": "Assets/CharacterPackages/bonk",
+          "message": "Deterministic cook output does not match the installed cooked artifact."
+        },
+        {
+          "severity": "error",
+          "code": "verify.package.mismatch",
+          "path": "Assets/CharacterPackages/bonk",
+          "message": "Deterministic package hash does not match the installed cooked artifact."
+        }
+      ]
+    },
+    {
+      "packageId": "bashie",
+      "success": false,
+      "expectedSourceHash": "b4b1398d760e2f7ae9b4bfb5d079aa3167909dc254b58444d408a446f435f542",
+      "observedSourceHash": "e469d04f51c73ed40cc8a7b60ee93cfc67340e88af444a4d75c6488df2eff6b9",
+      "expectedPackageHash": "4ed978badc3567b236ee070c888d3163e4e273274f75e9f9b46fc262ecf9ea8d",
+      "observedPackageHash": "ce850c0a9837961a9e9d92970abde4a151f33f6fb34f8bb277fd4efd0fff61ac",
+      "diagnostics": [
+        {
+          "severity": "error",
+          "code": "verify.cooked.invalid",
+          "path": "Assets/CharacterPackages/bashie",
+          "message": "Package inspection is not a verified, current cooked artifact."
+        },
+        {
+          "severity": "error",
+          "code": "verify.cooked.mismatch",
+          "path": "Assets/CharacterPackages/bashie",
+          "message": "Deterministic cook output does not match the installed cooked artifact."
+        },
+        {
+          "severity": "error",
+          "code": "verify.package.mismatch",
+          "path": "Assets/CharacterPackages/bashie",
+          "message": "Deterministic package hash does not match the installed cooked artifact."
+        }
+      ]
+    },
+    {
+      "packageId": "salamander",
+      "success": true,
+      "expectedSourceHash": "c235fa14490b573a2a8076226bf959166297f738e160b449404dc409d6dd9898",
+      "observedSourceHash": "c235fa14490b573a2a8076226bf959166297f738e160b449404dc409d6dd9898",
+      "expectedPackageHash": "618119e1a666fdb0aa542a09807e770da3df17ce8b1631e7930b90b42f934566",
+      "observedPackageHash": "618119e1a666fdb0aa542a09807e770da3df17ce8b1631e7930b90b42f934566",
+      "diagnostics": []
+    },
+    {
+      "packageId": "nyx",
+      "success": true,
+      "expectedSourceHash": "8adfee2e45920303146825b58b735d1bcab302375505bcc2c4f21ea5b1f29713",
+      "observedSourceHash": "8adfee2e45920303146825b58b735d1bcab302375505bcc2c4f21ea5b1f29713",
+      "expectedPackageHash": "4c06b4db7e478223253b731e5df92fcdcf6ed502e9a1a3c10790664ee03b0005",
+      "observedPackageHash": "4c06b4db7e478223253b731e5df92fcdcf6ed502e9a1a3c10790664ee03b0005",
+      "diagnostics": [
+        {
+          "severity": "warning",
+          "code": "presentation.unused-id",
+          "path": "character.presentationIds[24]",
+          "message": "Declared presentation ID is not referenced by an attack or timeline operation."
+        },
+        {
+          "severity": "warning",
+          "code": "presentation.unused-id",
+          "path": "character.presentationIds[25]",
+          "message": "Declared presentation ID is not referenced by an attack or timeline operation."
+        }
+      ]
+    }
+  ]
+}
