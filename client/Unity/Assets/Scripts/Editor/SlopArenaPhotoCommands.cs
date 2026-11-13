@@ -77,7 +77,7 @@ namespace SlopArena.EditorTools
                 MatchConfig.SetPlayerFighter(selected);
                 var match = Object.FindFirstObjectByType<TrainingMatch>();
                 var serialized = new SerializedObject(match);
-                serialized.FindProperty("_playerPackageOverride").PackageIdValue = selected.Revision.PackageId;
+                serialized.FindProperty("_playerPackageOverride").stringValue = selected.Revision.PackageId;
                 serialized.ApplyModifiedPropertiesWithoutUndo();
                 return new { success = true, stage, fighter, training, opponent };
             }

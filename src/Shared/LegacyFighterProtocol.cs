@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 
 namespace SlopArena.Shared;
 
@@ -10,6 +11,9 @@ public static class LegacyFighterProtocol
         None, Manki, FightGuy, Wibou, Bonk,
         Bashie = 6, Salamander = 7, Nyx = 8
     }
+
+    public static BuiltInRosterEntry DefaultFighter(BuiltInRosterManifest manifest)
+        => manifest.Entries.FirstOrDefault(entry => entry.Selector == "fightguy") ?? manifest.Entries[0];
 
     public static bool TryPackageId(string? selector, out string packageId)
     {
