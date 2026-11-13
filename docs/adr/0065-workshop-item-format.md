@@ -102,8 +102,9 @@ Shared's loader now selects a host trust profile, rejects internal capabilities 
 Workshop, recomputes compiler budgets, and rejects malformed timelines, enums, and slot grids.
 It bounds file reads, JSON depth, pose memory, operation counts, projectile speed, and lifetime.
 Cook and load use the same limits and diagnostics. Body hurtboxes are capped at 32. Shared's
-resolver also enforces deterministic owner/world volume and sweep-weighted pools, including
-after rollback restoration. Excess emissions are dropped; the four-seat fighter collision
+resolver also enforces deterministic owner/world volume and sweep-weighted pools for Workshop owners, including
+after rollback restoration. Trusted built-in spawns count toward world totals but are never refused.
+Excess Workshop emissions are dropped; the four-seat all-Workshop fighter collision
 budget is 79,200 contact tests per tick. The contract suite covers peak and sustained work,
 capability emitters and form changes, with all eight formerly skipped cases enabled.
 The web demo trusts only its embedded roster's exact pins. Editor trusted cooks require an

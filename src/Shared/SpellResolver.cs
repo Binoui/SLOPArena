@@ -13,6 +13,14 @@ namespace SlopArena.Shared
     {
         private readonly List<Hitbox> _hitboxes = new();
         private ulong _lastEmissionId;
+        private readonly HashSet<ulong> _trustedOwners = new();
+
+        // Match content configuration survives snapshots and owner removal, including lingering emissions.
+        internal void RegisterOwner(ulong ownerId, CharacterCookProfile profile)
+        {
+            if (profile == CharacterCookProfile.TrustedBuiltIn) _trustedOwners.Add(ownerId);
+            else _trustedOwners.Remove(ownerId);
+        }
         private readonly List<Hitbox> _lastTickChecked = new();
         private readonly List<EntityData> _orderedEntities = new();
         private readonly ContactDistanceComparer _contactDistance = new();
@@ -183,7 +191,7 @@ namespace SlopArena.Shared
         private static int CollisionPoseUnits(in Hitbox hb)
             => hb.TracksBone || hb.Sweep != null ? CookedPackageLimits.SweepPoseUnits : 1;
 
-        /// <summary>Refuses excess volumes deterministically before allocating history or an emission ID.</summary>
+        /// <summary>Refuses excess Workshop volumes deterministically before allocating history or an emission ID.</summary>
         public void Spawn(Hitbox hb)
         {
             SpawnAttempts++;
@@ -211,11 +219,12 @@ namespace SlopArena.Shared
                 if (!live.FreezesOwner) ownedProjectiles++;
             }
             int units = CollisionPoseUnits(in hb);
-            if (owner >= CookedPackageLimits.LiveVolumesPerOwner || world >= CookedPackageLimits.LiveVolumesPerWorld
+            if (!_trustedOwners.Contains(hb.OwnerId)
+                && (owner >= CookedPackageLimits.LiveVolumesPerOwner || world >= CookedPackageLimits.LiveVolumesPerWorld
                 || ownedWork + units > CookedPackageLimits.CollisionPoseUnitsPerOwner
                 || work + units > CookedPackageLimits.CollisionPoseUnitsPerWorld
                 || !hb.FreezesOwner && (ownedProjectiles >= CookedPackageLimits.ProjectileVolumesPerOwner
-                    || projectiles >= CookedPackageLimits.ProjectileVolumesPerWorld))
+                    || projectiles >= CookedPackageLimits.ProjectileVolumesPerWorld)))
             {
                 RefusedSpawns++;
                 return;

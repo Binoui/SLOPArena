@@ -86,28 +86,48 @@ validators still enforce the capability-specific conditions that this count assu
 
 ### Collision work and runtime pools
 
-`SpellResolver.Spawn` refuses an effect before assigning its emission ID or allocating hit
-history if any live pool would overflow. Counts come from the current active resolver list,
-including after snapshot restoration; no unsnapshotted counter decides gameplay. The exact engine-owned `StageHazardOwner.EntityId` and `MayhemHostEntityId` keep their existing arena budgets and do not consume fighter pools. Package operations cannot choose their owner identity. Mines
-account for their existing replacement before this decision. Refusal drops that emission:
-a player may see a projectile fail to appear or a melee window fail to hit. The ability and
+`SpellResolver.Spawn` applies the runtime pools only to owners admitted under Workshop.
+Trusted built-in owners are never refused by these pools, even when Workshop volumes have
+filled them. All fighter-owned volumes, including trusted ones, contribute to owner and world
+counts and peak telemetry. A Workshop spawn is refused if those totals would exceed a pool.
+Trusted volumes can therefore exhaust the capacity available to Workshop spawns without
+losing any trusted emission. The pools protect the match from stranger-authored content.
+They do not impose a silent projectile budget on the owner's future built-in designs.
+
+The host-selected load profile becomes internal `CharacterDefinition.AdmissionProfile`
+metadata during runtime conversion. Both forms retain it. `ServerSimulation.RegisterEntity`
+registers that profile with the resolver. This match content configuration survives snapshot
+restoration and owner removal, so lingering emissions retain their owner's admission.
+Raw package conversion and unknown owners default to Workshop. Package fields, character
+names, selectors, and the definition attached to an individual emission cannot grant trust.
+No cooked, wire, or snapshot fields were added.
+
+For Workshop spawns, counts come from the current active resolver list, including after
+snapshot restoration. No unsnapshotted usage counter decides gameplay. The exact engine-owned
+`StageHazardOwner.EntityId` and `MayhemHostEntityId` retain their existing arena budgets and do
+not consume fighter pools. Package operations cannot choose their owner identity. Mines
+account for their existing replacement before the decision. Refusal drops that emission.
+A player may see a projectile fail to appear or a melee window fail to hit. The ability and
 its cooldown continue. This applies identically in local play, the GameServer, prediction,
-and rollback resimulation. No wire or snapshot fields were added.
+and rollback resimulation.
 
 The projectile pool conservatively includes **all non-freezing volumes**, including a few
-melee/capability windows. Every projectile belongs to this pool; no file-controlled label can
-bypass it. All volumes also count against owner/world totals. Tracked volumes cost 25 pose
-units (the engine's maximum 24 sweep steps plus one conservative unit); other volumes cost
-one. Both owner and world pose pools are enforced at spawn. A four-seat fighter contact
-budget is therefore `800 × 3 opponents × (32 body hurtboxes + 1 shield) = 79,200` tests per tick.
-This bounds volume updates and fighter collision work; arena geometry and non-fighter game
-modes have separate engine costs. It does not promise a hardware-independent frame time.
+melee/capability windows. Every projectile belongs to this pool. All fighter volumes also
+count against owner/world totals. Tracked volumes cost 25 pose units, the engine's maximum
+24 sweep steps plus one conservative unit. Other volumes cost one. Both pose pools bind
+Workshop spawns only. A four-seat match consisting entirely of Workshop fighters therefore
+has a fighter contact budget of `800 × 3 opponents × (32 body hurtboxes + 1 shield) = 79,200`
+tests per tick. Trusted fighters retain responsibility for their authored workload. Arena
+geometry and non-fighter game modes have separate engine costs. The count bound does not
+promise a hardware-independent frame time. Hurtbox ceilings and admission envelopes are
+unchanged by this runtime policy.
 
 Admission weights the requested envelope as `(hitbox lifetime × 25 + projectile lifetime)
 × 3 × 33`, capped at 990,000 requested contact units per fighter (10,000 pose units).
-The maximum built-in requested pose envelope is Nyx's 9,190. Runtime clipping is the tighter
+The maximum built-in requested pose envelope is Nyx's 9,190. For Workshop fighters, runtime clipping is the tighter
 bound on actual collision work, including repeated activations and paused melee aging.
 
+The built-in measurements below are reference values, not runtime ceilings on trusted content.
 Four-seat stress matches exercise all fourteen moves (both forms for Nyx), repeated for
 720 ticks per slot with charge/release cycles. A normal hitstun cancellation separates slot
 exercises while lingering projectiles remain. Spawn-time peaks include effects removed
@@ -135,6 +155,8 @@ The contract suite saturates the weighted pool with an admitted four-seat packag
 force maximum sweep sampling, on a repeating 43-tick stage. Over 1,200 ticks it reaches
 73,728 contact tests at peak and averages 70,420.48, with 32 live volumes at peak and 30.56
 on average. Fixed peak and sustained thresholds fail if limit changes reopen this work bound.
+Mixed-trust tests execute an 80-emission built-in move beside a capped Workshop owner. They
+verify trusted world totals above the limits, Workshop refusal, and identical rollback results.
 Separate tests fill both count pools, exercise charged streams at intervals 1 and 3, finger
 guns and tether, and restore a form-swap activation with a full pool.
 
@@ -145,7 +167,7 @@ repository's exact `client/Unity` project and `Assets/CharacterPackages/<id>` fo
 physical, non-symlink source paths (including both JSON files). An external package named
 `nyx` does not gain trust. Source creator metadata is not authority.
 
-These runtime refusals change Shared simulation behavior for excess content. The next release
+These Workshop runtime refusals change Shared simulation behavior for excess content. The next release
 requires a protocol bump coordinated with the Master; this unit deliberately does not bump it.
 
 Steam Deck memory measurement and owner confirmation of these constants remain outstanding.

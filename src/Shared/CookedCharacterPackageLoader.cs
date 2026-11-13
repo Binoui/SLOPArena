@@ -27,7 +27,7 @@ public sealed class CookedCharacterPackageLoadResult
     public CharacterDefinition ToCharacterDefinition(CharacterClass legacySelector = CharacterClass.None)
     {
         if (!IsValid || Package == null) throw new InvalidDataException("Cooked package is not valid.");
-        return CookedCharacterRuntimeAdapter.ToCharacterDefinition(Package, legacySelector);
+        return CookedCharacterRuntimeAdapter.ToCharacterDefinition(Package, legacySelector, Profile);
     }
 }
 public static class CookedCharacterPackageLoader
