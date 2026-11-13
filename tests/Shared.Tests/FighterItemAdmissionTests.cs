@@ -11,7 +11,7 @@ namespace SlopArena.Shared.Tests;
 
 public sealed class FighterItemAdmissionTests
 {
-    internal static Dictionary<string, byte[]> Item(string id = "local.tumbleweed")
+    internal static Dictionary<string, byte[]> Item(string id = "local.tumbleweed", bool media = false)
     {
         string root = CookedPackageEdits.Root;
         var sourceFiles = new[] { "package.json", "character.json" }.ToDictionary(x => x,
@@ -29,13 +29,23 @@ public sealed class FighterItemAdmissionTests
                 ["source"] = new JsonObject { ["kind"] = "glb", ["clipName"] = "fixture" } });
         sourceFiles["card.json"] = Encoding.UTF8.GetBytes("{\"description\":\"Tumbleweed test kit\",\"workInProgress\":true,\"tutorialHint\":null}");
         sourceFiles["tumbleweed.glb"] = MinimalGlb();
+        if (media)
+        {
+            var png = new byte[33];
+            new byte[] {137,80,78,71,13,10,26,10,0,0,0,13,73,72,68,82}.CopyTo(png, 0);
+            System.Buffers.Binary.BinaryPrimitives.WriteInt32BigEndian(png.AsSpan(16), 8);
+            System.Buffers.Binary.BinaryPrimitives.WriteInt32BigEndian(png.AsSpan(20), 8);
+            sourceFiles["portrait.png"] = png;
+            sourceFiles["move.png"] = (byte[])png.Clone();
+            sourceFiles["humanoid.json"] = Encoding.UTF8.GetBytes("{\"bones\":[]}");
+        }
         var hashes = new JsonObject();
         foreach (var f in sourceFiles) hashes[f.Key] = WorkshopItemManifestCodec.HashPayload(f.Value);
         var bindings = new JsonObject
         {
             ["packageId"] = id, ["sourceHash"] = input.SourceHash, ["catalogSchemaVersion"] = 3, ["bindingSchemaVersion"] = 3,
             ["poseFormat"] = "SKEL", ["poseVersion"] = 1, ["sampleRate"] = 60, ["rootRuleVersion"] = 1,
-            ["payloads"] = hashes, ["modelFile"] = "tumbleweed.glb", ["portraitFile"] = null, ["icons"] = new JsonObject(), ["animations"] = animations,
+            ["payloads"] = hashes, ["modelFile"] = "tumbleweed.glb", ["portraitFile"] = media ? "portrait.png" : null, ["icons"] = media ? new JsonObject { ["jab"] = "move.png" } : new JsonObject(), ["animations"] = animations,
         };
         var assembly = CharacterPackageAssembler.Assemble(new CharacterPackageAssemblyInput(id, input.Version, input.Creator, input.License, input.Attribution,
             input.AuthoringSchemaVersion, input.CookedSchemaVersion, input.RuntimeApiMin, input.RuntimeApiMax, input.SourceHash, input.Dependencies,
@@ -96,12 +106,16 @@ public sealed class FighterItemAdmissionTests
         Assert.True(result.IsAccepted, string.Join("\n", result.Diagnostics));
         Assert.Equal("local.tumbleweed", result.Fighter!.Identity.PackageId);
         Assert.Null(result.Fighter.LegacySelector);
+        var bytes = result.Item!.ReadPayload("tumbleweed.glb"); bytes[0] ^= 1;
+        Assert.Equal(item["tumbleweed.glb"], result.Item.ReadPayload("tumbleweed.glb"));
+        Assert.Equal("Tumbleweed test kit", result.Item.Card.GetProperty("description").GetString());
         var manifest = WorkshopItemManifestCodec.Read(item["item.json"]).Manifest!;
         Assert.Equal(WorkshopItemManifestCodec.Write(manifest), WorkshopItemManifestCodec.Write(WorkshopItemManifestCodec.Read(WorkshopItemManifestCodec.Write(manifest)).Manifest!));
     }
     [Fact] public void ChangedByteInEveryPayloadFails()
     {
-        var item = Item();
+        var item = Item(media: true);
+        Assert.True(Read(item).IsAccepted);
         foreach (var file in item.Keys.Where(x => x != "item.json").ToArray())
         {
             item[file][0] ^= 1;
@@ -148,6 +162,33 @@ public sealed class FighterItemAdmissionTests
     {
         var item = Item(); item["card.json"] = new byte[2 * 1024 * 1024 + 1]; RehashItem(item);
         Assert.Contains(Read(item).Diagnostics, x => x.Code == "item.read" && x.Message.Contains("limit"));
+    }
+    [Theory] [InlineData("modelFile")] [InlineData("sourceHash")] [InlineData("packageId")] [InlineData("payloads")] [InlineData("animations")] [InlineData("icons")]
+    public void InvalidBindingTypesReturnDiagnostics(string field)
+    {
+        var binding = JsonNode.Parse(Item()["client.bindings"])!; binding[field] = null;
+        Assert.NotEmpty(CharacterPackageAssembler.ValidateClientBindings(Encoding.UTF8.GetBytes(binding.ToJsonString())));
+    }
+    [Fact] public void DuplicateAndMissingPortableFieldsRefused()
+    {
+        var binding = Encoding.UTF8.GetString(Item()["client.bindings"]);
+        var duplicate = binding.Replace("\"sampleRate\":60", "\"sampleRate\":60,\"sampleRate\":60");
+        Assert.Contains(CharacterPackageAssembler.ValidateClientBindings(Encoding.UTF8.GetBytes(duplicate)), x => x.Code == "portable.schema");
+        var root = JsonNode.Parse(binding)!.AsObject(); root.Remove("modelFile");
+        Assert.Contains(CharacterPackageAssembler.ValidateClientBindings(Encoding.UTF8.GetBytes(root.ToJsonString())), x => x.Code == "portable.schema");
+    }
+    [Fact] public void SymlinkPayloadRefused()
+    {
+        if (OperatingSystem.IsWindows()) return;
+        var item = Item(); string folder = Path.Combine(Path.GetTempPath(), "fighter-link-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(folder);
+        try
+        {
+            foreach (var f in item) File.WriteAllBytes(Path.Combine(folder, f.Key), f.Value);
+            File.Delete(Path.Combine(folder, "card.json")); File.CreateSymbolicLink(Path.Combine(folder, "card.json"), "/dev/zero");
+            Assert.Contains(FighterItemAdmission.ReadLocalItem(folder).Diagnostics, x => x.Code == "item.read");
+        }
+        finally { Directory.Delete(folder, true); }
     }
     [Fact] public void MissingPayloadRefused()
     { var item = Item(); item.Remove("character.json"); Assert.Contains(Read(item).Diagnostics, x => x.Code == "item.payload.missing"); }
