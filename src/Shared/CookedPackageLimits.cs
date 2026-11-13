@@ -12,6 +12,12 @@ internal static class CookedPackageLimits
     internal const int RuntimeBytes = 2 * 1024 * 1024;
     internal const int BindingBytes = 64 * 1024;
     internal const int PoseBytes = 4 * 1024 * 1024;
+    internal const int IdentifierCharacters = 256;
+    internal const int PoseIdentifierBytes = 128;
+    internal const int BodyHurtboxes = 128;
+    internal const int AttachmentPoints = 8;
+    internal const int PresentationIds = 256;
+    internal const int StageAnimations = 32;
     internal const int PoseBones = 128;
     internal const int PoseAnimations = 256;
     internal const int PoseFrames = 4096;
@@ -50,6 +56,14 @@ internal static class CookedPackageLimits
     {
         using var document = JsonDocument.Parse(bytes, new JsonDocumentOptions { MaxDepth = 64 });
         var character = document.RootElement.GetProperty("character");
+        if (character.GetProperty("hurtboxCapsules").GetArrayLength() + character.GetProperty("hurtboxBoneDefs").GetArrayLength() > BodyHurtboxes)
+            Add(diagnostics, "package.hurtboxes.limit", "character", "Body hurtbox count limit exceeded.");
+        if (character.GetProperty("attachmentBoneIds").GetArrayLength() > AttachmentPoints)
+            Add(diagnostics, "package.collection.limit", "character.attachmentBoneIds", "Attachment point count limit exceeded.");
+        if (character.GetProperty("presentationIds").GetArrayLength() > PresentationIds)
+            Add(diagnostics, "package.collection.limit", "character.presentationIds", "Presentation ID count limit exceeded.");
+        if (character.GetProperty("capabilityRequirements").GetArrayLength() > CookedBudget.MaxCapabilityRequirements)
+            Add(diagnostics, "package.collection.limit", "character.capabilityRequirements", "Capability requirement count limit exceeded.");
         CheckSlots(character.GetProperty("slots"), diagnostics);
         if (character.TryGetProperty("alternateForm", out var form)) CheckSlots(form.GetProperty("slots"), diagnostics);
         CheckValues(character, diagnostics, profile);
@@ -81,6 +95,8 @@ internal static class CookedPackageLimits
             {
                 int duration = stage.GetProperty("durationTicks").GetInt32();
                 if (duration <= 0) Add(diagnostics, "package.timeline.duration", id, "Stage duration must be positive.");
+                if (stage.GetProperty("animationIds").GetArrayLength() > StageAnimations)
+                    Add(diagnostics, "package.collection.limit", id, "Stage animation count limit exceeded.");
                 var operations = stage.GetProperty("operations");
                 total += operations.GetArrayLength();
                 if (operations.GetArrayLength() > OperationsPerStage) Add(diagnostics, "package.operations.limit", id, "Stage operation limit exceeded.");
@@ -209,6 +225,17 @@ internal static class CookedPackageLimits
         CheckEnum<ThrustAim>(value, "aim", diagnostics);
         foreach (var property in value.EnumerateObject())
         {
+            if (property.Value.ValueKind == JsonValueKind.String && (property.Name.EndsWith("Id", StringComparison.Ordinal) || property.Name == "id")
+                && property.Value.GetString()!.Length > IdentifierCharacters)
+                Add(diagnostics, "package.identifier.limit", property.Name, "Identifier length limit exceeded.");
+            if (property.Name is "animationIds" or "attachmentBoneIds" or "presentationIds")
+                foreach (var id in property.Value.EnumerateArray())
+                    if (id.GetString()!.Length > IdentifierCharacters)
+                        Add(diagnostics, "package.identifier.limit", property.Name, "Identifier length limit exceeded.");
+            if (property.Name == "presentation" && property.Value.ValueKind == JsonValueKind.Object)
+                foreach (var role in property.Value.EnumerateObject())
+                    if (role.Value.ValueKind == JsonValueKind.String && role.Value.GetString()!.Length > IdentifierCharacters)
+                        Add(diagnostics, "package.identifier.limit", role.Name, "Animation identifier length limit exceeded.");
             if (property.Value.ValueKind == JsonValueKind.Number && (!property.Value.TryGetSingle(out var number) || float.IsNaN(number) || float.IsInfinity(number)))
                 Add(diagnostics, "package.number.invalid", property.Name, "Finite number required.");
             CheckValues(property.Value, diagnostics, profile);

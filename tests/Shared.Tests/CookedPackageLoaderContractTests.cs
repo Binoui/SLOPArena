@@ -422,6 +422,72 @@ public sealed class CookedPackageLoaderContractTests
         finally { Directory.Delete(directory, true); }
     }
 
+    [Theory]
+    [InlineData("bonk")]
+    [InlineData("manki")]
+    public void BodyHurtboxesCannotMultiplyCollisionWork(string packageId)
+    {
+        var files = CookedPackageEdits.Edit(packageId, p =>
+        {
+            var bodies = p.Runtime["character"]!["hurtboxBoneDefs"]!.AsArray();
+            var sample = bodies[0]!.DeepClone();
+            for (int i = 0; i < 2_000; i++) bodies.Add(sample.DeepClone());
+        });
+        var result = RunWithWallClock(() => CookedCharacterPackageLoader.LoadFiles(files,
+            CookedPackageEdits.RequirementOf(files), CharacterCookProfile.TrustedBuiltIn));
+        Assert.Contains(result.Diagnostics, d => d.Code == "package.hurtboxes.limit");
+    }
+
+    [Theory]
+    [InlineData("bonk")]
+    [InlineData("manki")]
+    public void OversizedLookupIdentifiersAreRefused(string packageId)
+    {
+        var files = CookedPackageEdits.Edit(packageId, p => p.Slot("ground.1")["iconId"] =
+            new string('x', CookedPackageLimits.IdentifierCharacters + 1));
+        var result = RunWithWallClock(() => CookedCharacterPackageLoader.LoadFiles(files,
+            CookedPackageEdits.RequirementOf(files), CharacterCookProfile.TrustedBuiltIn));
+        Assert.Contains(result.Diagnostics, d => d.Code == "package.identifier.limit");
+    }
+
+    [Theory]
+    [InlineData("bonk")]
+    [InlineData("manki")]
+    public void OversizedPoseLookupNamesAreRefused(string packageId)
+    {
+        var files = CookedPackageEdits.Edit(packageId, p =>
+        {
+            int oldLength = (int)System.Buffers.Binary.BinaryPrimitives.ReadUInt32LittleEndian(p.Poses.AsSpan(16));
+            string oldName = System.Text.Encoding.UTF8.GetString(p.Poses, 20, oldLength);
+            string name = new('x', CookedPackageLimits.PoseIdentifierBytes + 1);
+            var bytes = System.Text.Encoding.UTF8.GetBytes(name);
+            var poses = new byte[p.Poses.Length - oldLength + bytes.Length];
+            p.Poses.AsSpan(0, 16).CopyTo(poses);
+            System.Buffers.Binary.BinaryPrimitives.WriteUInt32LittleEndian(poses.AsSpan(16), (uint)bytes.Length);
+            bytes.CopyTo(poses, 20);
+            p.Poses.AsSpan(20 + oldLength).CopyTo(poses.AsSpan(20 + bytes.Length));
+            p.Poses = poses;
+            void Rename(JsonNode? node)
+            {
+                if (node is JsonObject obj)
+                    foreach (var pair in obj.ToArray())
+                        if (pair.Value is JsonValue value && value.TryGetValue<string>(out var text) && text == oldName)
+                            obj[pair.Key] = name;
+                        else Rename(pair.Value);
+                if (node is JsonArray array)
+                    for (int j = 0; j < array.Count; j++)
+                        if (array[j] is JsonValue value && value.TryGetValue<string>(out var text) && text == oldName)
+                            array[j] = name;
+                        else Rename(array[j]);
+            }
+            Rename(p.Runtime);
+            Rename(p.Bindings);
+        });
+        var result = RunWithWallClock(() => CookedCharacterPackageLoader.LoadFiles(files,
+            CookedPackageEdits.RequirementOf(files), CharacterCookProfile.TrustedBuiltIn));
+        Assert.Contains(result.Diagnostics, d => d.Code == "package.pose.malformed");
+    }
+
     private static JsonObject Capability(string id) => new() { ["capabilityId"] = id, ["capabilityVersion"] = "1" };
 
     private CookedCharacterPackageLoadResult Load(IReadOnlyDictionary<string, byte[]> files)

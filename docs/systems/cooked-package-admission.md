@@ -20,7 +20,7 @@ remain the authority for budget accounting.
 directory reads before and during reading, JSON depth, pose counts and decoded float values.
 The assembler checks pose byte availability before the animation loader allocates frames.
 Runtime parsing rejects invalid enums, incomplete slot grids, empty timelines, operation
-ordering, operation counts, and projectile lifetime and speed violations.
+ordering, operation counts, body hurtbox and declaration counts, and projectile lifetime and speed violations.
 
 ## Limits and measurements
 
@@ -70,6 +70,13 @@ validators still enforce the capability-specific conditions that this count assu
 | Runtime bytes | 62693 | 2097152 | 32 times, rounded; retains long display-string contract |
 | Binding bytes | 15748 | 65536 | Four times, rounded |
 | Pose bytes | 851998 | 4194304 | Four times, rounded |
+| Runtime lookup identifier characters | 45 | 256 | Four times, rounded |
+| Pose identifier UTF-8 bytes | 29 | 128 | Four times, rounded |
+| Body hurtboxes, capsules plus bone definitions | 24 | 128 | Four times, rounded |
+| Attachment points | 2 | 8 | Four times |
+| Presentation IDs | 41 | 256 | Four times, rounded |
+| Stage animation references | 6 | 32 | Four times, rounded |
+| Capability requirements | 5 | 32 | Existing compiler ceiling, 6.4 times |
 | Pose bones | 28 | 128 | Four times, rounded |
 | Pose animations | 34 | 256 | Four times, rounded |
 | Frames per animation | 720 | 4096 | Four times, rounded |

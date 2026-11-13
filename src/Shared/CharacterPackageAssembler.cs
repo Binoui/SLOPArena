@@ -825,7 +825,7 @@ public static class CharacterPackageAssembler
         private readonly byte[] _bytes; private int _offset;
         public PoseReader(byte[] bytes) { _bytes = bytes; }
         public uint ReadUInt32(string field, uint? expected = null) { Ensure(4); uint value = BinaryPrimitives.ReadUInt32LittleEndian(_bytes.AsSpan(_offset, 4)); _offset += 4; if (expected.HasValue && value != expected.Value) throw new InvalidDataException($"Unexpected {field}."); return value; }
-        public string ReadString(string field) { uint length = ReadUInt32(field + " length"); if (length > int.MaxValue) throw new InvalidDataException($"{field} is too long."); Ensure((int)length); string value = new UTF8Encoding(false, true).GetString(_bytes, _offset, (int)length); _offset += (int)length; return value; }
+        public string ReadString(string field) { uint length = ReadUInt32(field + " length"); if (length > CookedPackageLimits.PoseIdentifierBytes) throw new InvalidDataException($"{field} exceeds the pose identifier byte limit."); Ensure((int)length); string value = new UTF8Encoding(false, true).GetString(_bytes, _offset, (int)length); _offset += (int)length; return value; }
         public void SkipFloats(long count)
         {
             long bytes = checked(count * 4);
