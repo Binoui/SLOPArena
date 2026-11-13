@@ -190,6 +190,21 @@ namespace SlopArena.Client.UI
             if (glb >= 0) return path.Substring(0, glb + 4);
             return path == "portable" || diagnostic.Code.StartsWith("glb.", StringComparison.Ordinal) || diagnostic.Code.StartsWith("item.pose-bake.", StringComparison.Ordinal) ? "GLB / poses.bin" : path;
         }
+        private static byte[] FighterPreview(Texture2D portrait)
+        {
+            var target = RenderTexture.GetTemporary(512, 512, 0, RenderTextureFormat.ARGB32);
+            var previous = RenderTexture.active;
+            var image = new Texture2D(512, 512, TextureFormat.RGB24, false);
+            try
+            {
+                Graphics.Blit(portrait, target);
+                RenderTexture.active = target;
+                image.ReadPixels(new Rect(0, 0, 512, 512), 0, 0);
+                image.Apply();
+                return image.EncodeToJPG(85);
+            }
+            finally { RenderTexture.active = previous; RenderTexture.ReleaseTemporary(target); UnityEngine.Object.Destroy(image); }
+        }
         private async Task FighterPublishView()
         {
             if (!SteamReady) throw new InvalidOperationException(SteamWorkshopClient.Unavailable);
@@ -208,8 +223,8 @@ namespace SlopArena.Client.UI
             library.TryGetCatalog(out var catalog, out _);
             using var lease = await MadeFighterPresentation.PrepareAsync(catalog!.ResolvePackage(admitted.Fighter.Choose().Revision.PackageId)!, admitted.Item, _cancel.Token);
             var portrait = lease.Presentation.Art.Portrait() ?? throw new InvalidOperationException("A portrait is required for publishing.");
-            byte[] previewBytes = portrait.EncodeToPNG();
-            string preview = Path.Combine(_library.Root, WorkshopLibrary.ItemKey(sourceFolder) + ".fighter-preview.png");
+            byte[] previewBytes = FighterPreview(portrait);
+            string preview = Path.Combine(_library.Root, WorkshopLibrary.ItemKey(sourceFolder) + ".fighter-preview.jpg");
             await Task.Run(() => File.WriteAllBytes(preview, previewBytes));
             if (!IsOpen) return;
             ClearBody();
