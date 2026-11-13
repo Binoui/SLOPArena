@@ -342,13 +342,13 @@ public sealed class CookedPackageLoaderContractTests
     }
 
     [Theory]
-    [InlineData("manki", "8BDE5BE4150CCF596884E145915EB6ACC13A80EC1C31E212861C4DD2EA72AA68", "46067F39C401DE36923191BC90DEB59368200903161AC0AF982DC24091291F3C")]
-    [InlineData("fightguy", "B1B45CBEE882717850834743FF4423C14325762A27ED71030E1AC081E079782A", "AC094CB816FF4ABBA0BBC117C9DC28EB6FD84263DF19789ED354BC9C50C6FE9E")]
-    [InlineData("wibou", "62855D216CC779C2D58F72D1C0211B56DFE098743F85737ECC858EE4BC9526C7", "06C442141EE6D172A23ED2916F674173DDE64D282E1F09CD4A0E0326D147957D")]
-    [InlineData("bonk", "CC7C89C12D1AB5D81A04EB5265B5B7B821CFDF18D530E6A200017A6A89665DFF", "EB1DC68F62B0F68BF4CC07697A8B9C18885A59BC115312920A222E8233378314")]
-    [InlineData("bashie", "77B276AEE8B32D96EC8167801666B1562C38608DB9CFDB85A353E987E7302658", "983FA3FBB9B0B008A1B21983C3774F19FBAD7C9E263F8CF8F72DF8D963119E47")]
-    [InlineData("salamander", "461E510A33C1846B34EBB2A97895B7B17764041752E604806F117A2254AE1F15", "4B9C4261B292FDE7104F6AE54A60CAF6327EF48460F5D3D87F0A0A5DBD8E5435")]
-    [InlineData("nyx", "7D6E8A0768E2F76310A25FC23D1143AF5766153065485DDEDF79997D282F5034", "4348694F49A668E32FA38974FBA2CC489CD7DA2D9C09CDE4FD4970BAE567BB1B")]
+    [InlineData("manki", "683B1CDE1F803D2375E543AB19AC7F989D80E65B6FF29A6A0ECCD2D0B8CDB8EA", "46067F39C401DE36923191BC90DEB59368200903161AC0AF982DC24091291F3C")]
+    [InlineData("fightguy", "85CC8C42FA4DD0592D42179FCDA97207532EF22F503777D652D808F12A7EC2D3", "AC094CB816FF4ABBA0BBC117C9DC28EB6FD84263DF19789ED354BC9C50C6FE9E")]
+    [InlineData("wibou", "A549D7BD1CC6D7A3665483FF231D1077839DD0A449E49E8AD00B2A8DCCA8572B", "06C442141EE6D172A23ED2916F674173DDE64D282E1F09CD4A0E0326D147957D")]
+    [InlineData("bonk", "F143529388855C15422964C80DF184E99C4FD8C2BDB33682ED39399E7417B2FB", "EB1DC68F62B0F68BF4CC07697A8B9C18885A59BC115312920A222E8233378314")]
+    [InlineData("bashie", "BF56195A820DD1DB0989E61E72EE4ED1A8820CB49991EA2BB26C7CF97DD86CC4", "983FA3FBB9B0B008A1B21983C3774F19FBAD7C9E263F8CF8F72DF8D963119E47")]
+    [InlineData("salamander", "1AADD5734E0F27344D254D1ED718FEF50E1BC395A654D135CE62318F5473A422", "4B9C4261B292FDE7104F6AE54A60CAF6327EF48460F5D3D87F0A0A5DBD8E5435")]
+    [InlineData("nyx", "D25E07263BF4519B4F9E064ADEC7106383E3F11E0BEF9D480CC2F995A0774CAC", "4348694F49A668E32FA38974FBA2CC489CD7DA2D9C09CDE4FD4970BAE567BB1B")]
     public void TrustedRosterMatchesOriginMainRuntimeAndPoses(string packageId, string definitionHash, string poseHash)
     {
         var loaded = RunWithWallClock(() => CookedCharacterPackageLoader.LoadFiles(CookedPackageEdits.Shipped(packageId),
@@ -356,8 +356,29 @@ public sealed class CookedPackageLoaderContractTests
         Assert.True(loaded.IsValid, string.Join(";", loaded.Diagnostics));
         string Hash(object value) => Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(
             System.Text.Json.JsonSerializer.SerializeToUtf8Bytes(value)));
-        Assert.Equal(definitionHash, Hash(loaded.Package!.Definition));
+        Assert.Equal(definitionHash, RuntimeFingerprint(loaded.Package!));
         Assert.Equal(poseHash, Hash(loaded.BakedAnimation!));
+    }
+
+    internal static string RuntimeFingerprint(CookedCharacterPackage package)
+        => Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(
+            CharacterPackageCompiler.WriteCanonical(package.Metadata, package.Definition, package.Budget)));
+
+    [Fact]
+    public void RuntimeFingerprintIncludesConcreteOperationPayloadsAndBudgets()
+    {
+        var original = CookedPackageEdits.Shipped("fightguy");
+        var edited = CookedPackageEdits.Edit("fightguy", p =>
+            p.Slot("ground.1")["timeline"]!["stages"]![0]!["operations"]!.AsArray()
+                .First(o => o!["hitbox"] != null)!["hitbox"]!["damage"] = 99);
+        CookedCharacterPackage Load(Dictionary<string, byte[]> files)
+        {
+            var result = CookedCharacterPackageLoader.LoadFiles(files, CookedPackageEdits.RequirementOf(files), CharacterCookProfile.TrustedBuiltIn);
+            Assert.True(result.IsValid, string.Join(";",result.Diagnostics)); return result.Package!;
+        }
+        var package = Load(original);
+        Assert.NotEqual(RuntimeFingerprint(package), RuntimeFingerprint(Load(edited)));
+        Assert.NotEqual(RuntimeFingerprint(package), RuntimeFingerprint(new CookedCharacterPackage(package.Metadata, package.Definition, package.Budget with { OperationCount = package.Budget.OperationCount + 1 }, package.Diagnostics, package.CanonicalBytes)));
     }
 
     [Theory]
@@ -532,7 +553,7 @@ public sealed class CookedPackageLoaderContractTests
         var report = RunWithWallClock(() => RunMatch(packageId, loaded, CookedPackageEdits.RequirementOf(files)));
         Assert.True(report.TicksRun == MatchTicks, $"Match stopped at tick {report.TicksRun} of {MatchTicks}.");
         Assert.True(report.AllFinite, $"A fighter left finite space by tick {report.FirstNonFiniteTick}.");
-        Assert.True(report.PeakHitboxes <= CookedPackageLimits.LiveHitboxes, report.ToString());
+        Assert.True(report.PeakHitboxes <= CookedPackageLimits.LiveVolumesPerWorld, report.ToString());
         return report;
     }
 

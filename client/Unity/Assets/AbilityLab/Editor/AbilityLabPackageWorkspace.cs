@@ -1128,7 +1128,7 @@ public sealed partial class AbilityLabPackageWorkspace
     private void RefreshLiveDraft(CharacterPackageSource source, IReadOnlyList<CharacterDiagnostic> sourceDiagnostics)
     {
         PreviewLab?.SetSourceDocument(source);
-        var compiled = CharacterPackageCompiler.Compile(source, CharacterPackageAuthoringService.ProfileFor(PackageId));
+        var compiled = CharacterPackageCompiler.Compile(source, CharacterPackageAuthoringService.ProfileFor(PackageId, PackageRoot));
         var diagnostics = new List<CharacterDiagnostic>(sourceDiagnostics ?? Array.Empty<CharacterDiagnostic>());
         diagnostics.AddRange(compiled.Diagnostics);
         diagnostics.AddRange(_diagnostics.Where(diagnostic => diagnostic.Code == "workspace.external.changed"));

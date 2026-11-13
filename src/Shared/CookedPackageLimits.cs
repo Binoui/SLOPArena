@@ -14,7 +14,7 @@ internal static class CookedPackageLimits
     internal const int PoseBytes = 4 * 1024 * 1024;
     internal const int IdentifierCharacters = 256;
     internal const int PoseIdentifierBytes = 128;
-    internal const int BodyHurtboxes = 128;
+    internal const int BodyHurtboxes = 32;
     internal const int AttachmentPoints = 8;
     internal const int PresentationIds = 256;
     internal const int StageAnimations = 32;
@@ -25,8 +25,20 @@ internal static class CookedPackageLimits
     internal const int OperationsPerStage = CookedBudget.MaxOperationsPerStage;
     internal const int OperationsPerTimeline = CookedBudget.MaxOperationsPerTimeline;
     internal const int SpawnsPerTick = 128;
-    internal const int LiveHitboxes = 2048;
-    internal const int LiveProjectiles = 4560;
+    // Runtime pools: projectiles are conservatively all non-freezing resolver volumes.
+    internal const int LiveVolumesPerOwner = 16;
+    internal const int LiveVolumesPerWorld = 64;
+    internal const int ProjectileVolumesPerOwner = 12;
+    internal const int ProjectileVolumesPerWorld = 48;
+    internal const int SweepPoseUnits = HitboxGeometry.MaxSweepSteps + 1;
+    internal const int CollisionPoseUnitsPerOwner = 200;
+    internal const int CollisionPoseUnitsPerWorld = 800;
+    internal const int MatchSeats = 4;
+    internal const int CollisionChecksPerTick = CollisionPoseUnitsPerWorld * (MatchSeats - 1) * (BodyHurtboxes + 1);
+    internal const int RequestedCollisionPoseUnits = 10000;
+    internal const int RequestedCollisionChecks = RequestedCollisionPoseUnits * (MatchSeats - 1) * (BodyHurtboxes + 1);
+    internal const int HitboxLifetimeEnvelope = 2048;
+    internal const int ProjectileLifetimeEnvelope = 4560;
     internal const int HitboxesPerTimeline = 64;
     internal const int ProjectilesPerTimeline = 16;
     internal const float ProjectileSpeed = 120f;
@@ -181,12 +193,19 @@ internal static class CookedPackageLimits
 
     internal static void CheckResources(CookedCharacterDefinition definition, List<CharacterDiagnostic> diagnostics)
     {
-        // Each public emitter runs at most once per owner simulation tick. Summing all slots also bounds overlap between activations.
+        // Each public emitter runs at most once per owner tick. This is a requested-work envelope; runtime pools bound actual overlap.
         var envelope = ResourceEnvelope(definition);
         if (envelope.Emitters > SpawnsPerTick)
             Add(diagnostics, "package.spawns.limit", "character", "Per fighter emitter limit exceeded.");
-        if (envelope.Hitboxes > LiveHitboxes || envelope.Projectiles > LiveProjectiles)
-            Add(diagnostics, "package.live.limit", "character", "Conservative live effect envelope exceeds the fighter limit.");
+        if (envelope.Hitboxes > HitboxLifetimeEnvelope || envelope.Projectiles > ProjectileLifetimeEnvelope)
+            Add(diagnostics, "package.live.limit", "character", "Requested effect lifetime envelope exceeds the fighter limit.");
+        // Charge every melee emitter for a full bone sweep, even when its current geometry is cheaper.
+        // Opponents may each use the largest admitted body plus a shield surface. The runtime weighted
+        // pool clips overlapping activations independently of cooldowns, forms, hitstop, and emitters.
+        long requested = (envelope.Hitboxes * SweepPoseUnits + envelope.Projectiles)
+            * (MatchSeats - 1) * (BodyHurtboxes + 1);
+        if (requested > RequestedCollisionChecks)
+            Add(diagnostics, "package.collision.limit", "character", "Requested sweep/body collision work exceeds the fighter envelope.");
     }
 
     private static void CheckEnum<T>(JsonElement value, string field, List<CharacterDiagnostic> diagnostics) where T : struct, Enum

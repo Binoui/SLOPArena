@@ -348,6 +348,13 @@ public static class CharacterPackageCompiler
         }
         var budget = ComputeBudget(definition);
         var bytes = WriteCanonical(metadata, definition, budget);
+        var limits = new List<CharacterDiagnostic>();
+        if (bytes.Length > CookedPackageLimits.RuntimeBytes)
+            d.Error("package.file.limit", CharacterPackageAssembler.RuntimePath, "Runtime exceeds the admission byte limit.");
+        CookedPackageLimits.CheckRuntime(bytes, limits, profile);
+        CookedPackageLimits.CheckResources(definition, limits);
+        foreach (var diagnostic in limits) d.Error(diagnostic.Code, diagnostic.Path, diagnostic.Message);
+        if (d.HasErrors) return;
         package = new CookedCharacterPackage(metadata, definition, budget, d.ToList(), bytes);
 
         List<CookedSlotDefinition> CookGrid(CharacterAuthoringDocument doc, byte form, DiagnosticBag bag,
@@ -2042,7 +2049,7 @@ public static class CharacterPackageCompiler
             new CaptureAnchor(x.AttackerAnchor.X, x.AttackerAnchor.Y, x.AttackerAnchor.Z),
             new CaptureAnchor(x.VictimAnchor.X, x.VictimAnchor.Y, x.VictimAnchor.Z));
 
-    private static byte[] WriteCanonical(CookedPackageMetadata metadata, CookedCharacterDefinition definition, CookedBudget budget)
+    internal static byte[] WriteCanonical(CookedPackageMetadata metadata, CookedCharacterDefinition definition, CookedBudget budget)
     {
         using var stream = new MemoryStream();
         using (var writer = new Utf8JsonWriter(stream, new JsonWriterOptions { Encoder = JavaScriptEncoder.Default, Indented = false }))

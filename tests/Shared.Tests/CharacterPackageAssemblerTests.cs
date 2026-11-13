@@ -577,6 +577,10 @@ public sealed class CharacterPackageAssemblerTests
         {
             var c = JsonNode.Parse(File.ReadAllText(Path.Combine(root, "character.json")))!.AsObject();
             FightGuyFixture.WithoutTitleMatch(c);
+            // This fixture verifies two-form serialization, not two full lingering FightGuy kits.
+            foreach (var operation in c["slots"]!.AsArray().SelectMany(s => s!["timeline"]!["stages"]!.AsArray())
+                         .SelectMany(s => s!["operations"]!.AsArray()))
+                if (operation!["hitbox"] is { } hitbox) hitbox["durationTicks"] = 1;
             if (capability)
                 c["capabilityRequirements"]!.AsArray().Add(new JsonObject
                     { ["capabilityId"] = CharacterPackageCompiler.FormsCapabilityId, ["capabilityVersion"] = "1" });

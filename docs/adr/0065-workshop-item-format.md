@@ -101,7 +101,13 @@ files, so only the `item.json` schema version gates it.
 Shared's loader now selects a host trust profile, rejects internal capabilities under
 Workshop, recomputes compiler budgets, and rejects malformed timelines, enums, and slot grids.
 It bounds file reads, JSON depth, pose memory, operation counts, projectile speed, and lifetime.
-The contract suite enables all eight formerly skipped cases and counts simulation work.
+Cook and load use the same limits and diagnostics. Body hurtboxes are capped at 32. Shared's
+resolver also enforces deterministic owner/world volume and sweep-weighted pools, including
+after rollback restoration. Excess emissions are dropped; the four-seat fighter collision
+budget is 79,200 contact tests per tick. The contract suite covers peak and sustained work,
+capability emitters and form changes, with all eight formerly skipped cases enabled.
+The web demo trusts only its embedded roster's exact pins. Editor trusted cooks require an
+application-owned first-party source folder as well as shipped roster membership.
 See [cooked package admission](../systems/cooked-package-admission.md) for constants,
 measurements, diagnostics, and typed capability lifetime accounting.
 External admission remains internal or test-only until the subsequent roll-out units.

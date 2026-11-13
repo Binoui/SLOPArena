@@ -87,7 +87,7 @@ public sealed class CharacterAssetCatalogEditor : EditorWindow
             };
             return;
         }
-        var profile = CharacterPackageAuthoringService.ProfileFor(_catalog.PackageId);
+        var profile = CharacterPackageAuthoringService.ProfileFor(_catalog.PackageId, packageRoot);
         CharacterCompileResult compiled = CharacterPackageCompiler.Compile(
             File.ReadAllText(manifestPath), File.ReadAllText(characterPath), profile);
         _diagnostics = compiled.Diagnostics.ToList();
