@@ -1738,7 +1738,10 @@ lowercase SHA-256 map. Required payloads are `manifest.json`, `character.runtime
 `client.bindings`, `package.json`, `character.json`, `card.json`, and one `.glb` file. Optional payloads
 are `humanoid.json` and `.png` or `.jpg` images. No other files, nested paths, or links are admitted.
 There are at most 40 payloads. Filenames have at most 128 ASCII letters, digits, dots, hyphens,
-or underscores. Leading dots, reserved Windows device stems, and case aliases are refused. Model swaps retain item schema 1.
+or underscores. Leading dots, reserved Windows device stems, and case aliases are refused. Model swaps retain item schema 1. Cooked payloads use the existing
+[cooked admission limits](../systems/cooked-package-admission.md). The GLB limit is 30,000,000
+bytes. External image files are limited to 4 MiB each and the GLB texture dimension/pixel limits.
+Source, card, and humanoid JSON files are limited to 2 MiB each. The item manifest limit is 16 KiB.
 
 `card.json` owns `description`, `workInProgress`, and nullable `tutorialHint`. A hint contains
 `starter`, `followUp`, and `jump`. Move keys are `1`, `2`, `3`, `A`, `E`, `R`, and `F`.
