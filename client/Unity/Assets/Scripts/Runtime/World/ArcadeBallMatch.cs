@@ -15,8 +15,8 @@ namespace SlopArena.Client.World
     public abstract class ArcadeBallMatch : MatchBase
     {
         protected abstract string StageKey { get; }
-        public const string FighterSessionKey = "SlopArena.ArcadeBallLab.Fighter";
-        [SerializeField] private CharacterClass _characterOverride = CharacterClass.None;
+        public const string FighterSessionKey = "SlopArena.ArcadeBallLab.FighterPackage";
+        [SerializeField] private string _fighterPackageOverride = "";
         [SerializeField] private CombatFeedback _combatFeedback;
         [SerializeField] private ProjectileVFXManager _projectileVFX;
         private LocalSimulationBridge _bridge;
@@ -44,6 +44,30 @@ namespace SlopArena.Client.World
             _probeInput = input;
         }
 
+#if UNITY_EDITOR
+        static string ReadEditorPackageOverride(string packageOverride)
+        {
+            if (string.IsNullOrEmpty(packageOverride))
+                packageOverride = UnityEditor.SessionState.GetString(FighterSessionKey, "");
+            if (!string.IsNullOrEmpty(UnityEditor.SessionState.GetString("SlopArena.ArcadeBallLab.Fighter", "")))
+            {
+                var legacy = UnityEditor.SessionState.GetString("SlopArena.ArcadeBallLab.Fighter", "");
+                if (string.IsNullOrEmpty(packageOverride))
+                {
+                    packageOverride = LegacyFighterSelection.PackageId(legacy);
+                    if (string.IsNullOrEmpty(packageOverride))
+                    {
+                        LocalFighterLibrary.ReportDiagnostic("[Arcade] Unresolvable legacy fighter session value; using the default fighter.");
+                        if (ShippedRoster.TryReadApplication(out var roster, out _)) packageOverride = roster!.DefaultFighter.PackageId;
+                    }
+                    UnityEditor.SessionState.SetString(FighterSessionKey, packageOverride);
+                }
+                UnityEditor.SessionState.EraseString("SlopArena.ArcadeBallLab.Fighter");
+            }
+            return packageOverride;
+        }
+#endif
+
         protected override void OnMatchStart()
         {
             MatchConfig.ClearActiveMatch();
@@ -58,19 +82,18 @@ namespace SlopArena.Client.World
                 return;
             }
             arena = PrepareArena(arena);
-            if (!ClientSession.TryBuildLocalMatchCatalog(out var catalog, out var failure) || catalog == null)
+            string packageOverride = _fighterPackageOverride;
+#if UNITY_EDITOR
+            packageOverride = ReadEditorPackageOverride(packageOverride);
+#endif
+            if (!ClientSession.TryBuildLocalMatchCatalog(out var catalog, out var failure, string.IsNullOrEmpty(packageOverride) ? null : packageOverride) || catalog == null)
             {
-                Debug.LogError("[Arcade] Local content catalog failed: " + failure);
-                enabled = false;
+                RejectContent("Arcade content preparation failed: " + failure);
                 return;
             }
-            var selectedClass = _characterOverride != CharacterClass.None ? _characterOverride : MatchConfig.PlayerClass;
-#if UNITY_EDITOR
-            if (_characterOverride == CharacterClass.None && Enum.TryParse<CharacterClass>(
-                    UnityEditor.SessionState.GetString(FighterSessionKey, selectedClass.ToString()), out var editorChoice))
-                selectedClass = editorChoice;
-#endif
-            var entry = catalog.Resolve(selectedClass);
+            var choice = MatchConfig.Selection?.Choice;
+            if (!string.IsNullOrEmpty(packageOverride)) choice = MatchConfig.ResolveStoredFighter(packageOverride, catalog);
+            var entry = choice?.Resolve(catalog);
             if (entry == null || !arena.Arcade.AllowsPackage(entry.Identity.PackageId))
             {
                 Debug.LogError("[Arcade] Fighter is not admitted by this court profile.");
@@ -79,7 +102,7 @@ namespace SlopArena.Client.World
             }
             if (!BindFighter(PlayerEntityId, entry)) return;
             ClientSession.InstallLocalMatchCatalog(catalog);
-            MatchConfig.SetPlayerFighter(entry);
+            MatchConfig.SetPlayerFighter(choice);
             _playerDef = entry.Definition;
             _bridge = new LocalSimulationBridge(arena, NoWinMatchRule.Instance);
             if (_combatFeedback == null) _combatFeedback = GetComponent<CombatFeedback>() ?? gameObject.AddComponent<CombatFeedback>();

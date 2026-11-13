@@ -6,13 +6,13 @@ namespace SlopArena.Client.UI
 {
     internal static class FighterPanel
     {
-        public static VisualElement Build(int playerNumber, string name, string role, CharacterClass? fighter,
+        public static VisualElement Build(int playerNumber, string name, string role, string? fighter,
             string status, bool interactive = false, bool compact = false, byte form = 0)
         {
             VisualElement panel = interactive ? new Button() : new VisualElement();
             panel.AddToClassList("fighter-panel");
             panel.EnableInClassList("fighter-panel--compact", compact);
-            panel.EnableInClassList("fighter-panel--open", !fighter.HasValue && role == "OPEN");
+            panel.EnableInClassList("fighter-panel--open", string.IsNullOrEmpty(fighter) && role == "OPEN");
             var colour = SeatColours.For(playerNumber);
             var heading = new VisualElement();
             heading.AddToClassList("fighter-panel__heading");
@@ -21,13 +21,13 @@ namespace SlopArena.Client.UI
             heading.Add(Text(role, "fighter-panel__role"));
             heading.Add(Text(name, "fighter-panel__name"));
             panel.Add(heading);
-            if (fighter.HasValue)
+            if (!string.IsNullOrEmpty(fighter))
             {
-                var ui = MenuRoster.Art(fighter.Value);
+                var ui = LocalFighterLibrary.Current.Art(fighter);
                 panel.AddToClassList($"fighter-panel--{ui.StyleAlias}");
                 var art = new VisualElement { pickingMode = PickingMode.Ignore };
                 art.AddToClassList("fighter-panel__art");
-                var portrait = MenuRoster.Contains(fighter.Value) ? ui.Portrait(form) : null;
+                var portrait = LocalFighterLibrary.Current.Contains(fighter) ? ui.Portrait(form) : null;
                 if (portrait != null) art.style.backgroundImage = new StyleBackground(portrait);
                 // Splash images are stylesheet dependencies, so they ship without Resources copies.
                 if (ui.HasSplash)
@@ -35,8 +35,8 @@ namespace SlopArena.Client.UI
                 if (portrait == null && !ui.HasSplash)
                     art.Add(Text("?", "fighter-panel__placeholder"));
                 panel.Add(art);
-                panel.Add(Text(MenuRoster.Name(fighter.Value, form).ToUpperInvariant(), "fighter-panel__fighter"));
-                if (!compact) panel.Add(Text(MenuRoster.Description(fighter.Value), "fighter-panel__description"));
+                panel.Add(Text(LocalFighterLibrary.Current.Name(fighter, form).ToUpperInvariant(), "fighter-panel__fighter"));
+                if (!compact) panel.Add(Text(LocalFighterLibrary.Current.Description(fighter), "fighter-panel__description"));
             }
             else
                 panel.Add(Text($"P{playerNumber} · {(role == "OPEN" ? "OPEN" : "PICKING")}", "fighter-panel__empty"));

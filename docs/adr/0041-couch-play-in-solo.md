@@ -99,3 +99,9 @@ Decisions 1 and 3 are prerequisites.
 Solo and Arcade share one **Local Play** entry. The flow is Mode, then Fighters, then Stage for Brawl. Slopball, Character Courses and Manki Mayhem start from Fighter Select on their fixed stages. Match-facing Solo and Arcade values stay unchanged.
 
 [ADR-0046](0046-courses-open-to-every-fighter.md) changes Character Courses to Mode, then Course, then Fighters. Every roster fighter can play every course. Courses remain P1-only in this slice.
+
+## Seat identity after ADR-0067 unit 3
+
+Each occupied local seat retains an admitted `FighterChoice` with an exact package revision and a supported starting form. P1 keeps it in `MatchConfig.Selection`; P2 to P4 keep it in `SoloSeat.Choice`. Device pairing, CPU difficulty, Open seats and seat colors keep their existing behavior. `LocalFighterLibrary` supplies Fighter Select and fighter panels in roster order.
+
+Local launch refreshes each occupied choice by package and form against the current source snapshot before pinning the Match catalog. A source edit between Editor plays does not require a script recompile. Scene overrides remain local to their Match. Missing content leaves device-join and restore state unchanged or open and reports one diagnostic.

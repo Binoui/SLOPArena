@@ -85,7 +85,7 @@ namespace SlopArena.Client.UI
                     { MatchConfig.Seat(player).Kind = SeatKind.Open; MatchConfig.Seat(player).DeviceId = 0; }
             if (info.Format == MatchFormat.MankiMayhem)
             {
-                var roster = new[] { CharacterClass.Manki, CharacterClass.Wibou, CharacterClass.Bashie };
+                var roster = new[] { "manki", "wibou", "bashie" };
                 for (int player = 2; player <= 4; player++)
                     if (MatchConfig.Seat(player).Kind == SeatKind.Open)
                         MatchConfig.Seat(player) = new SoloSeat { Kind = SeatKind.Cpu, Fighter = roster[player - 2], Difficulty = CpuDifficulty.Normal };

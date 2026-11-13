@@ -102,7 +102,7 @@ namespace SlopArena.EditorTools
             if (loaded is not ArenaDefinition arena || arena.Purpose != ArenaPurpose.PvP
                 || arena.SpawnPoints.Length < Packages.Length)
                 throw new InvalidOperationException("The showcase needs a baked PvP arena with four spawns.");
-            if (!ClientSession.TryBuildLocalMatchCatalog(out var catalog, out var failure) || catalog == null)
+            if (!ClientSession.TryBuildAvailableFighterCatalog(out var catalog, out var failure) || catalog == null)
                 throw new InvalidOperationException("Local content catalog: " + failure);
             _arena = arena;
             _bridge = new LocalSimulationBridge(arena, NoWinMatchRule.Instance);

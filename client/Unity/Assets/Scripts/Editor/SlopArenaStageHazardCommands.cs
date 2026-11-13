@@ -25,7 +25,7 @@ namespace SlopArena.EditorTools
             public uint seed;
             public MatchFormat format;
             public string arena;
-            public SoloSeat[] seats;
+            public SoloSeatState[] seats;
         }
 
         [CliCommand("sloparena.stage.hazards.prepare", "Prepare a disposable Splash Deck Training or Local Brawl hazard smoke. Always stop and restore afterwards.", MainThreadRequired = true)]
@@ -37,18 +37,18 @@ namespace SlopArena.EditorTools
                 throw new InvalidOperationException("Stop and restore any prior hazard smoke first.");
             SessionState.SetString(Key, JsonConvert.SerializeObject(new Saved { mode = MatchConfig.StageHazards,
                 seed = MatchConfig.StageHazardSeed, format = MatchConfig.Format, arena = MatchConfig.ArenaName,
-                seats = (SoloSeat[])MatchConfig.SoloSeats.Clone() }));
+                seats = MatchConfig.SoloSeats.Select(SoloSeatState.Capture).ToArray() }));
             SlopArenaStageViewCommands.Prepare(stage);
             MatchConfig.StageHazards = on ? StageHazardMode.On : StageHazardMode.Off;
             MatchConfig.StageHazardSeed = 123;
             MatchConfig.Format = MatchFormat.Stock;
             MatchConfig.ArenaName = stage;
-            MatchConfig.Seat(2) = new SoloSeat { Kind = SeatKind.Cpu, Fighter = CharacterClass.FightGuy, Difficulty = CpuDifficulty.Normal };
+            MatchConfig.Seat(2) = new SoloSeat { Kind = SeatKind.Cpu, Fighter = "fightguy", Difficulty = CpuDifficulty.Normal };
             if (solo)
             {
                 MatchConfig.Mode = GameMode.Solo;
                 MatchConfig.LocalMode = LocalPlayMode.Brawl;
-                MatchConfig.Seat(2) = new SoloSeat { Kind = SeatKind.Cpu, Fighter = CharacterClass.FightGuy, Difficulty = CpuDifficulty.Normal };
+                MatchConfig.Seat(2) = new SoloSeat { Kind = SeatKind.Cpu, Fighter = "fightguy", Difficulty = CpuDifficulty.Normal };
                 MatchConfig.Seat(3).Kind = SeatKind.Open; MatchConfig.Seat(4).Kind = SeatKind.Open;
                 EditorSceneManager.OpenScene("Assets/Scenes/Arena_Offline.unity", OpenSceneMode.Single);
             }
@@ -236,7 +236,7 @@ namespace SlopArena.EditorTools
             var saved = JsonConvert.DeserializeObject<Saved>(json);
             MatchConfig.StageHazards = saved.mode; MatchConfig.StageHazardSeed = saved.seed;
             MatchConfig.Format = saved.format; MatchConfig.ArenaName = saved.arena;
-            Array.Copy(saved.seats, MatchConfig.SoloSeats, saved.seats.Length);
+            Array.Copy(saved.seats.Select(s => s.Restore()).ToArray(), MatchConfig.SoloSeats, saved.seats.Length);
             SessionState.EraseString(Key);
             return new { success = true };
         }

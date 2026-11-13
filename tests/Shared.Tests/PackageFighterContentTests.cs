@@ -6,6 +6,7 @@ using Xunit;
 
 namespace SlopArena.Shared.Tests;
 
+[Collection("Local fighter state")]
 public partial class PackageFighterContentTests
 {
     static string Root => ReplayWorldTests.Root;
@@ -16,13 +17,26 @@ public partial class PackageFighterContentTests
             e => CookedCharacterPackageLoader.LoadDirectory(Path.Combine(Root, "content-cooked", e.PackageId), e.Requirement))).Catalog!;
     }
 
-    static (Dictionary<string, byte[]> Files, MatchContentPackageRequirement Requirement) Fixture(string packageId = "local.tumbleweed")
+    static (Dictionary<string, byte[]> Files, MatchContentPackageRequirement Requirement) Fixture(string packageId = "local.tumbleweed", string? version = null, bool forms = false)
     {
         var path = Path.Combine(Root, "client/Unity/Assets/CharacterPackages/salamander");
         var metadata = JsonNode.Parse(File.ReadAllText(Path.Combine(path, "package.json")))!;
         metadata["packageId"] = packageId;
-        var compiled = CharacterPackageCompiler.Compile(metadata.ToJsonString(), File.ReadAllText(Path.Combine(path, "character.json")), CharacterCookProfile.Workshop);
-        Assert.NotNull(compiled.CookedPackage);
+        if (version != null) metadata["version"] = version;
+        var character = JsonNode.Parse(File.ReadAllText(Path.Combine(path, "character.json")))!;
+        if (forms)
+        {
+            ((JsonArray)character["capabilityRequirements"]!).Add(new JsonObject { ["capabilityId"] = "slop.ability.forms.v1", ["capabilityVersion"] = "1" });
+            var formPresentation = character["presentation"]!.DeepClone().AsObject();
+            var allowed = JsonNode.Parse(File.ReadAllText(Path.Combine(Root, "client/Unity/Assets/CharacterPackages/nyx/character.json")))!["alternateForm"]!["presentation"]!.AsObject().Select(pair => pair.Key).ToHashSet();
+            foreach (var key in formPresentation.Select(pair => pair.Key).Where(key => !allowed.Contains(key)).ToArray()) formPresentation.Remove(key);
+            character["alternateForm"] = new JsonObject {
+                ["id"] = "other", ["displayName"] = "Other form", ["movement"] = character["movement"]!.DeepClone(),
+                ["presentation"] = formPresentation, ["slots"] = character["slots"]!.DeepClone(), ["aliases"] = character["aliases"]!.DeepClone()
+            };
+        }
+        var compiled = CharacterPackageCompiler.Compile(metadata.ToJsonString(), character.ToJsonString(), CharacterCookProfile.Workshop);
+        Assert.True(compiled.CookedPackage != null, string.Join("; ", compiled.Diagnostics.Select(d => d.Path + ": " + d.Message)));
         var package = compiled.CookedPackage!;
         var assembly = CharacterPackageAssembler.Assemble(CharacterPackageAssemblerTests.BuildInput(package,
             Array.Empty<PackageDependencySource>(), package.Definition.CapabilityRequirements, Array.Empty<CharacterDiagnostic>()));

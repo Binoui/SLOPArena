@@ -10,6 +10,12 @@ public enum MatchContentPolicy : byte { LocalPlay, StandardRoom, WorkshopRoom, E
 public sealed class AdmittedFighter
 {
     internal CookedCharacterPackageLoadResult Loaded { get; }
+    public FighterChoice Choose(byte startingForm = 0)
+    {
+        if (startingForm > 1 || startingForm == 1 && Loaded.Package!.Definition.AlternateForm == null)
+            throw new ArgumentOutOfRangeException(nameof(startingForm), "Starting form is not admitted by this revision.");
+        return new FighterChoice(this, startingForm);
+    }
     public MatchContentIdentity Identity => Loaded.Identity;
     public CharacterClass? LegacySelector { get; }
     readonly ShippedRoster? trustedRoster;

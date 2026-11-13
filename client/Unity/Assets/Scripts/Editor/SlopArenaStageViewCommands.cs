@@ -50,7 +50,7 @@ namespace SlopArena.EditorTools
             public GameMode mode;
             public LocalPlayMode localMode;
             public bool slopball;
-            public MatchConfig.PlayerSelection playerSelection;
+            public FighterChoiceState playerSelection;
             public string arenaName, fighterSession, recordDirectory;
         }
 
@@ -85,7 +85,7 @@ namespace SlopArena.EditorTools
                 stage = stage, scenes = scenes, selection = Selection.objects.Select(x => GlobalObjectId.GetGlobalObjectIdSlow(x).ToString()).ToArray(),
                 optionsEnabled = EditorSettings.enterPlayModeOptionsEnabled, options = (int)EditorSettings.enterPlayModeOptions,
                 paused = EditorApplication.isPaused, timeScale = Time.timeScale, mode = MatchConfig.Mode, localMode = MatchConfig.LocalMode, slopball = slopball,
-                playerSelection = MatchConfig.Selection, arenaName = MatchConfig.ArenaName,
+                playerSelection = new FighterChoiceState(MatchConfig.Selection.Choice, MatchConfig.PreferredFormOf(1)), arenaName = MatchConfig.ArenaName,
                 fighterSession = SessionState.GetString(ArcadeBallMatch.FighterSessionKey, ""),
                 recordDirectory = ArcadeRecordsStore.VerificationDirectory,
                 viewSize = (int)view.GetType().GetProperty("selectedSizeIndex", Flags).GetValue(view),
@@ -102,7 +102,7 @@ namespace SlopArena.EditorTools
                 MatchConfig.Mode = GameMode.Arcade; MatchConfig.LocalMode = LocalPlayMode.Slopball;
                 MatchConfig.ArenaName = stage;
                 MatchConfig.SetDefaultPlayerFighter();
-                SessionState.SetString(ArcadeBallMatch.FighterSessionKey, MatchConfig.PlayerClass.ToString());
+                SessionState.SetString(ArcadeBallMatch.FighterSessionKey, MatchConfig.PlayerPackageId);
                 // Scripted serves bank like play does; keep them out of the player's real records.
                 ArcadeRecordsStore.VerificationDirectory = Path.Combine(Application.temporaryCachePath, "SlopArenaStageViewRecords");
                 EditorSceneManager.OpenScene(SlopballScenePath, OpenSceneMode.Single);

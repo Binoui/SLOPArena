@@ -199,11 +199,8 @@ namespace SlopArena.Client
         public static FighterUiArt Unavailable(string name) => new(new[] { name }, false, null);
         public static FighterUiArt Menu(string packageId, string fallbackName)
         {
-            var binding = Binding(packageId);
-            if (!binding.HasValue) return Unavailable(fallbackName);
-            var row = binding.Value;
-            var names = new List<string>(); foreach (var name in row.GetProperty("names").EnumerateArray()) names.Add(name.GetString()!);
-            return new FighterUiArt(names.ToArray(), names.Count > 1, row);
+            return UI.LocalFighterLibrary.Current.TryGetCatalog(out var catalog, out _) && catalog?.ResolvePackage(packageId) is { } entry
+                ? Resolve(entry).Art : Unavailable(fallbackName);
         }
     }
 }

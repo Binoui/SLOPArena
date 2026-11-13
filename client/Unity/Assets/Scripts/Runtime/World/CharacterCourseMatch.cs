@@ -115,16 +115,19 @@ namespace SlopArena.Client.World
 
         protected override void OnMatchStart()
         {
-            string stage = MatchConfig.Mode == GameMode.Arcade ? MatchConfig.ArenaName : ArenaKey;
-            string fighter = MatchConfig.Mode == GameMode.Arcade ? MatchConfig.PlayerPackageId : "fightguy";
+            bool directOpen = MatchConfig.Mode != GameMode.Arcade;
+            string stage = directOpen ? ArenaKey : MatchConfig.ArenaName;
+            string? defaultPackage = directOpen && ShippedRoster.TryReadApplication(out var roster, out _) ? roster!.DefaultFighter.PackageId : null;
             MatchConfig.ClearActiveMatch(); MatchConfig.Mode = GameMode.Arcade; MatchConfig.ArenaName = stage;
             string path = BakedContentPaths.ResolveArena(stage);
             var loaded = path == null ? null : ArenaBinaryFormat.LoadFromFile(path);
             if (loaded is not ArenaDefinition arena || arena.Arcade?.Course == null || arena.SpawnPoints.Length != 1)
             { Debug.LogError("[Course] A baked Character Course with one start is required: " + stage); enabled = false; return; }
-            if (!ClientSession.TryBuildLocalMatchCatalog(out var catalog, out var failure) || catalog == null)
-            { Debug.LogError("[Course] Local content catalog failed: " + failure); enabled = false; return; }
-            var entry = catalog.ResolvePackage(fighter);
+            if (!ClientSession.TryBuildLocalMatchCatalog(out var catalog, out var failure, defaultPackage) || catalog == null)
+            { RejectContent("Course content preparation failed: " + failure); return; }
+            var choice = defaultPackage == null ? MatchConfig.Selection?.Choice : MatchConfig.ResolveStoredFighter(defaultPackage, catalog);
+            string fighter = choice?.Revision.PackageId ?? "";
+            var entry = choice?.Resolve(catalog);
             if (entry == null || !arena.Arcade.AllowsPackage(entry.Identity.PackageId))
             { Debug.LogError("[Course] This course does not admit package " + fighter); enabled = false; return; }
             if (!BindFighter(PlayerEntityId, entry)) return;

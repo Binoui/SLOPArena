@@ -52,11 +52,18 @@ namespace SlopArena.Client.World
             if (_projectileVFX == null) _projectileVFX = gameObject.AddComponent<ProjectileVFXManager>();
             _combatFeedback.SetSimulation(_bridge); _projectileVFX.SetSimulation(Simulation);
             var seats = Enumerable.Range(2, 3).Where(p => MatchConfig.Seat(p).Kind == SeatKind.LocalPlayer).ToArray();
+            foreach (int occupied in seats)
+            {
+                var selected = MatchConfig.Seat(occupied).Choice?.Resolve(catalog);
+                if (selected == null || !arena.Arcade.AllowsPackage(selected.Identity.PackageId))
+                { RejectContent($"Scramble P{occupied} choice is unavailable or refused by the course."); return; }
+                if (!BindFighter((ulong)occupied, selected)) return;
+            }
             var used = new HashSet<InputDevice>();
             for (int i = 0; i <= seats.Length; i++)
             {
                 int seat = i == 0 ? 1 : seats[i - 1];
-                var entry = i == 0 ? player : catalog.Resolve(MatchConfig.Seat(seat).Fighter);
+                var entry = i == 0 ? player : MatchConfig.Seat(seat).Choice?.Resolve(catalog);
                 if (entry == null) { Debug.LogError($"[Scramble] P{seat}'s fighter is unavailable."); enabled = false; return; }
                 if (!BindFighter((ulong)seat, entry)) return;
                 var renderer = i == 0 ? _playerRenderer : new GameObject($"Course P{seat}").AddComponent<PlayerRenderer>();

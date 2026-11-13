@@ -122,8 +122,13 @@ namespace SlopArena.Client.World
             if (entry == null) return RejectContent($"Fighter content is missing for entity {entityId}.");
             if (_fighterContent.TryGetValue(entityId, out var previous) && previous.Revision != entry.Identity)
                 return RejectContent($"Fighter revision changed for entity {entityId} ({entry.Identity.PackageId}).");
-            _fighterContent[entityId] = FighterPresentation.Resolve(entry);
-            return true;
+            try
+            {
+                _fighterContent[entityId] = FighterPresentation.Resolve(entry);
+                return true;
+            }
+            catch (System.Exception error)
+            { return RejectContent($"Fighter presentation unavailable for entity {entityId} ({entry.Identity.PackageId}): {error.Message}"); }
         }
         protected FighterUiArt ArtFor(ulong entityId)
         {

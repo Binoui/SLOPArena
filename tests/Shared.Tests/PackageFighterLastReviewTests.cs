@@ -46,23 +46,23 @@ public partial class PackageFighterContentTests
     }
 
     [Fact]
-    public void SelectionSnapshotRoundTripsNonePackageAndFormWithoutRebuildingThePair()
+    public void SelectionStateResolvesAdmittedPackageAndForm()
     {
         try
         {
-            MatchConfig.SetPlayerFighter(Local().ResolvePackage("local.tumbleweed")!);
+            MatchConfig.SetPlayerFighter(Bundled().ResolvePackage("nyx")!);
             MatchConfig.PlayerForm=1;
             var saved=MatchConfig.Selection;
-            string json=JsonSerializer.Serialize(saved);
+            string json=JsonSerializer.Serialize(new FighterChoiceState(saved.Choice), new JsonSerializerOptions { IncludeFields = true });
             MatchConfig.SetPlayerFighter(CharacterClass.FightGuy,"fightguy");
             MatchConfig.PlayerForm=0;
-            MatchConfig.SetPlayerFighter(JsonSerializer.Deserialize<MatchConfig.PlayerSelection>(json)!);
-            Assert.Equal(CharacterClass.None,MatchConfig.PlayerClass);
-            Assert.Equal("local.tumbleweed",MatchConfig.PlayerPackageId);
+            MatchConfig.SetPlayerFighter(JsonSerializer.Deserialize<FighterChoiceState>(json, new JsonSerializerOptions { IncludeFields = true })!.Restore());
+            Assert.Equal(CharacterClass.Nyx,MatchConfig.PlayerClass);
+            Assert.Equal("nyx",MatchConfig.PlayerPackageId);
             Assert.Equal((byte)1,MatchConfig.PlayerForm);
-            Assert.Equal(CharacterClass.None,saved.Selector);
+            Assert.Equal(CharacterClass.Nyx,saved.Selector);
             Assert.Equal((byte)1,saved.Form);
-            Assert.Equal("local.tumbleweed",saved.PackageId);
+            Assert.Equal("nyx",saved.PackageId);
         }
         finally { MatchConfig.Reset(); MatchConfig.PlayerForm=0; }
     }

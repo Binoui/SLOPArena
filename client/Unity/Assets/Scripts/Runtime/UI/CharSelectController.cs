@@ -30,7 +30,7 @@ namespace SlopArena.Client.UI
         // mount time (issue #219).
         private FrontendPageContext _context = null!;
 
-        private CharacterClass _selected = CharacterClass.None;
+        private string _selected = "";
         private LocalChallengeSetup? _challenge;
         private int _editingSeat = 1;
         private bool HumanCourse => MatchConfig.Mode == GameMode.Arcade && MatchConfig.LocalMode == LocalPlayMode.CharacterCourse;
@@ -74,11 +74,11 @@ namespace SlopArena.Client.UI
             var grid = _context.Q<VisualElement>("char-grid");
             grid?.Clear();
 
-            CharacterClass[] classes = MenuRoster.Classes;
-            _selected = classes.Contains(MatchConfig.PlayerClass)
-                ? MatchConfig.PlayerClass
-                : classes.Length > 0 ? classes[0] : CharacterClass.None;
-            if (MatchConfig.Mode is GameMode.Solo or GameMode.Training && classes.Length > 0)
+            var classes = LocalFighterLibrary.Current.PackageIds;
+            _selected = classes.Contains(MatchConfig.PlayerPackageId)
+                ? MatchConfig.PlayerPackageId
+                : classes.Count > 0 ? classes[0] : "";
+            if (MatchConfig.Mode is GameMode.Solo or GameMode.Training && classes.Count > 0)
                 for (int player = 2; player <= 4; player++)
                     if (!classes.Contains(MatchConfig.Seat(player).Fighter))
                         MatchConfig.Seat(player).Fighter = classes[0];
@@ -97,7 +97,7 @@ namespace SlopArena.Client.UI
 
                     var portrait = new VisualElement { name = "char-portrait" };
                     portrait.AddToClassList("char-portrait");
-                    var texture = MenuRoster.Art(cls).Portrait();
+                    var texture = LocalFighterLibrary.Current.Art(cls).Portrait();
                     if (texture != null)
                         portrait.style.backgroundImage = new StyleBackground(texture);
                     else
@@ -107,7 +107,7 @@ namespace SlopArena.Client.UI
                         portrait.Add(placeholder);
                     }
 
-                    var name = new Label(MenuRoster.Name(cls).ToUpperInvariant()) { name = "char-card-name" };
+                    var name = new Label(LocalFighterLibrary.Current.Name(cls).ToUpperInvariant()) { name = "char-card-name" };
                     name.AddToClassList("char-card-name");
                     var check = new VisualElement { pickingMode = PickingMode.Ignore };
                     check.AddToClassList("char-card-check");
@@ -118,7 +118,7 @@ namespace SlopArena.Client.UI
                     btn.Add(name);
                     btn.Add(check);
                     btn.Add(markers);
-                    if (MenuRoster.IsWorkInProgress(cls))
+                    if (LocalFighterLibrary.Current.IsWorkInProgress(cls))
                     {
                         btn.AddToClassList("char-card--wip");
                         var wip = new Label("WIP") { name = "char-card-wip", pickingMode = PickingMode.Ignore };
@@ -126,7 +126,7 @@ namespace SlopArena.Client.UI
                         btn.Add(wip);
                     }
                     // Her player picks the starting form here (ADR-0051); online starts in form 0 until the lobby carries it.
-                    if (MenuRoster.HasForms(cls) && MatchConfig.Mode != GameMode.PvP)
+                    if (LocalFighterLibrary.Current.HasForms(cls) && MatchConfig.Mode != GameMode.PvP)
                     {
                         var form = new Button(() => ToggleForm(capturedCls, _context)) { name = $"char-{cls}-form" };
                         form.AddToClassList("char-card-form");
@@ -140,11 +140,11 @@ namespace SlopArena.Client.UI
             if (_challenge != null)
             {
                 foreach (var button in _gridButtons)
-                    button.SetEnabled(Enum.TryParse(button.name.Substring(5), out CharacterClass fighter) && _challenge.Admits(fighter));
+                    button.SetEnabled(_challenge.Admits(button.name.Substring(5)));
                 if (!_challenge.Admits(_selected))
                     _selected = classes.FirstOrDefault(cls => _challenge.Admits(cls));
             }
-            if (_selected != CharacterClass.None)
+            if (!string.IsNullOrEmpty(_selected))
                 SelectCharacter(_selected, _context);
 
             if (MatchConfig.Mode == GameMode.PvP &&
@@ -171,19 +171,19 @@ namespace SlopArena.Client.UI
             context.Q<VisualElement>("roster-panel")?.style.SetDisplay(false);
             var rosterMeta = context.Q<Label>("roster-meta");
             if (rosterMeta != null)
-                rosterMeta.text = MenuRoster.Classes.Length == 0
+                rosterMeta.text = LocalFighterLibrary.Current.PackageIds.Count == 0
                     ? "NO ADMITTED FIGHTERS"
-                    : $"{MenuRoster.Classes.Length} FIGHTERS // TUTORIAL";
+                    : $"{LocalFighterLibrary.Current.PackageIds.Count} FIGHTERS // TUTORIAL";
 
             var startButton = context.Q<Button>("btn-select");
             if (startButton != null)
             {
                 startButton.style.display = DisplayStyle.Flex;
                 startButton.text = "START TUTORIAL";
-                startButton.SetEnabled(MenuRoster.Classes.Length > 0);
+                startButton.SetEnabled(LocalFighterLibrary.Current.PackageIds.Count > 0);
                 startButton.clicked += () =>
                 {
-                    if (_selected == CharacterClass.None) return;
+                    if (string.IsNullOrEmpty(_selected)) return;
                     MatchConfig.Mode = GameMode.Tutorial;
                     MatchConfig.ArenaName = TutorialMatch.Layout.ArenaKey;
                     MatchConfig.IsHost = true;
@@ -198,7 +198,7 @@ namespace SlopArena.Client.UI
             ConfigureNavigation(context, _gridButtons.FirstOrDefault(b => b.name == $"char-{_selected}")
                 ?? _gridButtons.FirstOrDefault(), btnBack, back, startButton);
 
-            if (MenuRoster.Classes.Length == 0)
+            if (LocalFighterLibrary.Current.PackageIds.Count == 0)
                 ShowRosterUnavailable(context, "NO ADMITTED FIGHTERS", "Cooked fighter content is unavailable. Return to the menu.");
         }
 
@@ -215,9 +215,9 @@ namespace SlopArena.Client.UI
             context.Q<Label>("char-name")?.style.SetDisplay(false);
             var rosterMeta = context.Q<Label>("roster-meta");
             if (rosterMeta != null)
-                rosterMeta.text = MenuRoster.Classes.Length == 0
+                rosterMeta.text = LocalFighterLibrary.Current.PackageIds.Count == 0
                     ? "NO ADMITTED FIGHTERS"
-                    : $"{MenuRoster.Classes.Length} FIGHTERS // {(training ? "TRAINING" : mode.Title)}";
+                    : $"{LocalFighterLibrary.Current.PackageIds.Count} FIGHTERS // {(training ? "TRAINING" : mode.Title)}";
             // Local modes show both participant cards and CPU editing.
             context.Q<VisualElement>("pvp-action-area")?.style.SetDisplay(false);
 
@@ -226,7 +226,7 @@ namespace SlopArena.Client.UI
             {
                 selectButton.style.display = DisplayStyle.Flex;
                 selectButton.text = training ? "SELECT STAGE" : mode.FighterAction;
-                selectButton.SetEnabled(MenuRoster.Classes.Length > 0);
+                selectButton.SetEnabled(LocalFighterLibrary.Current.PackageIds.Count > 0);
             }
 
             _rosterPanel = context.Q<VisualElement>("roster-panel");
@@ -250,7 +250,7 @@ namespace SlopArena.Client.UI
             {
                 selectButton.clicked += () =>
                 {
-                    if (_selected == CharacterClass.None || MatchConfig.SoloOpponentCount == 0) return;
+                    if (string.IsNullOrEmpty(_selected) || MatchConfig.SoloOpponentCount == 0) return;
                     if (training || mode.HasStageStep)
                     {
                         FrontendController.Show(FrontendPage.StageSelect);
@@ -264,11 +264,11 @@ namespace SlopArena.Client.UI
             Action back = () => FrontendController.Show(training ? FrontendPage.Home : FrontendPage.ModeSelect);
             if (btnBack != null)
                 btnBack.clicked += back;
-            ConfigureNavigation(context, MenuRoster.Classes.Length > 0
+            ConfigureNavigation(context, LocalFighterLibrary.Current.PackageIds.Count > 0
                 ? _rosterPanel?.Q<Button>("solo-slot-p1") ?? _gridButtons.FirstOrDefault()
                 : null, btnBack, back, selectButton);
 
-            if (MenuRoster.Classes.Length == 0)
+            if (LocalFighterLibrary.Current.PackageIds.Count == 0)
                 ShowRosterUnavailable(context, "NO ADMITTED FIGHTERS", "Cooked fighter content is unavailable. Return to the menu.");
         }
 
@@ -307,7 +307,7 @@ namespace SlopArena.Client.UI
         private void RenderChallengeSeat()
         {
             for (int player = 1; player <= 4; player++) _rosterPanel.Q<VisualElement>($"solo-slot-p{player}")?.RemoveFromHierarchy();
-            var seat = FighterPanel.Build(1, "YOU", "PLAYER", _selected == CharacterClass.None ? null : _selected, "A: PICK FIGHTER",
+            var seat = FighterPanel.Build(1, "YOU", "PLAYER", string.IsNullOrEmpty(_selected) ? null : _selected, "A: PICK FIGHTER",
                 form: MatchConfig.PlayerForm);
             seat.name = "solo-slot-p1";
             _rosterPanel.Insert(0, seat);
@@ -367,13 +367,13 @@ namespace SlopArena.Client.UI
             if (MatchConfig.Mode is not (GameMode.Solo or GameMode.Training)) return;
             if (playerNumber > 1 && MatchConfig.Seat(playerNumber).Kind == SeatKind.LocalPlayer) return;
             _editingSeat = playerNumber;
-            _selected = playerNumber == 1 ? MatchConfig.PlayerClass : MatchConfig.Seat(playerNumber).Fighter;
+            _selected = playerNumber == 1 ? MatchConfig.PlayerPackageId : MatchConfig.Seat(playerNumber).Fighter;
             UpdateSelectionVisuals(_selected, context);
             RenderSoloRoster();
             if (focusSlot) _rosterPanel?.Q<Button>($"solo-slot-p{playerNumber}")?.Focus();
         }
 
-        private void UpdateSelectionVisuals(CharacterClass cls, FrontendPageContext context)
+        private void UpdateSelectionVisuals(string cls, FrontendPageContext context)
         {
             foreach (var btn in _gridButtons)
             {
@@ -392,22 +392,22 @@ namespace SlopArena.Client.UI
 
             var nameLabel = context.Q<Label>("char-name");
             if (nameLabel != null)
-                nameLabel.text = MenuRoster.Name(cls, EditingForm).ToUpperInvariant();
+                nameLabel.text = LocalFighterLibrary.Current.Name(cls, EditingForm).ToUpperInvariant();
             var roleLabel = context.Q<Label>("char-role");
             if (roleLabel != null)
-                roleLabel.text = MenuRoster.Description(cls) + (MenuRoster.IsWorkInProgress(cls)
+                roleLabel.text = LocalFighterLibrary.Current.Description(cls) + (LocalFighterLibrary.Current.IsWorkInProgress(cls)
                     ? "\nWORK IN PROGRESS: moves, art and balance still changing."
                     : "");
             RefreshFormCards();
         }
 
         private bool EditsSeat => (MatchConfig.Mode is GameMode.Solo or GameMode.Training) && _editingSeat > 1;
-        private byte EditingForm => EditsSeat ? MatchConfig.Seat(_editingSeat).Form : MatchConfig.PlayerForm;
+        private byte EditingForm => MatchConfig.PreferredFormOf(EditsSeat ? _editingSeat : 1);
 
         /// <summary>Flip the editing seat's starting form, picking the fighter first when the seat has another one.</summary>
-        private void ToggleForm(CharacterClass cls, FrontendPageContext context)
+        private void ToggleForm(string cls, FrontendPageContext context)
         {
-            var picked = EditsSeat ? MatchConfig.Seat(_editingSeat).Fighter : MatchConfig.PlayerClass;
+            var picked = EditsSeat ? MatchConfig.Seat(_editingSeat).Fighter : MatchConfig.PlayerPackageId;
             if (picked == cls)
             {
                 if (EditsSeat) MatchConfig.Seat(_editingSeat).Form ^= 1;
@@ -423,10 +423,11 @@ namespace SlopArena.Client.UI
             foreach (var btn in _gridButtons)
             {
                 var toggle = btn.Q<Button>($"{btn.name}-form");
-                if (toggle == null || !Enum.TryParse(btn.name.Substring(5), out CharacterClass cls)) continue;
-                toggle.text = $"SWAP TO {MenuRoster.Name(cls, (byte)(form ^ 1)).ToUpperInvariant()}";
+                if (toggle == null) continue;
+                string cls = btn.name.Substring(5);
+                toggle.text = $"SWAP TO {LocalFighterLibrary.Current.Name(cls, (byte)(form ^ 1)).ToUpperInvariant()}";
                 var portrait = btn.Q<VisualElement>("char-portrait");
-                var texture = MenuRoster.Art(cls).Portrait(form);
+                var texture = LocalFighterLibrary.Current.Art(cls).Portrait(form);
                 if (portrait != null && texture != null) portrait.style.backgroundImage = new StyleBackground(texture);
             }
         }
@@ -436,7 +437,7 @@ namespace SlopArena.Client.UI
             if (_rosterPanel == null) return;
             string? focusedName = (_rosterPanel.panel?.focusController.focusedElement as VisualElement)?.name;
             _rosterPanel.Clear();
-            if (MenuRoster.Classes.Length == 0) return;
+            if (LocalFighterLibrary.Current.PackageIds.Count == 0) return;
             foreach (var button in _gridButtons)
             {
                 var markers = button.Q<VisualElement>("char-markers");
@@ -445,7 +446,7 @@ namespace SlopArena.Client.UI
                 {
                     bool filled = player == 1 || (MatchConfig.Mode != GameMode.Training || player == 2) && MatchConfig.Seat(player).Kind != SeatKind.Open;
                     if (!filled) continue;
-                    var fighter = player == 1 ? MatchConfig.PlayerClass : MatchConfig.Seat(player).Fighter;
+                    var fighter = player == 1 ? MatchConfig.PlayerPackageId : MatchConfig.Seat(player).Fighter;
                     if (button.name != $"char-{fighter}") continue;
                     var marker = new Label($"P{player}");
                     marker.AddToClassList("char-marker");
@@ -459,7 +460,7 @@ namespace SlopArena.Client.UI
                 bool practiceOpen = MatchConfig.Mode == GameMode.Training && player > 2;
                 var kind = player == 1 ? SeatKind.LocalPlayer : practiceOpen ? SeatKind.Open : MatchConfig.Seat(player).Kind;
                 bool open = kind == SeatKind.Open;
-                var fighter = player == 1 ? MatchConfig.PlayerClass : MatchConfig.Seat(player).Fighter;
+                var fighter = player == 1 ? MatchConfig.PlayerPackageId : MatchConfig.Seat(player).Fighter;
                 var panel = FighterPanel.Build(player, player == 1 ? "YOU" : open ? "" : kind == SeatKind.Cpu ? "" : $"PLAYER {player}",
                     open ? "OPEN" : kind == SeatKind.Cpu ? "CPU" : "PLAYER", open ? null : fighter,
                     practiceOpen ? "TRAINING · ONE PRACTICE CPU" : open ? "A: ADD CPU\nPAD: PRESS A TO JOIN"
@@ -726,24 +727,23 @@ namespace SlopArena.Client.UI
         private void ApplyRoomCharacterAllowlist()
         {
             var admitted = RoomFighters;
-            CharacterClass firstAllowed = CharacterClass.None;
+            string firstAllowed = "";
             for (int i = 0; i < _gridButtons.Count; i++)
             {
                 var button = _gridButtons[i];
                 string characterName = button.name.Substring("char-".Length);
                 bool allowed = Array.Exists(admitted,
-                    name => string.Equals(name, characterName, StringComparison.OrdinalIgnoreCase));
+                    name => string.Equals(LegacyFighterSelection.PackageId(name), characterName, StringComparison.Ordinal));
                 button.style.display = allowed ? DisplayStyle.Flex : DisplayStyle.None;
                 button.SetEnabled(allowed && !_lockedIn && !_roomActionPending);
-                if (allowed && firstAllowed == CharacterClass.None &&
-                    Enum.TryParse(characterName, true, out CharacterClass parsed))
-                    firstAllowed = parsed;
+                if (allowed && string.IsNullOrEmpty(firstAllowed))
+                    firstAllowed = characterName;
             }
-            if (_selected == CharacterClass.None ||
-                !Array.Exists(admitted, name => string.Equals(name, _selected.ToString(), StringComparison.OrdinalIgnoreCase)))
+            if (string.IsNullOrEmpty(_selected) ||
+                !Array.Exists(admitted, name => string.Equals(LegacyFighterSelection.PackageId(name), _selected, StringComparison.Ordinal)))
             {
                 _selected = firstAllowed;
-                if (_selected != CharacterClass.None)
+                if (!string.IsNullOrEmpty(_selected))
                     SelectCharacter(_selected, _context);
             }
             if (admitted.Length == 0)
@@ -758,10 +758,11 @@ namespace SlopArena.Client.UI
             for (int i = 0; i < members.Length; i++)
             {
                 var member = members[i];
-                bool hasCharacter = Enum.TryParse(member.CharacterSelection, true, out CharacterClass cls);
+                string cls = LegacyFighterSelection.DisplayKey(member.CharacterSelection);
+                bool hasCharacter = !string.IsNullOrEmpty(cls);
                 var panel = BuildPlayerCard(
                     CourseRoom ? $"P{i + 1} · {CourseColours.Names[member.Colour % 4]}" : string.IsNullOrEmpty(member.Camp) ? $"P{i + 1}" : $"P{i + 1} · {member.Camp.ToUpperInvariant()}", member.Name,
-                    hasCharacter ? cls : (CharacterClass?)null,
+                    hasCharacter ? cls : null,
                     member.LockedIn ? "LOCKED" : "PICKING",
                     member.SteamId == ClientSession.SteamId,
                     member.IsLeader);
@@ -826,7 +827,7 @@ namespace SlopArena.Client.UI
             {
                 string characterName = _gridButtons[i].name.Substring("char-".Length);
                 bool allowed = Array.Exists(admittedCharacters,
-                    name => string.Equals(name, characterName, StringComparison.OrdinalIgnoreCase));
+                    name => string.Equals(LegacyFighterSelection.PackageId(name), characterName, StringComparison.Ordinal));
                 _gridButtons[i].SetEnabled(allowed && !localLocked && !_roomActionPending &&
                     _lobby?.IsConnected == true);
             }
@@ -835,7 +836,7 @@ namespace SlopArena.Client.UI
                 _btnLockIn.style.SetDisplay(true);
                 _btnLockIn.text = localLocked ? "LOCKED" : "LOCK IN";
                 _btnLockIn.SetEnabled(!localLocked && !_roomActionPending &&
-                    _selected != CharacterClass.None && _lobby?.IsConnected == true);
+                    !string.IsNullOrEmpty(_selected) && _lobby?.IsConnected == true);
             }
             if (_btnStartMatch != null)
             {
@@ -919,7 +920,8 @@ namespace SlopArena.Client.UI
             var members = _roomSnapshot?.Members ?? Array.Empty<RoomMemberInfo>();
             for (int i = 0; i < members.Length; i++)
             {
-                if (!Enum.TryParse<CharacterClass>(members[i].CharacterSelection, true, out var cls))
+                string cls = LegacyFighterSelection.PackageId(members[i].CharacterSelection);
+                if (string.IsNullOrEmpty(cls))
                     continue;
                 var markers = _context.Q<Button>($"char-{cls}")?.Q<VisualElement>("char-markers");
                 if (markers == null) continue;
@@ -936,10 +938,10 @@ namespace SlopArena.Client.UI
             var context = _context;
             Guid roomId = ClientSession.SelectedRoomId;
             var lobby = _lobby;
-            if (_roomActionPending || _lockedIn || lobby == null || _selected == CharacterClass.None ||
+            if (_roomActionPending || _lockedIn || lobby == null || string.IsNullOrEmpty(_selected) ||
                 !OwnsRoomOperation(context, lobby, roomId))
                 return;
-            string character = _selected.ToString();
+            string character = LegacyFighterSelection.Selector(_selected);
             _roomActionPending = true;
             UpdateRoomControls();
             try
@@ -1016,9 +1018,9 @@ namespace SlopArena.Client.UI
             var rosterMeta = context.Q<Label>("roster-meta");
             _snapshot = ClientSession.LobbyRoster;
             if (rosterMeta != null)
-                rosterMeta.text = MenuRoster.Classes.Length == 0
+                rosterMeta.text = LocalFighterLibrary.Current.PackageIds.Count == 0
                     ? "NO ADMITTED FIGHTERS"
-                    : $"{MenuRoster.Classes.Length} FIGHTERS // {_snapshot?.Players.Count ?? 0} PLAYERS";
+                    : $"{LocalFighterLibrary.Current.PackageIds.Count} FIGHTERS // {_snapshot?.Players.Count ?? 0} PLAYERS";
             _rosterPanel   = context.Q<VisualElement>("roster-panel");
             _btnLockIn     = context.Q<Button>("btn-lockin");
             _btnStartMatch = context.Q<Button>("btn-start-match");
@@ -1030,7 +1032,7 @@ namespace SlopArena.Client.UI
             if (_btnLockIn != null)
             {
                 _btnLockIn.text = "LOCK IN";
-                _btnLockIn.SetEnabled(MenuRoster.Classes.Length > 0);
+                _btnLockIn.SetEnabled(LocalFighterLibrary.Current.PackageIds.Count > 0);
                 _btnLockIn.clicked += OnLockInClicked;
             }
 
@@ -1072,7 +1074,7 @@ namespace SlopArena.Client.UI
             _lobby.Error            += OnPvPError;
 
             if (_lblPvPStatus != null)
-                _lblPvPStatus.text = MenuRoster.Classes.Length == 0
+                _lblPvPStatus.text = LocalFighterLibrary.Current.PackageIds.Count == 0
                     ? "Fighter content is unavailable. Return to the menu."
                     : "Choose your fighter, then lock in.";
             RenderRoster();
@@ -1101,7 +1103,7 @@ namespace SlopArena.Client.UI
             if (IsLocalHost())
                 _context.ForwardButton = _btnStartMatch;
             Debug.Log($"[CharSelect] Locking in {_selected}");
-            _ = _lobby.SelectCharacterAsync(_selected.ToString());
+            _ = _lobby.SelectCharacterAsync(LegacyFighterSelection.Selector(_selected));
         }
 
         private void OnStartMatchClicked()
@@ -1200,13 +1202,12 @@ namespace SlopArena.Client.UI
             for (int i = 0; i < players.Count; i++)
             {
                 var player = players[i];
-                CharacterClass selectedClass = CharacterClass.None;
-                bool hasCharacter = System.Enum.TryParse(
-                    player.CharacterSelection, true, out selectedClass);
+                string selectedClass = LegacyFighterSelection.DisplayKey(player.CharacterSelection);
+                bool hasCharacter = !string.IsNullOrEmpty(selectedClass);
                 _rosterPanel.Add(BuildPlayerCard(
                     $"P{i + 1}",
                     player.Name,
-                    hasCharacter ? selectedClass : (CharacterClass?)null,
+                    hasCharacter ? selectedClass : null,
                     hasCharacter ? (player.LockedIn ? "LOCKED" : "PICKING") : "WAITING",
                     player.SteamId == ClientSession.SteamId,
                     player.IsHost));
@@ -1214,7 +1215,7 @@ namespace SlopArena.Client.UI
             AddOpenRoomPanels(players.Count);
         }
 
-        private VisualElement BuildPlayerCard(string playerNumber, string playerName, CharacterClass? selectedClass,
+        private VisualElement BuildPlayerCard(string playerNumber, string playerName, string? selectedClass,
             string statusText, bool local, bool host)
         {
             int number = playerNumber.Length > 1 && char.IsDigit(playerNumber[1]) ? playerNumber[1] - '0' : 1;
@@ -1268,9 +1269,9 @@ namespace SlopArena.Client.UI
 
 
 
-        private void SelectCharacter(CharacterClass cls, FrontendPageContext context)
+        private void SelectCharacter(string cls, FrontendPageContext context)
         {
-            if (cls == CharacterClass.None)
+            if (string.IsNullOrEmpty(cls))
                 return;
 
             if (_challenge != null && !_challenge.Admits(cls)) return;
@@ -1279,7 +1280,7 @@ namespace SlopArena.Client.UI
                 MatchConfig.Seat(_editingSeat).Fighter = cls;
             else
             {
-                MatchConfig.SetPlayerFighter(cls, MenuRoster.PackageId(cls));
+                MatchConfig.SetPlayerFighter(cls);
             }
 
             if ((MatchConfig.Mode is GameMode.Solo or GameMode.Training) && _rosterPanel != null)
@@ -1302,7 +1303,8 @@ namespace SlopArena.Client.UI
             for (int i = 0; i < players.Count; i++)
             {
                 var player = players[i];
-                if (!System.Enum.TryParse<CharacterClass>(player.CharacterSelection, true, out var cls))
+                string cls = LegacyFighterSelection.PackageId(player.CharacterSelection);
+                if (string.IsNullOrEmpty(cls))
                     continue;
 
                 var card = _context.Q<Button>($"char-{cls}");
@@ -1343,10 +1345,10 @@ namespace SlopArena.Client.UI
                     continue;
                 }
                 int step = pad.rightShoulder.wasPressedThisFrame ? 1 : pad.leftShoulder.wasPressedThisFrame ? -1 : 0;
-                var classes = MenuRoster.Classes;
-                if (step == 0 || classes.Length == 0) continue;
-                int index = Array.IndexOf(classes, MatchConfig.Seat(player).Fighter);
-                MatchConfig.Seat(player).Fighter = classes[((index < 0 ? 0 : index) + step + classes.Length) % classes.Length];
+                var classes = LocalFighterLibrary.Current.PackageIds;
+                if (step == 0 || classes.Count == 0) continue;
+                int index = classes.ToList().IndexOf(MatchConfig.Seat(player).Fighter);
+                MatchConfig.Seat(player).Fighter = classes[((index < 0 ? 0 : index) + step + classes.Count) % classes.Count];
                 changed = true;
             }
             foreach (var pad in UnityEngine.InputSystem.Gamepad.all)

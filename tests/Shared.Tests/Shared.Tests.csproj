@@ -46,7 +46,12 @@
     <Compile Include="../../client/Unity/Assets/Scripts/Runtime/Workshop/ModelSwapBases.cs" Link="Workshop/ModelSwapBases.cs" />
     <Compile Include="../../client/Unity/Assets/Scripts/Runtime/Workshop/WorkshopPublishEdits.cs" Link="Workshop/WorkshopPublishEdits.cs" />
     <Compile Include="../../client/Unity/Assets/Scripts/Runtime/UI/UiModalState.cs" Link="UI/UiModalState.cs" />
+    <Compile Include="../../client/Unity/Assets/Scripts/Runtime/UI/LocalFighterLibrary.Content.cs" Link="UI/LocalFighterLibrary.Content.cs" />
+    <Compile Include="../../client/Unity/Assets/Scripts/Runtime/UI/FighterChoiceState.cs" Link="UI/FighterChoiceState.cs" />
+    <Compile Include="../../client/Unity/Assets/Scripts/Runtime/Simulation/LocalSimulationBridge.cs" Link="Simulation/LocalSimulationBridge.cs" />
+    <Compile Include="../../client/Unity/Assets/Scripts/Runtime/Simulation/ISimulationBridge.cs" Link="Simulation/ISimulationBridge.cs" />
     <Compile Include="../../client/Unity/Assets/Scripts/Runtime/UI/MatchConfig.cs" Link="UI/MatchConfig.cs" />
+    <Compile Include="../../client/Unity/Assets/Scripts/Runtime/UI/LegacyFighterSelection.cs" Link="UI/LegacyFighterSelection.cs" />
     <Compile Include="../../client/Unity/Assets/Scripts/Runtime/UI/MenuChoice.cs" Link="UI/MenuChoice.cs" />
   </ItemGroup>
 </Project>

@@ -104,7 +104,7 @@ namespace SlopArena.EditorTools
 
         protected override void OnMatchStart()
         {
-            if (!ClientSession.TryBuildLocalMatchCatalog(out var catalog, out var failure) || catalog == null)
+            if (!ClientSession.TryBuildAvailableFighterCatalog(out var catalog, out var failure) || catalog == null)
                 throw new InvalidOperationException("Local content catalog: " + failure);
             var attacker = catalog.ResolvePackage(AttackerPackage)
                 ?? throw new InvalidOperationException("Missing roster package: " + AttackerPackage);

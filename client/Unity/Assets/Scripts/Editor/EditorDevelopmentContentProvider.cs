@@ -6,6 +6,7 @@ using UnityEditor;
 using UnityEngine;
 using SlopArena.Client;
 using SlopArena.Client.Animation;
+using SlopArena.Client.UI;
 using SlopArena.Shared;
 
 [InitializeOnLoad]
@@ -17,10 +18,12 @@ public static class EditorDevelopmentContentProvider
         CookedCharacterClientAssetResolver.RegisterEditorBindingCatalogFactory(
             CharacterAnimationCatalogGenerator.TryCreateAllowingMissingPresentation);
         EditorApplication.playModeStateChanged += OnPlayModeStateChanged;
+        EditorApplication.projectChanged += LocalFighterLibrary.Invalidate;
     }
 
     private static void OnPlayModeStateChanged(PlayModeStateChange state)
     {
+        if (state == PlayModeStateChange.ExitingEditMode) LocalFighterLibrary.Invalidate();
         if (state == PlayModeStateChange.ExitingPlayMode)
             CookedCharacterClientAssetResolver.ClearEditorDevelopmentCatalogs();
     }

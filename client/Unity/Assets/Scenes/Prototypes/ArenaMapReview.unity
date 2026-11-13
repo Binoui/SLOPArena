@@ -1300,8 +1300,8 @@ PrefabInstance:
       value: training
       objectReference: {fileID: 0}
     - target: {fileID: 817566539019222757, guid: 6f653977c7842bb4d98d20ece9f13f85, type: 3}
-      propertyPath: _playerClassOverride
-      value: 0
+      propertyPath: _playerPackageOverride
+      value: 
       objectReference: {fileID: 0}
     - target: {fileID: 8092821586305642039, guid: 6f653977c7842bb4d98d20ece9f13f85, type: 3}
       propertyPath: m_Name

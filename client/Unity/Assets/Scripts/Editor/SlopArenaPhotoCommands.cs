@@ -34,7 +34,7 @@ namespace SlopArena.EditorTools
         private const string SessionKey = "SlopArena.Photo.Active";
         private static readonly string[] ArtifactPrefixes = { "tmp/", ".impeccable/", ".ability-lab-cache/", "client/Unity/Temp/" };
 
-        private sealed class Saved { public string stage = ""; public int captureFramerate; public bool training; public MatchConfig.PlayerSelection playerSelection; public CharacterClass opponentClass; public byte opponentForm; }
+        private sealed class Saved { public string stage = ""; public int captureFramerate; public bool training; public FighterChoiceState playerSelection; public FighterChoiceState opponent; }
 
         [CliCommand("sloparena.photo.prepare", "Prepare an in-memory photo shoot on a PvP stage, real Training, or the live Slopball scene for sloparena.photo.live, using the stage-view save/restore lifecycle.", MainThreadRequired = true, Tags = new[] { "capture", "photo" })]
         public static object Prepare(
@@ -49,34 +49,35 @@ namespace SlopArena.EditorTools
             if (new[] { SessionKey, "SlopArena.StageViews.Active", "SlopArena.CpuShowcase.Active", "SlopArena.HitFeelReview.Active" }
                 .Any(key => !string.IsNullOrEmpty(SessionState.GetString(key, ""))))
                 throw new InvalidOperationException("A stage-view, showcase, hit-feel or photo session still needs restoration.");
-            if (!ClientSession.TryBuildLocalMatchCatalog(out var catalog, out var catalogError))
+            if (!ClientSession.TryBuildAvailableFighterCatalog(out var catalog, out var catalogError))
                 throw new InvalidOperationException("Local catalog: " + catalogError);
-            CharacterClass Select(string package)
+            FighterChoice Select(string package)
             {
                 var entry = catalog.ResolvePackage(package);
-                return entry?.LegacySelector ?? throw new ArgumentException("fighter must be one of: "
+                return entry?.Choose() ?? throw new ArgumentException("fighter must be one of: "
                     + string.Join(", ", catalog.Entries.Select(e => e.Identity.PackageId)) + ".");
             }
-            CharacterClass selected = Select(fighter), opponentClass = Select(opponent);
+            var selected = Select(fighter);
+            var opponentChoice = Select(opponent);
             // Save before the first mutation so the declared restore also handles partial setup failure.
             SessionState.SetString(SessionKey, JsonConvert.SerializeObject(new Saved { stage = stage, captureFramerate = Time.captureFramerate,
-                training = training, playerSelection = MatchConfig.Selection, opponentClass = MatchConfig.Seat(2).Fighter, opponentForm = MatchConfig.Seat(2).Form }));
+                training = training, playerSelection = new FighterChoiceState(MatchConfig.Selection.Choice, MatchConfig.PreferredFormOf(1)), opponent = new FighterChoiceState(MatchConfig.Seat(2).Choice, MatchConfig.PreferredFormOf(2)) }));
             SlopArenaStageViewCommands.Prepare(stage, lighting);
             if (stage == SlopballMatch.ArenaKey)
             {
                 // The stage-view restore puts back the fighter it saved before this in-memory choice.
-                MatchConfig.SetPlayerFighter(selected, fighter);
-                SessionState.SetString(ArcadeBallMatch.FighterSessionKey, selected.ToString());
+                MatchConfig.SetPlayerFighter(selected);
+                SessionState.SetString(ArcadeBallMatch.FighterSessionKey, selected.Revision.PackageId);
                 return new { success = true, stage, fighter };
             }
             if (training)
             {
-                MatchConfig.Seat(2).Fighter = opponentClass;
+                MatchConfig.Seat(2).SetFighter(opponentChoice);
                 MatchConfig.PlayerForm = 0; MatchConfig.Seat(2).Form = 0;
-                MatchConfig.SetPlayerFighter(selected, fighter);
+                MatchConfig.SetPlayerFighter(selected);
                 var match = Object.FindFirstObjectByType<TrainingMatch>();
                 var serialized = new SerializedObject(match);
-                serialized.FindProperty("_playerClassOverride").enumValueIndex = Array.IndexOf(Enum.GetValues(typeof(CharacterClass)), selected);
+                serialized.FindProperty("_playerPackageOverride").stringValue = selected.Revision.PackageId;
                 serialized.ApplyModifiedPropertiesWithoutUndo();
                 return new { success = true, stage, fighter, training, opponent };
             }
@@ -565,10 +566,10 @@ namespace SlopArena.EditorTools
             if (saved?.playerSelection == null) throw new InvalidDataException("Saved session has no player selection snapshot.");
             Time.captureFramerate = saved.captureFramerate;
             MatchConfig.SetPlayerFighter(saved.playerSelection);
-            MatchConfig.Seat(2).Form = saved.opponentForm;
+
             if (saved.training)
             {
-                MatchConfig.Seat(2).Fighter = saved.opponentClass;
+                MatchConfig.Seat(2).SetFighter(saved.opponent ?? new FighterChoiceState());
             }
             var result = SlopArenaStageViewCommands.Restore();
             SessionState.EraseString(SessionKey);

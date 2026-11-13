@@ -37,9 +37,9 @@ namespace SlopArena.EditorTools
             public string recordDirectory, arenaName;
             public GameMode mode;
             public LocalPlayMode localMode;
-            public MatchConfig.PlayerSelection playerSelection;
+            public FighterChoiceState playerSelection;
             public int nextChunk;
-            public SoloSeat[] seats;
+            public SoloSeatState[] seats;
         }
 
         [CliCommand("sloparena.replay.prepare", "Validate a course replay, save Editor state, isolate records and open its local course scene.", MainThreadRequired = true, Tags = new[] { "arcade", "replay" })]
@@ -73,7 +73,7 @@ namespace SlopArena.EditorTools
             if (AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Resources/Stages/" + stage + ".prefab") == null
                 || AssetDatabase.LoadAssetAtPath<SceneAsset>(SlopArenaCharacterCourseCommands.ScenePath) == null)
                 throw new InvalidOperationException("The course scene and stage presentation must already exist.");
-            if (!ClientSession.TryBuildLocalMatchCatalog(out var catalog, out var failure) || catalog == null)
+            if (!ClientSession.TryBuildAvailableFighterCatalog(out var catalog, out var failure) || catalog == null)
                 throw new InvalidOperationException("Local content catalog: " + failure);
             var entry = catalog.ResolvePackage(fighter);
             if (entry == null || !arena.Value.Arcade.AllowsPackage(fighter)) throw new ArgumentException("The course does not admit package " + fighter);
@@ -83,14 +83,14 @@ namespace SlopArena.EditorTools
             var view = GameView();
             var saved = new Saved
             {
-                session = session, stage = stage, fighter = fighter, output = directory, seats = (SoloSeat[])MatchConfig.SoloSeats.Clone(), chunksHash = Hash(System.Text.Encoding.UTF8.GetBytes(chunksText)),
+                session = session, stage = stage, fighter = fighter, output = directory, seats = MatchConfig.SoloSeats.Select(SoloSeatState.Capture).ToArray(), chunksHash = Hash(System.Text.Encoding.UTF8.GetBytes(chunksText)),
                 stageHash = Hash(ArenaBinaryFormat.Serialize(arena.Value)), cookedHash = entry.Identity.CookedContentHash, packageHash = entry.Identity.PackageHash,
                 scenes = scenes, selection = Selection.objects.Select(x => GlobalObjectId.GetGlobalObjectIdSlow(x).ToString()).ToArray(),
                 optionsEnabled = EditorSettings.enterPlayModeOptionsEnabled, options = (int)EditorSettings.enterPlayModeOptions,
                 paused = EditorApplication.isPaused, timeScale = Time.timeScale,
                 freezeOnStart = CharacterCourseMatch.FreezeOnStartForProbe, tips = CharacterCourseMatch.MovementTipsEnabled,
                 recordDirectory = ArcadeRecordsStore.VerificationDirectory, arenaName = MatchConfig.ArenaName,
-                playerSelection = MatchConfig.Selection, mode = MatchConfig.Mode, localMode = MatchConfig.LocalMode,
+                playerSelection = new FighterChoiceState(MatchConfig.Selection.Choice, MatchConfig.PreferredFormOf(1)), mode = MatchConfig.Mode, localMode = MatchConfig.LocalMode,
                 viewSize = (int)view.GetType().GetProperty("selectedSizeIndex", Flags).GetValue(view),
                 gizmos = (bool)view.GetType().GetProperty("drawGizmos", Flags).GetValue(view)
             };
@@ -103,7 +103,7 @@ namespace SlopArena.EditorTools
             CharacterCourseMatch.FreezeOnStartForProbe = true; CharacterCourseMatch.MovementTipsEnabled = false;
             Array.Clear(MatchConfig.SoloSeats, 0, MatchConfig.SoloSeats.Length);
             for (int i = 0; i < extras.Length; i++) MatchConfig.Seat(i + 2) = new SoloSeat
-                { Kind = SeatKind.LocalPlayer, Fighter = catalog.ResolvePackage(extras[i]).LegacySelector.Value };
+                { Kind = SeatKind.LocalPlayer, Fighter = extras[i] };
             MatchConfig.Mode = GameMode.Arcade; MatchConfig.LocalMode = LocalPlayMode.CharacterCourse; MatchConfig.ArenaName = stage; MatchConfig.SetPlayerFighter(entry);
             EditorSceneManager.OpenScene(SlopArenaCharacterCourseCommands.ScenePath, OpenSceneMode.Single);
             return new { success = true, stage, fighter, requestedTicks = total, recordsDirectory = ArcadeRecordsStore.VerificationDirectory };
@@ -185,7 +185,7 @@ namespace SlopArena.EditorTools
             ArcadeRecordsStore.VerificationDirectory = saved.recordDirectory;
             CharacterCourseMatch.FreezeOnStartForProbe = saved.freezeOnStart; CharacterCourseMatch.MovementTipsEnabled = saved.tips;
             MatchConfig.Mode = saved.mode; MatchConfig.LocalMode = saved.localMode; MatchConfig.ArenaName = saved.arenaName; MatchConfig.SetPlayerFighter(saved.playerSelection);
-            if (saved.seats != null) Array.Copy(saved.seats, MatchConfig.SoloSeats, MatchConfig.SoloSeats.Length);
+            if (saved.seats != null) Array.Copy(saved.seats.Select(s => s.Restore()).ToArray(), MatchConfig.SoloSeats, MatchConfig.SoloSeats.Length);
             Time.timeScale = saved.timeScale; EditorApplication.isPaused = saved.paused;
             EditorSceneManager.RestoreSceneManagerSetup(saved.scenes);
             Selection.objects = saved.selection.Select(x => GlobalObjectId.TryParse(x, out var id) ? GlobalObjectId.GlobalObjectIdentifierToObjectSlow(id) : null).Where(x => x != null).ToArray();
