@@ -76,8 +76,7 @@ public sealed class LocalFighterWorkspace
                 c.TryGetProperty("portraits", out var portraits) ? portraits.EnumerateArray().Select(p => p.GetString()).ToArray() : null,
                 c.TryGetProperty("icons", out var icons) ? icons.EnumerateArray().Select(form => (IReadOnlyDictionary<string, string?>)form.EnumerateObject().ToDictionary(p => p.Name, p => p.Value.GetString())).ToArray() : null);
             var compiled = CharacterPackageCompiler.CompilePortable(Encoding.UTF8.GetString(source.PackageJson), Encoding.UTF8.GetString(source.CharacterJson));
-            if (compiled.HasErrors || compiled.CookedPackage == null) return (null, compiled.Diagnostics);
-            var definition = compiled.CookedPackage.Definition;
+
             var clipDiagnostics = new List<CharacterDiagnostic>();
             var rig = GlbMotionRig.Read(source.Model, source.HumanoidJson == null ? null : Encoding.UTF8.GetString(source.HumanoidJson));
             foreach (var animation in animations)
@@ -85,9 +84,12 @@ public sealed class LocalFighterWorkspace
                 try { rig.Clip(animation.Value["clipName"]!.GetValue<string>()); }
                 catch (GlbMotionException e) { clipDiagnostics.Add(MatchContentCatalogBuilder.Error(e.Code, "cook.json.animations." + animation.Key, e.Message)); }
             }
-            if (clipDiagnostics.Count != 0) return (null, compiled.Diagnostics.Concat(clipDiagnostics).ToArray());
+            if (compiled.HasErrors || compiled.CookedPackage == null || clipDiagnostics.Count != 0)
+                return (null, compiled.Diagnostics.Concat(clipDiagnostics).ToArray());
+            var definition = compiled.CookedPackage.Definition;
             if (!animations.TryGetValue(definition.Presentation.Idle, out var idle))
                 return PortableFighterCook.Cook(source);
+            file = model;
             var fit = PortableMeshMeasurements.Measure(source.Model, source.HumanoidJson == null ? null : Encoding.UTF8.GetString(source.HumanoidJson),
                 idle["clipName"]!.GetValue<string>(), definition.Presentation.VisualScale);
             SuggestedModelYOffset = (float)Math.Round(fit.ModelYOffset - definition.CapsuleHeight * .5f, 4);

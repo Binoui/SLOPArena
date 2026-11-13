@@ -19,6 +19,7 @@ namespace SlopArena.Client.UI
         private double stableSince;
         private bool polling;
         private int workspaceGeneration;
+        private IVisualElementScheduledItem? workspacePoll;
         private LocalFighterItemResult? workspaceItem;
         private LocalFighterWorkspace? measuredSource;
         private Button? workspaceOffset;
@@ -26,6 +27,7 @@ namespace SlopArena.Client.UI
         private Button? workspaceTry;
         private void StopWorkspace()
         {
+            workspacePoll?.Pause(); workspacePoll = null;
             workspaceGeneration++;
             workspaceFolder = null; pendingSource = null; cookedStamp = null; workspaceItem = null;
         }
@@ -64,7 +66,7 @@ namespace SlopArena.Client.UI
             workspaceTry = Button(_body, "TRY IN TRAINING", () => Run(StartWorkspaceTraining));
             workspaceTry.SetEnabled(false);
             int generation = workspaceGeneration;
-            _root.schedule.Execute(() => { if (generation == workspaceGeneration && IsOpen && _view == View.Fighter) PollWorkspace(); }).Every(250);
+            workspacePoll = _root.schedule.Execute(() => { if (generation == workspaceGeneration && IsOpen && _view == View.Fighter) PollWorkspace(); }).Every(250);
             FocusBody();
         }
         private void SelectWorkspace(string folder)
@@ -116,7 +118,9 @@ namespace SlopArena.Client.UI
                 workspaceOffset!.SetEnabled(snapshot.SuggestedModelYOffset.HasValue);
                 workspaceOffset.text = snapshot.SuggestedModelYOffset.HasValue ? $"APPLY SUGGESTED modelYOffset {snapshot.SuggestedModelYOffset.Value:0.0000} (idle sole)" : "No sole suggestion available";
                 var diagnostics = result.Diagnostics.OrderBy(d => d.Severity == CharacterDiagnosticSeverity.Error ? 0 : 1)
-                    .ThenBy(d => LocalFighterWorkspace.DiagnosticPath(d), StringComparer.Ordinal).Select(LocalFighterWorkspace.DiagnosticText);
+                    .ThenBy(d => LocalFighterWorkspace.DiagnosticPath(d), StringComparer.Ordinal)
+                    .GroupBy(d => (d.Severity, File: DiagnosticFile(d)))
+                    .Select(group => group.Key.File + " / " + group.Key.Severity + "\n" + string.Join("\n", group.Select(LocalFighterWorkspace.DiagnosticText)));
                 workspaceDiagnostics!.text = string.Join("\n\n", diagnostics);
                 bool accepted = workspaceItem?.Fighter != null;
                 if (workspaceDiagnostics.text.Length == 0) workspaceDiagnostics.text = accepted ? "Fighter admitted. Ready for Training." : "Cook refused.";
@@ -129,6 +133,13 @@ namespace SlopArena.Client.UI
                 { workspaceItem = null; workspaceTry?.SetEnabled(false); workspaceDiagnostics!.text = "Source folder / " + e.Message; }
             }
             finally { polling = false; }
+        }
+        private static string DiagnosticFile(CharacterDiagnostic diagnostic)
+        {
+            string path = LocalFighterWorkspace.DiagnosticPath(diagnostic);
+            foreach (string file in new[] { "package.json", "character.json", "cook.json", "card.json" })
+                if (path.StartsWith(file, StringComparison.Ordinal)) return file;
+            return path == "portable" || diagnostic.Code.StartsWith("glb.", StringComparison.Ordinal) || diagnostic.Code.StartsWith("item.pose-bake.", StringComparison.Ordinal) ? "GLB / poses.bin" : path;
         }
         private async Task StartWorkspaceTraining()
         {

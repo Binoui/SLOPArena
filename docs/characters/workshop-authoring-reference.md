@@ -1848,3 +1848,9 @@ does not infer movement speeds, damage, shield size, or attack timing.
 exact fighter revision against a built-in CPU. Returning to Home reopens the
 workspace. Cooking another revision cannot change a running Match. This preview
 does not add the fighter to Fighter Select or online play and does not publish it.
+
+Optional `cook.json` fields `portraits` and `icons` use the portable bindings shapes.
+`portraits` is one image filename or null per form. `icons` is one map per form from
+canonical icon IDs to image filenames or null. Referenced images live directly in
+the source folder. Omitted art uses the made fighter's rendered portrait and neutral
+move glyphs.

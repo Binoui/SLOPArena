@@ -63,6 +63,28 @@ public sealed class LocalFighterWorkspaceTests : IDisposable
         Assert.Null(result.Item);
         foreach (string id in ids) Assert.Contains(result.Diagnostics, d => d.Path == "cook.json.animations." + id && d.Message.Contains("missing." + id));
     }
+    [Fact] public void CompilerErrorsDoNotHideMissingClips()
+    {
+        var character = JsonNode.Parse(File.ReadAllText(Path.Combine(folder, "character.json")))!;
+        character["movement"]!["maxJumps"] = 256;
+        File.WriteAllText(Path.Combine(folder, "character.json"), character.ToJsonString());
+        var cook = JsonNode.Parse(File.ReadAllText(Path.Combine(folder, "cook.json")))!;
+        cook["animations"]!["anim.idle"] = "missing-idle";
+        File.WriteAllText(Path.Combine(folder, "cook.json"), cook.ToJsonString());
+        var result = LocalFighterWorkspace.Read(folder).Cook();
+        Assert.Null(result.Item);
+        Assert.Contains(result.Diagnostics, d => d.Path.Contains("maxJumps"));
+        Assert.Contains(result.Diagnostics, d => d.Path == "cook.json.animations.anim.idle");
+    }
+    [Fact] public void CapsuleRadiusUsesTheBodyRegionAndRejectsTheOutlier()
+    {
+        var points = Enumerable.Range(0, 10).Select(_ => new System.Numerics.Vector3(.2f, 1, 0))
+            .Append(new System.Numerics.Vector3(10, 1, 0)).ToArray();
+        var fit = PortableMeshMeasurements.FitCapsules(points, points.Select(_ => "head").ToArray(),
+            id => id == "bone.head" ? new System.Numerics.Vector3(0, 1, 0) : System.Numerics.Vector3.Zero);
+        Assert.Equal(.2f, fit[0].Radius);
+        Assert.Equal(14, fit.Length);
+    }
     [Fact] public void UnchangedReadsHaveTheSameStampAndEditsInvalidateIt()
     {
         var first = LocalFighterWorkspace.Read(folder);
@@ -74,6 +96,7 @@ public sealed class LocalFighterWorkspaceTests : IDisposable
     {
         var a = PortableMeshMeasurements.Measure(FootMesh(), null, "fixture", 1);
         var b = PortableMeshMeasurements.Measure(FootMesh(), null, "fixture", 2);
+        Assert.Equal(-.05f, a.ModelYOffset, 3);
         Assert.Equal(a.ModelYOffset * 2, b.ModelYOffset, 3);
         Assert.Equal(14, a.Hurtboxes.Count);
         Assert.All(a.Hurtboxes, c => Assert.True(c.Radius >= .015f));
