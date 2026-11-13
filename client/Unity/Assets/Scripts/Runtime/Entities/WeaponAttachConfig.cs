@@ -55,7 +55,7 @@ namespace SlopArena.Client.Entities
 
     /// <summary>
     /// Data asset that describes all weapon props for one character.
-    /// Legacy weapon configurations live in Resources/WeaponConfigs/; package bindings select them
+    /// Place in Resources/WeaponConfigs/ named after the CharacterClass enum value
     /// (e.g. Resources/WeaponConfigs/Manki.asset).
     /// </summary>
     [CreateAssetMenu(fileName = "NewWeaponAttachConfig", menuName = "SLOPArena/Weapon Attach Config")]
