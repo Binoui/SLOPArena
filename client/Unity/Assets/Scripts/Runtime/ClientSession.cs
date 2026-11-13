@@ -338,18 +338,15 @@ namespace SlopArena.Client
             {
                 if (player.SteamId == SteamId) continue;
                 if (player.EntityId <= 0) continue;
-                var opponentClass = ParseClass(player.CharacterSelection,
-                    descriptor == null ? "manki" : "");
-                if (descriptor != null && (opponentClass == "" ||
-                    catalog.ResolvePackage(opponentClass) == null))
+                if (!UI.LegacyFighterSelection.TryResolveOpponent(player.CharacterSelection, catalog, out var opponent))
                 {
                     RejectMatchStart("Master roster selected an unavailable opponent character.");
                     return;
                 }
                 UI.MatchConfig.Opponents.Add(new UI.MatchConfig.OpponentInfo(
                     (ulong)player.EntityId,
-                    opponentClass,
-                    catalog.ResolvePackage(opponentClass)?.Identity.PackageId ?? string.Empty));
+                    opponent.Identity.PackageId,
+                    opponent.Identity.PackageId));
             }
 
             MatchRoster = config.Players;
@@ -575,15 +572,6 @@ namespace SlopArena.Client
 
             catalog = builtCatalog;
             return true;
-        }
-
-        private static string ParseClass(string? name, string fallback)
-        {
-            if (string.IsNullOrEmpty(name))
-                return fallback;
-            return Shared.LegacyFighterProtocol.TryPackageId(name, out var c)
-                ? c
-                : fallback;
         }
 
         public static void Reset()

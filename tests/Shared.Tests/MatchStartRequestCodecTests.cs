@@ -253,6 +253,8 @@ public class MatchStartRequestCodecTests
     [InlineData("manki")]      // case-insensitive
     [InlineData("FIGHTGUY")]
     [InlineData("Wibou")]
+    [InlineData("6")]
+    [InlineData(" Manki ")]
     public void TryParse_CharacterClass_CaseInsensitive(string className)
     {
         var json = $$"""

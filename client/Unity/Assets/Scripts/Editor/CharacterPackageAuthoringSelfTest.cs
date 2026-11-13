@@ -72,6 +72,20 @@ public static class CharacterPackageAuthoringSelfTest
         Require(commandCook.Success && commandCook.SourceHash == directCook.SourceHash && commandCook.PackageHash == directCook.PackageHash,
             "Cook command did not delegate to the service result.");
 
+        byte[] admissionRoster = File.ReadAllBytes(rosterPath);
+        try
+        {
+            var freeRoster = new BuiltInRosterManifest(rosterBefore.SchemaVersion,
+                BuiltInRosterManifestCodec.Load(rosterPath).Entries.Where(e => e.PackageId != "bonk").ToArray());
+            File.WriteAllText(rosterPath, BuiltInRosterManifestCodec.Serialize(freeRoster));
+            var admitted = service.AdmitRoster("bonk", "Bonk");
+            Require(admitted.Success, "Free canonical selector must admit: " + string.Join("; ", admitted.Diagnostics.Select(d => d.Code + " " + d.Message)));
+            Require(admitted.Selector == "Bonk", "Admission result lost the canonical selector spelling.");
+            Require(BuiltInRosterManifestCodec.Load(rosterPath).ResolvePackage("bonk") != null,
+                "Successful admission did not persist Bonk.");
+        }
+        finally { File.WriteAllBytes(rosterPath, admissionRoster); }
+
         string projectRoot = UnityCharacterAssetCooker.ProjectRoot();
         string packageRoot = Path.Combine(projectRoot, "Assets/CharacterPackages/fightguy");
         string characterPath = Path.Combine(packageRoot, "character.json");

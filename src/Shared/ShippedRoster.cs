@@ -31,7 +31,7 @@ public sealed class ShippedRoster
         { diagnostic = ex.Message; return false; }
     }
 
-    public BuiltInRosterEntry DefaultFighter => LegacyFighterProtocol.DefaultFighter(Manifest);
+    public BuiltInRosterEntry DefaultFighter => Manifest.Entries.FirstOrDefault(entry => entry.PackageId == "fightguy") ?? Manifest.Entries[0];
 
     internal static (string Root, bool Watch) LocateApplication(string assemblyLocation, string baseDirectory, bool server)
     {

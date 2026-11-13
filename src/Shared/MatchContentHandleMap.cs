@@ -26,7 +26,7 @@ public sealed class MatchContentHandleMap
             throw new ArgumentException("Handle map contains an invalid or duplicate handle.", nameof(entries));
         if (schemaVersion != CatalogSchemaVersion && schemaVersion != CurrentSchemaVersion && schemaVersion != LocalSchemaVersion)
             throw new ArgumentOutOfRangeException(nameof(schemaVersion));
-        if (schemaVersion != LocalSchemaVersion && copy.Any(x => !(x.Selector != null) || x.Selector == ""))
+        if (schemaVersion != LocalSchemaVersion && copy.Any(x => !LegacyFighterProtocol.TryPackageId(x.Selector, out _)))
             throw new ArgumentException("Online maps require selectors.", nameof(entries));
         if (copy.Select(x => x.Identity.PackageId).Distinct(StringComparer.Ordinal).Count() != copy.Count)
             throw new ArgumentException("One revision per package is allowed.", nameof(entries));

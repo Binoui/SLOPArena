@@ -124,13 +124,13 @@ public static class FighterAppearanceSelfTest
                 "A new form with stale bindings must use neutral art.");
             var missing = FighterPresentation.Menu("local.missing-binding", "Local Fighter");
             Require(missing.Name() == "Local Fighter" && missing.Portrait() == FighterUiArt.NeutralPortrait, "Missing menu binding must degrade.");
-            Require(SlopArena.Client.Diagnostics.PracticeSessionLog.Fighter(1, "player", catalog.ResolvePackage("bonk")).Character == "Bonk", "Legacy practice header/slug changed.");
+            Require(SlopArena.Client.Diagnostics.PracticeSessionLog.Fighter(1, "player", catalog.ResolvePackage("bonk")).Character == "bonk", "Practice log must use package identity.");
             string assets = Application.dataPath;
             string cards = Path.Combine(assets, "CharacterPackages/bonk/card.json");
             string generated = Path.Combine(assets, "Resources/Generated/FighterUi.json");
-            Require(CharacterPackageAuthoringService.HasRosterPresentation("bonk", "bonk", cards, generated), "Prepared presentation must admit.");
-            Require(!CharacterPackageAuthoringService.HasRosterPresentation("local.new-fighter", "bonk", cards, generated)
-                && !CharacterPackageAuthoringService.HasRosterPresentation("bonk", "bonk", cards + ".missing", generated), "Missing card/binding must refuse admission.");
+            Require(CharacterPackageAuthoringService.HasRosterPresentation("bonk", "Bonk", cards, generated), "Prepared presentation must admit.");
+            Require(!CharacterPackageAuthoringService.HasRosterPresentation("local.new-fighter", "Bonk", cards, generated)
+                && !CharacterPackageAuthoringService.HasRosterPresentation("bonk", "Bonk", cards + ".missing", generated), "Missing card/binding must refuse admission.");
             var slug = typeof(SlopArena.Client.Diagnostics.PracticeSessionLog).GetMethod("Slug", BindingFlags.Static | BindingFlags.NonPublic);
             Require((string)slug.Invoke(null, new object[] { "Bonk" }) == "bonk", "Legacy filename slug changed.");
             var texture = FighterUiArt.NeutralPortrait;

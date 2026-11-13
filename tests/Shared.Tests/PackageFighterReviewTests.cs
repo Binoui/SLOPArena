@@ -110,15 +110,15 @@ public partial class PackageFighterContentTests
     }
 
     [Fact]
-    public void RosterAliasesAreExplicitMappingsRatherThanLowercaseEnumNames()
+    public void RosterAliasesCannotRemapSelectorsToAnotherPackage()
     {
         var fixture = Fixture();
         var loaded = CookedCharacterPackageLoader.LoadFiles(fixture.Files,fixture.Requirement);
         var dto = new BuiltInRosterManifest(1,new[] { new BuiltInRosterEntry("bonk",fixture.Requirement.PackageId,fixture.Requirement) });
         var serialized = BuiltInRosterManifestCodec.Serialize(dto);
         var read = BuiltInRosterManifestCodec.ParseCooked(serialized);
-        Assert.Empty(MatchContentCatalogBuilder.ValidateRoster(read));
-        Assert.True(new MatchContentCatalogBuilder().Build(read,new Dictionary<string,CookedCharacterPackageLoadResult>
+        Assert.Contains(MatchContentCatalogBuilder.ValidateRoster(read), d => d.Code == "catalog.selector.package-mismatch");
+        Assert.False(new MatchContentCatalogBuilder().Build(read,new Dictionary<string,CookedCharacterPackageLoadResult>
             { [fixture.Requirement.PackageId] = loaded },MatchContentPolicy.EditorDevelopment).IsValid);
         Assert.False(new MatchContentCatalogBuilder().Build(read,new Dictionary<string,CookedCharacterPackageLoadResult>
             { [fixture.Requirement.PackageId] = loaded },MatchContentPolicy.StandardRoom).IsValid);

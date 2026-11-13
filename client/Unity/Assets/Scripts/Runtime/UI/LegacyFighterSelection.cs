@@ -8,6 +8,12 @@ namespace SlopArena.Client.UI
     {
         public static string PackageId(string selector)
             => LegacyFighterProtocol.TryPackageId(selector, out var packageId) ? packageId : "";
+        public static bool TryResolveOpponent(string selector, MatchContentCatalog catalog, out MatchContentEntry entry)
+        {
+            entry = LegacyFighterProtocol.TryPackageId(selector, out var packageId)
+                ? catalog.ResolvePackage(packageId) : null;
+            return entry != null;
+        }
         public static string DisplayKey(string selector)
         {
             var package = PackageId(selector);

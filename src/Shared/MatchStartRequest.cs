@@ -87,7 +87,7 @@ public static class MatchStartRequestCodec
             string classStr = cc.GetString()!;
             if (string.IsNullOrEmpty(classStr))
                 return null;
-            if (!LegacyFighterProtocol.TryPackageId(classStr, out var characterClass))
+            if (!LegacyFighterProtocol.TryLaunchPackageId(classStr, out var characterClass))
                 return null;
 
             if (!item.TryGetProperty("entityId", out var eid) || eid.ValueKind != JsonValueKind.Number ||

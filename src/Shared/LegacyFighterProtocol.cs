@@ -1,5 +1,4 @@
 using System;
-using System.Linq;
 
 namespace SlopArena.Shared;
 
@@ -12,9 +11,6 @@ public static class LegacyFighterProtocol
         Bashie = 6, Salamander = 7, Nyx = 8
     }
 
-    public static BuiltInRosterEntry DefaultFighter(BuiltInRosterManifest manifest)
-        => manifest.Entries.FirstOrDefault(entry => entry.Selector == "fightguy") ?? manifest.Entries[0];
-
     public static bool TryPackageId(string? selector, out string packageId)
     {
         packageId = "";
@@ -26,6 +22,15 @@ public static class LegacyFighterProtocol
             return true;
         }
         return false;
+    }
+
+    public static bool TryLaunchPackageId(string? selector, out string packageId)
+    {
+        packageId = "";
+        if (!Enum.TryParse<CharacterClass>(selector, true, out var value)
+            || value == CharacterClass.None || !Enum.IsDefined(typeof(CharacterClass), value)) return false;
+        packageId = value.ToString().ToLowerInvariant();
+        return true;
     }
 
     public static string Selector(string packageId)

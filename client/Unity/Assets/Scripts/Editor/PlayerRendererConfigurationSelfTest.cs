@@ -195,6 +195,7 @@ namespace SlopArena.EditorTools
         private static CharacterDefinition Definition(string fighter) => new()
         {
             PackageId = fighter,
+            ModelResourcePath = fighter == "manki" ? "Characters/Manki" : fighter == "wibou" ? "Characters/Wibou" : "",
             CapsuleRadius = 0.4f,
             CapsuleHeight = 1.6f,
             ModelYOffset = -0.3f,

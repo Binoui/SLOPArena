@@ -13,7 +13,7 @@ ALLOWED = {"src/Shared/LegacyFighterProtocol.cs"}
 def violations(root=ROOT):
     paths = subprocess.check_output(["git", "ls-files", "--cached", "--others", "--exclude-standard", "-z", "*.cs"], cwd=root).decode().split("\0")
     pattern = re.compile(r"\bCharacterClass\b")
-    return [f"{name}:{i}" for name in paths if name and name not in ALLOWED
+    return [f"{name}:{i}" for name in paths if name and name not in ALLOWED and (root / name).is_file()
             for i, line in enumerate((root / name).read_text().splitlines(), 1)
             if pattern.search(line) and not line.lstrip().startswith("//")]
 

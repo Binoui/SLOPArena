@@ -143,19 +143,18 @@ public partial class PackageFighterContentTests
     }
 
     [Fact]
-    public void RosterDefaultUsesAnExplicitAliasWithoutLowercasingTheSelector()
+    public void RosterDefaultKeepsFightGuyAndRejectsAnAliasToAnotherPackage()
     {
         string temp=Path.Combine(Path.GetTempPath(),"sloparena-default-"+Guid.NewGuid().ToString("N"));
         try
         {
             string root=CopyTwoFighterRoot(temp),path=Path.Combine(root,"roster/manifest.json");
+            Assert.Equal("fightguy",new ShippedRoster.Cache(()=>(root,false)).Read().DefaultFighter.PackageId);
             var manifest=BuiltInRosterManifestCodec.Load(path);
             var entries=manifest.Entries.Select(e=>e.Selector=="fightguy"
                 ? e with { PackageId="curated.fighter",Requirement=e.Requirement with { PackageId="curated.fighter" } }:e).ToArray();
             File.WriteAllText(path,BuiltInRosterManifestCodec.Serialize(new(1,entries)));
-            var roster=new ShippedRoster.Cache(()=>(root,false)).Read();
-            Assert.Equal("fightguy",roster.DefaultFighter.Selector);
-            Assert.Equal("curated.fighter",roster.DefaultFighter.PackageId);
+            Assert.Throws<InvalidDataException>(() => new ShippedRoster.Cache(()=>(root,false)).Read());
         }
         finally { if(Directory.Exists(temp))Directory.Delete(temp,true); }
     }

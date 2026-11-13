@@ -190,6 +190,8 @@ public sealed class MatchContentCatalogBuilder
             if (duplicateSelector || duplicatePackage)
                 d.Add(Error("catalog.roster.duplicate", "entries", "Duplicate selector or package."));
             if (!LegacyFighterProtocol.TryPackageId(entry.Selector, out _)) d.Add(Error("catalog.selector.invalid", "entries", "Roster selector must be a supported non-None value."));
+            if (!string.Equals(entry.PackageId, entry.Selector?.ToLowerInvariant(), StringComparison.Ordinal))
+                d.Add(Error("catalog.selector.package-mismatch", "entries.packageId", "Package ID must equal the ordinal lowercase of its roster selector."));
             if (!IsStablePackageId(entry.PackageId)) d.Add(Error("catalog.package.invalid", "entries.packageId", "Package ID is not a stable lowercase ID."));
             if (entry.Requirement == null || entry.Requirement.PackageId != entry.PackageId || !IsSha(entry.Requirement.CookedContentHash) || !IsSha(entry.Requirement.PackageHash) || string.IsNullOrWhiteSpace(entry.Requirement.Version))
                 d.Add(Error("catalog.requirement.invalid", entry.PackageId, "Package requirement is incomplete or invalid."));

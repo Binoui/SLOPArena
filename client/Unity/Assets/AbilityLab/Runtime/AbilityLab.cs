@@ -186,7 +186,6 @@ namespace SlopArena.Client.Tools
         public UnityEngine.Camera PreviewCamera => _camera;
 
         // ── Selection state ──
-        public string Character { get; private set; } = "";
         public string SelectedPackageId { get; private set; } = "";
         public string SelectedPackageHash { get; private set; } = "";
         public string SelectedSlotId { get; private set; } = "";
@@ -822,7 +821,6 @@ namespace SlopArena.Client.Tools
                 _previewAnimationCatalog = persistedPreview.AnimationCatalog;
             }
             _previewRig = persistedPreview.Rig;
-            Character = "";
             SelectedPackageId = package.Metadata.PackageId;
             SelectedSlotId = priorAddress.Id;
             Airborne = priorAddress.IsAirborne;
@@ -878,7 +876,6 @@ namespace SlopArena.Client.Tools
             _previewRig = rig;
             var definition = CookedCharacterRuntimeAdapter.ToCharacterDefinition(package).ForForm(SelectedForm);
             SelectedPackageHash = packageHash;
-            Character = "";
             SelectedPackageId = packageId;
             Def = definition;
             Baked = baked;
@@ -904,7 +901,6 @@ namespace SlopArena.Client.Tools
             ReleaseRendererAttachments();
             DestroyPreviewCatalog();
             _previewRig = null;
-            Character = "";
             SelectedPackageId = "";
             SelectedPackageHash = "";
             SelectedSlotId = "";
@@ -941,19 +937,6 @@ namespace SlopArena.Client.Tools
             ClearScenario();
             AuthoritativePreview = false;
             PreviewStatus = "Non-authoritative draft";
-        }
-
-        private static BakedAnimationData? LoadBaked(CharacterDefinition def)
-        {
-            if (def.PackageId == "fightguy" || string.IsNullOrEmpty(def.BakedDataPath)) return null;
-            string? path = BakedContentPaths.ResolveBaked(def.BakedDataPath);
-            if (path == null) return null;
-            try { return BakedAnimationData.LoadFromBin(File.ReadAllBytes(path)); }
-            catch (Exception ex)
-            {
-                Debug.LogWarning($"[AbilityLab] Failed to load baked data from {path}: {ex.Message}");
-                return null;
-            }
         }
 
         private static HurtboxBoneDef[] LoadWorkingDefs(CharacterDefinition def, BakedAnimationData? baked)
@@ -1716,7 +1699,7 @@ namespace SlopArena.Client.Tools
                  camera.scene != gameObject.scene)) return;
 #endif
             if (Def == null) return;
-            if (Character == "" ? !IsPackagePreview : !Application.isPlaying) return;
+            if (!IsPackagePreview) return;
             var mat = LineMat;
             if (mat == null) return;
             mat.SetPass(0);

@@ -355,12 +355,13 @@ public sealed class CharacterPackageAuthoringService
                 x.Code, x.Path, x.Message)));
         if (!verification.Success)
             return CharacterRosterAdmissionResult.Failure(packageId, diagnostics);
-        if (!LegacyFighterProtocol.TryPackageId(selectorName, out var selector))
+        if (!LegacyFighterProtocol.TryPackageId(selectorName, out var selectorPackageId))
         {
             diagnostics.Add(Error("roster.selector.invalid", "selector", "Roster selector must be a supported online selector."));
             return CharacterRosterAdmissionResult.Failure(packageId, diagnostics);
         }
 
+        string selector = selectorName;
         string verifiedVersion = verification.Inspection?.Provenance?.Version ?? "";
         string verifiedCookedHash = verification.Plan?.CookedContentHash ?? "";
         string verifiedPackageHash = verification.Plan?.PackageHash ?? "";
@@ -379,13 +380,13 @@ public sealed class CharacterPackageAuthoringService
             BuiltInRosterManifest manifest = BuiltInRosterManifestCodec.ParseCooked(File.ReadAllText(rosterPath));
             if (manifest.TryGetByPackageId(packageId, out _))
                 diagnostics.Add(Error("roster.package.exists", packageId, "Package is already admitted to the roster."));
-            if (manifest.TryGetByPackageId(selector, out _))
+            if (manifest.TryGetByPackageId(selectorPackageId, out _))
                 diagnostics.Add(Error("roster.selector.exists", selector.ToString(), "Roster selector is already assigned."));
             if (diagnostics.Any(x => x.Severity == CharacterDiagnosticSeverity.Error))
                 return CharacterRosterAdmissionResult.Failure(packageId, diagnostics);
             var entries = manifest.Entries.Concat(new[]
             {
-                new BuiltInRosterEntry(selector, packageId, new MatchContentPackageRequirement(packageId, version, cookedHash, packageHash))
+                new BuiltInRosterEntry(selectorPackageId, packageId, new MatchContentPackageRequirement(packageId, version, cookedHash, packageHash))
             }).ToArray();
             var candidate = new BuiltInRosterManifest(manifest.SchemaVersion, entries);
             diagnostics.AddRange(MatchContentCatalogBuilder.ValidateRoster(candidate));

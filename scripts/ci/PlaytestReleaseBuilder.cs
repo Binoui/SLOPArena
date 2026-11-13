@@ -444,7 +444,7 @@ public static class PlaytestReleaseBuilder
         }
     }
 
-    private static IReadOnlyList<PackageIdentityRow> VerifyAuthoringRoster(string projectRoot, BuiltInRosterManifest roster)
+    internal static IReadOnlyList<PackageIdentityRow> VerifyAuthoringRoster(string projectRoot, BuiltInRosterManifest roster)
     {
         var authoring = new CharacterPackageAuthoringService(projectRoot);
         var rows = new List<PackageIdentityRow>(roster.Entries.Count);
@@ -465,14 +465,14 @@ public static class PlaytestReleaseBuilder
                 diagnostics = verified.Diagnostics,
             });
             if (!verified.Success || verified.Inspection == null || verified.Plan == null || !verified.Plan.DryRun ||
-                !verified.Inspection.Rostered || !string.Equals(verified.Inspection.RosterSelector, entry.Selector.ToString(), StringComparison.Ordinal) ||
+                !verified.Inspection.Rostered || !string.Equals(verified.Inspection.RosterSelector, LegacyFighterProtocol.Selector(entry.PackageId), StringComparison.Ordinal) ||
                 !string.Equals(verified.Plan.PackageId, entry.PackageId, StringComparison.Ordinal) ||
                 !string.Equals(verified.Plan.CookedContentHash, entry.Requirement.CookedContentHash, StringComparison.Ordinal) ||
                 !string.Equals(verified.Plan.PackageHash, entry.Requirement.PackageHash, StringComparison.Ordinal) ||
                 !string.Equals(verified.Inspection.Provenance?.Version, entry.Requirement.Version, StringComparison.Ordinal))
                 failures.Add(entry.PackageId + ": " + string.Join("; ", verified.Diagnostics.Select(x => x.Code + " " + x.Path + ": " + x.Message)));
             else
-                rows.Add(new PackageIdentityRow(entry.Selector.ToString(), entry.PackageId, entry.Requirement.Version,
+                rows.Add(new PackageIdentityRow(LegacyFighterProtocol.Selector(entry.PackageId), entry.PackageId, entry.Requirement.Version,
                     verified.Plan.SourceHash, verified.Plan.CookedContentHash, verified.Plan.PackageHash));
         }
         WriteCookReport(projectRoot, "cook-verification.json", reports, failures.Count == 0);
