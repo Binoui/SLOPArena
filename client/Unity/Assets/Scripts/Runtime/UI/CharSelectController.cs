@@ -146,6 +146,12 @@ namespace SlopArena.Client.UI
                     if (origin.Length > 0)
                     {
                         var badge = new Label(origin) { name = "char-card-origin", pickingMode = PickingMode.Ignore };
+                        badge.style.position = Position.Absolute;
+                        badge.style.left = 4;
+                        badge.style.right = 4;
+                        badge.style.bottom = LocalFighterLibrary.Current.HasForms(cls) ? 58 : 34;
+                        badge.style.backgroundColor = new Color(.10f, .10f, .10f);
+                        badge.style.color = Color.white;
                         badge.style.fontSize = 11;
                         badge.style.unityTextAlign = TextAnchor.MiddleCenter;
                         btn.Add(badge);
