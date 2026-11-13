@@ -16,7 +16,7 @@ namespace SlopArena.Client.Replays
         public static bool TryToday(out ReplayContent? content, out string? failure)
         {
             content = null;
-            if (!ClientSession.TryBuildLocalMatchCatalog(out var catalog, out failure) || catalog == null)
+            if (!ClientSession.TryBuildAvailableFighterCatalog(out var catalog, out failure) || catalog == null)
                 return false;
             var arenas = new Dictionary<string, ReplayArena?>();
             content = new ReplayContent(catalog, name =>

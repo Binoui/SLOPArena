@@ -73,7 +73,7 @@ namespace SlopArena.EditorTools
             if (AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Resources/Stages/" + stage + ".prefab") == null
                 || AssetDatabase.LoadAssetAtPath<SceneAsset>(SlopArenaCharacterCourseCommands.ScenePath) == null)
                 throw new InvalidOperationException("The course scene and stage presentation must already exist.");
-            if (!ClientSession.TryBuildLocalMatchCatalog(out var catalog, out var failure) || catalog == null)
+            if (!ClientSession.TryBuildAvailableFighterCatalog(out var catalog, out var failure) || catalog == null)
                 throw new InvalidOperationException("Local content catalog: " + failure);
             var entry = catalog.ResolvePackage(fighter);
             if (entry == null || !arena.Value.Arcade.AllowsPackage(fighter)) throw new ArgumentException("The course does not admit package " + fighter);

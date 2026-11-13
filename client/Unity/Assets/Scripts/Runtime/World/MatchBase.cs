@@ -124,8 +124,6 @@ namespace SlopArena.Client.World
                 return RejectContent($"Fighter revision changed for entity {entityId} ({entry.Identity.PackageId}).");
             try
             {
-                if (entry.IsBundled && !FighterPresentation.Binding(entry.Identity.PackageId).HasValue)
-                    return RejectContent($"Bundled fighter card is missing for entity {entityId} ({entry.Identity.PackageId}).");
                 _fighterContent[entityId] = FighterPresentation.Resolve(entry);
                 return true;
             }

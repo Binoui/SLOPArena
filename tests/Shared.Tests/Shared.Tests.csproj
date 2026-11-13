@@ -51,6 +51,7 @@
     <Compile Include="../../client/Unity/Assets/Scripts/Runtime/Simulation/LocalSimulationBridge.cs" Link="Simulation/LocalSimulationBridge.cs" />
     <Compile Include="../../client/Unity/Assets/Scripts/Runtime/Simulation/ISimulationBridge.cs" Link="Simulation/ISimulationBridge.cs" />
     <Compile Include="../../client/Unity/Assets/Scripts/Runtime/UI/MatchConfig.cs" Link="UI/MatchConfig.cs" />
+    <Compile Include="../../client/Unity/Assets/Scripts/Runtime/UI/LegacyFighterSelection.cs" Link="UI/LegacyFighterSelection.cs" />
     <Compile Include="../../client/Unity/Assets/Scripts/Runtime/UI/MenuChoice.cs" Link="UI/MenuChoice.cs" />
   </ItemGroup>
 </Project>

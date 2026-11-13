@@ -821,10 +821,11 @@ namespace SlopArena.Client.UI
                 for (int i = 0; i < members.Length; i++)
                 {
                     var member = members[i];
-                    bool hasCharacter = Enum.TryParse(member.CharacterSelection, true, out CharacterClass selectedClass);
+                    string selectedClass = LegacyFighterSelection.DisplayKey(member.CharacterSelection);
+                    bool hasCharacter = !string.IsNullOrWhiteSpace(selectedClass);
                     _playerCards.Add(BuildPlayerCard(
                         $"P{i + 1}", member.Name,
-                        hasCharacter ? LegacyFighterSelection.PackageId(selectedClass.ToString()) : null,
+                        hasCharacter ? selectedClass : null,
                         member.LockedIn ? "LOCKED" : "WAITING",
                         member.SteamId == ClientSession.SteamId,
                         member.IsLeader));
@@ -853,12 +854,12 @@ namespace SlopArena.Client.UI
             for (int i = 0; i < players.Count; i++)
             {
                 var player = players[i];
-                CharacterClass selectedClass;
-                bool hasCharacter = System.Enum.TryParse(player.CharacterSelection, true, out selectedClass);
+                string selectedClass = LegacyFighterSelection.DisplayKey(player.CharacterSelection);
+                bool hasCharacter = !string.IsNullOrWhiteSpace(selectedClass);
                 _playerCards.Add(BuildPlayerCard(
                     $"P{i + 1}",
                     player.Name,
-                    hasCharacter ? LegacyFighterSelection.PackageId(selectedClass.ToString()) : null,
+                    hasCharacter ? selectedClass : null,
                     hasCharacter && player.LockedIn ? "LOCKED" : "WAITING",
                     player.SteamId == ClientSession.SteamId,
                     player.IsHost));

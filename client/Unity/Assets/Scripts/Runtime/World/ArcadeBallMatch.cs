@@ -44,6 +44,30 @@ namespace SlopArena.Client.World
             _probeInput = input;
         }
 
+#if UNITY_EDITOR
+        static string ReadEditorPackageOverride(string packageOverride)
+        {
+            if (string.IsNullOrEmpty(packageOverride))
+                packageOverride = UnityEditor.SessionState.GetString(FighterSessionKey, "");
+            if (!string.IsNullOrEmpty(UnityEditor.SessionState.GetString("SlopArena.ArcadeBallLab.Fighter", "")))
+            {
+                var legacy = UnityEditor.SessionState.GetString("SlopArena.ArcadeBallLab.Fighter", "");
+                if (string.IsNullOrEmpty(packageOverride))
+                {
+                    packageOverride = LegacyFighterSelection.PackageId(legacy);
+                    if (string.IsNullOrEmpty(packageOverride))
+                    {
+                        LocalFighterLibrary.ReportDiagnostic("[Arcade] Unresolvable legacy fighter session value; using the default fighter.");
+                        if (ShippedRoster.TryReadApplication(out var roster, out _)) packageOverride = roster!.DefaultFighter.PackageId;
+                    }
+                    UnityEditor.SessionState.SetString(FighterSessionKey, packageOverride);
+                }
+                UnityEditor.SessionState.EraseString("SlopArena.ArcadeBallLab.Fighter");
+            }
+            return packageOverride;
+        }
+#endif
+
         protected override void OnMatchStart()
         {
             MatchConfig.ClearActiveMatch();
@@ -58,23 +82,16 @@ namespace SlopArena.Client.World
                 return;
             }
             arena = PrepareArena(arena);
-            if (!ClientSession.TryBuildLocalMatchCatalog(out var catalog, out var failure) || catalog == null)
+            string packageOverride = _fighterPackageOverride;
+#if UNITY_EDITOR
+            packageOverride = ReadEditorPackageOverride(packageOverride);
+#endif
+            if (!ClientSession.TryBuildLocalMatchCatalog(out var catalog, out var failure, string.IsNullOrEmpty(packageOverride) ? null : packageOverride) || catalog == null)
             {
                 RejectContent("Arcade content preparation failed: " + failure);
                 return;
             }
             var choice = MatchConfig.Selection?.Choice;
-            string packageOverride = _fighterPackageOverride;
-#if UNITY_EDITOR
-            if (string.IsNullOrEmpty(packageOverride))
-                packageOverride = UnityEditor.SessionState.GetString(FighterSessionKey, "");
-            if (!string.IsNullOrEmpty(UnityEditor.SessionState.GetString("SlopArena.ArcadeBallLab.Fighter", "")))
-            {
-                Debug.LogWarning("[Arcade] Retired fighter selector session value ignored; using the default fighter.");
-                UnityEditor.SessionState.EraseString("SlopArena.ArcadeBallLab.Fighter");
-                if (string.IsNullOrEmpty(packageOverride)) packageOverride = ShippedRoster.ReadApplication().DefaultFighter.PackageId;
-            }
-#endif
             if (!string.IsNullOrEmpty(packageOverride)) choice = MatchConfig.ResolveStoredFighter(packageOverride, catalog);
             var entry = choice?.Resolve(catalog);
             if (entry == null || !arena.Arcade.AllowsPackage(entry.Identity.PackageId))

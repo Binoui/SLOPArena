@@ -103,3 +103,5 @@ Solo and Arcade share one **Local Play** entry. The flow is Mode, then Fighters,
 ## Seat identity after ADR-0067 unit 3
 
 Each occupied local seat retains an admitted `FighterChoice` with an exact package revision and a supported starting form. P1 keeps it in `MatchConfig.Selection`; P2 to P4 keep it in `SoloSeat.Choice`. Device pairing, CPU difficulty, Open seats and seat colors keep their existing behavior. `LocalFighterLibrary` supplies Fighter Select and fighter panels in roster order.
+
+Local launch refreshes each occupied choice by package and form against the current source snapshot before pinning the Match catalog. A source edit between Editor plays does not require a script recompile. Scene overrides remain local to their Match. Missing content leaves device-join and restore state unchanged or open and reports one diagnostic.

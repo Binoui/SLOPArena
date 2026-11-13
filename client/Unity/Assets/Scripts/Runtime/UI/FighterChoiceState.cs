@@ -14,13 +14,12 @@ namespace SlopArena.Client.UI
         public FighterChoiceState() { }
         public FighterChoiceState(FighterChoice choice, byte? menuForm = null)
         { PackageId = choice.Revision.PackageId; Form = choice.StartingForm; MenuForm = menuForm; }
-        public FighterChoice Restore()
+        public FighterChoice? Restore()
         {
             var library = LocalFighterLibrary.Current;
-            if (library.Contains(PackageId) && (Form == 0 || Form == 1 && library.HasForms(PackageId)))
-                return library.Choose(PackageId, Form);
+            if (library.TryChoose(PackageId, Form, out var restored)) return restored;
             LocalFighterLibrary.ReportDiagnostic("[FighterChoiceState] Unresolvable stored fighter '" + PackageId + "'; using the default fighter.");
-            return library.Choose(ShippedRoster.ReadApplication().DefaultFighter.PackageId);
+            return library.TryDefault(out var choice) ? choice : null;
         }
     }
 
@@ -37,6 +36,7 @@ namespace SlopArena.Client.UI
         {
             var seat = new SoloSeat { Kind = Kind, Difficulty = Difficulty, DeviceId = DeviceId };
             if (FighterPackage != null || Kind != SeatKind.Open) seat.SetFighter(FighterPackage ?? new FighterChoiceState());
+            if (seat.Choice == null) { seat.Kind = SeatKind.Open; seat.DeviceId = 0; }
             return seat;
         }
     }

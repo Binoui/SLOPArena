@@ -94,6 +94,7 @@ public partial class PackageFighterContentTests
     }
 }
 
+[Collection("Local fighter state")]
 public sealed class StoredFighterChoiceTests
 {
     [Fact]

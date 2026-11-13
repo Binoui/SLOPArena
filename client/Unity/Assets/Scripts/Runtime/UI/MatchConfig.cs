@@ -19,7 +19,15 @@ namespace SlopArena.Client.UI
         public string Fighter
         {
             get => Choice?.Revision.PackageId ?? "";
-            set => SetFighter(LocalFighterLibrary.Current.Choose(value, LocalFighterLibrary.Current.HasForms(value) ? PreferredForm : (byte)0));
+            set
+            {
+                var library = LocalFighterLibrary.Current;
+                FighterChoice? choice;
+                bool resolved = Choice != null && Choice.Revision.PackageId == value
+                    ? library.TryRefreshChoice(Choice, out choice)
+                    : library.TryChoose(value, library.HasForms(value) ? PreferredForm : (byte)0, out choice);
+                if (resolved) SetFighter(choice!);
+            }
         }
         public void SetFighter(FighterChoice choice)
         {
@@ -29,6 +37,7 @@ namespace SlopArena.Client.UI
         public void SetFighter(FighterChoiceState state)
         {
             var choice = state.Restore();
+            if (choice == null) return;
             SetFighter(choice);
             if (!choice.HasAlternateForm && state.MenuForm is <= 1) PreferredForm = state.MenuForm.Value;
         }
@@ -38,7 +47,9 @@ namespace SlopArena.Client.UI
             get => Choice?.StartingForm ?? 0;
             set
             {
-                SetFighter((Choice ?? throw new System.InvalidOperationException("Seat has no fighter.")).WithForm(value));
+                if (Choice == null) { LocalFighterLibrary.ReportDiagnostic("[MatchConfig] Seat has no admitted fighter."); return; }
+                if (value > 1) { LocalFighterLibrary.ReportDiagnostic("[MatchConfig] Invalid menu form."); return; }
+                SetFighter(Choice.WithForm(Choice.HasAlternateForm ? value : (byte)0));
                 PreferredForm = value;
             }
         }
@@ -66,13 +77,18 @@ namespace SlopArena.Client.UI
         }
         private static PlayerSelection? _player;
         private static byte _preferredPlayerForm;
-        public static PlayerSelection Selection => _player!;
-        public static CharacterClass PlayerClass => _player?.Selector ?? CharacterClass.None;
-        public static string PlayerPackageId => _player?.PackageId ?? "";
+        public static PlayerSelection Selection { get { EnsurePlayer(); return _player!; } }
+        public static CharacterClass PlayerClass { get { EnsurePlayer(); return _player?.Selector ?? CharacterClass.None; } }
+        public static string PlayerPackageId { get { EnsurePlayer(); return _player?.PackageId ?? ""; } }
         public static byte PlayerForm
         {
             get => _player?.Form ?? 0;
-            set { if (_player != null) _player = _player.WithForm(value); _preferredPlayerForm = value; }
+            set
+            {
+                if (value > 1) { LocalFighterLibrary.ReportDiagnostic("[MatchConfig] Invalid menu form."); return; }
+                if (_player != null) _player = _player.WithForm(_player.Choice.HasAlternateForm ? value : (byte)0);
+                _preferredPlayerForm = value;
+            }
         }
         public static void SetPlayerFighter(PlayerSelection selection)
         {
@@ -82,12 +98,20 @@ namespace SlopArena.Client.UI
         public static void SetPlayerFighter(FighterChoiceState state)
         {
             var choice = state.Restore();
+            if (choice == null) return;
             SetPlayerFighter(choice);
             if (!choice.HasAlternateForm && state.MenuForm is <= 1) _preferredPlayerForm = state.MenuForm.Value;
         }
         public static void SetPlayerFighter(FighterChoice choice) => SetPlayerFighter(new PlayerSelection(choice));
         public static void SetPlayerFighter(string packageId)
-            => SetPlayerFighter(LocalFighterLibrary.Current.Choose(packageId, LocalFighterLibrary.Current.HasForms(packageId) ? _preferredPlayerForm : (byte)0));
+        {
+            var library = LocalFighterLibrary.Current;
+            FighterChoice? choice;
+            bool resolved = _player != null && _player.PackageId == packageId
+                ? library.TryRefreshChoice(_player.Choice, out choice)
+                : library.TryChoose(packageId, library.HasForms(packageId) ? _preferredPlayerForm : (byte)0, out choice);
+            if (resolved) SetPlayerFighter(choice!);
+        }
         public static void SetPlayerFighter(CharacterClass selector, string packageId)
         {
             if (ShippedRoster.ReadApplication().Manifest.Resolve(selector)?.PackageId != packageId)
@@ -95,17 +119,21 @@ namespace SlopArena.Client.UI
             SetPlayerFighter(packageId);
         }
         public static void SetPlayerFighter(CharacterClass selector)
-            => SetPlayerFighter(ShippedRoster.ReadApplication().Manifest.Resolve(selector)?.PackageId
-                ?? throw new System.ArgumentException("Unknown selector."));
+        {
+            if (ShippedRoster.TryReadApplication(out var roster, out _) && roster!.Manifest.Resolve(selector) is { } entry)
+                SetPlayerFighter(entry.PackageId);
+            else LocalFighterLibrary.ReportDiagnostic("[MatchConfig] Unknown fighter selector.");
+        }
 
         public static bool SetDefaultPlayerFighter()
         {
-            if (!ShippedRoster.TryReadApplication(out var roster, out _)) return false;
-            var entry = roster!.DefaultFighter;
-            if (!LocalFighterLibrary.Current.Contains(entry.PackageId)) return false;
-            SetPlayerFighter(entry.PackageId);
+            if (!LocalFighterLibrary.Current.TryDefault(out var choice)) return false;
+            SetPlayerFighter(choice!);
             return true;
         }
+
+        static void EnsurePlayer()
+        { if (_player == null) SetDefaultPlayerFighter(); }
 
         public static void SetPlayerFighter(MatchContentEntry entry)
         {
@@ -155,14 +183,15 @@ namespace SlopArena.Client.UI
         static MatchConfig()
         {
             ResetSoloSeats();
-            SetDefaultPlayerFighter();
         }
 
         public static ref SoloSeat Seat(int playerNumber)
         {
             if (playerNumber < 2 || playerNumber > 4)
                 throw new System.ArgumentOutOfRangeException(nameof(playerNumber));
-            return ref SoloSeats[playerNumber - 2];
+            ref var seat = ref SoloSeats[playerNumber - 2];
+            if (seat.Kind != SeatKind.Open && seat.Choice == null && LocalFighterLibrary.Current.TryDefault(out var choice)) seat.SetFighter(choice!);
+            return ref seat;
         }
 
         public static int SoloOpponentCount
@@ -186,7 +215,8 @@ namespace SlopArena.Client.UI
             {
                 ref var seat = ref Seat(player);
                 if (seat.Kind == SeatKind.LocalPlayer) continue;
-                if (seat.Choice == null) seat.Fighter = ShippedRoster.ReadApplication().DefaultFighter.PackageId;
+                if (!LocalFighterLibrary.Current.TryRefreshChoice(seat.Choice, out var choice)) return 0;
+                seat.SetFighter(choice!);
                 seat.Kind = SeatKind.LocalPlayer;
                 seat.DeviceId = deviceId;
                 return player;
@@ -214,12 +244,50 @@ namespace SlopArena.Client.UI
         private static void ResetSoloSeats()
         {
             System.Array.Clear(SoloSeats, 0, SoloSeats.Length);
-            Seat(2) = new SoloSeat
+            SoloSeats[0] = new SoloSeat
             {
                 Kind = SeatKind.Cpu, Difficulty = CpuDifficulty.Normal,
             };
-            if (ShippedRoster.TryReadApplication(out var roster, out _) && LocalFighterLibrary.Current.Contains(roster!.DefaultFighter.PackageId))
-                Seat(2).Fighter = roster.DefaultFighter.PackageId;
+
+        }
+
+        public static bool TryResolveLocalChoices(LocalFighterLibrary library, out IReadOnlyList<FighterChoice> choices, out string? failure, string? playerPackageOverride = null)
+        {
+            var resolved = new List<(int Player, FighterChoice Choice)>();
+            choices = System.Array.Empty<FighterChoice>();
+            failure = null;
+            FighterChoice? player;
+            bool validPlayer;
+            if (playerPackageOverride == null) validPlayer = library.TryRefreshChoice(_player?.Choice, out player);
+            else
+            {
+                validPlayer = library.TryChoose(playerPackageOverride, library.HasForms(playerPackageOverride) ? _preferredPlayerForm : (byte)0, out player);
+                if (!validPlayer)
+                {
+                    LocalFighterLibrary.ReportDiagnostic("[MatchConfig] Stored fighter cannot be resolved: " + playerPackageOverride + "; using the default fighter.");
+                    validPlayer = library.TryDefault(out player);
+                }
+            }
+            if (!validPlayer)
+            { failure = "content.choice.unavailable: P1 package is unavailable."; return false; }
+            resolved.Add((1, player!));
+            for (int number = 2; number <= 4; number++)
+            {
+                var seat = SoloSeats[number - 2];
+                bool occupied = Mode == GameMode.Training ? number == 2
+                    : Mode == GameMode.Solo ? seat.Kind != SeatKind.Open
+                    : Mode == GameMode.Arcade && LocalMode == LocalPlayMode.CharacterCourse && seat.Kind == SeatKind.LocalPlayer;
+                if (!occupied) continue;
+                if (!library.TryRefreshChoice(seat.Choice, out var choice))
+                { failure = $"content.choice.unavailable: P{number} package is unavailable."; return false; }
+                resolved.Add((number, choice!));
+            }
+            foreach (var selection in resolved)
+                if (selection.Player == 1)
+                { if (playerPackageOverride == null) SetPlayerFighter(selection.Choice); }
+                else SoloSeats[selection.Player - 2].SetFighter(selection.Choice);
+            choices = resolved.ConvertAll(selection => selection.Choice).AsReadOnly();
+            return true;
         }
 
         // Per-match entity IDs assigned by the master server at match start

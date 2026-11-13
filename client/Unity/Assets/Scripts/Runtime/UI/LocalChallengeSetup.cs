@@ -24,7 +24,7 @@ namespace SlopArena.Client.UI
         {
             _context = context;
             _courseSelected = MatchConfig.LocalMode == LocalPlayMode.CharacterCourse;
-            ClientSession.TryBuildLocalMatchCatalog(out _catalog, out _);
+            ClientSession.TryBuildAvailableFighterCatalog(out _catalog, out _);
             _slopballArena = LoadArena(SlopballMatch.ArenaKey);
             if (_courseSelected)
                 foreach (var course in AvailableCourses())

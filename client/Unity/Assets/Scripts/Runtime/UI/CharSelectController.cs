@@ -758,7 +758,7 @@ namespace SlopArena.Client.UI
             for (int i = 0; i < members.Length; i++)
             {
                 var member = members[i];
-                string cls = LegacyFighterSelection.PackageId(member.CharacterSelection);
+                string cls = LegacyFighterSelection.DisplayKey(member.CharacterSelection);
                 bool hasCharacter = !string.IsNullOrEmpty(cls);
                 var panel = BuildPlayerCard(
                     CourseRoom ? $"P{i + 1} · {CourseColours.Names[member.Colour % 4]}" : string.IsNullOrEmpty(member.Camp) ? $"P{i + 1}" : $"P{i + 1} · {member.Camp.ToUpperInvariant()}", member.Name,
@@ -1202,7 +1202,7 @@ namespace SlopArena.Client.UI
             for (int i = 0; i < players.Count; i++)
             {
                 var player = players[i];
-                string selectedClass = LegacyFighterSelection.PackageId(player.CharacterSelection);
+                string selectedClass = LegacyFighterSelection.DisplayKey(player.CharacterSelection);
                 bool hasCharacter = !string.IsNullOrEmpty(selectedClass);
                 _rosterPanel.Add(BuildPlayerCard(
                     $"P{i + 1}",

@@ -366,7 +366,7 @@ namespace SlopArena.EditorTools.MoveReview
         {
             var catalog = ClientSession.MatchContentCatalog;
             // Rebuilding development content destroys the animation catalogs used by the live match.
-            if (!Application.isPlaying && !ClientSession.TryBuildLocalMatchCatalog(out catalog, out var error))
+            if (!Application.isPlaying && !ClientSession.TryBuildAvailableFighterCatalog(out catalog, out var error))
                 throw new InvalidOperationException("Local catalog: " + error);
             if (catalog == null) throw new InvalidOperationException("Training has no installed match catalog.");
             var entry = catalog.ResolvePackage(recipe.Package) ?? throw new ArgumentException("Recipe package is not admitted: " + recipe.Package);

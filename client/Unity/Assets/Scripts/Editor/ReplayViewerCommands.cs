@@ -53,7 +53,7 @@ namespace SlopArena.EditorTools
                     _ => "fightguy_pier",
                 };
             string path = Path.GetFullPath(Path.IsPathRooted(output) ? output : Path.Combine(RepositoryRoot, output));
-            if (!ClientSession.TryBuildLocalMatchCatalog(out var catalog, out var failure) || catalog == null)
+            if (!ClientSession.TryBuildAvailableFighterCatalog(out var catalog, out var failure) || catalog == null)
                 throw new InvalidOperationException(failure);
             string arenaPath = BakedContentPaths.ResolveArena(arena) ?? throw new ArgumentException($"No baked arena '{arena}'.");
             if (!MatchArenaRecord.TryLoad(arenaPath, arena, out var identity, out var definition, out var arenaFailure) || identity == null)

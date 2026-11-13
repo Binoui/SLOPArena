@@ -430,7 +430,7 @@ namespace SlopArena.Client.World
             if (_projectileVFX == null)
                 _projectileVFX = GetComponent<ProjectileVFXManager>() ?? gameObject.AddComponent<ProjectileVFXManager>();
             _projectileVFX.SetSimulation(_bridge.InternalSim);
-            if (!SlopArena.Client.ClientSession.TryBuildLocalMatchCatalog(out var contentCatalog, out var contentFailure) || contentCatalog == null)
+            if (!SlopArena.Client.ClientSession.TryBuildLocalMatchCatalog(out var contentCatalog, out var contentFailure, string.IsNullOrEmpty(_playerPackageOverride) ? null : _playerPackageOverride) || contentCatalog == null)
             {
                 RejectContent($"Content preparation failed: {contentFailure}");
                 return;
@@ -456,7 +456,6 @@ namespace SlopArena.Client.World
                 { RejectContent($"P{seatNumber} choice is missing or its exact revision is unavailable."); return; }
                 if (!BindFighter(NpcEntityId + (ulong)(seatNumber - 2), selected)) return;
             }
-            MatchConfig.SetPlayerFighter(playerChoice);
             if (!BindFighter(PlayerEntityId, playerEntry)) return;
             var playerDef = playerEntry.Definition;
             _playerDef = playerDef;

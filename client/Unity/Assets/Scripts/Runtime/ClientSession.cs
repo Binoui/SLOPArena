@@ -20,6 +20,16 @@ namespace SlopArena.Client
         public static void RegisterEditorDevelopmentContentProvider(LocalMatchCatalogProvider provider)
         {
             editorDevelopmentContentProvider = provider ?? throw new ArgumentNullException(nameof(provider));
+            LocalFighterLibrary.Invalidate();
+        }
+#endif
+
+#if UNITY_EDITOR
+        internal static bool TryReadEditorDevelopmentContent(out Shared.MatchContentCatalog? catalog, out string? failure)
+        {
+            catalog = null;
+            failure = "content.development.provider-missing: Editor development content provider is not registered.";
+            return editorDevelopmentContentProvider != null && editorDevelopmentContentProvider(out catalog, out failure);
         }
 #endif
 
@@ -468,37 +478,23 @@ namespace SlopArena.Client
             MatchContentCatalog = catalog ?? throw new ArgumentNullException(nameof(catalog));
             MatchContentHandleMap = Shared.MatchContentHandleMap.CaptureLocal(catalog);
         }
-        public static bool TryBuildLocalMatchCatalog(out Shared.MatchContentCatalog? catalog, out string? failure)
+        public static bool TryBuildAvailableFighterCatalog(out Shared.MatchContentCatalog? catalog, out string? failure)
         {
+            var library =
 #if UNITY_EDITOR
-            if (UnityEngine.Application.isEditor)
-            {
-                if (editorDevelopmentContentProvider == null)
-                {
-                    catalog = null;
-                    failure = "content.development.provider-missing (provider): Editor development content provider is not registered.";
-                    return false;
-                }
-                return editorDevelopmentContentProvider(out catalog, out failure);
-            }
+                UnityEngine.Application.isEditor ? LocalFighterLibrary.Refresh() :
 #endif
-            var choices = new List<Shared.FighterChoice>();
-            var player = MatchConfig.Selection?.Choice;
-            if (player == null)
-            { catalog = null; failure = "content.choice.missing: P1 has no admitted fighter choice."; return false; }
-            choices.Add(player);
-            for (int seat = 2; seat <= 4; seat++)
-            {
-                var selected = MatchConfig.Seat(seat);
-                bool occupied = MatchConfig.Mode == GameMode.Training ? seat == 2
-                    : MatchConfig.Mode == GameMode.Solo ? selected.Kind != SeatKind.Open
-                    : MatchConfig.Mode == GameMode.Arcade && MatchConfig.LocalMode == LocalPlayMode.CharacterCourse && selected.Kind == SeatKind.LocalPlayer;
-                if (!occupied) continue;
-                if (selected.Choice == null)
-                { catalog = null; failure = $"content.choice.missing: P{seat} has no admitted fighter choice."; return false; }
-                choices.Add(selected.Choice);
-            }
-            return LocalFighterLibrary.Current.TryPrepare(choices, out catalog, out failure);
+                LocalFighterLibrary.Current;
+            return library.TryGetCatalog(out catalog, out failure);
+        }
+
+        public static bool TryBuildLocalMatchCatalog(out Shared.MatchContentCatalog? catalog, out string? failure, string? playerPackageOverride = null)
+        {
+            if (!TryBuildAvailableFighterCatalog(out catalog, out failure)) return false;
+            var library = LocalFighterLibrary.Current;
+            if (!MatchConfig.TryResolveLocalChoices(library, out var choices, out failure, playerPackageOverride))
+            { catalog = null; return false; }
+            return library.TryPrepare(choices, out catalog, out failure);
         }
 
         public static bool TryBuildPersistedLocalMatchCatalog(out Shared.MatchContentCatalog? catalog, out string? failure)

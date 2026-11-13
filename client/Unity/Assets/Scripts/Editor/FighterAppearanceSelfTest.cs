@@ -85,6 +85,34 @@ public static class FighterAppearanceSelfTest
                 var panel = (VisualElement)panelType.GetMethod("Build").Invoke(null, new object[] { 2, "Guest", "PLAYER", key, "", false, false, (byte)0 });
                 Require(panel.Q<Label>(className: "fighter-panel__placeholder")?.text == "?", "Unavailable fighter package lost its placeholder.");
             }
+            var relayed = LegacyFighterSelection.DisplayKey("unlisted-selector");
+            var relayedPanelType = typeof(HUDManager).Assembly.GetType("SlopArena.Client.UI.FighterPanel");
+            var relayedPanel = (VisualElement)relayedPanelType.GetMethod("Build").Invoke(null,
+                new object[] { 3, "Guest", "MEMBER", relayed, "LOCKED", false, false, (byte)0 });
+            Require(LegacyFighterSelection.PackageId("7") == "" && relayedPanel.Q<Label>(className: "fighter-panel__fighter")?.text == "UNLISTED-SELECTOR"
+                && relayedPanel.Q<Label>(className: "fighter-panel__placeholder")?.text == "?"
+                && relayedPanel.Q<Label>(className: "fighter-panel__status")?.text == "LOCKED", "An invalid relayed selector must retain its label, placeholder and lock.");
+            var bindingField = typeof(FighterPresentation).GetField("bindings", BindingFlags.Static | BindingFlags.NonPublic);
+            var bindingRows = (Dictionary<string, JsonElement>)bindingField.GetValue(null);
+            var originalBinding = bindingRows["manki"];
+            var missingGo = new GameObject("missing bundled art probe");
+            try
+            {
+                bindingRows.Remove("manki");
+                var missingProbe = missingGo.AddComponent<PvPMatch>();
+                var unbound = new MatchContentEntry(manki.Handle, manki.LegacySelector, manki.Identity, manki.DisplayName, manki.Definition, isBundled: true);
+                Require((bool)typeof(MatchBase).GetMethod("BindFighter", BindingFlags.Instance | BindingFlags.NonPublic).Invoke(missingProbe, new object[] { 8UL, unbound })
+                    && missingProbe.FighterFor(8).Art.Portrait() == FighterUiArt.NeutralPortrait && missingProbe.ContentFailure == "",
+                    "A bundled fighter with no UI binding must bind with neutral art.");
+                var stale = System.Text.Json.Nodes.JsonNode.Parse(originalBinding.GetRawText());
+                stale["names"] = new System.Text.Json.Nodes.JsonArray("Wrong name", "Wrong extra form");
+                using var staleDocument = JsonDocument.Parse(stale.ToJsonString());
+                var metadataArt = (FighterUiArt)Activator.CreateInstance(typeof(FighterUiArt), BindingFlags.Instance | BindingFlags.NonPublic, null,
+                    new object[] { manki.Definition, staleDocument.RootElement.Clone() }, null);
+                Require(metadataArt.Name() == manki.Definition.DisplayName && !metadataArt.HasForms,
+                    "Generated binding names/forms must not override gameplay definition metadata.");
+            }
+            finally { bindingRows["manki"] = originalBinding; UnityEngine.Object.DestroyImmediate(missingGo); }
             var endType = typeof(HUDManager).Assembly.GetType("SlopArena.Client.UI.SoloEndCardView");
             var ending = Activator.CreateInstance(endType, new object[] { new VisualElement() });
             endType.GetMethod("Show").Invoke(ending, new object[] { "P1", null, false });

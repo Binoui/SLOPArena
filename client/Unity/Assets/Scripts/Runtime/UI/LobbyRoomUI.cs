@@ -765,7 +765,7 @@ namespace SlopArena.Client.UI
             {
                 var member = members[index];
                 if (!string.IsNullOrWhiteSpace(member.CharacterSelection))
-                    slot.Add(new Label((Enum.TryParse(member.CharacterSelection, true, out CharacterClass picked) ? LocalFighterLibrary.Current.Name(LegacyFighterSelection.PackageId(picked.ToString())) : member.CharacterSelection).ToUpperInvariant()) { name = "room-character" });
+                    slot.Add(new Label(LocalFighterLibrary.Current.Name(LegacyFighterSelection.DisplayKey(member.CharacterSelection)).ToUpperInvariant()) { name = "room-character" });
                 slot.Add(new Label(member.LockedIn ? "LOCKED" : "WAITING")
                     { name = "room-member-status" });
             }

@@ -25,14 +25,14 @@ namespace SlopArena.Client.UI
 
     public sealed partial class LocalFighterLibrary
     {
-        static partial void ReadDevelopmentContent(ref MatchContentCatalog? content, ref MatchContentPolicy policy)
+        static partial void ReadDevelopmentContent(ref MatchContentCatalog? content, ref MatchContentPolicy policy, ref string? failure)
         {
 #if UNITY_EDITOR
             if (Application.isEditor)
             {
-                if (ClientSession.TryBuildLocalMatchCatalog(out var development, out var failure))
+                if (ClientSession.TryReadEditorDevelopmentContent(out var development, out failure))
                 { content = development; policy = MatchContentPolicy.EditorDevelopment; }
-                else Debug.LogWarning("[LocalFighterLibrary] Development content unavailable: " + failure);
+                else failure ??= "Development content provider is unavailable.";
             }
 #endif
         }

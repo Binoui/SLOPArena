@@ -49,7 +49,7 @@ namespace SlopArena.EditorTools
             if (new[] { SessionKey, "SlopArena.StageViews.Active", "SlopArena.CpuShowcase.Active", "SlopArena.HitFeelReview.Active" }
                 .Any(key => !string.IsNullOrEmpty(SessionState.GetString(key, ""))))
                 throw new InvalidOperationException("A stage-view, showcase, hit-feel or photo session still needs restoration.");
-            if (!ClientSession.TryBuildLocalMatchCatalog(out var catalog, out var catalogError))
+            if (!ClientSession.TryBuildAvailableFighterCatalog(out var catalog, out var catalogError))
                 throw new InvalidOperationException("Local catalog: " + catalogError);
             FighterChoice Select(string package)
             {
