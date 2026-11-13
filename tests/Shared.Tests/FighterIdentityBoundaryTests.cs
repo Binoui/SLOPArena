@@ -33,7 +33,7 @@ public sealed class FighterIdentityBoundaryTests
         string json = "{\"character\":\"" + stored + "\",\"boneDefs\":[{\"bone\":\"hips\",\"r\":0.2}]}";
         Assert.True(HurtboxOverride.TryParse(json, out var parsed, out var bones));
         Assert.Equal(packageId, parsed);
-        Assert.Contains("\"character\": \"" + packageId + "\"", HurtboxOverride.Serialize(parsed, bones!));
+        Assert.Contains("\"character\": \"" + packageId + "\"", HurtboxOverride.Serialize(stored, bones!));
     }
 
     [Theory]

@@ -54,9 +54,11 @@ public static class HurtboxOverride
     /// <summary>Serialize the full def list to the override file format (tool-side writer).</summary>
     public static string Serialize(string character, HurtboxBoneDef[] defs)
     {
+        if (!TryStoredPackageId(character, out var packageId))
+            throw new ArgumentException("Hurtbox overrides require a package ID.", nameof(character));
         var dto = new OverrideDto
         {
-            Character = character.ToString(),
+            Character = packageId,
             BoneDefs = new BoneDefDto[defs.Length],
         };
         for (int i = 0; i < defs.Length; i++)
