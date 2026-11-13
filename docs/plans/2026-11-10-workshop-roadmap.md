@@ -376,7 +376,7 @@ one GLB, a portrait, and the editable source.
    admitted fighters under a match-content policy. Match presentation retains each entity's
    `FighterAppearance` and `FighterUiArt`; shipped descriptions, WIP flags, and Tutorial hints
    come from `card.json`. Generated UI bindings reach the existing art without moving it.
-   `LocalFighterLibrary` supplies the Fighter Select cards and package choices for local seats. Installed sources remain unit 5.
+   `LocalFighterLibrary` supplies the Fighter Select cards and package choices for local seats. Unit 5 adds admitted workspace and Steam subscription sources.
    Installed fighters wait for the loader, portable bindings, and runtime cook before entering
    the grid. See [fighter presentation](../characters/adding-a-new-character.md#fighter-presentation).
 4. **Cook in the game.** Run `CharacterPackageCompiler` with `CharacterCookProfile.Workshop`, bake
@@ -386,8 +386,10 @@ one GLB, a portrait, and the editable source.
    Salamander use no `slop.internal.*` capability today. FightGuy uses two, Manki four, and Wibou
    one, so those seven moves cannot be forked yet. A fork keeps the gameplay and loses the
    fighter's bespoke presentation scripts.
-6. **Publish and subscribe to fighters.** Show a Workshop badge at Fighter Select, as the WIP
-   badge does today.
+6. **Publish and subscribe to fighters.** Unit 5 implements the local library, Workshop badge,
+   identity recook and upload, and subscription admission. Steam round-trip acceptance remains
+   open until a logged-in store-app session can create, update and download the private test item.
+   The second-account subscribe-and-play check remains required.
 7. **Generate the authoring reference from code.** List the 12 operation kinds and the 14 public
    capabilities with their fields, bounds, and budget costs, plus one worked example. Write it so
    that an LLM agent can author a kit from it.

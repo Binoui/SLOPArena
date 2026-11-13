@@ -93,11 +93,14 @@ namespace SlopArena.Client.UI
             displayedLibrary = LocalFighterLibrary.Current;
             _gridButtons.Clear();
             var grid = _context.Q<VisualElement>("char-grid");
+            string focused = (grid?.panel?.focusController.focusedElement as VisualElement)?.name;
+            bool focusInGrid = grid != null && grid.Contains(grid.panel?.focusController.focusedElement as VisualElement);
             grid?.Clear();
 
             var classes = VisiblePackages;
-            _selected = classes.Contains(MatchConfig.PlayerPackageId)
-                ? MatchConfig.PlayerPackageId
+            string prior = EditsSeat ? MatchConfig.Seat(_editingSeat).Fighter : MatchConfig.PlayerPackageId;
+            _selected = classes.Contains(prior)
+                ? prior
                 : classes.Count > 0 ? classes[0] : "";
             if (MatchConfig.Mode is GameMode.Solo or GameMode.Training && classes.Count > 0)
                 for (int player = 2; player <= 4; player++)
@@ -175,6 +178,7 @@ namespace SlopArena.Client.UI
             }
             if (!string.IsNullOrEmpty(_selected))
                 SelectCharacter(_selected, _context);
+            if (focusInGrid) (_gridButtons.FirstOrDefault(b => b.name == focused) ?? _gridButtons.FirstOrDefault())?.Focus();
 
         }
 

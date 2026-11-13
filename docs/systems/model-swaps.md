@@ -268,6 +268,31 @@ same item admission used by Shared. It grants no Steam provenance.
 
 The Training action builds an explicit `LocalFighterLibrary.WithLocalItem` snapshot
 from admitted content and holds a `MadeFighterPresentation` lease through the
-Match. The normal Training catalog preparation validates both seats. The ordinary
-menu library continues to list only the shipped roster. Returning to Home releases
+Match. The normal Training catalog preparation validates both seats. The menu library also reads the latest successful revision of each cooked workspace and
+current Steam subscription installs. Shared admission refuses invalid entries before selection.
+`InstalledFighters` prepares presentation from the verified bytes and holds menu leases.
+Matches acquire their own leases, so an update or unsubscribe affects new Matches only. Returning to Home releases
 the preview lease and reopens the workspace.
+
+
+### Installed fighters and publishing
+
+Fighter Select appends made fighters after the built-ins, sorted by display name and package ID.
+Steam fighters carry a **WORKSHOP** badge. Local workspaces carry **YOURS** to distinguish a
+working copy from its published version. Both use the same player, couch and CPU seat controls.
+Brawl and Training admit them. Arcade, Manki Mayhem, Tutorial and online selection retain their
+bundled lists. See [ADR-0067](../adr/0067-fighters-by-package.md).
+
+**Make a fighter** lists installed-source status and admission refusals. Subscription scans use
+Steam's install record ID to require `workshop.<PublishedFileId>`, never an ID claimed by the item.
+Pending downloads retry through Steam. Successful installs appear after the next library refresh.
+Unsubscribe removes the menu entry on that refresh. Revision bytes and presentation used by a
+running Match remain pinned in memory.
+
+**Publish latest cook** opens title, description, visibility and content guidelines. The default
+visibility is Private. The Steam client creates an item once and persists its ID before recooking
+verified source under that Steam identity. The local source remains `local.*`. Each upload stages
+an admitted immutable folder, its hash metadata, the `fighter` tag, optional AI tag and the portrait.
+Updates retain the item ID and send only edited title, description and visibility fields. Content
+and preview go through Steam's normal update transfer. Legal-agreement requests open the item page.
+Playtest builds explain that Steam Workshop is unavailable and keep local cooking and play usable.
