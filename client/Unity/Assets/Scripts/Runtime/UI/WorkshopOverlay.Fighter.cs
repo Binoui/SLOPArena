@@ -154,7 +154,7 @@ namespace SlopArena.Client.UI
             catch (Exception e)
             {
                 if (IsOpen && generation == workspaceGeneration && folder == workspaceFolder)
-                { workspaceItem = null; workspaceTry?.SetEnabled(false); workspaceDiagnostics!.text = "Source folder / " + e.Message; }
+                { cookedStamp = null; pendingSource = null; workspaceItem = null; workspaceTry?.SetEnabled(false); workspaceDiagnostics!.text = "Source folder / " + e.Message; }
             }
             finally { polling = false; }
         }
