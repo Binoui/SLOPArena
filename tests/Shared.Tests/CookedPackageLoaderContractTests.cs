@@ -1,4 +1,3 @@
-using System.Diagnostics;
 using System.Runtime.ExceptionServices;
 using System.Text.Json.Nodes;
 using Xunit;
@@ -83,7 +82,6 @@ public sealed class CookedPackageLoaderContractTests
     [Fact]
     public void A2_BudgetThatDisagreesWithContent_IsNotTrusted()
     {
-        var truthful = ShippedLoads.Value["fightguy"].Package!.Budget;
         var files = CookedPackageEdits.Edit("fightguy", p =>
         {
             p.Runtime["budget"]!["hitboxCount"] = 0;
@@ -401,10 +399,27 @@ public sealed class CookedPackageLoaderContractTests
     [Fact]
     public void TrustedLoadCannotBecomeAnExternalAdmission()
     {
-        var loaded = CookedCharacterPackageLoader.LoadFiles(CookedPackageEdits.Shipped("bonk"),
-            CookedPackageEdits.Roster.ResolvePackage("bonk")!.Requirement, CharacterCookProfile.TrustedBuiltIn);
+        var loaded = RunWithWallClock(() => CookedCharacterPackageLoader.LoadFiles(CookedPackageEdits.Shipped("bonk"),
+            CookedPackageEdits.Roster.ResolvePackage("bonk")!.Requirement, CharacterCookProfile.TrustedBuiltIn));
         Assert.True(loaded.IsValid);
         Assert.Throws<ArgumentException>(() => new AdmittedFighter(loaded, null, null));
+    }
+
+    [Fact]
+    public void DirectoryOversizedFileIsRefusedWithNamedLimit()
+    {
+        string directory = Path.Combine(Path.GetTempPath(), "sloparena-loader-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(directory);
+        try
+        {
+            using (var file = File.Create(Path.Combine(directory, CharacterPackageAssembler.RuntimePath)))
+                file.SetLength(CookedPackageLimits.RuntimeBytes + 1L);
+            var result = RunWithWallClock(() => CookedCharacterPackageLoader.LoadDirectory(directory,
+                CookedPackageEdits.Roster.ResolvePackage("bonk")!.Requirement));
+            Assert.False(result.IsValid);
+            Assert.Contains(result.Diagnostics, d => d.Code == "package.file.limit");
+        }
+        finally { Directory.Delete(directory, true); }
     }
 
     private static JsonObject Capability(string id) => new() { ["capabilityId"] = id, ["capabilityVersion"] = "1" };
@@ -444,7 +459,7 @@ public sealed class CookedPackageLoaderContractTests
         catch (Exception ex) { return $"{ex.GetType().Name}: {ex.Message} at {ex.StackTrace?.Split('\n')[0].Trim()}"; }
     }
 
-    /// <summary>Plays the scripted match on a worker with a wall-clock limit and enforces the per-tick budget.</summary>
+    /// <summary>Runs a scripted match with a hang guard and checks live effect counts and finite state.</summary>
     private MatchReport Play(IReadOnlyDictionary<string, byte[]> files, CookedCharacterPackageLoadResult loaded)
     {
         string packageId = loaded.Identity.PackageId;

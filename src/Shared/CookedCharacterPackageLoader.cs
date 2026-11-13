@@ -97,6 +97,7 @@ public static class CookedCharacterPackageLoader
                 }
                 files[name] = output.ToArray();
             }
+            catch (InvalidDataException ex) { d.Add(Error("package.file.limit", name, ex.Message)); }
             catch(Exception ex) when(ex is IOException||ex is UnauthorizedAccessException||ex is ArgumentException||ex is NotSupportedException) { d.Add(Error("package.file.missing",name,ex.Message)); }
         }
         return d.Any(x=>x.Severity==CharacterDiagnosticSeverity.Error) ? Failure(d) : LoadFiles(files,requirement);
