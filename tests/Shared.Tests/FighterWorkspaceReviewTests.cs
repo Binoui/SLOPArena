@@ -65,7 +65,7 @@ public sealed class FighterWorkspaceReviewTests : IDisposable
         string text=j.ToJsonString(new System.Text.Json.JsonSerializerOptions{WriteIndented=true,Encoder=System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping}).Replace("\n","\r\n");File.WriteAllText(path,text);
         var s=LocalFighterWorkspace.Read(folder); Assert.NotNull(s.Cook().Item); byte[] original=File.ReadAllBytes(path); var expected=LocalFighterWorkspace.ReplaceOffset(original,s.SuggestedModelYOffset!.Value);
         s.ApplyModelYOffset(folder); Assert.Equal(expected,File.ReadAllBytes(path)); Assert.Contains("Kōji <3 & +1",File.ReadAllText(path));
-        s=LocalFighterWorkspace.Read(folder);s.Cook(); Assert.Throws<IOException>(()=>s.ApplyModelYOffset(folder,()=>File.AppendAllText(path," ")));Assert.EndsWith(" ",File.ReadAllText(path)); Assert.Empty(Directory.GetFiles(folder,".workspace-*"));
+        s=LocalFighterWorkspace.Read(folder);s.Cook(); Assert.Throws<IOException>(()=>s.ApplyModelYOffset(folder,()=>File.AppendAllText(path," ")));Assert.EndsWith(" ",File.ReadAllText(path)); Assert.All(Directory.GetFiles(folder,".workspace-*"), p=>Assert.Equal(LocalFighterWorkspace.ReplaceOffset(expected,s.SuggestedModelYOffset!.Value),File.ReadAllBytes(p)));
     }
     [Fact] public void AtomicCacheBoundsRevisionsAndKeepsTrainingPin()
     {

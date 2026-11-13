@@ -166,19 +166,21 @@ public sealed class LocalFighterWorkspace
         byte[] replacement = ReplaceOffset(original, SuggestedModelYOffset.Value);
         string path = Path.Combine(folder, "character.json"), temporary = Path.Combine(folder, ".workspace-" + Guid.NewGuid().ToString("N"));
         string backup = temporary + ".backup";
+        bool conflict = false;
         try
         {
             using (var stream = new FileStream(temporary, FileMode.CreateNew, FileAccess.Write, FileShare.None)) { stream.Write(replacement, 0, replacement.Length); stream.Flush(true); }
-            beforeCommit?.Invoke();
             if (Read(folder).Stamp != Stamp || !File.ReadAllBytes(path).SequenceEqual(original)) throw new IOException("character.json changed. Wait for the next cook before applying the suggestion.");
+            beforeCommit?.Invoke();
             File.Replace(temporary, path, backup);
             if (!File.ReadAllBytes(backup).SequenceEqual(original))
             {
+                conflict = true;
                 if (File.ReadAllBytes(path).SequenceEqual(replacement)) File.Replace(backup, path, temporary);
-                throw new IOException("character.json changed during replacement. The newer edit was preserved in " + backup);
+                throw new IOException("character.json changed during replacement. Review character.json and any retained conflict files at " + temporary + " or " + backup + ". No conflicting bytes are deleted.");
             }
         }
-        finally { if (File.Exists(temporary)) File.Delete(temporary); if (File.Exists(backup) && File.ReadAllBytes(backup).SequenceEqual(original)) File.Delete(backup); }
+        finally { if (!conflict && File.Exists(temporary)) File.Delete(temporary); if (File.Exists(backup) && File.ReadAllBytes(backup).SequenceEqual(original)) File.Delete(backup); }
     }
     internal static byte[] ReplaceOffset(byte[] original, float value)
     {
