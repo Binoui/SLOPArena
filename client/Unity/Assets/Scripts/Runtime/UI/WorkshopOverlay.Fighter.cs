@@ -192,7 +192,8 @@ namespace SlopArena.Client.UI
             if (snapshot.Stamp != cookedStamp) throw new InvalidOperationException("Files changed. Wait for the next cook before Training.");
             var library = LocalFighterLibrary.Current.WithLocalItem(admitted.Fighter);
             var choice = admitted.Fighter.Choose();
-            if (!library.TryPrepare(new[] { choice, library.Choose(library.PackageIds[0]) }, out var catalog, out var failure)) throw new InvalidOperationException(failure);
+            var cpu = library.ChooseTrainingCpu();
+            if (!library.TryPrepare(new[] { choice, cpu }, out var catalog, out var failure)) throw new InvalidOperationException(failure);
             var entry = catalog!.ResolvePackage(choice.Revision.PackageId)!;
             var diskLease = FighterWorkspaceCache.Pin(workspaceCookFolder!);
             MadeFighterPresentation.Lease lease;
@@ -201,6 +202,7 @@ namespace SlopArena.Client.UI
             if (!IsOpen) { lease.Dispose(); diskLease.Dispose(); return; }
             MatchConfig.Reset(); MatchConfig.Mode = GameMode.Training;
             MatchConfig.SetPlayerFighter(choice);
+            MatchConfig.Seat(2).SetFighter(cpu);
             FighterWorkspaceTraining.Begin(library, lease, folder, diskLease);
             Close(); SceneManager.LoadScene("Arena_Offline");
         }

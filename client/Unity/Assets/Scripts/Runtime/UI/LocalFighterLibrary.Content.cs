@@ -123,6 +123,13 @@ namespace SlopArena.Client.UI
             if (!built.IsValid) throw new InvalidOperationException(string.Join("; ", built.Diagnostics.Select(LocalFighterWorkspace.DiagnosticText)));
             return new LocalFighterLibrary(built.Catalog, built.Catalog!.Entries.Select(e => e.Identity.PackageId).ToArray(), null, policy);
         }
+        public FighterChoice ChooseTrainingCpu()
+        {
+            var builtIns = new HashSet<string>(ShippedRoster.ReadApplication().Manifest.Entries.Select(e => e.PackageId), StringComparer.Ordinal);
+            if (TryDefault(out var preferred) && preferred!.Resolve(catalog!)?.IsBundled == true) return preferred;
+            return (catalog?.Entries.FirstOrDefault(entry => entry.IsBundled && builtIns.Contains(entry.Identity.PackageId))
+                ?? throw new InvalidOperationException("Training requires an available built-in CPU fighter.")).Choose();
+        }
         public bool Contains(string package) => catalog?.ResolvePackage(package) != null;
         public bool HasForms(string package) => catalog?.ResolvePackage(package)?.Definition.AlternateForm != null;
         public FighterChoice Choose(string package, byte form = 0)

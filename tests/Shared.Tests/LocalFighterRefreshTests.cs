@@ -35,6 +35,9 @@ public partial class PackageFighterContentTests
         Assert.True(withLocal.TryGetCatalog(out var content, out var failure), failure);
         Assert.All(withLocal.PackageIds, id=>Assert.NotNull(content!.ResolvePackage(id)));
         Assert.DoesNotContain("local.old-workspace", withLocal.PackageIds);
+        var cpu = withLocal.ChooseTrainingCpu();
+        Assert.Equal(entry.Identity.PackageId, cpu.Revision.PackageId);
+        Assert.NotNull(cpu.Resolve(content!));
         Assert.True(withLocal.TryPrepare(new[] { withLocal.Choose(entry.Identity.PackageId), withLocal.Choose("local.new-workspace") },out _,out failure), failure);
     }
     [Fact]
