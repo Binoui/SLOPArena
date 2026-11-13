@@ -158,6 +158,12 @@ namespace SlopArena.Client.Animation
                 error = $"Cooked package source hash is invalid for '{identity.PackageId}'.";
                 return false;
             }
+            if (Workshop.MadeFighterPresentation.TryGet(identity, out var made))
+            {
+                animationCatalog = made.Catalog;
+                rig = made.Template;
+                return true;
+            }
 #if UNITY_EDITOR
             if (editorDevelopmentCatalogs.TryGetValue(EditorCatalogKey(identity.PackageId, identity.SourceHash), out var editorCatalog) &&
                 editorCatalog != null)
