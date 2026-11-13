@@ -514,6 +514,23 @@ public static class CharacterPackageAssembler
             var root = document.RootElement;
             if (root.ValueKind != JsonValueKind.Object) { d.Add(Error("package.binding.schema", BindingPath, "Binding payload must be an object.")); return null; }
             int version = GetInt(root, "bindingSchemaVersion");
+            if (version == 3)
+            {
+                PortableFighterBindings.Validate(root, d);
+                var portable = new BindingData
+                {
+                    PackageId = GetString(root, "packageId"), SourceHash = GetString(root, "sourceHash"),
+                    BindingSchemaVersion = 3, PoseFormat = GetString(root, "poseFormat"),
+                    PoseVersion = GetInt(root, "poseVersion"), SampleRate = GetInt(root, "sampleRate"),
+                };
+                foreach (var animation in root.GetProperty("animations").EnumerateArray())
+                {
+                    var item = new BindingItem(GetString(animation, "semanticId"), GetString(animation, "poseTrackId"), GetInt(animation, "frameCount"));
+                    portable.BySemantic.TryAdd(item.SemanticId, item);
+                    portable.ByPose.TryAdd(item.PoseTrackId, item);
+                }
+                return portable;
+            }
             if (version is not (1 or 2) || GetInt(root, "catalogSchemaVersion") != version)
                 d.Add(Error("package.binding.schema", BindingPath, "Only matching catalog/binding schemas 1 or 2 are supported."));
             string[] fields = { "packageId", "catalogSchemaVersion", "bindingSchemaVersion", "poseFormat", "poseVersion", "sampleRate", "sourceHash", "rigGlobalObjectId", "weaponConfigGlobalObjectId", "animations", "presentations" };

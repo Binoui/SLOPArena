@@ -259,6 +259,19 @@ public static class WorkshopGlbPrecheck
             }
     }
 
+    internal static IReadOnlyList<CharacterDiagnostic> CheckImage(byte[] bytes)
+    {
+        try
+        {
+            var size = ImageSize(bytes);
+            if (size.Width > WorkshopGlbLimits.Default.MaxImageDimension || size.Height > WorkshopGlbLimits.Default.MaxImageDimension
+                || size.Width * size.Height > WorkshopGlbLimits.Default.MaxImagePixels)
+                return new[] { MatchContentCatalogBuilder.Error("item.image.limit", "image", "Image dimensions exceed the GLB texture limits.") };
+            return System.Array.Empty<CharacterDiagnostic>();
+        }
+        catch (Refusal ex) { return new[] { MatchContentCatalogBuilder.Error(ex.Code, "image", ex.Message) }; }
+    }
+
     private static WorkshopGlbImageSize ImageSize(ReadOnlySpan<byte> b)
     {
         if (b.Length >= 33 && b.Slice(0, 8).SequenceEqual(new byte[] { 137, 80, 78, 71, 13, 10, 26, 10 }))

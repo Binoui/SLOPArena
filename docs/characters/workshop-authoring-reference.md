@@ -1729,3 +1729,48 @@ Peck interval is positive and no longer than the perch duration. Peck damage is 
 A diving perch has no homing block and zero projectile gravity. Rise speed and dive speed are above zero through 60 m/s.
 Hover height is above zero through 12 m, rise and mark are 1 through 240 ticks each, and fallback distance is 0 through 20 m.
 Projectile lifetime outlasts rise plus mark. A projectile with homing or perch has challenge ticks at most 600.
+
+## Fighter items and portable bindings
+
+A fighter item is a flat folder. Its strict `item.json` schema 2 has `itemType` equal to `fighter`,
+`itemVersion`, `creator`, `license`, `attribution`, `aiAssisted`, and `payloads`, a filename to
+lowercase SHA-256 map. Required payloads are `manifest.json`, `character.runtime.json`, `poses.bin`,
+`client.bindings`, `package.json`, `character.json`, `card.json`, and one `.glb` file. Optional payloads
+are `humanoid.json` and `.png` or `.jpg` images. No other files, nested paths, or links are admitted.
+There are at most 40 payloads. Model swaps retain item schema 1.
+
+`card.json` owns `description`, `workInProgress`, and nullable `tutorialHint`. A hint contains
+`starter`, `followUp`, and `jump`. Move keys are `1`, `2`, `3`, `A`, `E`, `R`, and `F`.
+Display names come from the cooked definition. Missing portraits are rendered from the model by
+the future presentation path. Missing icons use neutral glyphs.
+
+Portable `client.bindings` has these required fields.
+
+| Fields | Value |
+| --- | --- |
+| `packageId`, `sourceHash` | Cooked identity metadata |
+| `catalogSchemaVersion`, `bindingSchemaVersion` | Both 3 |
+| `poseFormat`, `poseVersion`, `sampleRate` | `SKEL`, 1, 60 |
+| `rootRuleVersion` | 1, reserved hips-relative and weapon scale rule |
+| `payloads` | SHA-256 for every non-cooked item file, including source and card |
+| `modelFile` | GLB filename in `payloads` |
+| `portraitFile` | Image filename in `payloads`, or null |
+| `icons` | Icon ID to image filename or null |
+| `animations` | Array of `semanticId`, `poseTrackId`, `frameCount`, `source` |
+
+A motion source is `{"kind":"glb","clipName":"clip-name"}` or
+`{"kind":"shared","id":"slop.anim.example","version":"1"}`. The shared library is empty;
+required shared IDs fail admission. GLB names must exist uniquely. Frames must agree with the
+pose track. Unknown or duplicate binding fields fail. Built-ins keep binding schema 2.
+
+The internal Shared adapter takes the origin from its host caller. Local folders require a
+`local.*` package ID. Steam folders require `workshop.<PublishedFileId>` matching the host's download.
+Item, source, and cooked versions must agree. The source must compile to identical runtime bytes.
+The cooked loader then applies the Workshop trust profile and resource limits. No product path
+calls this adapter until the local library unit lands.
+
+The outer item hashes verify every file. Binding hashes also pin source, card, and media through
+the package identity. A media edit requires new binding, cooked, and package hashes. The portable
+runtime number writer uses exact IEEE-754 decimal expansions on every runtime. Built-in bytes
+are unchanged. `tools/PortableCookProof` recompiles and assembles a fixture on a second runtime
+and checks the runtime and manifest bytes, including both package hashes.

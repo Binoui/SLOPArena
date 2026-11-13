@@ -42,6 +42,8 @@ public static class WorkshopItemManifestCodec
     public const int MaxManifestBytes = 16384;
     public const int MaxTextLength = 1024;
     public const int SteamMetadataByteLimit = 5000;
+    public const int FighterSchemaVersion = 2;
+    internal static readonly string[] FighterRequiredFiles = { "manifest.json", "character.runtime.json", "poses.bin", "client.bindings", "package.json", "character.json", "card.json" };
     private static readonly string[] Fields = { "schemaVersion", "itemType", "itemVersion", "payloads", "creator", "license", "attribution", "aiAssisted", "baseFighterPackageId" };
 
     public static WorkshopItemManifestReadResult Read(ReadOnlySpan<byte> bytes)
@@ -55,15 +57,18 @@ public static class WorkshopItemManifestCodec
             using var doc = JsonDocument.Parse(bytes.ToArray(), new JsonDocumentOptions { MaxDepth = 8 });
             var root = doc.RootElement;
             if (root.ValueKind != JsonValueKind.Object) return Fail("item.type", "item.json", "Expected object.");
+            bool fighter = root.TryGetProperty("schemaVersion", out var sv) && sv.ValueKind == JsonValueKind.Number && sv.TryGetInt32(out var sn) && sn == FighterSchemaVersion
+                && root.TryGetProperty("itemType", out var it) && it.ValueKind == JsonValueKind.String && it.GetString() == "fighter";
+            var fields = fighter ? Fields.Where(x => x != "baseFighterPackageId").ToArray() : Fields;
             var seen = new HashSet<string>(StringComparer.Ordinal);
             foreach (var p in root.EnumerateObject())
             {
                 if (!seen.Add(p.Name)) d.Add(Error("item.field.duplicate", p.Name, "Duplicate field."));
-                if (!Fields.Contains(p.Name, StringComparer.Ordinal)) d.Add(Error("item.field.unknown", p.Name, "Unknown field."));
+                if (!fields.Contains(p.Name, StringComparer.Ordinal)) d.Add(Error("item.field.unknown", p.Name, "Unknown field."));
             }
-            if (root.TryGetProperty("itemType", out var kind) && kind.ValueKind == JsonValueKind.String && kind.GetString() != "model-swap")
+            if (root.TryGetProperty("itemType", out var kind) && kind.ValueKind == JsonValueKind.String && kind.GetString() != "model-swap" && !fighter)
                 d.Add(Error("item.kind.unsupported", "itemType", $"Item type '{kind.GetString()}' is not supported yet."));
-            foreach (var f in Fields) if (!seen.Contains(f)) d.Add(Error("item.field.missing", f, "Required field missing."));
+            foreach (var f in fields) if (!seen.Contains(f)) d.Add(Error("item.field.missing", f, "Required field missing."));
             if (d.Count != 0) return new(null, d.AsReadOnly());
             string Text(string name)
             {
@@ -76,12 +81,12 @@ public static class WorkshopItemManifestCodec
             var schema = root.GetProperty("schemaVersion");
             int version = 0;
             if (schema.ValueKind != JsonValueKind.Number || !schema.TryGetInt32(out version)) d.Add(Error("item.type", "schemaVersion", "Expected integer."));
-            else if (version != SchemaVersion) d.Add(Error("item.schema.unsupported", "schemaVersion", $"Unsupported schema {version}; expected {SchemaVersion}."));
+            else if (version != (fighter ? FighterSchemaVersion : SchemaVersion)) d.Add(Error("item.schema.unsupported", "schemaVersion", $"Unsupported schema {version}; expected {SchemaVersion}."));
             var type = Text("itemType");
             var itemVersion = Text("itemVersion");
             if (string.IsNullOrWhiteSpace(itemVersion)) d.Add(Error("item.version.invalid", "itemVersion", "Item version must not be empty."));
-            var creator = Text("creator"); var license = Text("license"); var attribution = Text("attribution"); var baseId = Text("baseFighterPackageId");
-            if (!MatchContentCatalogBuilder.IsStablePackageId(baseId)) d.Add(Error("item.base.invalid", "baseFighterPackageId", "Expected stable package ID."));
+            var creator = Text("creator"); var license = Text("license"); var attribution = Text("attribution"); var baseId = fighter ? "" : Text("baseFighterPackageId");
+            if (!fighter && !MatchContentCatalogBuilder.IsStablePackageId(baseId)) d.Add(Error("item.base.invalid", "baseFighterPackageId", "Expected stable package ID."));
             var ai = root.GetProperty("aiAssisted");
             if (ai.ValueKind != JsonValueKind.True && ai.ValueKind != JsonValueKind.False) d.Add(Error("item.type", "aiAssisted", "Expected boolean."));
             var payloads = new Dictionary<string, string>(StringComparer.Ordinal);
@@ -98,11 +103,15 @@ public static class WorkshopItemManifestCodec
                 payloads[p.Name] = hash;
             }
             if (payloads.Keys.Count(x => x.EndsWith(".glb", StringComparison.OrdinalIgnoreCase)) != 1 ||
-                payloads.Keys.Any(x => !x.EndsWith(".glb", StringComparison.OrdinalIgnoreCase) && x != "humanoid.json"))
+                payloads.Keys.Any(x => !x.EndsWith(".glb", StringComparison.OrdinalIgnoreCase) && x != "humanoid.json"
+                    && !(fighter && (FighterRequiredFiles.Contains(x) || x.EndsWith(".png", StringComparison.Ordinal) || x.EndsWith(".jpg", StringComparison.Ordinal)))))
                 d.Add(Error("item.payload.shape", "payloads", "Model swap requires one .glb and optionally humanoid.json."));
+            if (fighter && (FighterRequiredFiles.Any(x => !payloads.ContainsKey(x)) || payloads.Count > 40))
+                d.Add(Error("item.payload.shape", "payloads", "Fighter requires seven canonical files, one GLB, and at most 40 payloads."));
             return new(d.Count == 0 ? new WorkshopItemManifest(version, type, itemVersion, payloads, creator, license, attribution, ai.ValueKind == JsonValueKind.True, baseId) : null, d.AsReadOnly());
         }
         catch (JsonException ex) { return Fail("item.json", "item.json", ex.Message); }
+        catch (FormatException ex) { return Fail("item.json", "item.json", ex.Message); }
         catch (InvalidOperationException ex) { return Fail("item.json", "item.json", ex.Message); }
     }
 
@@ -115,7 +124,7 @@ public static class WorkshopItemManifestCodec
             w.WriteString("itemType", manifest.ItemType); w.WriteString("itemVersion", manifest.ItemVersion);
             w.WritePropertyName("payloads"); WriteHashes(w, manifest);
             w.WriteString("creator", manifest.Creator); w.WriteString("license", manifest.License); w.WriteString("attribution", manifest.Attribution);
-            w.WriteBoolean("aiAssisted", manifest.AiAssisted); w.WriteString("baseFighterPackageId", manifest.BaseFighterPackageId); w.WriteEndObject();
+            w.WriteBoolean("aiAssisted", manifest.AiAssisted); if (manifest.ItemType == "model-swap") w.WriteString("baseFighterPackageId", manifest.BaseFighterPackageId); w.WriteEndObject();
         }
         return stream.ToArray();
     }
@@ -143,6 +152,6 @@ public static class WorkshopItemManifestCodec
     { using var sha = SHA256.Create(); return BitConverter.ToString(sha.ComputeHash(bytes)).Replace("-", "").ToLowerInvariant(); }
     private static void WriteHashes(Utf8JsonWriter w, WorkshopItemManifest m)
     { w.WriteStartObject(); foreach (var p in m.Payloads.OrderBy(x => x.Key, StringComparer.Ordinal)) w.WriteString(p.Key, p.Value); w.WriteEndObject(); }
-    private static bool PlainFileName(string name) => name.Length > 0 && name.Length <= MaxTextLength && !name.Contains("..") && !name.Any(c => c == '/' || c == '\\' || c == ':' || char.IsControl(c));
+    internal static bool PlainFileName(string name) => name.Length > 0 && name.Length <= MaxTextLength && !name.Contains("..") && !name.Any(c => c == '/' || c == '\\' || c == ':' || char.IsControl(c));
     private static CharacterDiagnostic Error(string code, string path, string message) => MatchContentCatalogBuilder.Error(code, path, message);
 }

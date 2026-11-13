@@ -1,0 +1,9 @@
+{
+  "manifestSchemaVersion": 1,
+  "packageId": "local.tumbleweed",
+  "version": "0.1.0",
+  "creator": "phase2-prototype",
+  "license": "CC-BY-4.0",
+  "attribution": "Body: Tripo model of Dusty (SLOPArena). Kit: phase 2 prototype.",
+  "dependencies": []
+}

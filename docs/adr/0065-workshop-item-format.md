@@ -26,9 +26,38 @@ Steam metadata, which queries return without a download.
 
 - **`model-swap`** holds `item.json`, one GLB, and an optional `humanoid.json` bone map. It names the base fighter by package ID only,
   because it never reaches the simulation.
-- **`fighter`** holds the four cooked files, one GLB, a portrait, and the editable source. Its
-  bindings use a new schema that names GLB clips and `slop.*` IDs.
+- **`fighter`** uses item schema 2 and holds the four cooked files, one GLB, editable
+  `package.json` and `character.json`, and `card.json`. Portrait, `humanoid.json`, and
+  move icon PNG/JPEG images are optional. All files live directly in the item folder.
+  Every payload has a SHA-256 entry. Extra files and links are refused. It has no base-fighter field.
+  Model swaps retain schema 1 and its existing contract.
 - **`stage`** comes later.
+
+Card descriptions, work-in-progress flags, and Tutorial hints live only in `card.json`, using
+ADR-0067's existing card contract. `item.json` refuses these fields. The cooked definition owns
+the display name. Keeping one card format avoids divergent metadata for bundled and made fighters.
+When no portrait is supplied, the client renders one from the model in the later presentation unit.
+
+### Portable bindings
+
+`client.bindings` schema 3 has matching catalog and binding versions, package/source identity,
+SKEL pose version 1, 60 Hz, and `rootRuleVersion` 1. Its `payloads` map pins every non-cooked
+file, including source and card bytes. `modelFile`, nullable `portraitFile`, and the `icons` map
+refer to that map. An icon value is a filename or null. There are no Unity Editor object IDs.
+Each animation has `semanticId`, `poseTrackId`, `frameCount`, and a `source` object. A source is
+`{"kind":"glb","clipName":"..."}` or `{"kind":"shared","id":"slop.anim....","version":"..."}`.
+Required shared clips are refused while the shared-clip registry is empty. Pose tracks and frame
+counts must agree with `poses.bin`. The package hash covers binding bytes and therefore every
+external file digest. Built-in binding schema 2 and its writer stay unchanged.
+
+Portable runtime JSON uses exact finite IEEE-754 float decimal expansions, with zero normalized
+to `0`. Integer fields keep their integer value. Built-in runtime JSON keeps its existing writer.
+The internal host adapter checks every payload before parsing, verifies the namespace against its
+local or Steam entry point, recompiles the included source with the Workshop profile, and requires
+identical portable runtime bytes before calling the bounded cooked loader. It exposes no client scan.
+
+Root rule 1 reserves the existing hips-relative pose and weapon scale contract described below.
+Unit 4c must implement the same sampling and root correction in bake and display before playback.
 
 ### Presentation payload
 
@@ -166,4 +195,4 @@ on (decision D6).
 
 ## Non-goals
 
-This ADR does not design the loader code, the limit values, the binding fields, or the stage format.
+This ADR does not design the renderer, measured platform memory limits, or the stage format.

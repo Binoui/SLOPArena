@@ -348,6 +348,7 @@ public static class CharacterPackageCompiler
         }
         var budget = ComputeBudget(definition);
         var bytes = WriteCanonical(metadata, definition, budget);
+        if (profile == CharacterCookProfile.Workshop) bytes = PortableCanonicalJson.Normalize(bytes);
         var limits = new List<CharacterDiagnostic>();
         if (bytes.Length > CookedPackageLimits.RuntimeBytes)
             d.Error("package.file.limit", CharacterPackageAssembler.RuntimePath, "Runtime exceeds the admission byte limit.");

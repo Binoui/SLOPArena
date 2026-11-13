@@ -1,0 +1,1111 @@
+{
+  "authoringSchemaVersion": 4,
+  "displayName": "Tumbleweed",
+  "weight": 90,
+  "movement": {
+    "runSpeed": 10,
+    "runAccelerationA": 20,
+    "runAccelerationB": 12,
+    "dashSpeed": 20,
+    "airDodgeSpeed": 11,
+    "airSpeedMax": 7,
+    "airAccelStick": 16,
+    "airAccelBase": 3.2,
+    "jumpForce": 11,
+    "shortHopForce": 6.6,
+    "airJumpVMultiplier": 0.8,
+    "airJumpHMultiplier": 0.85,
+    "gravity": 27,
+    "airFloatGravity": 0,
+    "dashDurationTicks": 20,
+    "dashCooldownTicks": 48,
+    "groundFriction": 8,
+    "airFriction": 6,
+    "maxFallSpeed": 12,
+    "fastFallSpeed": 18,
+    "maxJumps": 2,
+    "jumpSquatTicks": 4,
+    "floatWindowTicks": 35,
+    "rushTicks": 10
+  },
+  "presentation": {
+    "idle": "anim.idle",
+    "run": "anim.run",
+    "dash": "anim.dash",
+    "jump": "anim.jump",
+    "fall": "anim.fall",
+    "hitSmall": "anim.hit-light",
+    "hitMedium": "anim.hit-medium",
+    "hitHard": "anim.hit-hard",
+    "tumble": "anim.tumble",
+    "landStartOffsetSeconds": 0,
+    "modelResourcePath": "",
+    "visualScale": 1.8,
+    "hurtboxBoneScale": 0.85,
+    "modelYOffset": -0.03,
+    "modelSoleOffset": 0,
+    "autoModelYOffset": false
+  },
+  "capsuleRadius": 0.35,
+  "capsuleHeight": 1.7,
+  "hipHeight": 0.84,
+  "hurtboxRadius": 1,
+  "shieldRadius": 1.05,
+  "captureGeometry": {
+    "reach": 1.0,
+    "width": 0.7,
+    "height": 1.2,
+    "offsetY": 0.6,
+    "attackerAnchor": {
+      "x": 0,
+      "y": 0.6,
+      "z": 0.3
+    },
+    "victimAnchor": {
+      "x": 0,
+      "y": 0.6,
+      "z": 0.45
+    }
+  },
+  "hurtboxCapsules": [
+    {
+      "startX": 0,
+      "startY": 0.2,
+      "startZ": 0,
+      "endX": 0,
+      "endY": 0.9,
+      "endZ": 0,
+      "radius": 0.3
+    },
+    {
+      "startX": 0,
+      "startY": 1.2,
+      "startZ": 0,
+      "endX": 0,
+      "endY": 1.2,
+      "endZ": 0,
+      "radius": 0.22
+    },
+    {
+      "startX": 0.15,
+      "startY": 0,
+      "startZ": 0,
+      "endX": 0.15,
+      "endY": -0.8,
+      "endZ": 0,
+      "radius": 0.16
+    },
+    {
+      "startX": -0.15,
+      "startY": 0,
+      "startZ": 0,
+      "endX": -0.15,
+      "endY": -0.8,
+      "endZ": 0,
+      "radius": 0.16
+    }
+  ],
+  "hurtboxBoneDefs": [
+    {
+      "boneId": "bone.head",
+      "offsetX": 0,
+      "offsetY": 0,
+      "offsetZ": 0,
+      "radius": 0.22,
+      "endOffsetX": 0,
+      "endOffsetY": 0,
+      "endOffsetZ": 0
+    },
+    {
+      "boneId": "bone.spine2",
+      "offsetX": 0,
+      "offsetY": 0,
+      "offsetZ": 0,
+      "radius": 0.26,
+      "endOffsetX": 0,
+      "endOffsetY": 0,
+      "endOffsetZ": 0
+    },
+    {
+      "boneId": "bone.hips",
+      "offsetX": 0,
+      "offsetY": 0,
+      "offsetZ": 0,
+      "radius": 0.26,
+      "endOffsetX": 0,
+      "endOffsetY": 0,
+      "endOffsetZ": 0
+    },
+    {
+      "boneId": "bone.right-hand",
+      "offsetX": 0,
+      "offsetY": 0,
+      "offsetZ": 0,
+      "radius": 0.12,
+      "endOffsetX": 0,
+      "endOffsetY": 0,
+      "endOffsetZ": 0
+    },
+    {
+      "boneId": "bone.left-hand",
+      "offsetX": 0,
+      "offsetY": 0,
+      "offsetZ": 0,
+      "radius": 0.12,
+      "endOffsetX": 0,
+      "endOffsetY": 0,
+      "endOffsetZ": 0
+    },
+    {
+      "boneId": "bone.right-foot",
+      "offsetX": 0,
+      "offsetY": 0,
+      "offsetZ": 0,
+      "radius": 0.16,
+      "endOffsetX": 0,
+      "endOffsetY": 0,
+      "endOffsetZ": 0
+    },
+    {
+      "boneId": "bone.left-foot",
+      "offsetX": 0,
+      "offsetY": 0,
+      "offsetZ": 0,
+      "radius": 0.16,
+      "endOffsetX": 0,
+      "endOffsetY": 0,
+      "endOffsetZ": 0
+    }
+  ],
+  "attachmentBoneIds": [],
+  "presentationIds": [],
+  "capabilityRequirements": [
+    {
+      "capabilityId": "slop.ability.command-grab.v1",
+      "capabilityVersion": "1"
+    }
+  ],
+  "slots": [
+    {
+      "id": "ground.1",
+      "name": "Dust Jab",
+      "description": "A quick straight jab.",
+      "iconId": "icon.1",
+      "behavior": "meleeCombo",
+      "aimMode": "none",
+      "aimMovement": "fixed",
+      "cooldownTicks": 0,
+      "isRecoveryMove": false,
+      "preserveMomentumOnStart": false,
+      "allowSlideCarry": false,
+      "timeline": {
+        "stages": [
+          {
+            "durationTicks": 28,
+            "iasaTicks": 20,
+            "landingLagTicks": 0,
+            "autoCancelBeforeTicks": 0,
+            "autoCancelAfterTicks": 0,
+            "attackRange": 0,
+            "warpRange": 0,
+            "animationIds": [
+              "anim.tw.jab"
+            ],
+            "operations": [
+              {
+                "kind": "startupAimCorrection",
+                "tick": 0,
+                "unit": "ticks",
+                "endTick": 5,
+                "acquisitionRange": 4,
+                "acquisitionHalfAngleDegrees": 180,
+                "maxYawDegrees": 90,
+                "maxPitchDegrees": 0,
+                "yawDegreesPerSecond": 720,
+                "pitchDegreesPerSecond": 0
+              },
+              {
+                "kind": "spawnHitbox",
+                "tick": 6,
+                "unit": "meters",
+                "hitbox": {
+                  "shape": "sphere",
+                  "radius": 0.45,
+                  "offsetX": 0,
+                  "offsetY": 0,
+                  "offsetZ": 0,
+                  "endOffsetX": 0,
+                  "endOffsetY": 0,
+                  "endOffsetZ": 0,
+                  "startBoneId": "bone.right-hand",
+                  "endBoneId": null,
+                  "damage": 4,
+                  "angle": 35,
+                  "baseKnockback": 3,
+                  "knockbackGrowth": 15,
+                  "stunTicks": 10,
+                  "durationTicks": 5,
+                  "interruptible": true,
+                  "hitGroup": 0,
+                  "knockbackDirection": "awayFromOwner"
+                }
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "ground.2",
+      "name": "Sky Swipe",
+      "description": "An upward claw swipe over the head.",
+      "iconId": "icon.2",
+      "behavior": "meleeCombo",
+      "aimMode": "none",
+      "aimMovement": "fixed",
+      "cooldownTicks": 0,
+      "isRecoveryMove": false,
+      "preserveMomentumOnStart": false,
+      "allowSlideCarry": false,
+      "timeline": {
+        "stages": [
+          {
+            "durationTicks": 36,
+            "iasaTicks": 28,
+            "landingLagTicks": 0,
+            "autoCancelBeforeTicks": 0,
+            "autoCancelAfterTicks": 0,
+            "attackRange": 0,
+            "warpRange": 0,
+            "animationIds": [
+              "anim.tw.upswipe"
+            ],
+            "operations": [
+              {
+                "kind": "startupAimCorrection",
+                "tick": 0,
+                "unit": "ticks",
+                "endTick": 8,
+                "acquisitionRange": 4,
+                "acquisitionHalfAngleDegrees": 180,
+                "maxYawDegrees": 90,
+                "maxPitchDegrees": 0,
+                "yawDegreesPerSecond": 720,
+                "pitchDegreesPerSecond": 0
+              },
+              {
+                "kind": "spawnHitbox",
+                "tick": 10,
+                "unit": "meters",
+                "hitbox": {
+                  "shape": "sphere",
+                  "radius": 0.55,
+                  "offsetX": 0,
+                  "offsetY": 0,
+                  "offsetZ": 0,
+                  "endOffsetX": 0,
+                  "endOffsetY": 0,
+                  "endOffsetZ": 0,
+                  "startBoneId": "bone.right-hand",
+                  "endBoneId": null,
+                  "damage": 7,
+                  "angle": 85,
+                  "baseKnockback": 5,
+                  "knockbackGrowth": 18,
+                  "stunTicks": 12,
+                  "durationTicks": 6,
+                  "interruptible": true,
+                  "hitGroup": 0,
+                  "knockbackDirection": "awayFromOwner"
+                }
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "ground.3",
+      "name": "Mule Kick",
+      "description": "A big sweeping kick that sends them flying.",
+      "iconId": "icon.3",
+      "behavior": "meleeCombo",
+      "aimMode": "none",
+      "aimMovement": "fixed",
+      "cooldownTicks": 0,
+      "isRecoveryMove": false,
+      "preserveMomentumOnStart": false,
+      "allowSlideCarry": false,
+      "timeline": {
+        "stages": [
+          {
+            "durationTicks": 52,
+            "iasaTicks": 42,
+            "landingLagTicks": 0,
+            "autoCancelBeforeTicks": 0,
+            "autoCancelAfterTicks": 0,
+            "attackRange": 0,
+            "warpRange": 0,
+            "animationIds": [
+              "anim.tw.bigkick"
+            ],
+            "operations": [
+              {
+                "kind": "startupAimCorrection",
+                "tick": 0,
+                "unit": "ticks",
+                "endTick": 7,
+                "acquisitionRange": 4,
+                "acquisitionHalfAngleDegrees": 180,
+                "maxYawDegrees": 90,
+                "maxPitchDegrees": 0,
+                "yawDegreesPerSecond": 720,
+                "pitchDegreesPerSecond": 0
+              },
+              {
+                "kind": "spawnHitbox",
+                "tick": 8,
+                "unit": "meters",
+                "hitbox": {
+                  "shape": "sphere",
+                  "radius": 0.6,
+                  "offsetX": 0,
+                  "offsetY": 0,
+                  "offsetZ": 0,
+                  "endOffsetX": 0,
+                  "endOffsetY": 0,
+                  "endOffsetZ": 0,
+                  "startBoneId": "bone.right-foot",
+                  "endBoneId": null,
+                  "damage": 12,
+                  "angle": 40,
+                  "baseKnockback": 6,
+                  "knockbackGrowth": 22,
+                  "stunTicks": 16,
+                  "durationTicks": 8,
+                  "interruptible": true,
+                  "hitGroup": 0,
+                  "knockbackDirection": "awayFromOwner"
+                }
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "ground.A",
+      "name": "Pebble Toss",
+      "description": "Lobs a pebble at the nearest foe.",
+      "iconId": "icon.a",
+      "behavior": "aimedProjectile",
+      "aimMode": "none",
+      "aimMovement": "fixed",
+      "cooldownTicks": 40,
+      "isRecoveryMove": false,
+      "preserveMomentumOnStart": false,
+      "allowSlideCarry": false,
+      "timeline": {
+        "stages": [
+          {
+            "durationTicks": 40,
+            "iasaTicks": 30,
+            "landingLagTicks": 0,
+            "autoCancelBeforeTicks": 0,
+            "autoCancelAfterTicks": 0,
+            "attackRange": 0,
+            "warpRange": 0,
+            "animationIds": [
+              "anim.tw.toss"
+            ],
+            "operations": [
+              {
+                "kind": "spawnProjectile",
+                "tick": 14,
+                "unit": "meters",
+                "projectile": {
+                  "launchOffsetX": 0.3,
+                  "launchOffsetY": 0.4,
+                  "launchOffsetZ": 0.6,
+                  "speed": 20,
+                  "gravity": 6,
+                  "radius": 0.3,
+                  "damage": 5,
+                  "angle": 30,
+                  "baseKnockback": 4,
+                  "knockbackGrowth": 10,
+                  "stunTicks": 12,
+                  "maxFlightTicks": 70,
+                  "yawOffsetDegrees": 0
+                }
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "ground.E",
+      "name": "Tumble Roll",
+      "description": "A rolling leap up and forward. Recovers.",
+      "iconId": "icon.e",
+      "behavior": "meleeCombo",
+      "aimMode": "none",
+      "aimMovement": "fixed",
+      "cooldownTicks": 30,
+      "isRecoveryMove": true,
+      "preserveMomentumOnStart": false,
+      "allowSlideCarry": false,
+      "timeline": {
+        "stages": [
+          {
+            "durationTicks": 34,
+            "iasaTicks": 0,
+            "landingLagTicks": 10,
+            "autoCancelBeforeTicks": 0,
+            "autoCancelAfterTicks": 0,
+            "attackRange": 0,
+            "warpRange": 0,
+            "animationIds": [
+              "anim.tw.roll"
+            ],
+            "operations": [
+              {
+                "kind": "setVelocity",
+                "tick": 2,
+                "unit": "metersPerSecond",
+                "velocityMode": "absolute",
+                "x": 0,
+                "y": 14,
+                "z": 8
+              },
+              {
+                "kind": "spawnHitbox",
+                "tick": 3,
+                "unit": "meters",
+                "hitbox": {
+                  "shape": "sphere",
+                  "radius": 0.7,
+                  "offsetX": 0,
+                  "offsetY": 0,
+                  "offsetZ": 0,
+                  "endOffsetX": 0,
+                  "endOffsetY": 0,
+                  "endOffsetZ": 0,
+                  "startBoneId": "bone.hips",
+                  "endBoneId": null,
+                  "damage": 6,
+                  "angle": 70,
+                  "baseKnockback": 5,
+                  "knockbackGrowth": 12,
+                  "stunTicks": 12,
+                  "durationTicks": 12,
+                  "interruptible": true,
+                  "hitGroup": 0,
+                  "knockbackDirection": "awayFromOwner"
+                }
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "ground.R",
+      "name": "Bear Hug",
+      "description": "Lunges, grabs, squeezes, then hurls.",
+      "iconId": "icon.r",
+      "behavior": "meleeCombo",
+      "aimMode": "none",
+      "aimMovement": "fixed",
+      "cooldownTicks": 240,
+      "isRecoveryMove": false,
+      "preserveMomentumOnStart": false,
+      "allowSlideCarry": false,
+      "timeline": {
+        "stages": [
+          {
+            "durationTicks": 7,
+            "iasaTicks": 0,
+            "landingLagTicks": 0,
+            "autoCancelBeforeTicks": 0,
+            "autoCancelAfterTicks": 0,
+            "attackRange": 0,
+            "warpRange": 0,
+            "animationIds": [
+              "anim.tw.lunge"
+            ],
+            "operations": [
+              {
+                "kind": "startCapability",
+                "tick": 0,
+                "unit": "ticks",
+                "capabilityId": "slop.ability.command-grab.v1",
+                "capabilityVersion": "1",
+                "parameters": {
+                  "lungeTicks": 7,
+                  "lungeSpeed": 16,
+                  "stopDistance": 0.9,
+                  "captureTick": 1,
+                  "capture": {
+                    "shape": "sphere",
+                    "radius": 0.6,
+                    "offsetX": 0,
+                    "offsetY": 0.1,
+                    "offsetZ": 0.6,
+                    "endOffsetX": 0,
+                    "endOffsetY": 0,
+                    "endOffsetZ": 0,
+                    "startBoneId": null,
+                    "endBoneId": null,
+                    "damage": 1,
+                    "angle": 0,
+                    "baseKnockback": 0,
+                    "knockbackGrowth": 0,
+                    "stunTicks": 0,
+                    "durationTicks": 6,
+                    "interruptible": true,
+                    "hitGroup": 0,
+                    "knockbackDirection": "awayFromOwner"
+                  },
+                  "releaseTick": 40,
+                  "anchorDistance": 0.8,
+                  "releaseLockTicks": 6,
+                  "whiffRecoveryTicks": 20
+                }
+              }
+            ]
+          },
+          {
+            "durationTicks": 56,
+            "iasaTicks": 0,
+            "landingLagTicks": 0,
+            "autoCancelBeforeTicks": 0,
+            "autoCancelAfterTicks": 0,
+            "attackRange": 0,
+            "warpRange": 0,
+            "animationIds": [
+              "anim.tw.hugthrow"
+            ],
+            "operations": [
+              {
+                "kind": "spawnHitbox",
+                "tick": 10,
+                "unit": "meters",
+                "hitbox": {
+                  "shape": "sphere",
+                  "radius": 0.8,
+                  "offsetX": 0,
+                  "offsetY": 0,
+                  "offsetZ": 0,
+                  "endOffsetX": 0,
+                  "endOffsetY": 0,
+                  "endOffsetZ": 0,
+                  "startBoneId": "bone.hips",
+                  "endBoneId": null,
+                  "damage": 3,
+                  "angle": 0,
+                  "baseKnockback": 20,
+                  "knockbackGrowth": 0,
+                  "stunTicks": 30,
+                  "durationTicks": 4,
+                  "interruptible": true,
+                  "hitGroup": 0,
+                  "knockbackDirection": "awayFromOwner"
+                }
+              },
+              {
+                "kind": "spawnHitbox",
+                "tick": 20,
+                "unit": "meters",
+                "hitbox": {
+                  "shape": "sphere",
+                  "radius": 0.8,
+                  "offsetX": 0,
+                  "offsetY": 0,
+                  "offsetZ": 0,
+                  "endOffsetX": 0,
+                  "endOffsetY": 0,
+                  "endOffsetZ": 0,
+                  "startBoneId": "bone.hips",
+                  "endBoneId": null,
+                  "damage": 3,
+                  "angle": 0,
+                  "baseKnockback": 20,
+                  "knockbackGrowth": 0,
+                  "stunTicks": 30,
+                  "durationTicks": 4,
+                  "interruptible": true,
+                  "hitGroup": 0,
+                  "knockbackDirection": "awayFromOwner"
+                }
+              },
+              {
+                "kind": "spawnHitbox",
+                "tick": 34,
+                "unit": "meters",
+                "hitbox": {
+                  "shape": "sphere",
+                  "radius": 0.9,
+                  "offsetX": 0,
+                  "offsetY": 0,
+                  "offsetZ": 0,
+                  "endOffsetX": 0,
+                  "endOffsetY": 0,
+                  "endOffsetZ": 0,
+                  "startBoneId": "bone.hips",
+                  "endBoneId": null,
+                  "damage": 9,
+                  "angle": 50,
+                  "baseKnockback": 9,
+                  "knockbackGrowth": 20,
+                  "stunTicks": 18,
+                  "durationTicks": 8,
+                  "interruptible": true,
+                  "hitGroup": 0,
+                  "knockbackDirection": "awayFromOwner"
+                }
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "ground.F",
+      "name": "Dust Devil",
+      "description": "Spins into a dust devil: many small hits and a big launch.",
+      "iconId": "icon.f",
+      "behavior": "meleeCombo",
+      "aimMode": "none",
+      "aimMovement": "fixed",
+      "cooldownTicks": 600,
+      "isRecoveryMove": false,
+      "preserveMomentumOnStart": false,
+      "allowSlideCarry": false,
+      "timeline": {
+        "stages": [
+          {
+            "durationTicks": 90,
+            "iasaTicks": 0,
+            "landingLagTicks": 0,
+            "autoCancelBeforeTicks": 0,
+            "autoCancelAfterTicks": 0,
+            "attackRange": 0,
+            "warpRange": 0,
+            "animationIds": [
+              "anim.tw.devil"
+            ],
+            "operations": [
+              {
+                "kind": "startupAimCorrection",
+                "tick": 0,
+                "unit": "ticks",
+                "endTick": 10,
+                "acquisitionRange": 4,
+                "acquisitionHalfAngleDegrees": 180,
+                "maxYawDegrees": 90,
+                "maxPitchDegrees": 0,
+                "yawDegreesPerSecond": 720,
+                "pitchDegreesPerSecond": 0
+              },
+              {
+                "kind": "gravityWindow",
+                "tick": 0,
+                "unit": "normalized",
+                "gravityScale": 0.2,
+                "durationTicks": 60
+              },
+              {
+                "kind": "spawnHitbox",
+                "tick": 12,
+                "unit": "meters",
+                "hitbox": {
+                  "shape": "sphere",
+                  "radius": 0.8,
+                  "offsetX": 0,
+                  "offsetY": 0,
+                  "offsetZ": 0,
+                  "endOffsetX": 0,
+                  "endOffsetY": 0,
+                  "endOffsetZ": 0,
+                  "startBoneId": "bone.right-foot",
+                  "endBoneId": null,
+                  "damage": 3,
+                  "angle": 0,
+                  "baseKnockback": 2,
+                  "knockbackGrowth": 0,
+                  "stunTicks": 20,
+                  "durationTicks": 5,
+                  "interruptible": true,
+                  "hitGroup": 0,
+                  "knockbackDirection": "awayFromOwner",
+                  "fixedHitstunTicks": 20
+                }
+              },
+              {
+                "kind": "spawnHitbox",
+                "tick": 20,
+                "unit": "meters",
+                "hitbox": {
+                  "shape": "sphere",
+                  "radius": 0.8,
+                  "offsetX": 0,
+                  "offsetY": 0,
+                  "offsetZ": 0,
+                  "endOffsetX": 0,
+                  "endOffsetY": 0,
+                  "endOffsetZ": 0,
+                  "startBoneId": "bone.left-foot",
+                  "endBoneId": null,
+                  "damage": 3,
+                  "angle": 0,
+                  "baseKnockback": 2,
+                  "knockbackGrowth": 0,
+                  "stunTicks": 20,
+                  "durationTicks": 5,
+                  "interruptible": true,
+                  "hitGroup": 0,
+                  "knockbackDirection": "awayFromOwner",
+                  "fixedHitstunTicks": 20
+                }
+              },
+              {
+                "kind": "spawnHitbox",
+                "tick": 28,
+                "unit": "meters",
+                "hitbox": {
+                  "shape": "sphere",
+                  "radius": 0.8,
+                  "offsetX": 0,
+                  "offsetY": 0,
+                  "offsetZ": 0,
+                  "endOffsetX": 0,
+                  "endOffsetY": 0,
+                  "endOffsetZ": 0,
+                  "startBoneId": "bone.right-foot",
+                  "endBoneId": null,
+                  "damage": 3,
+                  "angle": 0,
+                  "baseKnockback": 2,
+                  "knockbackGrowth": 0,
+                  "stunTicks": 20,
+                  "durationTicks": 5,
+                  "interruptible": true,
+                  "hitGroup": 0,
+                  "knockbackDirection": "awayFromOwner",
+                  "fixedHitstunTicks": 20
+                }
+              },
+              {
+                "kind": "spawnHitbox",
+                "tick": 36,
+                "unit": "meters",
+                "hitbox": {
+                  "shape": "sphere",
+                  "radius": 0.8,
+                  "offsetX": 0,
+                  "offsetY": 0,
+                  "offsetZ": 0,
+                  "endOffsetX": 0,
+                  "endOffsetY": 0,
+                  "endOffsetZ": 0,
+                  "startBoneId": "bone.left-foot",
+                  "endBoneId": null,
+                  "damage": 3,
+                  "angle": 0,
+                  "baseKnockback": 2,
+                  "knockbackGrowth": 0,
+                  "stunTicks": 20,
+                  "durationTicks": 5,
+                  "interruptible": true,
+                  "hitGroup": 0,
+                  "knockbackDirection": "awayFromOwner",
+                  "fixedHitstunTicks": 20
+                }
+              },
+              {
+                "kind": "spawnHitbox",
+                "tick": 44,
+                "unit": "meters",
+                "hitbox": {
+                  "shape": "sphere",
+                  "radius": 0.8,
+                  "offsetX": 0,
+                  "offsetY": 0,
+                  "offsetZ": 0,
+                  "endOffsetX": 0,
+                  "endOffsetY": 0,
+                  "endOffsetZ": 0,
+                  "startBoneId": "bone.right-foot",
+                  "endBoneId": null,
+                  "damage": 3,
+                  "angle": 0,
+                  "baseKnockback": 2,
+                  "knockbackGrowth": 0,
+                  "stunTicks": 20,
+                  "durationTicks": 5,
+                  "interruptible": true,
+                  "hitGroup": 0,
+                  "knockbackDirection": "awayFromOwner",
+                  "fixedHitstunTicks": 20
+                }
+              },
+              {
+                "kind": "spawnHitbox",
+                "tick": 56,
+                "unit": "meters",
+                "hitbox": {
+                  "shape": "sphere",
+                  "radius": 1.2,
+                  "offsetX": 0,
+                  "offsetY": 0,
+                  "offsetZ": 0,
+                  "endOffsetX": 0,
+                  "endOffsetY": 0,
+                  "endOffsetZ": 0,
+                  "startBoneId": "bone.hips",
+                  "endBoneId": null,
+                  "damage": 10,
+                  "angle": 45,
+                  "baseKnockback": 10,
+                  "knockbackGrowth": 24,
+                  "stunTicks": 20,
+                  "durationTicks": 6,
+                  "interruptible": true,
+                  "hitGroup": 0,
+                  "knockbackDirection": "awayFromOwner"
+                }
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "air.1",
+      "name": "Air Jab",
+      "description": "A jab in the air.",
+      "iconId": "icon.1",
+      "behavior": "meleeCombo",
+      "aimMode": "none",
+      "aimMovement": "fixed",
+      "cooldownTicks": 0,
+      "isRecoveryMove": false,
+      "preserveMomentumOnStart": false,
+      "allowSlideCarry": false,
+      "timeline": {
+        "stages": [
+          {
+            "durationTicks": 30,
+            "iasaTicks": 22,
+            "landingLagTicks": 6,
+            "autoCancelBeforeTicks": 0,
+            "autoCancelAfterTicks": 0,
+            "attackRange": 0,
+            "warpRange": 0,
+            "animationIds": [
+              "anim.tw.jab"
+            ],
+            "operations": [
+              {
+                "kind": "startupAimCorrection",
+                "tick": 0,
+                "unit": "ticks",
+                "endTick": 5,
+                "acquisitionRange": 4,
+                "acquisitionHalfAngleDegrees": 180,
+                "maxYawDegrees": 90,
+                "maxPitchDegrees": 0,
+                "yawDegreesPerSecond": 720,
+                "pitchDegreesPerSecond": 0
+              },
+              {
+                "kind": "spawnHitbox",
+                "tick": 6,
+                "unit": "meters",
+                "hitbox": {
+                  "shape": "sphere",
+                  "radius": 0.5,
+                  "offsetX": 0,
+                  "offsetY": 0,
+                  "offsetZ": 0,
+                  "endOffsetX": 0,
+                  "endOffsetY": 0,
+                  "endOffsetZ": 0,
+                  "startBoneId": "bone.right-hand",
+                  "endBoneId": null,
+                  "damage": 4,
+                  "angle": 40,
+                  "baseKnockback": 3,
+                  "knockbackGrowth": 14,
+                  "stunTicks": 10,
+                  "durationTicks": 6,
+                  "interruptible": true,
+                  "hitGroup": 0,
+                  "knockbackDirection": "awayFromOwner"
+                }
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "air.2",
+      "name": "Air Swipe",
+      "description": "An upward swipe in the air.",
+      "iconId": "icon.2",
+      "behavior": "meleeCombo",
+      "aimMode": "none",
+      "aimMovement": "fixed",
+      "cooldownTicks": 0,
+      "isRecoveryMove": false,
+      "preserveMomentumOnStart": false,
+      "allowSlideCarry": false,
+      "timeline": {
+        "stages": [
+          {
+            "durationTicks": 36,
+            "iasaTicks": 28,
+            "landingLagTicks": 8,
+            "autoCancelBeforeTicks": 0,
+            "autoCancelAfterTicks": 0,
+            "attackRange": 0,
+            "warpRange": 0,
+            "animationIds": [
+              "anim.tw.upswipe"
+            ],
+            "operations": [
+              {
+                "kind": "startupAimCorrection",
+                "tick": 0,
+                "unit": "ticks",
+                "endTick": 8,
+                "acquisitionRange": 4,
+                "acquisitionHalfAngleDegrees": 180,
+                "maxYawDegrees": 90,
+                "maxPitchDegrees": 0,
+                "yawDegreesPerSecond": 720,
+                "pitchDegreesPerSecond": 0
+              },
+              {
+                "kind": "spawnHitbox",
+                "tick": 10,
+                "unit": "meters",
+                "hitbox": {
+                  "shape": "sphere",
+                  "radius": 0.6,
+                  "offsetX": 0,
+                  "offsetY": 0,
+                  "offsetZ": 0,
+                  "endOffsetX": 0,
+                  "endOffsetY": 0,
+                  "endOffsetZ": 0,
+                  "startBoneId": "bone.right-hand",
+                  "endBoneId": null,
+                  "damage": 6,
+                  "angle": 80,
+                  "baseKnockback": 5,
+                  "knockbackGrowth": 16,
+                  "stunTicks": 12,
+                  "durationTicks": 6,
+                  "interruptible": true,
+                  "hitGroup": 0,
+                  "knockbackDirection": "awayFromOwner"
+                }
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "air.3",
+      "name": "Stomp",
+      "description": "A downward kick that spikes.",
+      "iconId": "icon.3",
+      "behavior": "meleeCombo",
+      "aimMode": "none",
+      "aimMovement": "fixed",
+      "cooldownTicks": 0,
+      "isRecoveryMove": false,
+      "preserveMomentumOnStart": false,
+      "allowSlideCarry": false,
+      "timeline": {
+        "stages": [
+          {
+            "durationTicks": 48,
+            "iasaTicks": 40,
+            "landingLagTicks": 14,
+            "autoCancelBeforeTicks": 0,
+            "autoCancelAfterTicks": 0,
+            "attackRange": 0,
+            "warpRange": 0,
+            "animationIds": [
+              "anim.tw.bigkick"
+            ],
+            "operations": [
+              {
+                "kind": "startupAimCorrection",
+                "tick": 0,
+                "unit": "ticks",
+                "endTick": 7,
+                "acquisitionRange": 4,
+                "acquisitionHalfAngleDegrees": 180,
+                "maxYawDegrees": 90,
+                "maxPitchDegrees": 0,
+                "yawDegreesPerSecond": 720,
+                "pitchDegreesPerSecond": 0
+              },
+              {
+                "kind": "spawnHitbox",
+                "tick": 9,
+                "unit": "meters",
+                "hitbox": {
+                  "shape": "sphere",
+                  "radius": 0.6,
+                  "offsetX": 0,
+                  "offsetY": 0,
+                  "offsetZ": 0,
+                  "endOffsetX": 0,
+                  "endOffsetY": 0,
+                  "endOffsetZ": 0,
+                  "startBoneId": "bone.right-foot",
+                  "endBoneId": null,
+                  "damage": 11,
+                  "angle": -60,
+                  "baseKnockback": 5,
+                  "knockbackGrowth": 18,
+                  "stunTicks": 16,
+                  "durationTicks": 8,
+                  "interruptible": true,
+                  "hitGroup": 0,
+                  "knockbackDirection": "awayFromOwner"
+                }
+              }
+            ]
+          }
+        ]
+      }
+    }
+  ],
+  "aliases": [
+    {
+      "from": "air.A",
+      "to": "ground.A"
+    },
+    {
+      "from": "air.E",
+      "to": "ground.E"
+    },
+    {
+      "from": "air.R",
+      "to": "ground.R"
+    },
+    {
+      "from": "air.F",
+      "to": "ground.F"
+    }
+  ]
+}
