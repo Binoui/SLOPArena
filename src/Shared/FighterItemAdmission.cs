@@ -109,13 +109,13 @@ internal static class FighterItemAdmission
                 || m.GetProperty("version").GetString() != manifest.Manifest.ItemVersion)
                 return Failure("item.source.identity", "Source, cooked and item identity must agree.");
             if (d.Count != 0) return Result();
-            var compiled = CharacterPackageCompiler.Compile(source.Source, CharacterCookProfile.Workshop);
+            var compiled = CharacterPackageCompiler.CompilePortable(source.Source);
             d.AddRange(compiled.Diagnostics);
             if (compiled.CookedPackage == null || !compiled.CookedPackage.CanonicalBytes.SequenceEqual(files[CharacterPackageAssembler.RuntimePath]))
                 return Failure("item.source.runtime", "Portable runtime must match the Workshop compilation of the included source.");
             var payload = files.Where(x => CookedPackageLimits.FileBytes(x.Key) != 0).ToDictionary(x => x.Key, x => x.Value, StringComparer.Ordinal);
             var requirement = new MatchContentPackageRequirement(id, m.GetProperty("version").GetString()!, m.GetProperty("cookedContentHash").GetString()!, m.GetProperty("packageHash").GetString()!);
-            var loaded = CookedCharacterPackageLoader.LoadFiles(payload, requirement, CharacterCookProfile.Workshop);
+            var loaded = CookedCharacterPackageLoader.LoadFiles(payload, requirement);
             d.AddRange(loaded.Diagnostics);
             return loaded.IsValid ? new(new AdmittedFighter(loaded, null, null), d.AsReadOnly(), new FighterItemSnapshot(files, binding.RootElement, card.RootElement)) : Result();
         }

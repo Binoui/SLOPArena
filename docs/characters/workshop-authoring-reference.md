@@ -1737,7 +1737,8 @@ A fighter item is a flat folder. Its strict `item.json` schema 2 has `itemType` 
 lowercase SHA-256 map. Required payloads are `manifest.json`, `character.runtime.json`, `poses.bin`,
 `client.bindings`, `package.json`, `character.json`, `card.json`, and one `.glb` file. Optional payloads
 are `humanoid.json` and `.png` or `.jpg` images. No other files, nested paths, or links are admitted.
-There are at most 40 payloads. Model swaps retain item schema 1.
+There are at most 40 payloads. Filenames have at most 128 ASCII letters, digits, dots, hyphens,
+or underscores. Leading dots, reserved Windows device stems, and case aliases are refused. Model swaps retain item schema 1.
 
 `card.json` owns `description`, `workInProgress`, and nullable `tutorialHint`. A hint contains
 `starter`, `followUp`, and `jump`. Move keys are `1`, `2`, `3`, `A`, `E`, `R`, and `F`.
@@ -1771,6 +1772,6 @@ calls this adapter until the local library unit lands.
 
 The outer item hashes verify every file. Binding hashes also pin source, card, and media through
 the package identity. A media edit requires new binding, cooked, and package hashes. The portable
-runtime number writer uses exact IEEE-754 decimal expansions on every runtime. Built-in bytes
+`CharacterPackageCompiler.CompilePortable` runtime number writer uses exact IEEE-754 decimal expansions on every runtime. Built-in bytes
 are unchanged. `tools/PortableCookProof` recompiles and assembles a fixture on a second runtime
 and checks the runtime and manifest bytes, including both package hashes.

@@ -91,12 +91,12 @@ public static class WorkshopItemManifestCodec
             if (ai.ValueKind != JsonValueKind.True && ai.ValueKind != JsonValueKind.False) d.Add(Error("item.type", "aiAssisted", "Expected boolean."));
             var payloads = new Dictionary<string, string>(StringComparer.Ordinal);
             var map = root.GetProperty("payloads");
-            var payloadNames = new HashSet<string>(StringComparer.Ordinal);
+            var payloadNames = new HashSet<string>(fighter ? StringComparer.OrdinalIgnoreCase : StringComparer.Ordinal);
             if (map.ValueKind != JsonValueKind.Object) d.Add(Error("item.type", "payloads", "Expected hash map object."));
             else foreach (var p in map.EnumerateObject())
             {
                 if (!payloadNames.Add(p.Name)) d.Add(Error("item.field.duplicate", "payloads." + p.Name, "Duplicate payload field."));
-                if (!PlainFileName(p.Name)) d.Add(Error("item.payload.name", p.Name, "Payload must be a plain file name without '..' or separators."));
+                if (!PlainFileName(p.Name) || fighter && !PortableFileName(p.Name)) d.Add(Error("item.payload.name", p.Name, "Payload must be a plain file name without '..' or separators."));
                 if (p.Value.ValueKind != JsonValueKind.String) { d.Add(Error("item.type", p.Name, "Expected SHA-256 string.")); continue; }
                 var hash = p.Value.GetString()!;
                 if (!MatchContentCatalogBuilder.IsSha(hash)) d.Add(Error("item.payload.hash", p.Name, "Expected 64 lowercase hexadecimal SHA-256 characters."));
@@ -152,6 +152,14 @@ public static class WorkshopItemManifestCodec
     { using var sha = SHA256.Create(); return BitConverter.ToString(sha.ComputeHash(bytes)).Replace("-", "").ToLowerInvariant(); }
     private static void WriteHashes(Utf8JsonWriter w, WorkshopItemManifest m)
     { w.WriteStartObject(); foreach (var p in m.Payloads.OrderBy(x => x.Key, StringComparer.Ordinal)) w.WriteString(p.Key, p.Value); w.WriteEndObject(); }
+    private static bool PortableFileName(string name)
+    {
+        if (name.Length > 128 || name.StartsWith(".", StringComparison.Ordinal)
+            || name.Any(c => !(c is >= 'a' and <= 'z' or >= 'A' and <= 'Z' or >= '0' and <= '9' or '.' or '-' or '_'))) return false;
+        string stem = name.Split('.')[0].ToUpperInvariant();
+        return !(stem is "CON" or "PRN" or "AUX" or "NUL" || stem.Length == 4
+            && (stem.StartsWith("COM", StringComparison.Ordinal) || stem.StartsWith("LPT", StringComparison.Ordinal)) && stem[3] is >= '0' and <= '9');
+    }
     internal static bool PlainFileName(string name) => name.Length > 0 && name.Length <= MaxTextLength && !name.Contains("..") && !name.Any(c => c == '/' || c == '\\' || c == ':' || char.IsControl(c));
     private static CharacterDiagnostic Error(string code, string path, string message) => MatchContentCatalogBuilder.Error(code, path, message);
 }

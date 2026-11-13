@@ -185,6 +185,20 @@ public static class CharacterPackageCompiler
         _ => false,
     };
 
+    public static CharacterCompileResult CompilePortable(string packageManifestJson, string characterJson)
+        => PortableResult(Compile(packageManifestJson, characterJson, CharacterCookProfile.Workshop));
+
+    public static CharacterCompileResult CompilePortable(CharacterPackageSource source)
+        => PortableResult(Compile(source, CharacterCookProfile.Workshop));
+
+    private static CharacterCompileResult PortableResult(CharacterCompileResult result)
+    {
+        if (result.HasErrors || result.CookedPackage == null) return result;
+        var p = result.CookedPackage;
+        return new CharacterCompileResult(new CookedCharacterPackage(p.Metadata, p.Definition, p.Budget,
+            p.Diagnostics, PortableCanonicalJson.Normalize(p.CanonicalBytes)), result.Diagnostics);
+    }
+
     public static CharacterCompileResult Compile(string packageManifestJson, string characterJson, CharacterCookProfile profile = CharacterCookProfile.Workshop)
     {
         var parsed = CharacterPackageSourceCodec.Load(packageManifestJson, characterJson);
@@ -348,7 +362,7 @@ public static class CharacterPackageCompiler
         }
         var budget = ComputeBudget(definition);
         var bytes = WriteCanonical(metadata, definition, budget);
-        if (profile == CharacterCookProfile.Workshop) bytes = PortableCanonicalJson.Normalize(bytes);
+
         var limits = new List<CharacterDiagnostic>();
         if (bytes.Length > CookedPackageLimits.RuntimeBytes)
             d.Error("package.file.limit", CharacterPackageAssembler.RuntimePath, "Runtime exceeds the admission byte limit.");

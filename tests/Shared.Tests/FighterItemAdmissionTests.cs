@@ -19,7 +19,7 @@ public sealed class FighterItemAdmissionTests
         var package = JsonNode.Parse(sourceFiles["package.json"])!;
         package["packageId"] = id;
         sourceFiles["package.json"] = Encoding.UTF8.GetBytes(package.ToJsonString());
-        var compiled = CharacterPackageCompiler.Compile(Encoding.UTF8.GetString(sourceFiles["package.json"]), Encoding.UTF8.GetString(sourceFiles["character.json"]), CharacterCookProfile.Workshop);
+        var compiled = CharacterPackageCompiler.CompilePortable(Encoding.UTF8.GetString(sourceFiles["package.json"]), Encoding.UTF8.GetString(sourceFiles["character.json"]));
         Assert.False(compiled.HasErrors, string.Join("\n", compiled.Diagnostics));
         var input = CharacterPackageAssemblerTests.BuildInput(compiled.CookedPackage!, Array.Empty<PackageDependencySource>(), compiled.CookedPackage!.Definition.CapabilityRequirements, Array.Empty<CharacterDiagnostic>());
         var old = JsonNode.Parse(input.BindingBytes)!;
@@ -132,7 +132,7 @@ public sealed class FighterItemAdmissionTests
         root["animations"]![0]!["source"] = new JsonObject { ["kind"] = "shared", ["id"] = "slop.anim.idle", ["version"] = "1" };
         Assert.Contains(CharacterPackageAssembler.ValidateClientBindings(Encoding.UTF8.GetBytes(root.ToJsonString())), x => x.Code == "portable.shared.unsupported");
     }
-    [Theory] [InlineData("../a.glb")] [InlineData("a/b.glb")] [InlineData("C:a.glb")]
+    [Theory] [InlineData("../a.glb")] [InlineData("a/b.glb")] [InlineData("C:a.glb")] [InlineData("CON.glb")] [InlineData("a.glb ")] [InlineData(".model.glb")]
     public void FighterPathTricksRefused(string name)
     {
         var manifest = JsonNode.Parse(Item()["item.json"])!; manifest["payloads"]![name] = new string('a', 64);

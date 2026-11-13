@@ -9,8 +9,8 @@ internal static class Program
     public static int Main(string[] args)
     {
         string folder = args[0];
-        var compiled = CharacterPackageCompiler.Compile(File.ReadAllText(Path.Combine(folder, "package.json")),
-            File.ReadAllText(Path.Combine(folder, "character.json")), CharacterCookProfile.Workshop);
+        var compiled = CharacterPackageCompiler.CompilePortable(File.ReadAllText(Path.Combine(folder, "package.json")),
+            File.ReadAllText(Path.Combine(folder, "character.json")));
         if (compiled.HasErrors) throw new Exception(string.Join("\n", compiled.Diagnostics));
         var package = compiled.CookedPackage;
         using var manifest = JsonDocument.Parse(File.ReadAllBytes(Path.Combine(folder, "manifest.json")));
