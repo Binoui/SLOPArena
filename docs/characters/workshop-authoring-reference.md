@@ -1796,3 +1796,55 @@ reading, and allow hard links whose actual bytes match the hashes. JPEGs require
 The model-swap library reports "type not supported here" for a fighter item. Unit 5 will wire the
 fighter adapter to discovery. No product path currently admits external fighters.
 See `tools/PortableCookProof/README.md` for the rerunnable isolated Win64/Mono comparison.
+
+## Cook a fighter in the installed game
+
+Home's **Workshop** screen has a **Make a fighter** tab. Its workspace folder is
+`Workshop/Fighters` under the game's persistent data directory. Each subfolder is
+one fighter source. **Open workspaces folder** opens that location. A typed path
+can point to a source folder elsewhere. Controller users select a listed folder or
+use the text field's Steam keyboard action.
+
+A source folder contains `package.json`, `character.json`, `card.json`, one GLB,
+and `cook.json`. The package ID starts with `local.`. Optional `humanoid.json`
+maps the rig. PNG and JPEG files can accompany the source.
+
+`cook.json` records the model filename, rights information, and each semantic
+animation's GLB clip name. For example:
+
+```json
+{
+  "model": "fighter.glb",
+  "creator": "Your name",
+  "license": "CC0-1.0",
+  "attribution": "Original work",
+  "aiAssisted": false,
+  "animations": { "anim.idle": "Idle", "anim.run": "Run" }
+}
+```
+
+Every animation referenced by the kit needs an entry. Clip metadata follows the
+portable motion contract above, including `extras.slop`. The cook does not invent
+missing clips or metadata.
+
+**Use this folder** starts watching the files. After the files remain unchanged for
+750 ms, the game compiles the kit, measures the idle mesh, fits hurtbox capsules,
+bakes poses, writes a schema-2 item under `Workshop/FighterCooks`, and admits it.
+The work runs off the menu thread. **Cook again** requests another cook even when
+no file changed. A save during cooking invalidates that result.
+
+Diagnostics show the severity, code, file, exact field path, and message. Compiler
+messages match KitCheck. Missing clips identify the semantic binding in `cook.json`.
+The cooked item's `character.json` contains the fitted capsules. The editable
+workspace keeps its authored capsule rows.
+
+The game suggests `modelYOffset` from the lowest idle foot vertex and the capsule
+bottom. **Apply suggested modelYOffset** writes that value to the workspace's
+`character.json`, which triggers another cook. A newer edit prevents that write.
+Capsule radii and endpoints are computed automatically from the idle mesh. The game
+does not infer movement speeds, damage, shield size, or attack timing.
+
+**Try in Training** becomes available after admission. It starts player 1 as that
+exact fighter revision against a built-in CPU. Returning to Home reopens the
+workspace. Cooking another revision cannot change a running Match. This preview
+does not add the fighter to Fighter Select or online play and does not publish it.

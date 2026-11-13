@@ -24,6 +24,7 @@ namespace SlopArena.Client.UI
         private void OnEnable()
         {
             Workshop.ModelSwapLibrary.EndPreview();
+            string? returningWorkspace = Workshop.FighterWorkspaceTraining.End();
             MatchConfig.Reset();
             if (_context == null)
             {
@@ -54,6 +55,14 @@ namespace SlopArena.Client.UI
             workshop.AddToClassList("menu-action");
             _context.Q<Button>("menu-online")?.parent.Add(workshop);
             _context.AddReleaseAction(() => { workshop.RemoveFromHierarchy(); _workshop?.Close(); });
+            if (returningWorkspace != null)
+                workshop.schedule.Execute(() =>
+                {
+                    VisualElement? host = workshop;
+                    while (host?.parent?.parent != null) host = host.parent;
+                    if (host != null) _workshop = new WorkshopOverlay(host, _context);
+                    _workshop?.OpenFighterWorkspace(returningWorkspace);
+                });
             _artworkColumn = _context.Q<VisualElement>("menu-artwork-column");
             _artwork = _context.Q<VisualElement>("menu-artwork");
             _artworkColumn?.RegisterCallback<GeometryChangedEvent>(FitArtwork);

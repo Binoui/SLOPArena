@@ -31,9 +31,7 @@ try
             File.ReadAllText(Path.Combine(directory, "character.json")), CharacterCookProfile.Workshop);
         foreach (var d in result.Diagnostics)
         {
-            var path = d.Path.StartsWith("manifest", StringComparison.Ordinal)
-                ? "package.json" + d.Path[8..] : "character.json" + (d.Path.StartsWith("character", StringComparison.Ordinal) ? d.Path[9..] : "." + d.Path);
-            Console.WriteLine($"{d.Severity} {d.Code} {path}: {d.Message}");
+            Console.WriteLine(LocalFighterWorkspace.DiagnosticText(d));
         }
         Console.WriteLine(result.HasErrors ? "COMPILE FAILED" : $"COMPILE OK ({result.Diagnostics.Count} diagnostics)");
         if (!result.HasErrors && args.Length == 2) MovesReport.Write(result.CookedPackage!, Console.Out);

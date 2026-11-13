@@ -97,7 +97,7 @@ public static class PortableFighterCook
         files[CharacterPackageAssembler.BindingPath] = assembly.BindingBytes;
         files[CharacterPackageAssembler.PosePath] = assembly.PoseBytes;
         WriteItemManifest(files, source.Creator, source.License, source.Attribution, source.AiAssisted);
-        return (files, Array.Empty<CharacterDiagnostic>());
+        return (files, compiled.Diagnostics);
     }
 
     internal static void WriteItemManifest(Dictionary<string, byte[]> files, string creator, string license, string attribution, bool aiAssisted)
