@@ -13,6 +13,18 @@ namespace SlopArena.Client.UI
         public IReadOnlyList<string> PackageIds { get; }
         public string? Diagnostic { get; }
         static readonly SourceCache source = new(ReadSources, () => ShippedRoster.TryReadApplication(out var roster, out _) ? roster : null);
+        static IReadOnlyList<AdmittedFighter> made = Array.Empty<AdmittedFighter>();
+        public static void SetMadeFighters(IReadOnlyList<AdmittedFighter> fighters)
+        {
+            var next = Current.WithMadeFighters(fighters);
+            made = fighters.ToArray();
+            source.Publish(next);
+        }
+        public static void ResetMadeSources() { made = Array.Empty<AdmittedFighter>(); source.Invalidate(); }
+        public IReadOnlyList<string> PackagesFor(bool allowMade)
+            => allowMade ? PackageIds : PackageIds.Where(id => catalog!.ResolvePackage(id)!.IsBundled).ToArray();
+        public string OriginLabel(string package) => catalog?.ResolvePackage(package)?.IsBundled != false ? ""
+            : package.StartsWith("workshop.", StringComparison.Ordinal) ? "WORKSHOP" : "YOURS";
         static readonly HashSet<string> warned = new(StringComparer.Ordinal);
         public static LocalFighterLibrary Current => source.Read();
         public static void Invalidate() => source.Invalidate();
@@ -43,6 +55,7 @@ namespace SlopArena.Client.UI
                 { snapshot = read(); revision = next; }
                 return snapshot;
             }
+            internal void Publish(LocalFighterLibrary value) { snapshot = value; revision = stamp(); }
             internal void Invalidate() => snapshot = null;
             internal LocalFighterLibrary Refresh() { Invalidate(); return Read(); }
         }
@@ -56,8 +69,8 @@ namespace SlopArena.Client.UI
                 ReadDevelopmentContent(ref content, ref policy, ref failure);
                 if (failure != null) throw new InvalidOperationException(failure);
                 content ??= BuiltInContentResolver.ReadApplicationCatalog();
-                var ids = ShippedRoster.ReadApplication().Manifest.Entries.Select(p => p.PackageId).ToList().AsReadOnly();
-                return new LocalFighterLibrary(content, ids, null, policy);
+                var ids = ShippedRoster.ReadApplication().Manifest.Entries.Select(p => p.PackageId).ToArray();
+                return new LocalFighterLibrary(content, ids, null, policy).WithMadeFighters(made);
             }
             catch (Exception error)
             {
@@ -115,14 +128,19 @@ namespace SlopArena.Client.UI
             failure = null;
             return true;
         }
-        public LocalFighterLibrary WithLocalItem(AdmittedFighter fighter)
+        public LocalFighterLibrary WithMadeFighters(IReadOnlyList<AdmittedFighter> fighters)
         {
             if (catalog == null) throw new InvalidOperationException(Diagnostic);
-            var admitted = catalog.Entries.Where(e => e.IsBundled).Select(e => e.Choose().Fighter).Append(fighter).ToArray();
+            if (fighters.Count == 0 && catalog.Entries.All(e => e.IsBundled)) return this;
+            var admitted = catalog.Entries.Where(e => e.IsBundled).Select(e => e.Choose().Fighter).Concat(fighters).ToArray();
             var built = new MatchContentCatalogBuilder().Build(admitted, policy);
             if (!built.IsValid) throw new InvalidOperationException(string.Join("; ", built.Diagnostics.Select(LocalFighterWorkspace.DiagnosticText)));
-            return new LocalFighterLibrary(built.Catalog, built.Catalog!.Entries.Select(e => e.Identity.PackageId).ToArray(), null, policy);
+            var bundled = PackageIds.Where(id => catalog.ResolvePackage(id)!.IsBundled);
+            var extras = built.Catalog!.Entries.Where(e => !e.IsBundled).OrderBy(e => e.DisplayName, StringComparer.OrdinalIgnoreCase)
+                .ThenBy(e => e.Identity.PackageId, StringComparer.Ordinal).Select(e => e.Identity.PackageId);
+            return new LocalFighterLibrary(built.Catalog, bundled.Concat(extras).ToArray(), null, policy);
         }
+        public LocalFighterLibrary WithLocalItem(AdmittedFighter fighter) => WithMadeFighters(new[] { fighter });
         public FighterChoice ChooseTrainingCpu()
         {
             var builtIns = new HashSet<string>(ShippedRoster.ReadApplication().Manifest.Entries.Select(e => e.PackageId), StringComparer.Ordinal);

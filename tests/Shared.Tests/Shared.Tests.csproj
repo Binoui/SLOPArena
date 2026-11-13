@@ -44,6 +44,7 @@
     <Compile Include="../../client/Unity/Assets/Scripts/Runtime/Workshop/ModelSwapSession.cs" Link="Workshop/ModelSwapSession.cs" />
     <Compile Include="../../client/Unity/Assets/Scripts/Runtime/Workshop/WorkshopLibrary.cs" Link="Workshop/WorkshopLibrary.cs" />
     <Compile Include="../../client/Unity/Assets/Scripts/Runtime/Workshop/ModelSwapBases.cs" Link="Workshop/ModelSwapBases.cs" />
+    <Compile Include="../../client/Unity/Assets/Scripts/Runtime/Workshop/FighterRevisionSet.cs" Link="Workshop/FighterRevisionSet.cs" />
     <Compile Include="../../client/Unity/Assets/Scripts/Runtime/Workshop/WorkshopPublishEdits.cs" Link="Workshop/WorkshopPublishEdits.cs" />
     <Compile Include="../../client/Unity/Assets/Scripts/Runtime/UI/UiModalState.cs" Link="UI/UiModalState.cs" />
     <Compile Include="../../client/Unity/Assets/Scripts/Runtime/UI/LocalFighterLibrary.Content.cs" Link="UI/LocalFighterLibrary.Content.cs" />

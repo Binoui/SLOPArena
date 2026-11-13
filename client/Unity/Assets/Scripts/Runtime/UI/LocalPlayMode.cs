@@ -79,6 +79,7 @@ namespace SlopArena.Client.UI
             MatchConfig.LocalMode = mode;
             var info = Current;
             info.Apply();
+            MatchConfig.ResetUnavailableSeats(LocalFighterLibrary.Current, MatchConfig.VisibleFighters(LocalFighterLibrary.Current));
             if (info.Seats == LocalSeatPolicy.HumanCourseSeats)
                 for (int player = 2; player <= 4; player++)
                     if (MatchConfig.Seat(player).Kind == SeatKind.Cpu)

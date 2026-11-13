@@ -41,6 +41,8 @@ namespace SlopArena.Client.Workshop
         public string Title { get; set; } = "";
         public string Description { get; set; } = "";
         public int Visibility { get; set; } = 2;
+        public string PreviewHash { get; set; } = "";
+        public string TagsHash { get; set; } = "";
         public static WorkshopPublishSettings Read(string path, string fallback)
         {
             try

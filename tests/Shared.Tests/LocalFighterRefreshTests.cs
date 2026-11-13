@@ -21,6 +21,32 @@ public partial class PackageFighterContentTests
     }
 
     [Fact]
+    public void InstalledSnapshotsAppendSortedMadeFightersAndKeepPreparedMatchesAfterRemoval()
+    {
+        var bundled = Library(Bundled());
+        var a = Fixture("local.zebra"); var b = Fixture("local.alpha");
+        var made = new[] { AdmittedFighter.TestFixture(a.Files, a.Requirement), AdmittedFighter.TestFixture(b.Files, b.Requirement) };
+        var installed = bundled.WithMadeFighters(made);
+        Assert.Equal(bundled.PackageIds, installed.PackageIds.Take(bundled.PackageIds.Count));
+        Assert.Equal(new[] { "local.alpha", "local.zebra" }, installed.PackageIds.Skip(bundled.PackageIds.Count));
+        var choice = installed.Choose("local.alpha");
+        Assert.True(installed.TryPrepare(new[] { choice, installed.Choose("fightguy") }, out var started, out var failure), failure);
+        var removed = installed.WithMadeFighters(Array.Empty<AdmittedFighter>());
+        Assert.False(removed.Contains("local.alpha"));
+        Assert.NotNull(choice.Resolve(started!));
+        Assert.NotNull(installed.Choose("local.alpha").Resolve(started!));
+        Assert.Equal(bundled.PackageIds, installed.PackagesFor(false));
+    }
+    [Fact]
+    public void MadeFightersAreHiddenWhenTheModeRequiresBundledContent()
+    {
+        var library = Library(RevisionCatalog("1.0.0"));
+        Assert.Empty(library.PackagesFor(false));
+        Assert.Equal(2, library.PackagesFor(true).Count);
+        Assert.Equal("YOURS", library.OriginLabel("local.refresh-player"));
+        Assert.Empty(Library(Bundled()).OriginLabel("fightguy"));
+    }
+    [Fact]
     public void WorkspaceLibraryRetainsDevelopmentPolicyAndListsOnlyResolvedPackages()
     {
         var entry = Bundled().Entries.First();
@@ -119,11 +145,13 @@ public partial class PackageFighterContentTests
         var catalog = RevisionCatalog("1.0.0");
         var selected = catalog.ResolvePackage("local.refresh-player")!.Choose();
         var saved = MatchConfig.Selection;
+        var seat = MatchConfig.SoloSeats[0];
         var mode = MatchConfig.Mode;
         try
         {
-            MatchConfig.Mode = GameMode.Arcade;
+            MatchConfig.Mode = GameMode.Training;
             MatchConfig.SetPlayerFighter(selected);
+            MatchConfig.SoloSeats[0].SetFighter(catalog.ResolvePackage("local.refresh-cpu")!.Choose());
             var selection = MatchConfig.Selection;
             Assert.True(MatchConfig.TryResolveLocalChoices(Library(catalog), out var choices, out _, "local.refresh-cpu"));
             Assert.Equal("local.refresh-cpu", choices[0].Revision.PackageId);
@@ -131,7 +159,7 @@ public partial class PackageFighterContentTests
             Assert.False(MatchConfig.TryResolveLocalChoices(Library(new MatchContentCatalog(Array.Empty<MatchContentEntry>())), out _, out _));
             Assert.Same(selection, MatchConfig.Selection);
         }
-        finally { MatchConfig.SetPlayerFighter(saved); MatchConfig.Mode = mode; }
+        finally { MatchConfig.SetPlayerFighter(saved); MatchConfig.Mode = mode; MatchConfig.SoloSeats[0] = seat; }
     }
 
     [Fact]

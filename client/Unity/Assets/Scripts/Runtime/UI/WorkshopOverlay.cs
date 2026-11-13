@@ -1,5 +1,6 @@
 #nullable enable
 using System;
+using SlopArena.Shared;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -321,6 +322,7 @@ namespace SlopArena.Client.UI
             if (orphaned) { OfferNew(item, settings); return; }
             var guidelines = new Toggle("I have read the content guidelines");
             _body.Add(Text("Credit your sources, respect creators, and mark AI-assisted work. Rights claims follow Steam's takedown process.")); _body.Add(guidelines);
+            bool submitted = current?.HasContent == true;
             var publish = Button(_body, settings.Id == 0 ? "PUBLISH TO STEAM" : "UPDATE STEAM ITEM " + settings.Id, () => Run(async () =>
             {
                 if (!SteamReady) throw new InvalidOperationException(SteamWorkshopClient.Unavailable);
@@ -331,9 +333,10 @@ namespace SlopArena.Client.UI
                     await Details(item); Status("The published item changed while this view was open. Review its current fields before updating."); return;
                 }
                 if (!IsOpen) return;
-                var edits = settings.Id == 0 ? new WorkshopPublishEdits(title.value, description.value, visibility.Index)
-                    : WorkshopPublishEdits.Changed(beforeTitle, beforeDescription, beforeVisibility, title.value, description.value, visibility.Index);
-                settings.Title = title.value; settings.Description = description.value; settings.Visibility = visibility.Index;
+                string publishTitle = title.value, publishDescription = description.value;
+                int publishVisibility = visibility.Index;
+                var edits = WorkshopPublishEdits.ForItem(submitted, beforeTitle, beforeDescription, beforeVisibility, publishTitle, publishDescription, publishVisibility);
+                settings.Title = publishTitle; settings.Description = publishDescription; settings.Visibility = publishVisibility;
                 string statePath = await Task.Run(() => { SaveSettings(item, settings); return _library.StatePath(item); });
                 string preview = PreviewPath(item);
                 bool exists = await Task.Run(() => File.Exists(preview));
@@ -348,6 +351,7 @@ namespace SlopArena.Client.UI
                 {
                     ulong id = await _steam.Publish(settings.Id, item.Folder, preview, edits,
                         created => { settings.Id = created; File.WriteAllText(statePath, JsonSerializer.Serialize(settings)); }, SteamWorkshopClient.OpenPage);
+                    submitted = true; beforeTitle = publishTitle; beforeDescription = publishDescription; beforeVisibility = publishVisibility;
                     Status("Published item " + id + ". Updates keep this Steam item ID.");
                 }
                 catch (WorkshopItemUnavailableException) { OfferNew(item, settings); throw; }
@@ -379,7 +383,16 @@ namespace SlopArena.Client.UI
                 Button(_body, "OPEN ON STEAM", () => SteamWorkshopClient.OpenPage(item.Id));
                 Button(_body, "DOWNLOAD AND VERIFY", () => Run(async () =>
                 {
-                    var installed = await _steam.Download(item.Id);
+                    string folder = await _steam.DownloadFolder(item.Id);
+                    var kind = await Task.Run(() => WorkshopItemManifestCodec.Read(WorkshopLibrary.ReadCapped(Path.Combine(folder, "item.json"), WorkshopItemManifestCodec.MaxManifestBytes)));
+                    if (kind.Manifest?.ItemType == "fighter")
+                    {
+                        var install = _steam.InstallRecord(item.Id);
+                        var fighter = await Task.Run(() => install.Admit());
+                        Status(fighter.Fighter == null ? string.Join("; ", fighter.Diagnostics.Select(LocalFighterWorkspace.DiagnosticText)) : "Fighter admitted. Subscribe on Steam to add it to Fighter Select; subscribed fighters appear after the library refresh.");
+                        return;
+                    }
+                    var installed = await Task.Run(() => WorkshopLibrary.Verify(folder));
                     if (!IsOpen) return;
                     var payload = installed.Payload();
                     using var model = await Load(payload.Glb, payload.BoneMap, verified: true);

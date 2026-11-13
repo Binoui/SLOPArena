@@ -1750,7 +1750,7 @@ Projectile lifetime outlasts rise plus mark. A projectile with homing or perch h
 
 ## Fighter items and portable bindings
 
-The fighter format remains open until the first fighter is published in unit 5.
+The first private fighter item was published in unit 5 on 2026-11-13. Published items keep their declared schema and root sampling rule.
 The authoritative contract is [ADR-0065](../adr/0065-workshop-item-format.md#portable-bindings).
 
 A fighter is a flat schema-2 `item.json` folder with type `fighter`, `itemVersion`, creator,
@@ -1811,8 +1811,8 @@ and cooked files at the [existing admission limits](../systems/cooked-package-ad
 Reads require regular files, refuse symbolic links/reparse points, FIFOs and devices before
 reading, and allow hard links whose actual bytes match the hashes. JPEGs require one frame header.
 
-The model-swap library reports "type not supported here" for a fighter item. Unit 5 will wire the
-fighter adapter to discovery. No product path currently admits external fighters.
+The model-swap library reports "type not supported here" for a fighter item. The fighter adapter
+admits cooked workspaces and Steam fighter subscriptions through their separate host origins.
 See `tools/PortableCookProof/README.md` for the rerunnable isolated Win64/Mono comparison.
 
 ## Cook a fighter in the installed game
@@ -1865,8 +1865,8 @@ game does not infer movement speeds, damage, shield size, or attack timing.
 
 **Try in Training** becomes available after admission. It starts player 1 as that
 exact fighter revision against a built-in CPU. Returning to Home reopens the
-workspace. Cooking another revision cannot change a running Match. This preview
-does not add the fighter to Fighter Select or online play and does not publish it.
+workspace. Cooking another revision cannot change a running Match. Latest admitted cooks also
+appear at Fighter Select for Brawl and Training. Online play remains unavailable for made fighters.
 
 Optional `cook.json` fields `portraits` and `icons` use the portable bindings shapes.
 `portraits` is one image filename or null per form. `icons` is one map per form from
@@ -1897,3 +1897,31 @@ fails or misses an event.
 Applying the sole suggestion changes only the `presentation.modelYOffset` number.
 The game preserves the remaining bytes, checks for a newer save, and replaces the
 file atomically. A conflicting save is refused rather than silently overwritten.
+
+
+### Publish a cooked fighter
+
+In **Make a fighter**, choose a workspace and wait for an admitted cook. Choose **Publish latest cook**,
+review the title, description and visibility, and accept the content guidelines. Private is the default.
+The portrait becomes the Steam preview. The installed game publishes only through store app 5324910.
+The Playtest app 5325920 displays an unavailable message.
+
+Steam assigns the published ID before upload. The game recooks the verified item as
+`workshop.<PublishedFileId>` and admits that result before uploading. The workspace keeps its
+`local.*` ID. Publishing again updates the saved Steam item. Unedited title, description and visibility
+retain their values from Steam. Portrait and tag updates are sent only when changed in the game.
+A retry after a failed first upload sends the complete title, description and visibility again.
+If the saved item was deleted or belongs to someone else, choose **Publish as a new item**.
+The portrait keeps its aspect and sRGB colour. Publishing pins the admitted cook shown by the view.
+If Steam requests its legal agreement, the item page opens.
+
+Steam subscriptions download automatically while Steam is available. Admission checks the Steam
+install record ID, payload hashes, limits and exact pose bake. A refusal appears in the Workshop
+workspace status list and never becomes a Fighter Select card. A new revision replaces the menu
+entry while Matches retain the revision they started with. Verification from the Published list
+requires subscribing separately before the published fighter appears at Fighter Select.
+
+The local library lists only workspace paths that still exist. After moving a workspace, cook its new
+path. If two existing workspaces have the same `local.*` ID, the status names both and identifies the
+`package.json.packageId` to rename. A refresh publishes its complete snapshot before releasing old
+presentation. Restricted modes validate every active seat again when resolving the Match.

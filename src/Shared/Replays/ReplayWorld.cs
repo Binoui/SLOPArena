@@ -112,6 +112,11 @@ namespace SlopArena.Shared.Replays
                 if (!reader.Range.HasValue) return Fail(new(ReplayFailureCode.EmptyReplay, "range", "", ""));
                 var arena = content.LoadArena(header.ArenaId);
                 if (arena == null) return Fail(new(ReplayFailureCode.ArenaUnavailable, header.ArenaId, "available", ""));
+                foreach (var participant in header.Roster)
+                    if ((participant.Package.PackageId.StartsWith("local.", StringComparison.Ordinal) || participant.Package.PackageId.StartsWith("workshop.", StringComparison.Ordinal))
+                        && content.Catalog.ResolvePackage(participant.Package.PackageId)?.Identity != participant.Package)
+                        return Fail(new(ReplayFailureCode.PackageUnavailable, participant.Package.PackageId,
+                            participant.Package.Version, "This made fighter was updated or removed. Its recorded revision is unavailable."));
                 var cast = ReplayCastIndex.Build(header, content);
                 if (cast == null) return Fail(new(ReplayFailureCode.PackageUnavailable, content.StandInPackageId, "stand-in", ""));
                 ReplayFailure? refusal = null;

@@ -14,17 +14,22 @@ namespace SlopArena.Client.Workshop
         public string Title { get; }
         public string Description { get; }
         public int Visibility { get; }
+        public bool HasContent { get; }
         public ulong Owner { get; }
+        public string ItemType { get; }
         public EItemState State => (EItemState)SteamUGC.GetItemState(new PublishedFileId_t(Id));
         public WorkshopSteamItem(SteamUGCDetails_t detail)
         {
+            ItemType = Array.Exists((detail.m_rgchTags ?? "").Split(','), tag => tag.Trim() == "model-swap") ? "model-swap"
+                : Array.Exists((detail.m_rgchTags ?? "").Split(','), tag => tag.Trim() == "fighter") ? "fighter" : "";
+            HasContent = detail.m_nFileSize > 0;
             Id = detail.m_nPublishedFileId.m_PublishedFileId; Title = detail.m_rgchTitle;
             Description = detail.m_rgchDescription; Visibility = (int)detail.m_eVisibility; Owner = detail.m_ulSteamIDOwner;
         }
     }
 
     // ChatSession keeps pumping callbacks after the screen closes. These operations retain their terminal results.
-    public sealed class SteamWorkshopClient
+    public sealed partial class SteamWorkshopClient
     {
         public static SteamWorkshopClient Shared { get; } = new();
         public const uint AppId = 5324910;
@@ -83,7 +88,14 @@ namespace SlopArena.Client.Workshop
             {
                 RequireAvailable(); LastOperation = "Preparing upload";
                 var item = await Task.Run(() => WorkshopLibrary.Verify(folder));
-                if (id != 0) WorkshopPublishEdits.RequireOwner((await GetItem(id)).Owner, SteamUser.GetSteamID().m_SteamID);
+                bool submittedBefore = false;
+                if (id != 0)
+                {
+                    var current = await GetItem(id);
+                    WorkshopPublishEdits.RequireOwner(current.Owner, SteamUser.GetSteamID().m_SteamID);
+                    submittedBefore = current.HasContent;
+                }
+                edits.RequireFirstSubmit(submittedBefore);
                 // Steam reads content asynchronously. Upload a private snapshot, not the mutable library folder.
                 stage = await Task.Run(() =>
                 {
@@ -159,7 +171,7 @@ namespace SlopArena.Client.Workshop
             return items;
         }
         public Task<WorkshopLibraryItem> Download(ulong id) => Downloads.Start("download:" + id, () => DownloadCore(id));
-        private static bool InstalledCurrent(ulong id, out string folder)
+        public static bool InstalledCurrent(ulong id, out string folder)
         {
             var file = new PublishedFileId_t(id);
             var state = (EItemState)SteamUGC.GetItemState(file);
@@ -169,8 +181,13 @@ namespace SlopArena.Client.Workshop
         }
         private async Task<WorkshopLibraryItem> DownloadCore(ulong id)
         {
+            string folder = await DownloadFolder(id);
+            return await Task.Run(() => WorkshopLibrary.Verify(folder));
+        }
+        public async Task<string> DownloadFolder(ulong id)
+        {
             RequireAvailable();
-            if (InstalledCurrent(id, out string folder)) return await Task.Run(() => WorkshopLibrary.Verify(folder));
+            if (InstalledCurrent(id, out string folder)) return folder;
             var completion = new TaskCompletionSource<EResult>();
             using var callback = Callback<DownloadItemResult_t>.Create(result =>
             {
@@ -180,11 +197,11 @@ namespace SlopArena.Client.Workshop
             while (!completion.Task.IsCompleted)
             {
                 await Task.WhenAny(completion.Task, Task.Delay(500));
-                if (!completion.Task.IsCompleted && InstalledCurrent(id, out folder)) return await Task.Run(() => WorkshopLibrary.Verify(folder));
+                if (!completion.Task.IsCompleted && InstalledCurrent(id, out folder)) return folder;
             }
             Result(await completion.Task);
             Require(SteamUGC.GetItemInstallInfo(new PublishedFileId_t(id), out _, out folder, 32768, out _), "install folder");
-            return await Task.Run(() => WorkshopLibrary.Verify(folder));
+            return folder;
         }
         public static void OpenPage(ulong id = 0) => SteamFriends.ActivateGameOverlayToWebPage(id == 0
             ? $"https://steamcommunity.com/app/{AppId}/workshop/" : $"https://steamcommunity.com/sharedfiles/filedetails/?id={id}");

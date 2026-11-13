@@ -376,7 +376,7 @@ one GLB, a portrait, and the editable source.
    admitted fighters under a match-content policy. Match presentation retains each entity's
    `FighterAppearance` and `FighterUiArt`; shipped descriptions, WIP flags, and Tutorial hints
    come from `card.json`. Generated UI bindings reach the existing art without moving it.
-   `LocalFighterLibrary` supplies the Fighter Select cards and package choices for local seats. Installed sources remain unit 5.
+   `LocalFighterLibrary` supplies the Fighter Select cards and package choices for local seats. Unit 5 adds admitted workspace and Steam subscription sources.
    Installed fighters wait for the loader, portable bindings, and runtime cook before entering
    the grid. See [fighter presentation](../characters/adding-a-new-character.md#fighter-presentation).
 4. **Cook in the game.** Run `CharacterPackageCompiler` with `CharacterCookProfile.Workshop`, bake
@@ -386,8 +386,20 @@ one GLB, a portrait, and the editable source.
    Salamander use no `slop.internal.*` capability today. FightGuy uses two, Manki four, and Wibou
    one, so those seven moves cannot be forked yet. A fork keeps the gameplay and loses the
    fighter's bespoke presentation scripts.
-6. **Publish and subscribe to fighters.** Show a Workshop badge at Fighter Select, as the WIP
-   badge does today.
+6. **Publish and subscribe to fighters.** Unit 5 implements the local library, Workshop badge,
+   identity recook and upload, and subscription admission. The store-app console client created
+   private Tumbleweed item `3839108801`, updated it once, subscribed, downloaded and admitted it
+   on 2026-11-13. Every downloaded file equals the verified local recook.
+   The unit 5 review pass adds mode checks at Match resolution, atomic source refreshes,
+   workspace path retirement, per-source failures, Steam download back-off, publish retry recovery,
+   and changed-only portrait/tag updates. Online grids retain Room locks through local refreshes.
+   Verification used one isolated Win64 player build, all seven unchanged cook checks, 20
+   pixel-equal built-in/online captures, five headless online startup fixtures, and player regressions
+   for mode switching, staged refresh, moved workspaces, locked Room controls and seat removal.
+   Shared passed 5,922 tests and Server 104. The isolated Editor retained only the known line-122
+   failure. Room and unsubscribe player regressions used local host fixtures in the Playtest build;
+   the Unity-free store-app client verified the real private Steam update and downloaded bytes.
+   The second-account subscribe-and-play check remains required.
 7. **Generate the authoring reference from code.** List the 12 operation kinds and the 14 public
    capabilities with their fields, bounds, and budget costs, plus one worked example. Write it so
    that an LLM agent can author a kit from it.
@@ -512,7 +524,7 @@ this table. Steps 0.2 and 0.4 later tested several rows, and "Phase 0 status" ha
 | Client presentation | | Bindings hold Editor object IDs. The player loads a generated catalog from `Resources`. No runtime importer | `CharacterBindingWriter.cs:25`, `client/Unity/Assets/Scripts/Runtime/Animation/CookedCharacterClientAssetResolver.cs:179` (V) |
 | Fighter look | One runtime pass builds every fighter material from base map, base colour, and cull mode | | `MatchVisualStyle.cs:76` (V) |
 | Presentation without fighter code | Salamander | Six fighters have their own presentation scripts | Explorer inventory of `Scripts/Runtime` (E) |
-| Roster and menus | `LocalFighterLibrary` preserves roster order and reads cooked names and generated card art. Local seats pin admitted revisions and forms. | Installed fighter sources remain unit 5 | `client/Unity/Assets/Scripts/Runtime/UI/LocalFighterLibrary.Content.cs`, `MatchConfig.cs`, ADR-0067 |
+| Roster and menus | `LocalFighterLibrary` preserves roster order and reads cooked names and generated card art. Local seats pin admitted revisions and forms. | Unit 5 adds admitted workspace and Steam sources; refreshes reuse bundled content | `client/Unity/Assets/Scripts/Runtime/UI/LocalFighterLibrary.Content.cs`, `MatchConfig.cs`, ADR-0067 |
 | Creator tools | Package template, `sloparena.character.create`, Ability Lab editing, cook, verify | Unity, paid Animancer 8.4.0, and the gateway are required. A clean-clone cook is unproven. No installed-game preview | `docs/contributing/unity-setup.md:157` (V) |
 | Steam | Web API tickets, rich presence, invites, SteamNetworkingSockets on client and server | No `ISteamUGC` call in either repository | Search of both repositories (V) |
 | Stages | A hashed `.arena` artifact, with its digest in match content | Visuals are `Resources` prefabs. The picker roster is not hash-pinned | `src/Shared/ArenaBinaryFormat.cs:41`, `MatchBase.cs:355` (E) |

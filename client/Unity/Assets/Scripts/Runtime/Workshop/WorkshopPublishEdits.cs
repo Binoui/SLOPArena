@@ -10,6 +10,15 @@ namespace SlopArena.Client.Workshop
         public string? Title { get; }
         public string? Description { get; }
         public int? Visibility { get; }
+        public bool UpdatePreview { get; private set; }
+        public bool UpdateTags { get; private set; }
+        public WorkshopPublishEdits Assets(bool preview, bool tags)
+        { UpdatePreview = preview; UpdateTags = tags; return this; }
+        public static bool AssetChanged(string? submitted, string current) => !string.IsNullOrEmpty(submitted) && submitted != current;
+        public static WorkshopPublishEdits ForItem(bool submitted, string beforeTitle, string beforeDescription, int beforeVisibility, string title, string description, int visibility)
+            => submitted ? Changed(beforeTitle, beforeDescription, beforeVisibility, title, description, visibility) : new(title, description, visibility);
+        public void RequireFirstSubmit(bool submitted)
+        { if (!submitted && (Title == null || Description == null || !Visibility.HasValue)) throw new InvalidOperationException("The first successful submission requires title, description and visibility."); }
         public WorkshopPublishEdits(string? title, string? description, int? visibility)
         { Title = title; Description = description; Visibility = visibility; }
         public static void RequireOwner(ulong owner, ulong user)
