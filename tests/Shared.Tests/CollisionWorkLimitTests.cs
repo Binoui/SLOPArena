@@ -167,20 +167,23 @@ public sealed class CollisionWorkLimitTests(ITestOutputHelper output)
         var schema=CharacterSourceSchema.Object("projectile");
         Assert.Equal(CookedPackageLimits.ProjectileSpeed,schema.Field("speed").GameplayMaximum);
         Assert.Equal(CookedPackageLimits.ProjectileLifetime,schema.Field("maxFlightTicks").GameplayMaximum);
+        Assert.Equal(1,schema.Field("maxFlightTicks").GameplayMinimum);
     }
 
     [Theory]
-    [InlineData("speed",121)][InlineData("maxFlightTicks",961)]
-    public void CookerAndLoaderUseTheSameProjectileDiagnostic(string field,int value)
+    [InlineData("speed",121,"bonk")][InlineData("maxFlightTicks",961,"bonk")][InlineData("maxFlightTicks",0,"wibou")]
+    public void CookerAndLoaderUseTheSameProjectileDiagnostic(string field,int value,string packageId)
     {
-        string root=Path.Combine(CookedPackageEdits.Root,"client/Unity/Assets/CharacterPackages/bonk");
+        string root=Path.Combine(CookedPackageEdits.Root,"client/Unity/Assets/CharacterPackages",packageId);
         var source=JsonNode.Parse(File.ReadAllText(root+"/character.json"))!;
         var projectile=source["slots"]!.AsArray().SelectMany(s=>s!["timeline"]!["stages"]!.AsArray())
             .SelectMany(s=>s!["operations"]!.AsArray()).First(o=>o!["projectile"]!=null)!["projectile"]!;
         projectile[field]=value;
         var cook=CharacterPackageCompiler.Compile(File.ReadAllText(root+"/package.json"),source.ToJsonString(),CharacterCookProfile.TrustedBuiltIn);
         Assert.Contains(cook.Diagnostics,d=>d.Code=="package.projectile.limit");
-        var files=CookedPackageEdits.Edit("bonk",p=>p.Slot("ground.A")["timeline"]!["stages"]![0]!["operations"]!.AsArray().First(o=>o!["projectile"]!=null)!["projectile"]![field]=value);
+        var files=CookedPackageEdits.Edit(packageId,p=>p.Runtime["character"]!["slots"]!.AsArray()
+            .SelectMany(s=>s!["timeline"]!["stages"]!.AsArray()).SelectMany(s=>s!["operations"]!.AsArray())
+            .First(o=>o!["projectile"]!=null)!["projectile"]![field]=value);
         var load=CookedCharacterPackageLoader.LoadFiles(files,CookedPackageEdits.RequirementOf(files),CharacterCookProfile.Workshop);
         Assert.Contains(load.Diagnostics,d=>d.Code=="package.projectile.limit");
     }
