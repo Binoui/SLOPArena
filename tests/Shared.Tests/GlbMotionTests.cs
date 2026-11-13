@@ -84,7 +84,8 @@ public sealed class GlbMotionTests
         Assert.Equal("glb.clip.frame-count", Refusal(new Clip("c", 10 / 60f, keys, FrameCount: 11)));
         Assert.Equal("glb.clip.extras", Refusal(new Clip("c", 10 / 60f, keys, ExtraSlop: new JsonObject { ["fps"] = 60 })));
         Assert.Equal("glb.clip.extras", Refusal(new Clip("c", 10 / 60f, keys, ExtraSlop: new JsonObject { ["durationSecondsBits"] = Bits(-1f) })));
-        Assert.Equal("glb.clip.duration", Refusal(new Clip("c", 8 / 60f, keys)));
+        Assert.Equal("glb.clip.keys", Refusal(new Clip("c", 8 / 60f, keys)));
+        Assert.Equal("glb.clip.duration", Refusal(new Clip("c", 8 / 60f, new[] { Arm(new[] { 0f, 9 / 60f }, k => k / 10.0) }, Interpolation: "STEP")));
     }
 
     [Fact]

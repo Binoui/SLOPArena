@@ -23,7 +23,7 @@ public sealed class FighterItemAdmissionTests
     }
 
     internal static Dictionary<string, byte[]> Item(string id = "local.tumbleweed", bool media = false, string kit = "Tumbleweed", bool midpoint = false,
-        Func<string, JsonObject>? animation = null, byte[]? model = null, string[]? attachments = null)
+        Func<string, JsonObject>? animation = null, byte[]? model = null, string[]? attachments = null, byte[]? humanoid = null)
     {
         string root = CookedPackageEdits.Root;
         var sourceFiles = new[] { "package.json", "character.json" }.ToDictionary(x => x,
@@ -66,7 +66,7 @@ public sealed class FighterItemAdmissionTests
         }
         var (item, diagnostics) = PortableFighterCook.Cook(new PortableFighterSource(sourceFiles["package.json"], sourceFiles["character.json"],
             Encoding.UTF8.GetBytes("{\"description\":\"Tumbleweed test kit\",\"workInProgress\":true,\"tutorialHint\":null}"), "tumbleweed.glb", model ?? Glb(),
-            animations, "test", "CC0", "Tumbleweed proof kit; synthetic fixture media", false, media ? HumanoidJson() : null, images, portraits, icons));
+            animations, "test", "CC0", "Tumbleweed proof kit; synthetic fixture media", false, humanoid ?? (media ? HumanoidJson() : null), images, portraits, icons));
         Assert.True(item != null, string.Join("\n", diagnostics));
         return item!;
     }

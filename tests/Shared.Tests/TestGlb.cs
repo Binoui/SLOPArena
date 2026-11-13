@@ -75,6 +75,49 @@ internal static class TestGlb
         }, loop);
     }
 
+    /// <summary>Edit a GLB's JSON; <c>append</c> adds float data to the BIN chunk and returns its new accessor index.</summary>
+    internal static byte[] Rewrite(byte[] glb, Action<JsonObject, Func<float[], string, int>> edit)
+    {
+        int jsonLength = BinaryPrimitives.ReadInt32LittleEndian(glb.AsSpan(12, 4));
+        var gltf = JsonNode.Parse(glb.AsSpan(20, jsonLength).ToArray())!.AsObject();
+        int binLength = BinaryPrimitives.ReadInt32LittleEndian(glb.AsSpan(20 + jsonLength, 4));
+        var bin = new MemoryStream();
+        bin.Write(glb, 28 + jsonLength, binLength);
+        int Append(float[] values, string type)
+        {
+            while (bin.Length % 4 != 0) bin.WriteByte(0);
+            long offset = bin.Length;
+            var bytes = new byte[values.Length * 4];
+            for (int i = 0; i < values.Length; i++) BinaryPrimitives.WriteInt32LittleEndian(bytes.AsSpan(i * 4), BitConverter.SingleToInt32Bits(values[i]));
+            bin.Write(bytes, 0, bytes.Length);
+            var views = gltf["bufferViews"]!.AsArray();
+            views.Add(new JsonObject { ["buffer"] = 0, ["byteOffset"] = offset, ["byteLength"] = bytes.Length });
+            var accessors = gltf["accessors"]!.AsArray();
+            var accessor = new JsonObject { ["bufferView"] = views.Count - 1, ["componentType"] = 5126, ["type"] = type,
+                ["count"] = values.Length / (type == "SCALAR" ? 1 : type == "VEC3" ? 3 : 4) };
+            if (type == "SCALAR") { accessor["min"] = new JsonArray(values.Min()); accessor["max"] = new JsonArray(values.Max()); }
+            accessors.Add(accessor);
+            return accessors.Count - 1;
+        }
+        edit(gltf, Append);
+        while (bin.Length % 4 != 0) bin.WriteByte(0);
+        gltf["buffers"]![0]!["byteLength"] = bin.Length;
+        return Pack(gltf, bin.ToArray());
+    }
+
+    private static byte[] Pack(JsonObject gltf, byte[] binBytes)
+    {
+        byte[] json = Encoding.UTF8.GetBytes(gltf.ToJsonString());
+        int jsonLength = (json.Length + 3) & ~3;
+        var glb = new byte[12 + 8 + jsonLength + 8 + binBytes.Length];
+        void U(int at, uint value) => BinaryPrimitives.WriteUInt32LittleEndian(glb.AsSpan(at), value);
+        U(0, 0x46546c67); U(4, 2); U(8, (uint)glb.Length); U(12, (uint)jsonLength); U(16, 0x4e4f534a);
+        glb.AsSpan(20, jsonLength).Fill(32); json.CopyTo(glb, 20);
+        U(20 + jsonLength, (uint)binBytes.Length); U(24 + jsonLength, 0x004e4942);
+        binBytes.CopyTo(glb, 28 + jsonLength);
+        return glb;
+    }
+
     internal static byte[] Build(IReadOnlyList<Clip> clips, float[]? armatureRotation = null, List<Node>? skeleton = null)
     {
         skeleton ??= Skeleton();
@@ -159,15 +202,6 @@ internal static class TestGlb
             ["scenes"] = new JsonArray(new JsonObject { ["nodes"] = new JsonArray(0, Index("Body")) }),
             ["animations"] = animations,
         };
-        byte[] json = Encoding.UTF8.GetBytes(gltf.ToJsonString());
-        int jsonLength = (json.Length + 3) & ~3;
-        byte[] binBytes = bin.ToArray();
-        var glb = new byte[12 + 8 + jsonLength + 8 + binBytes.Length];
-        void U(int at, uint value) => BinaryPrimitives.WriteUInt32LittleEndian(glb.AsSpan(at), value);
-        U(0, 0x46546c67); U(4, 2); U(8, (uint)glb.Length); U(12, (uint)jsonLength); U(16, 0x4e4f534a);
-        glb.AsSpan(20, jsonLength).Fill(32); json.CopyTo(glb, 20);
-        U(20 + jsonLength, (uint)binBytes.Length); U(24 + jsonLength, 0x004e4942);
-        binBytes.CopyTo(glb, 28 + jsonLength);
-        return glb;
+        return Pack(gltf, bin.ToArray());
     }
 }

@@ -60,10 +60,21 @@ public sealed class GlbClip
     {
         public int Node;
         public ChannelPath Path;
-        public int FirstTick;
-        public int Count;
+        /// <summary>Strictly increasing key ticks; a tick reads the last key at or before it, the first before them all.</summary>
+        public int[] Ticks = Array.Empty<int>();
         public float[] Values = Array.Empty<float>();
         public int Width => Path == ChannelPath.Rotation ? 4 : 3;
+
+        public int KeyAt(int tick)
+        {
+            int low = 0, high = Ticks.Length - 1;
+            while (low < high)
+            {
+                int mid = (low + high + 1) >> 1;
+                if (Ticks[mid] <= tick) low = mid; else high = mid - 1;
+            }
+            return low * Width;
+        }
     }
 
     internal readonly Channel[] Channels;
@@ -99,7 +110,7 @@ public sealed class GlbClip
             string name = source.NodeNames[from.Node] ?? throw new GlbMotionException("glb.clip.target", $"Clip '{Name}' animates an unnamed node.");
             int node = target.FindNode(name);
             if (node < 0) throw new GlbMotionException("glb.clip.target", $"Clip '{Name}' animates node '{name}', which the fighter does not have exactly once.");
-            channels[i] = new Channel { Node = node, Path = from.Path, FirstTick = from.FirstTick, Count = from.Count, Values = from.Values };
+            channels[i] = new Channel { Node = node, Path = from.Path, Ticks = from.Ticks, Values = from.Values };
         }
         return new GlbClip(Name, FrameCount, DurationSeconds, Loop, channels);
     }
@@ -124,6 +135,9 @@ public sealed class GlbMotionRig
     private readonly Dictionary<string, GlbClip> clips = new(StringComparer.Ordinal);
     private readonly Dictionary<string, int> clipIndex = new(StringComparer.Ordinal);
     private readonly JsonElement accessors, views;
+    private readonly Dictionary<int, float[]> accessorValues = new();
+    private readonly long accessorBudget;
+    private readonly bool[] drawnBone;
 
     public int NodeCount { get; }
     public IReadOnlyList<string?> NodeNames { get; }
@@ -136,10 +150,11 @@ public sealed class GlbMotionRig
     public GlbRootCorrection Root { get; }
     public IReadOnlyList<string> ClipNames { get; }
 
-    private GlbMotionRig(byte[] glb, int binOffset, JsonElement root, string? humanoidJson)
+    private GlbMotionRig(byte[] glb, int binOffset, int binLength, JsonElement root, string? humanoidJson)
     {
         this.glb = glb;
         this.binOffset = binOffset;
+        accessorBudget = binLength;
         accessors = Array(root, "accessors");
         views = Array(root, "bufferViews");
         var nodes = Array(root, "nodes");
@@ -172,6 +187,15 @@ public sealed class GlbMotionRig
         SceneOrder = System.Array.AsReadOnly(scene);
         var inScene = new bool[NodeCount];
         foreach (int n in scene) inScene[n] = true;
+        // A drawn bone is a joint of a skin that a mesh node in the default scene draws, or a node below one.
+        var skins = Array(root, "skins");
+        drawnBone = new bool[NodeCount];
+        foreach (int n in scene)
+            if (nodes[n].TryGetProperty("mesh", out _) && nodes[n].TryGetProperty("skin", out var skin))
+                foreach (var joint in Array(skins[skin.GetInt32()], "joints").EnumerateArray())
+                    if (inScene[joint.GetInt32()]) drawnBone[joint.GetInt32()] = true;
+        foreach (int n in scene)
+            if (parents[n] >= 0 && drawnBone[parents[n]]) drawnBone[n] = true;
 
         if (humanoidJson != null)
         {
@@ -188,8 +212,8 @@ public sealed class GlbMotionRig
         {
             string? nodeName = BoneMap.NodeFor(human);
             int node = nodeName == null ? -1 : FindNode(nodeName);
-            if (node < 0 || !inScene[node])
-                throw new GlbMotionException("glb.rig.bone", $"The rig has no {human} in its scene. Name its bones as Mixamo does, or add a humanoid.json.");
+            if (node < 0 || !drawnBone[node])
+                throw new GlbMotionException("glb.rig.bone", $"The rig has no {human} among the bones its drawn skin uses. Name its bones as Mixamo does, or add a humanoid.json.");
             return node;
         }
         Hips = Bone("Hips");
@@ -211,10 +235,11 @@ public sealed class GlbMotionRig
         if (!check.IsAccepted) throw new GlbMotionException(check.Diagnostics[0].Code, check.Diagnostics[0].Message);
         int jsonLength = BinaryPrimitives.ReadInt32LittleEndian(glb.AsSpan(12, 4));
         int binOffset = 20 + jsonLength + 8;
+        int binLength = glb.Length >= binOffset ? BinaryPrimitives.ReadInt32LittleEndian(glb.AsSpan(binOffset - 8, 4)) : 0;
         try
         {
             using var document = JsonDocument.Parse(glb.AsMemory(20, jsonLength), new JsonDocumentOptions { MaxDepth = WorkshopGlbLimits.Default.MaxJsonDepth });
-            return new GlbMotionRig(glb, binOffset, document.RootElement.Clone(), humanoidJson);
+            return new GlbMotionRig(glb, binOffset, binLength, document.RootElement.Clone(), humanoidJson);
         }
         catch (Exception ex) when (ex is JsonException or InvalidOperationException or KeyNotFoundException or FormatException or IndexOutOfRangeException or OverflowException)
         { throw new GlbMotionException("glb.rig.structure", ex.Message); }
@@ -235,6 +260,12 @@ public sealed class GlbMotionRig
 
     public bool HasClip(string name) => clipIndex.ContainsKey(name);
 
+    /// <summary>Bytes of distinct animation accessors read so far; never more than the BIN chunk holds.</summary>
+    internal long AnimationBytesRead { get; private set; }
+
+    /// <summary>The node is a joint of a skin drawn in the default scene, or below one: the only nodes the bake reads.</summary>
+    public bool IsDrawnBone(int node) => node >= 0 && node < NodeCount && drawnBone[node];
+
     /// <summary>The node uses a fixed matrix, which clips may not animate and the sampler reports as identity.</summary>
     public bool IsMatrixNode(int node) => restMatrix[node] != null;
 
@@ -252,13 +283,17 @@ public sealed class GlbMotionRig
     /// Rule 1's sampler: every node's local transform at <paramref name="tick"/> (0 .. FrameCount-1). Nodes the clip
     /// does not animate keep their rest transform; channels clamp outside their key range.
     /// </summary>
-    public void SampleLocal(GlbClip clip, int tick, Span<GlbNodePose> output)
+    public void SampleLocal(GlbClip clip, int tick, Span<GlbNodePose> output) => SampleLocal(clip, tick, output, null);
+
+    /// <summary>The same sampler, with channels limited to <paramref name="nodes"/> when given (the bake's chain).</summary>
+    internal void SampleLocal(GlbClip clip, int tick, Span<GlbNodePose> output, bool[]? nodes)
     {
         if (output.Length != NodeCount) throw new ArgumentException("One pose per node is required.", nameof(output));
         rest.AsSpan().CopyTo(output);
         foreach (var channel in clip.Channels)
         {
-            int k = Math.Min(Math.Max(tick - channel.FirstTick, 0), channel.Count - 1) * channel.Width;
+            if (nodes != null && !nodes[channel.Node]) continue;
+            int k = channel.KeyAt(tick);
             var v = channel.Values;
             var p = output[channel.Node];
             output[channel.Node] = channel.Path switch
@@ -381,14 +416,14 @@ public sealed class GlbMotionRig
         var samplers = Array(animation, "samplers");
         var channelElements = Array(animation, "channels").EnumerateArray().ToArray();
         if (channelElements.Length == 0) throw new GlbMotionException("glb.clip.empty", $"Clip '{name}' has no channels.");
-        var times = new Dictionary<int, float[]>();
+        // Ticks run 0 .. frameCount and repeat nowhere, so no channel has more keys than that.
+        int maxKeys = frameCount + 1;
         float[] Times(int sampler)
         {
-            if (times.TryGetValue(sampler, out var cached)) return cached;
-            var values = ReadFloats(samplers[sampler].GetProperty("input").GetInt32(), "SCALAR", name);
+            var values = Floats(samplers[sampler].GetProperty("input").GetInt32(), "SCALAR", maxKeys, name);
             for (int i = 1; i < values.Length; i++)
                 if (!(values[i] > values[i - 1])) throw new GlbMotionException("glb.clip.timing", $"Clip '{name}' key times must increase.");
-            return times[sampler] = values;
+            return values;
         }
         float clipStart = channelElements.Min(c => Times(c.GetProperty("sampler").GetInt32())[0]);
         var seen = new HashSet<(int, GlbClip.ChannelPath)>();
@@ -415,7 +450,7 @@ public sealed class GlbMotionRig
                 throw new GlbMotionException("glb.clip.interpolation", $"Clip '{name}' uses {interpolation} keys; export LINEAR or STEP keys on every 60 Hz frame.");
             var input = Times(samplerIndex);
             int width = path == GlbClip.ChannelPath.Rotation ? 4 : 3;
-            var output = ReadFloats(sampler.GetProperty("output").GetInt32(), width == 4 ? "VEC4" : "VEC3", name);
+            var output = Floats(sampler.GetProperty("output").GetInt32(), width == 4 ? "VEC4" : "VEC3", input.Length, name);
             if (output.Length != input.Length * width) throw new GlbMotionException("glb.clip.structure", $"Clip '{name}' has a sampler whose outputs do not match its keys.");
             var ticks = new int[input.Length];
             for (int k = 0; k < input.Length; k++)
@@ -427,21 +462,14 @@ public sealed class GlbMotionRig
                 if (tick > duration * 60.0 + TickTolerance)
                     throw new GlbMotionException("glb.clip.duration", $"Clip '{name}' has a key after its recorded duration.");
                 ticks[k] = (int)tick;
-            }
-            int first = ticks[0], count = ticks[ticks.Length - 1] - first + 1;
-            var values = new float[count * width];
-            for (int k = 0; k < ticks.Length; k++)
-            {
-                System.Array.Copy(output, k * width, values, (ticks[k] - first) * width, width);
-                int next = k + 1 < ticks.Length ? ticks[k + 1] : ticks[k] + 1;
-                if (next == ticks[k] + 1) continue;
-                if (interpolation == "LINEAR")
+                if (k > 0 && ticks[k] == ticks[k - 1])
+                    throw new GlbMotionException("glb.clip.timing", $"Clip '{name}' has two keys on tick {ticks[k]}; export one key per 60 Hz frame.");
+                if (k > 0 && ticks[k] > ticks[k - 1] + 1 && interpolation == "LINEAR")
                     for (int c = 0; c < width; c++)
-                        if (BitConverter.SingleToInt32Bits(output[k * width + c]) != BitConverter.SingleToInt32Bits(output[(k + 1) * width + c]))
+                        if (BitConverter.SingleToInt32Bits(output[(k - 1) * width + c]) != BitConverter.SingleToInt32Bits(output[k * width + c]))
                             throw new GlbMotionException("glb.clip.timing", $"Clip '{name}' skips frames between keys that differ; export a key on every 60 Hz frame.");
-                for (int gap = ticks[k] + 1; gap < next; gap++) System.Array.Copy(output, k * width, values, (gap - first) * width, width);
             }
-            channels.Add(new GlbClip.Channel { Node = node, Path = path, FirstTick = first, Count = count, Values = values });
+            channels.Add(new GlbClip.Channel { Node = node, Path = path, Ticks = ticks, Values = output });
         }
         return new GlbClip(name, frameCount, duration, loop, channels.OrderBy(c => c.Node).ThenBy(c => c.Path).ToArray());
     }
@@ -465,20 +493,35 @@ public sealed class GlbMotionRig
         if (bits == null || frames == null) throw new GlbMotionException("glb.clip.extras", Missing());
         float duration = BitConverter.Int32BitsToSingle(bits.Value);
         if (!(duration > 0) || float.IsInfinity(duration)) throw new GlbMotionException("glb.clip.extras", $"Clip '{name}' needs a finite positive duration.");
-        int expected = Math.Max(1, (int)Math.Ceiling((double)(float)(duration * 60.0)));
-        if (frames.Value != expected || expected > CookedPackageLimits.PoseFrames)
-            throw new GlbMotionException("glb.clip.frame-count", $"Clip '{name}' records {frames} frames; its duration gives {expected} (at most {CookedPackageLimits.PoseFrames}).");
+        // Range-checked in floating point; nothing converts to int until the frame count is known to fit.
+        double scaled = (float)(duration * 60.0);
+        if (!(scaled <= CookedPackageLimits.PoseFrames))
+            throw new GlbMotionException("glb.clip.frame-count", $"Clip '{name}' lasts more than {CookedPackageLimits.PoseFrames} frames.");
+        int expected = Math.Max(1, (int)Math.Ceiling(scaled));
+        if (frames.Value != expected)
+            throw new GlbMotionException("glb.clip.frame-count", $"Clip '{name}' records {frames} frames; its duration gives {expected}.");
         return (duration, expected, loop);
     }
 
-    private float[] ReadFloats(int accessorIndex, string type, string clip)
+    /// <summary>
+    /// An animation accessor's floats, read once per accessor and cached. Its count is bounded by
+    /// <paramref name="maxCount"/> and the total of distinct accessors by the BIN chunk, before any allocation.
+    /// </summary>
+    private float[] Floats(int accessorIndex, string type, int maxCount, string clip)
     {
         var accessor = accessors[accessorIndex];
         if (accessor.GetProperty("componentType").GetInt32() != 5126 || accessor.GetProperty("type").GetString() != type
             || accessor.TryGetProperty("normalized", out var normalized) && normalized.GetBoolean())
             throw new GlbMotionException("glb.clip.accessor", $"Clip '{clip}' must store {type} keys as 32-bit floats.");
+        long count = accessor.GetProperty("count").GetInt64();
+        if (count < 1 || count > maxCount)
+            throw new GlbMotionException("glb.clip.keys", $"Clip '{clip}' has an accessor of {count} keys; at most {maxCount} fit its frames.");
+        if (accessorValues.TryGetValue(accessorIndex, out var cached)) return cached;
         int width = type == "SCALAR" ? 1 : type == "VEC3" ? 3 : 4;
-        int count = accessor.GetProperty("count").GetInt32();
+        long bytes = count * width * 4;
+        if (AnimationBytesRead + bytes > accessorBudget)
+            throw new GlbMotionException("glb.limit.animation-bytes", $"Clip '{clip}' reads more animation data than the file holds ({accessorBudget} bytes).");
+        AnimationBytesRead += bytes;
         var view = views[accessor.GetProperty("bufferView").GetInt32()];
         int stride = view.TryGetProperty("byteStride", out var st) ? st.GetInt32() : 0;
         if (stride == 0) stride = width * 4;
@@ -492,7 +535,7 @@ public sealed class GlbMotionRig
                 if (float.IsNaN(value) || float.IsInfinity(value)) throw new GlbMotionException("glb.clip.value", $"Clip '{clip}' has a non-finite key.");
                 values[i * width + c] = value;
             }
-        return values;
+        return accessorValues[accessorIndex] = values;
     }
 
     private static readonly JsonElement EmptyArray = JsonDocument.Parse("[]").RootElement.Clone();

@@ -80,6 +80,8 @@ public static class PortablePoseBake
         var names = pointIds.Select(x => CharacterBoneRegistry.BakedName(x)!).Append(BakedAnimationData.HipsOffsetPointName).ToArray();
         if (names.Length > CookedPackageLimits.PoseBones) throw new GlbMotionException("item.pose-bake.point", "Too many baked points.");
         var chain = rig.Chain(nodes.Append(rig.Hips));
+        var inChain = new bool[rig.NodeCount];
+        foreach (int node in chain) inChain[node] = true;
         double scale = definition.Presentation.VisualScale, yOffset = definition.Presentation.ModelYOffset;
         var local = new GlbNodePose[rig.NodeCount];
         var world = new double[rig.NodeCount * 12];
@@ -91,7 +93,7 @@ public static class PortablePoseBake
             int at = 0;
             for (int tick = 0; tick < clip.FrameCount; tick++)
             {
-                rig.SampleLocal(clip, tick, local);
+                rig.SampleLocal(clip, tick, local, inChain);
                 rig.World(local, chain, world);
                 Model(rig.Hips, out double hx, out double hy, out double hz);
                 foreach (int node in nodes)
@@ -156,22 +158,21 @@ public static class PortablePoseBake
         return "poses.bin differs from the bake of the bound clips.";
     }
 
+    /// <summary>
+    /// The node a point is baked from. It must be a joint of the drawn skin or a node below one, so every baked point
+    /// is a position the renderer draws.
+    /// </summary>
     private static int PointNode(GlbMotionRig rig, string id)
     {
-        if (CharacterBoneRegistry.Find(id) is { } point)
-        {
-            string? name = rig.BoneMap.NodeFor(point.HumanoidBone);
-            int node = name == null ? -1 : rig.FindNode(name);
-            return node >= 0 ? node : throw new GlbMotionException("item.pose-bake.point", $"Point {id} needs the rig's {point.HumanoidBone} bone.");
-        }
-        bool rigId = CharacterBoneRegistry.IsRigId(id);
-        if (rigId || id.StartsWith("_", StringComparison.Ordinal) && id != BakedAnimationData.HipsOffsetPointName)
-        {
-            // An attachment point is a marker node of the same name, e.g. "_weapon_tip"; its drawn position is baked.
-            int node = rig.FindNode(rigId ? id.Substring(CharacterBoneRegistry.RigPrefix.Length) : id);
-            return node >= 0 && rig.SceneOrder.Contains(node) ? node : throw new GlbMotionException("item.pose-bake.point", $"Point {id} must name exactly one drawn node.");
-        }
-        throw new GlbMotionException("item.pose-bake.point", $"Point {id} is not a bone the bake can read.");
+        string? name;
+        if (CharacterBoneRegistry.Find(id) is { } point) name = rig.BoneMap.NodeFor(point.HumanoidBone);
+        else if (CharacterBoneRegistry.IsRigId(id)) name = id.Substring(CharacterBoneRegistry.RigPrefix.Length);
+        // An attachment point is a marker node of the same name, e.g. "_weapon_tip".
+        else if (id.StartsWith("_", StringComparison.Ordinal) && id != BakedAnimationData.HipsOffsetPointName) name = id;
+        else throw new GlbMotionException("item.pose-bake.point", $"Point {id} is not a bone the bake can read.");
+        int node = name == null ? -1 : rig.FindNode(name);
+        return rig.IsDrawnBone(node) ? node
+            : throw new GlbMotionException("item.pose-bake.point", $"Point {id} must be exactly one node among the bones the drawn skin uses.");
     }
 
     private static int Write(float[] values, int at, double x, double y, double z)
