@@ -141,6 +141,10 @@ and comparing these bytes at admission. Until that verifier exists, the internal
 all GLB-bound fighters with `item.pose-bake.unavailable`, "Pose bake verification not available".
 Shared clips are also unavailable. No external fighter may enter a Match before unit 4c lands.
 The unit 4b fixtures can assemble and pass the cooked loader but stop at this final gate.
+`rootRuleVersion` versions the complete sampling, correction and bake contract. Unit 4c must
+retain each published rule implementation throughout the supported runtime-API window.
+A changed sampler or bake rule receives a new version; it must not silently reinterpret older
+pose bytes. Exact shared-clip versions likewise remain available for that window.
 
 ### Item resource and filesystem limits
 
