@@ -118,10 +118,10 @@ sideways into a wide X-like silhouette and keep the twist.
 
 ## Hurtboxes and follow-ups
 
-- Shared hurtboxes keep the hit-clip poses during hitstun, and the jump/fall poses
-  afterwards. The laid-out body is up to about 0.8 m from them at the head and feet.
-  If juggles feel off, a follow-up can pose Shared hurtboxes from the tumble track for
-  qualifying launches. That is a gameplay change and needs its own approval.
+- Since 2026-11-14 ([ADR-0068](../adr/0068-shared-body-pose-clock.md)) Shared owns this
+  sequence as the body pose clock, so hurtboxes take the impact snap, tumble and recovery
+  poses the renderer draws. Before that, Shared hurtboxes kept the hit-clip poses during
+  hitstun and jump/fall afterwards, up to about 0.8 m from the laid-out body.
 - Landing from a laid-out pose is the main visual risk. Judge it in Training before
   considering a dedicated crash-landing clip.
 - If air drift turns the fighter, the laid-out body turns with it. Check this in
@@ -131,20 +131,22 @@ sideways into a wide X-like silhouette and keep the twist.
 
 ## Implementation
 
-- `PlayerRenderer` owns the sequence. At the first post-hitstop state of a new hit it
-  checks the applied `HitstunTicks` and the replicated knockback velocity. A
+- Shared's `BodyPoseClock` owns the sequence (ADR-0068). At the first post-hitstop tick of
+  a new hit it checks the applied `HitstunTicks` and the knockback velocity. A
   qualifying hit plays its hit clip at 1× and, after 10 hitstun ticks, starts the tumble
-  from tick 0 with an 8-tick fade. The tumble holds through post-hitstun flight and ends
-  on an action, on landing, or on a new hit. A landing inside hitstun finishes the hit
-  clip's ground recovery. Other hits keep the stretched reaction and never tumble
-  afterwards. The thresholds are the `Tumble*` constants at the top of the tumble fields.
-- The clip has no Loop Time. `MaintainTumbleLoop` wraps it from `TumbleLoopStartSeconds`
-  (0.4 s, the end of the shared clip's build-up). A clip imported with Loop Time cycles
-  whole instead. Move the loop start into binding metadata only if packages diverge.
-- `TryResolveScrubbedState` (Ability Lab and replay scrubbing) applies the same rule
-  inside hitstun. It rebuilds the applied hitstun from the pose clock and the launch rise
-  from the flight law. After hitstun it shows `fall`: a scrubbed state alone cannot tell
-  which hit launched the fighter.
+  from tick 0. The tumble holds through post-hitstun flight and ends on an action, on
+  landing, or on a new hit. A landing inside hitstun finishes the hit clip's ground
+  recovery. Other hits keep the stretched reaction and never tumble afterwards. The
+  thresholds are the `Tumble*` constants on `BodyPoseClock`. `PlayerRenderer` samples the
+  clock and keeps the 8-tick fade into the tumble.
+- The clip has no Loop Time. The clock wraps it from `TumbleLoopStartFrame` (24, the end
+  of the shared clip's build-up) for every tumble clip, so a clip imported with Loop Time
+  would also cycle from there. Move the loop start into binding metadata only if packages
+  diverge.
+- `TryResolveScrubbedState` (Ability Lab and replay scrubbing) shows a recorded clock when
+  it has one; Ability Lab scenario frames record it. Without one it applies the same rule
+  inside hitstun, rebuilding the applied hitstun from the pose clock and the launch rise
+  from the flight law.
 - `FighterHitFeel`'s launch stretch and smoke trail are unchanged and combine with the
   laid-out pose.
 

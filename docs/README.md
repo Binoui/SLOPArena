@@ -161,6 +161,7 @@ Accepted records for current gameplay, runtime and content decisions include:
 - [ADR-0065: What a Workshop item holds](adr/0065-workshop-item-format.md)
 - [ADR-0066: Match look: a look per stage, lights outside URP's limit and an ink line on fighters](adr/0066-stage-look.md)
 - [ADR-0067: A fighter is identified by its package](adr/0067-fighters-by-package.md)
+- [ADR-0068: The body pose clock is Shared state](adr/0068-shared-body-pose-clock.md)
 
 Older accepted ADRs remain the decision record for the mechanics they cover. If a living guide conflicts with an accepted ADR or current code, update the living guide; do not rewrite the historical decision.
 
