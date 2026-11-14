@@ -904,6 +904,7 @@ namespace SlopArena.Client.Entities
         private byte _lastClipIndex;
         private int _attackClipStartFrame = -1;
         private AnimancerState? _startingAttackClip;
+        private double _startingAttackSeekTime;
         private int _deathFlashTicks;
         private const int DeathFlashDuration = 6;
         private bool _wasGrounded = true;
@@ -1796,6 +1797,7 @@ namespace SlopArena.Client.Entities
                 if (elapsed <= MaxClipStartSeekTicks)
                     animState.Time = elapsed / 60f * animSpeed;
             }
+            _startingAttackSeekTime = animState.Time;
             _currentExtrapolationMode = ExtrapolationMode.None;
             // Cooked catalogs own extrapolation metadata; legacy configs retain
             // their existing per-definition overrides.
@@ -2249,15 +2251,18 @@ namespace SlopArena.Client.Entities
             }
 
             // Several fixed ticks can precede the first animation evaluation. Keep
-            // its initial seek on the last applied tick rather than the first one.
+            // its initial seek on the last applied tick rather than the first one,
+            // until the clip has advanced from that seek.
             if (state.State == ActionState.Attacking && _attackClipStartFrame == Time.frameCount
                 && _startingAttackClip is { } startingClip
                 && ReferenceEquals(_animancer.States.Current, startingClip)
+                && Math.Abs(startingClip.Time - _startingAttackSeekTime) < 1e-6
                 && _activeMove?.Timeline.Stages is { Count: > 0 })
             {
                 int elapsed = StageElapsedTicks(state, _activeMove, state.AnimIndex);
                 if (elapsed <= MaxClipStartSeekTicks)
                     startingClip.Time = elapsed / 60f * startingClip.Speed;
+                _startingAttackSeekTime = startingClip.Time;
             }
 
             _lastClipIndex = state.AnimIndex;
