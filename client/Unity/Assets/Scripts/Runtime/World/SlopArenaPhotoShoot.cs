@@ -247,7 +247,7 @@ namespace SlopArena.EditorTools
             }
             else
                 _bridge.SetRespawnPosition(fighter.Id, state.PX, state.PY, state.PZ, yaw);
-            renderer.ApplyServerState(_bridge.GetState(fighter.Id), _bridge.GetActiveMove(fighter.Id)?.Slot);
+            renderer.ApplyServerState(_bridge.GetState(fighter.Id), _bridge.GetActiveMove(fighter.Id)?.Slot, null, BodyClock(fighter.Id));
             return renderer;
         }
 
@@ -349,7 +349,7 @@ namespace SlopArena.EditorTools
                     blocked = hit.Blocked, tier = CombatFeedback.Classify(in hit).ToString()
                 });
             foreach (var fighter in Fighters)
-                _renderers[fighter.Id].ApplyServerState(_bridge.GetState(fighter.Id), _bridge.GetActiveMove(fighter.Id)?.Slot);
+                _renderers[fighter.Id].ApplyServerState(_bridge.GetState(fighter.Id), _bridge.GetActiveMove(fighter.Id)?.Slot, null, BodyClock(fighter.Id));
             _projectiles.OnTick();
             _feedback.OnTick();
             UpdateSwordTrailsFromResolver(_bridge.Resolver);

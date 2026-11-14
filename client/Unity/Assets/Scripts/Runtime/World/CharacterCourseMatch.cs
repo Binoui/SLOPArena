@@ -233,7 +233,7 @@ namespace SlopArena.Client.World
                 pendingSlotPress: slot, aimCtx: aim, canMove: null, targetEntityId: targetAlias);
             _bridge.Tick(new Dictionary<ulong, InputState> { [PlayerEntityId] = _probeInput ?? input });
             var fighter = _bridge.GetState(PlayerEntityId);
-            _playerRenderer.ApplyServerState(fighter, _bridge.GetActiveMove(PlayerEntityId)?.Slot);
+            _playerRenderer.ApplyServerState(fighter, _bridge.GetActiveMove(PlayerEntityId)?.Slot, null, BodyClock(PlayerEntityId));
             _presentation.AfterTick(Simulation, fighter);
             _projectileVFX?.OnTick(); _combatFeedback?.OnTick(); _hudManager?.Refresh();
             UpdateSwordTrailsFromResolver(Simulation.Resolver); PresentTimelineEvents();
@@ -296,7 +296,7 @@ namespace SlopArena.Client.World
             _projectileVFX.SetSimulation(Simulation);
             ResetSimulationPresentation();
             _playerRenderer.ResetForFreshSimulation();
-            _playerRenderer.ApplyServerState(_bridge.GetState(PlayerEntityId), _bridge.GetActiveMove(PlayerEntityId)?.Slot);
+            _playerRenderer.ApplyServerState(_bridge.GetState(PlayerEntityId), _bridge.GetActiveMove(PlayerEntityId)?.Slot, null, BodyClock(PlayerEntityId));
             _hudManager?.Refresh();
             _inputController.RequireReleaseBeforeHumanInput();
             _cameraMount?.ClearLockFocus(_playerRenderer.transform);

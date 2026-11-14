@@ -289,7 +289,7 @@ namespace SlopArena.Client.World
             {
                 if (!Fighters.TryGetValue(fighter.EntityId, out var renderer) || renderer == null) continue;
                 var state = world.GetState(fighter.EntityId);
-                renderer.ApplyServerState(state, world.GetActiveMove(fighter.EntityId)?.Slot, Clocks(fighter));
+                renderer.ApplyServerState(state, world.GetActiveMove(fighter.EntityId)?.Slot, Clocks(fighter), world.GetBodyClock(fighter.EntityId));
                 _poseTicks[fighter.EntityId] = _poseTicks.TryGetValue(fighter.EntityId, out var pose) && pose.State == state.State
                     ? (state.State, pose.Ticks + 1) : (state.State, 0);
                 if (state.State is ActionState.Attacking or ActionState.Aiming)

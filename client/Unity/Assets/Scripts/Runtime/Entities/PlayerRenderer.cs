@@ -588,7 +588,7 @@ namespace SlopArena.Client.Entities
             _activeExtrapolator = null;
             _currentExtrapolationMode = ExtrapolationMode.None;
             _attackPoseModelOffset = Vector3.zero;
-            ClearTumble();
+            _hasPresentedBodySegment = false;
             if (live is { } clip)
             {
                 var state = _animancer.Play(clip.Clip, 0f);
@@ -915,24 +915,16 @@ namespace SlopArena.Client.Entities
         private ClipExtrapolator? _activeExtrapolator;
         private ExtrapolationMode _currentExtrapolationMode;
         private AnimancerState? _currentAnimState;
-        // ── Hitstun extrapolation tracking ──
-        private bool _inHitstunAnim;
-        private float _hitstunAnimStartTime;
-        private float _hitstunAnimLength;
-        private string _lastHitstunAnimName = "";
-        // ── Airborne launch tumble (docs/design/airborne-tumble-animation.md) ──
-        // Strong launches play the hit clip's impact snap at its own speed, then the
-        // tumble's one-shot build-up, then its loop until the fighter acts or lands.
-        private const int TumbleMinHitstunTicks = 24;
-        private const float TumbleMinLaunchElevationDegrees = 15f;
-        private const int TumbleImpactSnapTicks = 10;
+        // ── Body pose clock (BodyPoseClock) ──
+        // Shared owns run cadence, hit reaction stretch, strong-launch tumble and landing recovery
+        // (docs/design/airborne-tumble-animation.md) and poses the hurtboxes with the same clock. The
+        // simulation's clock arrives with each state; without one (Replay View shells, tools) the
+        // renderer steps its own copy with the same Shared rules.
+        private BodyPoseClock _bodyClock;
+        private BodyPoseClock _localBodyClock;
+        private ushort _presentedBodySegment;
+        private bool _hasPresentedBodySegment;
         private const float TumbleEntryFadeSeconds = 8f / 60f;
-        // The shared tumble clip's build-up; clips imported without Loop Time cycle from here.
-        private const float TumbleLoopStartSeconds = 24f / 60f;
-        private bool _tumbleActive;
-        private AnimancerState? _tumbleState;
-        private bool _tumbleLaunchPending;
-        private int _tumbleLaunchHitstunTicks;
         // ── Aerial landing-lag presentation ──
         private bool _landingLagActive;
         // ── Hitstop freeze tracking (ADR-0012) ──
@@ -1094,13 +1086,20 @@ namespace SlopArena.Client.Entities
 
         /// <summary>Sample a recorded Shared state without Play Mode audio or movement effects.</summary>
         private bool TryResolveScrubbedState(in CharacterState snapshot, bool airborne, int poseTicks,
-            out AnimationClip clip, out float time)
+            BodyPoseClock body, out AnimationClip clip, out float time)
         {
             clip = null;
             time = 0f;
             LastAnimationClipNotInstalled = false;
             ShowForm(in snapshot);
             if (_animancer == null || _charDef == null) return false;
+            // A recorded body clock owns reactions, tumble, recovery and run exactly as live play shows them.
+            if (body.OwnsPresentation && body.OwnedAnimationId(_charDef) is { } owned)
+            {
+                if (!TryGetAnimation(owned, out clip, out _)) return false;
+                time = body.Frame / 60f;
+                return true;
+            }
             if (snapshot.State is ActionState.GrabAttempt or ActionState.Grabbing or ActionState.Grabbed
                 or ActionState.Throwing)
             {
@@ -1151,12 +1150,14 @@ namespace SlopArena.Client.Entities
                     float launchRise = snapshot.KVY + (snapshot.IsGrounded ? 0f
                         : SlopArena.Shared.Simulation.FlightGravity * SlopArena.Shared.Simulation.TickDt
                             * Mathf.Max(0, snapshot.AirTimeTicks - SlopArena.Shared.Simulation.KnockbackPopTicks));
-                    if (elapsed >= TumbleImpactSnapTicks && !snapshot.IsGrounded
-                        && IsTumbleLaunch(snapshot.HitstunTicks + elapsed, snapshot.KVX, launchRise, snapshot.KVZ)
+                    if (elapsed >= BodyPoseClock.TumbleImpactSnapTicks && !snapshot.IsGrounded
+                        && BodyPoseClock.IsTumbleLaunch(snapshot.HitstunTicks + elapsed, snapshot.KVX, launchRise, snapshot.KVZ)
                         && TryGetAnimation(_charDef.TumbleAnim, out var tumbleClip, out _))
                     {
                         clip = tumbleClip;
-                        time = TumbleTime(tumbleClip.isLooping, tumbleClip.length, (elapsed - TumbleImpactSnapTicks) / 60f);
+                        int tumbleFrames = _bakedData?.FrameCountFor(_charDef.TumbleAnim) ?? -1;
+                        time = BodyPoseClock.TumbleFrame(elapsed - BodyPoseClock.TumbleImpactSnapTicks,
+                            tumbleFrames > 0 ? tumbleFrames : Mathf.RoundToInt(tumbleClip.length * 60f)) / 60f;
                         return true;
                     }
                 }
@@ -1184,11 +1185,13 @@ namespace SlopArena.Client.Entities
         }
 
         public bool CanPlayScrubbedState(in CharacterState snapshot, bool airborne)
-            => TryResolveScrubbedState(snapshot, airborne, 0, out _, out _);
+            => TryResolveScrubbedState(snapshot, airborne, 0, default, out _, out _);
 
-        public bool PlayScrubbedState(in CharacterState snapshot, bool airborne, int poseTicks)
+        /// <param name="body">The recorded body pose clock for this state; without a sample, reactions and
+        /// locomotion are rebuilt from the state and <paramref name="poseTicks"/>.</param>
+        public bool PlayScrubbedState(in CharacterState snapshot, bool airborne, int poseTicks, BodyPoseClock body = default)
         {
-            if (!TryResolveScrubbedState(snapshot, airborne, poseTicks, out var clip, out float time))
+            if (!TryResolveScrubbedState(snapshot, airborne, poseTicks, body, out var clip, out float time))
                 return false;
             transform.SetPositionAndRotation(
                 new Vector3(snapshot.PX, snapshot.PY + _modelYOffset, snapshot.PZ),
@@ -1276,7 +1279,8 @@ namespace SlopArena.Client.Entities
             _hitFeel?.ResetForFreshSimulation();
             _deathFlashTicks = 0;
             foreach (var skin in BodySkins()) if (skin != null) skin.enabled = true;
-            _inHitstunAnim = false;
+            _bodyClock = default;
+            _localBodyClock = default;
             _presentedHitReactionSequence = 0;
             _hasAppliedState = false;
             _hasPresentedDeaths = false;
@@ -1414,10 +1418,14 @@ namespace SlopArena.Client.Entities
         }
         private readonly SkinnedMeshRenderer[] _firstSkin = new SkinnedMeshRenderer[1];
 
-        public void ApplyServerState(CharacterState state, CookedSlotDefinition? activeMove, RecordedFighterClocks? recorded = null)
+        /// <param name="body">The simulation's body pose clock for this state
+        /// (<see cref="ServerSimulation.GetBodyClock"/>); without a sample the renderer steps its own.</param>
+        public void ApplyServerState(CharacterState state, CookedSlotDefinition? activeMove, RecordedFighterClocks? recorded = null,
+            BodyPoseClock body = default)
         {
             _activeMove = activeMove;
             Recorded = recorded;
+            _bodyClock = body.HasSample ? body : StepLocalBodyClock(in state);
             bool wallJumped = !state.IsGrounded && state.WallJumpUsed && !_lastState.WallJumpUsed;
             ShowForm(in state);
             if (_charDef != null && Flying.Parameters(_charDef) is { } flight)
@@ -1493,7 +1501,6 @@ namespace SlopArena.Client.Entities
 
 
             UpdateAnimationState(state, wallJumped);
-            MaintainTumbleLoop();
             ApplyAttackPoseModel(state);
 
             UpdateShield(state);
@@ -1813,64 +1820,50 @@ namespace SlopArena.Client.Entities
             return true;
         }
 
-        private bool IsStrongAirborneLaunch(CharacterState state)
+        /// <summary>Step the renderer's own body clock with the Shared rules, for callers without the simulation's.</summary>
+        private BodyPoseClock StepLocalBodyClock(in CharacterState state)
         {
-            if (state.IsGrounded || !state.WasAirborneDuringKnockback)
-                return false;
-
-            // InPostHitstunFlight is authoritative in the local simulation. The
-            // motion fallback keeps the presentation correct for states reconstructed
-            // from the wire, where that server-local marker is not serialized.
-            if (state.InPostHitstunFlight)
-                return true;
-
-            const float motionEpsilon = 0.01f;
-            return Mathf.Abs(state.VY) > motionEpsilon
-                || state.VX * state.VX + state.VZ * state.VZ > motionEpsilon * motionEpsilon;
-        }
-
-        private void ClearTumble()
-        {
-            _tumbleActive = false;
-            _tumbleState = null;
-            _tumbleLaunchPending = false;
+            if (_charDef == null || _bakedData == null) return default;
+            AttackPose? attack = state.State is ActionState.Attacking or ActionState.Aiming && state.AttackSlot > 0
+                && _activeMove is { ClipCount: > 0 } move
+                ? Recorded?.Pose ?? move.Clip(state.AnimIndex % move.ClipCount).At(state.AttackElapsedTicks)
+                : null;
+            BodyPoseClock.Step(ref _localBodyClock, in state, _charDef, _bakedData, attack, out _, out _);
+            return _localBodyClock;
         }
 
         /// <summary>
-        /// Strong launches tumble: enough applied hitstun, sent upward steeply enough.
-        /// Spikes, flat ground kicks and small pops keep the hit reaction.
+        /// Show the clip the body clock owns at the clock's frame and speed. A new clock segment (a new
+        /// reaction, the tumble, the recovery, a run start) begins with that transition's crossfade; later
+        /// ticks only re-sample, so the drawn pose is the hurtbox pose on every simulated tick.
         /// </summary>
-        private static bool IsTumbleLaunch(int appliedHitstunTicks, float kvx, float kvy, float kvz)
+        private bool PresentBodyClock(float fadeDuration)
         {
-            if (appliedHitstunTicks < TumbleMinHitstunTicks || kvy <= 0f)
+            string? id = _bodyClock.OwnedAnimationId(_charDef);
+            if (id == null || !TryGetAnimation(id, out var clip, out _))
                 return false;
-            float horizontal = Mathf.Sqrt(kvx * kvx + kvz * kvz);
-            return Mathf.Atan2(kvy, horizontal) * Mathf.Rad2Deg >= TumbleMinLaunchElevationDegrees;
+            var animation = _animancer.States.Current;
+            if (!_hasPresentedBodySegment || _presentedBodySegment != _bodyClock.Segment
+                || animation == null || animation.Clip != clip)
+                animation = _animancer.Play(clip, fadeDuration);
+            animation.Time = _bodyClock.Frame / 60f;
+            animation.Speed = _bodyClock.Rate;
+            _presentedBodySegment = _bodyClock.Segment;
+            _hasPresentedBodySegment = true;
+            _currentAnimState = animation;
+            _activeExtrapolator = null;
+            _currentExtrapolationMode = ExtrapolationMode.None;
+            return true;
         }
 
-        /// <summary>Clip time for a tumble that has played for `seconds`: the build-up once, then the loop.</summary>
-        private static float TumbleTime(bool clipLoops, float length, float seconds)
+        /// <summary>The crossfade into a body clock segment, by the transition it starts.</summary>
+        private float BodyClockFade() => _bodyClock.Kind switch
         {
-            if (length <= 0f || seconds < length)
-                return Mathf.Max(0f, seconds);
-            if (clipLoops)
-                return seconds % length;
-            float loopStart = length > TumbleLoopStartSeconds + 0.1f ? TumbleLoopStartSeconds : 0f;
-            return loopStart + (seconds - loopStart) % (length - loopStart);
-        }
-
-        /// <summary>A launch that lands inside hitstun finishes the hit clip's ground recovery.</summary>
-        private void PlayHitRecovery(string hitName, CharacterState state)
-        {
-            if (!TryGetAnimation(hitName, out var clip, out _) || clip.length <= 0f)
-                return;
-            int applied = Math.Max(1, _tumbleLaunchHitstunTicks);
-            float progress = Mathf.Clamp01((float)(applied - state.HitstunTicks) / applied);
-            var recovery = _animancer.Play(clip, 0.1f);
-            recovery.Time = progress * clip.length;
-            recovery.Speed = clip.length * (1f - progress) / (Math.Max(1, (int)state.HitstunTicks) / 60f);
-            _currentAnimState = recovery;
-        }
+            BodyClipKind.Tumble => TumbleEntryFadeSeconds,
+            BodyClipKind.Recovery => 0.1f,
+            BodyClipKind.Run => _lastAnimState is ActionState.Crouching or ActionState.Sliding ? 0f : 0.1f,
+            _ => 0f,
+        };
 
         private bool TryPlayFall(float fadeDuration)
         {
@@ -1879,25 +1872,6 @@ namespace SlopArena.Client.Entities
 
             _animancer.Play(clip, fadeDuration);
             _jumpArcActive = false;
-            return true;
-        }
-
-        private bool TryPlayTumble()
-        {
-            if (!TryGetAnimation(_charDef.TumbleAnim, out var clip, out _))
-                return false;
-
-            // The build-up starts from its compact catch, whichever hit snap it blends from;
-            // MaintainTumbleLoop then cycles the rest until the fighter acts or lands.
-            var tumbleState = _animancer.Play(clip, TumbleEntryFadeSeconds);
-            tumbleState.Time = 0f;
-            tumbleState.Speed = 1f;
-            _tumbleActive = true;
-            _tumbleState = tumbleState;
-            _tumbleLaunchPending = false;
-            _currentAnimState = tumbleState;
-            _activeExtrapolator = null;
-            _currentExtrapolationMode = ExtrapolationMode.None;
             return true;
         }
 
@@ -1929,6 +1903,11 @@ namespace SlopArena.Client.Entities
                     releasePose.Time = releaseTime;
                     releasePose.Speed = 0f;
                 }
+                // The hurtbox froze on the hit tick's body clock sample; freeze the drawn clip there too.
+                if (_bodyClock.OwnsPresentation && _bodyClock.OwnedAnimationId(_charDef) is { } heldId
+                    && TryGetAnimation(heldId, out var heldClip, out _)
+                    && _animancer.States.Current is { } held && held.Clip == heldClip)
+                    held.Time = _bodyClock.Frame / 60f;
                 if (!_hitstopPaused)
                 {
                     // DIAG: hitstop lifecycle — correlate with in-game hit reactions.
@@ -1961,7 +1940,6 @@ namespace SlopArena.Client.Entities
             if (_flightUpperLayer != null) _flightUpperLayer.Speed = 1f;
             if (state.Flight.Active && TryPlayFlying(state))
             {
-                ClearTumble();
                 _jumpArcActive = false;
                 _lastClipIndex = state.AnimIndex;
                 _lastAttackSlot = state.AttackSlot;
@@ -1979,113 +1957,36 @@ namespace SlopArena.Client.Entities
                 || state.State is ActionState.HomingDashFloat or ActionState.HomingDash
                 || state.State == ActionState.Hitstun;
 
-            // ── Hitstun animation (always, even during extrapolation guard) ──
-            // Separate from stateChanged gate to handle re-hits during guard period.
+            // ── Hit reactions, impact snap, tumble and landing recovery (Shared body clock) ──
+            // The clock restarts a reaction on its reaction identity, stretches an ordinary reaction over
+            // its hitstun and plays it out through an airborne launch, snaps a strong launch into the
+            // tumble and carries the tumble until the fighter lands, jumps or acts. Hurtboxes take the
+            // same pose; a re-hit during the guard is handled here like any other new reaction.
+            if (_bodyClock.OwnsPresentation && _bodyClock.Kind != BodyClipKind.Run)
+            {
+                _jumpArcActive = false;
+                PresentBodyClock(BodyClockFade());
+                _lastAnimState = state.State;
+                _wasGrounded = state.IsGrounded;
+                return;
+            }
             if (state.State == ActionState.Hitstun)
             {
-                string hitName = state.HitstunLevel switch
-                {
-                    1 => _charDef.HitMediumAnim,
-                    2 => _charDef.HitHardAnim,
-                    _ => _charDef.HitSmallAnim
-                };
-                // Raw opponent snapshots may repeat or skip ticks. Reaction identity
-                // distinguishes actual re-hits, including shorter-stun follow-ups.
+                // No bake to clock against: hold the level's reaction at clip speed from each new reaction.
                 _jumpArcActive = false;
-
-                bool newHit = HitstunPresentation.ShouldRestart(
-                    _lastAnimState, _presentedHitReactionSequence, state);
-                if (newHit)
+                string hitName = BodyPoseClock.HitAnimation(_charDef, state.HitstunLevel);
+                if (HitstunPresentation.ShouldRestart(_lastAnimState, _presentedHitReactionSequence, state)
+                    && TryGetAnimation(hitName, out var clip, out _))
                 {
-                    ClearTumble();
-                    if (TryGetAnimation(hitName, out var clip, out _))
-                    {
-                        // A strong launch shows only the reaction's impact snap at its own
-                        // speed; the tumble takes over after TumbleImpactSnapTicks. Other hits
-                        // stretch the whole reaction over hitstun.
-                        bool launch = IsTumbleLaunch(state.HitstunTicks, state.KVX, state.KVY, state.KVZ)
-                            && TryGetAnimation(_charDef.TumbleAnim, out _, out _);
-                        float hsAnimSpeed = launch ? 1f : GetAnimSpeedFromDuration(hitName, state.HitstunTicks);
-                        var hsState = _animancer.Play(clip, 0f);
-                        hsState.Speed = hsAnimSpeed;
-                        _lastHitstunAnimName = hitName;
-                        _inHitstunAnim = !launch;
-                        _tumbleLaunchPending = launch;
-                        _tumbleLaunchHitstunTicks = state.HitstunTicks;
-                        _presentedHitReactionSequence = state.HitReactionSequence;
-                        _hitstunAnimStartTime = Time.time;
-                        _hitstunAnimLength = clip.length / hsAnimSpeed;
-                        // DIAG: hitstun clip restart — which clip, why, and the
-                        // tick delta vs the previous applied state.
-                        Debug.Log($"[HitstunAnim] RESTART ent={_entityId} clip={hitName} " +
-                            $"ticks={state.HitstunTicks} prevTicks={_lastState.HitstunTicks} " +
-                            $"level={state.HitstunLevel} firstEntry={_lastAnimState != ActionState.Hitstun} " +
-                            $"speed={hsAnimSpeed:F2} tumble={launch}");
-                    }
-                }
-                else if (_tumbleLaunchPending
-                    && _tumbleLaunchHitstunTicks - state.HitstunTicks >= TumbleImpactSnapTicks)
-                {
-                    _tumbleLaunchPending = false;
-                    if (state.IsGrounded)
-                        PlayHitRecovery(hitName, state);
-                    else
-                        TryPlayTumble();
-                }
-                else if (_tumbleActive && state.IsGrounded)
-                {
-                    // Landed inside hitstun (on a platform): the reaction's ground recovery fills the rest.
-                    ClearTumble();
-                    PlayHitRecovery(hitName, state);
+                    var reaction = _animancer.Play(clip, 0f);
+                    reaction.Time = 0f;
+                    reaction.Speed = 1f;
+                    _presentedHitReactionSequence = state.HitReactionSequence;
                 }
                 _lastAnimState = ActionState.Hitstun;
                 return;
             }
 
-            // ── Hitstun extrapolation guard ──
-            // Play the full hit reaction before blending. This guard also
-            // covers actionable Idle while post-hitstun flight still carries a launch.
-            if (_inHitstunAnim)
-            {
-                float elapsed = Time.time - _hitstunAnimStartTime;
-                bool actionStarted = (state.State != ActionState.Hitstun
-                        && state.State != ActionState.Idle
-                        && state.State != ActionState.Run)
-                    || (state.JumpsLeft < _lastState.JumpsLeft
-                        || wallJumped)
-                    || (_lastState.IsGrounded && !state.IsGrounded);
-                bool airborneLaunch = !actionStarted && IsStrongAirborneLaunch(state);
-                if (elapsed < _hitstunAnimLength
-                    && (state.State == ActionState.Hitstun || airborneLaunch))
-                {
-                    _lastAnimState = state.State;
-                    return;
-                }
-                _inHitstunAnim = false;
-            }
-            // Leaving hitstun before the impact snap ends (Burst) drops the pending tumble.
-            _tumbleLaunchPending = false;
-
-            // The tumble keeps carrying the fighter after hitstun, as in Melee, until it
-            // acts (the action's clip cuts in at once) or lands (locomotion blends in).
-            if (_tumbleActive)
-            {
-                bool jumpStarted = (state.JumpsLeft < _lastState.JumpsLeft
-                        || wallJumped)
-                    || (_lastState.IsGrounded && !state.IsGrounded);
-                bool explicitAction = state.State != ActionState.Idle
-                    && state.State != ActionState.Run;
-                if (state.IsGrounded || jumpStarted || explicitAction)
-                {
-                    ClearTumble();
-                }
-                else
-                {
-                    _lastAnimState = state.State;
-                    _wasGrounded = state.IsGrounded;
-                    return;
-                }
-            }
             // Landing lag blends the current aerial pose into idle for the
             // authoritative remaining lock duration. Auto-cancel/ordinary
             // landings carry zero ticks and fall straight through to idle/run.
@@ -2272,10 +2173,17 @@ namespace SlopArena.Client.Entities
                     {
                         // Missing legacy low content intentionally stays upright;
                         // never fabricate a low visual/hurtbox presentation.
-                        string animationId = hSpeed > _runSpeedThreshold
+                        // The body clock decides run or idle and times the run loop by speed. States it
+                        // poses with another clip (a mobile aim hold, a dodge recovery) keep the speed rule.
+                        bool clockIdle = _bodyClock.Kind == BodyClipKind.Pose && _bakedData != null
+                            && _bodyClock.AnimIndex == _bakedData.FindAnimIndex(_charDef.IdleAnim);
+                        bool running = _bodyClock.Kind == BodyClipKind.Run
+                            || (!clockIdle && hSpeed > _runSpeedThreshold);
+                        string animationId = running
                             ? _charDef.RunAnim
                             : _charDef.IdleAnim;
-                        if (TryGetAnimation(animationId, out var clip, out _))
+                        bool clocked = running && _bodyClock.Kind == BodyClipKind.Run && PresentBodyClock(BodyClockFade());
+                        if (!clocked && TryGetAnimation(animationId, out var clip, out _))
                         {
                             float fadeDuration = _lastAnimState is ActionState.Crouching or ActionState.Sliding
                                 ? 0f : 0.1f;
@@ -2360,25 +2268,8 @@ namespace SlopArena.Client.Entities
             _lastAnimState = state.State;
         }
 
-        private void MaintainTumbleLoop()
-        {
-            if (!_tumbleActive
-                || _tumbleState == null
-                || !ReferenceEquals(_animancer?.States.Current, _tumbleState)
-                || _tumbleState.IsLooping
-                || _tumbleState.Length <= 0f
-                || _tumbleState.Time < _tumbleState.Length)
-                return;
-
-            // Clips imported without Loop Time play their build-up once, then cycle from its end.
-            _tumbleState.Time = TumbleTime(false, _tumbleState.Length, _tumbleState.Time);
-            _tumbleState.IsPlaying = true;
-        }
-
         private void LateUpdate()
         {
-            MaintainTumbleLoop();
-
             if (_activeExtrapolator != null && _currentAnimState != null
                 && _currentExtrapolationMode == ExtrapolationMode.Continuous
                 && _currentAnimState.IsPlaying)
@@ -2439,7 +2330,7 @@ namespace SlopArena.Client.Entities
             _currentExtrapolationMode = ExtrapolationMode.None;
             _currentAnimState = null;
             _hitstopPaused = false;
-            ClearTumble();
+            _hasPresentedBodySegment = false;
             ClearLandingLagPresentation();
 
         }

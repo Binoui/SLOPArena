@@ -209,7 +209,8 @@ public sealed class AbilityLabSimulationController
             // The resolver drops a hitbox on its last tested tick; overlays need every tested one.
             var testedHitboxes = new List<Hitbox>(simulation.Resolver.LastTickCheckedHitboxes);
             frames.Add(new AbilityLabScenarioFrame(frame, matchTick, actor, opponent,
-                swordSeconds, hurtboxes, testedHitboxes, actorPoseTicks, opponentPoseTicks));
+                swordSeconds, hurtboxes, testedHitboxes, actorPoseTicks, opponentPoseTicks,
+                simulation.GetBodyClock(PreviewEntityId), simulation.GetBodyClock(opponentId)));
         }
         return new AbilityLabScenarioResult(options, frames, contacts, interactions, events, deaths);
     }

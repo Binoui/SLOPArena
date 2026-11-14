@@ -138,8 +138,8 @@ namespace SlopArena.Client.World
         {
             var player = _bridge.GetState(PlayerEntityId);
             var dummy = _bridge.GetState(DummyEntityId);
-            _playerRenderer.ApplyServerState(player, _bridge.GetActiveMove(PlayerEntityId)?.Slot);
-            _dummyRenderer.ApplyServerState(dummy, _bridge.GetActiveMove(DummyEntityId)?.Slot);
+            _playerRenderer.ApplyServerState(player, _bridge.GetActiveMove(PlayerEntityId)?.Slot, null, BodyClock(PlayerEntityId));
+            _dummyRenderer.ApplyServerState(dummy, _bridge.GetActiveMove(DummyEntityId)?.Slot, null, BodyClock(DummyEntityId));
             _projectileVFX?.OnTick(); _combatFeedback?.OnTick(); _hudManager?.Refresh();
             UpdateSwordTrailsFromResolver(Simulation.Resolver); PresentTimelineEvents();
             bool targeted = player.TargetEntityId == DummyEntityId;
@@ -186,7 +186,7 @@ namespace SlopArena.Client.World
             else _bridge.SetRespawnPosition(id, spot.X, y, spot.Z, spot.Yaw);
             renderer.ResetAnimationState();
             renderer.transform.SetPositionAndRotation(new(spot.X, y, spot.Z), Quaternion.Euler(0, spot.Yaw * Mathf.Rad2Deg, 0));
-            renderer.ApplyServerState(_bridge.GetState(id), _bridge.GetActiveMove(id)?.Slot);
+            renderer.ApplyServerState(_bridge.GetState(id), _bridge.GetActiveMove(id)?.Slot, null, BodyClock(id));
             _projectileVFX?.ClearHeldVisual(id);
         }
 

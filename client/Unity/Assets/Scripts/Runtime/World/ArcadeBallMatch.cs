@@ -231,7 +231,7 @@ namespace SlopArena.Client.World
                 aimCtx: aim, canMove: null, targetEntityId: target);
             _bridge.Tick(new Dictionary<ulong, InputState> { [PlayerEntityId] = _probeInput ?? input });
             _tick = _bridge.InternalSim.SimulationTick;
-            _playerRenderer.ApplyServerState(_bridge.GetState(PlayerEntityId), _bridge.GetActiveMove(PlayerEntityId)?.Slot);
+            _playerRenderer.ApplyServerState(_bridge.GetState(PlayerEntityId), _bridge.GetActiveMove(PlayerEntityId)?.Slot, null, BodyClock(PlayerEntityId));
             PresentBall();
             foreach (var hit in _bridge.LastTickHits)
                 if (hit.TargetEntityId == _bridge.InternalSim.ArcadeBall!.Value.EntityId) _attackContacts++;
