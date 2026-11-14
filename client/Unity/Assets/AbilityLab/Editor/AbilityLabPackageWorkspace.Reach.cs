@@ -119,9 +119,9 @@ public sealed partial class AbilityLabPackageWorkspace
         var resolution = LocalContentResolver.CreateDefault().ResolveRoster();
         if (!resolution.Success) throw new InvalidDataException(string.Join("; ", resolution.Diagnostics.Select(d => d.Message)));
         root = resolution.RootPath;
-        var paths = new[] { resolution.ManifestPath }.Concat(new[] { CharacterClass.FightGuy, CharacterClass.Manki }
+        var paths = new[] { resolution.ManifestPath }.Concat(new[] { "fightguy", "manki" }
             .Select(selector => Path.Combine(resolution.RootPath,
-                resolution.Roster.Resolve(selector)?.PackageId ?? throw new InvalidDataException($"Missing roster target {selector}."),
+                resolution.Roster.ResolvePackage(selector)?.PackageId ?? throw new InvalidDataException($"Missing roster target {selector}."),
                 "manifest.json")));
         return ReachHash(root + string.Concat(paths.Select(path => "\n" + path + "\n" + File.ReadAllText(path))));
     }

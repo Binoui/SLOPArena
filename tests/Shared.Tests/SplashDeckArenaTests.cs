@@ -23,8 +23,8 @@ public class SplashDeckArenaTests
     private const float RaisedTop = 1.5f;
     private const float KillY = -12f;
 
-    private static readonly CharacterClass[] Roster =
-        { CharacterClass.FightGuy, CharacterClass.Manki, CharacterClass.Wibou, CharacterClass.Bonk };
+    private static readonly string[] Roster =
+        { "fightguy", "manki", "wibou", "bonk" };
 
     private static readonly (float X, float Z)[] Hull = Outline();
     private static readonly (float X, float Z)[] Wheelhouse = Box(-13.5f, -2.5f, -7.5f, 2.5f);
@@ -113,7 +113,7 @@ public class SplashDeckArenaTests
     [Theory]
     [MemberData(nameof(HullContacts))]
     public void HullWallsBlockInwardMovementAndAllowOutwardMovement(
-        CharacterClass cls, float edgeX, float edgeZ, float outwardX, float outwardZ, float height)
+        string cls, float edgeX, float edgeZ, float outwardX, float outwardZ, float height)
     {
         var arena = Load();
         var def = TestHelpers.ResolveDef(cls);
@@ -144,7 +144,7 @@ public class SplashDeckArenaTests
 
     [Theory]
     [MemberData(nameof(RaisedContacts))]
-    public void RaisedSpotsBlockAFighterBelowTheirTop(CharacterClass cls, string spot, int degrees)
+    public void RaisedSpotsBlockAFighterBelowTheirTop(string cls, string spot, int degrees)
     {
         var arena = Load();
         var def = TestHelpers.ResolveDef(cls);
@@ -174,7 +174,7 @@ public class SplashDeckArenaTests
 
     [Theory]
     [MemberData(nameof(OneJumpClimbs))]
-    public void EveryFighterReachesEachRaisedSpotWithOneJump(CharacterClass cls, string spot)
+    public void EveryFighterReachesEachRaisedSpotWithOneJump(string cls, string spot)
     {
         var arena = Load();
         var def = TestHelpers.ResolveDef(cls);

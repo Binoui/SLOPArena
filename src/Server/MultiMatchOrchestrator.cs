@@ -103,7 +103,7 @@ namespace SlopArena.Server
             {
                 var courseArena = selectedArena;
                 if (roster.Any(p => p.EntityId <= 0 || p.EntityId >= 128 || p.Colour > 3
-                    || catalog.Resolve(p.CharacterClass) is not { } entry || !courseArena.Arcade!.AllowsPackage(entry.Identity.PackageId))
+                    || catalog.ResolvePackage(p.PackageId) is not { } entry || !courseArena.Arcade!.AllowsPackage(entry.Identity.PackageId))
                     || roster.Select(p => p.Colour).Distinct().Count() != roster.Count)
                 { error = "Course roster must use admitted fighters and distinct colours."; return false; }
             }

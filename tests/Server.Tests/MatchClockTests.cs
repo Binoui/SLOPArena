@@ -34,8 +34,8 @@ public class MatchClockTests
         var match = new MatchInstance(port, Guid.NewGuid().ToString(), ArenaRegistry.All.First(arena => arena.Purpose == ArenaPurpose.PvP),
             new[]
             {
-                new MatchPlayer(101, CharacterClass.FightGuy, 1),
-                new MatchPlayer(102, CharacterClass.Manki, 2),
+                new MatchPlayer(101, "fightguy", 1),
+                new MatchPlayer(102, "manki", 2),
             }, catalog.Catalog!, _ => ended.Set());
         var endpoint = new IPEndPoint(IPAddress.Loopback, port);
         var firstBaseline = new HashSet<ulong>();

@@ -24,12 +24,12 @@ public class MayhemRemixTests
     /// Salamander's first normal lands its second wall hit 102 ticks after the swing; with the Hard delay it leaves a
     /// solo Double cage at play tick 322 of 364 at tier three, so no hazard phase fits before its own cage bomb.
     /// </summary>
-    private static readonly (CharacterClass Fighter, ChannelId Goal, TwistId Twist, string Why)[] KitWaivers =
+    private static readonly (string Fighter, ChannelId Goal, TwistId Twist, string Why)[] KitWaivers =
     {
-        (CharacterClass.Salamander, MayhemChannels.BreakOut, new(3), "leaves a solo Double cage at 322 of 364 play ticks"),
+        ("salamander", MayhemChannels.BreakOut, new(3), "leaves a solo Double cage at 322 of 364 play ticks"),
     };
 
-    private static bool Waived(CharacterClass fighter, PrimePairEntry pair, TwistId goal)
+    private static bool Waived(string fighter, PrimePairEntry pair, TwistId goal)
         => KitWaivers.Any(w => w.Fighter == fighter && w.Goal == pair.Goal && w.Twist == goal);
 
     [Fact]
@@ -188,7 +188,7 @@ public class MayhemRemixTests
     private sealed record Run(int Passed, int Total, int HazardFailures, string? Problem);
 
     /// <summary>One remix airing with careful CPUs: no slips, the Hard reaction delay.</summary>
-    private static Run Careful(PrimePairEntry pair, uint seed, int episode, CharacterClass[] roster, int count = 4, RemixAiring? pin = null)
+    private static Run Careful(PrimePairEntry pair, uint seed, int episode, string[] roster, int count = 4, RemixAiring? pin = null)
     {
         var sim = MayhemWorld.NewShow(seed, count: count, roster: roster);
         if (pin != null) MayhemWorld.Pin(sim, episode, pin);
@@ -262,7 +262,7 @@ public class MayhemRemixTests
         var table = new StringBuilder($"### {pair.CopyKey}, {count} contestants\n\n| Goal twist | Hazard twist | Fixed roster passed | Hazard failures |{(count == 4 ? " Roster fighters passed | Hazard failures |" : "")}\n| --- | --- | ---: | ---: |{(count == 4 ? " ---: | ---: |" : "")}\n");
         var problems = new List<string>();
         var waived = new List<string>();
-        var fighters = count == 4 ? ((IEnumerable<object[]>)RosterFighters.All()).Select(row => (CharacterClass)row[0]).ToArray() : Array.Empty<CharacterClass>();
+        var fighters = count == 4 ? ((IEnumerable<object[]>)RosterFighters.All()).Select(row => (string)row[0]).ToArray() : Array.Empty<string>();
         foreach (var (_, goal, hazard) in MayhemWorld.RemixCombinations().Where(c => c.Pair.Id == pair.Id))
         {
             var seeds = CertificationSeeds(pair, goal, hazard).ToArray();

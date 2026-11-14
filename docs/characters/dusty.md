@@ -6,7 +6,7 @@
 > himself Dusty after the desert, which is funny for an animal that is permanently damp. His menu line stays
 > "The fastest fingers in the West."
 >
-> His package ID is still the working `salamander` (`CharacterClass` 7, selector `Salamander`). The player-facing name
+> His package ID is still the working `salamander` (legacy online selector `Salamander`). The player-facing name
 > changes when the kit is built. Earlier notes call him Salamander or Billy the Gill; the owner dropped the axolotl
 > name on 2026-10-26.
 

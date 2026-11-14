@@ -16,10 +16,10 @@ public class MayhemShowReportTests
     private readonly ITestOutputHelper _output;
     public MayhemShowReportTests(ITestOutputHelper output) => _output = output;
 
-    private static readonly CharacterClass[][] Casts =
+    private static readonly string[][] Casts =
     {
-        new[] { CharacterClass.FightGuy, CharacterClass.Manki, CharacterClass.Wibou, CharacterClass.Bonk },
-        new[] { CharacterClass.Bashie, CharacterClass.Nyx, CharacterClass.Salamander, CharacterClass.FightGuy },
+        new[] { "fightguy", "manki", "wibou", "bonk" },
+        new[] { "bashie", "nyx", "salamander", "fightguy" },
     };
 
     [Fact]

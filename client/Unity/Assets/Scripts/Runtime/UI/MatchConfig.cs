@@ -68,7 +68,7 @@ namespace SlopArena.Client.UI
         public sealed class PlayerSelection
         {
             public FighterChoice Choice { get; }
-            public CharacterClass Selector => Choice.LegacySelector ?? CharacterClass.None;
+
             public string PackageId => Choice.Revision.PackageId;
             public byte Form => Choice.StartingForm;
             public PlayerSelection(FighterChoice choice)
@@ -78,7 +78,6 @@ namespace SlopArena.Client.UI
         private static PlayerSelection? _player;
         private static byte _preferredPlayerForm;
         public static PlayerSelection Selection { get { EnsurePlayer(); return _player!; } }
-        public static CharacterClass PlayerClass { get { EnsurePlayer(); return _player?.Selector ?? CharacterClass.None; } }
         public static string PlayerPackageId { get { EnsurePlayer(); return _player?.PackageId ?? ""; } }
         public static byte PlayerForm
         {
@@ -112,19 +111,12 @@ namespace SlopArena.Client.UI
                 : library.TryChoose(packageId, library.HasForms(packageId) ? _preferredPlayerForm : (byte)0, out choice);
             if (resolved) SetPlayerFighter(choice!);
         }
-        public static void SetPlayerFighter(CharacterClass selector, string packageId)
+        public static void SetPlayerFighter(string selector, string packageId)
         {
-            if (ShippedRoster.ReadApplication().Manifest.Resolve(selector)?.PackageId != packageId)
+            if (ShippedRoster.ReadApplication().Manifest.ResolvePackage(selector)?.PackageId != packageId)
                 throw new System.ArgumentException("Selector and package disagree.");
             SetPlayerFighter(packageId);
         }
-        public static void SetPlayerFighter(CharacterClass selector)
-        {
-            if (ShippedRoster.TryReadApplication(out var roster, out _) && roster!.Manifest.Resolve(selector) is { } entry)
-                SetPlayerFighter(entry.PackageId);
-            else LocalFighterLibrary.ReportDiagnostic("[MatchConfig] Unknown fighter selector.");
-        }
-
         public static bool SetDefaultPlayerFighter()
         {
             if (!LocalFighterLibrary.Current.TryDefault(out var choice)) return false;
@@ -166,14 +158,12 @@ namespace SlopArena.Client.UI
         public sealed class OpponentInfo
         {
             public ulong EntityId { get; }
-            public SlopArena.Shared.CharacterClass Class { get; }
             public string PackageId { get; }
 
-            public OpponentInfo(ulong entityId, SlopArena.Shared.CharacterClass @class, string packageId = "")
+            public OpponentInfo(ulong entityId, string @class, string packageId = "")
             {
                 EntityId = entityId;
-                Class = @class;
-                PackageId = packageId ?? "";
+                PackageId = string.IsNullOrEmpty(packageId) ? @class : packageId;
             }
         }
 

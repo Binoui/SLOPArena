@@ -125,11 +125,11 @@ public class MayhemChannelTests
         Assert.Equal(MayhemPhase.Verdict, MayhemWorld.View(continuous).Cursor.Phase);
     }
 
-    public static TheoryData<CharacterClass> Roster() => RosterFighters.All();
+    public static TheoryData<string> Roster() => RosterFighters.All();
 
     [Theory]
     [MemberData(nameof(Roster))]
-    public void EveryRosterFighterPassesEveryChannelAtEveryTierAndFailsTheObjectivesIdle(CharacterClass fighter)
+    public void EveryRosterFighterPassesEveryChannelAtEveryTierAndFailsTheObjectivesIdle(string fighter)
     {
         var cast = new[] { fighter };
         var failures = new List<string>();
@@ -307,7 +307,7 @@ public class MayhemChannelTests
     [Fact]
     public void NoRunningCatchesMovementWhileWatchedButNotJumpsShovesOrStillness()
     {
-        var (sim, episode) = MayhemWorld.Airing(MayhemChannels.NoRunning, SpeedTier.One, count: 4, roster: new[] { CharacterClass.FightGuy });
+        var (sim, episode) = MayhemWorld.Airing(MayhemChannels.NoRunning, SpeedTier.One, count: 4, roster: new[] { "fightguy" });
         MayhemWorld.Step(sim);
         var watch = MayhemWorld.View(sim).Scene.Watches[0];
         MayhemDirectorTests.RunTo(sim, watch.StartTick + 4);
@@ -349,8 +349,8 @@ public class MayhemChannelTests
     {
         var casts = new[]
         {
-            (Seed: 101u, Cast: new[] { CharacterClass.FightGuy, CharacterClass.Manki, CharacterClass.Wibou, CharacterClass.Bonk }),
-            (Seed: 8020u, Cast: new[] { CharacterClass.Bashie, CharacterClass.Nyx, CharacterClass.Salamander, CharacterClass.FightGuy }),
+            (Seed: 101u, Cast: new[] { "fightguy", "manki", "wibou", "bonk" }),
+            (Seed: 8020u, Cast: new[] { "bashie", "nyx", "salamander", "fightguy" }),
         };
         foreach (var (seed, cast) in casts)
         {

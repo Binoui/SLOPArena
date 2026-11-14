@@ -36,7 +36,7 @@ public static class GrabAnimationPresentationSelfTest
             var renderer = root.AddComponent<PlayerRenderer>();
             var definition = new CharacterDefinition
             {
-                Class = CharacterClass.Manki,
+                PackageId = "manki",
                 IdleAnim = "anim.manki.idle",
                 HitSmallAnim = "anim.manki.hit-small",
                 CookedSlots = new[] { PresentationSelfTestContent.Move(0,
@@ -172,7 +172,7 @@ public static class GrabAnimationPresentationSelfTest
             File.ReadAllText("Assets/CharacterPackages/manki/package.json"),
             File.ReadAllText("Assets/CharacterPackages/manki/character.json"), CharacterCookProfile.TrustedBuiltIn);
         Require(compiled.CookedPackage != null && !compiled.HasErrors, "Manki source could not compile for pose capture.");
-        var definition = CookedCharacterRuntimeAdapter.ToCharacterDefinition(compiled.CookedPackage, CharacterClass.Manki);
+        var definition = CookedCharacterRuntimeAdapter.ToCharacterDefinition(compiled.CookedPackage);
         var catalog = ScriptableObject.CreateInstance<CharacterAnimationCatalog>();
         catalog.Animations = source.Bindings.Select(binding => new CharacterAnimationCatalog.AnimationEntry
         {

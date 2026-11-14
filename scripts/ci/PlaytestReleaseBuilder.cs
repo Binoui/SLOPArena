@@ -409,12 +409,12 @@ public static class PlaytestReleaseBuilder
             throw new InvalidDataException("Cooked roster failed canonical Shared catalog admission: " + Diagnostics(built.Diagnostics));
         var identities = built.Catalog.Entries.Select(entry =>
         {
-            if (!entry.LegacySelector.HasValue) throw new InvalidDataException("Canonical roster entry has no selector.");
-            return new PackageIdentityRow(entry.LegacySelector.Value.ToString(), entry.Identity.PackageId, entry.Identity.Version,
+            if (!entry.IsBundled) throw new InvalidDataException("Canonical roster entry is not bundled.");
+            return new PackageIdentityRow(LegacyFighterProtocol.Selector(entry.Identity.PackageId), entry.Identity.PackageId, entry.Identity.Version,
                 entry.Identity.SourceHash, entry.Identity.CookedContentHash, entry.Identity.PackageHash);
         }).OrderBy(x => x.packageId, StringComparer.Ordinal).ToArray();
         var mapRows = built.Catalog.Entries.Select(entry => new MatchContentHandleRecord(
-            entry.Handle, entry.LegacySelector ?? CharacterClass.None, entry.Identity, entry.DisplayName)).ToArray();
+            entry.Handle, entry.Identity.PackageId, entry.Identity, entry.DisplayName)).ToArray();
         var handleMap = new MatchContentHandleMap(MatchContentHandleMap.CurrentSchemaVersion, mapRows);
         return new PackageVerification(identities, SteamMatchDescriptor.HashCatalog(handleMap));
     }
@@ -444,7 +444,7 @@ public static class PlaytestReleaseBuilder
         }
     }
 
-    private static IReadOnlyList<PackageIdentityRow> VerifyAuthoringRoster(string projectRoot, BuiltInRosterManifest roster)
+    internal static IReadOnlyList<PackageIdentityRow> VerifyAuthoringRoster(string projectRoot, BuiltInRosterManifest roster)
     {
         var authoring = new CharacterPackageAuthoringService(projectRoot);
         var rows = new List<PackageIdentityRow>(roster.Entries.Count);
@@ -465,14 +465,14 @@ public static class PlaytestReleaseBuilder
                 diagnostics = verified.Diagnostics,
             });
             if (!verified.Success || verified.Inspection == null || verified.Plan == null || !verified.Plan.DryRun ||
-                !verified.Inspection.Rostered || !string.Equals(verified.Inspection.RosterSelector, entry.Selector.ToString(), StringComparison.Ordinal) ||
+                !verified.Inspection.Rostered || !string.Equals(verified.Inspection.RosterSelector, LegacyFighterProtocol.Selector(entry.PackageId), StringComparison.Ordinal) ||
                 !string.Equals(verified.Plan.PackageId, entry.PackageId, StringComparison.Ordinal) ||
                 !string.Equals(verified.Plan.CookedContentHash, entry.Requirement.CookedContentHash, StringComparison.Ordinal) ||
                 !string.Equals(verified.Plan.PackageHash, entry.Requirement.PackageHash, StringComparison.Ordinal) ||
                 !string.Equals(verified.Inspection.Provenance?.Version, entry.Requirement.Version, StringComparison.Ordinal))
                 failures.Add(entry.PackageId + ": " + string.Join("; ", verified.Diagnostics.Select(x => x.Code + " " + x.Path + ": " + x.Message)));
             else
-                rows.Add(new PackageIdentityRow(entry.Selector.ToString(), entry.PackageId, entry.Requirement.Version,
+                rows.Add(new PackageIdentityRow(LegacyFighterProtocol.Selector(entry.PackageId), entry.PackageId, entry.Requirement.Version,
                     verified.Plan.SourceHash, verified.Plan.CookedContentHash, verified.Plan.PackageHash));
         }
         WriteCookReport(projectRoot, "cook-verification.json", reports, failures.Count == 0);

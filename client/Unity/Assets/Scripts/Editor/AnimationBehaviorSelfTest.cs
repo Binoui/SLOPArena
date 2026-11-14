@@ -76,7 +76,7 @@ public static class AnimationBehaviorSelfTest
         try
         {
             var definition = CookedCharacterRuntimeAdapter.ToCharacterDefinition(preview.Package);
-            definition = definition with { Class = CharacterClass.Bonk };
+            definition = definition with { PackageId = "bonk" };
             var renderer = root.AddComponent<PlayerRenderer>();
             Require(renderer.Configure(definition, preview.BakedPoses, preview.AnimationCatalog,
                 preview.Rig, out var error), error);

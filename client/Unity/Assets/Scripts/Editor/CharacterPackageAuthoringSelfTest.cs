@@ -27,7 +27,7 @@ public static class CharacterPackageAuthoringSelfTest
         var service = new CharacterPackageAuthoringService(UnityCharacterAssetCooker.ProjectRoot());
         string rosterPath = Path.Combine(UnityCharacterAssetCooker.ProjectRoot(), "..", "..", "content-cooked/roster/manifest.json");
         BuiltInRosterManifest rosterBefore = BuiltInRosterManifestCodec.Load(rosterPath);
-        BuiltInRosterEntry fightGuyBefore = rosterBefore.Resolve(CharacterClass.FightGuy)!;
+        BuiltInRosterEntry fightGuyBefore = rosterBefore.ResolvePackage("fightguy")!;
         CharacterPackageInspectionResult initial = service.Inspect("fightguy");
         Require(initial.Success, "FightGuy inspection failed.");
         Require(initial.PackageId == "fightguy", "Inspection returned the wrong package ID.");
@@ -49,7 +49,7 @@ public static class CharacterPackageAuthoringSelfTest
         Require(directCook.Success, "Direct FightGuy cook failed.");
         Require(!string.IsNullOrEmpty(directCook.SourceHash) && !string.IsNullOrEmpty(directCook.CookedContentHash) && !string.IsNullOrEmpty(directCook.PackageHash),
             "Successful cook did not return hashes.");
-        BuiltInRosterEntry fightGuyAfter = BuiltInRosterManifestCodec.Load(rosterPath).Resolve(CharacterClass.FightGuy)!;
+        BuiltInRosterEntry fightGuyAfter = BuiltInRosterManifestCodec.Load(rosterPath).ResolvePackage("fightguy")!;
         Require(fightGuyAfter.Selector == fightGuyBefore.Selector &&
             fightGuyAfter.Requirement.PackageId == "fightguy" &&
             fightGuyAfter.Requirement.Version == fightGuyBefore.Requirement.Version &&
@@ -71,6 +71,20 @@ public static class CharacterPackageAuthoringSelfTest
         CharacterPackageCookResult commandCook = SlopArenaCharacterCommands.Cook("fightguy");
         Require(commandCook.Success && commandCook.SourceHash == directCook.SourceHash && commandCook.PackageHash == directCook.PackageHash,
             "Cook command did not delegate to the service result.");
+
+        byte[] admissionRoster = File.ReadAllBytes(rosterPath);
+        try
+        {
+            var freeRoster = new BuiltInRosterManifest(rosterBefore.SchemaVersion,
+                BuiltInRosterManifestCodec.Load(rosterPath).Entries.Where(e => e.PackageId != "bonk").ToArray());
+            File.WriteAllText(rosterPath, BuiltInRosterManifestCodec.Serialize(freeRoster));
+            var admitted = service.AdmitRoster("bonk", "Bonk");
+            Require(admitted.Success, "Free canonical selector must admit: " + string.Join("; ", admitted.Diagnostics.Select(d => d.Code + " " + d.Message)));
+            Require(admitted.Selector == "Bonk", "Admission result lost the canonical selector spelling.");
+            Require(BuiltInRosterManifestCodec.Load(rosterPath).ResolvePackage("bonk") != null,
+                "Successful admission did not persist Bonk.");
+        }
+        finally { File.WriteAllBytes(rosterPath, admissionRoster); }
 
         string projectRoot = UnityCharacterAssetCooker.ProjectRoot();
         string packageRoot = Path.Combine(projectRoot, "Assets/CharacterPackages/fightguy");

@@ -53,7 +53,7 @@ public partial class PackageFighterContentTests
         var builtins = Bundled();
         var entries = builtins.Entries.Select(e => new AdmittedFighter(
             CookedCharacterPackageLoader.LoadDirectory(Path.Combine(Root, "content-cooked", e.Identity.PackageId),
-                new(e.Identity.PackageId, e.Identity.Version, e.Identity.CookedContentHash, e.Identity.PackageHash)), e.LegacySelector,
+                new(e.Identity.PackageId, e.Identity.Version, e.Identity.CookedContentHash, e.Identity.PackageHash)),
                 ShippedRoster.ReadApplication())).Append(local).ToArray();
         var result = new MatchContentCatalogBuilder().Build(entries, MatchContentPolicy.LocalPlay);
         Assert.True(result.IsValid, string.Join("; ", result.Diagnostics));
@@ -65,9 +65,9 @@ public partial class PackageFighterContentTests
     {
         var catalog = Local();
         var local = catalog.ResolvePackage("local.tumbleweed")!;
-        var salamander = catalog.Resolve(CharacterClass.Salamander)!;
-        Assert.Null(local.LegacySelector);
-        Assert.Equal(CharacterClass.None, local.Definition.Class);
+        var salamander = catalog.ResolvePackage("salamander")!;
+        Assert.False(local.IsBundled);
+        Assert.Equal("local.tumbleweed", local.Definition.PackageId);
         Assert.Same(local, catalog.Resolve(local.Handle));
         Assert.Same(salamander, catalog.Resolve(salamander.Handle));
         Assert.NotEqual(local.Handle, salamander.Handle);

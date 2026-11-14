@@ -57,7 +57,7 @@ public partial class PackageFighterContentTests
             MatchConfig.Seat(3).Kind = SeatKind.Cpu;
             MatchConfig.Seat(3).SetFighter(seatThree);
             Assert.Equal(SeatKind.Cpu, MatchConfig.Seat(3).Kind);
-            Assert.Null(seatThree.LegacySelector);
+            Assert.StartsWith("local.", seatThree.Revision.PackageId);
             var library = (LocalFighterLibrary)Activator.CreateInstance(typeof(LocalFighterLibrary),
                 System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic, null,
                 new object?[] { catalog, catalog.Entries.Select(e => e.Identity.PackageId).ToList().AsReadOnly(), null, MatchContentPolicy.LocalPlay }, null)!;
@@ -87,7 +87,7 @@ public partial class PackageFighterContentTests
             }
             Assert.Equal((ulong)3, simulation.GetState(3).EntityId);
             Assert.Null(seatThree.Resolve(Bundled()));
-            var changed = new MatchContentEntry(entry.Handle, null, entry.Identity with { PackageHash = new string('0', 64) }, entry.DisplayName, entry.Definition);
+            var changed = new MatchContentEntry(entry.Handle, entry.Identity with { PackageHash = new string('0', 64) }, entry.DisplayName, entry.Definition);
             Assert.Null(seatThree.Resolve(new MatchContentCatalog(new[] { changed })));
         }
         finally { MatchConfig.Seat(3) = saved; }

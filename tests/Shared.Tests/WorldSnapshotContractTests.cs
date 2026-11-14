@@ -17,8 +17,8 @@ namespace SlopArena.Shared.Tests;
 /// </summary>
 public class WorldSnapshotContractTests
 {
-    private static readonly CharacterClass[] Roster =
-        { CharacterClass.FightGuy, CharacterClass.Manki, CharacterClass.Wibou, CharacterClass.Bonk, CharacterClass.Bashie };
+    private static readonly string[] Roster =
+        { "fightguy", "manki", "wibou", "bonk", "bashie" };
 
     /// <summary>Wiring re-attached by the simulation on restore; never part of a snapshot.</summary>
     private static readonly HashSet<string> Wiring = new()

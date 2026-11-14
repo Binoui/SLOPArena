@@ -13,7 +13,7 @@ public class MayhemTallWaveTests
     public MayhemTallWaveTests(ITestOutputHelper output) => _output = output;
     [Theory]
     [MemberData(nameof(RosterFighters.All), MemberType = typeof(RosterFighters))]
-    public void NoSingleJumpTimingClearsTallWave(CharacterClass fighter)
+    public void NoSingleJumpTimingClearsTallWave(string fighter)
     {
         foreach (var tier in Enum.GetValues<SpeedTier>())
         {
@@ -37,7 +37,7 @@ public class MayhemTallWaveTests
 
     [Theory]
     [MemberData(nameof(RosterFighters.All), MemberType = typeof(RosterFighters))]
-    public void DoubleJumpClearsTallWaveAndOneJumpFails(CharacterClass fighter)
+    public void DoubleJumpClearsTallWaveAndOneJumpFails(string fighter)
     {
         foreach (var tier in Enum.GetValues<SpeedTier>())
         foreach (bool doubleJump in new[] { false, true })

@@ -11,7 +11,7 @@ namespace SlopArena.Server.Tests;
 public sealed class ArenaIdentityAdmissionTests
 {
     private static readonly string Root = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "../../../../../"));
-    private static MatchPlayer[] Roster => new[] { new MatchPlayer(1, CharacterClass.FightGuy, 1), new MatchPlayer(2, CharacterClass.Manki, 2) };
+    private static MatchPlayer[] Roster => new[] { new MatchPlayer(1, "fightguy", 1), new MatchPlayer(2, "manki", 2) };
 
     [Fact]
     public void UnknownDevelopmentArenaIsRejectedBeforeAllocation()
@@ -20,7 +20,7 @@ public sealed class ArenaIdentityAdmissionTests
         try
         {
             Assert.False(orchestrator.TryAssignMatch(Guid.NewGuid().ToString("D"), "missing-arena",
-                new[] { new MatchPlayer(1, CharacterClass.FightGuy, 1), new MatchPlayer(2, CharacterClass.Manki, 2) },
+                new[] { new MatchPlayer(1, "fightguy", 1), new MatchPlayer(2, "manki", 2) },
                 3, null, null, out int port, out _, out _, out string? error));
             Assert.Equal(-1, port);
             Assert.Contains("missing-arena", error);

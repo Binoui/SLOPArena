@@ -19,9 +19,9 @@ public class WorldFramePacketTests
     private readonly ITestOutputHelper _output;
     public WorldFramePacketTests(ITestOutputHelper output) => _output = output;
 
-    private static readonly CharacterClass[] Duel = { CharacterClass.Manki, CharacterClass.Wibou };
-    private static readonly CharacterClass[] FourWay =
-        { CharacterClass.FightGuy, CharacterClass.Manki, CharacterClass.Wibou, CharacterClass.Bonk };
+    private static readonly string[] Duel = { "manki", "wibou" };
+    private static readonly string[] FourWay =
+        { "fightguy", "manki", "wibou", "bonk" };
 
     [Fact]
     public void FramesRoundTripAndRestoreThroughTheWire()
@@ -59,7 +59,7 @@ public class WorldFramePacketTests
     public void CoopRunFramesCarryTheirSlopballEvents()
     {
         var arena = WorldSnapshotTests.LoadArena("slopball");
-        var roster = new[] { CharacterClass.FightGuy, CharacterClass.Bonk };
+        var roster = new[] { "fightguy", "bonk" };
         var server = ArcadeSnapshotTests.NewRun(arena, roster, reverseRegistration: false);
         var history = new WorldFrameHistory();
         var inputs = new Dictionary<ulong, InputState>();
@@ -268,7 +268,7 @@ public class WorldFramePacketTests
 
     /// <summary>A GameHost-like loop: tick, then frame the snapshot, the consumed inputs and the
     /// last three ticks' events and hits.</summary>
-    private static List<(WorldFramePacket Frame, byte[] Bytes)> Fight(ArenaDefinition arena, CharacterClass[] roster,
+    private static List<(WorldFramePacket Frame, byte[] Bytes)> Fight(ArenaDefinition arena, string[] roster,
         int seed, int ticks, out ServerSimulation server)
     {
         server = WorldSnapshotTests.NewMatch(arena, roster, reverseRegistration: false);

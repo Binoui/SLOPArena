@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using System.Linq;
 using Newtonsoft.Json.Linq;
 using SlopArena.Client.Animation;
 using SlopArena.Shared;
@@ -15,7 +16,20 @@ public static class PlaytestReleaseBuilderSelfTest
         var roster = JObject.Parse(File.ReadAllText(Path.Combine(repository, "content-cooked/roster/manifest.json")));
         foreach (var entry in roster["entries"])
             Run(Path.Combine(repository, "content-cooked", (string)entry["packageId"], "client.bindings"));
+        VerifyRosterSelectorSpelling(repository);
         Debug.Log("PLAYTEST_RELEASE_SELFTEST_OK");
+    }
+
+    public static void VerifyRosterSelectorSpelling(string repository)
+    {
+        string content = Path.Combine(repository, "content-cooked");
+        var roster = BuiltInRosterManifestCodec.Load(Path.Combine(content, "roster/manifest.json"));
+        var packaged = PlaytestReleaseBuilder.VerifyPackagedContent(content).Identities;
+        var authored = PlaytestReleaseBuilder.VerifyAuthoringRoster(Path.Combine(repository, "client/Unity"), roster);
+        string[] expected = { "Bashie", "Bonk", "FightGuy", "Manki", "Nyx", "Salamander", "Wibou" };
+        if (!packaged.Select(row => row.selector).SequenceEqual(expected)
+            || !authored.Select(row => row.selector).SequenceEqual(expected))
+            throw new InvalidOperationException("Both release identity paths must preserve the shipped online selector spelling.");
     }
 
     public static string[] Run(string bindingPath)

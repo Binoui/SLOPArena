@@ -38,11 +38,11 @@ public class LedgeWalkOffTests
     }
 
     [Theory]
-    [InlineData(CharacterClass.FightGuy)]
-    [InlineData(CharacterClass.Manki)]
-    [InlineData(CharacterClass.Wibou)]
-    [InlineData(CharacterClass.Bonk)]
-    public void RunOffPlatform_FallsImmediately_NoHover_NoSelfGrab(CharacterClass cls)
+    [InlineData("fightguy")]
+    [InlineData("manki")]
+    [InlineData("wibou")]
+    [InlineData("bonk")]
+    public void RunOffPlatform_FallsImmediately_NoHover_NoSelfGrab(string cls)
     {
         const float platformY = 6f;
         const int edgeCell = 16; // solid cells x in [0,16) — world edge at x=16
@@ -81,7 +81,7 @@ public class LedgeWalkOffTests
     {
         const float platformY = 6f;
         const int edgeCell = 16;
-        var def = BuiltInContentResolver.Resolve(CharacterClass.FightGuy).Definition;
+        var def = BuiltInContentResolver.ResolvePackage("fightguy").Definition;
         var sim = TestHelpers.MakeSim(PlatformArena(platformY, edgeCell));
         var s = TestHelpers.PlayerState(12f, 100f);
         s.PY = platformY + def.CapsuleHeight * 0.5f;
@@ -110,11 +110,11 @@ public class LedgeWalkOffTests
     }
 
     [Theory]
-    [InlineData(CharacterClass.FightGuy)]
-    [InlineData(CharacterClass.Manki)]
-    [InlineData(CharacterClass.Wibou)]
-    [InlineData(CharacterClass.Bonk)]
-    public void RunOffPlatform_FastFallWorksImmediately(CharacterClass cls)
+    [InlineData("fightguy")]
+    [InlineData("manki")]
+    [InlineData("wibou")]
+    [InlineData("bonk")]
+    public void RunOffPlatform_FastFallWorksImmediately(string cls)
     {
         const float platformY = 6f;
         const int edgeCell = 16;

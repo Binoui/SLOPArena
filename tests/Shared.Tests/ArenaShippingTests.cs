@@ -153,16 +153,16 @@ public class ArenaShippingTests
             $"{fileName}: max Z line {lines.KillMaxZ} not beyond mesh {arena.MaxZ}");
     }
     [Theory]
-    [InlineData(CharacterClass.FightGuy, -7.5f, 1f)]
-    [InlineData(CharacterClass.Manki, -7.5f, 1f)]
-    [InlineData(CharacterClass.Wibou, -7.5f, 1f)]
-    [InlineData(CharacterClass.Bonk, -7.5f, 1f)]
-    [InlineData(CharacterClass.FightGuy, 7.5f, -1f)]
-    [InlineData(CharacterClass.Manki, 7.5f, -1f)]
-    [InlineData(CharacterClass.Wibou, 7.5f, -1f)]
-    [InlineData(CharacterClass.Bonk, 7.5f, -1f)]
+    [InlineData("fightguy", -7.5f, 1f)]
+    [InlineData("manki", -7.5f, 1f)]
+    [InlineData("wibou", -7.5f, 1f)]
+    [InlineData("bonk", -7.5f, 1f)]
+    [InlineData("fightguy", 7.5f, -1f)]
+    [InlineData("manki", 7.5f, -1f)]
+    [InlineData("wibou", 7.5f, -1f)]
+    [InlineData("bonk", 7.5f, -1f)]
     public void ScifiCity_HeldRunCrossesRoofJoinsAndBridge(
-        CharacterClass cls, float startX, float direction)
+        string cls, float startX, float direction)
     {
         const float roofY = 13.25f;
         const float bridgeY = 13.37f;
@@ -237,7 +237,7 @@ public class ArenaShippingTests
             sim.Tick(inputs);
             var current = sim.GetState(1);
             Assert.True(current.IsGrounded,
-                Trace(CharacterClass.FightGuy, route, tick, inputs[1], current, "stair ascent lost groundedness"));
+                Trace("fightguy", route, tick, inputs[1], current, "stair ascent lost groundedness"));
             Assert.InRange(current.PY,
                 TestHelpers.GroundPY(def, roofY) - 0.05f,
                 TestHelpers.GroundPY(def, upperY) + 0.05f);
@@ -250,7 +250,7 @@ public class ArenaShippingTests
 
         var upper = sim.GetState(1);
         Assert.True(upTick >= 0,
-            $"{route}: held run stalled before upper plateau; final={Trace(CharacterClass.FightGuy, route, maxTicks - 1, inputs[1], upper, "stair ascent progress")}");
+            $"{route}: held run stalled before upper plateau; final={Trace("fightguy", route, maxTicks - 1, inputs[1], upper, "stair ascent progress")}");
         Assert.InRange(upper.PY,
             TestHelpers.GroundPY(def, upperY) - 0.03f,
             TestHelpers.GroundPY(def, upperY) + 0.03f);
@@ -262,7 +262,7 @@ public class ArenaShippingTests
             sim.Tick(inputs);
             var current = sim.GetState(1);
             Assert.True(current.IsGrounded,
-                Trace(CharacterClass.FightGuy, route, tick, inputs[1], current, "stair descent lost groundedness"));
+                Trace("fightguy", route, tick, inputs[1], current, "stair descent lost groundedness"));
             Assert.InRange(current.PY,
                 TestHelpers.GroundPY(def, roofY) - 0.05f,
                 TestHelpers.GroundPY(def, upperY) + 0.05f);
@@ -275,7 +275,7 @@ public class ArenaShippingTests
 
         var roof = sim.GetState(1);
         Assert.True(downTick >= 0,
-            $"{route}: reverse held run stalled before roof; final={Trace(CharacterClass.FightGuy, route, upTick + maxTicks, inputs[1], roof, "stair descent progress")}");
+            $"{route}: reverse held run stalled before roof; final={Trace("fightguy", route, upTick + maxTicks, inputs[1], roof, "stair descent progress")}");
         Assert.InRange(roof.PY,
             TestHelpers.GroundPY(def, roofY) - 0.03f,
             TestHelpers.GroundPY(def, roofY) + 0.03f);
@@ -284,11 +284,11 @@ public class ArenaShippingTests
 
 
     [Theory]
-    [InlineData(CharacterClass.FightGuy)]
-    [InlineData(CharacterClass.Manki)]
-    [InlineData(CharacterClass.Wibou)]
-    [InlineData(CharacterClass.Bonk)]
-    public void IndustrialRooftop_HeldRunStopsAtPenthouseWall(CharacterClass cls)
+    [InlineData("fightguy")]
+    [InlineData("manki")]
+    [InlineData("wibou")]
+    [InlineData("bonk")]
+    public void IndustrialRooftop_HeldRunStopsAtPenthouseWall(string cls)
     {
         const float wallX = 2.5f;
         const float surfaceY = -1.2f;
@@ -343,11 +343,11 @@ public class ArenaShippingTests
     }
 
     [Theory]
-    [InlineData(CharacterClass.FightGuy)]
-    [InlineData(CharacterClass.Manki)]
-    [InlineData(CharacterClass.Wibou)]
-    [InlineData(CharacterClass.Bonk)]
-    public void IndustrialRooftop_RunOffRoofFallsImmediately(CharacterClass cls)
+    [InlineData("fightguy")]
+    [InlineData("manki")]
+    [InlineData("wibou")]
+    [InlineData("bonk")]
+    public void IndustrialRooftop_RunOffRoofFallsImmediately(string cls)
     {
         const float roofY = 0f;
         const float roofEdgeX = 17f;
@@ -402,11 +402,11 @@ public class ArenaShippingTests
     }
 
     [Theory]
-    [InlineData(CharacterClass.FightGuy)]
-    [InlineData(CharacterClass.Manki)]
-    [InlineData(CharacterClass.Wibou)]
-    [InlineData(CharacterClass.Bonk)]
-    public void IndustrialRooftop_JumpBetweenServiceDecksLands(CharacterClass cls)
+    [InlineData("fightguy")]
+    [InlineData("manki")]
+    [InlineData("wibou")]
+    [InlineData("bonk")]
+    public void IndustrialRooftop_JumpBetweenServiceDecksLands(string cls)
     {
         const float upperY = 4.43f;
         const float lowerY = 2.01f;
@@ -525,7 +525,7 @@ public class ArenaShippingTests
         Assert.Fail($"industrial_rooftop route prerequisite missing wall '{route}' at ({x:F2},{y:F2},{z:F2})");
     }
 
-    private static string Trace(CharacterClass cls, string route, int tick, InputState input,
+    private static string Trace(string cls, string route, int tick, InputState input,
         CharacterState state, string contract)
         => $"{cls} route={route} tick={tick} contract={contract} input=({input.MoveX:F2},{input.MoveY:F2}) " +
            $"pos=({state.PX:F3},{state.PY:F3},{state.PZ:F3}) " +

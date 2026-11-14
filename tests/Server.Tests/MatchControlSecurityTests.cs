@@ -111,11 +111,11 @@ public class MatchControlSecurityTests
         try
         {
             int portA = await StartMatch(matchA,
-                new MatchPlayer(101, CharacterClass.Manki, 11),
-                new MatchPlayer(102, CharacterClass.FightGuy, 12));
+                new MatchPlayer(101, "manki", 11),
+                new MatchPlayer(102, "fightguy", 12));
             int portB = await StartMatch(matchB,
-                new MatchPlayer(201, CharacterClass.FightGuy, 21),
-                new MatchPlayer(202, CharacterClass.Manki, 22));
+                new MatchPlayer(201, "fightguy", 21),
+                new MatchPlayer(202, "manki", 22));
             Assert.NotEqual(portA, portB);
             Assert.Equal(2, orchestrator.CurrentMatchCount);
 
@@ -152,8 +152,8 @@ public class MatchControlSecurityTests
             var thirdMatch = Guid.NewGuid();
             using (var full = await client.PostAsync("/match/start",
                 new StringContent(StartBody(thirdMatch,
-                    new[] { new MatchPlayer(301, CharacterClass.Manki, 31),
-                        new MatchPlayer(302, CharacterClass.FightGuy, 32) }),
+                    new[] { new MatchPlayer(301, "manki", 31),
+                        new MatchPlayer(302, "fightguy", 32) }),
                     Encoding.UTF8, "application/json")))
                 Assert.Equal(HttpStatusCode.BadRequest, full.StatusCode);
             Assert.Equal(2, orchestrator.CurrentMatchCount);
@@ -165,8 +165,8 @@ public class MatchControlSecurityTests
             Assert.Equal(1, orchestrator.CurrentMatchCount);
 
             int portC = await StartMatch(thirdMatch,
-                new MatchPlayer(301, CharacterClass.Manki, 31),
-                new MatchPlayer(302, CharacterClass.FightGuy, 32));
+                new MatchPlayer(301, "manki", 31),
+                new MatchPlayer(302, "fightguy", 32));
             Assert.Equal(portA, portC);
             Assert.Equal(2, orchestrator.CurrentMatchCount);
         }
@@ -186,7 +186,7 @@ public class MatchControlSecurityTests
             players = players.Select(player => new
             {
                 steamId = player.SteamId,
-                characterClass = player.CharacterClass.ToString(),
+                characterClass = player.PackageId.ToString(),
                 entityId = player.EntityId
             })
         });

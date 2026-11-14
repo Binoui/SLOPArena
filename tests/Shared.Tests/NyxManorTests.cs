@@ -54,7 +54,7 @@ public sealed class NyxManorTests(ITestOutputHelper output)
 
     [Theory]
     [MemberData(nameof(RosterFighters.All), MemberType = typeof(RosterFighters))]
-    public void EveryTargetIsInOrdinaryAttackReachOfEveryWay(CharacterClass fighter)
+    public void EveryTargetIsInOrdinaryAttackReachOfEveryWay(string fighter)
     {
         using var contract = JsonDocument.Parse(File.ReadAllText(Path.Combine(CourseFinishability.Root,
             "tools/blender/nyx_manor/target_ways.json")));
@@ -102,7 +102,7 @@ public sealed class NyxManorTests(ITestOutputHelper output)
         }
         Assert.Equal(targets.Count,checkedIds.Count);
         // Known gaps since Sir Bonk's retimed normals (8af5ab79); fix his reach, then delete them.
-        string[] knownGaps = fighter == CharacterClass.Bonk ? BonkStationaryNormalGaps : Array.Empty<string>();
+        string[] knownGaps = fighter == "bonk" ? BonkStationaryNormalGaps : Array.Empty<string>();
         Assert.True(knownGaps.SequenceEqual(misses), "misses: " + string.Join(" | ", misses));
     }
 
@@ -139,7 +139,7 @@ public sealed class NyxManorTests(ITestOutputHelper output)
 
     [Theory]
     [MemberData(nameof(RosterFighters.All), MemberType = typeof(RosterFighters))]
-    public void EverySafeAndQuickClimbWorksFromAStandingStart(CharacterClass fighter)
+    public void EverySafeAndQuickClimbWorksFromAStandingStart(string fighter)
     {
         foreach (float side in new[] { -1f, 1f })
         {
@@ -163,7 +163,7 @@ public sealed class NyxManorTests(ITestOutputHelper output)
 
     [Theory]
     [MemberData(nameof(RosterFighters.All), MemberType = typeof(RosterFighters))]
-    public void FrontKnockoffsLandBelowAndTheRavineKills(CharacterClass fighter)
+    public void FrontKnockoffsLandBelowAndTheRavineKills(string fighter)
     {
         foreach (var (z, y, landing) in new[] { (-18.7f, 3.6f, 0f), (-10.7f, 7.2f, 3.6f), (-2.7f, 10.8f, 7.2f) })
         {
@@ -189,7 +189,7 @@ public sealed class NyxManorTests(ITestOutputHelper output)
     [Fact]
     public void BakedMarkersKeepTheLockedObjectiveContract()
     {
-        var d = new CourseFinishability("nyx_manor",CharacterClass.FightGuy);
+        var d = new CourseFinishability("nyx_manor","fightguy");
         var profile = d.Arena.Arcade!;
         Assert.Equal("nyx_manor_v1",profile.ProfileId);
         Assert.Empty(profile.AllowedPackageIds);
@@ -203,7 +203,7 @@ public sealed class NyxManorTests(ITestOutputHelper output)
 
     [Theory]
     [MemberData(nameof(RosterFighters.All), MemberType = typeof(RosterFighters))]
-    public void RacingPathFinishesAfterRivalsClearTargets(CharacterClass fighter)
+    public void RacingPathFinishesAfterRivalsClearTargets(string fighter)
     {
         var route = CourseFinishability.Routes.Single(r => r.ArenaKey == "nyx_manor");
         var driver = new CourseFinishability("nyx_manor", fighter, output.WriteLine);
@@ -219,7 +219,7 @@ public sealed class NyxManorTests(ITestOutputHelper output)
 
     [Theory]
     [MemberData(nameof(RosterFighters.All), MemberType = typeof(RosterFighters))]
-    public void BothCrossingsFinishWithFourCheckpointsAndNoSpecials(CharacterClass fighter)
+    public void BothCrossingsFinishWithFourCheckpointsAndNoSpecials(string fighter)
     {
         var high = CourseFinishability.Routes.Single(r => r.ArenaKey == "nyx_manor");
         foreach (float side in new[] { -1f,1f })
@@ -238,7 +238,7 @@ public sealed class NyxManorTests(ITestOutputHelper output)
 
     [Theory]
     [MemberData(nameof(RosterFighters.All), MemberType = typeof(RosterFighters))]
-    public void BothMausoleumWaysKeepAllTargetsOnTheirApproachOrLanding(CharacterClass fighter)
+    public void BothMausoleumWaysKeepAllTargetsOnTheirApproachOrLanding(string fighter)
     {
         var baseRoute = CourseFinishability.Routes.Single(r => r.ArenaKey == "nyx_manor");
         var prefix = baseRoute.Steps.TakeWhile(s => s != new Hop(0,54.5f,9)).ToArray();
@@ -265,7 +265,7 @@ public sealed class NyxManorTests(ITestOutputHelper output)
 
     [Theory]
     [MemberData(nameof(RosterFighters.All), MemberType = typeof(RosterFighters))]
-    public void RoofAndBalconyDropsCannotReachTheCryptWithoutCrossing(CharacterClass fighter)
+    public void RoofAndBalconyDropsCannotReachTheCryptWithoutCrossing(string fighter)
     {
         foreach (float x in new[] { -16f,-8f,0f,8f,16f })
         foreach (var (z,y) in new[] { (18.7f,14.4f),(22.7f,10.8f) })
@@ -284,9 +284,9 @@ public sealed class NyxManorTests(ITestOutputHelper output)
     }
 
     [Theory]
-    [InlineData(CharacterClass.FightGuy, "fightguy")]
-    [InlineData(CharacterClass.Nyx, "nyx")]
-    public void OrdinaryRouteExportsReplayWhenRequested(CharacterClass fighter, string package)
+    [InlineData("fightguy", "fightguy")]
+    [InlineData("nyx", "nyx")]
+    public void OrdinaryRouteExportsReplayWhenRequested(string fighter, string package)
     {
         if (Environment.GetEnvironmentVariable("SLOPARENA_EXPORT_COURSE_INPUTS") is not { } directory) return;
         var d = new CourseFinishability("nyx_manor",fighter,output.WriteLine);

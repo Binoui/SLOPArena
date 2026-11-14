@@ -355,12 +355,13 @@ public sealed class CharacterPackageAuthoringService
                 x.Code, x.Path, x.Message)));
         if (!verification.Success)
             return CharacterRosterAdmissionResult.Failure(packageId, diagnostics);
-        if (!Enum.TryParse(selectorName, true, out CharacterClass selector) || selector == CharacterClass.None)
+        if (!LegacyFighterProtocol.TryPackageId(selectorName, out var selectorPackageId))
         {
-            diagnostics.Add(Error("roster.selector.invalid", "selector", "Roster selector must be a supported CharacterClass value."));
+            diagnostics.Add(Error("roster.selector.invalid", "selector", "Roster selector must be a supported online selector."));
             return CharacterRosterAdmissionResult.Failure(packageId, diagnostics);
         }
 
+        string selector = selectorName;
         string verifiedVersion = verification.Inspection?.Provenance?.Version ?? "";
         string verifiedCookedHash = verification.Plan?.CookedContentHash ?? "";
         string verifiedPackageHash = verification.Plan?.PackageHash ?? "";
@@ -379,13 +380,13 @@ public sealed class CharacterPackageAuthoringService
             BuiltInRosterManifest manifest = BuiltInRosterManifestCodec.ParseCooked(File.ReadAllText(rosterPath));
             if (manifest.TryGetByPackageId(packageId, out _))
                 diagnostics.Add(Error("roster.package.exists", packageId, "Package is already admitted to the roster."));
-            if (manifest.TryGetBySelector(selector, out _))
+            if (manifest.TryGetByPackageId(selectorPackageId, out _))
                 diagnostics.Add(Error("roster.selector.exists", selector.ToString(), "Roster selector is already assigned."));
             if (diagnostics.Any(x => x.Severity == CharacterDiagnosticSeverity.Error))
                 return CharacterRosterAdmissionResult.Failure(packageId, diagnostics);
             var entries = manifest.Entries.Concat(new[]
             {
-                new BuiltInRosterEntry(selector, packageId, new MatchContentPackageRequirement(packageId, version, cookedHash, packageHash))
+                new BuiltInRosterEntry(selectorPackageId, packageId, new MatchContentPackageRequirement(packageId, version, cookedHash, packageHash))
             }).ToArray();
             var candidate = new BuiltInRosterManifest(manifest.SchemaVersion, entries);
             diagnostics.AddRange(MatchContentCatalogBuilder.ValidateRoster(candidate));
@@ -408,7 +409,7 @@ public sealed class CharacterPackageAuthoringService
             return CharacterRosterAdmissionResult.Failure(packageId, diagnostics);
         }
     }
-    internal static bool HasRosterPresentation(string packageId, CharacterClass selector, string cardPath, string uiPath)
+    internal static bool HasRosterPresentation(string packageId, string selector, string cardPath, string uiPath)
     {
         if (!File.Exists(cardPath) || !File.Exists(uiPath)) return false;
         try
@@ -789,7 +790,7 @@ public sealed class CharacterPackageAuthoringService
             if (!File.Exists(path)) return (false, "");
             BuiltInRosterManifest manifest = BuiltInRosterManifestCodec.ParseCooked(File.ReadAllText(path));
             return manifest.TryGetByPackageId(packageId, out var entry)
-                ? (true, entry.Selector.ToString())
+                ? (true, LegacyFighterProtocol.Selector(entry.PackageId))
                 : (false, "");
         }
         catch
@@ -838,7 +839,7 @@ public sealed class CharacterPackageAuthoringService
         BuiltInRosterManifest manifest = BuiltInRosterManifestCodec.ParseCooked(json);
         var matches = manifest.Entries.Where(entry => entry.PackageId == packageId).ToArray();
         if (matches.Length > 1) throw new InvalidDataException("Roster contains duplicate entries for " + packageId + ".");
-        selector = matches.Length == 0 ? "" : matches[0].Selector.ToString();
+        selector = matches.Length == 0 ? "" : LegacyFighterProtocol.Selector(matches[0].PackageId);
         if (matches.Length == 0) return new PublicationFile(path, before, before);
 
         int targetIndex = manifest.Entries.ToList().FindIndex(entry => entry.PackageId == packageId);

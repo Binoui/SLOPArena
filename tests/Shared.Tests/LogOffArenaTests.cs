@@ -51,15 +51,15 @@ public class LogOffArenaTests
     }
 
     [Theory]
-    [InlineData(CharacterClass.FightGuy, -1)]
-    [InlineData(CharacterClass.FightGuy, 1)]
-    [InlineData(CharacterClass.Manki, -1)]
-    [InlineData(CharacterClass.Manki, 1)]
-    [InlineData(CharacterClass.Wibou, -1)]
-    [InlineData(CharacterClass.Wibou, 1)]
-    [InlineData(CharacterClass.Bonk, -1)]
-    [InlineData(CharacterClass.Bonk, 1)]
-    public void RunningOffTheFlankRim_LandsOnTheFungusShelf(CharacterClass cls, int direction)
+    [InlineData("fightguy", -1)]
+    [InlineData("fightguy", 1)]
+    [InlineData("manki", -1)]
+    [InlineData("manki", 1)]
+    [InlineData("wibou", -1)]
+    [InlineData("wibou", 1)]
+    [InlineData("bonk", -1)]
+    [InlineData("bonk", 1)]
+    public void RunningOffTheFlankRim_LandsOnTheFungusShelf(string cls, int direction)
     {
         var arena = LoadArena();
         var def = TestHelpers.ResolveDef(cls);
@@ -86,15 +86,15 @@ public class LogOffArenaTests
     }
 
     [Theory]
-    [InlineData(CharacterClass.FightGuy, -1)]
-    [InlineData(CharacterClass.FightGuy, 1)]
-    [InlineData(CharacterClass.Manki, -1)]
-    [InlineData(CharacterClass.Manki, 1)]
-    [InlineData(CharacterClass.Wibou, -1)]
-    [InlineData(CharacterClass.Wibou, 1)]
-    [InlineData(CharacterClass.Bonk, -1)]
-    [InlineData(CharacterClass.Bonk, 1)]
-    public void OneFullJumpFromTheShelf_ReturnsToTheStumpTop(CharacterClass cls, int direction)
+    [InlineData("fightguy", -1)]
+    [InlineData("fightguy", 1)]
+    [InlineData("manki", -1)]
+    [InlineData("manki", 1)]
+    [InlineData("wibou", -1)]
+    [InlineData("wibou", 1)]
+    [InlineData("bonk", -1)]
+    [InlineData("bonk", 1)]
+    public void OneFullJumpFromTheShelf_ReturnsToTheStumpTop(string cls, int direction)
     {
         var arena = LoadArena();
         var def = TestHelpers.ResolveDef(cls);
@@ -122,9 +122,9 @@ public class LogOffArenaTests
     }
 
     [Theory]
-    [InlineData(CharacterClass.FightGuy)]
-    [InlineData(CharacterClass.Bonk)]
-    public void WalkingOffTheShelfLip_FallsToTheBlastPlane(CharacterClass cls)
+    [InlineData("fightguy")]
+    [InlineData("bonk")]
+    public void WalkingOffTheShelfLip_FallsToTheBlastPlane(string cls)
     {
         var arena = LoadArena();
         var def = TestHelpers.ResolveDef(cls);
@@ -152,14 +152,14 @@ public class LogOffArenaTests
             contacts.Add((degrees, height));
         contacts.Add((0f, -7f));
         contacts.Add((180f, -7f));
-        foreach (var cls in new[] { CharacterClass.FightGuy, CharacterClass.Manki, CharacterClass.Wibou, CharacterClass.Bonk })
+        foreach (var cls in new[] { "fightguy", "manki", "wibou", "bonk" })
         foreach (var contact in contacts)
             yield return new object[] { cls, contact.degrees, contact.height };
     }
 
     [Theory]
     [MemberData(nameof(BarkContacts))]
-    public void BarkWalls_BlockInwardMovementAndAllowOutwardMovement(CharacterClass cls, float degrees, float height)
+    public void BarkWalls_BlockInwardMovementAndAllowOutwardMovement(string cls, float degrees, float height)
     {
         var arena = LoadArena();
         var def = TestHelpers.ResolveDef(cls);
@@ -190,15 +190,15 @@ public class LogOffArenaTests
     }
 
     [Theory]
-    [InlineData(CharacterClass.FightGuy, -1)]
-    [InlineData(CharacterClass.FightGuy, 1)]
-    [InlineData(CharacterClass.Manki, -1)]
-    [InlineData(CharacterClass.Manki, 1)]
-    [InlineData(CharacterClass.Wibou, -1)]
-    [InlineData(CharacterClass.Wibou, 1)]
-    [InlineData(CharacterClass.Bonk, -1)]
-    [InlineData(CharacterClass.Bonk, 1)]
-    public void RunningFullJump_CrossesSplitAndLandsOnOppositeShoulder(CharacterClass cls, int direction)
+    [InlineData("fightguy", -1)]
+    [InlineData("fightguy", 1)]
+    [InlineData("manki", -1)]
+    [InlineData("manki", 1)]
+    [InlineData("wibou", -1)]
+    [InlineData("wibou", 1)]
+    [InlineData("bonk", -1)]
+    [InlineData("bonk", 1)]
+    public void RunningFullJump_CrossesSplitAndLandsOnOppositeShoulder(string cls, int direction)
     {
         var arena = LoadArena();
         var def = TestHelpers.ResolveDef(cls);
@@ -236,11 +236,11 @@ public class LogOffArenaTests
     }
 
     [Theory]
-    [InlineData(CharacterClass.FightGuy)]
-    [InlineData(CharacterClass.Manki)]
-    [InlineData(CharacterClass.Wibou)]
-    [InlineData(CharacterClass.Bonk)]
-    public void GroundRoute_ConnectsShouldersWithoutJumping(CharacterClass cls)
+    [InlineData("fightguy")]
+    [InlineData("manki")]
+    [InlineData("wibou")]
+    [InlineData("bonk")]
+    public void GroundRoute_ConnectsShouldersWithoutJumping(string cls)
     {
         var arena = LoadArena();
         var def = TestHelpers.ResolveDef(cls);
@@ -271,11 +271,11 @@ public class LogOffArenaTests
     }
 
     [Theory]
-    [InlineData(CharacterClass.FightGuy)]
-    [InlineData(CharacterClass.Manki)]
-    [InlineData(CharacterClass.Wibou)]
-    [InlineData(CharacterClass.Bonk)]
-    public void FourSpawns_StayGroundedAndSplitDropReachesBlastPlane(CharacterClass cls)
+    [InlineData("fightguy")]
+    [InlineData("manki")]
+    [InlineData("wibou")]
+    [InlineData("bonk")]
+    public void FourSpawns_StayGroundedAndSplitDropReachesBlastPlane(string cls)
     {
         var arena = LoadArena();
         var def = TestHelpers.ResolveDef(cls);
@@ -303,15 +303,15 @@ public class LogOffArenaTests
     }
 
     [Theory]
-    [InlineData(CharacterClass.FightGuy, -1)]
-    [InlineData(CharacterClass.FightGuy, 1)]
-    [InlineData(CharacterClass.Manki, -1)]
-    [InlineData(CharacterClass.Manki, 1)]
-    [InlineData(CharacterClass.Wibou, -1)]
-    [InlineData(CharacterClass.Wibou, 1)]
-    [InlineData(CharacterClass.Bonk, -1)]
-    [InlineData(CharacterClass.Bonk, 1)]
-    public void UpperSplit_OneAirJumpRecoversOntoEitherShoulder(CharacterClass cls, int direction)
+    [InlineData("fightguy", -1)]
+    [InlineData("fightguy", 1)]
+    [InlineData("manki", -1)]
+    [InlineData("manki", 1)]
+    [InlineData("wibou", -1)]
+    [InlineData("wibou", 1)]
+    [InlineData("bonk", -1)]
+    [InlineData("bonk", 1)]
+    public void UpperSplit_OneAirJumpRecoversOntoEitherShoulder(string cls, int direction)
     {
         var arena = LoadArena();
         var def = TestHelpers.ResolveDef(cls);

@@ -179,10 +179,10 @@ public class MayhemFinalChannelsTests
         Assert.Contains(false, MayhemWorld.RunEpisode(slip, episode, s => MayhemWorld.StepCpus(s, cpus)));
     }
 
-    public static TheoryData<CharacterClass> Roster() => RosterFighters.All();
+    public static TheoryData<string> Roster() => RosterFighters.All();
     [Theory]
     [MemberData(nameof(Roster))]
-    public void CarefulFinaleRosterFitsTheBoundedClock(CharacterClass fighter)
+    public void CarefulFinaleRosterFitsTheBoundedClock(string fighter)
     {
         foreach (var twist in MayhemChannels.Find(MayhemChannels.GetHim).Twists)
         {

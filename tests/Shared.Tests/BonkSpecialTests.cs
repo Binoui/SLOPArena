@@ -77,7 +77,7 @@ public sealed class BonkSpecialTests
     [InlineData(true)]
     public void BonkE_HoldsTheNewDropAtItsEntryAndRestartsItWhenCommitting(bool airborne)
     {
-        var content = BuiltInContentResolver.Resolve(CharacterClass.Bonk);
+        var content = BuiltInContentResolver.ResolvePackage("bonk");
         var bonk = content.Definition;
         Assert.NotNull(content.BakedAnimation);
         var stage = bonk.CookedSlots!.Single(s => s.Id == (airborne ? "air.E" : "ground.E")).Timeline.Stages[0];
@@ -201,7 +201,7 @@ public sealed class BonkSpecialTests
             CharacterCookProfile.TrustedBuiltIn);
         Assert.True(result.CookedPackage != null,
             string.Join("; ", result.Diagnostics.Select(x => $"{x.Code}: {x.Message} ({x.Path})")));
-        return CookedCharacterRuntimeAdapter.ToCharacterDefinition(result.CookedPackage!, CharacterClass.Bonk);
+        return CookedCharacterRuntimeAdapter.ToCharacterDefinition(result.CookedPackage!);
     }
 
     private static BakedAnimationData LoadBonkPoses()

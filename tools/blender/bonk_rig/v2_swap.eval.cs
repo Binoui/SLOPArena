@@ -41,7 +41,7 @@ for (int i = 0; i < entries.arraySize; i++)
     var prefab = e.FindPropertyRelative("Prefab");
     if (prefab.objectReferenceValue != oldLid) continue;
     prefab.objectReferenceValue = newLid;
-    string bone = e.FindPropertyRelative("BoneName").stringValue;
+    string bone = e.FindPropertyRelative("BoneName").PackageIdValue;
     if (bone == "mixamorig:LeftArm")
     {
         e.FindPropertyRelative("PositionOffset").vector3Value = shoulderLidPosition;

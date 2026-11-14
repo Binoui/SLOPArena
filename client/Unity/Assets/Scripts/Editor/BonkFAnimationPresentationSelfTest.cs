@@ -17,21 +17,21 @@ public static class BonkFAnimationPresentationSelfTest
     {
         if (Application.isPlaying)
             throw new InvalidOperationException("Run capability presentation checks in Edit Mode.");
-        CheckPhases("bonk", CharacterClass.Bonk, "ground.E", 10f, "anim.bonk.ge-land");
-        CheckPhases("bonk", CharacterClass.Bonk, "air.E", 10f, "anim.bonk.ge-land");
-        CheckPhases("bonk", CharacterClass.Bonk, "ground.R", 1000f,
+        CheckPhases("bonk", "bonk", "ground.E", 10f, "anim.bonk.ge-land");
+        CheckPhases("bonk", "bonk", "air.E", 10f, "anim.bonk.ge-land");
+        CheckPhases("bonk", "bonk", "ground.R", 1000f,
             "anim.bonk.gr-gallop", "anim.bonk.gr-stop");
-        CheckPhases("bonk", CharacterClass.Bonk, "ground.R", 4f,
+        CheckPhases("bonk", "bonk", "ground.R", 4f,
             "anim.bonk.gr-gallop", "anim.bonk.gr-hit");
-        CheckPhases("bonk", CharacterClass.Bonk, "air.R", 1000f,
+        CheckPhases("bonk", "bonk", "air.R", 1000f,
             "anim.bonk.gr-gallop", "anim.bonk.gr-lookdown");
-        CheckPhases("bashie", CharacterClass.Bashie, "ground.A", 5f, "anim.bashie.ring-reel");
-        CheckPhases("bashie", CharacterClass.Bashie, "ground.A", 30f, "anim.bashie.ring-retract");
+        CheckPhases("bashie", "bashie", "ground.A", 5f, "anim.bashie.ring-reel");
+        CheckPhases("bashie", "bashie", "ground.A", 30f, "anim.bashie.ring-retract");
         Debug.Log("[CapabilityPhasePresentationSelfTest] Passed real simulation phase playback for leap landing, " +
             "joust gallop/hit/miss/air endings, and rescue ring reel/retract.");
     }
 
-    private static void CheckPhases(string package, CharacterClass fighter, string action, float distance,
+    private static void CheckPhases(string package, string fighter, string action, float distance,
         params string[] expectedPhases)
     {
         var preview = AbilityLabPackagePreviewLoader.Load(package);
@@ -42,7 +42,7 @@ public static class BonkFAnimationPresentationSelfTest
         SceneManager.MoveGameObjectToScene(root, scene);
         try
         {
-            var definition = CookedCharacterRuntimeAdapter.ToCharacterDefinition(preview.Package) with { Class = fighter };
+            var definition = CookedCharacterRuntimeAdapter.ToCharacterDefinition(preview.Package) with { PackageId = fighter };
             var renderer = root.AddComponent<PlayerRenderer>();
             if (!renderer.Configure(definition, preview.BakedPoses, preview.AnimationCatalog, preview.Rig, out var error))
                 throw new InvalidOperationException(error);
@@ -100,7 +100,7 @@ public static class BonkFAnimationPresentationSelfTest
         SceneManager.MoveGameObjectToScene(root, scene);
         try
         {
-            var definition = CookedCharacterRuntimeAdapter.ToCharacterDefinition(preview.Package) with { Class = CharacterClass.Bonk };
+            var definition = CookedCharacterRuntimeAdapter.ToCharacterDefinition(preview.Package) with { PackageId = "bonk" };
             var renderer = root.AddComponent<PlayerRenderer>();
             if (!renderer.Configure(definition, preview.BakedPoses, preview.AnimationCatalog, preview.Rig, out var error))
                 throw new InvalidOperationException(error);
@@ -162,7 +162,7 @@ public static class BonkFAnimationPresentationSelfTest
         try
         {
             var definition = CookedCharacterRuntimeAdapter.ToCharacterDefinition(preview.Package);
-            definition = definition with { Class = CharacterClass.Bonk };
+            definition = definition with { PackageId = "bonk" };
             var renderer = root.AddComponent<PlayerRenderer>();
             if (!renderer.Configure(definition, preview.BakedPoses, preview.AnimationCatalog, preview.Rig, out var error))
                 throw new InvalidOperationException(error);

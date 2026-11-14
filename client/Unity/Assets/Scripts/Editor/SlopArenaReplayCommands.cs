@@ -78,7 +78,7 @@ namespace SlopArena.EditorTools
             var entry = catalog.ResolvePackage(fighter);
             if (entry == null || !arena.Value.Arcade.AllowsPackage(fighter)) throw new ArgumentException("The course does not admit package " + fighter);
             var extras = string.IsNullOrWhiteSpace(extraFighters) ? Array.Empty<string>() : extraFighters.Split(',');
-            if (extras.Length > 3 || extras.Any(id => catalog.ResolvePackage(id)?.LegacySelector == null))
+            if (extras.Length > 3 || extras.Any(id => catalog.ResolvePackage(id)?.IsBundled != true))
                 throw new ArgumentException("Scramble needs one to three additional admitted fighter packages.");
             var view = GameView();
             var saved = new Saved

@@ -167,9 +167,9 @@ public sealed class AimMovementTests
     }
 
     [Theory]
-    [InlineData(CharacterClass.Manki, AbilitySlots.R)]
-    [InlineData(CharacterClass.Bonk, AbilitySlots.E)]
-    public void AuthoredAimedHolds_UseFixedMovementOnGroundAndInAir(CharacterClass character, byte slot)
+    [InlineData("manki", AbilitySlots.R)]
+    [InlineData("bonk", AbilitySlots.E)]
+    public void AuthoredAimedHolds_UseFixedMovementOnGroundAndInAir(string character, byte slot)
     {
         var def = TestHelpers.ResolveSourceDef(character.ToString().ToLowerInvariant());
         Assert.Equal(AuthoringAimMovementMode.Fixed, (def.GetCookedSlotAbility(slot, airborne: false)?.AimMovement ?? AuthoringAimMovementMode.Fixed));

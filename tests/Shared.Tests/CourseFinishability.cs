@@ -26,7 +26,7 @@ public sealed class CourseFinishability
     public readonly List<ArcadePoint> RoutePoints = new();
     public readonly List<(RouteStep Step, int InputCount, CharacterState State)> Landings = new();
     private readonly Action<string> _log;
-    private readonly CharacterClass _selector;
+    private readonly string _selector;
     private readonly bool _allowSnapshots;
     private CourseFormat? _format;
     private bool _plainJumpsOnly;
@@ -40,7 +40,7 @@ public sealed class CourseFinishability
     private float Feet => State.PY - Fighter.CapsuleHeight * .5f;
     private Vector2 Position => new(State.PX, State.PZ);
 
-    public CourseFinishability(string arenaKey, CharacterClass selector, Action<string>? log = null, bool allowSnapshots = true)
+    public CourseFinishability(string arenaKey, string selector, Action<string>? log = null, bool allowSnapshots = true)
     {
         Arena = Environment.GetEnvironmentVariable("SLOPARENA_COURSE_SHELL") is { } shell
             ? CourseShellArena.FromShellFile(shell)
@@ -48,14 +48,14 @@ public sealed class CourseFinishability
         if (Arena.Name != arenaKey) throw new ArgumentException("Course shell does not match " + arenaKey);
         _selector = selector;
         _allowSnapshots = allowSnapshots;
-        Fighter = BuiltInContentResolver.Resolve(selector).Definition;
+        Fighter = BuiltInContentResolver.ResolvePackage(selector).Definition;
         _log = log ?? (_ => { });
         Sim = Fresh();
     }
 
     private ServerSimulation Fresh()
     {
-        var entry = BuiltInContentResolver.Resolve(_selector);
+        var entry = BuiltInContentResolver.ResolvePackage(_selector);
         var sim = new ServerSimulation(Arena, _format is { } format ? new CourseMatchRule(format) : NoWinMatchRule.Instance);
         var spawn = Arena.SpawnPoints[0];
         sim.RegisterEntity(1, entry.Definition, new()

@@ -262,7 +262,7 @@ public class MayhemVarietyTests
     public void ReplayCaptureCodecAndDisplayKeepNewCuesWindowsAndStamps(ushort id, byte twist)
     {
         var content = Replays.ReplayWorldTests.Content();
-        var entry = content.Catalog.Resolve(CharacterClass.FightGuy)!;
+        var entry = content.Catalog.ResolvePackage("fightguy")!;
         var arena = MayhemWorld.Arena();
         var (seed, episode) = MayhemWorld.SeedWith(new(id), id == 15 ? 2 : 0, new(twist));
         var sim = new ServerSimulation(arena, new MankiMayhemMatchRule(FriendlyFireMode.Off));
@@ -394,7 +394,7 @@ public class MayhemVarietyTests
     public void SumoAllowsTwoSmallFightersUnderOffButNotTheWholeShovingCast(byte twist)
     {
         var (seed, episode) = MayhemWorld.SeedWith(MayhemChannels.Sumo, 2, new(twist));
-        var sim = MayhemWorld.NewShow(seed, FriendlyFireMode.Off, count: 2, roster: new[] { CharacterClass.Manki, CharacterClass.Bashie });
+        var sim = MayhemWorld.NewShow(seed, FriendlyFireMode.Off, count: 2, roster: new[] { "manki", "bashie" });
         MayhemWorld.SkipToCall(sim, episode);
         MayhemWorld.Step(sim);
         var ring = Assert.Single(MayhemWorld.View(sim).Scene.Zones);

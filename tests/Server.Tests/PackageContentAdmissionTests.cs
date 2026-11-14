@@ -27,7 +27,7 @@ public sealed class PackageContentAdmissionTests
         try
         {
             Assert.True(host.TryAssignMatch(Guid.NewGuid().ToString("D"),"slop_pit",
-                new[] { new MatchPlayer(1,CharacterClass.FightGuy,1),new MatchPlayer(2,CharacterClass.Manki,2) },
+                new[] { new MatchPlayer(1,"fightguy",1),new MatchPlayer(2,"manki",2) },
                 3,null,host.CatalogHash,out _,out var assigned,out var hash,out error),error);
             Assert.Equal(File.ReadAllText(fixture+".json"),MatchContentHandleMapCodec.Serialize(assigned!));
             Assert.Equal(File.ReadAllText(fixture+".sha256"),hash);

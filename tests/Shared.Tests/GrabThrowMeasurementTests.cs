@@ -84,7 +84,7 @@ public sealed class GrabThrowMeasurementTests
         var manifest = BuiltInRosterManifestCodec.Load(Path.Combine(Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "../../../../../")), "content-cooked/roster/manifest.json"));
         foreach (var entry in manifest.Entries)
         {
-            var content = BuiltInContentResolver.Resolve(entry.Selector);
+            var content = BuiltInContentResolver.ResolvePackage(entry.Selector);
             var def = content.Definition;
             var sim = new ServerSimulation(TriangleArena());
             var owner = TestHelpers.PlayerState(20f, 20f) with { PY = TestHelpers.GroundPY(def) };

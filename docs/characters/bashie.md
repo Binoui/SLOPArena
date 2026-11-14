@@ -24,7 +24,7 @@ Pool and her walk. Her movement still comes from Manki.
 
 **Package (owner, 2026-10-22):** "im totally down to steal all of manki's slots especially normals just to have her
 ingame. its fine if specials looks weird until we do them properly".
-- `client/Unity/Assets/CharacterPackages/bashie/` is a trusted built-in package (`CharacterClass.Bashie`, number 6:
+- `client/Unity/Assets/CharacterPackages/bashie/` is a trusted built-in package (legacy online selector `Bashie`:
   5 was the retired Nilus).
 - Her movement still comes from Manki. Her
   own changes are the size (`visualScale` 1.1), `modelYOffset` -0.75, `hipHeight` 0.34, her idle and run, Rescue Ring in

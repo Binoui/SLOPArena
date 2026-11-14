@@ -35,7 +35,7 @@ public class FullWorldNetplayTests
         int port = ((IPEndPoint)reservation.Client.LocalEndPoint!).Port;
         reservation.Close();
         using var ended = new ManualResetEventSlim();
-        var roster = new[] { (1UL, CharacterClass.FightGuy), (2UL, CharacterClass.Manki) };
+        var roster = new[] { (1UL, "fightguy"), (2UL, "manki") };
         var match = new MatchInstance(port, Guid.NewGuid().ToString(), arena,
             roster.Select((p, i) => new MatchPlayer(101 + i, p.Item2, (int)p.Item1)).ToArray(), catalog, _ => ended.Set());
         var endpoint = new IPEndPoint(IPAddress.Loopback, port);
@@ -119,7 +119,7 @@ public class FullWorldNetplayTests
         int port = ((IPEndPoint)reservation.Client.LocalEndPoint!).Port;
         reservation.Close();
         using var ended = new ManualResetEventSlim();
-        var roster = new[] { (1UL, CharacterClass.FightGuy), (2UL, CharacterClass.Bonk) };
+        var roster = new[] { (1UL, "fightguy"), (2UL, "bonk") };
         var match = new MatchInstance(port, Guid.NewGuid().ToString(), arena,
             roster.Select((p, i) => new MatchPlayer(101 + i, p.Item2, (int)p.Item1)).ToArray(), catalog, _ => ended.Set(),
             format: MatchFormat.SlopballCoop, friendlyFire: friendlyFire ? FriendlyFireMode.On : FriendlyFireMode.Off);
@@ -188,7 +188,7 @@ public class FullWorldNetplayTests
         var catalog = built.Catalog!;
         ArenaRegistry.LoadFromDirectory(Path.Combine(root, "data/arenas"));
         var arena = ArenaRegistry.Get("slopball")!.Value;
-        var roster = Enumerable.Range(1, count).Select(i => (Id: (ulong)i, Character: CharacterClass.FightGuy)).ToArray();
+        var roster = Enumerable.Range(1, count).Select(i => (Id: (ulong)i, Character: "fightguy")).ToArray();
         var camps = roster.ToDictionary(p => p.Id, p => p.Id % 2 == 1 ? SlopballCamp.Teal : SlopballCamp.Clay);
         using var reservation = new UdpClient(new IPEndPoint(IPAddress.Loopback, 0));
         int port = ((IPEndPoint)reservation.Client.LocalEndPoint!).Port;
@@ -252,7 +252,7 @@ public class FullWorldNetplayTests
         using var reservation = new UdpClient(new IPEndPoint(IPAddress.Loopback, 0));
         int port = ((IPEndPoint)reservation.Client.LocalEndPoint!).Port; reservation.Close();
         using var ended = new ManualResetEventSlim();
-        var roster = new[] { (1UL, CharacterClass.FightGuy), (2UL, CharacterClass.Manki) };
+        var roster = new[] { (1UL, "fightguy"), (2UL, "manki") };
         var match = new MatchInstance(port, Guid.NewGuid().ToString(), arena,
             roster.Select((p, i) => new MatchPlayer(101 + i, p.Item2, (int)p.Item1)).ToArray(), catalog!, _ => ended.Set(),
             format: MatchFormat.MankiMayhem, friendlyFire: FriendlyFireMode.Shoves, mayhemSeed: 41);
@@ -304,7 +304,7 @@ public class FullWorldNetplayTests
         using var reservation = new UdpClient(new IPEndPoint(IPAddress.Loopback, 0));
         int port = ((IPEndPoint)reservation.Client.LocalEndPoint!).Port; reservation.Close();
         using var ended = new ManualResetEventSlim();
-        var roster = new[] { (1UL, CharacterClass.FightGuy), (2UL, CharacterClass.FightGuy) };
+        var roster = new[] { (1UL, "fightguy"), (2UL, "fightguy") };
         var match = new MatchInstance(port, Guid.NewGuid().ToString(), arena,
             roster.Select((p, i) => new MatchPlayer(101 + i, p.Item2, (int)p.Item1, Colour: (byte)i)).ToArray(),
             catalog, _ => ended.Set(), format: format);
@@ -339,7 +339,7 @@ public class FullWorldNetplayTests
         private readonly List<WorldFramePacket> _frames = new();
         private readonly ArenaDefinition _arena;
         private readonly MatchContentCatalog _catalog;
-        private readonly (ulong Id, CharacterClass Character)[] _roster;
+        private readonly (ulong Id, string Character)[] _roster;
         private readonly Func<IMatchRule> _rule;
         private bool _clockReceived;
         private uint _startTick;
@@ -347,7 +347,7 @@ public class FullWorldNetplayTests
         private double _nextPing;
 
         public Peer(ulong id, ArenaDefinition arena, MatchContentCatalog catalog,
-            (ulong Id, CharacterClass Character)[] roster, IPEndPoint server, Func<IMatchRule>? rule = null)
+            (ulong Id, string Character)[] roster, IPEndPoint server, Func<IMatchRule>? rule = null)
         {
             Id = id;
             _server = server;
@@ -358,7 +358,7 @@ public class FullWorldNetplayTests
             Session = new NetplaySession(arena, id, _rule());
             foreach (var (entity, character) in roster)
             {
-                var content = catalog.Resolve(character)!;
+                var content = catalog.ResolvePackage(character)!;
                 Session.RegisterEntity(entity, content.Definition, new CharacterState(), content.BakedAnimation);
             }
         }
@@ -455,7 +455,7 @@ public class FullWorldNetplayTests
             var view = new ServerSimulation(_arena, _rule());
             foreach (var (entity, character) in _roster)
             {
-                var content = _catalog.Resolve(character)!;
+                var content = _catalog.ResolvePackage(character)!;
                 view.RegisterEntity(entity, content.Definition, new CharacterState(), content.BakedAnimation);
             }
             view.RestoreSnapshot(frame.Snapshot);

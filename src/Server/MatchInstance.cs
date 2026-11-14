@@ -18,7 +18,7 @@ namespace SlopArena.Server
 	///
 	/// Roster-driven (issue #35): the master server sends the locked-in character
 	/// classes + entity IDs via <c>POST /match/start</c>; this instance spawns one
-	/// entity per player with the correct <see cref="CharacterClass"/> instead of
+	/// entity per player with the correct <see cref="string"/> instead of
 	/// hardcoded Manki. Countdown starts once every rostered player has connected.
 	/// </summary>
 	public class MatchInstance
@@ -139,9 +139,9 @@ namespace SlopArena.Server
 			_slots = new List<PlayerSlot>(roster.Count);
 			foreach (var p in roster)
 			{
-				var content = _contentCatalog.Resolve(p.CharacterClass)
-					?? throw new InvalidDataException($"Roster selector '{p.CharacterClass}' is not in the match content catalog.");
-				_slots.Add(new PlayerSlot((ulong)p.EntityId, p.CharacterClass, p.SteamId, content) { Form = p.Form });
+				var content = _contentCatalog.ResolvePackage(p.PackageId)
+					?? throw new InvalidDataException($"Roster selector '{p.PackageId}' is not in the match content catalog.");
+				_slots.Add(new PlayerSlot((ulong)p.EntityId, p.PackageId, p.SteamId, content) { Form = p.Form });
 			}
 		}
 
@@ -325,7 +325,7 @@ namespace SlopArena.Server
 				// Respawn at the same distributed spawn point as initial spawn (issue #37).
 				var respawnSpawn = PickSpawn(i);
 				_sim.SetRespawnPosition(slot.EntityId, respawnSpawn.X, respawnSpawn.Y, respawnSpawn.Z, respawnSpawn.Yaw);
-				Log($"Slot {i}: entity {slot.EntityId} = {slot.CharacterClass}");
+				Log($"Slot {i}: entity {slot.EntityId} = {slot.PackageId}");
 			}
 			if (_format == MatchFormat.SlopballCoop)
 			{
@@ -1110,7 +1110,7 @@ namespace SlopArena.Server
 		private sealed class PlayerSlot
 		{
 			public ulong EntityId { get; }
-			public CharacterClass CharacterClass { get; }
+			public string PackageId { get; }
 			public long SteamId { get; }
 			public MatchContentEntry Content { get; }
 			/// <summary>The starting form the master sent (ADR-0051); fighters without forms ignore it.</summary>
@@ -1149,10 +1149,10 @@ namespace SlopArena.Server
 				GapWorstSlack = int.MaxValue;
 			}
 
-			public PlayerSlot(ulong entityId, CharacterClass characterClass, long steamId, MatchContentEntry content)
+			public PlayerSlot(ulong entityId, string characterClass, long steamId, MatchContentEntry content)
 			{
 				EntityId = entityId;
-				CharacterClass = characterClass;
+				PackageId = characterClass;
 				SteamId = steamId;
 				Content = content;
 			}

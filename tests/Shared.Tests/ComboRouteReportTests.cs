@@ -486,14 +486,14 @@ public sealed class ComboRouteReportTests
 
     private static MatchContentEntry CreateKit(params (int Index, CookedTimeline Timeline)[] authored)
     {
-        var source = BuiltInContentResolver.Resolve(CharacterClass.FightGuy);
+        var source = BuiltInContentResolver.ResolvePackage("fightguy");
         var slots = Enumerable.Range(0, CanonicalSlotProjection.All.Count).Select(EmptySlot).ToArray();
         foreach (var (index, timeline) in authored)
             slots[index] = MakeSlot(index, timeline);
         var definition = TestHelpers.EngineDef;
-        definition = definition with { Class = source.Definition.Class };
+        definition = definition with { PackageId = source.Definition.PackageId };
         definition = definition with { CookedSlots = slots };
-        return new MatchContentEntry(source.Handle, source.LegacySelector, source.Identity,
+        return new MatchContentEntry(source.Handle, source.Identity,
             "route test fixture", definition);
     }
 

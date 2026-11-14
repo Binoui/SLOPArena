@@ -10,19 +10,12 @@ public sealed class CpuGrabTests
 {
     private const ulong Cpu = 100, Target = 1;
 
-    [Theory]
-    [InlineData(CharacterClass.FightGuy)]
-    [InlineData(CharacterClass.Manki)]
-    [InlineData(CharacterClass.Wibou)]
-    [InlineData(CharacterClass.Bonk)]
-    [InlineData(CharacterClass.Bashie)]
-    [InlineData(CharacterClass.Salamander)]
-    [InlineData(CharacterClass.Nyx)]
-    public void EveryFighterGrabsAndThrowsAShieldingTarget(CharacterClass fighter)
+    [Theory, MemberData(nameof(RosterFighters.All), MemberType = typeof(RosterFighters))]
+    public void EveryFighterGrabsAndThrowsAShieldingTarget(string fighter)
     {
         var arena = BashieShellTests.Floor();
-        var cpu = BuiltInContentResolver.Resolve(fighter);
-        var target = BuiltInContentResolver.Resolve(CharacterClass.FightGuy);
+        var cpu = BuiltInContentResolver.ResolvePackage(fighter);
+        var target = BuiltInContentResolver.ResolvePackage("fightguy");
         var sim = new ServerSimulation(arena);
         sim.RegisterEntity(Cpu, cpu.Definition, BashieShellTests.Standing(0f, 0f) with
         {

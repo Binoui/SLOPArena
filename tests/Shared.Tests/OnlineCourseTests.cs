@@ -6,15 +6,15 @@ namespace SlopArena.Shared.Tests;
 public class OnlineCourseTests
 {
     [Theory]
-    [InlineData("fightguy_pier", CharacterClass.FightGuy)]
-    [InlineData("fightguy_sanctuary", CharacterClass.FightGuy)]
-    [InlineData("manki_quarry", CharacterClass.Manki)]
-    [InlineData("wibou_mall", CharacterClass.Wibou)]
-    public void ExistingCoursesHaveSafeFourPlayerStartsWithoutChangingSoloData(string key, CharacterClass fighter)
+    [InlineData("fightguy_pier", "fightguy")]
+    [InlineData("fightguy_sanctuary", "fightguy")]
+    [InlineData("manki_quarry", "manki")]
+    [InlineData("wibou_mall", "wibou")]
+    public void ExistingCoursesHaveSafeFourPlayerStartsWithoutChangingSoloData(string key, string fighter)
     {
         var arena = WorldSnapshotTests.LoadArena(key);
         var before = ArenaBinaryFormat.Serialize(arena);
-        var entry = BuiltInContentResolver.Resolve(fighter);
+        var entry = BuiltInContentResolver.ResolvePackage(fighter);
         var sim = new ServerSimulation(arena, new CourseMatchRule(false));
         for (int i = 0; i < 4; i++)
         {

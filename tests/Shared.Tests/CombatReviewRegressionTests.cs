@@ -53,7 +53,7 @@ public sealed class CombatReviewRegressionTests
     [Fact]
     public void InterruptedBazookaReleasesAttackStateAndAllowsAnotherNormal()
     {
-        var entry = BuiltInContentResolver.Resolve(CharacterClass.Manki);
+        var entry = BuiltInContentResolver.ResolvePackage("manki");
         var sim = Create(entry);
         sim.RegisterEntity(2, entry.Definition, Initial(entry.Definition, 2, 20), entry.BakedAnimation);
         sim.Tick(new() { [1] = new InputState { ActiveSlot = AbilitySlots.R, IsAiming = true } });
@@ -82,7 +82,7 @@ public sealed class CombatReviewRegressionTests
     [Fact]
     public void GroundHeavyWalkingOffALedgeKeepsGroundCancelTiming()
     {
-        var entry = BuiltInContentResolver.Resolve(CharacterClass.Wibou);
+        var entry = BuiltInContentResolver.ResolvePackage("wibou");
         var def = entry.Definition;
         var sim = new ServerSimulation(Arena());
         var initial = Initial(def, 1);
@@ -121,7 +121,7 @@ public sealed class CombatReviewRegressionTests
     [Fact]
     public void RemovingAnOwnerRemovesProjectilesFromCompletedActivations()
     {
-        var entry = BuiltInContentResolver.Resolve(CharacterClass.Manki);
+        var entry = BuiltInContentResolver.ResolvePackage("manki");
         var sim = Create(entry);
         sim.RegisterEntity(2, entry.Definition, Initial(entry.Definition, 2, 20), entry.BakedAnimation);
         var victim = sim.GetState(1);
@@ -144,7 +144,7 @@ public sealed class CombatReviewRegressionTests
     [InlineData(AbilitySlots.F)]
     public void CapabilityCancellationPreservesTheIncomingReaction(byte slot)
     {
-        var entry = BuiltInContentResolver.Resolve(CharacterClass.Wibou);
+        var entry = BuiltInContentResolver.ResolvePackage("wibou");
         var sim = Create(entry);
         sim.Tick(new() { [1] = new InputState { ActiveSlot = slot, IsAiming = true } });
         Assert.NotNull(sim.GetActiveAbility(1));
@@ -167,7 +167,7 @@ public sealed class CombatReviewRegressionTests
     [Fact]
     public void RisingSlashInterruptionHasTheSameLaunchAsAnIdleVictim()
     {
-        var entry = BuiltInContentResolver.Resolve(CharacterClass.Wibou);
+        var entry = BuiltInContentResolver.ResolvePackage("wibou");
         var attacking = Create(entry);
         attacking.Tick(new() { [1] = new InputState { ActiveSlot = AbilitySlots.E } });
         var victim = attacking.GetState(1) with { PX = 0, PY = 6, PZ = 0, VX = 0, VY = 0, VZ = 0 };
@@ -212,7 +212,7 @@ public sealed class CombatReviewRegressionTests
     [Fact]
     public void InterruptedAirAimAllowsAirDodgeOnTheFirstFreeTick()
     {
-        var entry = BuiltInContentResolver.Resolve(CharacterClass.Manki);
+        var entry = BuiltInContentResolver.ResolvePackage("manki");
         var sim = Create(entry);
         sim.SetState(1, sim.GetState(1) with { PY = 10, IsGrounded = false });
         sim.Tick(new() { [1] = new InputState { ActiveSlot = AbilitySlots.R, IsAiming = true } });
@@ -238,7 +238,7 @@ public sealed class CombatReviewRegressionTests
     [Fact]
     public void ActiveMoveKeepsItsVariantAndTimelineCursorThroughSnapshotRestore()
     {
-        var entry = BuiltInContentResolver.Resolve(CharacterClass.Wibou);
+        var entry = BuiltInContentResolver.ResolvePackage("wibou");
         var sim = Create(entry);
         sim.Tick(new() { [1] = new InputState { ActiveSlot = AbilitySlots.Normal3 } });
         for (int tick = 0; tick < 20; tick++) sim.Tick(new());
@@ -283,7 +283,7 @@ public sealed class CombatReviewRegressionTests
     [Fact]
     public void RemovingAnOwnerDiscardsPendingExplosionsAndEveryActivation()
     {
-        var entry = BuiltInContentResolver.Resolve(CharacterClass.Manki);
+        var entry = BuiltInContentResolver.ResolvePackage("manki");
         var sim = Create(entry);
         sim.Resolver.Spawn(new Hitbox
         {
@@ -314,7 +314,7 @@ public sealed class CombatReviewRegressionTests
     [Fact]
     public void ReusedEntityIdInheritsNoKillCreditOrLastHitContext()
     {
-        var entry = BuiltInContentResolver.Resolve(CharacterClass.Manki);
+        var entry = BuiltInContentResolver.ResolvePackage("manki");
         var sim = Create(entry);
         sim.RegisterEntity(2, entry.Definition, Initial(entry.Definition, 2, 20), entry.BakedAnimation);
         var victim = sim.GetState(1);

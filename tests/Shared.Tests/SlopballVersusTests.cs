@@ -206,15 +206,15 @@ public class SlopballVersusTests
     }
 
     [Theory]
-    [InlineData(CharacterClass.FightGuy)]
-    [InlineData(CharacterClass.Manki)]
-    [InlineData(CharacterClass.Wibou)]
-    [InlineData(CharacterClass.Bonk)]
-    [InlineData(CharacterClass.Bashie)]
-    public void AServerCanReachTheHeldBallWithAGroundNormal(CharacterClass fighter)
+    [InlineData("fightguy")]
+    [InlineData("manki")]
+    [InlineData("wibou")]
+    [InlineData("bonk")]
+    [InlineData("bashie")]
+    public void AServerCanReachTheHeldBallWithAGroundNormal(string fighter)
     {
         var arena = WorldSnapshotTests.LoadArena("slopball");
-        var content = BuiltInContentResolver.Resolve(fighter);
+        var content = BuiltInContentResolver.ResolvePackage(fighter);
         var sim = new ServerSimulation(arena, new SlopballVersusMatchRule(Camps()));
         for (ulong id = 1; id <= 2; id++)
             sim.RegisterEntity(id, content.Definition, TestHelpers.PlayerState(), content.BakedAnimation);
@@ -258,7 +258,7 @@ public class SlopballVersusTests
     [Fact]
     public void MatchPushRequiresBalancedCampsWithDistinctUsableEntityIds()
     {
-        var map = new MatchContentHandleMap(1, new[] { new MatchContentHandleRecord(new ContentHandle(1), CharacterClass.Manki,
+        var map = new MatchContentHandleMap(1, new[] { new MatchContentHandleRecord(new ContentHandle(1), "manki",
             new MatchContentIdentity("manki", "0.0.0-dev", new string('a', 64), new string('b', 64), new string('c', 64)), "Manki") });
         map = map.WithArena(new MatchArenaRecord("slopball", new string('d', 64)));
         using var content = JsonDocument.Parse(MatchContentHandleMapCodec.Serialize(map));

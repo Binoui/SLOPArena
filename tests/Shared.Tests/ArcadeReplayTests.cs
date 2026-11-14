@@ -92,13 +92,13 @@ public sealed class ArcadeReplayTests
     }
 
     [Theory]
-    [InlineData(CharacterClass.FightGuy)]
-    [InlineData(CharacterClass.Manki)]
-    [InlineData(CharacterClass.Wibou)]
-    [InlineData(CharacterClass.Bonk)]
-    public void EveryRosterFighterHasAStableGameplayComparisonKey(CharacterClass fighter)
+    [InlineData("fightguy")]
+    [InlineData("manki")]
+    [InlineData("wibou")]
+    [InlineData("bonk")]
+    public void EveryRosterFighterHasAStableGameplayComparisonKey(string fighter)
     {
-        var arena = SlopballTests.Court(); var entry = BuiltInContentResolver.Resolve(fighter);
+        var arena = SlopballTests.Court(); var entry = BuiltInContentResolver.ResolvePackage(fighter);
         string hash = ArcadeRecordCompatibility.Slopball(arena, entry);
         Assert.Equal(64, hash.Length);
         Assert.Equal(hash, ArcadeRecordCompatibility.Slopball(arena, entry));
@@ -109,7 +109,7 @@ public sealed class ArcadeReplayTests
     [Fact]
     public void AirResistanceChangesTheGameplayComparisonKey()
     {
-        var arena = SlopballTests.VariedCourt(); var entry = BuiltInContentResolver.Resolve(CharacterClass.FightGuy);
+        var arena = SlopballTests.VariedCourt(); var entry = BuiltInContentResolver.ResolvePackage("fightguy");
         string original = ArcadeRecordCompatibility.Slopball(arena, entry);
         var s = arena.Arcade!; var b = s.Ball;
         arena.Arcade = new(s.ProfileId, s.GameplayRevision, s.AllowedPackageIds,
@@ -120,7 +120,7 @@ public sealed class ArcadeReplayTests
     [Fact]
     public void LauncherAreaChangesTheGameplayComparisonKeyWithoutARevisionBump()
     {
-        var arena = SlopballTests.VariedCourt(); var entry = BuiltInContentResolver.Resolve(CharacterClass.FightGuy);
+        var arena = SlopballTests.VariedCourt(); var entry = BuiltInContentResolver.ResolvePackage("fightguy");
         string original = ArcadeRecordCompatibility.Slopball(arena, entry);
         var s = arena.Arcade!; var r = s.Slopball!;
         arena.Arcade = new(s.ProfileId, s.GameplayRevision, s.AllowedPackageIds, s.Ball,
@@ -133,7 +133,7 @@ public sealed class ArcadeReplayTests
     [Fact]
     public void CosmeticPresentationAndProvenanceChangesKeepComparisonWhileGameplayAndPosesSeparateIt()
     {
-        var arena = SlopballTests.Court(); var entry = BuiltInContentResolver.Resolve(CharacterClass.FightGuy);
+        var arena = SlopballTests.Court(); var entry = BuiltInContentResolver.ResolvePackage("fightguy");
         var original = ArcadeRecordCompatibility.Slopball(arena, entry);
         arena.DisplayName = "Renamed sports court"; arena.PreviewColor = "#ff0000";
         var c = entry.CookedCharacterPackage!.Definition;
@@ -158,7 +158,7 @@ public sealed class ArcadeReplayTests
                     index == pose && tick == 0 && component == bone * 3 ? value + .5f : value).ToArray()).ToArray(),
             }).ToArray(),
         };
-        cosmetic = new MatchContentEntry(cosmetic.Handle, cosmetic.LegacySelector, cosmetic.Identity,
+        cosmetic = new MatchContentEntry(cosmetic.Handle, cosmetic.Identity,
             cosmetic.DisplayName, cosmetic.Definition, changedPoses, cosmetic.CookedCharacterPackage);
         Assert.NotEqual(original, ArcadeRecordCompatibility.Slopball(arena, cosmetic));
         arena.CollisionTriangles[0].AX += .1f;
@@ -168,7 +168,7 @@ public sealed class ArcadeReplayTests
     [Fact]
     public void AbilityDamageAndShotSeedChangeComparisonButCapabilityVfxDoesNot()
     {
-        var arena = SlopballTests.Court(); var entry = BuiltInContentResolver.Resolve(CharacterClass.Manki);
+        var arena = SlopballTests.Court(); var entry = BuiltInContentResolver.ResolvePackage("manki");
         var original = ArcadeRecordCompatibility.Slopball(arena, entry);
         var c = entry.CookedCharacterPackage!.Definition;
         MatchContentEntry Map(Func<CookedTimelineOperation, CookedTimelineOperation> map) => Copy(entry, c.Movement, c.Presentation,
@@ -203,8 +203,8 @@ public sealed class ArcadeReplayTests
             c.CapsuleRadius, c.CapsuleHeight, c.HipHeight, c.HurtboxRadius, c.ShieldRadius, c.CaptureGeometry,
             c.HurtboxCapsules, c.HurtboxBoneDefs, c.AttachmentBoneIds, new[] { "new.vfx" }, c.CapabilityRequirements, slots);
         var package = new CookedCharacterPackage(p.Metadata with { Version = "9.9.9" }, definition, p.Budget, p.Diagnostics, new byte[] { 1 });
-        return new(source.Handle, source.LegacySelector, source.Identity with { Version = "9.9.9", PackageHash = "different" },
-            "Cosmetic fighter name", CookedCharacterRuntimeAdapter.ToCharacterDefinition(package, source.LegacySelector!.Value),
+        return new(source.Handle, source.Identity with { Version = "9.9.9", PackageHash = "different" },
+            "Cosmetic fighter name", CookedCharacterRuntimeAdapter.ToCharacterDefinition(package),
             source.BakedAnimation, package);
     }
 }

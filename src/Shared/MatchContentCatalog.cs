@@ -16,7 +16,7 @@ public readonly record struct ContentHandle(ushort Value)
     public bool IsValid => Value != 0;
     public override string ToString() => Value.ToString();
 }
-public sealed record BuiltInRosterEntry(CharacterClass Selector, string PackageId, MatchContentPackageRequirement Requirement);
+public sealed record BuiltInRosterEntry(string Selector, string PackageId, MatchContentPackageRequirement Requirement);
 
 public sealed class BuiltInRosterManifest
 {
@@ -31,19 +31,12 @@ public sealed class BuiltInRosterManifest
         Entries = new ReadOnlyCollection<BuiltInRosterEntry>(new List<BuiltInRosterEntry>(entries ?? throw new ArgumentNullException(nameof(entries))));
     }
 
-    public bool TryGetBySelector(CharacterClass selector, out BuiltInRosterEntry entry)
-    {
-        entry = Entries.FirstOrDefault(x => x.Selector == selector)!;
-        return entry != null;
-    }
-
     public bool TryGetByPackageId(string packageId, out BuiltInRosterEntry entry)
     {
         entry = Entries.FirstOrDefault(x => string.Equals(x.PackageId, packageId, StringComparison.Ordinal))!;
         return entry != null;
     }
 
-    public BuiltInRosterEntry? Resolve(CharacterClass selector) => TryGetBySelector(selector, out var value) ? value : null;
     public BuiltInRosterEntry? ResolvePackage(string packageId) => TryGetByPackageId(packageId, out var value) ? value : null;
 }
 
@@ -53,7 +46,6 @@ public sealed class MatchContentEntry
     public FighterChoice Choose(byte startingForm = 0) => (Admission
         ?? throw new InvalidOperationException("Content entry has no admission.")).Choose(startingForm);
     public ContentHandle Handle { get; }
-    public CharacterClass? LegacySelector { get; }
     public MatchContentIdentity Identity { get; }
     public string DisplayName { get; }
     public bool IsBundled { get; }
@@ -62,14 +54,13 @@ public sealed class MatchContentEntry
     public BakedAnimationData? Baked => BakedAnimation;
     public CookedCharacterPackage? CookedCharacterPackage { get; }
 
-    public MatchContentEntry(ContentHandle handle, CharacterClass? legacySelector, MatchContentIdentity identity,
+    public MatchContentEntry(ContentHandle handle, MatchContentIdentity identity,
         string displayName, CharacterDefinition definition, BakedAnimationData? bakedAnimation = null,
         CookedCharacterPackage? cookedCharacterPackage = null, bool isBundled = false)
     {
         if (!handle.IsValid) throw new ArgumentOutOfRangeException(nameof(handle));
         IsBundled = isBundled;
         Handle = handle;
-        LegacySelector = legacySelector;
         Identity = identity ?? throw new ArgumentNullException(nameof(identity));
         DisplayName = displayName ?? throw new ArgumentNullException(nameof(displayName));
         Definition = definition ?? throw new ArgumentNullException(nameof(definition));
@@ -81,7 +72,6 @@ public sealed class MatchContentEntry
 public sealed class MatchContentCatalog
 {
     private readonly IReadOnlyDictionary<ContentHandle, MatchContentEntry> _byHandle;
-    private readonly IReadOnlyDictionary<CharacterClass, MatchContentEntry> _bySelector;
     private readonly IReadOnlyDictionary<string, MatchContentEntry> _byPackage;
     public IReadOnlyList<MatchContentEntry> Entries { get; }
     public IReadOnlyDictionary<ContentHandle, MatchContentEntry> HandleMap => _byHandle;
@@ -90,16 +80,14 @@ public sealed class MatchContentCatalog
     {
         Entries = new ReadOnlyCollection<MatchContentEntry>(new List<MatchContentEntry>(entries));
         _byHandle = new ReadOnlyDictionary<ContentHandle, MatchContentEntry>(Entries.ToDictionary(x => x.Handle));
-        _bySelector = new ReadOnlyDictionary<CharacterClass, MatchContentEntry>(Entries.Where(x => x.LegacySelector.HasValue).ToDictionary(x => x.LegacySelector!.Value));
         _byPackage = new ReadOnlyDictionary<string, MatchContentEntry>(Entries.ToDictionary(x => x.Identity.PackageId, StringComparer.Ordinal));
     }
 
     public MatchContentEntry? Resolve(ContentHandle handle) => _byHandle.TryGetValue(handle, out var e) ? e : null;
-    public MatchContentEntry? Resolve(CharacterClass selector) => _bySelector.TryGetValue(selector, out var e) ? e : null;
-    public MatchContentEntry? ResolveLegacySelection(string? selection, CharacterClass fallback)
+    public MatchContentEntry? ResolveLegacySelection(string? selection, string fallback)
     {
-        if (string.IsNullOrEmpty(selection)) return Resolve(fallback);
-        return Enum.TryParse<CharacterClass>(selection, true, out var selector) ? Resolve(selector) : null;
+        if (string.IsNullOrEmpty(selection)) return ResolvePackage(fallback);
+        return LegacyFighterProtocol.TryPackageId(selection, out var packageId) ? ResolvePackage(packageId) : null;
     }
 
     public MatchContentEntry? ResolvePackage(string packageId) => packageId != null && _byPackage.TryGetValue(packageId, out var e) ? e : null;
@@ -156,7 +144,7 @@ public sealed class MatchContentCatalogBuilder
             byPackage[roster.PackageId] = (roster, loaded);
         }
         if (diagnostics.Any(x => x.Severity == CharacterDiagnosticSeverity.Error)) return new(null, diagnostics);
-        var admitted = byPackage.Values.Select(x => new AdmittedFighter(x.Loaded, x.Roster.Selector, trustedRoster, trustedRoster == null)).ToArray();
+        var admitted = byPackage.Values.Select(x => new AdmittedFighter(x.Loaded, trustedRoster, trustedRoster == null)).ToArray();
         return Build(admitted, policy);
     }
 
@@ -165,7 +153,6 @@ public sealed class MatchContentCatalogBuilder
         if (fighters == null) throw new ArgumentNullException(nameof(fighters));
         var diagnostics = new List<CharacterDiagnostic>();
         var packages = new HashSet<string>(StringComparer.Ordinal);
-        var selectors = new HashSet<CharacterClass>();
         if (fighters.Count > ushort.MaxValue)
             diagnostics.Add(Error("catalog.capacity", "fighters", "Too many fighters."));
         foreach (var fighter in fighters)
@@ -177,15 +164,13 @@ public sealed class MatchContentCatalogBuilder
             }
             if (!packages.Add(fighter.Identity.PackageId))
                 diagnostics.Add(Error("catalog.package.duplicate", fighter.Identity.PackageId, "One revision per package is allowed."));
-            if (fighter.LegacySelector is { } selector && !selectors.Add(selector))
-                diagnostics.Add(Error("catalog.selector.duplicate", selector.ToString(), "Duplicate selector."));
             if (!fighter.Allowed(policy))
                 diagnostics.Add(Error("catalog.policy.refused", fighter.Identity.PackageId, "Fighter is not eligible under this match policy."));
         }
         if (diagnostics.Count != 0) return new(null, diagnostics);
         var ordered = fighters.OrderBy(x => x.Identity.PackageId, StringComparer.Ordinal).ToArray();
-        var entries = ordered.Select((x, i) => new MatchContentEntry(new ContentHandle((ushort)(i + 1)), x.LegacySelector,
-            x.Identity, x.Loaded.Package!.Definition.DisplayName, x.Loaded.ToCharacterDefinition(x.LegacySelector ?? CharacterClass.None),
+        var entries = ordered.Select((x, i) => new MatchContentEntry(new ContentHandle((ushort)(i + 1)),
+            x.Identity, x.Loaded.Package!.Definition.DisplayName, x.Loaded.ToCharacterDefinition(),
             x.Loaded.BakedAnimation, x.Loaded.Package, x.IsBundled) { Admission = x }).ToArray();
         return new(new MatchContentCatalog(entries), diagnostics);
     }
@@ -196,7 +181,7 @@ public sealed class MatchContentCatalogBuilder
         var d = new List<CharacterDiagnostic>();
         if (manifest.SchemaVersion != BuiltInRosterManifest.CurrentSchemaVersion)
             d.Add(Error("catalog.manifest.schema", "manifest.schemaVersion", "Unsupported roster manifest schema."));
-        var selectors = new HashSet<CharacterClass>();
+        var selectors = new HashSet<string>();
         var packages = new HashSet<string>(StringComparer.Ordinal);
         foreach (var entry in manifest.Entries)
         {
@@ -204,7 +189,9 @@ public sealed class MatchContentCatalogBuilder
             bool duplicatePackage = !packages.Add(entry.PackageId);
             if (duplicateSelector || duplicatePackage)
                 d.Add(Error("catalog.roster.duplicate", "entries", "Duplicate selector or package."));
-            if (!Enum.IsDefined(typeof(CharacterClass), entry.Selector) || entry.Selector == CharacterClass.None) d.Add(Error("catalog.selector.invalid", "entries", "Roster selector must be a supported non-None value."));
+            if (!LegacyFighterProtocol.TryPackageId(entry.Selector, out _)) d.Add(Error("catalog.selector.invalid", "entries", "Roster selector must be a supported non-None value."));
+            if (!string.Equals(entry.PackageId, entry.Selector?.ToLowerInvariant(), StringComparison.Ordinal))
+                d.Add(Error("catalog.selector.package-mismatch", "entries.packageId", "Package ID must equal the ordinal lowercase of its roster selector."));
             if (!IsStablePackageId(entry.PackageId)) d.Add(Error("catalog.package.invalid", "entries.packageId", "Package ID is not a stable lowercase ID."));
             if (entry.Requirement == null || entry.Requirement.PackageId != entry.PackageId || !IsSha(entry.Requirement.CookedContentHash) || !IsSha(entry.Requirement.PackageHash) || string.IsNullOrWhiteSpace(entry.Requirement.Version))
                 d.Add(Error("catalog.requirement.invalid", entry.PackageId, "Package requirement is incomplete or invalid."));
@@ -253,19 +240,15 @@ public static class BuiltInRosterManifestCodec
         if (manifest == null) throw new ArgumentNullException(nameof(manifest));
         using var stream = new MemoryStream(); using var w = new Utf8JsonWriter(stream);
         w.WriteStartObject(); w.WriteNumber("schemaVersion", manifest.SchemaVersion); w.WritePropertyName("entries"); w.WriteStartArray();
-        foreach (var x in manifest.Entries) { w.WriteStartObject(); w.WriteString("selector", x.Selector.ToString()); w.WriteString("packageId", x.PackageId); w.WritePropertyName("requirement"); w.WriteStartObject(); w.WriteString("packageId", x.Requirement.PackageId); w.WriteString("version", x.Requirement.Version); w.WriteString("cookedContentHash", x.Requirement.CookedContentHash); w.WriteString("packageHash", x.Requirement.PackageHash); w.WriteEndObject(); w.WriteEndObject(); }
+        foreach (var x in manifest.Entries) { w.WriteStartObject(); w.WriteString("selector", LegacyFighterProtocol.Selector(x.Selector)); w.WriteString("packageId", x.PackageId); w.WritePropertyName("requirement"); w.WriteStartObject(); w.WriteString("packageId", x.Requirement.PackageId); w.WriteString("version", x.Requirement.Version); w.WriteString("cookedContentHash", x.Requirement.CookedContentHash); w.WriteString("packageHash", x.Requirement.PackageHash); w.WriteEndObject(); w.WriteEndObject(); }
         w.WriteEndArray(); w.WriteEndObject(); w.Flush(); return Encoding.UTF8.GetString(stream.ToArray());
     }
 
     public static BuiltInRosterManifest Load(string path) => ParseCooked(File.ReadAllText(path));
 
 
-    private static CharacterClass ParseSelector(string value) => value switch
-    {
-        "Manki" => CharacterClass.Manki, "FightGuy" => CharacterClass.FightGuy, "Wibou" => CharacterClass.Wibou, "Bonk" => CharacterClass.Bonk,
-        "Bashie" => CharacterClass.Bashie, "Salamander" => CharacterClass.Salamander, "Nyx" => CharacterClass.Nyx,
-        _ => throw new InvalidDataException("Unknown roster selector.")
-    };
+    private static string ParseSelector(string value)
+        => LegacyFighterProtocol.TryPackageId(value, out var packageId) ? packageId : throw new InvalidDataException("Unknown roster selector.");
     private static Dictionary<string, JsonElement> ParseObject(string json, string path)
     {
         try { using var doc = JsonDocument.Parse(json); return StrictObject(doc.RootElement, path, "schemaVersion", "entries"); }

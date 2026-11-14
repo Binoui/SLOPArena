@@ -18,11 +18,8 @@ internal static class DashPairsReport
     private const float StartX = 50f, StartZ = 50f;
     private const int PressLead = 4;
     private static readonly float[] Distances = { 3f, 6f, 9f, 12f };
-    private static readonly (string Name, CharacterClass Class)[] Roster =
-    {
-        ("FightGuy", CharacterClass.FightGuy), ("Wibou", CharacterClass.Wibou), ("Manki", CharacterClass.Manki),
-        ("Sir Bonk", CharacterClass.Bonk), ("Bashie", CharacterClass.Bashie), ("Salamander", CharacterClass.Salamander),
-    };
+    private static readonly (string Name, string PackageId)[] Roster = BuiltInContentResolver.ReadApplicationCatalog()
+        .Entries.Select(entry => (entry.DisplayName, entry.Identity.PackageId)).ToArray();
     private static readonly (string Label, byte Wire)[] Normals =
         { ("1", AbilitySlots.Normal1), ("2", AbilitySlots.Normal2), ("3", AbilitySlots.Normal3) };
 
@@ -45,7 +42,7 @@ internal static class DashPairsReport
     {
         string? outPath = Program.ParseArg(args, "--out");
         string? csvPath = Program.ParseArg(args, "--csv");
-        var fighters = Roster.Select(r => (r.Name, Entry: BuiltInContentResolver.Resolve(r.Class))).ToArray();
+        var fighters = Roster.Select(r => (r.Name, Entry: BuiltInContentResolver.ResolvePackage(r.PackageId))).ToArray();
         var md = new StringBuilder();
         var csv = new StringBuilder("scenario,attacker,defender,distance,normal,arrive,gap,came_out,contact\n");
         int runs = fighters.Length * Distances.Length;

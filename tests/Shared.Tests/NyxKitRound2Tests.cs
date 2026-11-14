@@ -24,7 +24,7 @@ public sealed class NyxKitRound2Tests(ITestOutputHelper output)
 
         public Duel(bool saved, byte form = 0, float distance = 6f, float dummyYawDegrees = 180f)
         {
-            var content = BuiltInContentResolver.Resolve(CharacterClass.Nyx);
+            var content = BuiltInContentResolver.ResolvePackage("nyx");
             Def = saved ? content.Definition : TestHelpers.ResolveSourceDef("nyx");
             Sim = FormsFixture.Sim(Def, form);
             if (saved) Sim.RegisterEntity(Nyx, Def, Sim.GetState(Nyx), content.BakedAnimation);
@@ -487,7 +487,7 @@ public sealed class NyxKitRound2Tests(ITestOutputHelper output)
         Assert.True(admitted.IsValid, string.Join("; ", admitted.Diagnostics));
         Assert.Equal(compiled.CanonicalBytes, admitted.Package!.CanonicalBytes);
         Assert.Equal(new CookedTetherUnmarked(10, 5, 1.2f, .6f, 2f, 8f, 80f, 6f, 20f, 16, 20),
-            RingDuel.TetherOf(admitted.ToCharacterDefinition(CharacterClass.Bashie)).AtTarget!.Unmarked);
+            RingDuel.TetherOf(admitted.ToCharacterDefinition()).AtTarget!.Unmarked);
         var older = new CookedCharacterPackage(compiled.Metadata with { RuntimeApiMin = "1.20.0" }, compiled.Definition,
             compiled.Budget, compiled.Diagnostics,
             System.Text.Encoding.UTF8.GetBytes(System.Text.Encoding.UTF8.GetString(compiled.CanonicalBytes).Replace("1.21.0", "1.20.0")));

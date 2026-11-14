@@ -51,7 +51,7 @@ public sealed class NetplayInputTimingTests
     {
         var catalog = LoadCatalog();
         var match = new MatchInstance(0, Guid.NewGuid().ToString("D"), ArenaRegistry.Get("slop_pit")!.Value,
-            new[] { new MatchPlayer(1001, CharacterClass.FightGuy, 1), new MatchPlayer(1002, CharacterClass.Manki, 2) },
+            new[] { new MatchPlayer(1001, "fightguy", 1), new MatchPlayer(1002, "manki", 2) },
             catalog, _ => { }, contentHash: ContentHash, onMatchCancelled: onCancel,
             admissionDeadlineUtc: DateTimeOffset.UtcNow.AddSeconds(60),
             steamSend: (_, recipient, frame, _) => capture.Record(recipient, frame));

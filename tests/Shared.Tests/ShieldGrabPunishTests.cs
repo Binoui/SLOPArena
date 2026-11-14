@@ -10,18 +10,18 @@ public sealed class ShieldGrabPunishTests
 {
     public static IEnumerable<object[]> CloseUnsafeNormals()
     {
-        foreach (var defender in new[] { CharacterClass.FightGuy, CharacterClass.Manki, CharacterClass.Wibou, CharacterClass.Bonk })
+        foreach (var defender in new[] { "fightguy", "manki", "wibou", "bonk" })
         {
-            yield return new object[] { defender, CharacterClass.FightGuy, AbilitySlots.Normal1 };
-            yield return new object[] { defender, CharacterClass.Manki, AbilitySlots.Normal2 };
-            yield return new object[] { defender, CharacterClass.Bonk, AbilitySlots.Normal1 };
+            yield return new object[] { defender, "fightguy", AbilitySlots.Normal1 };
+            yield return new object[] { defender, "manki", AbilitySlots.Normal2 };
+            yield return new object[] { defender, "bonk", AbilitySlots.Normal1 };
         }
     }
 
     [Theory]
     [MemberData(nameof(CloseUnsafeNormals))]
     public void CloseUnsafeNormalCanBeShieldGrabbedBeforeAttackerCanEscape(
-        CharacterClass defender, CharacterClass attacker, byte slot)
+        string defender, string attacker, byte slot)
     {
         var result = RunPunish(defender, attacker, slot, 1.2f);
 
@@ -32,12 +32,12 @@ public sealed class ShieldGrabPunishTests
     }
 
     [Theory]
-    [InlineData(CharacterClass.FightGuy)]
-    [InlineData(CharacterClass.Wibou)]
-    [InlineData(CharacterClass.Bonk)]
-    public void SpacedBlockedNormalRemainsOutsideShieldGrab(CharacterClass defender)
+    [InlineData("fightguy")]
+    [InlineData("wibou")]
+    [InlineData("bonk")]
+    public void SpacedBlockedNormalRemainsOutsideShieldGrab(string defender)
     {
-        var result = RunPunish(defender, CharacterClass.FightGuy, AbilitySlots.Normal3, 2.4f);
+        var result = RunPunish(defender, "fightguy", AbilitySlots.Normal3, 2.4f);
 
         Assert.True(result.Blocked);
         Assert.True(result.GrabStarted);
@@ -45,13 +45,13 @@ public sealed class ShieldGrabPunishTests
     }
 
     [Theory]
-    [InlineData(CharacterClass.FightGuy, 1.2f)]
-    [InlineData(CharacterClass.Manki, 1.2f)]
-    [InlineData(CharacterClass.Wibou, 1.2f)]
-    [InlineData(CharacterClass.Bonk, 1.4f)]
-    public void TimingSafeNormalCanRetreatBeforeShieldGrabBecomesActive(CharacterClass defender, float distance)
+    [InlineData("fightguy", 1.2f)]
+    [InlineData("manki", 1.2f)]
+    [InlineData("wibou", 1.2f)]
+    [InlineData("bonk", 1.4f)]
+    public void TimingSafeNormalCanRetreatBeforeShieldGrabBecomesActive(string defender, float distance)
     {
-        var result = RunPunish(defender, CharacterClass.Manki, AbilitySlots.Normal1, distance);
+        var result = RunPunish(defender, "manki", AbilitySlots.Normal1, distance);
 
         Assert.True(result.Blocked);
         Assert.True(result.GrabStarted);
@@ -60,10 +60,10 @@ public sealed class ShieldGrabPunishTests
     }
 
     private static PunishResult RunPunish(
-        CharacterClass defender, CharacterClass attacker, byte slot, float distance)
+        string defender, string attacker, byte slot, float distance)
     {
-        var attackerContent = BuiltInContentResolver.Resolve(attacker);
-        var defenderContent = BuiltInContentResolver.Resolve(defender);
+        var attackerContent = BuiltInContentResolver.ResolvePackage(attacker);
+        var defenderContent = BuiltInContentResolver.ResolvePackage(defender);
         var attackerDef = CompileSource(attacker);
         var defenderDef = CompileSource(defender);
         var sim = new ServerSimulation(TestHelpers.TestArena());
@@ -116,7 +116,7 @@ public sealed class ShieldGrabPunishTests
         return result;
     }
 
-    private static CharacterDefinition CompileSource(CharacterClass character)
+    private static CharacterDefinition CompileSource(string character)
     {
         string id = character.ToString().ToLowerInvariant();
         var directory = new DirectoryInfo(AppContext.BaseDirectory);
@@ -130,7 +130,7 @@ public sealed class ShieldGrabPunishTests
                     File.ReadAllText(Path.Combine(package, "character.json")),
                     CharacterCookProfile.TrustedBuiltIn);
                 Assert.NotNull(compiled.CookedPackage);
-                return CookedCharacterRuntimeAdapter.ToCharacterDefinition(compiled.CookedPackage!, character);
+                return CookedCharacterRuntimeAdapter.ToCharacterDefinition(compiled.CookedPackage!);
             }
             directory = directory.Parent;
         }

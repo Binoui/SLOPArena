@@ -429,14 +429,14 @@ public sealed class TutorialProgressTests
         public readonly List<string> Contacts = new();
         public readonly List<string> DashTrace = new();
 
-        public Lab(CharacterClass player, CharacterClass dummy, TutorialLessonId lesson,
+        public Lab(string player, string dummy, TutorialLessonId lesson,
             float playerX = 0f, float playerZ = -4f, float dummyX = 0f, float dummyZ = 4f)
         {
             string root = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", ".."));
             var arena = ArenaBinaryFormat.LoadFromFile(Path.Combine(root, "data", "arenas", "training.arena"))!.Value;
             Sim = new ServerSimulation(arena, NoWinMatchRule.Instance);
-            PlayerEntry = BuiltInContentResolver.Resolve(player);
-            var dummyEntry = BuiltInContentResolver.Resolve(dummy);
+            PlayerEntry = BuiltInContentResolver.ResolvePackage(player);
+            var dummyEntry = BuiltInContentResolver.ResolvePackage(dummy);
             Register(Player, PlayerEntry, playerX, playerZ, 0f);
             Register(Dummy, dummyEntry, dummyX, dummyZ, MathF.PI);
             Progress = new TutorialProgress(Layout, PlayerEntry.Definition.CapsuleHeight);
@@ -483,17 +483,17 @@ public sealed class TutorialProgressTests
     }
 
     /// <summary>The live tutorial's dummy (TutorialMatch): Bonk, or FightGuy when the player is Bonk.</summary>
-    private static CharacterClass DummyFor(CharacterClass fighter)
-        => fighter == CharacterClass.Bonk ? CharacterClass.FightGuy : CharacterClass.Bonk;
+    private static string DummyFor(string fighter)
+        => fighter == "bonk" ? "fightguy" : "bonk";
 
     public static IEnumerable<object[]> BeelineFighters()
     {
-        foreach (var fighter in new[] { CharacterClass.FightGuy, CharacterClass.Manki, CharacterClass.Wibou,
-            CharacterClass.Bonk, CharacterClass.Bashie })
+        foreach (var fighter in new[] { "fightguy", "manki", "wibou",
+            "bonk", "bashie" })
             yield return new object[] { fighter };
-        try { BuiltInContentResolver.Resolve(CharacterClass.Salamander); }
+        try { BuiltInContentResolver.ResolvePackage("salamander"); }
         catch (InvalidDataException) { yield break; }
-        yield return new object[] { CharacterClass.Salamander };
+        yield return new object[] { "salamander" };
     }
 
     private static string Snapshot(Lab lab)
@@ -506,7 +506,7 @@ public sealed class TutorialProgressTests
 
     [Theory]
     [MemberData(nameof(BeelineFighters))]
-    public void RealBeelineGroundAndAerialHitsAreFeasible(CharacterClass fighter)
+    public void RealBeelineGroundAndAerialHitsAreFeasible(string fighter)
     {
         foreach (bool aerial in new[] { false, true })
         {
@@ -540,9 +540,9 @@ public sealed class TutorialProgressTests
 
     [Theory]
     [MemberData(nameof(BeelineFighters))]
-    public void RealBeelineOutOfShieldAndRecoveryAreFeasible(CharacterClass fighter)
+    public void RealBeelineOutOfShieldAndRecoveryAreFeasible(string fighter)
     {
-        var shield = new Lab(fighter, CharacterClass.Bonk, TutorialLessonId.BeelineTricks,
+        var shield = new Lab(fighter, "bonk", TutorialLessonId.BeelineTricks,
             playerZ: -1f, dummyZ: 3f);
         bool blocked = false;
         for (int t = 0; t < 600 && !shield.Progress.IsComplete(0); t++)
@@ -574,7 +574,7 @@ public sealed class TutorialProgressTests
 
     [Theory]
     [MemberData(nameof(BeelineFighters))]
-    public void RealBeelineChaseIsFeasible(CharacterClass fighter)
+    public void RealBeelineChaseIsFeasible(string fighter)
     {
         var lab = new Lab(fighter, DummyFor(fighter), TutorialLessonId.BeelineTricks, playerZ: 0f, dummyZ: 1.2f);
         lab.Sim.SetState(Dummy, lab.Sim.GetState(Dummy) with { DamagePercent = 30 });
@@ -597,7 +597,7 @@ public sealed class TutorialProgressTests
     [Fact]
     public void RealJumpsAndFastFallAreDetected()
     {
-        var lab = new Lab(CharacterClass.FightGuy, CharacterClass.Bonk, TutorialLessonId.Jump);
+        var lab = new Lab("fightguy", "bonk", TutorialLessonId.Jump);
         lab.Step(new InputState { Jump = true, JumpHeld = true });
         for (int i = 0; i < 25; i++) lab.Step(new InputState { JumpHeld = true });
         lab.Step(new InputState { Jump = true, JumpHeld = true });
@@ -613,15 +613,15 @@ public sealed class TutorialProgressTests
     }
 
     [Theory]
-    [InlineData(CharacterClass.FightGuy)]
-    [InlineData(CharacterClass.Manki)]
-    [InlineData(CharacterClass.Wibou)]
-    [InlineData(CharacterClass.Bonk)]
-    public void EverySpecialPressIsDetectedForEachFighter(CharacterClass fighter)
+    [InlineData("fightguy")]
+    [InlineData("manki")]
+    [InlineData("wibou")]
+    [InlineData("bonk")]
+    public void EverySpecialPressIsDetectedForEachFighter(string fighter)
     {
         foreach (byte slot in new[] { AbilitySlots.A, AbilitySlots.E, AbilitySlots.R, AbilitySlots.F })
         {
-            var lab = new Lab(fighter, fighter == CharacterClass.Bonk ? CharacterClass.FightGuy : CharacterClass.Bonk,
+            var lab = new Lab(fighter, fighter == "bonk" ? "fightguy" : "bonk",
                 TutorialLessonId.Specials, dummyZ: 12f);
             int index = Array.FindIndex(lab.Progress.Lesson.Objectives.ToArray(), o => o.Id == slot switch
             {
@@ -637,7 +637,7 @@ public sealed class TutorialProgressTests
     [Fact]
     public void SparringDummyAttacksCanBeBlocked()
     {
-        var lab = new Lab(CharacterClass.FightGuy, CharacterClass.Bonk, TutorialLessonId.ShieldAndDodge,
+        var lab = new Lab("fightguy", "bonk", TutorialLessonId.ShieldAndDodge,
             playerZ: -1f, dummyZ: 3f);
         for (int i = 0; i < 600 && !lab.Progress.IsComplete(0); i++)
             lab.Step(new InputState { ShieldHeld = true, ShieldPressed = i == 0 });
@@ -648,7 +648,7 @@ public sealed class TutorialProgressTests
     [Fact]
     public void RealGrabAndThrowAreDetected()
     {
-        var lab = new Lab(CharacterClass.FightGuy, CharacterClass.Bonk, TutorialLessonId.GrabAndThrow,
+        var lab = new Lab("fightguy", "bonk", TutorialLessonId.GrabAndThrow,
             playerZ: 0f, dummyZ: 1.1f);
         lab.Step(new InputState { GrabPressed = true });
         lab.Wait(DefenseConfig.GrabStartupTicks + 1);

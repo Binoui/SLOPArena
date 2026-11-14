@@ -141,7 +141,7 @@ namespace SlopArena.Shared.Replays
                         var entry = content.Catalog.ResolvePackage(record.Identity.PackageId);
                         if (entry?.Identity != record.Identity || entry.DisplayName != record.DisplayName)
                             throw new ArgumentException("Recorded content is unavailable.");
-                        entries.Add(new MatchContentEntry(record.Handle, entry.LegacySelector, entry.Identity,
+                        entries.Add(new MatchContentEntry(record.Handle, entry.Identity,
                             entry.DisplayName, entry.Definition, entry.BakedAnimation, entry.CookedCharacterPackage, entry.IsBundled));
                     }
                     if (map.Arena != new MatchArenaRecord(arena.Definition.Name, arena.Digest))

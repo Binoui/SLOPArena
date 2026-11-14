@@ -32,7 +32,7 @@ public sealed class ReplayReportTests(ITestOutputHelper output)
         Directory.CreateDirectory(dir);
         try
         {
-            var entries = new[] { BuiltInContentResolver.Resolve(CharacterClass.FightGuy), BuiltInContentResolver.Resolve(CharacterClass.Manki) };
+            var entries = new[] { BuiltInContentResolver.ResolvePackage("fightguy"), BuiltInContentResolver.ResolvePackage("manki") };
             var catalog = new MatchContentCatalog(entries);
             var arena = ArenaBinaryFormat.LoadFromFile(Path.Combine(Root, "data/arenas/slop_pit.arena"))!.Value;
             var roster = entries.Select((e,i) => new ReplayParticipant((ulong)i+1, "cpu", i.ToString(), e.Identity, "base", "", "", i == 0 ? "Binoui" : "")).ToArray();

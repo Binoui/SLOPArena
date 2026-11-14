@@ -10,7 +10,7 @@ public sealed class NeoMallScrambleShortcutTests
     public void CornerHopBypassesCheckpointAndTakesLead()
     {
         var arena = ArenaBinaryFormat.LoadFromFile(Path.Combine(CourseFinishability.Root, "data/arenas/wibou_mall.arena"))!.Value;
-        var entry = BuiltInContentResolver.Resolve(CharacterClass.FightGuy);
+        var entry = BuiltInContentResolver.ResolvePackage("fightguy");
         var sim = new ServerSimulation(arena, new CourseMatchRule(CourseFormat.Scramble));
         CharacterState Start(ulong id, float x, float z) => new()
         {

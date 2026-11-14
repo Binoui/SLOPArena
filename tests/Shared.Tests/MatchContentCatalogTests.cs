@@ -13,7 +13,7 @@ public sealed class MatchContentCatalogTests
     public void CommittedFightGuyPackage_LoadsWithExactIdentity()
     {
         var manifest = BuiltInRosterManifestCodec.Load(Path.Combine(Root, "content-cooked/roster/manifest.json"));
-        var roster = manifest.Resolve(CharacterClass.FightGuy)!;
+        var roster = manifest.ResolvePackage("fightguy")!;
         Assert.NotNull(roster);
         var result = CookedCharacterPackageLoader.LoadDirectory(Path.Combine(Root, "content-cooked/fightguy"), roster.Requirement);
         Assert.True(result.IsValid, string.Join("; ", result.Diagnostics));
@@ -28,10 +28,10 @@ public sealed class MatchContentCatalogTests
     public void Catalog_AssignsHandlesByStablePackageId()
     {
         var roster = BuiltInRosterManifestCodec.Load(Path.Combine(Root, "content-cooked/roster/manifest.json"));
-        var fightGuy = roster.Resolve(CharacterClass.FightGuy)!;
-        var bonk = roster.Resolve(CharacterClass.Bonk)!;
-        var wibou = roster.Resolve(CharacterClass.Wibou)!;
-        var manki = roster.Resolve(CharacterClass.Manki)!;
+        var fightGuy = roster.ResolvePackage("fightguy")!;
+        var bonk = roster.ResolvePackage("bonk")!;
+        var wibou = roster.ResolvePackage("wibou")!;
+        var manki = roster.ResolvePackage("manki")!;
         var manifest = new BuiltInRosterManifest(roster.SchemaVersion, new[] { bonk, fightGuy, wibou, manki });
         var loadedFightGuy = CookedCharacterPackageLoader.LoadDirectory(
             Path.Combine(Root, "content-cooked/fightguy"), fightGuy.Requirement);
@@ -73,7 +73,7 @@ public sealed class MatchContentCatalogTests
             ThrowForwardAnim = "throw.test", AirDodgeAnim = "dodge.test",
         };
         var identity = new MatchContentIdentity("test", "1", "", "", "");
-        var entry = new MatchContentEntry(new ContentHandle(1), CharacterClass.Manki, identity, "test", definition);
+        var entry = new MatchContentEntry(new ContentHandle(1), identity, "test", definition);
         Assert.Same(definition, entry.Definition);
         Assert.Equal("shield.test", entry.Definition.ShieldAnim);
         Assert.Equal("grab.test", entry.Definition.GrabAnim);
@@ -86,7 +86,7 @@ public sealed class MatchContentCatalogTests
     public void MissingCookedWibouPackage_FailsClosed()
     {
         var manifest = BuiltInRosterManifestCodec.Load(Path.Combine(Root, "content-cooked/roster/manifest.json"));
-        var fightGuy = manifest.Resolve(CharacterClass.FightGuy)!;
+        var fightGuy = manifest.ResolvePackage("fightguy")!;
         var loaded = CookedCharacterPackageLoader.LoadDirectory(Path.Combine(Root, "content-cooked/fightguy"), fightGuy.Requirement);
         var result = new MatchContentCatalogBuilder().Build(manifest, new Dictionary<string, CookedCharacterPackageLoadResult> { ["fightguy"] = loaded });
         Assert.False(result.IsValid);
@@ -97,7 +97,7 @@ public sealed class MatchContentCatalogTests
     public void HandleMap_RoundTripsDeterministically()
     {
         var identity = new MatchContentIdentity("fightguy", "0.0.0-dev", new string('a',64), new string('b',64), new string('c',64));
-        var map = new MatchContentHandleMap(1, new[] { new MatchContentHandleRecord(new ContentHandle(2), CharacterClass.FightGuy, identity, "FightGuy") });
+        var map = new MatchContentHandleMap(1, new[] { new MatchContentHandleRecord(new ContentHandle(2), "fightguy", identity, "FightGuy") });
         var json = MatchContentHandleMapCodec.Serialize(map);
         Assert.True(MatchContentHandleMapCodec.TryParse(json, out var parsed));
         Assert.Equal(json, MatchContentHandleMapCodec.Serialize(parsed!));
@@ -106,7 +106,7 @@ public sealed class MatchContentCatalogTests
     public void CookedLoader_RejectsMissingRequiredPayload()
     {
         var manifest = BuiltInRosterManifestCodec.Load(Path.Combine(Root, "content-cooked/roster/manifest.json"));
-        var requirement = manifest.Resolve(CharacterClass.FightGuy)!.Requirement;
+        var requirement = manifest.ResolvePackage("fightguy")!.Requirement;
         var files = new Dictionary<string, byte[]>
         {
             ["manifest.json"] = File.ReadAllBytes(Path.Combine(Root, "content-cooked/fightguy/manifest.json")),

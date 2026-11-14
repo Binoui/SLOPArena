@@ -1,0 +1,928 @@
+group	file	line	source
+AI, modes and special cases	src/Shared/AdmittedFighter.cs	20	public CharacterClass? LegacySelector { get; }
+AI, modes and special cases	src/Shared/AdmittedFighter.cs	25	internal AdmittedFighter(CookedCharacterPackageLoadResult loaded, CharacterClass? selector,
+AI, modes and special cases	src/Shared/AdmittedFighter.cs	34	LegacySelector = selector;
+AI, modes and special cases	src/Shared/FighterChoice.cs	11	public CharacterClass? LegacySelector => Fighter.LegacySelector;
+AI, modes and special cases	src/Shared/FighterWorkspaceCache.cs	74	if (admitted.Fighter == null) return new(null, diagnostics, null);
+AI, modes and special cases	src/Shared/HitReliability/HitReliabilityDocument.cs	14	=> new(BuiltInContentResolver.Resolve(CharacterClass.FightGuy, cookedRoot),
+AI, modes and special cases	src/Shared/HitReliability/HitReliabilityDocument.cs	15	BuiltInContentResolver.Resolve(CharacterClass.Manki, cookedRoot));
+AI, modes and special cases	src/Shared/HitReliability/HitReliabilityDocument.cs	19	if (medium.Definition.Class != CharacterClass.FightGuy || small.Definition.Class != CharacterClass.Manki)
+AI, modes and special cases	src/Shared/HitReliability/HitReliabilityDocument.cs	35	Name = entry.Definition.Class.ToString();
+AI, modes and special cases	src/Shared/LocalFighterWorkspace.cs	17	return new(result.Fighter, result.Item, result.Diagnostics);
+AI, modes and special cases	src/Shared/LocalFighterWorkspace.cs	22	return new(result.Fighter, result.Item, result.Diagnostics);
+AI, modes and special cases	src/Shared/ShippedRoster.cs	34	public BuiltInRosterEntry DefaultFighter => Manifest.Resolve(CharacterClass.FightGuy) ?? Manifest.Entries[0];
+AI, modes and special cases	client/Unity/Assets/Scripts/Runtime/UI/LegacyFighterSelection.cs	10	=> Enum.GetNames(typeof(CharacterClass)).Any(name => string.Equals(name, selector, StringComparison.OrdinalIgnoreCase))
+AI, modes and special cases	client/Unity/Assets/Scripts/Runtime/UI/LegacyFighterSelection.cs	11	&& Enum.TryParse<CharacterClass>(selector, true, out var legacy)
+AI, modes and special cases	client/Unity/Assets/Scripts/Runtime/UI/LocalFighterLibrary.Content.cs	123	.Select(entry => entry.Choose().Fighter).ToArray();
+AI, modes and special cases	client/Unity/Assets/Scripts/Runtime/UI/LocalFighterLibrary.Content.cs	135	var admitted = catalog.Entries.Where(e => e.IsBundled).Select(e => e.Choose().Fighter).Concat(fighters).ToArray();
+AI, modes and special cases	client/Unity/Assets/Scripts/Runtime/UI/WorkshopOverlay.Fighter.cs	55	BeginView(View.Fighter);
+AI, modes and special cases	client/Unity/Assets/Scripts/Runtime/UI/WorkshopOverlay.Fighter.cs	84	workspacePoll = _root.schedule.Execute(() => { if (generation == workspaceGeneration && IsOpen && _view == View.Fighter) PollWorkspace(); }).Every(250);
+AI, modes and special cases	client/Unity/Assets/Scripts/Runtime/UI/WorkshopOverlay.Fighter.cs	166	bool accepted = workspaceItem?.Fighter != null;
+AI, modes and special cases	client/Unity/Assets/Scripts/Runtime/UI/WorkshopOverlay.Fighter.cs	218	if (admitted?.Fighter == null || admitted.Item == null) throw new InvalidOperationException("Wait for an admitted cook before publishing.");
+AI, modes and special cases	client/Unity/Assets/Scripts/Runtime/UI/WorkshopOverlay.Fighter.cs	222	var settings = await Task.Run(() => WorkshopPublishSettings.Read(statePath, admitted.Fighter.Choose().Revision.PackageId));
+AI, modes and special cases	client/Unity/Assets/Scripts/Runtime/UI/WorkshopOverlay.Fighter.cs	234	var library = LocalFighterLibrary.Current.WithLocalItem(admitted.Fighter);
+AI, modes and special cases	client/Unity/Assets/Scripts/Runtime/UI/WorkshopOverlay.Fighter.cs	236	using var lease = await MadeFighterPresentation.PrepareAsync(catalog!.ResolvePackage(admitted.Fighter.Choose().Revision.PackageId)!, admitted.Item, _cancel.Token);
+AI, modes and special cases	client/Unity/Assets/Scripts/Runtime/UI/WorkshopOverlay.Fighter.cs	294	if (admitted?.Fighter == null || admitted.Item == null) throw new InvalidOperationException("Fix the cook diagnostics before starting Training.");
+AI, modes and special cases	client/Unity/Assets/Scripts/Runtime/UI/WorkshopOverlay.Fighter.cs	297	var library = LocalFighterLibrary.Current.WithLocalItem(admitted.Fighter);
+AI, modes and special cases	client/Unity/Assets/Scripts/Runtime/UI/WorkshopOverlay.Fighter.cs	298	var choice = admitted.Fighter.Choose();
+AI, modes and special cases	client/Unity/Assets/Scripts/Runtime/Workshop/InstalledFighters.cs	121	if (result.Fighter == null || result.Item == null) throw new InvalidDataException(string.Join("; ", result.Diagnostics.Select(LocalFighterWorkspace.DiagnosticText)));
+AI, modes and special cases	client/Unity/Assets/Scripts/Runtime/Workshop/InstalledFighters.cs	122	var library = LocalFighterLibrary.Current.WithLocalItem(result.Fighter);
+AI, modes and special cases	client/Unity/Assets/Scripts/Runtime/Workshop/InstalledFighters.cs	124	revision.Lease = await MadeFighterPresentation.PrepareAsync(catalog!.ResolvePackage(result.Fighter.Choose().Revision.PackageId)!, result.Item, token);
+AI, modes and special cases	client/Unity/Assets/Scripts/Runtime/Workshop/InstalledFighters.cs	134	var duplicates = ready.GroupBy(r => r.Result!.Fighter!.Choose().Revision.PackageId).Where(g => g.Count() > 1)
+AI, modes and special cases	client/Unity/Assets/Scripts/Runtime/Workshop/InstalledFighters.cs	136	var nextVisible = ready.Where(r => !duplicates.ContainsKey(r.Result!.Fighter!.Choose().Revision.PackageId)).Select(r => r.Result!.Fighter!).ToArray();
+AI, modes and special cases	client/Unity/Assets/Scripts/Runtime/Workshop/InstalledFighters.cs	138	rows = staged.Values.Select(r => r.Caption + " / " + (r.Lease != null && duplicates.TryGetValue(r.Result!.Fighter!.Choose().Revision.PackageId, out string duplicate) ? duplicate : r.Diagnostic.Length > 0 ? r.Diagnostic : "Ready")).ToArray();
+AI, modes and special cases	client/Unity/Assets/Scripts/Runtime/Workshop/SteamWorkshopClient.Fighters.cs	51	if (admitted.Fighter == null) throw new InvalidDataException(string.Join("; ", admitted.Diagnostics.Select(LocalFighterWorkspace.DiagnosticText)));
+AI, modes and special cases	client/Unity/Assets/Scripts/Runtime/World/ArcadeBallMatch.cs	52	if (!string.IsNullOrEmpty(UnityEditor.SessionState.GetString("SlopArena.ArcadeBallLab.Fighter", "")))
+AI, modes and special cases	client/Unity/Assets/Scripts/Runtime/World/ArcadeBallMatch.cs	54	var legacy = UnityEditor.SessionState.GetString("SlopArena.ArcadeBallLab.Fighter", "");
+AI, modes and special cases	client/Unity/Assets/Scripts/Runtime/World/ArcadeBallMatch.cs	65	UnityEditor.SessionState.EraseString("SlopArena.ArcadeBallLab.Fighter");
+AI, modes and special cases	client/Unity/Assets/Scripts/Runtime/World/TrainingMatch.cs	489	RejectContent($"P{player} choice is missing or its exact revision is unavailable: {seat.Fighter}.");
+AI, modes and special cases	client/Unity/Assets/Scripts/Runtime/World/TrainingMatch.cs	950	var winnerArt = winner.Fighter?.Art;
+AI, modes and special cases	client/Unity/Assets/Scripts/Runtime/World/TrainingMatch.cs	954	string result = $"{entry.Name} {(entry.Fighter == null ? "" : PracticeSessionLog.CharacterKey(entry.Fighter.Content))} place={entry.Placement} falls={entry.Falls}";
+AI, modes and special cases	client/Unity/Assets/AbilityLab/Runtime/AbilityLab.cs	189	public CharacterClass Character { get; private set; } = CharacterClass.None;
+AI, modes and special cases	client/Unity/Assets/AbilityLab/Runtime/AbilityLab.cs	801	var definition = CookedCharacterRuntimeAdapter.ToCharacterDefinition(package, CharacterClass.None).ForForm(SelectedForm);
+AI, modes and special cases	client/Unity/Assets/AbilityLab/Runtime/AbilityLab.cs	825	Character = CharacterClass.None;
+AI, modes and special cases	client/Unity/Assets/AbilityLab/Runtime/AbilityLab.cs	879	var definition = CookedCharacterRuntimeAdapter.ToCharacterDefinition(package, CharacterClass.None).ForForm(SelectedForm);
+AI, modes and special cases	client/Unity/Assets/AbilityLab/Runtime/AbilityLab.cs	881	Character = CharacterClass.None;
+AI, modes and special cases	client/Unity/Assets/AbilityLab/Runtime/AbilityLab.cs	907	Character = CharacterClass.None;
+AI, modes and special cases	client/Unity/Assets/AbilityLab/Runtime/AbilityLab.cs	948	if (def.Class == CharacterClass.FightGuy || string.IsNullOrEmpty(def.BakedDataPath)) return null;
+AI, modes and special cases	client/Unity/Assets/AbilityLab/Runtime/AbilityLab.cs	1026	: def != null && def.Class != CharacterClass.None
+AI, modes and special cases	client/Unity/Assets/AbilityLab/Runtime/AbilityLab.cs	1027	? Resources.Load<WeaponAttachConfig>($"WeaponConfigs/{def.Class}")
+AI, modes and special cases	client/Unity/Assets/AbilityLab/Runtime/AbilityLab.cs	1719	if (Character == CharacterClass.None ? !IsPackagePreview : !Application.isPlaying) return;
+Content identity and admission	src/Shared/BuiltInContentResolver.cs	11	public static MatchContentEntry Resolve(CharacterClass selector)
+Content identity and admission	src/Shared/BuiltInContentResolver.cs	17	public static MatchContentEntry Resolve(CharacterClass selector, string cookedRoot)
+Content identity and admission	src/Shared/BuiltInContentResolver.cs	20	private static MatchContentEntry ResolveCatalog(CharacterClass selector, string cookedRoot, ShippedRoster? shipped)
+Content identity and admission	src/Shared/MatchContentCatalog.cs	19	public sealed record BuiltInRosterEntry(CharacterClass Selector, string PackageId, MatchContentPackageRequirement Requirement);
+Content identity and admission	src/Shared/MatchContentCatalog.cs	34	public bool TryGetBySelector(CharacterClass selector, out BuiltInRosterEntry entry)
+Content identity and admission	src/Shared/MatchContentCatalog.cs	46	public BuiltInRosterEntry? Resolve(CharacterClass selector) => TryGetBySelector(selector, out var value) ? value : null;
+Content identity and admission	src/Shared/MatchContentCatalog.cs	56	public CharacterClass? LegacySelector { get; }
+Content identity and admission	src/Shared/MatchContentCatalog.cs	65	public MatchContentEntry(ContentHandle handle, CharacterClass? legacySelector, MatchContentIdentity identity,
+Content identity and admission	src/Shared/MatchContentCatalog.cs	72	LegacySelector = legacySelector;
+Content identity and admission	src/Shared/MatchContentCatalog.cs	84	private readonly IReadOnlyDictionary<CharacterClass, MatchContentEntry> _bySelector;
+Content identity and admission	src/Shared/MatchContentCatalog.cs	93	_bySelector = new ReadOnlyDictionary<CharacterClass, MatchContentEntry>(Entries.Where(x => x.LegacySelector.HasValue).ToDictionary(x => x.LegacySelector!.Value));
+Content identity and admission	src/Shared/MatchContentCatalog.cs	98	public MatchContentEntry? Resolve(CharacterClass selector) => _bySelector.TryGetValue(selector, out var e) ? e : null;
+Content identity and admission	src/Shared/MatchContentCatalog.cs	99	public MatchContentEntry? ResolveLegacySelection(string? selection, CharacterClass fallback)
+Content identity and admission	src/Shared/MatchContentCatalog.cs	102	return Enum.TryParse<CharacterClass>(selection, true, out var selector) ? Resolve(selector) : null;
+Content identity and admission	src/Shared/MatchContentCatalog.cs	168	var selectors = new HashSet<CharacterClass>();
+Content identity and admission	src/Shared/MatchContentCatalog.cs	180	if (fighter.LegacySelector is { } selector && !selectors.Add(selector))
+Content identity and admission	src/Shared/MatchContentCatalog.cs	187	var entries = ordered.Select((x, i) => new MatchContentEntry(new ContentHandle((ushort)(i + 1)), x.LegacySelector,
+Content identity and admission	src/Shared/MatchContentCatalog.cs	188	x.Identity, x.Loaded.Package!.Definition.DisplayName, x.Loaded.ToCharacterDefinition(x.LegacySelector ?? CharacterClass.None),
+Content identity and admission	src/Shared/MatchContentCatalog.cs	199	var selectors = new HashSet<CharacterClass>();
+Content identity and admission	src/Shared/MatchContentCatalog.cs	207	if (!Enum.IsDefined(typeof(CharacterClass), entry.Selector) || entry.Selector == CharacterClass.None) d.Add(Error("catalog.selector.invalid", "entries", "Roster selector must be a supported non-None value."));
+Content identity and admission	src/Shared/MatchContentCatalog.cs	263	private static CharacterClass ParseSelector(string value) => value switch
+Content identity and admission	src/Shared/MatchContentCatalog.cs	265	"Manki" => CharacterClass.Manki, "FightGuy" => CharacterClass.FightGuy, "Wibou" => CharacterClass.Wibou, "Bonk" => CharacterClass.Bonk,
+Content identity and admission	src/Shared/MatchContentCatalog.cs	266	"Bashie" => CharacterClass.Bashie, "Salamander" => CharacterClass.Salamander, "Nyx" => CharacterClass.Nyx,
+Content identity and admission	src/Shared/MatchContentHandleMap.cs	9	public sealed record MatchContentHandleRecord(ContentHandle Handle, CharacterClass? Selector, MatchContentIdentity Identity, string DisplayName);
+Content identity and admission	src/Shared/MatchContentHandleMap.cs	29	if (schemaVersion != LocalSchemaVersion && copy.Any(x => !x.Selector.HasValue || x.Selector == CharacterClass.None))
+Content identity and admission	src/Shared/MatchContentHandleMap.cs	39	.Select((e, i) => new MatchContentHandleRecord(new ContentHandle((ushort)(i + 1)), e.LegacySelector, e.Identity, e.DisplayName)).ToArray(), arena);
+Content identity and admission	src/Shared/MatchContentHandleMap.cs	99	CharacterClass? cls = null;
+Content identity and admission	src/Shared/MatchContentHandleMap.cs	121	if (entry == null || (map.SchemaVersion != MatchContentHandleMap.LocalSchemaVersion && entry.LegacySelector != record.Selector) || entry.Identity != record.Identity || entry.DisplayName != record.DisplayName) { map = null; return false; }
+Content identity and admission	src/Shared/MatchContentHandleMap.cs	128	private static bool TrySelector(string value,out CharacterClass cls){cls=value switch{"Manki"=>CharacterClass.Manki,"manki"=>CharacterClass.Manki,"FightGuy"=>CharacterClass.FightGuy,"fightguy"=>CharacterClass.FightGuy,"Wibou"=>CharacterClass.Wibou,"wibou"=>CharacterClass.Wibou,"Bonk"=>CharacterClass.Bonk,"bonk"=>CharacterClass.Bonk,"Bashie"=>CharacterClass.Bashie,"bashie"=>CharacterClass.Bashie,"Salamander"=>CharacterClass.Salamander,"salamander"=>CharacterClass.Salamander,"Nyx"=>CharacterClass.Nyx,"nyx"=>CharacterClass.Nyx,_=>CharacterClass.None};return cls!=CharacterClass.None;}
+Content identity and admission	src/Server/MatchContentCatalogProvider.cs	48	if (entry.LegacySelector.HasValue)
+Content identity and admission	src/Server/MatchContentCatalogProvider.cs	49	records.Add(new MatchContentHandleRecord(entry.Handle, entry.LegacySelector.Value, entry.Identity, entry.DisplayName));
+Content identity and admission	src/Server/MatchInstance.cs	21	/// entity per player with the correct <see cref="CharacterClass"/> instead of
+Content identity and admission	src/Server/MatchInstance.cs	142	var content = _contentCatalog.Resolve(p.CharacterClass)
+Content identity and admission	src/Server/MatchInstance.cs	143	?? throw new InvalidDataException($"Roster selector '{p.CharacterClass}' is not in the match content catalog.");
+Content identity and admission	src/Server/MatchInstance.cs	144	_slots.Add(new PlayerSlot((ulong)p.EntityId, p.CharacterClass, p.SteamId, content) { Form = p.Form });
+Content identity and admission	src/Server/MatchInstance.cs	328	Log($"Slot {i}: entity {slot.EntityId} = {slot.CharacterClass}");
+Content identity and admission	src/Server/MatchInstance.cs	1113	public CharacterClass CharacterClass { get; }
+Content identity and admission	src/Server/MatchInstance.cs	1152	public PlayerSlot(ulong entityId, CharacterClass characterClass, long steamId, MatchContentEntry content)
+Content identity and admission	src/Server/MatchInstance.cs	1155	CharacterClass = characterClass;
+Content identity and admission	src/Server/MultiMatchOrchestrator.cs	106	|| catalog.Resolve(p.CharacterClass) is not { } entry || !courseArena.Arcade!.AllowsPackage(entry.Identity.PackageId))
+Content identity and admission	client/Unity/Assets/Scripts/Runtime/World/PvPMatch.cs	190	Debug.Log($"[{GetType().Name}] Starting match: mode={MatchConfig.Mode} char={MatchConfig.PlayerClass} arena={MatchConfig.ArenaName}");
+Content identity and admission	client/Unity/Assets/Scripts/Runtime/World/PvPMatch.cs	251	if (!BindFighter(opponent.EntityId, contentCatalog.Resolve(opponent.Class))) return;
+Content identity and admission	client/Unity/Assets/Scripts/Runtime/World/PvPMatch.cs	289	var opponentEntry = contentCatalog.Resolve(opp.Class);
+Content identity and admission	client/Unity/Assets/Scripts/Runtime/World/PvPMatch.cs	292	ClientSession.RejectMatchStart($"Opponent selector {opp.Class} is absent from the admitted content catalog.");
+Simulation and gameplay	src/Shared/CharacterDefinition.cs	9	public enum CharacterClass : byte
+Simulation and gameplay	src/Shared/CharacterDefinition.cs	56	public CharacterClass Class { get; init; }
+Simulation and gameplay	src/Shared/CookedCharacterPackageLoader.cs	27	public CharacterDefinition ToCharacterDefinition(CharacterClass legacySelector = CharacterClass.None)
+Simulation and gameplay	src/Shared/CookedCharacterRuntimeAdapter.cs	10	public static CharacterDefinition ToCharacterDefinition(CookedCharacterPackage package, CharacterClass legacySelector = CharacterClass.None)
+Simulation and gameplay	src/Shared/CookedCharacterRuntimeAdapter.cs	13	internal static CharacterDefinition ToCharacterDefinition(CookedCharacterPackage package, CharacterClass legacySelector,
+Simulation and gameplay	src/Shared/HurtboxOverride.cs	55	public static string Serialize(CharacterClass character, HurtboxBoneDef[] defs)
+Simulation and gameplay	src/Shared/HurtboxOverride.cs	84	public static bool TryParse(string json, out CharacterClass character, out HurtboxBoneDef[]? defs)
+Simulation and gameplay	src/Shared/HurtboxOverride.cs	86	character = CharacterClass.None;
+Simulation and gameplay	src/Shared/HurtboxOverride.cs	99	if (!Enum.TryParse(dto.Character, ignoreCase: true, out CharacterClass parsed))
+Network and storage	src/Shared/LobbyPayloadCodec.cs	205	|| snap.Players.Select(p => p.CharacterSelection).Distinct().Count() != 1)) return null;
+Network and storage	src/Shared/LobbyPlayerInfo.cs	17	string? CharacterSelection,
+Network and storage	src/Shared/MatchStartRequest.cs	16	/// <param name="CharacterClass">Locked-in character class the game server must spawn.</param>
+Network and storage	src/Shared/MatchStartRequest.cs	19	public sealed record MatchPlayer(long SteamId, CharacterClass CharacterClass, int EntityId, SlopballCamp Camp = SlopballCamp.None, byte Colour = 0,
+Network and storage	src/Shared/MatchStartRequest.cs	92	if (!System.Enum.TryParse<CharacterClass>(classStr, ignoreCase: true, out var characterClass) ||
+Network and storage	src/Shared/MatchStartRequest.cs	93	!System.Enum.IsDefined(typeof(CharacterClass), characterClass) ||
+Network and storage	src/Shared/MatchStartRequest.cs	94	characterClass == CharacterClass.None)
+Network and storage	src/Shared/Replays/ReplayCast.cs	144	entries.Add(new MatchContentEntry(record.Handle, entry.LegacySelector, entry.Identity,
+Network and storage	client/Unity/Assets/Scripts/Runtime/ClientSession.cs	301	var playerEntry = catalog.ResolveLegacySelection(local.CharacterSelection,
+Network and storage	client/Unity/Assets/Scripts/Runtime/ClientSession.cs	302	descriptor == null ? Shared.CharacterClass.Manki : Shared.CharacterClass.None);
+Network and storage	client/Unity/Assets/Scripts/Runtime/ClientSession.cs	341	var opponentClass = ParseClass(player.CharacterSelection,
+Network and storage	client/Unity/Assets/Scripts/Runtime/ClientSession.cs	342	descriptor == null ? Shared.CharacterClass.Manki : Shared.CharacterClass.None);
+Network and storage	client/Unity/Assets/Scripts/Runtime/ClientSession.cs	343	if (descriptor != null && (opponentClass == Shared.CharacterClass.None ||
+Network and storage	client/Unity/Assets/Scripts/Runtime/ClientSession.cs	569	if (local == null || local.Identity != record.Identity || local.LegacySelector != record.Selector)
+Network and storage	client/Unity/Assets/Scripts/Runtime/ClientSession.cs	580	private static Shared.CharacterClass ParseClass(string? name, Shared.CharacterClass fallback)
+Network and storage	client/Unity/Assets/Scripts/Runtime/ClientSession.cs	584	return System.Enum.TryParse<Shared.CharacterClass>(name, ignoreCase: true, out var c) && c != Shared.CharacterClass.None
+Network and storage	client/Unity/Assets/Scripts/Runtime/Diagnostics/PracticeSessionLog.cs	69	public static string CharacterKey(MatchContentEntry entry) => entry.LegacySelector?.ToString() ?? entry.Identity.PackageId;
+Network and storage	client/Unity/Assets/Scripts/Runtime/Network/LobbyClient.cs	19	public string? CharacterSelection { get; set; }
+Tests	client/Unity/Assets/Scripts/Editor/AnimationBehaviorSelfTest.cs	79	definition = definition with { Class = CharacterClass.Bonk };
+Tests	client/Unity/Assets/Scripts/Editor/BonkFAnimationPresentationSelfTest.cs	20	CheckPhases("bonk", CharacterClass.Bonk, "ground.E", 10f, "anim.bonk.ge-land");
+Tests	client/Unity/Assets/Scripts/Editor/BonkFAnimationPresentationSelfTest.cs	21	CheckPhases("bonk", CharacterClass.Bonk, "air.E", 10f, "anim.bonk.ge-land");
+Tests	client/Unity/Assets/Scripts/Editor/BonkFAnimationPresentationSelfTest.cs	22	CheckPhases("bonk", CharacterClass.Bonk, "ground.R", 1000f,
+Tests	client/Unity/Assets/Scripts/Editor/BonkFAnimationPresentationSelfTest.cs	24	CheckPhases("bonk", CharacterClass.Bonk, "ground.R", 4f,
+Tests	client/Unity/Assets/Scripts/Editor/BonkFAnimationPresentationSelfTest.cs	26	CheckPhases("bonk", CharacterClass.Bonk, "air.R", 1000f,
+Tests	client/Unity/Assets/Scripts/Editor/BonkFAnimationPresentationSelfTest.cs	28	CheckPhases("bashie", CharacterClass.Bashie, "ground.A", 5f, "anim.bashie.ring-reel");
+Tests	client/Unity/Assets/Scripts/Editor/BonkFAnimationPresentationSelfTest.cs	29	CheckPhases("bashie", CharacterClass.Bashie, "ground.A", 30f, "anim.bashie.ring-retract");
+Tests	client/Unity/Assets/Scripts/Editor/BonkFAnimationPresentationSelfTest.cs	34	private static void CheckPhases(string package, CharacterClass fighter, string action, float distance,
+Tests	client/Unity/Assets/Scripts/Editor/BonkFAnimationPresentationSelfTest.cs	103	var definition = CookedCharacterRuntimeAdapter.ToCharacterDefinition(preview.Package) with { Class = CharacterClass.Bonk };
+Tests	client/Unity/Assets/Scripts/Editor/BonkFAnimationPresentationSelfTest.cs	165	definition = definition with { Class = CharacterClass.Bonk };
+Tests	client/Unity/Assets/Scripts/Editor/CharacterPackageAuthoringSelfTest.cs	30	BuiltInRosterEntry fightGuyBefore = rosterBefore.Resolve(CharacterClass.FightGuy)!;
+Tests	client/Unity/Assets/Scripts/Editor/CharacterPackageAuthoringSelfTest.cs	52	BuiltInRosterEntry fightGuyAfter = BuiltInRosterManifestCodec.Load(rosterPath).Resolve(CharacterClass.FightGuy)!;
+Tests	client/Unity/Assets/Scripts/Editor/CharacterPresentationProfileSelfTest.cs	86	simulation.RegisterEntity(42, new CharacterDefinition { Class = CharacterClass.None, CookedSlots = slots }, default);
+Tests	client/Unity/Assets/Scripts/Editor/CharacterPresentationProfileSelfTest.cs	250	simulation.RegisterEntity(42, new CharacterDefinition { Class = CharacterClass.None, CookedSlots = slots }, default);
+Tests	client/Unity/Assets/Scripts/Editor/EditorDevelopmentContentSelfTest.cs	31	Require(persistedRoster.Roster.TryGetBySelector(CharacterClass.FightGuy, out var persistedRosterEntry), "Persisted FightGuy roster entry is missing.");
+Tests	client/Unity/Assets/Scripts/Editor/EditorDevelopmentContentSelfTest.cs	34	var persistedEntry = persistedCatalog.Resolve(CharacterClass.FightGuy);
+Tests	client/Unity/Assets/Scripts/Editor/EditorDevelopmentContentSelfTest.cs	58	var changedEntry = changedCatalog.Resolve(CharacterClass.FightGuy);
+Tests	client/Unity/Assets/Scripts/Editor/EditorDevelopmentContentSelfTest.cs	84	restoredPersistedCatalog != null && restoredPersistedCatalog.Resolve(CharacterClass.FightGuy)?.Identity == persistedEntry.Identity,
+Tests	client/Unity/Assets/Scripts/Editor/EditorDevelopmentContentSelfTest.cs	119	var entry = placeholderCatalog.Resolve(CharacterClass.FightGuy);
+Tests	client/Unity/Assets/Scripts/Editor/FighterAppearanceSelfTest.cs	33	Require(appearance.Art.Name() == "Fixture Fighter" && definition.Class == CharacterClass.None, "Fixture lost its cooked name or borrowed a selector.");
+Tests	client/Unity/Assets/Scripts/Editor/FighterAppearanceSelfTest.cs	67	var changed = new MatchContentEntry(manki.Handle, manki.LegacySelector, manki.Identity with { Version = "different" }, manki.DisplayName, manki.Definition);
+Tests	client/Unity/Assets/Scripts/Editor/FighterAppearanceSelfTest.cs	103	var unbound = new MatchContentEntry(manki.Handle, manki.LegacySelector, manki.Identity, manki.DisplayName, manki.Definition, isBundled: true);
+Tests	client/Unity/Assets/Scripts/Editor/FighterAppearanceSelfTest.cs	131	Require(CharacterPackageAuthoringService.HasRosterPresentation("bonk", CharacterClass.Bonk, cards, generated), "Prepared presentation must admit.");
+Tests	client/Unity/Assets/Scripts/Editor/FighterAppearanceSelfTest.cs	132	Require(!CharacterPackageAuthoringService.HasRosterPresentation("local.new-fighter", CharacterClass.Bonk, cards, generated)
+Tests	client/Unity/Assets/Scripts/Editor/FighterAppearanceSelfTest.cs	133	&& !CharacterPackageAuthoringService.HasRosterPresentation("bonk", CharacterClass.Bonk, cards + ".missing", generated), "Missing card/binding must refuse admission.");
+Tests	client/Unity/Assets/Scripts/Editor/GrabAnimationPresentationSelfTest.cs	39	Class = CharacterClass.Manki,
+Tests	client/Unity/Assets/Scripts/Editor/GrabAnimationPresentationSelfTest.cs	175	var definition = CookedCharacterRuntimeAdapter.ToCharacterDefinition(compiled.CookedPackage, CharacterClass.Manki);
+Tests	client/Unity/Assets/Scripts/Editor/LocalFighterRefreshSelfTest.cs	55	string oldKey = "SlopArena.ArcadeBallLab.Fighter";
+Tests	client/Unity/Assets/Scripts/Editor/PlayerRendererConfigurationSelfTest.cs	60	var definition = Definition(CharacterClass.FightGuy);
+Tests	client/Unity/Assets/Scripts/Editor/PlayerRendererConfigurationSelfTest.cs	74	var updated = Definition(CharacterClass.FightGuy) with
+Tests	client/Unity/Assets/Scripts/Editor/PlayerRendererConfigurationSelfTest.cs	115	Reject(Definition(CharacterClass.Manki), first, invalidRig);
+Tests	client/Unity/Assets/Scripts/Editor/PlayerRendererConfigurationSelfTest.cs	116	var missing = Definition(CharacterClass.Manki) with
+Tests	client/Unity/Assets/Scripts/Editor/PlayerRendererConfigurationSelfTest.cs	121	var invalid = Definition(CharacterClass.Manki) with { VisualScale = float.NaN };
+Tests	client/Unity/Assets/Scripts/Editor/PlayerRendererConfigurationSelfTest.cs	123	invalid = Definition(CharacterClass.Manki) with { CapsuleRadius = -1f };
+Tests	client/Unity/Assets/Scripts/Editor/PlayerRendererConfigurationSelfTest.cs	125	Reject(Definition(CharacterClass.FightGuy), null, first.Rig);
+Tests	client/Unity/Assets/Scripts/Editor/PlayerRendererConfigurationSelfTest.cs	126	Reject(Definition(CharacterClass.None), null, first.Rig);
+Tests	client/Unity/Assets/Scripts/Editor/PlayerRendererConfigurationSelfTest.cs	133	var definition = Definition(CharacterClass.Manki);
+Tests	client/Unity/Assets/Scripts/Editor/PlayerRendererConfigurationSelfTest.cs	138	definition = Definition(CharacterClass.Wibou);
+Tests	client/Unity/Assets/Scripts/Editor/PlayerRendererConfigurationSelfTest.cs	166	definition = Definition(CharacterClass.None) with { ModelResourcePath = "Characters/Manki" };
+Tests	client/Unity/Assets/Scripts/Editor/PlayerRendererConfigurationSelfTest.cs	178	var definition = Definition(CharacterClass.FightGuy);
+Tests	client/Unity/Assets/Scripts/Editor/PlayerRendererConfigurationSelfTest.cs	195	private static CharacterDefinition Definition(CharacterClass fighter) => new()
+Tests	client/Unity/Assets/Scripts/Editor/SoloSeatsSelfTest.cs	34	Require(MatchConfig.Seat(2).Kind == SeatKind.Cpu && MatchConfig.Seat(2).Fighter == "fightguy"
+Tests	client/Unity/Assets/Scripts/Editor/SoloSeatsSelfTest.cs	268	var expected = MatchConfig.Seat(2).Fighter;
+Tests	client/Unity/Assets/Scripts/Editor/UnityAuditAsyncSelfTest.cs	726	else { Set(page, "_selected", CharacterClass.FightGuy); Set(page, "_lockedIn", false); }
+Tests	client/Unity/Assets/Scripts/Editor/UnityAuditRuntimeSelfTest.cs	90	Require(renderer.Configure(new CharacterDefinition { Class = CharacterClass.None, CookedSlots = slots },
+Tests	client/Unity/Assets/Scripts/Editor/UnityAuditRuntimeSelfTest.cs	375	Class = CharacterClass.None, CookedSlots = slots,
+Tests	client/Unity/Assets/AbilityLab/Editor/AbilityLabScenarioSelfTest.cs	86	var package = BuiltInContentResolver.Resolve(CharacterClass.Bonk);
+Tests	client/Unity/Assets/AbilityLab/Editor/AbilityLabScenarioSelfTest.cs	126	Class = CharacterClass.None,
+Tests	tests/Server.Tests/ArcadeStageAdmissionTests.cs	28	new[] { new MatchPlayer(1001, CharacterClass.FightGuy, 1), new MatchPlayer(1002, CharacterClass.Manki, 2) },
+Tests	tests/Server.Tests/ArcadeStageAdmissionTests.cs	67	new[] { new MatchPlayer(1001, CharacterClass.FightGuy, 1), new MatchPlayer(1002, CharacterClass.Manki, 2) },
+Tests	tests/Server.Tests/ArcadeStageAdmissionTests.cs	98	Enumerable.Range(1, count).Select(i => new MatchPlayer(100 + i, CharacterClass.Manki, i)).ToArray(),
+Tests	tests/Server.Tests/ArcadeStageAdmissionTests.cs	107	[InlineData(MatchFormat.CourseRace, CharacterClass.Bonk, CharacterClass.Bashie, 1, true)]
+Tests	tests/Server.Tests/ArcadeStageAdmissionTests.cs	108	[InlineData(MatchFormat.CourseCoop, CharacterClass.Bashie, CharacterClass.Bashie, 1, true)]
+Tests	tests/Server.Tests/ArcadeStageAdmissionTests.cs	109	[InlineData(MatchFormat.CourseRace, CharacterClass.Bonk, CharacterClass.Bonk, 0, false)]
+Tests	tests/Server.Tests/ArcadeStageAdmissionTests.cs	110	[InlineData(MatchFormat.CourseCoop, CharacterClass.None, CharacterClass.Bashie, 1, false)]
+Tests	tests/Server.Tests/ArcadeStageAdmissionTests.cs	112	MatchFormat format, CharacterClass first, CharacterClass second, byte secondColour, bool admitted)
+Tests	tests/Server.Tests/ArcadeStageAdmissionTests.cs	142	new[] { new MatchPlayer(1001, CharacterClass.FightGuy, 1), new MatchPlayer(1002, CharacterClass.Manki, 2) },
+Tests	tests/Server.Tests/ArenaIdentityAdmissionTests.cs	14	private static MatchPlayer[] Roster => new[] { new MatchPlayer(1, CharacterClass.FightGuy, 1), new MatchPlayer(2, CharacterClass.Manki, 2) };
+Tests	tests/Server.Tests/ArenaIdentityAdmissionTests.cs	23	new[] { new MatchPlayer(1, CharacterClass.FightGuy, 1), new MatchPlayer(2, CharacterClass.Manki, 2) },
+Tests	tests/Server.Tests/FullWorldNetplayTests.cs	38	var roster = new[] { (1UL, CharacterClass.FightGuy), (2UL, CharacterClass.Manki) };
+Tests	tests/Server.Tests/FullWorldNetplayTests.cs	122	var roster = new[] { (1UL, CharacterClass.FightGuy), (2UL, CharacterClass.Bonk) };
+Tests	tests/Server.Tests/FullWorldNetplayTests.cs	191	var roster = Enumerable.Range(1, count).Select(i => (Id: (ulong)i, Character: CharacterClass.FightGuy)).ToArray();
+Tests	tests/Server.Tests/FullWorldNetplayTests.cs	255	var roster = new[] { (1UL, CharacterClass.FightGuy), (2UL, CharacterClass.Manki) };
+Tests	tests/Server.Tests/FullWorldNetplayTests.cs	307	var roster = new[] { (1UL, CharacterClass.FightGuy), (2UL, CharacterClass.FightGuy) };
+Tests	tests/Server.Tests/FullWorldNetplayTests.cs	342	private readonly (ulong Id, CharacterClass Character)[] _roster;
+Tests	tests/Server.Tests/FullWorldNetplayTests.cs	350	(ulong Id, CharacterClass Character)[] roster, IPEndPoint server, Func<IMatchRule>? rule = null)
+Tests	tests/Server.Tests/MatchClockTests.cs	37	new MatchPlayer(101, CharacterClass.FightGuy, 1),
+Tests	tests/Server.Tests/MatchClockTests.cs	38	new MatchPlayer(102, CharacterClass.Manki, 2),
+Tests	tests/Server.Tests/MatchControlHealthTests.cs	46	new[] { new MatchPlayer(1, CharacterClass.Manki, 1), new MatchPlayer(2, CharacterClass.FightGuy, 2) },
+Tests	tests/Server.Tests/MatchControlSecurityTests.cs	114	new MatchPlayer(101, CharacterClass.Manki, 11),
+Tests	tests/Server.Tests/MatchControlSecurityTests.cs	115	new MatchPlayer(102, CharacterClass.FightGuy, 12));
+Tests	tests/Server.Tests/MatchControlSecurityTests.cs	117	new MatchPlayer(201, CharacterClass.FightGuy, 21),
+Tests	tests/Server.Tests/MatchControlSecurityTests.cs	118	new MatchPlayer(202, CharacterClass.Manki, 22));
+Tests	tests/Server.Tests/MatchControlSecurityTests.cs	155	new[] { new MatchPlayer(301, CharacterClass.Manki, 31),
+Tests	tests/Server.Tests/MatchControlSecurityTests.cs	156	new MatchPlayer(302, CharacterClass.FightGuy, 32) }),
+Tests	tests/Server.Tests/MatchControlSecurityTests.cs	168	new MatchPlayer(301, CharacterClass.Manki, 31),
+Tests	tests/Server.Tests/MatchControlSecurityTests.cs	169	new MatchPlayer(302, CharacterClass.FightGuy, 32));
+Tests	tests/Server.Tests/MatchControlSecurityTests.cs	189	characterClass = player.CharacterClass.ToString(),
+Tests	tests/Server.Tests/MatchInputProtocolTests.cs	39	new[] { new MatchPlayer(101, CharacterClass.FightGuy, 1), new MatchPlayer(102, CharacterClass.Manki, 2) },
+Tests	tests/Server.Tests/MatchInputProtocolTests.cs	150	new[] { new MatchPlayer(101, CharacterClass.Wibou, 1),
+Tests	tests/Server.Tests/MatchInputProtocolTests.cs	151	new MatchPlayer(102, CharacterClass.FightGuy, 2) },
+Tests	tests/Server.Tests/MatchInputProtocolTests.cs	156	foreach (var (entity, character) in new[] { (1UL, CharacterClass.Wibou), (2UL, CharacterClass.FightGuy) })
+Tests	tests/Server.Tests/MatchReplayTests.cs	34	Guid.NewGuid().ToString(), Arena, new[] { new MatchPlayer(1001, CharacterClass.FightGuy, 1, Colour: 2, DisplayName: displayName),
+Tests	tests/Server.Tests/MatchReplayTests.cs	35	new MatchPlayer(1002, CharacterClass.Manki, 2, Colour: 3) }, Catalog, _ => { },
+Tests	tests/Server.Tests/MatchReplayTests.cs	155	new[] { new MatchPlayer(1001, CharacterClass.FightGuy, 1), new MatchPlayer(1002, CharacterClass.Manki, 2) },
+Tests	tests/Server.Tests/NetplayInputTimingTests.cs	54	new[] { new MatchPlayer(1001, CharacterClass.FightGuy, 1), new MatchPlayer(1002, CharacterClass.Manki, 2) },
+Tests	tests/Server.Tests/PackageContentAdmissionTests.cs	30	new[] { new MatchPlayer(1,CharacterClass.FightGuy,1),new MatchPlayer(2,CharacterClass.Manki,2) },
+Tests	tests/Server.Tests/ReplayControlTests.cs	105	var entries = new[] { BuiltInContentResolver.Resolve(CharacterClass.FightGuy), BuiltInContentResolver.Resolve(CharacterClass.Manki) };
+Tests	tests/Server.Tests/SteamGameServerAdmissionTests.cs	88	new[] { new MatchPlayer(1001, CharacterClass.FightGuy, 1),
+Tests	tests/Server.Tests/SteamGameServerAdmissionTests.cs	89	new MatchPlayer(1002, CharacterClass.Manki, 2) }, clock.GetUtcNow().AddSeconds(60));
+Tests	tests/Server.Tests/SteamGameServerAdmissionTests.cs	123	new[] { new MatchPlayer(1001, CharacterClass.FightGuy, 1),
+Tests	tests/Server.Tests/SteamGameServerAdmissionTests.cs	124	new MatchPlayer(1002, CharacterClass.Manki, 2) },
+Tests	tests/Server.Tests/SteamGameServerAdmissionTests.cs	202	new[] { new MatchPlayer(1001, CharacterClass.FightGuy, 1), new MatchPlayer(1002, CharacterClass.Manki, 2) }, deadline);
+Tests	tests/Server.Tests/SteamGameServerAdmissionTests.cs	204	new[] { new MatchPlayer(2001, CharacterClass.FightGuy, 1), new MatchPlayer(2002, CharacterClass.Manki, 2) }, deadline);
+Tests	tests/Server.Tests/SteamGameServerAdmissionTests.cs	229	new[] { new MatchPlayer(1001, CharacterClass.FightGuy, 1), new MatchPlayer(1002, CharacterClass.Manki, 2) },
+Tests	tests/Server.Tests/SteamGameServerAdmissionTests.cs	271	new[] { new MatchPlayer(1001, CharacterClass.FightGuy, 1),
+Tests	tests/Server.Tests/SteamGameServerAdmissionTests.cs	272	new MatchPlayer(1002, CharacterClass.Manki, 2) },
+Tests	tests/Server.Tests/SteamGameServerAdmissionTests.cs	312	foreach (var (entity, character) in new[] { (1UL, CharacterClass.Wibou), (2UL, CharacterClass.FightGuy) })
+Tests	tests/Server.Tests/SteamGameServerAdmissionTests.cs	318	new[] { new MatchPlayer(1001, CharacterClass.Wibou, 1),
+Tests	tests/Server.Tests/SteamGameServerAdmissionTests.cs	319	new MatchPlayer(1002, CharacterClass.FightGuy, 2) },
+Tests	tests/Server.Tests/SteamGameServerAdmissionTests.cs	386	new[] { new MatchPlayer(1001, CharacterClass.FightGuy, 1), new MatchPlayer(1002, CharacterClass.Manki, 2) },
+Tests	tests/Server.Tests/SteamGameServerAdmissionTests.cs	395	new[] { new MatchPlayer(2001, CharacterClass.FightGuy, 1), new MatchPlayer(2002, CharacterClass.Manki, 2) },
+Tests	tests/Server.Tests/SteamGameServerAdmissionTests.cs	427	new[] { new MatchPlayer(1001, CharacterClass.FightGuy, 1),
+Tests	tests/Server.Tests/SteamGameServerAdmissionTests.cs	428	new MatchPlayer(1002, CharacterClass.Manki, 2) }, catalog, _ => { },
+Tests	tests/Shared.Tests/AbilityLifecycleTests.cs	201	foreach (var character in new[] { CharacterClass.Manki, CharacterClass.FightGuy, CharacterClass.Wibou, CharacterClass.Bonk })
+Tests	tests/Shared.Tests/AbilityLifecycleTests.cs	214	foreach (var character in new[] { CharacterClass.Manki, CharacterClass.FightGuy, CharacterClass.Wibou, CharacterClass.Bonk })
+Tests	tests/Shared.Tests/AbilityLifecycleTests.cs	236	var character = (CharacterClass)item[0];
+Tests	tests/Shared.Tests/AbilityLifecycleTests.cs	258	public void EveryAuthoredGroundAbility_ReleasesAttackState(CharacterClass character, byte wireSlot)
+Tests	tests/Shared.Tests/AfterHoursArenaTests.cs	53	foreach (var cls in new[] { CharacterClass.FightGuy, CharacterClass.Manki, CharacterClass.Wibou, CharacterClass.Bonk })
+Tests	tests/Shared.Tests/AfterHoursArenaTests.cs	81	CharacterClass cls, float edgeX, float edgeZ, float outwardX, float outwardZ, float height)
+Tests	tests/Shared.Tests/AimMovementTests.cs	170	[InlineData(CharacterClass.Manki, AbilitySlots.R)]
+Tests	tests/Shared.Tests/AimMovementTests.cs	171	[InlineData(CharacterClass.Bonk, AbilitySlots.E)]
+Tests	tests/Shared.Tests/AimMovementTests.cs	172	public void AuthoredAimedHolds_UseFixedMovementOnGroundAndInAir(CharacterClass character, byte slot)
+Tests	tests/Shared.Tests/ArcadeReplayTests.cs	95	[InlineData(CharacterClass.FightGuy)]
+Tests	tests/Shared.Tests/ArcadeReplayTests.cs	96	[InlineData(CharacterClass.Manki)]
+Tests	tests/Shared.Tests/ArcadeReplayTests.cs	97	[InlineData(CharacterClass.Wibou)]
+Tests	tests/Shared.Tests/ArcadeReplayTests.cs	98	[InlineData(CharacterClass.Bonk)]
+Tests	tests/Shared.Tests/ArcadeReplayTests.cs	99	public void EveryRosterFighterHasAStableGameplayComparisonKey(CharacterClass fighter)
+Tests	tests/Shared.Tests/ArcadeReplayTests.cs	112	var arena = SlopballTests.VariedCourt(); var entry = BuiltInContentResolver.Resolve(CharacterClass.FightGuy);
+Tests	tests/Shared.Tests/ArcadeReplayTests.cs	123	var arena = SlopballTests.VariedCourt(); var entry = BuiltInContentResolver.Resolve(CharacterClass.FightGuy);
+Tests	tests/Shared.Tests/ArcadeReplayTests.cs	136	var arena = SlopballTests.Court(); var entry = BuiltInContentResolver.Resolve(CharacterClass.FightGuy);
+Tests	tests/Shared.Tests/ArcadeReplayTests.cs	161	cosmetic = new MatchContentEntry(cosmetic.Handle, cosmetic.LegacySelector, cosmetic.Identity,
+Tests	tests/Shared.Tests/ArcadeReplayTests.cs	171	var arena = SlopballTests.Court(); var entry = BuiltInContentResolver.Resolve(CharacterClass.Manki);
+Tests	tests/Shared.Tests/ArcadeReplayTests.cs	206	return new(source.Handle, source.LegacySelector, source.Identity with { Version = "9.9.9", PackageHash = "different" },
+Tests	tests/Shared.Tests/ArcadeReplayTests.cs	207	"Cosmetic fighter name", CookedCharacterRuntimeAdapter.ToCharacterDefinition(package, source.LegacySelector!.Value),
+Tests	tests/Shared.Tests/ArcadeSnapshotTests.cs	71	var roster = new[] { CharacterClass.FightGuy, CharacterClass.Manki, CharacterClass.Bonk };
+Tests	tests/Shared.Tests/ArcadeSnapshotTests.cs	114	var roster = new[] { CharacterClass.FightGuy, CharacterClass.Manki };
+Tests	tests/Shared.Tests/ArcadeSnapshotTests.cs	124	internal static ServerSimulation NewRun(ArenaDefinition arena, CharacterClass[] roster, bool reverseRegistration,
+Tests	tests/Shared.Tests/ArenaBlastZoneTests.cs	96	sim.RegisterEntity(1, BuiltInContentResolver.Resolve(CharacterClass.FightGuy).Definition, state);
+Tests	tests/Shared.Tests/ArenaBlastZoneTests.cs	114	sim.RegisterEntity(1, BuiltInContentResolver.Resolve(CharacterClass.FightGuy).Definition, state);
+Tests	tests/Shared.Tests/ArenaBlastZoneTests.cs	131	sim.RegisterEntity(1, BuiltInContentResolver.Resolve(CharacterClass.FightGuy).Definition, state);
+Tests	tests/Shared.Tests/ArenaBlastZoneTests.cs	147	sim.RegisterEntity(1, BuiltInContentResolver.Resolve(CharacterClass.FightGuy).Definition, state);
+Tests	tests/Shared.Tests/ArenaBlastZoneTests.cs	163	sim.RegisterEntity(1, BuiltInContentResolver.Resolve(CharacterClass.FightGuy).Definition, state);
+Tests	tests/Shared.Tests/ArenaShippingTests.cs	156	[InlineData(CharacterClass.FightGuy, -7.5f, 1f)]
+Tests	tests/Shared.Tests/ArenaShippingTests.cs	157	[InlineData(CharacterClass.Manki, -7.5f, 1f)]
+Tests	tests/Shared.Tests/ArenaShippingTests.cs	158	[InlineData(CharacterClass.Wibou, -7.5f, 1f)]
+Tests	tests/Shared.Tests/ArenaShippingTests.cs	159	[InlineData(CharacterClass.Bonk, -7.5f, 1f)]
+Tests	tests/Shared.Tests/ArenaShippingTests.cs	160	[InlineData(CharacterClass.FightGuy, 7.5f, -1f)]
+Tests	tests/Shared.Tests/ArenaShippingTests.cs	161	[InlineData(CharacterClass.Manki, 7.5f, -1f)]
+Tests	tests/Shared.Tests/ArenaShippingTests.cs	162	[InlineData(CharacterClass.Wibou, 7.5f, -1f)]
+Tests	tests/Shared.Tests/ArenaShippingTests.cs	163	[InlineData(CharacterClass.Bonk, 7.5f, -1f)]
+Tests	tests/Shared.Tests/ArenaShippingTests.cs	165	CharacterClass cls, float startX, float direction)
+Tests	tests/Shared.Tests/ArenaShippingTests.cs	240	Trace(CharacterClass.FightGuy, route, tick, inputs[1], current, "stair ascent lost groundedness"));
+Tests	tests/Shared.Tests/ArenaShippingTests.cs	253	$"{route}: held run stalled before upper plateau; final={Trace(CharacterClass.FightGuy, route, maxTicks - 1, inputs[1], upper, "stair ascent progress")}");
+Tests	tests/Shared.Tests/ArenaShippingTests.cs	265	Trace(CharacterClass.FightGuy, route, tick, inputs[1], current, "stair descent lost groundedness"));
+Tests	tests/Shared.Tests/ArenaShippingTests.cs	278	$"{route}: reverse held run stalled before roof; final={Trace(CharacterClass.FightGuy, route, upTick + maxTicks, inputs[1], roof, "stair descent progress")}");
+Tests	tests/Shared.Tests/ArenaShippingTests.cs	287	[InlineData(CharacterClass.FightGuy)]
+Tests	tests/Shared.Tests/ArenaShippingTests.cs	288	[InlineData(CharacterClass.Manki)]
+Tests	tests/Shared.Tests/ArenaShippingTests.cs	289	[InlineData(CharacterClass.Wibou)]
+Tests	tests/Shared.Tests/ArenaShippingTests.cs	290	[InlineData(CharacterClass.Bonk)]
+Tests	tests/Shared.Tests/ArenaShippingTests.cs	291	public void IndustrialRooftop_HeldRunStopsAtPenthouseWall(CharacterClass cls)
+Tests	tests/Shared.Tests/ArenaShippingTests.cs	346	[InlineData(CharacterClass.FightGuy)]
+Tests	tests/Shared.Tests/ArenaShippingTests.cs	347	[InlineData(CharacterClass.Manki)]
+Tests	tests/Shared.Tests/ArenaShippingTests.cs	348	[InlineData(CharacterClass.Wibou)]
+Tests	tests/Shared.Tests/ArenaShippingTests.cs	349	[InlineData(CharacterClass.Bonk)]
+Tests	tests/Shared.Tests/ArenaShippingTests.cs	350	public void IndustrialRooftop_RunOffRoofFallsImmediately(CharacterClass cls)
+Tests	tests/Shared.Tests/ArenaShippingTests.cs	405	[InlineData(CharacterClass.FightGuy)]
+Tests	tests/Shared.Tests/ArenaShippingTests.cs	406	[InlineData(CharacterClass.Manki)]
+Tests	tests/Shared.Tests/ArenaShippingTests.cs	407	[InlineData(CharacterClass.Wibou)]
+Tests	tests/Shared.Tests/ArenaShippingTests.cs	408	[InlineData(CharacterClass.Bonk)]
+Tests	tests/Shared.Tests/ArenaShippingTests.cs	409	public void IndustrialRooftop_JumpBetweenServiceDecksLands(CharacterClass cls)
+Tests	tests/Shared.Tests/ArenaShippingTests.cs	528	private static string Trace(CharacterClass cls, string route, int tick, InputState input,
+Tests	tests/Shared.Tests/BashieGroundThreeTests.cs	147	var content = BuiltInContentResolver.Resolve(CharacterClass.Bashie, root);
+Tests	tests/Shared.Tests/BashieGroundThreeTests.cs	148	_victim = BuiltInContentResolver.Resolve(CharacterClass.Manki, root);
+Tests	tests/Shared.Tests/BashieNormalsTests.cs	367	var definition = CookedCharacterRuntimeAdapter.ToCharacterDefinition(compiled.CookedPackage!, CharacterClass.Bashie);
+Tests	tests/Shared.Tests/BonkKitTests.cs	134	var content = BuiltInContentResolver.Resolve(CharacterClass.Bonk);
+Tests	tests/Shared.Tests/BonkSpecialTests.cs	80	var content = BuiltInContentResolver.Resolve(CharacterClass.Bonk);
+Tests	tests/Shared.Tests/BonkSpecialTests.cs	204	return CookedCharacterRuntimeAdapter.ToCharacterDefinition(result.CookedPackage!, CharacterClass.Bonk);
+Tests	tests/Shared.Tests/BotPolicyTests.cs	790	[InlineData(CharacterClass.FightGuy)]
+Tests	tests/Shared.Tests/BotPolicyTests.cs	791	[InlineData(CharacterClass.Manki)]
+Tests	tests/Shared.Tests/BotPolicyTests.cs	792	[InlineData(CharacterClass.Wibou)]
+Tests	tests/Shared.Tests/BotPolicyTests.cs	793	[InlineData(CharacterClass.Bonk)]
+Tests	tests/Shared.Tests/BotPolicyTests.cs	794	public void StageRecovery_ReturnsToAStageSurface(CharacterClass character)
+Tests	tests/Shared.Tests/BotPolicyTests.cs	841	[InlineData(CharacterClass.FightGuy)]
+Tests	tests/Shared.Tests/BotPolicyTests.cs	842	[InlineData(CharacterClass.Manki)]
+Tests	tests/Shared.Tests/BotPolicyTests.cs	843	[InlineData(CharacterClass.Wibou)]
+Tests	tests/Shared.Tests/BotPolicyTests.cs	844	[InlineData(CharacterClass.Bonk)]
+Tests	tests/Shared.Tests/BotPolicyTests.cs	845	public void RecoveryMove_IsReservedWhenOffstage(CharacterClass character)
+Tests	tests/Shared.Tests/CharacterCourseRouteTests.cs	18	var entry = BuiltInContentResolver.Resolve(CharacterClass.FightGuy);
+Tests	tests/Shared.Tests/CharacterCourseRouteTests.cs	175	var entry = BuiltInContentResolver.Resolve(CharacterClass.FightGuy);
+Tests	tests/Shared.Tests/CharacterCourseTests.cs	32	var fighter = BuiltInContentResolver.Resolve(CharacterClass.FightGuy);
+Tests	tests/Shared.Tests/CharacterCourseTests.cs	49	public void EveryCourseAndRosterFighterCanCreateAPersonalBestKey(string arenaKey, CharacterClass fighter)
+Tests	tests/Shared.Tests/CharacterCourseTests.cs	217	var arena = Arena(); var entry = BuiltInContentResolver.Resolve(CharacterClass.FightGuy);
+Tests	tests/Shared.Tests/CharacterCourseTests.cs	227	Assert.NotEqual(hash, ArcadeRecordCompatibility.Course(arena, BuiltInContentResolver.Resolve(CharacterClass.Manki)));
+Tests	tests/Shared.Tests/CharacterCourseTests.cs	286	var entry = BuiltInContentResolver.Resolve(CharacterClass.FightGuy);
+Tests	tests/Shared.Tests/CharacterPackageAssemblerTests.cs	629	var real = loaded.ToCharacterDefinition(CharacterClass.FightGuy);
+Tests	tests/Shared.Tests/CharacterPackageAssemblerTests.cs	863	Assert.Equal(1.05f, loaded.ToCharacterDefinition(CharacterClass.FightGuy).ShieldRadius);
+Tests	tests/Shared.Tests/ChargedProjectileTests.cs	136	def = def with { Class = CharacterClass.FightGuy };
+Tests	tests/Shared.Tests/ChargedStreamTests.cs	238	def = def with { Class = CharacterClass.FightGuy };
+Tests	tests/Shared.Tests/CombatReviewRegressionTests.cs	56	var entry = BuiltInContentResolver.Resolve(CharacterClass.Manki);
+Tests	tests/Shared.Tests/CombatReviewRegressionTests.cs	85	var entry = BuiltInContentResolver.Resolve(CharacterClass.Wibou);
+Tests	tests/Shared.Tests/CombatReviewRegressionTests.cs	124	var entry = BuiltInContentResolver.Resolve(CharacterClass.Manki);
+Tests	tests/Shared.Tests/CombatReviewRegressionTests.cs	147	var entry = BuiltInContentResolver.Resolve(CharacterClass.Wibou);
+Tests	tests/Shared.Tests/CombatReviewRegressionTests.cs	170	var entry = BuiltInContentResolver.Resolve(CharacterClass.Wibou);
+Tests	tests/Shared.Tests/CombatReviewRegressionTests.cs	215	var entry = BuiltInContentResolver.Resolve(CharacterClass.Manki);
+Tests	tests/Shared.Tests/CombatReviewRegressionTests.cs	241	var entry = BuiltInContentResolver.Resolve(CharacterClass.Wibou);
+Tests	tests/Shared.Tests/CombatReviewRegressionTests.cs	286	var entry = BuiltInContentResolver.Resolve(CharacterClass.Manki);
+Tests	tests/Shared.Tests/CombatReviewRegressionTests.cs	317	var entry = BuiltInContentResolver.Resolve(CharacterClass.Manki);
+Tests	tests/Shared.Tests/ComboRouteReportTests.cs	489	var source = BuiltInContentResolver.Resolve(CharacterClass.FightGuy);
+Tests	tests/Shared.Tests/ComboRouteReportTests.cs	494	definition = definition with { Class = source.Definition.Class };
+Tests	tests/Shared.Tests/ComboRouteReportTests.cs	496	return new MatchContentEntry(source.Handle, source.LegacySelector, source.Identity,
+Tests	tests/Shared.Tests/ContactCoverageTests.cs	36	[InlineData(CharacterClass.FightGuy)]
+Tests	tests/Shared.Tests/ContactCoverageTests.cs	37	[InlineData(CharacterClass.Wibou)]
+Tests	tests/Shared.Tests/ContactCoverageTests.cs	38	public void AuthoredGroundOne_ReportMatchesSimulationWithoutPinningTuning(CharacterClass character)
+Tests	tests/Shared.Tests/ContactCoverageTests.cs	41	var victim = BuiltInContentResolver.Resolve(CharacterClass.FightGuy);
+Tests	tests/Shared.Tests/ContactCoverageTests.cs	296	var source = BuiltInContentResolver.Resolve(CharacterClass.FightGuy);
+Tests	tests/Shared.Tests/ContactCoverageTests.cs	298	definition = definition with { Class = source.Definition.Class };
+Tests	tests/Shared.Tests/ContactCoverageTests.cs	304	return new MatchContentEntry(source.Handle, source.LegacySelector, source.Identity,
+Tests	tests/Shared.Tests/CourseFinishability.cs	29	private readonly CharacterClass _selector;
+Tests	tests/Shared.Tests/CourseFinishability.cs	43	public CourseFinishability(string arenaKey, CharacterClass selector, Action<string>? log = null, bool allowSnapshots = true)
+Tests	tests/Shared.Tests/CourseFinishabilityTests.cs	25	public void UniversalMovementAndAttacksFinish(string arenaKey, CharacterClass fighter)
+Tests	tests/Shared.Tests/CourseFinishabilityTests.cs	30	if (arenaKey == "wibou_mall" && fighter == CharacterClass.Bonk)
+Tests	tests/Shared.Tests/CourseFinishabilityTests.cs	39	var driver = new CourseFinishability("fightguy_pier", CharacterClass.FightGuy);
+Tests	tests/Shared.Tests/CourseFinishabilityTests.cs	52	public void NeoMallShortcutsFinishWithPlainJumps(CharacterClass fighter, bool saleBalloon, bool serviceLadder)
+Tests	tests/Shared.Tests/CourseFinishabilityTests.cs	70	if (fighter == CharacterClass.FightGuy && saleBalloon && serviceLadder
+Tests	tests/Shared.Tests/CourseFinishabilityTests.cs	134	var driver = new CourseFinishability("fightguy_sanctuary", CharacterClass.FightGuy, allowSnapshots: false);
+Tests	tests/Shared.Tests/CourseFinishabilityTests.cs	142	var driver = new CourseFinishability("fightguy_pier", CharacterClass.FightGuy);
+Tests	tests/Shared.Tests/CourseRacingLineGenerator.cs	17	var driver = new CourseFinishability(route.ArenaKey, CharacterClass.FightGuy);
+Tests	tests/Shared.Tests/CourseRacingLineTests.cs	153	var fighter = BuiltInContentResolver.Resolve(CharacterClass.FightGuy);
+Tests	tests/Shared.Tests/CpuGrabTests.cs	14	[InlineData(CharacterClass.FightGuy)]
+Tests	tests/Shared.Tests/CpuGrabTests.cs	15	[InlineData(CharacterClass.Manki)]
+Tests	tests/Shared.Tests/CpuGrabTests.cs	16	[InlineData(CharacterClass.Wibou)]
+Tests	tests/Shared.Tests/CpuGrabTests.cs	17	[InlineData(CharacterClass.Bonk)]
+Tests	tests/Shared.Tests/CpuGrabTests.cs	18	[InlineData(CharacterClass.Bashie)]
+Tests	tests/Shared.Tests/CpuGrabTests.cs	19	[InlineData(CharacterClass.Salamander)]
+Tests	tests/Shared.Tests/CpuGrabTests.cs	20	[InlineData(CharacterClass.Nyx)]
+Tests	tests/Shared.Tests/CpuGrabTests.cs	21	public void EveryFighterGrabsAndThrowsAShieldingTarget(CharacterClass fighter)
+Tests	tests/Shared.Tests/CpuGrabTests.cs	25	var target = BuiltInContentResolver.Resolve(CharacterClass.FightGuy);
+Tests	tests/Shared.Tests/CpuMoveChoiceTests.cs	89	var bashie = BuiltInContentResolver.Resolve(CharacterClass.Bashie);
+Tests	tests/Shared.Tests/CpuMovementTests.cs	69	public Duel(ArenaDefinition arena, CharacterClass cpu, float cpuX, float cpuZ, float targetX, float targetZ,
+Tests	tests/Shared.Tests/CpuMovementTests.cs	74	var target = BuiltInContentResolver.Resolve(CharacterClass.FightGuy);
+Tests	tests/Shared.Tests/CpuMovementTests.cs	143	var duel = new Duel(Stage("hamster_habitat"), CharacterClass.FightGuy, x, z, -27.3f, 7.15f,
+Tests	tests/Shared.Tests/CpuMovementTests.cs	163	var duel = new Duel(Stage(stage), CharacterClass.FightGuy, x, z, targetX, targetZ,
+Tests	tests/Shared.Tests/CpuMovementTests.cs	182	var duel = new Duel(arena, CharacterClass.FightGuy, 0f, -6f, 0f, 0f,
+Tests	tests/Shared.Tests/CpuMovementTests.cs	205	var duel = new Duel(arena, CharacterClass.FightGuy, x, -5.4f, -27.3f, 7.15f,
+Tests	tests/Shared.Tests/CpuMovementTests.cs	220	var duel = new Duel(Stage("log_off"), CharacterClass.FightGuy, -14.5f, 1.4f, 0.3f, -1.6f);
+Tests	tests/Shared.Tests/CpuMovementTests.cs	234	var duel = new Duel(TiltedFloor(), CharacterClass.FightGuy, -6f, 0f, 4f, 0f, cpuFloor: 0.8f, targetFloor: 2.8f);
+Tests	tests/Shared.Tests/CpuMovementTests.cs	248	var duel = new Duel(Stage("slop_pit"), CharacterClass.FightGuy, 5.6f, -5.5f, 10.1f, -11.9f);
+Tests	tests/Shared.Tests/CpuMovementTests.cs	264	var duel = new Duel(arena, CharacterClass.FightGuy, -5f, 0f, 5f, 0f);
+Tests	tests/Shared.Tests/CpuMovementTests.cs	277	var duel = new Duel(arena, CharacterClass.FightGuy, -4f, 0f, 6f, 0f);
+Tests	tests/Shared.Tests/CpuMovementTests.cs	291	var duel = new Duel(Stage("slop_pit"), CharacterClass.FightGuy, 3f, -12f, 3f, -4f);
+Tests	tests/Shared.Tests/CpuMovementTests.cs	305	var duel = new Duel(Stage("training"), CharacterClass.FightGuy, 4f, 0f, 13f, 0f);
+Tests	tests/Shared.Tests/CpuMovementTests.cs	319	var duel = new Duel(arena, CharacterClass.FightGuy, -5f, 0f, 5f, 0f);
+Tests	tests/Shared.Tests/FightGuyAbilityTests.cs	72	def = def with { Class = CharacterClass.FightGuy };
+Tests	tests/Shared.Tests/FightGuyPierRouteTests.cs	46	var entry = BuiltInContentResolver.Resolve(CharacterClass.FightGuy);
+Tests	tests/Shared.Tests/FighterChoiceTests.cs	25	seat.Fighter = "fightguy";
+Tests	tests/Shared.Tests/FighterChoiceTests.cs	28	seat.Fighter = "nyx";
+Tests	tests/Shared.Tests/FighterChoiceTests.cs	60	Assert.Null(seatThree.LegacySelector);
+Tests	tests/Shared.Tests/FighterItemAdmissionTests.cs	151	Assert.Equal("workshop.42", downloaded.Fighter!.Choose().Revision.PackageId);
+Tests	tests/Shared.Tests/FighterItemAdmissionTests.cs	153	Assert.Equal("local.tumbleweed", local.Fighter!.Choose().Revision.PackageId);
+Tests	tests/Shared.Tests/FighterWorkspaceReviewTests.cs	73	var s=LocalFighterWorkspace.Read(folder); var a=FighterWorkspaceCache.Cook(cache,folder,s);Assert.NotNull(a.Admission?.Fighter); Assert.False(Directory.Exists(Path.Combine(cache,"legacy")));
+Tests	tests/Shared.Tests/FighterWorkspaceReviewTests.cs	76	for(int i=0;i<4;i++) Assert.NotNull(FighterWorkspaceCache.Cook(cache,folder,s).Admission?.Fighter);
+Tests	tests/Shared.Tests/FighterWorkspaceReviewTests.cs	82	Assert.NotNull(FighterWorkspaceCache.Cook(cache,folder,s).Admission?.Fighter);Assert.False(Directory.Exists(orphan));
+Tests	tests/Shared.Tests/FighterWorkspaceReviewTests.cs	85	{ Assert.NotNull(FighterWorkspaceCache.Cook(cache,folder,s).Admission?.Fighter);Assert.True(Directory.Exists(active)); }
+Tests	tests/Shared.Tests/FighterWorkspaceReviewTests.cs	86	Assert.NotNull(FighterWorkspaceCache.Cook(cache,folder,s).Admission?.Fighter);Assert.False(Directory.Exists(active));
+Tests	tests/Shared.Tests/FighterWorkspaceReviewTests.cs	92	Assert.All(results,r=>Assert.NotNull(r.Admission?.Fighter));Assert.Equal(4,results.Select(r=>r.Folder).Distinct().Count());
+Tests	tests/Shared.Tests/GraspTests.cs	144	CharacterClass.Bashie)));
+Tests	tests/Shared.Tests/HamsterHabitatArenaTests.cs	37	foreach (var cls in new[] { CharacterClass.FightGuy, CharacterClass.Manki, CharacterClass.Wibou,
+Tests	tests/Shared.Tests/HamsterHabitatArenaTests.cs	38	CharacterClass.Bonk, CharacterClass.Bashie })
+Tests	tests/Shared.Tests/HamsterHabitatArenaTests.cs	59	private static (ServerSimulation sim, CharacterDefinition def) Place(CharacterClass cls, float x, float floor, float z)
+Tests	tests/Shared.Tests/HamsterHabitatArenaTests.cs	108	public void LowTube_CarriesEveryFighterAcrossTheGap(CharacterClass cls, int direction)
+Tests	tests/Shared.Tests/HamsterHabitatArenaTests.cs	129	public void HighTube_RunsBetweenTheHouseRoofAndTheWheelDeck(CharacterClass cls, int direction)
+Tests	tests/Shared.Tests/HamsterHabitatArenaTests.cs	142	public void FoodBowl_DoubleJumpReachesTheHouseRoof(CharacterClass cls)
+Tests	tests/Shared.Tests/HamsterHabitatArenaTests.cs	158	public void JunctionStep_DoubleJumpPopsOutThroughTheHatch(CharacterClass cls)
+Tests	tests/Shared.Tests/HamsterHabitatArenaTests.cs	176	public void OneJumpFromTheShelfFloor_ReachesTheWheelDeck(CharacterClass cls)
+Tests	tests/Shared.Tests/HamsterHabitatArenaTests.cs	186	[InlineData(CharacterClass.FightGuy, 1)]
+Tests	tests/Shared.Tests/HamsterHabitatArenaTests.cs	187	[InlineData(CharacterClass.FightGuy, -1)]
+Tests	tests/Shared.Tests/HamsterHabitatArenaTests.cs	188	[InlineData(CharacterClass.Bonk, 1)]
+Tests	tests/Shared.Tests/HamsterHabitatArenaTests.cs	189	public void WalkingIntoTheGap_IsAKnockOut(CharacterClass cls, int direction)
+Tests	tests/Shared.Tests/HitReliabilityDocumentTests.cs	9	internal static MatchContentEntry Target(CharacterClass cls) => new(new ContentHandle(1), cls, Identity, cls.ToString(),
+Tests	tests/Shared.Tests/HitReliabilityDocumentTests.cs	30	var medium = HitReliabilityGoldenFixture.Target(CharacterClass.FightGuy);
+Tests	tests/Shared.Tests/HitReliabilityDocumentTests.cs	31	var targets = new HitReliabilityTargets(medium, HitReliabilityGoldenFixture.Target(CharacterClass.Manki));
+Tests	tests/Shared.Tests/HitReliabilityDocumentTests.cs	43	var targets = new HitReliabilityTargets(HitReliabilityGoldenFixture.Target(CharacterClass.FightGuy),
+Tests	tests/Shared.Tests/HitReliabilityDocumentTests.cs	44	HitReliabilityGoldenFixture.Target(CharacterClass.Manki));
+Tests	tests/Shared.Tests/HitReliabilityReportTests.cs	167	var entry = BuiltInContentResolver.Resolve(CharacterClass.FightGuy);
+Tests	tests/Shared.Tests/HurtboxOverrideTests.cs	46	string json = HurtboxOverride.Serialize(CharacterClass.Manki, new[] { capsule });
+Tests	tests/Shared.Tests/HurtboxOverrideTests.cs	54	string json = HurtboxOverride.Serialize(CharacterClass.Manki, Defs);
+Tests	tests/Shared.Tests/HurtboxOverrideTests.cs	57	Assert.Equal(CharacterClass.Manki, character);
+Tests	tests/Shared.Tests/HurtboxOverrideTests.cs	77	string json = HurtboxOverride.Serialize(CharacterClass.Manki, System.Array.Empty<HurtboxBoneDef>());
+Tests	tests/Shared.Tests/HurtboxOverrideTests.cs	84	string json = HurtboxOverride.Serialize(CharacterClass.Manki, Defs).Replace("Manki", "Nobody");
+Tests	tests/Shared.Tests/HurtboxOverrideTests.cs	91	string json = HurtboxOverride.Serialize(CharacterClass.Manki, Defs).Replace("mixamorig:Head", "");
+Tests	tests/Shared.Tests/HurtboxPoseTests.cs	136	[InlineData(CharacterClass.FightGuy)]
+Tests	tests/Shared.Tests/HurtboxPoseTests.cs	137	[InlineData(CharacterClass.Manki)]
+Tests	tests/Shared.Tests/HurtboxPoseTests.cs	138	[InlineData(CharacterClass.Wibou)]
+Tests	tests/Shared.Tests/HurtboxPoseTests.cs	139	[InlineData(CharacterClass.Bonk)]
+Tests	tests/Shared.Tests/HurtboxPoseTests.cs	140	public void CookedRoster_AppliesEachAuthoredRadiusToItsNamedBone(CharacterClass fighter)
+Tests	tests/Shared.Tests/JumpTakeoffCalibrationTests.cs	10	[InlineData(CharacterClass.Wibou, 10.6f, 7f, 8.4f)]
+Tests	tests/Shared.Tests/JumpTakeoffCalibrationTests.cs	11	[InlineData(CharacterClass.Bashie, 9.8f, 9f, 9.8f)]
+Tests	tests/Shared.Tests/JumpTakeoffCalibrationTests.cs	13	CharacterClass fighter, float runSpeed, float airSpeed, float expected)
+Tests	tests/Shared.Tests/LastStopArenaTests.cs	24	private static readonly CharacterClass[] Roster =
+Tests	tests/Shared.Tests/LastStopArenaTests.cs	25	{ CharacterClass.FightGuy, CharacterClass.Manki, CharacterClass.Wibou, CharacterClass.Bonk };
+Tests	tests/Shared.Tests/LastStopArenaTests.cs	79	Assert.Fail($"{def.Class}: jump route never landed; final ({sim.GetState(1).PX:F2}, {sim.GetState(1).PY:F2}, {sim.GetState(1).PZ:F2}).");
+Tests	tests/Shared.Tests/LastStopArenaTests.cs	85	public void FourPlatformSpawns_StayGrounded(CharacterClass cls)
+Tests	tests/Shared.Tests/LastStopArenaTests.cs	104	public void PlatformLength_RunsAlongTheGapWithoutLosingSupport(CharacterClass cls, int direction)
+Tests	tests/Shared.Tests/LastStopArenaTests.cs	124	public void Gap_IsALethalDropWithoutAHiddenFloor(CharacterClass cls)
+Tests	tests/Shared.Tests/LastStopArenaTests.cs	144	public void RunningJumpFromThePlatformEdge_LandsOnTheTrainRoof(CharacterClass cls, float x)
+Tests	tests/Shared.Tests/LastStopArenaTests.cs	156	public void TrainRoof_OneJumpReachesPortalRock(CharacterClass cls)
+Tests	tests/Shared.Tests/LastStopArenaTests.cs	167	[InlineData(CharacterClass.FightGuy)]
+Tests	tests/Shared.Tests/LastStopArenaTests.cs	168	[InlineData(CharacterClass.Wibou)]
+Tests	tests/Shared.Tests/LastStopArenaTests.cs	169	[InlineData(CharacterClass.Bonk)]
+Tests	tests/Shared.Tests/LastStopArenaTests.cs	170	public void CarriageRoof_OneJumpReachesTheCab(CharacterClass cls)
+Tests	tests/Shared.Tests/LastStopArenaTests.cs	182	public void GapLip_OneAirJumpRecoversOntoThePlatform(CharacterClass cls)
+Tests	tests/Shared.Tests/LastStopArenaTests.cs	220	public void OuterWalls_BlockInwardRecoveryAndAllowRetreat(CharacterClass cls, float dirX, float dirZ, float face)
+Tests	tests/Shared.Tests/LedgeWalkOffTests.cs	41	[InlineData(CharacterClass.FightGuy)]
+Tests	tests/Shared.Tests/LedgeWalkOffTests.cs	42	[InlineData(CharacterClass.Manki)]
+Tests	tests/Shared.Tests/LedgeWalkOffTests.cs	43	[InlineData(CharacterClass.Wibou)]
+Tests	tests/Shared.Tests/LedgeWalkOffTests.cs	44	[InlineData(CharacterClass.Bonk)]
+Tests	tests/Shared.Tests/LedgeWalkOffTests.cs	45	public void RunOffPlatform_FallsImmediately_NoHover_NoSelfGrab(CharacterClass cls)
+Tests	tests/Shared.Tests/LedgeWalkOffTests.cs	84	var def = BuiltInContentResolver.Resolve(CharacterClass.FightGuy).Definition;
+Tests	tests/Shared.Tests/LedgeWalkOffTests.cs	113	[InlineData(CharacterClass.FightGuy)]
+Tests	tests/Shared.Tests/LedgeWalkOffTests.cs	114	[InlineData(CharacterClass.Manki)]
+Tests	tests/Shared.Tests/LedgeWalkOffTests.cs	115	[InlineData(CharacterClass.Wibou)]
+Tests	tests/Shared.Tests/LedgeWalkOffTests.cs	116	[InlineData(CharacterClass.Bonk)]
+Tests	tests/Shared.Tests/LedgeWalkOffTests.cs	117	public void RunOffPlatform_FastFallWorksImmediately(CharacterClass cls)
+Tests	tests/Shared.Tests/LegacyRetirementCoverageTests.cs	334	var lab = new NetplayLab("slop_pit", new[] { CharacterClass.FightGuy, CharacterClass.Manki }, seed);
+Tests	tests/Shared.Tests/LicenseTestArenaTests.cs	22	foreach (var cls in new[] { CharacterClass.FightGuy, CharacterClass.Manki, CharacterClass.Wibou, CharacterClass.Bonk })
+Tests	tests/Shared.Tests/LicenseTestArenaTests.cs	46	foreach (var cls in new[] { CharacterClass.FightGuy, CharacterClass.Manki, CharacterClass.Wibou, CharacterClass.Bonk })
+Tests	tests/Shared.Tests/LicenseTestArenaTests.cs	57	public void OnlyTheEastEdgeLetsAFighterLeave(CharacterClass cls)
+Tests	tests/Shared.Tests/LicenseTestArenaTests.cs	77	public void ALaunchFromTheKnockoutSpotKillsThroughTheEastEdge(CharacterClass cls)
+Tests	tests/Shared.Tests/LobbyPayloadCodecTests.cs	30	Assert.Null(p.CharacterSelection);
+Tests	tests/Shared.Tests/LobbyPayloadCodecTests.cs	44	Assert.Equal("Manki", p.CharacterSelection);
+Tests	tests/Shared.Tests/LobbyPayloadCodecTests.cs	57	Assert.Null(p!.CharacterSelection);
+Tests	tests/Shared.Tests/LobbyPayloadCodecTests.cs	142	Assert.Equal("FightGuy", cfg.Players[1].CharacterSelection);
+Tests	tests/Shared.Tests/LobbyPayloadCodecTests.cs	217	Assert.Equal("Manki", cfg.Players[0].CharacterSelection);
+Tests	tests/Shared.Tests/LobbyPayloadCodecTests.cs	218	Assert.Equal("FightGuy", cfg.Players[1].CharacterSelection);
+Tests	tests/Shared.Tests/LocalFighterRefreshTests.cs	55	var development = new AdmittedFighter(loaded, entry.LegacySelector, null, development: true);
+Tests	tests/Shared.Tests/LocalFighterRefreshTests.cs	185	seat.Fighter = "fightguy";
+Tests	tests/Shared.Tests/LocalFighterWorkspaceTests.cs	43	Assert.NotNull(admission.Fighter);
+Tests	tests/Shared.Tests/LogOffArenaTests.cs	54	[InlineData(CharacterClass.FightGuy, -1)]
+Tests	tests/Shared.Tests/LogOffArenaTests.cs	55	[InlineData(CharacterClass.FightGuy, 1)]
+Tests	tests/Shared.Tests/LogOffArenaTests.cs	56	[InlineData(CharacterClass.Manki, -1)]
+Tests	tests/Shared.Tests/LogOffArenaTests.cs	57	[InlineData(CharacterClass.Manki, 1)]
+Tests	tests/Shared.Tests/LogOffArenaTests.cs	58	[InlineData(CharacterClass.Wibou, -1)]
+Tests	tests/Shared.Tests/LogOffArenaTests.cs	59	[InlineData(CharacterClass.Wibou, 1)]
+Tests	tests/Shared.Tests/LogOffArenaTests.cs	60	[InlineData(CharacterClass.Bonk, -1)]
+Tests	tests/Shared.Tests/LogOffArenaTests.cs	61	[InlineData(CharacterClass.Bonk, 1)]
+Tests	tests/Shared.Tests/LogOffArenaTests.cs	62	public void RunningOffTheFlankRim_LandsOnTheFungusShelf(CharacterClass cls, int direction)
+Tests	tests/Shared.Tests/LogOffArenaTests.cs	89	[InlineData(CharacterClass.FightGuy, -1)]
+Tests	tests/Shared.Tests/LogOffArenaTests.cs	90	[InlineData(CharacterClass.FightGuy, 1)]
+Tests	tests/Shared.Tests/LogOffArenaTests.cs	91	[InlineData(CharacterClass.Manki, -1)]
+Tests	tests/Shared.Tests/LogOffArenaTests.cs	92	[InlineData(CharacterClass.Manki, 1)]
+Tests	tests/Shared.Tests/LogOffArenaTests.cs	93	[InlineData(CharacterClass.Wibou, -1)]
+Tests	tests/Shared.Tests/LogOffArenaTests.cs	94	[InlineData(CharacterClass.Wibou, 1)]
+Tests	tests/Shared.Tests/LogOffArenaTests.cs	95	[InlineData(CharacterClass.Bonk, -1)]
+Tests	tests/Shared.Tests/LogOffArenaTests.cs	96	[InlineData(CharacterClass.Bonk, 1)]
+Tests	tests/Shared.Tests/LogOffArenaTests.cs	97	public void OneFullJumpFromTheShelf_ReturnsToTheStumpTop(CharacterClass cls, int direction)
+Tests	tests/Shared.Tests/LogOffArenaTests.cs	125	[InlineData(CharacterClass.FightGuy)]
+Tests	tests/Shared.Tests/LogOffArenaTests.cs	126	[InlineData(CharacterClass.Bonk)]
+Tests	tests/Shared.Tests/LogOffArenaTests.cs	127	public void WalkingOffTheShelfLip_FallsToTheBlastPlane(CharacterClass cls)
+Tests	tests/Shared.Tests/LogOffArenaTests.cs	155	foreach (var cls in new[] { CharacterClass.FightGuy, CharacterClass.Manki, CharacterClass.Wibou, CharacterClass.Bonk })
+Tests	tests/Shared.Tests/LogOffArenaTests.cs	162	public void BarkWalls_BlockInwardMovementAndAllowOutwardMovement(CharacterClass cls, float degrees, float height)
+Tests	tests/Shared.Tests/LogOffArenaTests.cs	193	[InlineData(CharacterClass.FightGuy, -1)]
+Tests	tests/Shared.Tests/LogOffArenaTests.cs	194	[InlineData(CharacterClass.FightGuy, 1)]
+Tests	tests/Shared.Tests/LogOffArenaTests.cs	195	[InlineData(CharacterClass.Manki, -1)]
+Tests	tests/Shared.Tests/LogOffArenaTests.cs	196	[InlineData(CharacterClass.Manki, 1)]
+Tests	tests/Shared.Tests/LogOffArenaTests.cs	197	[InlineData(CharacterClass.Wibou, -1)]
+Tests	tests/Shared.Tests/LogOffArenaTests.cs	198	[InlineData(CharacterClass.Wibou, 1)]
+Tests	tests/Shared.Tests/LogOffArenaTests.cs	199	[InlineData(CharacterClass.Bonk, -1)]
+Tests	tests/Shared.Tests/LogOffArenaTests.cs	200	[InlineData(CharacterClass.Bonk, 1)]
+Tests	tests/Shared.Tests/LogOffArenaTests.cs	201	public void RunningFullJump_CrossesSplitAndLandsOnOppositeShoulder(CharacterClass cls, int direction)
+Tests	tests/Shared.Tests/LogOffArenaTests.cs	239	[InlineData(CharacterClass.FightGuy)]
+Tests	tests/Shared.Tests/LogOffArenaTests.cs	240	[InlineData(CharacterClass.Manki)]
+Tests	tests/Shared.Tests/LogOffArenaTests.cs	241	[InlineData(CharacterClass.Wibou)]
+Tests	tests/Shared.Tests/LogOffArenaTests.cs	242	[InlineData(CharacterClass.Bonk)]
+Tests	tests/Shared.Tests/LogOffArenaTests.cs	243	public void GroundRoute_ConnectsShouldersWithoutJumping(CharacterClass cls)
+Tests	tests/Shared.Tests/LogOffArenaTests.cs	274	[InlineData(CharacterClass.FightGuy)]
+Tests	tests/Shared.Tests/LogOffArenaTests.cs	275	[InlineData(CharacterClass.Manki)]
+Tests	tests/Shared.Tests/LogOffArenaTests.cs	276	[InlineData(CharacterClass.Wibou)]
+Tests	tests/Shared.Tests/LogOffArenaTests.cs	277	[InlineData(CharacterClass.Bonk)]
+Tests	tests/Shared.Tests/LogOffArenaTests.cs	278	public void FourSpawns_StayGroundedAndSplitDropReachesBlastPlane(CharacterClass cls)
+Tests	tests/Shared.Tests/LogOffArenaTests.cs	306	[InlineData(CharacterClass.FightGuy, -1)]
+Tests	tests/Shared.Tests/LogOffArenaTests.cs	307	[InlineData(CharacterClass.FightGuy, 1)]
+Tests	tests/Shared.Tests/LogOffArenaTests.cs	308	[InlineData(CharacterClass.Manki, -1)]
+Tests	tests/Shared.Tests/LogOffArenaTests.cs	309	[InlineData(CharacterClass.Manki, 1)]
+Tests	tests/Shared.Tests/LogOffArenaTests.cs	310	[InlineData(CharacterClass.Wibou, -1)]
+Tests	tests/Shared.Tests/LogOffArenaTests.cs	311	[InlineData(CharacterClass.Wibou, 1)]
+Tests	tests/Shared.Tests/LogOffArenaTests.cs	312	[InlineData(CharacterClass.Bonk, -1)]
+Tests	tests/Shared.Tests/LogOffArenaTests.cs	313	[InlineData(CharacterClass.Bonk, 1)]
+Tests	tests/Shared.Tests/LogOffArenaTests.cs	314	public void UpperSplit_OneAirJumpRecoversOntoEitherShoulder(CharacterClass cls, int direction)
+Tests	tests/Shared.Tests/MankiBazookaHomingTests.cs	20	roster.Resolve(CharacterClass.Manki)!.Requirement);
+Tests	tests/Shared.Tests/MankiBazookaHomingTests.cs	22	return loaded.ToCharacterDefinition(CharacterClass.Manki);
+Tests	tests/Shared.Tests/MankiKitScenarioTests.cs	121	var rosterEntry = roster.Resolve(CharacterClass.Manki);
+Tests	tests/Shared.Tests/MankiMayhemArenaTests.cs	16	private static readonly CharacterClass[] Roster =
+Tests	tests/Shared.Tests/MankiMayhemArenaTests.cs	17	{ CharacterClass.FightGuy, CharacterClass.Manki, CharacterClass.Wibou, CharacterClass.Bonk };
+Tests	tests/Shared.Tests/MankiMayhemArenaTests.cs	126	CharacterClass cls, float edgeX, float edgeZ, float outwardX, float outwardZ, float height)
+Tests	tests/Shared.Tests/MankiMayhemArenaTests.cs	149	public void AllFourSpawnsGroundEveryRosterFighter(CharacterClass cls)
+Tests	tests/Shared.Tests/MankiQuarryRouteTests.cs	37	var entry = BuiltInContentResolver.Resolve(CharacterClass.Manki);
+Tests	tests/Shared.Tests/MatchContentCatalogTests.cs	16	var roster = manifest.Resolve(CharacterClass.FightGuy)!;
+Tests	tests/Shared.Tests/MatchContentCatalogTests.cs	31	var fightGuy = roster.Resolve(CharacterClass.FightGuy)!;
+Tests	tests/Shared.Tests/MatchContentCatalogTests.cs	32	var bonk = roster.Resolve(CharacterClass.Bonk)!;
+Tests	tests/Shared.Tests/MatchContentCatalogTests.cs	33	var wibou = roster.Resolve(CharacterClass.Wibou)!;
+Tests	tests/Shared.Tests/MatchContentCatalogTests.cs	34	var manki = roster.Resolve(CharacterClass.Manki)!;
+Tests	tests/Shared.Tests/MatchContentCatalogTests.cs	76	var entry = new MatchContentEntry(new ContentHandle(1), CharacterClass.Manki, identity, "test", definition);
+Tests	tests/Shared.Tests/MatchContentCatalogTests.cs	89	var fightGuy = manifest.Resolve(CharacterClass.FightGuy)!;
+Tests	tests/Shared.Tests/MatchContentCatalogTests.cs	100	var map = new MatchContentHandleMap(1, new[] { new MatchContentHandleRecord(new ContentHandle(2), CharacterClass.FightGuy, identity, "FightGuy") });
+Tests	tests/Shared.Tests/MatchContentCatalogTests.cs	109	var requirement = manifest.Resolve(CharacterClass.FightGuy)!.Requirement;
+Tests	tests/Shared.Tests/MatchStartRequestCodecTests.cs	11	/// correct <see cref="CharacterClass"/> values + dynamic entity IDs — the
+Tests	tests/Shared.Tests/MatchStartRequestCodecTests.cs	87	Assert.Equal(CharacterClass.Manki, req.Players[0].CharacterClass);
+Tests	tests/Shared.Tests/MatchStartRequestCodecTests.cs	90	Assert.Equal(CharacterClass.FightGuy, req.Players[1].CharacterClass);
+Tests	tests/Shared.Tests/MatchStartRequestCodecTests.cs	173	Assert.Equal(CharacterClass.Wibou, req.Players[0].CharacterClass);
+Tests	tests/Shared.Tests/MatchStartRequestCodecTests.cs	174	Assert.Equal(CharacterClass.Bonk, req.Players[1].CharacterClass);
+Tests	tests/Shared.Tests/MatchStartRequestCodecTests.cs	175	Assert.Equal(CharacterClass.Manki, req.Players[2].CharacterClass);
+Tests	tests/Shared.Tests/MatchStartRequestCodecTests.cs	212	public void TryParse_UnknownCharacterClass_ReturnsNull()
+Tests	tests/Shared.Tests/MatchStartRequestCodecTests.cs	227	public void TryParse_RetiredCharacterClass_ReturnsNull(string characterClass)
+Tests	tests/Shared.Tests/MatchStartRequestCodecTests.cs	240	public void TryParse_CharacterClassNone_ReturnsNull()
+Tests	tests/Shared.Tests/MatchStartRequestCodecTests.cs	256	public void TryParse_CharacterClass_CaseInsensitive(string className)
+Tests	tests/Shared.Tests/MatchStartRequestCodecTests.cs	268	Assert.NotEqual(CharacterClass.None, req!.Players[0].CharacterClass);
+Tests	tests/Shared.Tests/MayhemChannelTests.cs	128	public static TheoryData<CharacterClass> Roster() => RosterFighters.All();
+Tests	tests/Shared.Tests/MayhemChannelTests.cs	132	public void EveryRosterFighterPassesEveryChannelAtEveryTierAndFailsTheObjectivesIdle(CharacterClass fighter)
+Tests	tests/Shared.Tests/MayhemChannelTests.cs	310	var (sim, episode) = MayhemWorld.Airing(MayhemChannels.NoRunning, SpeedTier.One, count: 4, roster: new[] { CharacterClass.FightGuy });
+Tests	tests/Shared.Tests/MayhemChannelTests.cs	352	(Seed: 101u, Cast: new[] { CharacterClass.FightGuy, CharacterClass.Manki, CharacterClass.Wibou, CharacterClass.Bonk }),
+Tests	tests/Shared.Tests/MayhemChannelTests.cs	353	(Seed: 8020u, Cast: new[] { CharacterClass.Bashie, CharacterClass.Nyx, CharacterClass.Salamander, CharacterClass.FightGuy }),
+Tests	tests/Shared.Tests/MayhemDirectorTests.cs	12	private static readonly CharacterClass[] FightGuys = { CharacterClass.FightGuy };
+Tests	tests/Shared.Tests/MayhemFinalChannelsTests.cs	182	public static TheoryData<CharacterClass> Roster() => RosterFighters.All();
+Tests	tests/Shared.Tests/MayhemFinalChannelsTests.cs	185	public void CarefulFinaleRosterFitsTheBoundedClock(CharacterClass fighter)
+Tests	tests/Shared.Tests/MayhemGateTests.cs	11	private static readonly CharacterClass[] FightGuys = { CharacterClass.FightGuy };
+Tests	tests/Shared.Tests/MayhemGateTests.cs	103	var def = BuiltInContentResolver.Resolve(CharacterClass.FightGuy).Definition;
+Tests	tests/Shared.Tests/MayhemRemixTests.cs	27	private static readonly (CharacterClass Fighter, ChannelId Goal, TwistId Twist, string Why)[] KitWaivers =
+Tests	tests/Shared.Tests/MayhemRemixTests.cs	29	(CharacterClass.Salamander, MayhemChannels.BreakOut, new(3), "leaves a solo Double cage at 322 of 364 play ticks"),
+Tests	tests/Shared.Tests/MayhemRemixTests.cs	32	private static bool Waived(CharacterClass fighter, PrimePairEntry pair, TwistId goal)
+Tests	tests/Shared.Tests/MayhemRemixTests.cs	33	=> KitWaivers.Any(w => w.Fighter == fighter && w.Goal == pair.Goal && w.Twist == goal);
+Tests	tests/Shared.Tests/MayhemRemixTests.cs	191	private static Run Careful(PrimePairEntry pair, uint seed, int episode, CharacterClass[] roster, int count = 4, RemixAiring? pin = null)
+Tests	tests/Shared.Tests/MayhemRemixTests.cs	265	var fighters = count == 4 ? ((IEnumerable<object[]>)RosterFighters.All()).Select(row => (CharacterClass)row[0]).ToArray() : Array.Empty<CharacterClass>();
+Tests	tests/Shared.Tests/MayhemRemixTests.cs	280	foreach (var waiver in KitWaivers.Where(w => w.Goal == pair.Goal && !waived.Any(line => line.Contains($"all {w.Fighter}:") && line.Contains(Twist(w.Goal, w.Twist)))))
+Tests	tests/Shared.Tests/MayhemRemixTests.cs	281	problems.Add($"waiver for {waiver.Fighter} on {Twist(waiver.Goal, waiver.Twist)} is no longer needed");
+Tests	tests/Shared.Tests/MayhemShowReportTests.cs	19	private static readonly CharacterClass[][] Casts =
+Tests	tests/Shared.Tests/MayhemShowReportTests.cs	21	new[] { CharacterClass.FightGuy, CharacterClass.Manki, CharacterClass.Wibou, CharacterClass.Bonk },
+Tests	tests/Shared.Tests/MayhemShowReportTests.cs	22	new[] { CharacterClass.Bashie, CharacterClass.Nyx, CharacterClass.Salamander, CharacterClass.FightGuy },
+Tests	tests/Shared.Tests/MayhemTallWaveTests.cs	16	public void NoSingleJumpTimingClearsTallWave(CharacterClass fighter)
+Tests	tests/Shared.Tests/MayhemTallWaveTests.cs	40	public void DoubleJumpClearsTallWaveAndOneJumpFails(CharacterClass fighter)
+Tests	tests/Shared.Tests/MayhemVarietyFixTests.cs	12	private static readonly CharacterClass[] Fg = { CharacterClass.FightGuy };
+Tests	tests/Shared.Tests/MayhemVarietyFixTests.cs	14	private static CharacterClass[] Roster { get { var list = new List<CharacterClass>(); foreach (var f in RosterFighters.All()) list.Add(f); return list.ToArray(); } }
+Tests	tests/Shared.Tests/MayhemVarietyFixTests.cs	187	foreach (var fighter in new[] { CharacterClass.Manki, CharacterClass.FightGuy })
+Tests	tests/Shared.Tests/MayhemVarietyFixTests.cs	242	private static (ServerSimulation Sim, TargetCue Target, float X, float Z) SwingFrom(ChannelId channel, CharacterClass fighter, FriendlyFireMode fire, byte twist)
+Tests	tests/Shared.Tests/MayhemVarietyFixTests.cs	260	private static int Swing(ChannelId channel, CharacterClass fighter, byte slot, FriendlyFireMode fire, float? bearing, float reach, byte twist = 1, bool softTargetRival = false)
+Tests	tests/Shared.Tests/MayhemVarietyFixTests.cs	306	if (Swing(channel, CharacterClass.Wibou, slot, FriendlyFireMode.Shoves, null, 0) > 0)
+Tests	tests/Shared.Tests/MayhemVarietyFixTests.cs	307	Assert.True(Swing(channel, CharacterClass.Wibou, slot, FriendlyFireMode.Shoves, 60, 2, softTargetRival: true) > 0, $"slot {slot}");
+Tests	tests/Shared.Tests/MayhemVarietyFixTests.cs	328	var (sim, e) = MayhemWorld.Airing(MayhemChannels.Bonk, SpeedTier.One, count: 2, roster: new[] { CharacterClass.Wibou }, twist: new(2));
+Tests	tests/Shared.Tests/MayhemVarietyFixTests.cs	340	var (sim, e) = MayhemWorld.Airing(MayhemChannels.BreakBoards, SpeedTier.One, count: 2, roster: new[] { CharacterClass.Wibou }, twist: new(2));
+Tests	tests/Shared.Tests/MayhemVarietyFixTests.cs	354	var (sim, e) = MayhemWorld.Airing(MayhemChannels.Spot, SpeedTier.One, count: 2, roster: new[] { CharacterClass.Wibou }, fire: FriendlyFireMode.Off);
+Tests	tests/Shared.Tests/MayhemVarietyFixTests.cs	364	var (sim, e) = MayhemWorld.Airing(MayhemChannels.Spot, SpeedTier.One, count: 2, roster: new[] { CharacterClass.Wibou });
+Tests	tests/Shared.Tests/MayhemVarietyTests.cs	265	var entry = content.Catalog.Resolve(CharacterClass.FightGuy)!;
+Tests	tests/Shared.Tests/MayhemVarietyTests.cs	397	var sim = MayhemWorld.NewShow(seed, FriendlyFireMode.Off, count: 2, roster: new[] { CharacterClass.Manki, CharacterClass.Bashie });
+Tests	tests/Shared.Tests/MayhemWorld.cs	24	internal static readonly CharacterClass[] Four = { CharacterClass.FightGuy, CharacterClass.Manki, CharacterClass.Wibou, CharacterClass.Bonk };
+Tests	tests/Shared.Tests/MayhemWorld.cs	28	bool reverse = false, CharacterClass[]? roster = null, bool begin = true)
+Tests	tests/Shared.Tests/MayhemWorld.cs	99	CharacterClass[]? roster = null, bool reverse = false, int skip = 0)
+Tests	tests/Shared.Tests/MayhemWorld.cs	150	CharacterClass[]? roster = null, FriendlyFireMode fire = FriendlyFireMode.Shoves, bool reverse = false, TwistId? twist = null)
+Tests	tests/Shared.Tests/NeoMallScrambleShortcutTests.cs	13	var entry = BuiltInContentResolver.Resolve(CharacterClass.FightGuy);
+Tests	tests/Shared.Tests/NetplayFrameAcceptanceTests.cs	144	var content = BuiltInContentResolver.Resolve(CharacterClass.FightGuy);
+Tests	tests/Shared.Tests/NetplayLab.cs	20	private static readonly Dictionary<CharacterClass, MatchContentEntry> Content = new();
+Tests	tests/Shared.Tests/NetplayLab.cs	30	public NetplayLab(string arenaName, CharacterClass[] roster, int seed,
+Tests	tests/Shared.Tests/NetplayLab.cs	234	private static MatchContentEntry ContentFor(CharacterClass character)
+Tests	tests/Shared.Tests/NetplayPredictorTests.cs	121	private static readonly CharacterClass[] Duel = { CharacterClass.FightGuy, CharacterClass.Manki };
+Tests	tests/Shared.Tests/NetplayPredictorTests.cs	293	var mirror = new[] { CharacterClass.FightGuy, CharacterClass.FightGuy };
+Tests	tests/Shared.Tests/NetplayPredictorTests.cs	395	var fightGuy = BuiltInContentResolver.Resolve(CharacterClass.FightGuy);
+Tests	tests/Shared.Tests/NetplayPredictorTests.cs	396	var manki = BuiltInContentResolver.Resolve(CharacterClass.Manki);
+Tests	tests/Shared.Tests/NetplayPredictorTests.cs	415	new[] { CharacterClass.FightGuy, CharacterClass.Manki, CharacterClass.Bonk }, false);
+Tests	tests/Shared.Tests/NetplayPredictorTests.cs	445	yield return new object[] { "slop_pit", new[] { CharacterClass.FightGuy, CharacterClass.Manki }, 21, 1, 0, 0.0 };
+Tests	tests/Shared.Tests/NetplayPredictorTests.cs	446	yield return new object[] { "table_manners", new[] { CharacterClass.Wibou, CharacterClass.Bonk }, 22, 2, 1, 0.02 };
+Tests	tests/Shared.Tests/NetplayPredictorTests.cs	447	yield return new object[] { "slop_pit", new[] { CharacterClass.Manki, CharacterClass.Wibou }, 23, 1, 2, 0.05 };
+Tests	tests/Shared.Tests/NetplayPredictorTests.cs	448	yield return new object[] { "last_stop", new[] { CharacterClass.FightGuy, CharacterClass.Manki, CharacterClass.Wibou, CharacterClass.Bonk }, 24, 2, 2, 0.03 };
+Tests	tests/Shared.Tests/NetplayPredictorTests.cs	453	public void FightsOverImperfectLinksStayConsistent(string arena, CharacterClass[] roster, int seed,
+Tests	tests/Shared.Tests/NetplayReviewRegressionTests.cs	26	var entry = BuiltInContentResolver.Resolve(CharacterClass.Manki);
+Tests	tests/Shared.Tests/NetplayReviewRegressionTests.cs	50	var entry = BuiltInContentResolver.Resolve(CharacterClass.Manki);
+Tests	tests/Shared.Tests/NetplaySessionTests.cs	16	private static readonly CharacterClass[] Duel = { CharacterClass.FightGuy, CharacterClass.Manki };
+Tests	tests/Shared.Tests/NyxKitRound2Tests.cs	27	var content = BuiltInContentResolver.Resolve(CharacterClass.Nyx);
+Tests	tests/Shared.Tests/NyxKitRound2Tests.cs	490	RingDuel.TetherOf(admitted.ToCharacterDefinition(CharacterClass.Bashie)).AtTarget!.Unmarked);
+Tests	tests/Shared.Tests/NyxManorTests.cs	57	public void EveryTargetIsInOrdinaryAttackReachOfEveryWay(CharacterClass fighter)
+Tests	tests/Shared.Tests/NyxManorTests.cs	105	string[] knownGaps = fighter == CharacterClass.Bonk ? BonkStationaryNormalGaps : Array.Empty<string>();
+Tests	tests/Shared.Tests/NyxManorTests.cs	142	public void EverySafeAndQuickClimbWorksFromAStandingStart(CharacterClass fighter)
+Tests	tests/Shared.Tests/NyxManorTests.cs	166	public void FrontKnockoffsLandBelowAndTheRavineKills(CharacterClass fighter)
+Tests	tests/Shared.Tests/NyxManorTests.cs	171	var s = d.State; s.PX = 0; s.PY = y + d.Fighter.CapsuleHeight * .5f; s.PZ = z;
+Tests	tests/Shared.Tests/NyxManorTests.cs	178	Assert.InRange(d.State.PY - d.Fighter.CapsuleHeight * .5f, landing - .05f, landing + .05f);
+Tests	tests/Shared.Tests/NyxManorTests.cs	192	var d = new CourseFinishability("nyx_manor",CharacterClass.FightGuy);
+Tests	tests/Shared.Tests/NyxManorTests.cs	206	public void RacingPathFinishesAfterRivalsClearTargets(CharacterClass fighter)
+Tests	tests/Shared.Tests/NyxManorTests.cs	222	public void BothCrossingsFinishWithFourCheckpointsAndNoSpecials(CharacterClass fighter)
+Tests	tests/Shared.Tests/NyxManorTests.cs	241	public void BothMausoleumWaysKeepAllTargetsOnTheirApproachOrLanding(CharacterClass fighter)
+Tests	tests/Shared.Tests/NyxManorTests.cs	268	public void RoofAndBalconyDropsCannotReachTheCryptWithoutCrossing(CharacterClass fighter)
+Tests	tests/Shared.Tests/NyxManorTests.cs	274	var s=d.State; s.PX=x; s.PY=y+d.Fighter.CapsuleHeight*.5f; s.PZ=z;
+Tests	tests/Shared.Tests/NyxManorTests.cs	287	[InlineData(CharacterClass.FightGuy, "fightguy")]
+Tests	tests/Shared.Tests/NyxManorTests.cs	288	[InlineData(CharacterClass.Nyx, "nyx")]
+Tests	tests/Shared.Tests/NyxManorTests.cs	289	public void OrdinaryRouteExportsReplayWhenRequested(CharacterClass fighter, string package)
+Tests	tests/Shared.Tests/NyxPackageTests.cs	19	var content = BuiltInContentResolver.Resolve(CharacterClass.Nyx);
+Tests	tests/Shared.Tests/NyxPackageTests.cs	44	var content = BuiltInContentResolver.Resolve(CharacterClass.Nyx);
+Tests	tests/Shared.Tests/NyxPhase23Tests.cs	13	var content = BuiltInContentResolver.Resolve(CharacterClass.Nyx);
+Tests	tests/Shared.Tests/NyxPlayNotesTests.cs	15	var content = BuiltInContentResolver.Resolve(CharacterClass.Nyx);
+Tests	tests/Shared.Tests/NyxPlayNotesTests.cs	47	var content = BuiltInContentResolver.Resolve(CharacterClass.Nyx);
+Tests	tests/Shared.Tests/NyxPlayNotesTests.cs	90	var content = BuiltInContentResolver.Resolve(CharacterClass.Nyx);
+Tests	tests/Shared.Tests/NyxSpecialsTests.cs	27	var content = BuiltInContentResolver.Resolve(CharacterClass.Nyx);
+Tests	tests/Shared.Tests/OnlineCourseTests.cs	9	[InlineData("fightguy_pier", CharacterClass.FightGuy)]
+Tests	tests/Shared.Tests/OnlineCourseTests.cs	10	[InlineData("fightguy_sanctuary", CharacterClass.FightGuy)]
+Tests	tests/Shared.Tests/OnlineCourseTests.cs	11	[InlineData("manki_quarry", CharacterClass.Manki)]
+Tests	tests/Shared.Tests/OnlineCourseTests.cs	12	[InlineData("wibou_mall", CharacterClass.Wibou)]
+Tests	tests/Shared.Tests/OnlineCourseTests.cs	13	public void ExistingCoursesHaveSafeFourPlayerStartsWithoutChangingSoloData(string key, CharacterClass fighter)
+Tests	tests/Shared.Tests/PackageFighterContentTests.cs	56	new(e.Identity.PackageId, e.Identity.Version, e.Identity.CookedContentHash, e.Identity.PackageHash)), e.LegacySelector,
+Tests	tests/Shared.Tests/PackageFighterContentTests.cs	68	var salamander = catalog.Resolve(CharacterClass.Salamander)!;
+Tests	tests/Shared.Tests/PackageFighterContentTests.cs	69	Assert.Null(local.LegacySelector);
+Tests	tests/Shared.Tests/PackageFighterContentTests.cs	70	Assert.Equal(CharacterClass.None, local.Definition.Class);
+Tests	tests/Shared.Tests/PackageFighterLastReviewTests.cs	16	var entries = shipped.Manifest.Entries.Where(e => e.Selector is CharacterClass.FightGuy or CharacterClass.Manki).ToArray();
+Tests	tests/Shared.Tests/PackageFighterLastReviewTests.cs	34	var medium = BuiltInContentResolver.Resolve(CharacterClass.FightGuy,root);
+Tests	tests/Shared.Tests/PackageFighterLastReviewTests.cs	35	var small = BuiltInContentResolver.Resolve(CharacterClass.Manki,root);
+Tests	tests/Shared.Tests/PackageFighterLastReviewTests.cs	57	MatchConfig.SetPlayerFighter(CharacterClass.FightGuy,"fightguy");
+Tests	tests/Shared.Tests/PackageFighterLastReviewTests.cs	60	Assert.Equal(CharacterClass.Nyx,MatchConfig.PlayerClass);
+Tests	tests/Shared.Tests/PackageFighterLastReviewTests.cs	63	Assert.Equal(CharacterClass.Nyx,saved.Selector);
+Tests	tests/Shared.Tests/PackageFighterLastReviewTests.cs	79	MatchConfig.SetPlayerFighter(CharacterClass.FightGuy,"fightguy");
+Tests	tests/Shared.Tests/PackageFighterLastReviewTests.cs	81	Assert.Null(Bundled().ResolveLegacySelection(selection,CharacterClass.Manki));
+Tests	tests/Shared.Tests/PackageFighterLastReviewTests.cs	84	Assert.NotNull(Bundled().ResolveLegacySelection("Salamander",CharacterClass.Manki));
+Tests	tests/Shared.Tests/PackageFighterLastReviewTests.cs	153	var entries=manifest.Entries.Select(e=>e.Selector==CharacterClass.FightGuy
+Tests	tests/Shared.Tests/PackageFighterLastReviewTests.cs	157	Assert.Equal(CharacterClass.FightGuy,roster.DefaultFighter.Selector);
+Tests	tests/Shared.Tests/PackageFighterReviewTests.cs	18	var dto = new BuiltInRosterManifest(1, new[] { new BuiltInRosterEntry(CharacterClass.Bonk,"bonk",forged.Requirement) });
+Tests	tests/Shared.Tests/PackageFighterReviewTests.cs	31	var development = new AdmittedFighter(loaded,CharacterClass.Bonk,null,true);
+Tests	tests/Shared.Tests/PackageFighterReviewTests.cs	40	MatchConfig.SetPlayerFighter(CharacterClass.FightGuy,"fightguy");
+Tests	tests/Shared.Tests/PackageFighterReviewTests.cs	41	Assert.Throws<ArgumentException>(() => MatchConfig.SetPlayerFighter(CharacterClass.FightGuy,"salamander"));
+Tests	tests/Shared.Tests/PackageFighterReviewTests.cs	42	Assert.Equal(CharacterClass.FightGuy,MatchConfig.PlayerClass);
+Tests	tests/Shared.Tests/PackageFighterReviewTests.cs	45	Assert.Equal(CharacterClass.Salamander,MatchConfig.PlayerClass);
+Tests	tests/Shared.Tests/PackageFighterReviewTests.cs	47	Assert.Null(typeof(MatchConfig).GetProperty(nameof(MatchConfig.PlayerClass))!.SetMethod);
+Tests	tests/Shared.Tests/PackageFighterReviewTests.cs	50	Assert.Equal(CharacterClass.None,MatchConfig.PlayerClass);
+Tests	tests/Shared.Tests/PackageFighterReviewTests.cs	53	Assert.Equal(CharacterClass.FightGuy,MatchConfig.PlayerClass);
+Tests	tests/Shared.Tests/PackageFighterReviewTests.cs	84	new MatchContentHandleRecord(e.Handle,e.LegacySelector,e.Identity,e.DisplayName)).ToArray());
+Tests	tests/Shared.Tests/PackageFighterReviewTests.cs	122	var dto = new BuiltInRosterManifest(1,new[] { new BuiltInRosterEntry(CharacterClass.Bonk,fixture.Requirement.PackageId,fixture.Requirement) });
+Tests	tests/Shared.Tests/PackageFighterReviewTests.cs	189	Assert.Equal(CharacterClass.None,sim.GetDefinition(1)!.Class);
+Tests	tests/Shared.Tests/PackageFighterReviewTests.cs	190	Assert.Equal(CharacterClass.Salamander,sim.GetDefinition(2)!.Class);
+Tests	tests/Shared.Tests/RecoveryTurnTests.cs	11	public static TheoryData<CharacterClass> StickRecoveries => new()
+Tests	tests/Shared.Tests/RecoveryTurnTests.cs	13	CharacterClass.FightGuy, CharacterClass.Wibou, CharacterClass.Manki,
+Tests	tests/Shared.Tests/RecoveryTurnTests.cs	14	CharacterClass.Bashie, CharacterClass.Salamander,
+Tests	tests/Shared.Tests/RecoveryTurnTests.cs	21	public void StickHeldOnThePressTurnsTheMoveAround(CharacterClass fighter)
+Tests	tests/Shared.Tests/RecoveryTurnTests.cs	36	if (fighter == CharacterClass.Manki) continue;
+Tests	tests/Shared.Tests/RecoveryTurnTests.cs	48	[InlineData(CharacterClass.Wibou, 0)]
+Tests	tests/Shared.Tests/RecoveryTurnTests.cs	49	[InlineData(CharacterClass.Wibou, 2)]
+Tests	tests/Shared.Tests/RecoveryTurnTests.cs	50	[InlineData(CharacterClass.Bashie, 0)]
+Tests	tests/Shared.Tests/RecoveryTurnTests.cs	51	[InlineData(CharacterClass.Bashie, 2)]
+Tests	tests/Shared.Tests/RecoveryTurnTests.cs	52	public void ATurnedRecoveryTravelsTheNewWay(CharacterClass fighter, int stickTick)
+Tests	tests/Shared.Tests/RecoveryTurnTests.cs	69	var sim = AirborneFacingForward(CharacterClass.Bashie);
+Tests	tests/Shared.Tests/RecoveryTurnTests.cs	81	public void ANeutralStickKeepsFacingAndIgnoresTheCamera(CharacterClass fighter)
+Tests	tests/Shared.Tests/RecoveryTurnTests.cs	89	private static ServerSimulation AirborneFacingForward(CharacterClass fighter)
+Tests	tests/Shared.Tests/Replays/ReplayReportTests.cs	35	var entries = new[] { BuiltInContentResolver.Resolve(CharacterClass.FightGuy), BuiltInContentResolver.Resolve(CharacterClass.Manki) };
+Tests	tests/Shared.Tests/Replays/ReplayTests.cs	11	BuiltInContentResolver.Resolve(CharacterClass.FightGuy),
+Tests	tests/Shared.Tests/Replays/ReplayTests.cs	12	BuiltInContentResolver.Resolve(CharacterClass.Manki)});
+Tests	tests/Shared.Tests/Replays/ReplayTests.cs	700	var entries = new[] { BuiltInContentResolver.Resolve(nyx ? CharacterClass.Nyx : CharacterClass.FightGuy), BuiltInContentResolver.Resolve(CharacterClass.Manki) };
+Tests	tests/Shared.Tests/Replays/ReplayWorldTests.cs	40	static MatchContentEntry Entry(CharacterClass c) => Roster.Value.Resolve(c)!;
+Tests	tests/Shared.Tests/Replays/ReplayWorldTests.cs	56	static Recording RecordBots(CharacterClass[] fighters, int ticks, int seed = 7, string? alternate = null,
+Tests	tests/Shared.Tests/Replays/ReplayWorldTests.cs	64	var records = Roster.Value.Entries.Where(e => e.LegacySelector.HasValue)
+Tests	tests/Shared.Tests/Replays/ReplayWorldTests.cs	65	.Select(e => new MatchContentHandleRecord(e.Handle, e.LegacySelector!.Value, e.Identity, e.DisplayName)).ToList();
+Tests	tests/Shared.Tests/Replays/ReplayWorldTests.cs	116	internal static readonly Lazy<Recording> Duel = new(() => RecordBots(new[] { CharacterClass.FightGuy, CharacterClass.Nyx }, 1800, alternate: "nyx"));
+Tests	tests/Shared.Tests/Replays/ReplayWorldTests.cs	117	static readonly Lazy<Recording> FourWay = new(() => RecordBots(new[] { CharacterClass.Bonk, CharacterClass.Manki, CharacterClass.Nyx, CharacterClass.Bashie }, 1800, seed: 11));
+Tests	tests/Shared.Tests/Replays/ReplayWorldTests.cs	319	[MatchFormat.SlopballCoop] = new(() => RecordBots(new[] { CharacterClass.FightGuy, CharacterClass.Bonk }, 1800, format: MatchFormat.SlopballCoop)),
+Tests	tests/Shared.Tests/Replays/ReplayWorldTests.cs	320	[MatchFormat.SlopballVersus] = new(() => RecordBots(new[] { CharacterClass.FightGuy, CharacterClass.Manki }, 1800, format: MatchFormat.SlopballVersus)),
+Tests	tests/Shared.Tests/Replays/ReplayWorldTests.cs	321	[MatchFormat.CourseRace] = new(() => RecordBots(new[] { CharacterClass.FightGuy, CharacterClass.Nyx }, 1800, format: MatchFormat.CourseRace)),
+Tests	tests/Shared.Tests/Replays/ReplayWorldTests.cs	322	[MatchFormat.CourseCoop] = new(() => RecordBots(new[] { CharacterClass.Wibou, CharacterClass.Bashie }, 1800, format: MatchFormat.CourseCoop)),
+Tests	tests/Shared.Tests/Replays/ReplayWorldTests.cs	323	[MatchFormat.CourseScramble] = new(() => RecordBots(new[] { CharacterClass.FightGuy, CharacterClass.Manki, CharacterClass.Bonk }, 1800, format: MatchFormat.CourseScramble)),
+Tests	tests/Shared.Tests/Replays/ReplayWorldTests.cs	324	[MatchFormat.MankiMayhem] = new(() => RecordBots(new[] { CharacterClass.FightGuy, CharacterClass.Nyx, CharacterClass.Bashie, CharacterClass.Bonk },
+Tests	tests/Shared.Tests/RosterFighters.cs	10	public static TheoryData<CharacterClass> All()
+Tests	tests/Shared.Tests/RosterFighters.cs	12	var data = new TheoryData<CharacterClass>();
+Tests	tests/Shared.Tests/RosterLowPoseTests.cs	10	[InlineData(CharacterClass.FightGuy)]
+Tests	tests/Shared.Tests/RosterLowPoseTests.cs	11	[InlineData(CharacterClass.Wibou)]
+Tests	tests/Shared.Tests/RosterLowPoseTests.cs	12	public void AdmittedLowPostures_DuckHighContactButRemainHittableLow(CharacterClass character)
+Tests	tests/Shared.Tests/RosterRollbackConvergenceTests.cs	9	[InlineData(CharacterClass.FightGuy, 0)]
+Tests	tests/Shared.Tests/RosterRollbackConvergenceTests.cs	10	[InlineData(CharacterClass.Manki, 0)]
+Tests	tests/Shared.Tests/RosterRollbackConvergenceTests.cs	11	[InlineData(CharacterClass.Wibou, 0)]
+Tests	tests/Shared.Tests/RosterRollbackConvergenceTests.cs	12	[InlineData(CharacterClass.Bonk, 0)]
+Tests	tests/Shared.Tests/RosterRollbackConvergenceTests.cs	13	[InlineData(CharacterClass.FightGuy, 5)]
+Tests	tests/Shared.Tests/RosterRollbackConvergenceTests.cs	14	[InlineData(CharacterClass.Manki, 5)]
+Tests	tests/Shared.Tests/RosterRollbackConvergenceTests.cs	15	[InlineData(CharacterClass.Wibou, 5)]
+Tests	tests/Shared.Tests/RosterRollbackConvergenceTests.cs	16	[InlineData(CharacterClass.Bonk, 5)]
+Tests	tests/Shared.Tests/RosterRollbackConvergenceTests.cs	17	public void DelayedNormal_RecoversAndAcceptsMovementAndAnotherAttack(CharacterClass fighter, int lossDenominator)
+Tests	tests/Shared.Tests/RosterRollbackConvergenceTests.cs	28	[InlineData(CharacterClass.FightGuy, AbilitySlots.A, 0)]
+Tests	tests/Shared.Tests/RosterRollbackConvergenceTests.cs	29	[InlineData(CharacterClass.FightGuy, AbilitySlots.A, 5)]
+Tests	tests/Shared.Tests/RosterRollbackConvergenceTests.cs	31	CharacterClass fighter, byte slot, int lossDenominator)
+Tests	tests/Shared.Tests/RosterRollbackConvergenceTests.cs	48	var lab = Match(CharacterClass.Bonk, lossDenominator);
+Tests	tests/Shared.Tests/RosterRollbackConvergenceTests.cs	63	var lab = Match(CharacterClass.Wibou, lossDenominator);
+Tests	tests/Shared.Tests/RosterRollbackConvergenceTests.cs	79	var lab = Match(CharacterClass.Manki, lossDenominator);
+Tests	tests/Shared.Tests/RosterRollbackConvergenceTests.cs	90	private static NetplayLab Match(CharacterClass fighter, int lossDenominator)
+Tests	tests/Shared.Tests/ServerSimulationTests.cs	13	Class = CharacterClass.Manki,
+Tests	tests/Shared.Tests/ServerSimulationTests.cs	314	var def = BuiltInContentResolver.Resolve(CharacterClass.Manki).Definition;
+Tests	tests/Shared.Tests/ServerSimulationTests.cs	326	var def = BuiltInContentResolver.Resolve(CharacterClass.Manki).Definition;
+Tests	tests/Shared.Tests/ServerSimulationTests.cs	589	Class = CharacterClass.Manki,
+Tests	tests/Shared.Tests/ServerSimulationTests.cs	876	[InlineData(CharacterClass.FightGuy, 6.666667f, 11f, 3.025755f)]
+Tests	tests/Shared.Tests/ServerSimulationTests.cs	877	[InlineData(CharacterClass.Manki, 6f, 11f, 3.025755f)]
+Tests	tests/Shared.Tests/ServerSimulationTests.cs	878	[InlineData(CharacterClass.Wibou, 5.866667f, 12.1f, 3.328333f)]
+Tests	tests/Shared.Tests/ServerSimulationTests.cs	879	[InlineData(CharacterClass.Bonk, 6.666667f, 11f, 3.025755f)]
+Tests	tests/Shared.Tests/ServerSimulationTests.cs	881	CharacterClass character, float oldTravel, float dodgeSpeed, float burstTravel)
+Tests	tests/Shared.Tests/ServerSimulationTests.cs	1453	[InlineData(CharacterClass.FightGuy)]
+Tests	tests/Shared.Tests/ServerSimulationTests.cs	1454	[InlineData(CharacterClass.Manki)]
+Tests	tests/Shared.Tests/ServerSimulationTests.cs	1455	[InlineData(CharacterClass.Wibou)]
+Tests	tests/Shared.Tests/ServerSimulationTests.cs	1456	[InlineData(CharacterClass.Bonk)]
+Tests	tests/Shared.Tests/ServerSimulationTests.cs	1457	public void CookedRosterCaptureGeometryReachesCloseFrontTarget(CharacterClass character)
+Tests	tests/Shared.Tests/ShieldGrabPunishTests.cs	13	foreach (var defender in new[] { CharacterClass.FightGuy, CharacterClass.Manki, CharacterClass.Wibou, CharacterClass.Bonk })
+Tests	tests/Shared.Tests/ShieldGrabPunishTests.cs	15	yield return new object[] { defender, CharacterClass.FightGuy, AbilitySlots.Normal1 };
+Tests	tests/Shared.Tests/ShieldGrabPunishTests.cs	16	yield return new object[] { defender, CharacterClass.Manki, AbilitySlots.Normal2 };
+Tests	tests/Shared.Tests/ShieldGrabPunishTests.cs	17	yield return new object[] { defender, CharacterClass.Bonk, AbilitySlots.Normal1 };
+Tests	tests/Shared.Tests/ShieldGrabPunishTests.cs	24	CharacterClass defender, CharacterClass attacker, byte slot)
+Tests	tests/Shared.Tests/ShieldGrabPunishTests.cs	35	[InlineData(CharacterClass.FightGuy)]
+Tests	tests/Shared.Tests/ShieldGrabPunishTests.cs	36	[InlineData(CharacterClass.Wibou)]
+Tests	tests/Shared.Tests/ShieldGrabPunishTests.cs	37	[InlineData(CharacterClass.Bonk)]
+Tests	tests/Shared.Tests/ShieldGrabPunishTests.cs	38	public void SpacedBlockedNormalRemainsOutsideShieldGrab(CharacterClass defender)
+Tests	tests/Shared.Tests/ShieldGrabPunishTests.cs	40	var result = RunPunish(defender, CharacterClass.FightGuy, AbilitySlots.Normal3, 2.4f);
+Tests	tests/Shared.Tests/ShieldGrabPunishTests.cs	48	[InlineData(CharacterClass.FightGuy, 1.2f)]
+Tests	tests/Shared.Tests/ShieldGrabPunishTests.cs	49	[InlineData(CharacterClass.Manki, 1.2f)]
+Tests	tests/Shared.Tests/ShieldGrabPunishTests.cs	50	[InlineData(CharacterClass.Wibou, 1.2f)]
+Tests	tests/Shared.Tests/ShieldGrabPunishTests.cs	51	[InlineData(CharacterClass.Bonk, 1.4f)]
+Tests	tests/Shared.Tests/ShieldGrabPunishTests.cs	52	public void TimingSafeNormalCanRetreatBeforeShieldGrabBecomesActive(CharacterClass defender, float distance)
+Tests	tests/Shared.Tests/ShieldGrabPunishTests.cs	54	var result = RunPunish(defender, CharacterClass.Manki, AbilitySlots.Normal1, distance);
+Tests	tests/Shared.Tests/ShieldGrabPunishTests.cs	63	CharacterClass defender, CharacterClass attacker, byte slot, float distance)
+Tests	tests/Shared.Tests/ShieldGrabPunishTests.cs	119	private static CharacterDefinition CompileSource(CharacterClass character)
+Tests	tests/Shared.Tests/SlopPitArenaTests.cs	20	private static readonly CharacterClass[] Roster =
+Tests	tests/Shared.Tests/SlopPitArenaTests.cs	21	{ CharacterClass.FightGuy, CharacterClass.Manki, CharacterClass.Wibou, CharacterClass.Bonk };
+Tests	tests/Shared.Tests/SlopPitArenaTests.cs	116	CharacterClass cls, float edgeX, float edgeZ, float outwardX, float outwardZ, float height)
+Tests	tests/Shared.Tests/SlopPitArenaTests.cs	146	public void RingSidesBlockAFighterBelowItsTop(CharacterClass cls, int degrees)
+Tests	tests/Shared.Tests/SlopPitArenaTests.cs	165	public void EveryFighterReachesTheRingWithOneJump(CharacterClass cls)
+Tests	tests/Shared.Tests/SlopPitArenaTests.cs	195	public void WalkingOutOfTheRingLandsRingside(CharacterClass cls)
+Tests	tests/Shared.Tests/SlopballVersusTests.cs	209	[InlineData(CharacterClass.FightGuy)]
+Tests	tests/Shared.Tests/SlopballVersusTests.cs	210	[InlineData(CharacterClass.Manki)]
+Tests	tests/Shared.Tests/SlopballVersusTests.cs	211	[InlineData(CharacterClass.Wibou)]
+Tests	tests/Shared.Tests/SlopballVersusTests.cs	212	[InlineData(CharacterClass.Bonk)]
+Tests	tests/Shared.Tests/SlopballVersusTests.cs	213	[InlineData(CharacterClass.Bashie)]
+Tests	tests/Shared.Tests/SlopballVersusTests.cs	214	public void AServerCanReachTheHeldBallWithAGroundNormal(CharacterClass fighter)
+Tests	tests/Shared.Tests/SlopballVersusTests.cs	261	var map = new MatchContentHandleMap(1, new[] { new MatchContentHandleRecord(new ContentHandle(1), CharacterClass.Manki,
+Tests	tests/Shared.Tests/SplashDeckArenaTests.cs	26	private static readonly CharacterClass[] Roster =
+Tests	tests/Shared.Tests/SplashDeckArenaTests.cs	27	{ CharacterClass.FightGuy, CharacterClass.Manki, CharacterClass.Wibou, CharacterClass.Bonk };
+Tests	tests/Shared.Tests/SplashDeckArenaTests.cs	116	CharacterClass cls, float edgeX, float edgeZ, float outwardX, float outwardZ, float height)
+Tests	tests/Shared.Tests/SplashDeckArenaTests.cs	147	public void RaisedSpotsBlockAFighterBelowTheirTop(CharacterClass cls, string spot, int degrees)
+Tests	tests/Shared.Tests/SplashDeckArenaTests.cs	177	public void EveryFighterReachesEachRaisedSpotWithOneJump(CharacterClass cls, string spot)
+Tests	tests/Shared.Tests/StageCollisionTests.cs	450	[InlineData(CharacterClass.FightGuy)]
+Tests	tests/Shared.Tests/StageCollisionTests.cs	451	[InlineData(CharacterClass.Manki)]
+Tests	tests/Shared.Tests/StageCollisionTests.cs	452	[InlineData(CharacterClass.Wibou)]
+Tests	tests/Shared.Tests/StageCollisionTests.cs	453	[InlineData(CharacterClass.Bonk)]
+Tests	tests/Shared.Tests/StageCollisionTests.cs	454	public void HeldRunIntoWall_StopsAndCanMoveAway(CharacterClass cls)
+Tests	tests/Shared.Tests/StageCollisionTests.cs	511	[InlineData(CharacterClass.FightGuy)]
+Tests	tests/Shared.Tests/StageCollisionTests.cs	512	[InlineData(CharacterClass.Manki)]
+Tests	tests/Shared.Tests/StageCollisionTests.cs	513	[InlineData(CharacterClass.Wibou)]
+Tests	tests/Shared.Tests/StageCollisionTests.cs	514	[InlineData(CharacterClass.Bonk)]
+Tests	tests/Shared.Tests/StageCollisionTests.cs	515	public void HeldDiagonalRunAlongWall_PreservesTangentialMovement(CharacterClass cls)
+Tests	tests/Shared.Tests/StageCollisionTests.cs	567	[InlineData(CharacterClass.FightGuy)]
+Tests	tests/Shared.Tests/StageCollisionTests.cs	568	[InlineData(CharacterClass.Manki)]
+Tests	tests/Shared.Tests/StageCollisionTests.cs	569	[InlineData(CharacterClass.Wibou)]
+Tests	tests/Shared.Tests/StageCollisionTests.cs	570	[InlineData(CharacterClass.Bonk)]
+Tests	tests/Shared.Tests/StageCollisionTests.cs	571	public void RunOffTrianglePlatform_FallsWithoutHoverOrSelfGrab(CharacterClass cls)
+Tests	tests/Shared.Tests/StageCollisionTests.cs	623	[InlineData(CharacterClass.FightGuy, 0f)]
+Tests	tests/Shared.Tests/StageCollisionTests.cs	624	[InlineData(CharacterClass.FightGuy, 0.5f)]
+Tests	tests/Shared.Tests/StageCollisionTests.cs	625	[InlineData(CharacterClass.Manki, 0f)]
+Tests	tests/Shared.Tests/StageCollisionTests.cs	626	[InlineData(CharacterClass.Manki, 0.5f)]
+Tests	tests/Shared.Tests/StageCollisionTests.cs	627	[InlineData(CharacterClass.Wibou, 0f)]
+Tests	tests/Shared.Tests/StageCollisionTests.cs	628	[InlineData(CharacterClass.Wibou, 0.5f)]
+Tests	tests/Shared.Tests/StageCollisionTests.cs	629	[InlineData(CharacterClass.Bonk, 0f)]
+Tests	tests/Shared.Tests/StageCollisionTests.cs	630	[InlineData(CharacterClass.Bonk, 0.5f)]
+Tests	tests/Shared.Tests/StageCollisionTests.cs	631	public void HeldJumpBetweenTrianglePlatforms_LandsAndKeepsMoving(CharacterClass cls, float destinationY)
+Tests	tests/Shared.Tests/StageCollisionTests.cs	712	private static string Trace(CharacterClass cls, int tick, InputState input, CharacterState state, string contract)
+Tests	tests/Shared.Tests/StartupTargetProjectileTests.cs	12	[InlineData(CharacterClass.Wibou, false)]
+Tests	tests/Shared.Tests/StartupTargetProjectileTests.cs	13	[InlineData(CharacterClass.Wibou, true)]
+Tests	tests/Shared.Tests/StartupTargetProjectileTests.cs	14	[InlineData(CharacterClass.FightGuy, false)]
+Tests	tests/Shared.Tests/StartupTargetProjectileTests.cs	15	[InlineData(CharacterClass.FightGuy, true)]
+Tests	tests/Shared.Tests/StartupTargetProjectileTests.cs	16	public void ProjectileFiresAfterEightStartupTicksAndTracksLaunchTarget(CharacterClass characterClass, bool airborne)
+Tests	tests/Shared.Tests/StartupTargetProjectileTests.cs	30	Assert.Equal(characterClass == CharacterClass.FightGuy ? ActionState.Aiming : ActionState.Attacking, sim.GetState(1).State);
+Tests	tests/Shared.Tests/StartupTargetProjectileTests.cs	31	Assert.Equal(characterClass == CharacterClass.FightGuy, sim.GetState(1).IsAiming);
+Tests	tests/Shared.Tests/StartupTargetProjectileTests.cs	36	if (characterClass == CharacterClass.FightGuy)
+Tests	tests/Shared.Tests/StartupTargetProjectileTests.cs	38	for (var i = 0; i < (characterClass == CharacterClass.FightGuy ? 7 : 6); i++)
+Tests	tests/Shared.Tests/StartupTargetProjectileTests.cs	51	Assert.Equal(characterClass == CharacterClass.Wibou ? 3 : 1, shots.Count);
+Tests	tests/Shared.Tests/StartupTargetProjectileTests.cs	68	[InlineData(CharacterClass.Wibou, false)]
+Tests	tests/Shared.Tests/StartupTargetProjectileTests.cs	69	[InlineData(CharacterClass.Wibou, true)]
+Tests	tests/Shared.Tests/StartupTargetProjectileTests.cs	70	[InlineData(CharacterClass.FightGuy, false)]
+Tests	tests/Shared.Tests/StartupTargetProjectileTests.cs	71	[InlineData(CharacterClass.FightGuy, true)]
+Tests	tests/Shared.Tests/StartupTargetProjectileTests.cs	72	public void ProjectileWithoutEligibleTargetUsesFacingAndCancelBeforeLaunchFiresNothing(CharacterClass characterClass, bool airborne)
+Tests	tests/Shared.Tests/StartupTargetProjectileTests.cs	83	for (var i = 0; i < (characterClass == CharacterClass.FightGuy ? 8 : 7); i++) sim.Tick(new Dictionary<ulong, InputState> { [1] = default });
+Tests	tests/Shared.Tests/StartupTargetProjectileTests.cs	85	Assert.Equal(characterClass == CharacterClass.Wibou ? 3 : 1, shots.Count);
+Tests	tests/Shared.Tests/StartupTargetProjectileTests.cs	100	[InlineData(CharacterClass.Wibou, false)]
+Tests	tests/Shared.Tests/StartupTargetProjectileTests.cs	101	[InlineData(CharacterClass.Wibou, true)]
+Tests	tests/Shared.Tests/StartupTargetProjectileTests.cs	102	[InlineData(CharacterClass.FightGuy, false)]
+Tests	tests/Shared.Tests/StartupTargetProjectileTests.cs	103	[InlineData(CharacterClass.FightGuy, true)]
+Tests	tests/Shared.Tests/StartupTargetProjectileTests.cs	104	public void SelectedTargetOverridesNearestAndRemovedTargetFallsBackForward(CharacterClass characterClass, bool airborne)
+Tests	tests/Shared.Tests/StartupTargetProjectileTests.cs	120	for (int i = 0; i < (characterClass == CharacterClass.FightGuy ? 8 : 7); i++)
+Tests	tests/Shared.Tests/StartupTargetProjectileTests.cs	132	for (int i = 0; i < (characterClass == CharacterClass.FightGuy ? 8 : 7); i++)
+Tests	tests/Shared.Tests/StartupTargetProjectileTests.cs	141	var def = CompileDefinition(CharacterClass.FightGuy);
+Tests	tests/Shared.Tests/StartupTargetProjectileTests.cs	156	private static CharacterDefinition CompileDefinition(CharacterClass characterClass)
+Tests	tests/Shared.Tests/StartupTargetProjectileTests.cs	158	string id = characterClass == CharacterClass.Wibou ? "wibou" : "fightguy";
+Tests	tests/Shared.Tests/SteamMatchRoutingWireTests.cs	77	new MatchContentHandleRecord(new ContentHandle(1), CharacterClass.FightGuy,
+Tests	tests/Shared.Tests/SweetspotFeedbackTests.cs	20	private static readonly BakedAnimationData Poses = BuiltInContentResolver.Resolve(CharacterClass.FightGuy).BakedAnimation!;
+Tests	tests/Shared.Tests/TableMannersArenaTests.cs	23	private static readonly CharacterClass[] Roster =
+Tests	tests/Shared.Tests/TableMannersArenaTests.cs	24	{ CharacterClass.FightGuy, CharacterClass.Manki, CharacterClass.Wibou, CharacterClass.Bonk };
+Tests	tests/Shared.Tests/TableMannersArenaTests.cs	102	CharacterClass cls, float edgeX, float edgeZ, float outwardX, float outwardZ, float height)
+Tests	tests/Shared.Tests/TableMannersArenaTests.cs	132	public void CakeSidesBlockAFighterBelowItsTop(CharacterClass cls, int degrees)
+Tests	tests/Shared.Tests/TableMannersArenaTests.cs	151	public void EveryFighterReachesTheCakeTopWithOneJump(CharacterClass cls)
+Tests	tests/Shared.Tests/TestHelpers.cs	64	public static CharacterDefinition MankiDef => BuiltInContentResolver.Resolve(CharacterClass.Manki).Definition;
+Tests	tests/Shared.Tests/TestHelpers.cs	66	public static CharacterDefinition FightGuyDef => BuiltInContentResolver.Resolve(CharacterClass.FightGuy).Definition;
+Tests	tests/Shared.Tests/TestHelpers.cs	68	public static CharacterDefinition WibouDef => BuiltInContentResolver.Resolve(CharacterClass.Wibou).Definition;
+Tests	tests/Shared.Tests/TestHelpers.cs	70	public static CharacterDefinition ResolveDef(CharacterClass selector)
+Tests	tests/Shared.Tests/TestHelpers.cs	94	Class = CharacterClass.Manki,
+Tests	tests/Shared.Tests/TestHelpers.cs	305	Class = src.Class,
+Tests	tests/Shared.Tests/TestHelpers.cs	372	Class = src.Class,
+Tests	tests/Shared.Tests/TestHelpers.cs	433	Class = src.Class,
+Tests	tests/Shared.Tests/TestHelpers.cs	510	return BuiltInContentResolver.Resolve(def.Class).BakedAnimation;
+Tests	tests/Shared.Tests/TetherTests.cs	452	var bonk = BuiltInContentResolver.Resolve(CharacterClass.Bonk);
+Tests	tests/Shared.Tests/TetherTests.cs	684	var definition = CookedCharacterRuntimeAdapter.ToCharacterDefinition(Compile(edit), CharacterClass.Bashie);
+Tests	tests/Shared.Tests/TrainingArenaTests.cs	44	public static IEnumerable<object[]> IslandFighters() => Fighters().Where(f => (CharacterClass)f[0] != CharacterClass.Nyx);
+Tests	tests/Shared.Tests/TrainingArenaTests.cs	46	private static ServerSimulation Fresh(CharacterClass fighter, float x, float z, float surface, bool grounded = true)
+Tests	tests/Shared.Tests/TrainingArenaTests.cs	61	public void EverySpawnIsGroundedOnItsNamedSurface(CharacterClass fighter, int index)
+Tests	tests/Shared.Tests/TrainingArenaTests.cs	93	public void KnockbackKillsThroughNorthAndSouth(CharacterClass fighter)
+Tests	tests/Shared.Tests/TrainingArenaTests.cs	114	public void TrenchFallKillsAndEveryFighterRecoversOutOfIt(CharacterClass fighter)
+Tests	tests/Shared.Tests/TrainingArenaTests.cs	130	private static bool Jump(CharacterClass fighter, Vector2 start, float surface, Solid target, int jumps, bool running,
+Tests	tests/Shared.Tests/TrainingArenaTests.cs	185	private static bool Search(CharacterClass fighter, Vector2 start, float surface, Solid target, int jumps, bool running, bool recovery, out string result)
+Tests	tests/Shared.Tests/TrainingArenaTests.cs	190	foreach (int charge in recovery && fighter == CharacterClass.Bonk ? new[] { 1, 12, 24 } : new[] { -1 })
+Tests	tests/Shared.Tests/TrainingArenaTests.cs	196	public void TrainingRigTrenchAndShelfTeachTheirJumpHeights(CharacterClass fighter)
+Tests	tests/Shared.Tests/TrainingArenaTests.cs	214	public void IslandLadderMeasuresSingleDoubleAndRecovery(CharacterClass fighter)
+Tests	tests/Shared.Tests/TrainingCpuBehaviorTests.cs	35	[InlineData(CharacterClass.FightGuy)]
+Tests	tests/Shared.Tests/TrainingCpuBehaviorTests.cs	36	[InlineData(CharacterClass.Manki)]
+Tests	tests/Shared.Tests/TrainingCpuBehaviorTests.cs	37	[InlineData(CharacterClass.Wibou)]
+Tests	tests/Shared.Tests/TrainingCpuBehaviorTests.cs	38	[InlineData(CharacterClass.Bonk)]
+Tests	tests/Shared.Tests/TrainingCpuBehaviorTests.cs	39	public void ShieldModeHoldsGuardAgainstAnIdleOpponent(CharacterClass character)
+Tests	tests/Shared.Tests/TutorialProgressTests.cs	432	public Lab(CharacterClass player, CharacterClass dummy, TutorialLessonId lesson,
+Tests	tests/Shared.Tests/TutorialProgressTests.cs	486	private static CharacterClass DummyFor(CharacterClass fighter)
+Tests	tests/Shared.Tests/TutorialProgressTests.cs	487	=> fighter == CharacterClass.Bonk ? CharacterClass.FightGuy : CharacterClass.Bonk;
+Tests	tests/Shared.Tests/TutorialProgressTests.cs	491	foreach (var fighter in new[] { CharacterClass.FightGuy, CharacterClass.Manki, CharacterClass.Wibou,
+Tests	tests/Shared.Tests/TutorialProgressTests.cs	492	CharacterClass.Bonk, CharacterClass.Bashie })
+Tests	tests/Shared.Tests/TutorialProgressTests.cs	494	try { BuiltInContentResolver.Resolve(CharacterClass.Salamander); }
+Tests	tests/Shared.Tests/TutorialProgressTests.cs	496	yield return new object[] { CharacterClass.Salamander };
+Tests	tests/Shared.Tests/TutorialProgressTests.cs	509	public void RealBeelineGroundAndAerialHitsAreFeasible(CharacterClass fighter)
+Tests	tests/Shared.Tests/TutorialProgressTests.cs	543	public void RealBeelineOutOfShieldAndRecoveryAreFeasible(CharacterClass fighter)
+Tests	tests/Shared.Tests/TutorialProgressTests.cs	545	var shield = new Lab(fighter, CharacterClass.Bonk, TutorialLessonId.BeelineTricks,
+Tests	tests/Shared.Tests/TutorialProgressTests.cs	577	public void RealBeelineChaseIsFeasible(CharacterClass fighter)
+Tests	tests/Shared.Tests/TutorialProgressTests.cs	600	var lab = new Lab(CharacterClass.FightGuy, CharacterClass.Bonk, TutorialLessonId.Jump);
+Tests	tests/Shared.Tests/TutorialProgressTests.cs	616	[InlineData(CharacterClass.FightGuy)]
+Tests	tests/Shared.Tests/TutorialProgressTests.cs	617	[InlineData(CharacterClass.Manki)]
+Tests	tests/Shared.Tests/TutorialProgressTests.cs	618	[InlineData(CharacterClass.Wibou)]
+Tests	tests/Shared.Tests/TutorialProgressTests.cs	619	[InlineData(CharacterClass.Bonk)]
+Tests	tests/Shared.Tests/TutorialProgressTests.cs	620	public void EverySpecialPressIsDetectedForEachFighter(CharacterClass fighter)
+Tests	tests/Shared.Tests/TutorialProgressTests.cs	624	var lab = new Lab(fighter, fighter == CharacterClass.Bonk ? CharacterClass.FightGuy : CharacterClass.Bonk,
+Tests	tests/Shared.Tests/TutorialProgressTests.cs	640	var lab = new Lab(CharacterClass.FightGuy, CharacterClass.Bonk, TutorialLessonId.ShieldAndDodge,
+Tests	tests/Shared.Tests/TutorialProgressTests.cs	651	var lab = new Lab(CharacterClass.FightGuy, CharacterClass.Bonk, TutorialLessonId.GrabAndThrow,
+Tests	tests/Shared.Tests/Unit5ReviewTests.cs	38	Assert.All(MatchConfig.SoloSeats, s => Assert.Equal("fightguy", s.Fighter));
+Tests	tests/Shared.Tests/Unit5ReviewTests.cs	55	Assert.All(MatchConfig.SoloSeats, s => Assert.Contains(s.Fighter, after.PackageIds));
+Tests	tests/Shared.Tests/WibouMallRouteTests.cs	47	var entry = BuiltInContentResolver.Resolve(CharacterClass.Wibou);
+Tests	tests/Shared.Tests/WorkshopMutationContractTests.cs	19	preexisting.Select(pair => pair.First.Fighter + "/" + pair.First.Profile + "/" + pair.First.Family));
+Tests	tests/Shared.Tests/WorkshopMutationContractTests.cs	27	Assert.Equal((pair.First.Fighter, pair.First.Profile, pair.First.Cases),
+Tests	tests/Shared.Tests/WorkshopMutationContractTests.cs	28	(pair.Second.Fighter, pair.Second.Profile, pair.Second.Cases));
+Tests	tests/Shared.Tests/WorkshopMutationContractTests.cs	36	Assert.Equal((expected.Fighter, expected.Profile, expected.Family, expected.Cases, expected.Successful, expected.RoundTrips, expected.ContractHash),
+Tests	tests/Shared.Tests/WorkshopMutationContractTests.cs	37	(current.Fighter, current.Profile, current.Family, current.Cases, current.Successful, current.RoundTrips, current.ContractHash));
+Tests	tests/Shared.Tests/WorldFramePacketTests.cs	22	private static readonly CharacterClass[] Duel = { CharacterClass.Manki, CharacterClass.Wibou };
+Tests	tests/Shared.Tests/WorldFramePacketTests.cs	23	private static readonly CharacterClass[] FourWay =
+Tests	tests/Shared.Tests/WorldFramePacketTests.cs	24	{ CharacterClass.FightGuy, CharacterClass.Manki, CharacterClass.Wibou, CharacterClass.Bonk };
+Tests	tests/Shared.Tests/WorldFramePacketTests.cs	62	var roster = new[] { CharacterClass.FightGuy, CharacterClass.Bonk };
+Tests	tests/Shared.Tests/WorldFramePacketTests.cs	271	private static List<(WorldFramePacket Frame, byte[] Bytes)> Fight(ArenaDefinition arena, CharacterClass[] roster,
+Tests	tests/Shared.Tests/WorldSnapshotContractTests.cs	20	private static readonly CharacterClass[] Roster =
+Tests	tests/Shared.Tests/WorldSnapshotContractTests.cs	21	{ CharacterClass.FightGuy, CharacterClass.Manki, CharacterClass.Wibou, CharacterClass.Bonk, CharacterClass.Bashie };
+Tests	tests/Shared.Tests/WorldSnapshotTests.cs	22	yield return new object[] { "slop_pit", new[] { CharacterClass.FightGuy, CharacterClass.Manki }, 11 };
+Tests	tests/Shared.Tests/WorldSnapshotTests.cs	23	yield return new object[] { "slop_pit", new[] { CharacterClass.Wibou, CharacterClass.Bonk }, 17 };
+Tests	tests/Shared.Tests/WorldSnapshotTests.cs	24	yield return new object[] { "table_manners", new[] { CharacterClass.Manki, CharacterClass.Wibou }, 13 };
+Tests	tests/Shared.Tests/WorldSnapshotTests.cs	25	yield return new object[] { "table_manners", new[] { CharacterClass.Bonk, CharacterClass.FightGuy }, 14 };
+Tests	tests/Shared.Tests/WorldSnapshotTests.cs	26	yield return new object[] { "last_stop", new[] { CharacterClass.FightGuy, CharacterClass.Manki, CharacterClass.Wibou, CharacterClass.Bonk }, 17 };
+Tests	tests/Shared.Tests/WorldSnapshotTests.cs	27	yield return new object[] { "slop_pit", new[] { CharacterClass.Manki, CharacterClass.Manki, CharacterClass.Wibou, CharacterClass.FightGuy }, 16 };
+Tests	tests/Shared.Tests/WorldSnapshotTests.cs	125	string arenaName, CharacterClass[] roster, int seed)
+Tests	tests/Shared.Tests/WorldSnapshotTests.cs	174	var roster = new[] { CharacterClass.FightGuy, CharacterClass.Wibou, CharacterClass.Bonk };
+Tests	tests/Shared.Tests/WorldSnapshotTests.cs	193	var roster = new[] { CharacterClass.FightGuy, CharacterClass.Manki };
+Tests	tests/Shared.Tests/WorldSnapshotTests.cs	222	var two = NewMatch(arena, new[] { CharacterClass.FightGuy, CharacterClass.Manki }, false);
+Tests	tests/Shared.Tests/WorldSnapshotTests.cs	223	var three = NewMatch(arena, new[] { CharacterClass.FightGuy, CharacterClass.Manki, CharacterClass.Bonk }, false);
+Tests	tests/Shared.Tests/WorldSnapshotTests.cs	230	var sim = NewMatch(LoadArena("slop_pit"), new[] { CharacterClass.Bonk, CharacterClass.Wibou }, false);
+Tests	tests/Shared.Tests/WorldSnapshotTests.cs	241	internal static ServerSimulation NewMatch(ArenaDefinition arena, CharacterClass[] roster, bool reverseRegistration)
+Editor tooling	client/Unity/Assets/Scripts/Editor/CharacterPackageAuthoringService.cs	358	if (!Enum.TryParse(selectorName, true, out CharacterClass selector) || selector == CharacterClass.None)
+Editor tooling	client/Unity/Assets/Scripts/Editor/CharacterPackageAuthoringService.cs	360	diagnostics.Add(Error("roster.selector.invalid", "selector", "Roster selector must be a supported CharacterClass value."));
+Editor tooling	client/Unity/Assets/Scripts/Editor/CharacterPackageAuthoringService.cs	411	internal static bool HasRosterPresentation(string packageId, CharacterClass selector, string cardPath, string uiPath)
+Editor tooling	client/Unity/Assets/Scripts/Editor/MoveReview/MoveRecipe.cs	361	public CharacterClass DummyClass;
+Editor tooling	client/Unity/Assets/Scripts/Editor/MoveReview/MoveRecipe.cs	374	var coverage = new Coverage { Definition = entry.Definition, DummyClass = dummy.Definition.Class };
+Editor tooling	client/Unity/Assets/Scripts/Editor/MoveReview/MoveRecipe.cs	459	r.Fighter.State == ActionState.Attacking && r.Fighter.Form.Active == move.Form
+Editor tooling	client/Unity/Assets/Scripts/Editor/MoveReview/MoveRecipe.cs	460	&& r.Fighter.AttackSlot == CanonicalSlotProjection.ToWire(move.Slot));
+Editor tooling	client/Unity/Assets/Scripts/Editor/MoveReview/MoveRecipe.cs	467	var hits = take.Records.SelectMany(r => r.Hits.Where(h => h.OwnerEntityId == r.Fighter.EntityId).Select(_ => r.Frame)).ToArray();
+Editor tooling	client/Unity/Assets/Scripts/Editor/MoveReview/MoveRecipe.cs	476	PhaseAnchor.Cue => take.Records.Where(r => r.Cues.Any(c => c.EntityId == r.Fighter.EntityId && c.PresentationId == phase.CueId)).Select(r => (int?)r.Frame).FirstOrDefault(),
+Editor tooling	client/Unity/Assets/Scripts/Editor/MoveReview/SlopArenaMoveReviewCommands.cs	86	if (match.CaptureSimulation.GetDefinition(MatchConfig.LocalEntityId).Class != coverage.Definition.Class
+Editor tooling	client/Unity/Assets/Scripts/Editor/MoveReview/SlopArenaMoveReviewCommands.cs	87	|| match.CaptureSimulation.GetDefinition(match.SelectedNpcId).Class != coverage.DummyClass)
+Editor tooling	client/Unity/Assets/Scripts/Editor/MoveReview/SlopArenaMoveReviewCommands.cs	115	var hits = result.Records.SelectMany(r => r.Hits.Where(h => h.OwnerEntityId == r.Fighter.EntityId)
+Editor tooling	client/Unity/Assets/Scripts/Editor/SlopArenaCharacterCommands.cs	85	[CliArg("selector", "CharacterClass roster selector.", Required = true)] string selector,
+Editor tooling	client/Unity/Assets/Scripts/Editor/SlopArenaReplayCommands.cs	81	if (extras.Length > 3 || extras.Any(id => catalog.ResolvePackage(id)?.LegacySelector == null))
+Editor tooling	client/Unity/Assets/AbilityLab/Editor/AbilityLabPackageWorkspace.Reach.cs	122	var paths = new[] { resolution.ManifestPath }.Concat(new[] { CharacterClass.FightGuy, CharacterClass.Manki }
+Match presentation	client/Unity/Assets/Scripts/Runtime/Entities/PlayerRenderer.cs	256	error = $"No animation catalog or AnimConfig is available for {definition.Class}.";
+Match presentation	client/Unity/Assets/Scripts/Runtime/Entities/PlayerRenderer.cs	295	_modelName = definition.Class.ToString();
+Match presentation	client/Unity/Assets/Scripts/Runtime/Entities/PlayerRenderer.cs	628	var config = Resources.Load<CharacterAnimationConfig>($"AnimationConfigs/{def.Class}_AnimConfig");
+Match presentation	client/Unity/Assets/Scripts/Runtime/Entities/WeaponAttachConfig.cs	58	/// Place in Resources/WeaponConfigs/ named after the CharacterClass enum value
+Match presentation	client/Unity/Assets/Scripts/Runtime/UI/HUDManager.cs	780	FighterUiArt Fighter(ClientSession.ResultEntry entry) => entry.Fighter?.Art;
+Match presentation	client/Unity/Assets/Scripts/Runtime/UI/ResultsUI.cs	363	var art = entry.Fighter?.Art;
+Menus and selection	client/Unity/Assets/Scripts/Runtime/UI/CharSelectController.cs	120	string prior = EditsSeat ? MatchConfig.Seat(_editingSeat).Fighter : MatchConfig.PlayerPackageId;
+Menus and selection	client/Unity/Assets/Scripts/Runtime/UI/CharSelectController.cs	361	joined ? MatchConfig.Seat(player).Fighter : null, joined ? "LB/RB · B LEAVES" : "PAD: PRESS A TO JOIN", interactive: false,
+Menus and selection	client/Unity/Assets/Scripts/Runtime/UI/CharSelectController.cs	412	_selected = playerNumber == 1 ? MatchConfig.PlayerPackageId : MatchConfig.Seat(playerNumber).Fighter;
+Menus and selection	client/Unity/Assets/Scripts/Runtime/UI/CharSelectController.cs	452	var picked = EditsSeat ? MatchConfig.Seat(_editingSeat).Fighter : MatchConfig.PlayerPackageId;
+Menus and selection	client/Unity/Assets/Scripts/Runtime/UI/CharSelectController.cs	491	var fighter = player == 1 ? MatchConfig.PlayerPackageId : MatchConfig.Seat(player).Fighter;
+Menus and selection	client/Unity/Assets/Scripts/Runtime/UI/CharSelectController.cs	505	var fighter = player == 1 ? MatchConfig.PlayerPackageId : MatchConfig.Seat(player).Fighter;
+Menus and selection	client/Unity/Assets/Scripts/Runtime/UI/CharSelectController.cs	803	string cls = LegacyFighterSelection.DisplayKey(member.CharacterSelection);
+Menus and selection	client/Unity/Assets/Scripts/Runtime/UI/CharSelectController.cs	965	string cls = LegacyFighterSelection.PackageId(members[i].CharacterSelection);
+Menus and selection	client/Unity/Assets/Scripts/Runtime/UI/CharSelectController.cs	1182	Debug.Log($"[CharSelect] CharacterSelected: {player.Name} locked={player.LockedIn} char={player.CharacterSelection} host={player.IsHost}");
+Menus and selection	client/Unity/Assets/Scripts/Runtime/UI/CharSelectController.cs	1247	string selectedClass = LegacyFighterSelection.DisplayKey(player.CharacterSelection);
+Menus and selection	client/Unity/Assets/Scripts/Runtime/UI/CharSelectController.cs	1306	$"{p.Name}(locked={p.LockedIn},char={p.CharacterSelection ?? "?"},host={p.IsHost},steam={p.SteamId})");
+Menus and selection	client/Unity/Assets/Scripts/Runtime/UI/CharSelectController.cs	1322	MatchConfig.Seat(_editingSeat).Fighter = cls;
+Menus and selection	client/Unity/Assets/Scripts/Runtime/UI/CharSelectController.cs	1348	string cls = LegacyFighterSelection.PackageId(player.CharacterSelection);
+Menus and selection	client/Unity/Assets/Scripts/Runtime/UI/CharSelectController.cs	1370	: _gridButtons.FirstOrDefault(button => button.name == $"char-{MatchConfig.Seat(player).Fighter}");
+Menus and selection	client/Unity/Assets/Scripts/Runtime/UI/CharSelectController.cs	1393	int index = classes.ToList().IndexOf(MatchConfig.Seat(player).Fighter);
+Menus and selection	client/Unity/Assets/Scripts/Runtime/UI/CharSelectController.cs	1394	MatchConfig.Seat(player).Fighter = classes[((index < 0 ? 0 : index) + step + classes.Count) % classes.Count];
+Menus and selection	client/Unity/Assets/Scripts/Runtime/UI/LobbyRoomUI.cs	767	if (!string.IsNullOrWhiteSpace(member.CharacterSelection))
+Menus and selection	client/Unity/Assets/Scripts/Runtime/UI/LobbyRoomUI.cs	768	slot.Add(new Label(LocalFighterLibrary.Current.Name(LegacyFighterSelection.DisplayKey(member.CharacterSelection)).ToUpperInvariant()) { name = "room-character" });
+Menus and selection	client/Unity/Assets/Scripts/Runtime/UI/MatchConfig.cs	71	public CharacterClass Selector => Choice.LegacySelector ?? CharacterClass.None;
+Menus and selection	client/Unity/Assets/Scripts/Runtime/UI/MatchConfig.cs	81	public static CharacterClass PlayerClass { get { EnsurePlayer(); return _player?.Selector ?? CharacterClass.None; } }
+Menus and selection	client/Unity/Assets/Scripts/Runtime/UI/MatchConfig.cs	115	public static void SetPlayerFighter(CharacterClass selector, string packageId)
+Menus and selection	client/Unity/Assets/Scripts/Runtime/UI/MatchConfig.cs	121	public static void SetPlayerFighter(CharacterClass selector)
+Menus and selection	client/Unity/Assets/Scripts/Runtime/UI/MatchConfig.cs	169	public SlopArena.Shared.CharacterClass Class { get; }
+Menus and selection	client/Unity/Assets/Scripts/Runtime/UI/MatchConfig.cs	172	public OpponentInfo(ulong entityId, SlopArena.Shared.CharacterClass @class, string packageId = "")
+Menus and selection	client/Unity/Assets/Scripts/Runtime/UI/MatchConfig.cs	263	if (!System.Linq.Enumerable.Contains(visible, SoloSeats[number - 2].Fighter)) SoloSeats[number - 2].SetFighter(library.Choose(visible[0]));
+Menus and selection	client/Unity/Assets/Scripts/Runtime/UI/StageSelectController.cs	824	string selectedClass = LegacyFighterSelection.DisplayKey(member.CharacterSelection);
+Menus and selection	client/Unity/Assets/Scripts/Runtime/UI/StageSelectController.cs	846	seat.Kind == SeatKind.LocalPlayer ? "PLAYER" : "CPU", seat.Fighter,
+Menus and selection	client/Unity/Assets/Scripts/Runtime/UI/StageSelectController.cs	857	string selectedClass = LegacyFighterSelection.DisplayKey(player.CharacterSelection);
+Menus and selection	client/Unity/Assets/Scripts/Runtime/UI/WorkshopOverlay.cs	56	_tabs[View.Fighter] = Button(tabs, "MAKE A FIGHTER", FighterWorkspace);
+Menus and selection	client/Unity/Assets/Scripts/Runtime/UI/WorkshopOverlay.cs	392	Status(fighter.Fighter == null ? string.Join("; ", fighter.Diagnostics.Select(LocalFighterWorkspace.DiagnosticText)) : "Fighter admitted. Subscribe on Steam to add it to Fighter Select; subscribed fighters appear after the library refresh.");

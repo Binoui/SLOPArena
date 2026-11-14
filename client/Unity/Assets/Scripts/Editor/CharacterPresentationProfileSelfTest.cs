@@ -83,7 +83,7 @@ public static class CharacterPresentationProfileSelfTest
                 { new CookedStartCapabilityOperation(0, AuthoringUnit.Meters, "test.charge", "1", charged) }));
             var slots = CanonicalSlotProjection.All.Select(s => PresentationSelfTestContent.Move(s.Ordinal)).ToArray();
             slots[1] = move;
-            simulation.RegisterEntity(42, new CharacterDefinition { Class = CharacterClass.None, CookedSlots = slots }, default);
+            simulation.RegisterEntity(42, new CharacterDefinition { PackageId = "", CookedSlots = slots }, default);
             var hand = fixture.Child("Held hand").transform;
             var aiming = new CharacterState { State = ActionState.Aiming, AttackSlot = AbilitySlots.Normal2, AttackSequence = 7, ChargeTicks = 20 };
             manager.UpdateHeldVisual(42, aiming, hand, move);
@@ -247,7 +247,7 @@ public static class CharacterPresentationProfileSelfTest
         var hitMove = new CookedSlotDefinition(0, "ground.1", false, "Removal", "", "", AuthoringAbilityBehavior.MeleeCombo,
             AuthoringAimMode.None, 0, false, false, new CookedTimeline(Array.Empty<CookedStage>()), hitPresentationId: "presentation.test.hit");
         var slots = CanonicalSlotProjection.All.Select(s => PresentationSelfTestContent.Move(s.Ordinal)).ToArray(); slots[0] = hitMove;
-        simulation.RegisterEntity(42, new CharacterDefinition { Class = CharacterClass.None, CookedSlots = slots }, default);
+        simulation.RegisterEntity(42, new CharacterDefinition { PackageId = "", CookedSlots = slots }, default);
         manager.SetSimulation(simulation);
         typeof(ProjectileVFXManager).GetField("_config", Private).SetValue(manager, config);
         try

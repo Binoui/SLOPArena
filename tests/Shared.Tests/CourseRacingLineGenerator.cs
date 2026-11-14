@@ -14,7 +14,7 @@ public sealed class CourseRacingLineGenerator
         foreach (var route in CourseFinishability.Routes)
         {
             if (Environment.GetEnvironmentVariable("SLOPARENA_RACING_LINE_STAGE") is { } key && key != route.ArenaKey) continue;
-            var driver = new CourseFinishability(route.ArenaKey, CharacterClass.FightGuy);
+            var driver = new CourseFinishability(route.ArenaKey, "fightguy");
             driver.Run(route.RacingSteps is { } steps ? route with { Steps = steps, Format = CourseFormat.Scramble } : route);
             var points = new List<Vector3>();
             foreach (var p in driver.RoutePoints)

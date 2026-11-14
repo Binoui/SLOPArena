@@ -447,11 +447,11 @@ public void Knockback_DoesNotTunnelThroughThinWall()
     }
 
     [Theory]
-    [InlineData(CharacterClass.FightGuy)]
-    [InlineData(CharacterClass.Manki)]
-    [InlineData(CharacterClass.Wibou)]
-    [InlineData(CharacterClass.Bonk)]
-    public void HeldRunIntoWall_StopsAndCanMoveAway(CharacterClass cls)
+    [InlineData("fightguy")]
+    [InlineData("manki")]
+    [InlineData("wibou")]
+    [InlineData("bonk")]
+    public void HeldRunIntoWall_StopsAndCanMoveAway(string cls)
     {
         const float wallX = 2f;
         var def = TestHelpers.ResolveDef(cls);
@@ -508,11 +508,11 @@ public void Knockback_DoesNotTunnelThroughThinWall()
     }
 
     [Theory]
-    [InlineData(CharacterClass.FightGuy)]
-    [InlineData(CharacterClass.Manki)]
-    [InlineData(CharacterClass.Wibou)]
-    [InlineData(CharacterClass.Bonk)]
-    public void HeldDiagonalRunAlongWall_PreservesTangentialMovement(CharacterClass cls)
+    [InlineData("fightguy")]
+    [InlineData("manki")]
+    [InlineData("wibou")]
+    [InlineData("bonk")]
+    public void HeldDiagonalRunAlongWall_PreservesTangentialMovement(string cls)
     {
         const float wallX = 2f;
         var def = TestHelpers.ResolveDef(cls);
@@ -564,11 +564,11 @@ public void Knockback_DoesNotTunnelThroughThinWall()
 
 
     [Theory]
-    [InlineData(CharacterClass.FightGuy)]
-    [InlineData(CharacterClass.Manki)]
-    [InlineData(CharacterClass.Wibou)]
-    [InlineData(CharacterClass.Bonk)]
-    public void RunOffTrianglePlatform_FallsWithoutHoverOrSelfGrab(CharacterClass cls)
+    [InlineData("fightguy")]
+    [InlineData("manki")]
+    [InlineData("wibou")]
+    [InlineData("bonk")]
+    public void RunOffTrianglePlatform_FallsWithoutHoverOrSelfGrab(string cls)
     {
         const float platformY = 6f;
         var def = TestHelpers.ResolveDef(cls);
@@ -620,15 +620,15 @@ public void Knockback_DoesNotTunnelThroughThinWall()
     }
 
     [Theory]
-    [InlineData(CharacterClass.FightGuy, 0f)]
-    [InlineData(CharacterClass.FightGuy, 0.5f)]
-    [InlineData(CharacterClass.Manki, 0f)]
-    [InlineData(CharacterClass.Manki, 0.5f)]
-    [InlineData(CharacterClass.Wibou, 0f)]
-    [InlineData(CharacterClass.Wibou, 0.5f)]
-    [InlineData(CharacterClass.Bonk, 0f)]
-    [InlineData(CharacterClass.Bonk, 0.5f)]
-    public void HeldJumpBetweenTrianglePlatforms_LandsAndKeepsMoving(CharacterClass cls, float destinationY)
+    [InlineData("fightguy", 0f)]
+    [InlineData("fightguy", 0.5f)]
+    [InlineData("manki", 0f)]
+    [InlineData("manki", 0.5f)]
+    [InlineData("wibou", 0f)]
+    [InlineData("wibou", 0.5f)]
+    [InlineData("bonk", 0f)]
+    [InlineData("bonk", 0.5f)]
+    public void HeldJumpBetweenTrianglePlatforms_LandsAndKeepsMoving(string cls, float destinationY)
     {
         const float sourceY = 0f;
         var def = TestHelpers.ResolveDef(cls);
@@ -709,7 +709,7 @@ public void Knockback_DoesNotTunnelThroughThinWall()
             $"{cls} destinationY={destinationY:F1}: post-landing movement was insufficient; landedX={landedX:F3}, final={Trace(cls, landingTick + 20, inputs[1], final, "post-landing travel")}");
     }
 
-    private static string Trace(CharacterClass cls, int tick, InputState input, CharacterState state, string contract)
+    private static string Trace(string cls, int tick, InputState input, CharacterState state, string contract)
         => $"{cls} tick={tick} contract={contract} input=({input.MoveX:F2},{input.MoveY:F2}) " +
            $"pos=({state.PX:F3},{state.PY:F3},{state.PZ:F3}) " +
            $"vel=({state.VX:F3},{state.VY:F3},{state.VZ:F3}) grounded={state.IsGrounded} state={state.State}";

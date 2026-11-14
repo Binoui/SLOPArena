@@ -9,11 +9,11 @@ namespace SlopArena.Shared.Tests;
 public sealed class StartupTargetProjectileTests
 {
     [Theory]
-    [InlineData(CharacterClass.Wibou, false)]
-    [InlineData(CharacterClass.Wibou, true)]
-    [InlineData(CharacterClass.FightGuy, false)]
-    [InlineData(CharacterClass.FightGuy, true)]
-    public void ProjectileFiresAfterEightStartupTicksAndTracksLaunchTarget(CharacterClass characterClass, bool airborne)
+    [InlineData("wibou", false)]
+    [InlineData("wibou", true)]
+    [InlineData("fightguy", false)]
+    [InlineData("fightguy", true)]
+    public void ProjectileFiresAfterEightStartupTicksAndTracksLaunchTarget(string characterClass, bool airborne)
     {
         var def = CompileDefinition(characterClass);
         var sim = TestHelpers.MakeSim();
@@ -27,15 +27,15 @@ public sealed class StartupTargetProjectileTests
         sim.RegisterEntity(100, targetDef, target);
         var input = new InputState { ActiveSlot = 11, IsAiming = true, AimYaw = -9000, AimPitch = -5000 };
         sim.Tick(new Dictionary<ulong, InputState> { [1] = input, [100] = default });
-        Assert.Equal(characterClass == CharacterClass.FightGuy ? ActionState.Aiming : ActionState.Attacking, sim.GetState(1).State);
-        Assert.Equal(characterClass == CharacterClass.FightGuy, sim.GetState(1).IsAiming);
+        Assert.Equal(characterClass == "fightguy" ? ActionState.Aiming : ActionState.Attacking, sim.GetState(1).State);
+        Assert.Equal(characterClass == "fightguy", sim.GetState(1).IsAiming);
         Assert.Empty(sim.Resolver.GetActiveHitboxes());
         TestHelpers.AssertNear(player.FacingYaw, sim.GetState(1).FacingYaw);
         input.ActiveSlot = 0;
         input.IsAiming = false;
-        if (characterClass == CharacterClass.FightGuy)
+        if (characterClass == "fightguy")
             sim.Tick(new Dictionary<ulong, InputState> { [1] = input, [100] = default });
-        for (var i = 0; i < (characterClass == CharacterClass.FightGuy ? 7 : 6); i++)
+        for (var i = 0; i < (characterClass == "fightguy" ? 7 : 6); i++)
         {
             sim.Tick(new Dictionary<ulong, InputState> { [1] = input, [100] = default });
             Assert.Empty(sim.Resolver.GetActiveHitboxes());
@@ -48,7 +48,7 @@ public sealed class StartupTargetProjectileTests
         sim.SetState(100, target);
         sim.Tick(new Dictionary<ulong, InputState> { [1] = input, [100] = default });
         var shots = sim.Resolver.GetActiveHitboxes();
-        Assert.Equal(characterClass == CharacterClass.Wibou ? 3 : 1, shots.Count);
+        Assert.Equal(characterClass == "wibou" ? 3 : 1, shots.Count);
         var shot = shots.OrderBy(x => MathF.Abs(x.VZ)).First();
         Assert.True(shot.VX > 0f && MathF.Abs(shot.VZ) < .01f, $"expected launch-time target, got {shot.VX},{shot.VY},{shot.VZ}");
         Assert.True(shot.VY > 0f, "target's elevated launch-time position should produce upward pitch");
@@ -65,11 +65,11 @@ public sealed class StartupTargetProjectileTests
     }
 
     [Theory]
-    [InlineData(CharacterClass.Wibou, false)]
-    [InlineData(CharacterClass.Wibou, true)]
-    [InlineData(CharacterClass.FightGuy, false)]
-    [InlineData(CharacterClass.FightGuy, true)]
-    public void ProjectileWithoutEligibleTargetUsesFacingAndCancelBeforeLaunchFiresNothing(CharacterClass characterClass, bool airborne)
+    [InlineData("wibou", false)]
+    [InlineData("wibou", true)]
+    [InlineData("fightguy", false)]
+    [InlineData("fightguy", true)]
+    public void ProjectileWithoutEligibleTargetUsesFacingAndCancelBeforeLaunchFiresNothing(string characterClass, bool airborne)
     {
         var def = CompileDefinition(characterClass);
         var sim = TestHelpers.MakeSim();
@@ -80,9 +80,9 @@ public sealed class StartupTargetProjectileTests
         sim.RegisterEntity(1, def, player);
         var input = new InputState { ActiveSlot = 11 };
         sim.Tick(new Dictionary<ulong, InputState> { [1] = input });
-        for (var i = 0; i < (characterClass == CharacterClass.FightGuy ? 8 : 7); i++) sim.Tick(new Dictionary<ulong, InputState> { [1] = default });
+        for (var i = 0; i < (characterClass == "fightguy" ? 8 : 7); i++) sim.Tick(new Dictionary<ulong, InputState> { [1] = default });
         var shots = sim.Resolver.GetActiveHitboxes();
-        Assert.Equal(characterClass == CharacterClass.Wibou ? 3 : 1, shots.Count);
+        Assert.Equal(characterClass == "wibou" ? 3 : 1, shots.Count);
         var shot = shots.OrderBy(x => MathF.Abs(x.VZ)).First();
         Assert.True(shot.VX > 0f && MathF.Abs(shot.VZ) < 0.01f);
         Assert.InRange(shot.VY, -.02f, .02f);
@@ -97,11 +97,11 @@ public sealed class StartupTargetProjectileTests
     }
 
     [Theory]
-    [InlineData(CharacterClass.Wibou, false)]
-    [InlineData(CharacterClass.Wibou, true)]
-    [InlineData(CharacterClass.FightGuy, false)]
-    [InlineData(CharacterClass.FightGuy, true)]
-    public void SelectedTargetOverridesNearestAndRemovedTargetFallsBackForward(CharacterClass characterClass, bool airborne)
+    [InlineData("wibou", false)]
+    [InlineData("wibou", true)]
+    [InlineData("fightguy", false)]
+    [InlineData("fightguy", true)]
+    public void SelectedTargetOverridesNearestAndRemovedTargetFallsBackForward(string characterClass, bool airborne)
     {
         var def = CompileDefinition(characterClass);
         var sim = TestHelpers.MakeSim();
@@ -117,7 +117,7 @@ public sealed class StartupTargetProjectileTests
         var input = new InputState { ActiveSlot = 11, TargetEntityId = 100 };
         sim.Tick(new Dictionary<ulong, InputState> { [1] = input });
         input.ActiveSlot = 0;
-        for (int i = 0; i < (characterClass == CharacterClass.FightGuy ? 8 : 7); i++)
+        for (int i = 0; i < (characterClass == "fightguy" ? 8 : 7); i++)
             sim.Tick(new Dictionary<ulong, InputState> { [1] = input });
         var shot = sim.Resolver.GetActiveHitboxes().OrderBy(x => MathF.Abs(x.VZ)).First();
         Assert.True(shot.VX > 0f && MathF.Abs(shot.VZ) < .01f);
@@ -129,7 +129,7 @@ public sealed class StartupTargetProjectileTests
         removed.Tick(new Dictionary<ulong, InputState> { [1] = input });
         removed.RemoveEntity(100);
         input.ActiveSlot = 0;
-        for (int i = 0; i < (characterClass == CharacterClass.FightGuy ? 8 : 7); i++)
+        for (int i = 0; i < (characterClass == "fightguy" ? 8 : 7); i++)
             removed.Tick(new Dictionary<ulong, InputState> { [1] = input });
         shot = removed.Resolver.GetActiveHitboxes().OrderBy(x => MathF.Abs(x.VX)).First();
         Assert.True(shot.VZ > 0f && MathF.Abs(shot.VX) < .01f);
@@ -138,7 +138,7 @@ public sealed class StartupTargetProjectileTests
     [Fact]
     public void KiShotRecoveryContinuesAfterProjectileLaunch()
     {
-        var def = CompileDefinition(CharacterClass.FightGuy);
+        var def = CompileDefinition("fightguy");
         var sim = TestHelpers.MakeSim();
         sim.RegisterEntity(1, def, TestHelpers.PlayerState() with { PY = TestHelpers.GroundPY(def) });
         var inputs = new Dictionary<ulong, InputState> { [1] = new() { ActiveSlot = 11 } };
@@ -153,9 +153,9 @@ public sealed class StartupTargetProjectileTests
         Assert.Equal(ActionState.Idle, sim.GetState(1).State);
     }
 
-    private static CharacterDefinition CompileDefinition(CharacterClass characterClass)
+    private static CharacterDefinition CompileDefinition(string characterClass)
     {
-        string id = characterClass == CharacterClass.Wibou ? "wibou" : "fightguy";
+        string id = characterClass == "wibou" ? "wibou" : "fightguy";
         string root = Path.Combine(FindRepoRoot(), "client", "Unity", "Assets", "CharacterPackages", id);
         var result = CharacterPackageCompiler.Compile(File.ReadAllText(Path.Combine(root, "package.json")), File.ReadAllText(Path.Combine(root, "character.json")), CharacterCookProfile.TrustedBuiltIn);
         Assert.NotNull(result.CookedPackage);

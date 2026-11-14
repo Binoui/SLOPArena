@@ -19,12 +19,12 @@ public class WorldSnapshotTests
 
     public static IEnumerable<object[]> Fights()
     {
-        yield return new object[] { "slop_pit", new[] { CharacterClass.FightGuy, CharacterClass.Manki }, 11 };
-        yield return new object[] { "slop_pit", new[] { CharacterClass.Wibou, CharacterClass.Bonk }, 17 };
-        yield return new object[] { "table_manners", new[] { CharacterClass.Manki, CharacterClass.Wibou }, 13 };
-        yield return new object[] { "table_manners", new[] { CharacterClass.Bonk, CharacterClass.FightGuy }, 14 };
-        yield return new object[] { "last_stop", new[] { CharacterClass.FightGuy, CharacterClass.Manki, CharacterClass.Wibou, CharacterClass.Bonk }, 17 };
-        yield return new object[] { "slop_pit", new[] { CharacterClass.Manki, CharacterClass.Manki, CharacterClass.Wibou, CharacterClass.FightGuy }, 16 };
+        yield return new object[] { "slop_pit", new[] { "fightguy", "manki" }, 11 };
+        yield return new object[] { "slop_pit", new[] { "wibou", "bonk" }, 17 };
+        yield return new object[] { "table_manners", new[] { "manki", "wibou" }, 13 };
+        yield return new object[] { "table_manners", new[] { "bonk", "fightguy" }, 14 };
+        yield return new object[] { "last_stop", new[] { "fightguy", "manki", "wibou", "bonk" }, 17 };
+        yield return new object[] { "slop_pit", new[] { "manki", "manki", "wibou", "fightguy" }, 16 };
     }
 
     [Theory]
@@ -122,7 +122,7 @@ public class WorldSnapshotTests
     [Theory]
     [MemberData(nameof(Fights))]
     public void FreshSimulationsRestoredMidFightMatchTheContinuousOneEveryTick(
-        string arenaName, CharacterClass[] roster, int seed)
+        string arenaName, string[] roster, int seed)
     {
         var arena = LoadArena(arenaName);
         var continuous = NewMatch(arena, roster, reverseRegistration: false);
@@ -134,7 +134,7 @@ public class WorldSnapshotTests
         var driver = new ScriptedFight(seed, ids);
         var rng = new Random(seed * 7919);
         var inputs = new Dictionary<ulong, InputState>();
-        var coverage = new Coverage(roster.Any(fighter => BuiltInContentResolver.Resolve(fighter).Definition
+        var coverage = new Coverage(roster.Any(fighter => BuiltInContentResolver.ResolvePackage(fighter).Definition
             .CookedSlots!.Any(slot => slot.AimMode != AuthoringAimMode.None)));
         int nextRestore = rng.Next(1, 41);
         const int Ticks = 3000;
@@ -171,7 +171,7 @@ public class WorldSnapshotTests
     public void RegistrationOrderDoesNotChangeTheSimulation()
     {
         var arena = LoadArena("slop_pit");
-        var roster = new[] { CharacterClass.FightGuy, CharacterClass.Wibou, CharacterClass.Bonk };
+        var roster = new[] { "fightguy", "wibou", "bonk" };
         var ascending = NewMatch(arena, roster, reverseRegistration: false);
         var descending = NewMatch(arena, roster, reverseRegistration: true);
         var ids = new ulong[] { 1, 2, 3 };
@@ -190,7 +190,7 @@ public class WorldSnapshotTests
     public void MalformedSnapshotLeavesTheSimulationUntouched()
     {
         var arena = LoadArena("slop_pit");
-        var roster = new[] { CharacterClass.FightGuy, CharacterClass.Manki };
+        var roster = new[] { "fightguy", "manki" };
         var sim = NewMatch(arena, roster, reverseRegistration: false);
         var driver = new FightDriver(5, new ulong[] { 1, 2 });
         var inputs = new Dictionary<ulong, InputState>();
@@ -219,15 +219,15 @@ public class WorldSnapshotTests
     public void SnapshotOfDifferentFightersIsRejected()
     {
         var arena = LoadArena("slop_pit");
-        var two = NewMatch(arena, new[] { CharacterClass.FightGuy, CharacterClass.Manki }, false);
-        var three = NewMatch(arena, new[] { CharacterClass.FightGuy, CharacterClass.Manki, CharacterClass.Bonk }, false);
+        var two = NewMatch(arena, new[] { "fightguy", "manki" }, false);
+        var three = NewMatch(arena, new[] { "fightguy", "manki", "bonk" }, false);
         Assert.Throws<InvalidOperationException>(() => two.RestoreSnapshot(three.CaptureSnapshot()));
     }
 
     [Fact]
     public void UnsupportedFormatVersionIsRejected()
     {
-        var sim = NewMatch(LoadArena("slop_pit"), new[] { CharacterClass.Bonk, CharacterClass.Wibou }, false);
+        var sim = NewMatch(LoadArena("slop_pit"), new[] { "bonk", "wibou" }, false);
         var data = sim.CaptureSnapshot().Data;
         data[0] ^= 0x7F;
         Assert.Throws<InvalidDataException>(() => new WorldSnapshot(data));
@@ -238,14 +238,14 @@ public class WorldSnapshotTests
             ?? throw new InvalidOperationException($"Arena {name} could not be loaded.");
 
     /// <summary>A PvP simulation with fighters 1..N on the arena's spawn points, as the GameHost sets it up.</summary>
-    internal static ServerSimulation NewMatch(ArenaDefinition arena, CharacterClass[] roster, bool reverseRegistration)
+    internal static ServerSimulation NewMatch(ArenaDefinition arena, string[] roster, bool reverseRegistration)
     {
         var sim = new ServerSimulation(arena, new StockMatchRule(250));
         var order = Enumerable.Range(0, roster.Length).ToList();
         if (reverseRegistration) order.Reverse();
         foreach (int slot in order)
         {
-            var content = BuiltInContentResolver.Resolve(roster[slot]);
+            var content = BuiltInContentResolver.ResolvePackage(roster[slot]);
             var spawn = arena.SpawnPoints[slot % arena.SpawnPoints.Length];
             var state = new CharacterState
             {

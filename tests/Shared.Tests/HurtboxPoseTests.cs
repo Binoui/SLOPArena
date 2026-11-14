@@ -133,14 +133,14 @@ public class HurtboxPoseTests
     }
 
     [Theory]
-    [InlineData(CharacterClass.FightGuy)]
-    [InlineData(CharacterClass.Manki)]
-    [InlineData(CharacterClass.Wibou)]
-    [InlineData(CharacterClass.Bonk)]
-    public void CookedRoster_AppliesEachAuthoredRadiusToItsNamedBone(CharacterClass fighter)
+    [InlineData("fightguy")]
+    [InlineData("manki")]
+    [InlineData("wibou")]
+    [InlineData("bonk")]
+    public void CookedRoster_AppliesEachAuthoredRadiusToItsNamedBone(string fighter)
     {
         // Issue #282: cooked defs are sorted by bone ID while poses.bin keeps bake order.
-        var entry = BuiltInContentResolver.Resolve(fighter);
+        var entry = BuiltInContentResolver.ResolvePackage(fighter);
         var def = entry.Definition;
         var baked = entry.BakedAnimation!;
         var authored = entry.CookedCharacterPackage!.Definition.HurtboxBoneDefs;

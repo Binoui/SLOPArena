@@ -21,8 +21,8 @@ public class LastStopArenaTests
             ?? throw new InvalidOperationException("Last Stop arena could not be loaded.");
     }
 
-    private static readonly CharacterClass[] Roster =
-        { CharacterClass.FightGuy, CharacterClass.Manki, CharacterClass.Wibou, CharacterClass.Bonk };
+    private static readonly string[] Roster =
+        { "fightguy", "manki", "wibou", "bonk" };
 
     public static IEnumerable<object[]> Characters()
     {
@@ -76,13 +76,13 @@ public class LastStopArenaTests
             airborne |= jumpTick >= 0 && !current.IsGrounded;
             if (airborne && current.IsGrounded) return current;
         }
-        Assert.Fail($"{def.Class}: jump route never landed; final ({sim.GetState(1).PX:F2}, {sim.GetState(1).PY:F2}, {sim.GetState(1).PZ:F2}).");
+        Assert.Fail($"{def.PackageId}: jump route never landed; final ({sim.GetState(1).PX:F2}, {sim.GetState(1).PY:F2}, {sim.GetState(1).PZ:F2}).");
         return default;
     }
 
     [Theory]
     [MemberData(nameof(Characters))]
-    public void FourPlatformSpawns_StayGrounded(CharacterClass cls)
+    public void FourPlatformSpawns_StayGrounded(string cls)
     {
         var arena = Load();
         var def = TestHelpers.ResolveDef(cls);
@@ -101,7 +101,7 @@ public class LastStopArenaTests
 
     [Theory]
     [MemberData(nameof(Approaches))]
-    public void PlatformLength_RunsAlongTheGapWithoutLosingSupport(CharacterClass cls, int direction)
+    public void PlatformLength_RunsAlongTheGapWithoutLosingSupport(string cls, int direction)
     {
         var arena = Load();
         var def = TestHelpers.ResolveDef(cls);
@@ -121,7 +121,7 @@ public class LastStopArenaTests
 
     [Theory]
     [MemberData(nameof(Characters))]
-    public void Gap_IsALethalDropWithoutAHiddenFloor(CharacterClass cls)
+    public void Gap_IsALethalDropWithoutAHiddenFloor(string cls)
     {
         var arena = Load();
         var def = TestHelpers.ResolveDef(cls);
@@ -141,7 +141,7 @@ public class LastStopArenaTests
 
     [Theory]
     [MemberData(nameof(TrainCars))]
-    public void RunningJumpFromThePlatformEdge_LandsOnTheTrainRoof(CharacterClass cls, float x)
+    public void RunningJumpFromThePlatformEdge_LandsOnTheTrainRoof(string cls, float x)
     {
         var arena = Load();
         var def = TestHelpers.ResolveDef(cls);
@@ -153,7 +153,7 @@ public class LastStopArenaTests
 
     [Theory]
     [MemberData(nameof(Characters))]
-    public void TrainRoof_OneJumpReachesPortalRock(CharacterClass cls)
+    public void TrainRoof_OneJumpReachesPortalRock(string cls)
     {
         var arena = Load();
         var def = TestHelpers.ResolveDef(cls);
@@ -164,10 +164,10 @@ public class LastStopArenaTests
     }
 
     [Theory]
-    [InlineData(CharacterClass.FightGuy)]
-    [InlineData(CharacterClass.Wibou)]
-    [InlineData(CharacterClass.Bonk)]
-    public void CarriageRoof_OneJumpReachesTheCab(CharacterClass cls)
+    [InlineData("fightguy")]
+    [InlineData("wibou")]
+    [InlineData("bonk")]
+    public void CarriageRoof_OneJumpReachesTheCab(string cls)
     {
         var arena = Load();
         var def = TestHelpers.ResolveDef(cls);
@@ -179,7 +179,7 @@ public class LastStopArenaTests
 
     [Theory]
     [MemberData(nameof(Characters))]
-    public void GapLip_OneAirJumpRecoversOntoThePlatform(CharacterClass cls)
+    public void GapLip_OneAirJumpRecoversOntoThePlatform(string cls)
     {
         var arena = Load();
         var def = TestHelpers.ResolveDef(cls);
@@ -217,7 +217,7 @@ public class LastStopArenaTests
 
     [Theory]
     [MemberData(nameof(OuterWalls))]
-    public void OuterWalls_BlockInwardRecoveryAndAllowRetreat(CharacterClass cls, float dirX, float dirZ, float face)
+    public void OuterWalls_BlockInwardRecoveryAndAllowRetreat(string cls, float dirX, float dirZ, float face)
     {
         var arena = Load();
         var def = TestHelpers.ResolveDef(cls);

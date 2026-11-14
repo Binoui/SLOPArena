@@ -57,8 +57,8 @@ internal static class DashReport
 
     private static MatchContentEntry Resolve(string name) => name switch
     {
-        "bashie" => BuiltInContentResolver.Resolve(CharacterClass.Bashie),
-        "salamander" => BuiltInContentResolver.Resolve(CharacterClass.Salamander),
+        "bashie" => BuiltInContentResolver.ResolvePackage("bashie"),
+        "salamander" => BuiltInContentResolver.ResolvePackage("salamander"),
         _ => Program.ResolveEntry(name),
     };
 

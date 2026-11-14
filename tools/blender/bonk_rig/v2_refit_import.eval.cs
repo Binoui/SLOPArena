@@ -129,7 +129,7 @@ int moved = 0;
 for (int i = 0; i < entries.arraySize; i++)
 {
     var bone = entries.GetArrayElementAtIndex(i).FindPropertyRelative("BoneName");
-    if (bone.stringValue == "mixamorig:LeftArm") { bone.stringValue = "Pauldron_Left"; moved++; }
+    if (bone.PackageIdValue == "mixamorig:LeftArm") { bone.PackageIdValue = "Pauldron_Left"; moved++; }
 }
 cso.ApplyModifiedPropertiesWithoutUndo();
 EditorUtility.SetDirty(config);

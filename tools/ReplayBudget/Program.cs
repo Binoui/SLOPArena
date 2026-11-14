@@ -10,11 +10,11 @@ namespace SlopArena.ReplayBudget;
 
 internal static class Program
 {
-    static readonly CharacterClass[] Roster ={
-CharacterClass.FightGuy,
-CharacterClass.Manki,
-CharacterClass.Wibou,
-CharacterClass.Bonk};
+    static readonly string[] Roster ={
+"fightguy",
+"manki",
+"wibou",
+"bonk"};
     static int Main(string[] args)
     {
         CultureInfo.CurrentCulture = CultureInfo.InvariantCulture;
@@ -55,7 +55,7 @@ CharacterClass.Bonk};
     {
         string name = count == 2 ? "slop_pit" : "last_stop";
         var arena = ArenaBinaryFormat.LoadFromFile("data/arenas/" + name + ".arena") ?? throw new InvalidDataException(name);
-        var entries = Roster.Take(count).Select(c => catalog.Resolve(c)!).ToArray();
+        var entries = Roster.Take(count).Select(c => catalog.ResolvePackage(c)!).ToArray();
         var sim = new ServerSimulation(arena, new StockMatchRule(250));
         for (int i = 0; i < count; i++)
         {

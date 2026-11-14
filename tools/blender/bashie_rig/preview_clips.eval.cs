@@ -10,7 +10,7 @@ var flags = System.Reflection.BindingFlags.Instance | System.Reflection.BindingF
 var rendererType = typeof(SlopArena.Client.Entities.PlayerRenderer);
 var defField = rendererType.GetField("_charDef", flags);
 var renderer = UnityEngine.Object.FindObjectsByType<SlopArena.Client.Entities.PlayerRenderer>(FindObjectsSortMode.None)
-    .FirstOrDefault(r => (defField.GetValue(r) as SlopArena.Shared.CharacterDefinition)?.Class == SlopArena.Shared.CharacterClass.Manki)
+    .FirstOrDefault(r => (defField.GetValue(r) as SlopArena.Shared.CharacterDefinition)?.PackageId == "manki")
     ?? throw new InvalidOperationException("No Manki fighter in this session.");
 var def = (SlopArena.Shared.CharacterDefinition)defField.GetValue(renderer);
 var original = (SlopArena.Client.Animation.CharacterAnimationCatalog)rendererType.GetField("_animationCatalog", flags).GetValue(renderer)

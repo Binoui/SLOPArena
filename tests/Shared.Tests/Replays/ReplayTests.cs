@@ -8,8 +8,8 @@ namespace SlopArena.Shared.Tests.Replays;
 public class ReplayTests
 {
     static readonly MatchContentCatalog Catalog = new(new[]{
-BuiltInContentResolver.Resolve(CharacterClass.FightGuy),
-BuiltInContentResolver.Resolve(CharacterClass.Manki)});
+BuiltInContentResolver.ResolvePackage("fightguy"),
+BuiltInContentResolver.ResolvePackage("manki")});
     static string Root
     {
         get
@@ -697,7 +697,7 @@ new(s.CurrentTick,1,0,"test",1,PresentationEventSource.Timeline,0,0,0,0)};
     [InlineData(true)]
     public void CpuCombatProjectsFullMoveIdentityIncludingAlternateNyx(bool nyx)
     {
-        var entries = new[] { BuiltInContentResolver.Resolve(nyx ? CharacterClass.Nyx : CharacterClass.FightGuy), BuiltInContentResolver.Resolve(CharacterClass.Manki) };
+        var entries = new[] { BuiltInContentResolver.ResolvePackage(nyx ? "nyx" : "fightguy"), BuiltInContentResolver.ResolvePackage("manki") };
         var catalog = new MatchContentCatalog(entries);
         var arena = ArenaBinaryFormat.LoadFromFile(Path.Combine(Root, "data/arenas/slop_pit.arena"))!.Value;
         var roster = entries.Select((e,i) => new ReplayParticipant((ulong)i+1, "cpu", i.ToString(), e.Identity, nyx && i == 0 ? "alternate" : "base", "", "")).ToArray();

@@ -57,7 +57,7 @@ namespace SlopArena.EditorTools
             PlayerRenderer renderer, CharacterAnimationCatalog first, CharacterAnimationCatalog second,
             CharacterAnimationConfig animationOverride, GameObject invalidRig)
         {
-            var definition = Definition(CharacterClass.FightGuy);
+            var definition = Definition("fightguy");
             var baked = new BakedAnimationData
             {
                 BoneNames = new[] { "_weapon_hilt", "_weapon_tip" },
@@ -71,7 +71,7 @@ namespace SlopArena.EditorTools
             Require(!renderer.Animator.applyRootMotion, "The model retained root-motion authority.");
             var attachment = new GameObject("Caller-owned attachment");
             attachment.transform.SetParent(renderer.Animator.transform, false);
-            var updated = Definition(CharacterClass.FightGuy) with
+            var updated = Definition("fightguy") with
             {
                 CapsuleRadius = 0.8f,
                 CapsuleHeight = 2.4f,
@@ -112,33 +112,34 @@ namespace SlopArena.EditorTools
             }
 
             Reject(null, null, null);
-            Reject(Definition(CharacterClass.Manki), first, invalidRig);
-            var missing = Definition(CharacterClass.Manki) with
+            Reject(Definition("manki"), first, invalidRig);
+            var missing = Definition("manki") with
             {
                 ModelResourcePath = "__RendererConfigurationSelfTest__/MissingRig",
             };
             Reject(missing, null, null);
-            var invalid = Definition(CharacterClass.Manki) with { VisualScale = float.NaN };
+            var invalid = Definition("manki") with { VisualScale = float.NaN };
             Reject(invalid, first, first.Rig);
-            invalid = Definition(CharacterClass.Manki) with { CapsuleRadius = -1f };
+            invalid = Definition("manki") with { CapsuleRadius = -1f };
             Reject(invalid, first, first.Rig);
-            Reject(Definition(CharacterClass.FightGuy), null, first.Rig);
-            Reject(Definition(CharacterClass.None), null, first.Rig);
+            Reject(Definition("fightguy"), null, first.Rig);
+            Reject(Definition(""), null, first.Rig);
         }
 
         private static void CheckFallbackAndOverrides(
             PlayerRenderer renderer, CharacterAnimationCatalog catalog, CharacterAnimationConfig animationOverride,
             CharacterAnimationConfig manki, CharacterAnimationConfig wibou)
         {
-            var definition = Definition(CharacterClass.Manki);
+            var definition = Definition("manki");
             Require(renderer.Configure(definition, null, null, catalog.Rig, out var error), error);
             var graph = renderer.GetComponentInChildren<AnimancerComponent>();
             Require(graph.States.Current?.Clip == manki.Idle, "The Resources fallback did not resolve Manki's idle.");
 
-            definition = Definition(CharacterClass.Wibou);
+            // The fallback is keyed by model path, so Wibou's definition also swaps the model and its graph.
+            definition = Definition("wibou");
             Require(renderer.Configure(definition, null, null, catalog.Rig, out error), error);
-            Require(renderer.GetComponentInChildren<AnimancerComponent>() == graph
-                && graph.States.Current?.Clip == wibou.Idle,
+            graph = renderer.GetComponentInChildren<AnimancerComponent>();
+            Require(graph != null && graph.States.Current?.Clip == wibou.Idle,
                 "A new fallback source retained cached clips from the previous definition.");
 
             Require(renderer.Configure(definition, null, catalog, catalog.Rig, out error), error);
@@ -163,7 +164,7 @@ namespace SlopArena.EditorTools
             serialized.FindProperty("_charConfig").objectReferenceValue = null;
             serialized.ApplyModifiedPropertiesWithoutUndo();
 
-            definition = Definition(CharacterClass.None) with { ModelResourcePath = "Characters/Manki" };
+            definition = Definition("") with { ModelResourcePath = "Characters/Manki" };
             Require(renderer.Configure(definition, null, null, catalog.Rig, out error), error);
             graph = renderer.GetComponentInChildren<AnimancerComponent>();
             Require(graph.States.Current?.Clip == manki.Idle,
@@ -175,7 +176,7 @@ namespace SlopArena.EditorTools
             var marker = new GameObject("Caller-owned geometry");
             marker.transform.SetParent(root.transform, false);
             var renderer = root.AddComponent<PlayerRenderer>();
-            var definition = Definition(CharacterClass.FightGuy);
+            var definition = Definition("fightguy");
             var baked = new BakedAnimationData
             {
                 BoneNames = Array.Empty<string>(),
@@ -192,9 +193,10 @@ namespace SlopArena.EditorTools
                 "Definition-only reconfiguration retained the previous baked data.");
         }
 
-        private static CharacterDefinition Definition(CharacterClass fighter) => new()
+        private static CharacterDefinition Definition(string fighter) => new()
         {
-            Class = fighter,
+            PackageId = fighter,
+            ModelResourcePath = fighter == "manki" ? "Characters/Manki" : fighter == "wibou" ? "Characters/Wibou" : "",
             CapsuleRadius = 0.4f,
             CapsuleHeight = 1.6f,
             ModelYOffset = -0.3f,

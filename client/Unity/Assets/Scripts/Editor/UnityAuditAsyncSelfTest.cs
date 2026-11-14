@@ -723,7 +723,7 @@ namespace SlopArena.EditorTools
                     Set(page, "_arcadeTab", false);
                     Set(page, "_grid", new VisualElement());
                 }
-                else { Set(page, "_selected", CharacterClass.FightGuy); Set(page, "_lockedIn", false); }
+                else { Set(page, "_selected", "fightguy"); Set(page, "_lockedIn", false); }
                 return context;
             }
             public Label Status(MonoBehaviour page) => (Label)Get(page, page is StageSelectController ? "_lblWaiting" : "_lblPvPStatus")!;

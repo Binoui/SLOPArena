@@ -15,7 +15,7 @@ public sealed class CharacterCourseRouteTests
         while (root != null && !Directory.Exists(Path.Combine(root.FullName, "data", "arenas"))) root = root.Parent;
         Assert.NotNull(root);
         var arena = ArenaBinaryFormat.LoadFromFile(Path.Combine(root!.FullName, "data", "arenas", "fightguy_sanctuary.arena"))!.Value;
-        var entry = BuiltInContentResolver.Resolve(CharacterClass.FightGuy);
+        var entry = BuiltInContentResolver.ResolvePackage("fightguy");
         var sim = new ServerSimulation(arena, NoWinMatchRule.Instance);
         var spawn = arena.SpawnPoints[0];
         sim.RegisterEntity(1, entry.Definition, new()
@@ -172,7 +172,7 @@ public sealed class CharacterCourseRouteTests
         while (root != null && !Directory.Exists(Path.Combine(root.FullName, "data", "arenas"))) root = root.Parent;
         Assert.NotNull(root);
         var arena = ArenaBinaryFormat.LoadFromFile(Path.Combine(root!.FullName, "data", "arenas", "fightguy_sanctuary.arena"))!.Value;
-        var entry = BuiltInContentResolver.Resolve(CharacterClass.FightGuy);
+        var entry = BuiltInContentResolver.ResolvePackage("fightguy");
         // Near the first pole's forward corner: give the single jump its best ordinary takeoff.
         var start = new Vector2(-37.18f, -11.32f); var target = new Vector2(-41.5f, -4.5f);
         var direction = Vector2.Normalize(target - start); float hip = entry.Definition.CapsuleHeight * .5f;

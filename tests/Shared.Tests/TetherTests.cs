@@ -449,7 +449,7 @@ public sealed class TetherTests
     [Fact]
     public void ArmourDoesNotResistTheCatch()
     {
-        var bonk = BuiltInContentResolver.Resolve(CharacterClass.Bonk);
+        var bonk = BuiltInContentResolver.ResolvePackage("bonk");
         var duel = new RingDuel().WithBashie()
             .WithFighter(Dummy, RingDuel.Standing(0f, 9f, yawDegrees: 180f), bonk.Definition, bonk.BakedAnimation);
         duel.Step(default, (Dummy, new InputState { ActiveSlot = AbilitySlots.R }));
@@ -681,7 +681,7 @@ internal sealed class RingDuel
     /// <summary>Her source, optionally edited, with the poses of her current cook.</summary>
     internal static (CharacterDefinition Def, BakedAnimationData Poses) Load(Action<JsonObject>? edit)
     {
-        var definition = CookedCharacterRuntimeAdapter.ToCharacterDefinition(Compile(edit), CharacterClass.Bashie);
+        var definition = CookedCharacterRuntimeAdapter.ToCharacterDefinition(Compile(edit));
         var cooked = Path.Combine(TestPaths.Root, "content-cooked/bashie");
         var poses = BakedAnimationData.LoadFromBin(File.ReadAllBytes(Path.Combine(cooked, "poses.bin")));
         using var bindings = JsonDocument.Parse(File.ReadAllBytes(Path.Combine(cooked, "client.bindings")));

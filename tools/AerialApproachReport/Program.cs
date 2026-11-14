@@ -407,7 +407,7 @@ internal static partial class Program
         }
 
         report.SuccessfulPressWindows.AddRange(BuildWindows(report.Casts));
-        var bonk = entries.Single(x => x.Identity.PackageId.Contains("bonk", StringComparison.OrdinalIgnoreCase) || x.LegacySelector == CharacterClass.Bonk);
+        var bonk = entries.Single(x => x.Identity.PackageId.Contains("bonk", StringComparison.OrdinalIgnoreCase) || x.Identity.PackageId == "bonk");
         if (!CanonicalSlotProjection.TryGet(false, "3", out var g3)) throw new InvalidDataException("canonical ground.2 projection is unavailable");
         var g3Cooked = RequireCookedSlot(bonk, g3);
         var authoredHitboxes = g3Cooked.Timeline.Stages.SelectMany(stage => stage.Operations)
@@ -449,10 +449,10 @@ internal static partial class Program
     private static MatchContentEntry ResolveEntry(string selector)
         => selector switch
         {
-            "fightguy" => BuiltInContentResolver.Resolve(CharacterClass.FightGuy),
-            "manki" => BuiltInContentResolver.Resolve(CharacterClass.Manki),
-            "wibou" => BuiltInContentResolver.Resolve(CharacterClass.Wibou),
-            "bonk" => BuiltInContentResolver.Resolve(CharacterClass.Bonk),
+            "fightguy" => BuiltInContentResolver.ResolvePackage("fightguy"),
+            "manki" => BuiltInContentResolver.ResolvePackage("manki"),
+            "wibou" => BuiltInContentResolver.ResolvePackage("wibou"),
+            "bonk" => BuiltInContentResolver.ResolvePackage("bonk"),
             _ => throw new InvalidDataException($"unknown admitted selector '{selector}'"),
         };
 
@@ -479,7 +479,7 @@ internal static partial class Program
     private static Provenance ProvenanceOf(MatchContentEntry entry)
         => new()
         {
-            Selector = entry.LegacySelector?.ToString().ToLowerInvariant() ?? entry.Identity.PackageId,
+            Selector = entry.Identity.PackageId,
             DisplayName = entry.DisplayName,
             Identity = entry.Identity,
             HasCookedPackage = entry.CookedCharacterPackage != null,

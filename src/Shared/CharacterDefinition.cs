@@ -6,19 +6,6 @@ using System.Collections.ObjectModel;
 
 namespace SlopArena.Shared
 {
-    public enum CharacterClass : byte
-    {
-        None,
-        Manki,
-        FightGuy,
-        Wibou,
-        Bonk,
-        // 5 was Nilus, retired: old match requests still carry it, so it must never parse again.
-        Bashie = 6,
-        // Working name until the fighter #6 salamander gunslinger has his own (2026-10-26).
-        Salamander = 7,
-        Nyx = 8
-    }
 
     [Serializable]
     public struct MovementStats
@@ -53,7 +40,7 @@ namespace SlopArena.Shared
     {
         // Host admission metadata; absent from cooked payloads and world snapshots.
         internal CharacterCookProfile AdmissionProfile { get; init; } = CharacterCookProfile.Workshop;
-        public CharacterClass Class { get; init; }
+        public string PackageId { get; init; } = "";
         public string DisplayName { get; init; } = "";
         public MovementStats Movement { get; init; }
         /// <summary>Static mass used by the ADR-0019 knockback formula.</summary>

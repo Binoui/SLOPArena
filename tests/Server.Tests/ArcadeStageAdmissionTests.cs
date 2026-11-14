@@ -25,7 +25,7 @@ public class ArcadeStageAdmissionTests
         try
         {
             bool admitted = orchestrator.TryAssignMatch("arcade-admission-check", stage,
-                new[] { new MatchPlayer(1001, CharacterClass.FightGuy, 1), new MatchPlayer(1002, CharacterClass.Manki, 2) },
+                new[] { new MatchPlayer(1001, "fightguy", 1), new MatchPlayer(1002, "manki", 2) },
                 3, null, null, out int port, out var content, out var hash, out string? error);
             Assert.False(admitted);
             Assert.Equal(-1, port);
@@ -64,7 +64,7 @@ public class ArcadeStageAdmissionTests
         try
         {
             Assert.False(orchestrator.TryAssignMatch("coop-arena-rejection", stage,
-                new[] { new MatchPlayer(1001, CharacterClass.FightGuy, 1), new MatchPlayer(1002, CharacterClass.Manki, 2) },
+                new[] { new MatchPlayer(1001, "fightguy", 1), new MatchPlayer(1002, "manki", 2) },
                 3, null, null, out int port, out var content, out var hash, out string? error,
                 MatchFormat.SlopballCoop));
             Assert.Equal($"Arena '{stage}' is unavailable for slopball-coop.", error);
@@ -95,7 +95,7 @@ public class ArcadeStageAdmissionTests
         {
             Assert.True(host.ContentReady);
             Assert.False(host.TryAssignMatch("mayhem-admission", stage,
-                Enumerable.Range(1, count).Select(i => new MatchPlayer(100 + i, CharacterClass.Manki, i)).ToArray(),
+                Enumerable.Range(1, count).Select(i => new MatchPlayer(100 + i, "manki", i)).ToArray(),
                 3, null, null, out _, out _, out _, out var error, MatchFormat.MankiMayhem, mode));
             Assert.Equal(admitted, error!.StartsWith("No capacity", StringComparison.Ordinal));
             Assert.Equal(0, host.CurrentMatchCount);
@@ -104,12 +104,12 @@ public class ArcadeStageAdmissionTests
     }
 
     [Theory]
-    [InlineData(MatchFormat.CourseRace, CharacterClass.Bonk, CharacterClass.Bashie, 1, true)]
-    [InlineData(MatchFormat.CourseCoop, CharacterClass.Bashie, CharacterClass.Bashie, 1, true)]
-    [InlineData(MatchFormat.CourseRace, CharacterClass.Bonk, CharacterClass.Bonk, 0, false)]
-    [InlineData(MatchFormat.CourseCoop, CharacterClass.None, CharacterClass.Bashie, 1, false)]
+    [InlineData(MatchFormat.CourseRace, "bonk", "bashie", 1, true)]
+    [InlineData(MatchFormat.CourseCoop, "bashie", "bashie", 1, true)]
+    [InlineData(MatchFormat.CourseRace, "bonk", "bonk", 0, false)]
+    [InlineData(MatchFormat.CourseCoop, "", "bashie", 1, false)]
     public void CourseAdmissionAllowsAnyRosterFighterAndMirrorsWithDistinctColours(
-        MatchFormat format, CharacterClass first, CharacterClass second, byte secondColour, bool admitted)
+        MatchFormat format, string first, string second, byte secondColour, bool admitted)
     {
         string root = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "../../../../../"));
         ArenaRegistry.LoadFromDirectory(Path.Combine(root, "data/arenas"));
@@ -139,7 +139,7 @@ public class ArcadeStageAdmissionTests
             Assert.Equal(contentReady, orchestrator.ContentReady);
             const string matchId = "coop-content-admission";
             Assert.False(orchestrator.TryAssignMatch(matchId, "slopball",
-                new[] { new MatchPlayer(1001, CharacterClass.FightGuy, 1), new MatchPlayer(1002, CharacterClass.Manki, 2) },
+                new[] { new MatchPlayer(1001, "fightguy", 1), new MatchPlayer(1002, "manki", 2) },
                 3, null, null, out int port, out _, out _, out string? error, MatchFormat.SlopballCoop));
             Assert.Equal(contentError ?? $"No capacity or duplicate match ID for match {matchId}.", error);
             Assert.Equal(-1, port);

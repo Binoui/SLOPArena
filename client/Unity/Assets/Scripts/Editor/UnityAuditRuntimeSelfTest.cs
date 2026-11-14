@@ -87,7 +87,7 @@ namespace SlopArena.EditorTools
                 var catalog = SoundCatalog();
                 try
                 {
-                Require(renderer.Configure(new CharacterDefinition { Class = CharacterClass.None, CookedSlots = slots },
+                Require(renderer.Configure(new CharacterDefinition { PackageId = "", CookedSlots = slots },
                     null, catalog, null, out var error), error);
                 var state = new CharacterState
                 {
@@ -372,7 +372,7 @@ namespace SlopArena.EditorTools
             {
             Require(renderer.Configure(new CharacterDefinition
             {
-                Class = CharacterClass.None, CookedSlots = slots,
+                PackageId = "", CookedSlots = slots,
             }, null, catalog, null, out var error), error);
             var state = new CharacterState
             {

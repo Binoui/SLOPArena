@@ -66,12 +66,12 @@ public sealed class CpuMovementTests
         /// <summary>Unblocked hits this CPU landed on its target.</summary>
         public int Hits { get; private set; }
 
-        public Duel(ArenaDefinition arena, CharacterClass cpu, float cpuX, float cpuZ, float targetX, float targetZ,
+        public Duel(ArenaDefinition arena, string cpu, float cpuX, float cpuZ, float targetX, float targetZ,
             float? cpuFloor = null, float? targetFloor = null, CpuDifficulty difficulty = CpuDifficulty.Normal, int seed = 3, bool observeBakedTarget = false)
         {
             _arena = arena;
-            _cpu = BuiltInContentResolver.Resolve(cpu);
-            var target = BuiltInContentResolver.Resolve(CharacterClass.FightGuy);
+            _cpu = BuiltInContentResolver.ResolvePackage(cpu);
+            var target = BuiltInContentResolver.ResolvePackage("fightguy");
             _targetBaked = observeBakedTarget ? target.BakedAnimation : null;
             Sim = new ServerSimulation(arena);
             Sim.RegisterEntity(Cpu, _cpu.Definition, Standing(Cpu, _cpu.Definition, arena, cpuX, cpuZ, cpuFloor), _cpu.BakedAnimation);
@@ -140,7 +140,7 @@ public sealed class CpuMovementTests
     public void HamsterHabitatCpuDoesNotMistakeThePitRimForALanding(CpuDifficulty difficulty,
         int seed, float x, float z)
     {
-        var duel = new Duel(Stage("hamster_habitat"), CharacterClass.FightGuy, x, z, -27.3f, 7.15f,
+        var duel = new Duel(Stage("hamster_habitat"), "fightguy", x, z, -27.3f, 7.15f,
             targetFloor: 0f, difficulty: difficulty, seed: seed);
         duel.Settle(6);
         for (int tick = 0; tick < 360; tick++)
@@ -160,7 +160,7 @@ public sealed class CpuMovementTests
     public void CpuFinishesItsClimbInsteadOfCancellingIntoTheVoid(string stage, CpuDifficulty difficulty,
         int seed, float x, float z, float targetX, float targetZ)
     {
-        var duel = new Duel(Stage(stage), CharacterClass.FightGuy, x, z, targetX, targetZ,
+        var duel = new Duel(Stage(stage), "fightguy", x, z, targetX, targetZ,
             targetFloor: 0f, difficulty: difficulty, seed: seed);
         duel.Settle(6);
         for (int tick = 0; tick < 360; tick++)
@@ -179,7 +179,7 @@ public sealed class CpuMovementTests
         float cpuFloor = arena.Heightmap.Sample(0f, -6f), targetFloor = arena.Heightmap.Sample(0f, 0f);
         for (int seed = 1; seed <= 32; seed++)
         {
-            var duel = new Duel(arena, CharacterClass.FightGuy, 0f, -6f, 0f, 0f,
+            var duel = new Duel(arena, "fightguy", 0f, -6f, 0f, 0f,
                 cpuFloor: cpuFloor > float.MinValue ? cpuFloor : 0f,
                 targetFloor: targetFloor > float.MinValue ? targetFloor : 0f,
                 difficulty: difficulty, seed: seed, observeBakedTarget: true);
@@ -202,7 +202,7 @@ public sealed class CpuMovementTests
         var arena = Stage("hamster_habitat");
         for (float x = 8.5f; x <= 16.5f; x += 2f)
         {
-            var duel = new Duel(arena, CharacterClass.FightGuy, x, -5.4f, -27.3f, 7.15f,
+            var duel = new Duel(arena, "fightguy", x, -5.4f, -27.3f, 7.15f,
                 targetFloor: 0f, difficulty: CpuDifficulty.Hard);
             duel.Settle(6);
             for (int tick = 0; tick < 240; tick++)
@@ -217,7 +217,7 @@ public sealed class CpuMovementTests
     [Fact]
     public void LogOffRimCpuReachesAPlayerOnTheStumpTop()
     {
-        var duel = new Duel(Stage("log_off"), CharacterClass.FightGuy, -14.5f, 1.4f, 0.3f, -1.6f);
+        var duel = new Duel(Stage("log_off"), "fightguy", -14.5f, 1.4f, 0.3f, -1.6f);
         float closest = duel.Separation;
         for (int tick = 0; tick < 300; tick++)
         {
@@ -231,7 +231,7 @@ public sealed class CpuMovementTests
     [Fact]
     public void CpuWalksUpATiltedFloorToItsTarget()
     {
-        var duel = new Duel(TiltedFloor(), CharacterClass.FightGuy, -6f, 0f, 4f, 0f, cpuFloor: 0.8f, targetFloor: 2.8f);
+        var duel = new Duel(TiltedFloor(), "fightguy", -6f, 0f, 4f, 0f, cpuFloor: 0.8f, targetFloor: 2.8f);
         float closest = duel.Separation;
         for (int tick = 0; tick < 300; tick++)
         {
@@ -245,7 +245,7 @@ public sealed class CpuMovementTests
     [Fact]
     public void SlopPitCpuStepsDownFromThePlatformToATargetOnTheFloor()
     {
-        var duel = new Duel(Stage("slop_pit"), CharacterClass.FightGuy, 5.6f, -5.5f, 10.1f, -11.9f);
+        var duel = new Duel(Stage("slop_pit"), "fightguy", 5.6f, -5.5f, 10.1f, -11.9f);
         float start = duel.Separation;
         bool arrived = false;
         for (int tick = 0; tick < 300 && !arrived; tick++)
@@ -261,7 +261,7 @@ public sealed class CpuMovementTests
     public void CpuDoesNotWalkIntoAGapBetweenTwoFloors()
     {
         var arena = Boxes((-10f, -1f, -5f, -1.5f, 0f, 5f), (1.5f, -1f, -5f, 10f, 0f, 5f));
-        var duel = new Duel(arena, CharacterClass.FightGuy, -5f, 0f, 5f, 0f);
+        var duel = new Duel(arena, "fightguy", -5f, 0f, 5f, 0f);
         for (int tick = 0; tick < 300; tick++)
         {
             duel.Step();
@@ -274,7 +274,7 @@ public sealed class CpuMovementTests
     public void CpuClimbsOntoABlockItsTargetStandsOn()
     {
         var arena = Boxes((-10f, -1f, -6f, 10f, 0f, 6f), (2f, 0f, -3f, 8f, 1.2f, 3f));
-        var duel = new Duel(arena, CharacterClass.FightGuy, -4f, 0f, 6f, 0f);
+        var duel = new Duel(arena, "fightguy", -4f, 0f, 6f, 0f);
         bool onTop = false;
         for (int tick = 0; tick < 300 && !onTop; tick++)
         {
@@ -288,7 +288,7 @@ public sealed class CpuMovementTests
     [Fact]
     public void SlopPitCpuClimbsOntoThePlatformItsTargetStandsOn()
     {
-        var duel = new Duel(Stage("slop_pit"), CharacterClass.FightGuy, 3f, -12f, 3f, -4f);
+        var duel = new Duel(Stage("slop_pit"), "fightguy", 3f, -12f, 3f, -4f);
         bool onTop = false;
         for (int tick = 0; tick < 300 && !onTop; tick++)
         {
@@ -302,7 +302,7 @@ public sealed class CpuMovementTests
     [Fact]
     public void TrainingCpuApproachesAndHitsATargetNearTheEdge()
     {
-        var duel = new Duel(Stage("training"), CharacterClass.FightGuy, 4f, 0f, 13f, 0f);
+        var duel = new Duel(Stage("training"), "fightguy", 4f, 0f, 13f, 0f);
         for (int tick = 0; tick < 300 && duel.Hits == 0; tick++)
         {
             duel.Step();
@@ -316,7 +316,7 @@ public sealed class CpuMovementTests
     {
         var arena = Boxes((-10f, -1f, -10f, 10f, 0f, -1.5f), (-10f, -1f, 1.5f, 10f, 0f, 10f),
             (-10f, -1f, -1.5f, -1.5f, 0f, 1.5f), (1.5f, -1f, -1.5f, 10f, 0f, 1.5f));
-        var duel = new Duel(arena, CharacterClass.FightGuy, -5f, 0f, 5f, 0f);
+        var duel = new Duel(arena, "fightguy", -5f, 0f, 5f, 0f);
         for (int tick = 0; tick < 300; tick++)
         {
             duel.Step();

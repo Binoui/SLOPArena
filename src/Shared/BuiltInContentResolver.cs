@@ -5,21 +5,21 @@ using System.Linq;
 
 namespace SlopArena.Shared;
 
-/// <summary>Resolves a built-in selector through the cooked catalog boundary used by matches.</summary>
+/// <summary>Resolves a built-in package through the cooked catalog boundary used by matches.</summary>
 public static class BuiltInContentResolver
 {
-    public static MatchContentEntry Resolve(CharacterClass selector)
+    public static MatchContentEntry ResolvePackage(string selector)
     {
         var shipped = ShippedRoster.ReadApplication();
         return ResolveCatalog(selector, shipped.CookedRoot, shipped);
     }
 
-    public static MatchContentEntry Resolve(CharacterClass selector, string cookedRoot)
+    public static MatchContentEntry ResolvePackage(string selector, string cookedRoot)
         => ResolveCatalog(selector, ResolveRoot(cookedRoot), null);
 
-    private static MatchContentEntry ResolveCatalog(CharacterClass selector, string cookedRoot, ShippedRoster? shipped)
-        => ReadCatalog(cookedRoot, shipped).Resolve(selector)
-            ?? throw new InvalidDataException($"Catalog selector '{selector}' is unavailable.");
+    private static MatchContentEntry ResolveCatalog(string selector, string cookedRoot, ShippedRoster? shipped)
+        => ReadCatalog(cookedRoot, shipped).ResolvePackage(selector)
+            ?? throw new InvalidDataException($"Catalog package '{selector}' is unavailable.");
 
     public static MatchContentCatalog ReadApplicationCatalog()
     {
