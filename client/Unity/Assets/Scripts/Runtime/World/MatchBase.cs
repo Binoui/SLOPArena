@@ -36,6 +36,9 @@ namespace SlopArena.Client.World
         // Subclasses provide the bridge (local sim or network)
         protected abstract ISimulationBridge Bridge { get; }
 
+        /// <summary>The simulation's body pose clock for a fighter's renderer (ServerSimulation.GetBodyClock).</summary>
+        protected BodyPoseClock BodyClock(ulong id) => Bridge?.World?.GetBodyClock(id) ?? default;
+
         [Header("Entities")]
         [SerializeField] protected PlayerRenderer _playerRenderer;
 

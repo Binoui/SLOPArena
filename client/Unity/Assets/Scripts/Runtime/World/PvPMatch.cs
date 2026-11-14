@@ -498,9 +498,9 @@ namespace SlopArena.Client.World
             _hudManager?.Refresh();
 
             // Apply server states to renderers
-            _playerRenderer.ApplyServerState(_bridge.GetState(PlayerEntityId), _bridge.GetActiveMove(PlayerEntityId)?.Slot);
+            _playerRenderer.ApplyServerState(_bridge.GetState(PlayerEntityId), _bridge.GetActiveMove(PlayerEntityId)?.Slot, null, BodyClock(PlayerEntityId));
             foreach (var kv in _opponentRenderers)
-                kv.Value.ApplyServerState(_bridge.GetState(kv.Key), _bridge.GetActiveMove(kv.Key)?.Slot);
+                kv.Value.ApplyServerState(_bridge.GetState(kv.Key), _bridge.GetActiveMove(kv.Key)?.Slot, null, BodyClock(kv.Key));
             UpdateSwordTrailsFromResolver(_bridge.Resolver);
             RetractTimelineEvents(_bridge.RetractedPresentationEvents);
             PresentTimelineEvents();

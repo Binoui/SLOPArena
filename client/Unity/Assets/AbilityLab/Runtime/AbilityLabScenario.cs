@@ -58,13 +58,17 @@ public readonly struct AbilityLabScenarioFrame
     public CharacterState Opponent { get; }
     public int ActorPoseTicks { get; }
     public int OpponentPoseTicks { get; }
+    /// <summary>Each fighter's Shared body pose clock after the frame's tick; it posed the frame's hurtboxes.</summary>
+    public BodyPoseClock ActorBody { get; }
+    public BodyPoseClock OpponentBody { get; }
     public float ActiveSwordHitboxSeconds { get; }
     public IReadOnlyList<SpellResolver.EntityData> Hurtboxes { get; }
     /// <summary>Every hitbox Shared tested on this frame, including ones that expired or connected.</summary>
     public IReadOnlyList<Hitbox> TestedHitboxes { get; }
     public AbilityLabScenarioFrame(int frameIndex, uint matchTick, CharacterState actor, CharacterState opponent,
         float activeSwordHitboxSeconds, IReadOnlyList<SpellResolver.EntityData> hurtboxes, IReadOnlyList<Hitbox> testedHitboxes,
-        int actorPoseTicks = 0, int opponentPoseTicks = 0)
+        int actorPoseTicks = 0, int opponentPoseTicks = 0, BodyPoseClock actorBody = default,
+        BodyPoseClock opponentBody = default)
     {
         FrameIndex = frameIndex;
         MatchTick = matchTick;
@@ -72,6 +76,8 @@ public readonly struct AbilityLabScenarioFrame
         Opponent = opponent;
         ActorPoseTicks = actorPoseTicks;
         OpponentPoseTicks = opponentPoseTicks;
+        ActorBody = actorBody;
+        OpponentBody = opponentBody;
         ActiveSwordHitboxSeconds = activeSwordHitboxSeconds;
         Hurtboxes = hurtboxes;
         TestedHitboxes = testedHitboxes;

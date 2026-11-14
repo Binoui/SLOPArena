@@ -131,6 +131,46 @@ namespace SlopArena.Shared
             w.WriteByte(s.ReturningProjectileSlot);
         }
 
+        public static void Write(SnapshotWriter w, in BodyPoseClock c)
+        {
+            w.WriteByte((byte)c.Kind);
+            w.WriteInt(c.AnimIndex);
+            w.WriteFloat(c.Frame);
+            w.WriteFloat(c.Rate);
+            w.WriteUShort(c.Elapsed);
+            w.WriteUShort(c.Segment);
+            w.WriteUShort(c.ReactionSequence);
+            w.WriteUShort(c.ReactionTicks);
+            w.WriteByte(c.ReactionLevel);
+            w.WriteByte((byte)c.LastState);
+            w.WriteByte(c.LastJumpsLeft);
+            w.WriteBool(c.LastGrounded);
+            w.WriteBool(c.LastWallJumpUsed);
+        }
+
+        public static BodyPoseClock ReadBodyPoseClock(SnapshotReader r)
+        {
+            var c = new BodyPoseClock
+            {
+                Kind = (BodyClipKind)ReadEnumByte(r, (byte)BodyClipKind.Recovery, "body clip kind"),
+                AnimIndex = r.ReadInt(),
+                Frame = r.ReadFloat(),
+                Rate = r.ReadFloat(),
+                Elapsed = r.ReadUShort(),
+                Segment = r.ReadUShort(),
+                ReactionSequence = r.ReadUShort(),
+                ReactionTicks = r.ReadUShort(),
+                ReactionLevel = r.ReadByte(),
+                LastState = (ActionState)r.ReadByte(),
+                LastJumpsLeft = r.ReadByte(),
+                LastGrounded = r.ReadBool(),
+                LastWallJumpUsed = r.ReadBool(),
+            };
+            if (!float.IsFinite(c.Frame) || !float.IsFinite(c.Rate))
+                throw SnapshotReader.Malformed("body pose clock");
+            return c;
+        }
+
         private static byte ReadEnumByte(SnapshotReader r, byte max, string what)
         {
             byte value = r.ReadByte();

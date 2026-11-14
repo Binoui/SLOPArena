@@ -483,9 +483,9 @@ namespace SlopArena.Client.Tools
             _previewRenderer.EnsureModel();
             _dummyRenderer.EnsureModel();
             _dummyRenderer.gameObject.SetActive(ShowDummy);
-            bool actorPosed = _previewRenderer.PlayScrubbedState(frame.Actor, airborne, frame.ActorPoseTicks);
+            bool actorPosed = _previewRenderer.PlayScrubbedState(frame.Actor, airborne, frame.ActorPoseTicks, frame.ActorBody);
             bool actorClipNotInstalled = !actorPosed && _previewRenderer.LastAnimationClipNotInstalled;
-            bool opponentPosed = _dummyRenderer.PlayScrubbedState(frame.Opponent, false, frame.OpponentPoseTicks);
+            bool opponentPosed = _dummyRenderer.PlayScrubbedState(frame.Opponent, false, frame.OpponentPoseTicks, frame.OpponentBody);
             bool opponentClipNotInstalled = !opponentPosed && _dummyRenderer.LastAnimationClipNotInstalled;
             if ((!actorPosed && !actorClipNotInstalled) || (!opponentPosed && !opponentClipNotInstalled))
                 throw new InvalidOperationException($"Scenario pose has a missing animation binding at frame {ScenarioFrame}.");
@@ -498,7 +498,7 @@ namespace SlopArena.Client.Tools
                 _weaponAttach?.SetPreviewTrailHistory(_scenarioActorHistory, ScenarioFrame, airborne);
             // Trail history samples the same rig. Restore the selected state
             // after those historical samples so recovery/interruption is visible.
-            _previewRenderer.PlayScrubbedState(frame.Actor, airborne, frame.ActorPoseTicks);
+            _previewRenderer.PlayScrubbedState(frame.Actor, airborne, frame.ActorPoseTicks, frame.ActorBody);
             _dummyWeaponAttach?.SetPreviewState(frame.Opponent.AttackSlot, frame.Opponent.AttackElapsedTicks,
                 frame.Opponent.State == ActionState.Attacking);
             _dummyWeaponAttach?.SetHitboxTrailActive(false);

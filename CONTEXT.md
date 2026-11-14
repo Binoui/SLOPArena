@@ -622,6 +622,10 @@ _Avoid_: AnimConfig, resource list, asset paths
 A package-local animation capability that pairs one visual animation with its deterministic pose track.
 _Avoid_: clip name, animation file, spell animation
 
+**Body Pose Clock**:
+Per-fighter Shared simulation state that says which baked clip the body shows and where in it: run cadence, hit reactions stretched over hitstun, strong-launch tumble and landing recovery (ADR-0068). It poses the hurtboxes, and the renderer samples it for the clips it owns. Attacks keep their move's clip clock.
+_Avoid_: animation frame counter, renderer clock, anim time
+
 **Match Content Catalog**:
 The immutable, match-scoped mapping from compact content handles to exact loaded package revisions.
 _Avoid_: global registry, CharacterRegistry, content cache

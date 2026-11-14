@@ -145,7 +145,7 @@ namespace SlopArena.EditorTools
                 };
                 _bridge.RegisterEntity(fighter.Id, entry.Definition, state, entry.BakedAnimation);
                 _bridge.SetRespawnPosition(fighter.Id, spawnX, spawn.Y, spawnZ, spawn.Yaw);
-                fighter.Renderer.ApplyServerState(_bridge.GetState(fighter.Id), _bridge.GetActiveMove(fighter.Id)?.Slot);
+                fighter.Renderer.ApplyServerState(_bridge.GetState(fighter.Id), _bridge.GetActiveMove(fighter.Id)?.Slot, null, BodyClock(fighter.Id));
                 _fighters.Add(fighter);
             }
             FilmCamera.fieldOfView = 42f;
@@ -202,7 +202,7 @@ namespace SlopArena.EditorTools
                     var opponent = _bridge.GetState(hit.TargetEntityId);
                     fighter.Memory.RecordOpponentContact(hit.AttackSlot, hit.Blocked ? CpuContactKind.Block : CpuContactKind.Hit, opponent, hit.HitstopTicks);
                 }
-                fighter.Renderer.ApplyServerState(state, _bridge.GetActiveMove(fighter.Id)?.Slot);
+                fighter.Renderer.ApplyServerState(state, _bridge.GetActiveMove(fighter.Id)?.Slot, null, BodyClock(fighter.Id));
             }
             _projectiles.OnTick();
             _feedback.OnTick();

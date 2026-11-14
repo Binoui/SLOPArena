@@ -46,8 +46,8 @@ namespace SlopArena.Shared
 		public List<DeathEvent> LastTickDeaths { get; } = new();
 
 		private readonly Dictionary<ulong, BakedAnimationData> _bakedData = new();
-		private readonly Dictionary<ulong, int> _animFrames = new();
-		private readonly Dictionary<ulong, int> _prevAnimIndex = new();
+		// Each fighter's body pose clock (BodyPoseClock): stepped when hurtboxes are built, sampled by presenters.
+		private readonly Dictionary<ulong, BodyPoseClock> _bodyClocks = new();
 		private List<SpellResolver.EntityData> _lastEntityList = new();
 		private readonly List<SpellResolver.EntityData> _attackEntities = new();
 		private readonly List<SpellResolver.EntityData> _lungeHurtboxes = new();
@@ -180,8 +180,7 @@ namespace SlopArena.Shared
 			_lastActivationIds.Remove(id);
 
 			if (baked != null) _bakedData[id] = baked;
-			_animFrames[id] = 0;
-			_prevAnimIndex[id] = -1;
+			_bodyClocks[id] = default;
 			SortStatesByEntity();
 	}
 
@@ -199,8 +198,7 @@ namespace SlopArena.Shared
 			_states.Remove(id);
 			_defs.Remove(id);
 			_bakedData.Remove(id);
-			_animFrames.Remove(id);
-			_prevAnimIndex.Remove(id);
+			_bodyClocks.Remove(id);
 			_respawnPositions.Remove(id);
 			_kos.Remove(id);
 			_lastActivationIds.Remove(id);
@@ -214,6 +212,11 @@ namespace SlopArena.Shared
 
 
 		public CharacterState GetState(ulong id) => _states.TryGetValue(id, out var s) ? s : default;
+		/// <summary>
+		/// The fighter's body pose clock as its last tick's hurtboxes sampled it. Presenters show the same
+		/// clip and frame for the clips it owns; it has no sample before the fighter's first tick.
+		/// </summary>
+		public BodyPoseClock GetBodyClock(ulong id) => _bodyClocks.TryGetValue(id, out var clock) ? clock : default;
 		public CharacterDefinition GetDefinition(ulong id) => TryDef(id, out var d) ? d : null;
 		/// <summary>The definition a fighter plays with now. Every per-fighter definition read goes through
 		/// here; snapshots alone read the registered definition to re-link stored content (ADR-0051).</summary>
@@ -524,9 +527,11 @@ namespace SlopArena.Shared
 			return list;
 		}
 
+		/// <param name="loop">The pose is a loop's phase (the body clock's run): past its last frame it
+		/// blends toward frame zero, as the drawn loop does.</param>
 		private static void AppendEntitiesFromState(CharacterState state, CharacterDefinition def,
 			BakedAnimationData baked, string targetAnim, float animFrame, ulong entityId,
-			List<SpellResolver.EntityData> list)
+			List<SpellResolver.EntityData> list, bool loop = false)
 		{
 			if (baked != null && def.HurtboxBoneDefs != null && def.HurtboxBoneDefs.Count > 0)
 			{
@@ -535,7 +540,8 @@ namespace SlopArena.Shared
 				if (animIdx >= 0)
 				{
 					int fc = baked.Animations[animIdx].FrameCount;
-					if (animFrame > fc - 1) animFrame = fc - 1;
+					if (loop) { if (animFrame >= fc) animFrame = 0f; }
+					else if (animFrame > fc - 1) animFrame = fc - 1;
 					if (animFrame < 0f) animFrame = 0f;
 					float yaw = state.FacingYaw;
 					float cos = MathF.Cos(yaw), sin = MathF.Sin(yaw);
@@ -559,7 +565,7 @@ namespace SlopArena.Shared
                     {
                         int index = baked.FindBoneIndex(name);
                         // Fitted radii follow the drawn body; attack bones retain HurtboxBoneScale.
-                        if (index < 0 || !HitboxGeometry.BakedPointToWorld(in state, def, baked, animIdx, animFrame, index, 1f,
+                        if (index < 0 || !HitboxGeometry.BakedPointToWorld(in state, def, baked, animIdx, animFrame, index, 1f, loop,
                             out x, out y, out z))
                             throw new InvalidOperationException($"Hurtbox bone '{name}' is missing from the admitted pose.");
                         x += ox * cos + oz * sin;
@@ -596,93 +602,34 @@ namespace SlopArena.Shared
 		}
 
         /// <summary>
-        /// Resolve the animation name and baked frame for hurtbox bone lookup. Attacks use
-        /// their clip clock, the stage's elapsed ticks mapped onto the clip exactly like
-        /// hitboxes (<see cref="HitboxGeometry.AttackFrame"/>), so a fighter's body and
-        /// weapon share one pose; other states step a per-entity frame counter.
-        /// Returns false when there's no valid baked data for this entity or animation index is invalid.
-        /// Side effects: advances _animFrames and _prevAnimIndex for the entity.
+        /// Resolve the animation name and baked frame for hurtbox bone lookup from the fighter's body pose
+        /// clock (<see cref="BodyPoseClock"/>). Attacks use their clip clock, the stage's elapsed ticks mapped
+        /// onto the clip exactly like hitboxes (<see cref="HitboxGeometry.AttackFrame"/>), so body and weapon
+        /// share one pose; reactions, tumble and run follow the clock's rules, which the renderer samples.
+        /// Returns false when there's no valid baked data for this entity or no usable clip.
+        /// Side effects: with <paramref name="advanceFrame"/>, commits the clock's step for this tick.
         /// </summary>
         private bool ResolveBoneAnimFrame(ulong id, CharacterState state, CharacterDefinition def,
             out BakedAnimationData baked, out string targetAnim, out float bakedFrame, bool advanceFrame = true)
+            => ResolveBoneAnimFrame(id, state, def, out baked, out targetAnim, out bakedFrame, out _, advanceFrame);
+
+        private bool ResolveBoneAnimFrame(ulong id, CharacterState state, CharacterDefinition def,
+            out BakedAnimationData baked, out string targetAnim, out float bakedFrame, out bool loop, bool advanceFrame = true)
         {
-            baked = null!;
             targetAnim = null!;
             bakedFrame = 0f;
+            loop = false;
 
             if (!_bakedData.TryGetValue(id, out baked!) || def.HurtboxBoneDefs == null || def.HurtboxBoneDefs.Count == 0)
                 return false;
-            // Low posture tracks are static frame-zero poses. They are selected only
-            // when the state is grounded and the baked payload contains the exact
-            // semantic binding; absent legacy content falls through to upright
-            // selection without fabricating low hurtboxes.
-            if (state.State == ActionState.Flying && !string.IsNullOrEmpty(def.FlyingAnim)
-                && baked.FrameCountFor(def.FlyingAnim) > 0)
-            {
-                targetAnim = def.FlyingAnim;
-                // Flight's small cosmetic bob uses one stable, rollback-independent body sample.
-                bakedFrame = 0f;
-                return true;
-            }
-            if (state.State == ActionState.Shell && !string.IsNullOrEmpty(def.ShellAnim)
-                && baked.FindAnimIndex(def.ShellAnim) >= 0)
-            {
-                targetAnim = def.ShellAnim;
-                bakedFrame = 0;
-                return true;
-            }
-            if (state.IsGrounded && (state.State is ActionState.Crouching or ActionState.Sliding))
-            {
-                string lowAnim = state.State == ActionState.Crouching ? def.CrouchAnim : def.SlideAnim;
-                int lowIdx = string.IsNullOrEmpty(lowAnim) ? -1 : baked.FindAnimIndex(lowAnim);
-                if (lowIdx >= 0)
-                {
-                    targetAnim = lowAnim;
-                    bakedFrame = 0;
-                    return true;
-                }
-            }
-
-
-            if (state.State is ActionState.AirDodgeMovement or ActionState.AirDodgeRecovery
-                or ActionState.HomingDashFloat or ActionState.HomingDash)
-                targetAnim = string.IsNullOrEmpty(def.AirDodgeAnim) ? def.DashAnim : def.AirDodgeAnim;
-            else if ((state.State is ActionState.Attacking or ActionState.Aiming) && state.AttackSlot > 0)
-            {
-                if (GetActiveMove(id) is { } move)
-                    targetAnim = move.Pose.AnimationId;
-            }
-            // A captive fighter wears the small-hit pose, as its client presentation does.
-            else if (ActionStates.Captive(state.State)) targetAnim = def.HitSmallAnim;
-            else if (state.State == ActionState.Hitstun) targetAnim = state.HitstunLevel switch
-            {
-                1 => def.HitMediumAnim,
-                2 => def.HitHardAnim,
-                _ => def.HitSmallAnim,
-            };
-            else if (!state.IsGrounded) targetAnim = state.VY > 0 ? def.JumpAnim : def.FallAnim;
-            else if ((state.VX * state.VX) + (state.VZ * state.VZ) > 1f) targetAnim = def.RunAnim;
-            else targetAnim = def.IdleAnim;
-
-            int animIdx = baked.FindAnimIndex(targetAnim);
-            if (animIdx < 0) { targetAnim = "idle"; animIdx = baked.FindAnimIndex(targetAnim); }
-            if (animIdx < 0) return false;
-
-            int fc = baked.Animations[animIdx].FrameCount;
-            int prevAnim = _prevAnimIndex.TryGetValue(id, out var p) ? p : -1;
-            int frame = _animFrames.TryGetValue(id, out var f) ? f : 0;
-            if (prevAnim != animIdx) frame = 0;
-            if (advanceFrame)
-            {
-                _prevAnimIndex[id] = animIdx;
-                _animFrames[id] = (frame + 1) % fc;
-            }
-
-            bakedFrame = frame;
-            if ((state.State is ActionState.Attacking or ActionState.Aiming) && state.AttackSlot > 0
-                && GetActiveMove(id) is { } active)
-                bakedFrame = active.Pose.FrameAt(fc);
-
+            AttackPose? attack = (state.State is ActionState.Attacking or ActionState.Aiming) && state.AttackSlot > 0
+                && GetActiveMove(id) is { } move ? move.Pose : null;
+            var clock = _bodyClocks.TryGetValue(id, out var current) ? current : default;
+            if (!BodyPoseClock.Step(ref clock, in state, def, baked, attack, out int animIdx, out bakedFrame))
+                return false;
+            if (advanceFrame) _bodyClocks[id] = clock;
+            targetAnim = baked.Animations[animIdx].Name;
+            loop = clock.Kind == BodyClipKind.Run;
             return true;
         }
 
@@ -696,8 +643,8 @@ namespace SlopArena.Shared
                     continue;
                 var def = Def(pair.Key);
                 _lungeHurtboxes.Clear();
-                if (ResolveBoneAnimFrame(pair.Key, target, def, out var baked, out var anim, out var frame, false))
-                    AppendEntitiesFromState(target, def, baked, anim, frame, pair.Key, _lungeHurtboxes);
+                if (ResolveBoneAnimFrame(pair.Key, target, def, out var baked, out var anim, out var frame, out bool loop, false))
+                    AppendEntitiesFromState(target, def, baked, anim, frame, pair.Key, _lungeHurtboxes, loop);
                 else
                     AppendEntitiesFromState(target, def, null!, "idle", 0, pair.Key, _lungeHurtboxes);
                 for (int pose = 0; pose < reach.Length; pose++)
@@ -2137,9 +2084,9 @@ namespace SlopArena.Shared
 				// Eliminated (0 stocks / rule) — untargetable spectator (issue #37).
 				if (IsEliminated(state)) continue;
 
-				if (ResolveBoneAnimFrame(id, state, def, out var baked, out var targetAnim, out var bakedFrame))
+				if (ResolveBoneAnimFrame(id, state, def, out var baked, out var targetAnim, out var bakedFrame, out bool loop))
 				{
-					entityList.AddRange(BuildEntitiesFromState(state, def, baked, targetAnim, bakedFrame, id));
+					AppendEntitiesFromState(state, def, baked, targetAnim, bakedFrame, id, entityList, loop);
 				}
 				else if (def.HurtboxCapsules != null)
 				{
@@ -2986,6 +2933,8 @@ namespace SlopArena.Shared
 				}
                 Flying.Refuel(ref respawned, d);
                 _states[id] = respawned;
+                // The respawned body starts its clock afresh rather than finishing the KO'd fighter's clip.
+                if (_bodyClocks.ContainsKey(id)) _bodyClocks[id] = default;
 			}
 		}
 

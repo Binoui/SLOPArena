@@ -75,6 +75,7 @@ public partial class ServerSimulation
         _lastHitCredits.Remove(id); _lastHitContexts.Remove(id);
         _spellResolver.StopHomingAt(id);
         var definition = Def(id);
+        if (_bodyClocks.ContainsKey(id)) _bodyClocks[id] = default;
         _states[id] = new CharacterState
         {
             EntityId = id, PX = ground.Position.X, PY = ground.Position.Y, PZ = ground.Position.Z,

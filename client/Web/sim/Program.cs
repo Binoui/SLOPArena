@@ -43,8 +43,12 @@ public static partial class Demo
         ("R", AbilitySlots.R), ("F", AbilitySlots.F),
     };
 
+    // The seven-parameter overload: id, state, def, out baked, out anim, out frame, advanceFrame.
     static readonly MethodInfo ResolveBoneAnimFrame = typeof(ServerSimulation).GetMethod("ResolveBoneAnimFrame",
-        BindingFlags.NonPublic | BindingFlags.Instance)!;
+        BindingFlags.NonPublic | BindingFlags.Instance, null,
+        new[] { typeof(ulong), typeof(CharacterState), typeof(CharacterDefinition),
+            typeof(BakedAnimationData).MakeByRefType(), typeof(string).MakeByRefType(),
+            typeof(float).MakeByRefType(), typeof(bool) }, null)!;
 
     [JSExport] public static int ProtocolVersion() => SimulationProtocol.Version;
 

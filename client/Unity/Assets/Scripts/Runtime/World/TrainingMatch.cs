@@ -329,7 +329,7 @@ namespace SlopArena.Client.World
             _bridge.RegisterEntity(id, entry.Definition, state, entry.BakedAnimation);
             _bridge.SetRespawnPosition(id, spawn.X, spawn.Y, spawn.Z, spawn.Yaw);
             renderer?.ResetAnimationState();
-            renderer?.ApplyServerState(_bridge.GetState(id), _bridge.GetActiveMove(id)?.Slot);
+            renderer?.ApplyServerState(_bridge.GetState(id), _bridge.GetActiveMove(id)?.Slot, null, BodyClock(id));
             _projectileVFX?.ClearHeldVisual(id);
         }
 
@@ -844,11 +844,11 @@ namespace SlopArena.Client.World
 #endif
 
             // Apply states
-            _playerRenderer.ApplyServerState(_bridge.GetState(PlayerEntityId), _bridge.GetActiveMove(PlayerEntityId)?.Slot);
+            _playerRenderer.ApplyServerState(_bridge.GetState(PlayerEntityId), _bridge.GetActiveMove(PlayerEntityId)?.Slot, null, BodyClock(PlayerEntityId));
             foreach (var npc in _npcs)
             {
                 if (npc.Renderer != null)
-                    npc.Renderer.ApplyServerState(_bridge.GetState(npc.Id), _bridge.GetActiveMove(npc.Id)?.Slot);
+                    npc.Renderer.ApplyServerState(_bridge.GetState(npc.Id), _bridge.GetActiveMove(npc.Id)?.Slot, null, BodyClock(npc.Id));
             }
             UpdateSwordTrailsFromResolver(_bridge.InternalSim.Resolver);
             _stageHazards?.Present(_bridge.InternalSim.StageHazards);

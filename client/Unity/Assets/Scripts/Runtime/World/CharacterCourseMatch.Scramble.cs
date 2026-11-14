@@ -163,7 +163,7 @@ namespace SlopArena.Client.World
                     : racer.Input.BuildInputState(_cameraMount, racer.Renderer.transform.eulerAngles.y, slot, aim, null, target, aimFromFacing: true).input;
             }
             _bridge.Tick(inputs);
-            foreach (var racer in _racers) racer.Renderer.ApplyServerState(Simulation.GetState(racer.Id), _bridge.GetActiveMove(racer.Id)?.Slot);
+            foreach (var racer in _racers) racer.Renderer.ApplyServerState(Simulation.GetState(racer.Id), _bridge.GetActiveMove(racer.Id)?.Slot, null, BodyClock(racer.Id));
             var leader = Simulation.Scramble.Value.LeaderEntityId;
             _presentation.AfterTick(Simulation, Simulation.GetState(leader == 0 ? PlayerEntityId : leader), Simulation.LastTickOnlineCourseEvents.Select(e => e.Event).ToArray());
             foreach (var racer in _racers)

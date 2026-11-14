@@ -289,7 +289,7 @@ namespace SlopArena.Client.World
             {
                 if (!Fighters.TryGetValue(fighter.EntityId, out var renderer) || renderer == null) continue;
                 var state = world.GetState(fighter.EntityId);
-                renderer.ApplyServerState(state, world.GetActiveMove(fighter.EntityId)?.Slot, Clocks(fighter));
+                renderer.ApplyServerState(state, world.GetActiveMove(fighter.EntityId)?.Slot, Clocks(fighter), world.GetBodyClock(fighter.EntityId));
                 _poseTicks[fighter.EntityId] = _poseTicks.TryGetValue(fighter.EntityId, out var pose) && pose.State == state.State
                     ? (state.State, pose.Ticks + 1) : (state.State, 0);
                 if (state.State is ActionState.Attacking or ActionState.Aiming)
@@ -426,7 +426,9 @@ namespace SlopArena.Client.World
                 var state = _replay.World.GetState(pair.Key);
                 bool airborne = _replay.World.GetActiveMove(pair.Key)?.AirborneAtStart ?? !state.IsGrounded;
                 int ticks = _poseTicks.TryGetValue(pair.Key, out var pose) ? pose.Ticks : 0;
-                if (pair.Value.CanPlayScrubbedState(state, airborne)) pair.Value.PlayScrubbedState(state, airborne, ticks);
+                var body = _replay.World.GetBodyClock(pair.Key);
+                if (pair.Value.CanPlayScrubbedState(state, airborne, body))
+                    pair.Value.PlayScrubbedState(state, airborne, ticks, body);
             }
         }
 

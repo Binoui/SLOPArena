@@ -339,13 +339,23 @@ public static class HitboxGeometry
         in CharacterState s, CharacterDefinition def, BakedAnimationData baked,
         int animIndex, float frame, int pointIndex, float scale,
         out float x, out float y, out float z)
+        => BakedPointToWorld(in s, def, baked, animIndex, frame, pointIndex, scale, false, out x, out y, out z);
+
+    /// <summary>As above; a <paramref name="loop"/> clip blends its last frame toward its first, where it wraps.</summary>
+    public static bool BakedPointToWorld(
+        in CharacterState s, CharacterDefinition def, BakedAnimationData baked,
+        int animIndex, float frame, int pointIndex, float scale, bool loop,
+        out float x, out float y, out float z)
     {
         int frame0 = frame <= 0f ? 0 : (int)frame;
         if (!BakedPointToWorld(in s, def, baked, animIndex, frame0, pointIndex, scale, out x, out y, out z))
             return false;
         float blend = frame - frame0;
+        int frame1 = frame0 + 1;
+        if (loop && animIndex >= 0 && animIndex < baked.Animations.Count && frame1 >= baked.Animations[animIndex].FrameCount)
+            frame1 = 0;
         if (blend <= 0f
-            || !BakedPointToWorld(in s, def, baked, animIndex, frame0 + 1, pointIndex, scale, out float x1, out float y1, out float z1))
+            || !BakedPointToWorld(in s, def, baked, animIndex, frame1, pointIndex, scale, out float x1, out float y1, out float z1))
             return true;
         x += (x1 - x) * blend;
         y += (y1 - y) * blend;
