@@ -51,7 +51,9 @@ public static class BodyClockEditorSelfTests
             try
             {
                 int dot = name.LastIndexOf('.');
-                var type = assemblies.Select(a => a.GetType(name.Substring(0, dot))).FirstOrDefault(t => t != null)
+                string typeName = name.Substring(0, dot);
+                var type = assemblies.SelectMany(a => { try { return a.GetTypes(); } catch (ReflectionTypeLoadException e) { return e.Types.Where(t => t != null); } })
+                    .FirstOrDefault(t => t.FullName == typeName || t.Name == typeName)
                     ?? throw new InvalidOperationException("Type not found: " + name);
                 var method = type.GetMethod(name.Substring(dot + 1), BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static,
                     null, Type.EmptyTypes, null) ?? throw new InvalidOperationException("Method not found: " + name);

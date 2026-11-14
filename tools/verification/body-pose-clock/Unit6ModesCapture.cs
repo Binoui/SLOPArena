@@ -117,12 +117,15 @@ public sealed class Unit6ModesCapture : MonoBehaviour
         if (!(bool)Resolve.Invoke(sim,args)) return;
         var baked = (BakedAnimationData)args[3]; string auth = (string)args[4]; float af = (float)args[5];
         int ai = baked.FindAnimIndex(auth);
+        bool loop = false;
         if (BodyClock != null)
         {
             // The sample the last tick's hurtboxes used, exactly.
             object clock = BodyClock.Invoke(sim, new object[] { 1UL });
             ai = (int)clock.GetType().GetField("AnimIndex").GetValue(clock);
             af = (float)clock.GetType().GetField("Frame").GetValue(clock);
+            // The run phase blends its last baked frame toward frame zero, as Shared's hurtbox does.
+            loop = clock.GetType().GetField("Kind").GetValue(clock).ToString() == "Run";
             if (ai < 0 || ai >= baked.Animations.Count) return;
             auth = baked.Animations[ai].Name;
         }
@@ -133,20 +136,20 @@ public sealed class Unit6ModesCapture : MonoBehaviour
         if (binding == null) return;
         float rf = (float)(current.Time * 60);
         rf = current.IsLooping ? rf % binding.FrameCount : Math.Min(rf,binding.FrameCount-1);
-        var drawn = Points.Select(p => Distance(mine,baked,ai,af,p)).ToArray();
+        var drawn = Points.Select(p => Distance(mine,baked,ai,af,p,loop)).ToArray();
         var proposed = mine.PresentationCatalog.Animations.FirstOrDefault(a => a.PoseTrackId == auth);
         var oc = other.GetComponentInChildren<AnimancerComponent>();
         var right = oc.Play(proposed.Clip,0); right.Time = af / 60f; right.Speed = 0; oc.Evaluate(0);
-        var corrected = Points.Select(p => Distance(other,baked,ai,af,p)).ToArray();
+        var corrected = Points.Select(p => Distance(other,baked,ai,af,p,loop)).ToArray();
         for (int i = 0; i < Points.Length; i++)
             csv.AppendLine(string.Join(",",fighter,form,phase,tick,s.State,binding.SemanticId,auth,rf.ToString(CultureInfo.InvariantCulture),af.ToString(CultureInfo.InvariantCulture),current.Weight.ToString(CultureInfo.InvariantCulture),Points[i],drawn[i].ToString(CultureInfo.InvariantCulture),corrected[i].ToString(CultureInfo.InvariantCulture)));
     }
-    static float Distance(PlayerRenderer r, BakedAnimationData baked, int anim, float frame, string point)
+    static float Distance(PlayerRenderer r, BakedAnimationData baked, int anim, float frame, string point, bool loop = false)
     {
         int index = baked.FindBoneIndex(point), hips = baked.HipsOffsetIndex;
         var bone = r.GetComponentsInChildren<Transform>(true).FirstOrDefault(t => t.name == point);
         if (index < 0 || hips < 0 || bone == null) return float.NaN;
-        int f0 = Math.Max(0,Math.Min((int)frame,baked.Animations[anim].FrameCount-1)); int f1 = Math.Min(f0+1,baked.Animations[anim].FrameCount-1);
+        int f0 = Math.Max(0,Math.Min((int)frame,baked.Animations[anim].FrameCount-1)); int f1 = loop && f0+1 >= baked.Animations[anim].FrameCount ? 0 : Math.Min(f0+1,baked.Animations[anim].FrameCount-1);
         Vector3 At(int f) { baked.TryGetPoint(anim,f,hips,out float hx,out float hy,out float hz); baked.TryGetPoint(anim,f,index,out float x,out float y,out float z); return new Vector3(hx+x,hy+y,hz+z); }
         var root = r.Animator.transform;
         Vector3 drawn = Vector3.Scale(root.localScale,root.InverseTransformPoint(bone.position)) + Vector3.up*r.ModelYOffset;
