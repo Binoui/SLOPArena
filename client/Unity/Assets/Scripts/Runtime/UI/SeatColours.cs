@@ -20,6 +20,6 @@ namespace SlopArena.Client.UI
             return CourseColours.ForEntity(entityId) ?? For(playerNumber);
         }
 
-        public static Color For(int playerNumber) => Colours[(playerNumber - 1) % Colours.Length];
+        public static Color For(int playerNumber) => playerNumber > 0 ? Colours[(playerNumber - 1) % Colours.Length] : Color.white;
     }
 }

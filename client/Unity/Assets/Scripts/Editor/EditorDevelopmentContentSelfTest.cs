@@ -87,10 +87,10 @@ public static class EditorDevelopmentContentSelfTest
                 File.ReadAllBytes(generatedPath).SequenceEqual(generatedSnapshot),
                 "Invalid Editor Play compilation modified persisted cooked content.");
 
-            RequireUninstalledClipUsesCommittedPoses(characterPath, originalCharacter, loaded.Source);
+            RequireMissingBindingUsesCommittedPoses(characterPath, originalCharacter, loaded.Source);
             Require(SameSnapshot(SnapshotDirectory(Path.Combine(repositoryRoot, "content-cooked", "fightguy")), cookedSnapshot) &&
                 File.ReadAllBytes(generatedPath).SequenceEqual(generatedSnapshot),
-                "Editor Play without an installed clip modified persisted cooked content.");
+                "Editor Play with a missing authoring binding modified persisted cooked content.");
         }
         finally
         {
@@ -99,9 +99,8 @@ public static class EditorDevelopmentContentSelfTest
         }
     }
 
-    // ADR-0038: a bound clip that is not installed degrades to the committed pose data,
-    // while an edit that changes pose baking still needs the clips.
-    private static void RequireUninstalledClipUsesCommittedPoses(
+    // Committed bindings can resolve an installed clip even when its authoring binding is missing.
+    private static void RequireMissingBindingUsesCommittedPoses(
         string characterPath, byte[] originalCharacter, CharacterPackageSource source)
     {
         var catalog = AssetDatabase.LoadAssetAtPath<CharacterAssetCatalog>(
@@ -112,10 +111,10 @@ public static class EditorDevelopmentContentSelfTest
         File.WriteAllBytes(characterPath, originalCharacter);
         try
         {
-            binding.Clip = null; // in memory only; the fixture re-imports the asset
+            binding.Clip = null; // The clip remains installed for committed bindings to resolve.
             Require(ClientSession.TryBuildLocalMatchCatalog(out var placeholderCatalog, out var placeholderFailure) &&
                 placeholderCatalog != null,
-                placeholderFailure ?? "Editor development catalog failed with an uninstalled clip.");
+                placeholderFailure ?? "Editor development catalog failed with a missing authoring binding.");
             var entry = placeholderCatalog.ResolvePackage("fightguy");
             Require(entry?.CookedCharacterPackage != null && entry.BakedAnimation != null,
                 "Editor development catalog did not use the committed pose data.");
@@ -126,8 +125,8 @@ public static class EditorDevelopmentContentSelfTest
                     out var rig,
                     out _,
                     out var resolveFailure) && rig != null &&
-                animations.Animations.Any(x => x.SemanticId == binding.SemanticId && x.Clip == null),
-                resolveFailure ?? "The uninstalled clip did not become a null catalog entry.");
+                animations.Animations.Any(x => x.SemanticId == binding.SemanticId && x.Clip == installedClip),
+                resolveFailure ?? "Committed bindings did not resolve the installed clip.");
 
             var rebakeSource = source with
             {

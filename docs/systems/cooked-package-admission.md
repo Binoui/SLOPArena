@@ -170,7 +170,8 @@ physical, non-symlink source paths (including both JSON files). An external pack
 These Workshop runtime refusals change Shared simulation behavior for excess content. The next release
 requires a protocol bump coordinated with the Master; this unit deliberately does not bump it.
 
-Steam Deck memory measurement and owner confirmation of these constants remain outstanding.
+The owner approved the made-fighter limits in `src/Shared/CookedPackageLimits.cs` on 2026-11-14: "they sound reasonable, fine with me".
+Steam Deck memory measurement remains outstanding.
 The float ceiling covers sample storage; it does not measure total managed allocation.
 
 ## Next integration
