@@ -902,6 +902,8 @@ namespace SlopArena.Client.Entities
         private ushort _presentedHitReactionSequence;
         private byte _lastAttackSlot;
         private byte _lastClipIndex;
+        private int _attackClipStartFrame = -1;
+        private AnimancerState? _startingAttackClip;
         private int _deathFlashTicks;
         private const int DeathFlashDuration = 6;
         private bool _wasGrounded = true;
@@ -1776,6 +1778,8 @@ namespace SlopArena.Client.Entities
             // restarts, including same-slot IASA, must rewind the clip.
             animState.Time = 0;
             animState.Speed = animSpeed;
+            _attackClipStartFrame = Time.frameCount;
+            _startingAttackClip = animState;
             // The first attack state a client applies is already a tick or more into the
             // attack; start the clip where the simulation is, so drawn limbs match the
             // tested ones. A larger gap (an aim hold's running clock) keeps the restart.
@@ -2336,6 +2340,18 @@ namespace SlopArena.Client.Entities
                     dashPose.Speed = 0f;
             }
 
+            // Several fixed ticks can precede the first animation evaluation. Keep
+            // its initial seek on the last applied tick rather than the first one.
+            if (state.State == ActionState.Attacking && _attackClipStartFrame == Time.frameCount
+                && _startingAttackClip is { } startingClip
+                && ReferenceEquals(_animancer.States.Current, startingClip)
+                && _activeMove?.Timeline.Stages is { Count: > 0 })
+            {
+                int elapsed = StageElapsedTicks(state, _activeMove, state.AnimIndex);
+                if (elapsed <= MaxClipStartSeekTicks)
+                    startingClip.Time = elapsed / 60f * startingClip.Speed;
+            }
+
             _lastClipIndex = state.AnimIndex;
             _wasGrounded = state.IsGrounded;
 
@@ -2415,6 +2431,8 @@ namespace SlopArena.Client.Entities
             _lastAnimState = default;
             _lastAttackSlot = 0;
             _lastClipIndex = 0;
+            _attackClipStartFrame = -1;
+            _startingAttackClip = null;
             _jumpArcActive = false;
 
             _activeExtrapolator = null;
