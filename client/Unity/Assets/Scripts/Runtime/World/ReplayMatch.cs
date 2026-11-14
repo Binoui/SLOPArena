@@ -426,7 +426,9 @@ namespace SlopArena.Client.World
                 var state = _replay.World.GetState(pair.Key);
                 bool airborne = _replay.World.GetActiveMove(pair.Key)?.AirborneAtStart ?? !state.IsGrounded;
                 int ticks = _poseTicks.TryGetValue(pair.Key, out var pose) ? pose.Ticks : 0;
-                if (pair.Value.CanPlayScrubbedState(state, airborne)) pair.Value.PlayScrubbedState(state, airborne, ticks);
+                var body = _replay.World.GetBodyClock(pair.Key);
+                if (pair.Value.CanPlayScrubbedState(state, airborne, body))
+                    pair.Value.PlayScrubbedState(state, airborne, ticks, body);
             }
         }
 

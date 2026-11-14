@@ -1185,8 +1185,8 @@ namespace SlopArena.Client.Entities
             return true;
         }
 
-        public bool CanPlayScrubbedState(in CharacterState snapshot, bool airborne)
-            => TryResolveScrubbedState(snapshot, airborne, 0, default, out _, out _);
+        public bool CanPlayScrubbedState(in CharacterState snapshot, bool airborne, BodyPoseClock body = default)
+            => TryResolveScrubbedState(snapshot, airborne, 0, body, out _, out _);
 
         /// <param name="body">The recorded body pose clock for this state; without a sample, reactions and
         /// locomotion are rebuilt from the state and <paramref name="poseTicks"/>.</param>
