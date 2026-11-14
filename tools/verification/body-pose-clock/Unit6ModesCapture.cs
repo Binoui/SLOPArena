@@ -20,6 +20,8 @@ public sealed class Unit6ModesCapture : MonoBehaviour
     readonly StringBuilder csv = new("fighter,form,phase,tick,state,anim,authAnim,renderFrame,authFrame,weight,point,currentMm,proposedMm\n");
     readonly StringBuilder trace = new("fighter,form,kind,renderFrame,simulationTick,elapsed,clipSeconds\n");
     static readonly MethodInfo Resolve = typeof(ServerSimulation).GetMethod("ResolveBoneAnimFrame", BindingFlags.Instance | BindingFlags.NonPublic);
+    // The Shared body pose clock (option A) when this build has one; main's frame counter otherwise.
+    static readonly MethodInfo BodyClock = typeof(ServerSimulation).GetMethod("GetBodyClock", BindingFlags.Instance | BindingFlags.Public);
     static readonly string[] Points = { "mixamorig:Head", "mixamorig:Hips", "mixamorig:Spine2", "mixamorig:LeftHand", "mixamorig:RightHand", "mixamorig:LeftFoot", "mixamorig:RightFoot" };
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
     static void Boot()
@@ -59,6 +61,10 @@ public sealed class Unit6ModesCapture : MonoBehaviour
             var renderers = FindObjectsByType<PlayerRenderer>(FindObjectsSortMode.None).Where(r => r.CharacterDef != null).OrderBy(r => r.EntityId).ToArray();
             var mine = renderers.First(r => r.EntityId == 1);
             var other = renderers.First(r => r.EntityId != 1);
+            // Only FightGuy is moved back into the fixed camera for screenshots; other fighters run out of
+            // view, where visibility culling would stop their bones and the drawn joints would go stale.
+            mine.Animator.cullingMode = AnimatorCullingMode.AlwaysAnimate;
+            other.Animator.cullingMode = AnimatorCullingMode.AlwaysAnimate;
             var entry = ClientSession.MatchContentCatalog.ResolvePackage(fighter);
             match.CaptureSimulationTickCompleted += t =>
             {
@@ -109,7 +115,16 @@ public sealed class Unit6ModesCapture : MonoBehaviour
         if (!(bool)Resolve.Invoke(sim,args)) return;
         var baked = (BakedAnimationData)args[3]; string auth = (string)args[4]; float af = (float)args[5];
         int ai = baked.FindAnimIndex(auth);
-        if (s.State != ActionState.Attacking && s.State != ActionState.Aiming) af = ((int)af - 1 + baked.Animations[ai].FrameCount) % baked.Animations[ai].FrameCount;
+        if (BodyClock != null)
+        {
+            // The sample the last tick's hurtboxes used, exactly.
+            object clock = BodyClock.Invoke(sim, new object[] { 1UL });
+            ai = (int)clock.GetType().GetField("AnimIndex").GetValue(clock);
+            af = (float)clock.GetType().GetField("Frame").GetValue(clock);
+            if (ai < 0 || ai >= baked.Animations.Count) return;
+            auth = baked.Animations[ai].Name;
+        }
+        else if (s.State != ActionState.Attacking && s.State != ActionState.Aiming) af = ((int)af - 1 + baked.Animations[ai].FrameCount) % baked.Animations[ai].FrameCount;
         var ac = mine.GetComponentInChildren<AnimancerComponent>(); var current = ac.States.Current;
         if (current?.Clip == null) return;
         var binding = mine.PresentationCatalog.Animations.FirstOrDefault(a => a.Clip == current.Clip);

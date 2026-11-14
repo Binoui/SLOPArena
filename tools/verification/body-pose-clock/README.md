@@ -24,10 +24,14 @@ Copy an existing diagnostic Win64 player to a task-owned directory on storage. R
 python3 tools/verification/body-pose-clock/summarize.py <output>/measurements.csv
 ```
 
+On a build with Shared's body pose clock (`ServerSimulation.GetBodyClock`), the probe reads the clip and frame the last tick's hurtboxes sampled straight from the clock. On older builds it falls back to the hurtbox frame counter and subtracts its post-hurtbox increment, as described below.
+
 `currentMm` measures current P1 joints against the resolved Shared frame. `proposedMm` measures the other fighter after forcing its clip to that frame at full weight. This is a renderer-to-Shared prototype, not a fixed Shared implementation. The P1 clock remains untouched. FightGuy run and hitstun PNG sequences show current motion on the left and forced Shared timing on the right.
+
+Both fighters' Animators always animate during the probe. Only FightGuy is moved back into the fixed camera each frame; without this, other fighters run out of view, visibility culling stops their bones, and the drawn joints go stale. Runs made before this setting (the 2026-11-14 `matrix-before60` and `matrix-after60` sets) carry that artifact in their run rows.
 
 The summary includes only samples in the named ActionState with current clip weight at least 0.999. Run includes only matching run clips, excluding the fighter running off the small Training floor. Attack includes one ground normal rather than the entire kit. The Shared resolver stores the next non-attack frame after hurtbox construction, so the probe subtracts that increment. Transition ticks and actual hit resolution can change state after hurtbox construction. This diagnostic therefore does not replace a collision-time pose receipt. `renderMinusSharedFrames` includes loop wrap discontinuities. It must not be interpreted as a global latency percentile.
 
 `trace.csv` records the attack state after each simulation application and after each displayed frame. Multiple `apply` rows with the same render frame reveal sampling order when several FixedUpdates precede one animation evaluation.
 
-The local test does not cover tumble, air locomotion, re-hits, hitstop, rollback correction, online packet cadence, or model swaps. Those remain required for an implementation that claims Match-wide agreement.
+Shared tests cover the clock's rules (reaction stretch, run cadence and floor, tumble selection, re-hit identity, hitstop, snapshot round trip). This probe does not cover tumble, air locomotion, re-hits, hitstop, rollback correction, online packet cadence, or model swaps in a running player. Those remain required for an implementation that claims Match-wide agreement.
