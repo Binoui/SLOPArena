@@ -47,7 +47,48 @@ public static class FighterAppearanceSelfTest
         var guest = MayhemChannels.All.First(channel => MankiMayhemView.GuestFor(channel) == "bashie");
         Require(mayhem.GuestPortrait(guest) == FighterPresentation.Resolve(catalog.ResolvePackage("bashie")).Art.Portrait(), "Mayhem did not retain its supplied catalog's guest art.");
         CheckPresentationBoundaries(catalog);
+        CheckRefusedRenderer();
+        CheckSeatColours();
         Debug.Log("[FighterAppearanceSelfTest] selector-free cooked name, neutral portrait, seven neutral slot glyphs and explicit Mayhem guest content passed.");
+    }
+    public static void CheckSeatColours()
+    {
+        Require(SeatColours.For(0) == Color.white && SeatColours.For(-1) == Color.white &&
+            SeatColours.For(int.MinValue) == Color.white, "Unassigned seats must have neutral colour.");
+        Require(SeatColours.For(1) == (Color)new Color32(255, 204, 34, 255) &&
+            SeatColours.For(4) == (Color)new Color32(167, 139, 250, 255) &&
+            SeatColours.For(5) == SeatColours.For(1), "Assigned seat colours changed.");
+        var go = new GameObject("Unassigned renderer fixture");
+        try
+        {
+            Require(MatchVisualStyle.RimColorFor(go.AddComponent<PlayerRenderer>()) == Color.white,
+                "An unassigned renderer must have a neutral rim.");
+        }
+        finally { UnityEngine.Object.DestroyImmediate(go); }
+    }
+
+    public static void CheckRefusedRenderer()
+    {
+        var go = new GameObject("Refused renderer fixture");
+        try
+        {
+            var probe = go.AddComponent<PvPMatch>();
+            var identity = new MatchContentIdentity("local.refused", "1.0.0", "fixture", "fixture", "fixture");
+            var definition = new CharacterDefinition { PackageId = "local.refused", ModelResourcePath = "MissingRefusalFixture" };
+            var entry = new MatchContentEntry(new ContentHandle(1), identity, "Refused", definition);
+            var flags = BindingFlags.Instance | BindingFlags.NonPublic;
+            Require((bool)typeof(MatchBase).GetMethod("BindFighter", flags).Invoke(probe, new object[] { 1UL, entry }),
+                "Refusal fixture did not bind.");
+            var renderer = go.AddComponent<PlayerRenderer>();
+            bool configured = (bool)typeof(MatchBase).GetMethod("SetupRenderer", flags)
+                .Invoke(probe, new object[] { renderer, entry, null, 1UL, false });
+            Require(!configured && !probe.enabled &&
+                probe.ContentFailure == "Renderer configuration failed: Model not found at Resources/MissingRefusalFixture.",
+                "Renderer refusal must reject the Match with its configuration diagnostic.");
+            Require(renderer.PlayerNumber == 0 && MatchVisualStyle.RimColorFor(renderer) == Color.white,
+                "A refused renderer must remain unassigned and safe to present.");
+        }
+        finally { UnityEngine.Object.DestroyImmediate(go); }
     }
     static void CheckPresentationBoundaries(MatchContentCatalog catalog)
     {
