@@ -1,6 +1,7 @@
 # ADR-0067: A fighter is identified by its package
 
-**Status:** Accepted 2026-11-12. Units 1 to 5 are merged. Unit 6 removes the remaining identity enum uses; it is not accepted yet because the isolated cook gate failed for four fighters. See [unit 6 verification](../verification/0067-unit6.md). The owner approved the design ("agree with design") with three
+**Status:** Accepted 2026-11-12. All six roll-out units are built; unit 6 removed the remaining
+identity enum uses ([unit 6 verification](../verification/0067-unit6.md)). The owner approved the design ("agree with design") with three
 choices: a Workshop badge in the same Fighter Select grid, Arcade mode support later, and a
 portrait rendered from the model when the creator gives none.
 **Deciders:** @Binoui
