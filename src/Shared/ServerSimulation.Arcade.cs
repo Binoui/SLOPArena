@@ -103,7 +103,7 @@ namespace SlopArena.Shared
                     InteractionTerminalTick = previous.InteractionTerminalTick,
                     Form = new FormState { Active = previous.Form.Active },
                 };
-                _animFrames[id] = 0; _prevAnimIndex[id] = -1;
+                _bodyClocks[id] = default;
                 SetRespawnPosition(id, start.X, start.Y, start.Z, start.Yaw);
             }
             _spellResolver.Clear();

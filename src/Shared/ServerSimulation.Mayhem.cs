@@ -84,7 +84,7 @@ public partial class ServerSimulation : IMayhemWorld
         };
         Flying.Refuel(ref state, definition);
         _states[id] = state;
-        _animFrames[id] = 0; _prevAnimIndex[id] = -1;
+        _bodyClocks[id] = default;
         SetRespawnPosition(id, start.X, start.Y, start.Z, start.Yaw);
         _lastHitCredits.Remove(id); _lastHitContexts.Remove(id);
     }

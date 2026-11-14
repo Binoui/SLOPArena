@@ -134,6 +134,10 @@ namespace SlopArena.Shared
         // changed since the previous release tag while this value (and the Master's Protocol) did not.
         // Note simulation changes below; the release bump folds them into one numbered line.
         // Unreleased:
+        // Shared owns the body pose clock (option A, 2026-11-14): run cadence (speed over RunSpeed, 0.35 floor, 0.1 m/s
+        // threshold), hit reactions stretched over their hitstun and restarted by reaction identity, strong-launch tumble
+        // and landing recovery are deterministic per-fighter state that poses hurtboxes; Unity samples the same clock.
+        // Hitstop holds the pose. World Snapshot v32 replaces the hurtbox frame counter with the clock.
         // Mayhem finale, draw/shove observations, carry/progress cues and barrage replay fields. Snapshot 31.
         // Shared Mayhem targets take one hit per attacker per tick and outrank rivals in aim correction; shields stop
         // blockable shoves; friendly fire Off drops rivals from targeting. HOT POTATO! stores a timed return lock.

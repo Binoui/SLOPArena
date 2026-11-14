@@ -31,7 +31,9 @@ namespace SlopArena.Shared
         // 26: one wall jump per airtime in CharacterState.
         // 27: the Mayhem channel show (ADR-0061): seed, roster, withdrawals, pass masks, current failures, on-air set,
         //     safe poses and the current channel's own state, replacing the round director.
-        public const uint SnapshotFormatVersion = 31;
+        // 32: each fighter's body pose clock (clip rule, sample frame and rate, reaction identity and transition
+        //     facts) replaces the hurtbox frame counter and its previous animation index.
+        public const uint SnapshotFormatVersion = 32;
 
         private readonly List<ulong> _abilityOrder = new();
 
@@ -63,10 +65,8 @@ namespace SlopArena.Shared
                 WriteHitRecord(w, _lastHitContexts, id);
                 w.WriteBool(_lastActivationIds.TryGetValue(id, out ulong lastActivation));
                 if (_lastActivationIds.ContainsKey(id)) w.WriteULong(lastActivation);
-                w.WriteBool(_animFrames.TryGetValue(id, out int frame));
-                if (_animFrames.ContainsKey(id)) w.WriteInt(frame);
-                w.WriteBool(_prevAnimIndex.TryGetValue(id, out int previousAnim));
-                if (_prevAnimIndex.ContainsKey(id)) w.WriteInt(previousAnim);
+                w.WriteBool(_bodyClocks.TryGetValue(id, out var body));
+                if (_bodyClocks.ContainsKey(id)) SnapshotCodecs.Write(w, in body);
                 w.WriteBool(_respawnPositions.TryGetValue(id, out var respawn));
                 if (_respawnPositions.ContainsKey(id))
                 {
@@ -148,8 +148,7 @@ namespace SlopArena.Shared
                 fighter.Credit = ReadHitRecord(r);
                 fighter.Context = ReadHitRecord(r);
                 if (r.ReadBool()) fighter.LastActivationId = r.ReadULong();
-                if (r.ReadBool()) fighter.AnimFrame = r.ReadInt();
-                if (r.ReadBool()) fighter.PreviousAnim = r.ReadInt();
+                if (r.ReadBool()) fighter.BodyClock = SnapshotCodecs.ReadBodyPoseClock(r);
                 if (r.ReadBool())
                     fighter.Respawn = (r.ReadFloat(), r.ReadFloat(), r.ReadFloat(), r.ReadFloat());
                 if (r.ReadBool())
@@ -228,8 +227,7 @@ namespace SlopArena.Shared
                 SetOrRemove(_lastHitCredits, id, fighter.Credit);
                 SetOrRemove(_lastHitContexts, id, fighter.Context);
                 SetOrRemove(_lastActivationIds, id, fighter.LastActivationId);
-                SetOrRemove(_animFrames, id, fighter.AnimFrame);
-                SetOrRemove(_prevAnimIndex, id, fighter.PreviousAnim);
+                SetOrRemove(_bodyClocks, id, fighter.BodyClock);
                 SetOrRemove(_respawnPositions, id, fighter.Respawn);
                 SetOrRemove(_observedPoses, id, fighter.ObservedPose);
                 if (fighter.Ability != null)
@@ -364,8 +362,7 @@ namespace SlopArena.Shared
             public (ulong attackerId, uint tick, byte slot)? Credit;
             public (ulong attackerId, uint tick, byte slot)? Context;
             public ulong? LastActivationId;
-            public int? AnimFrame;
-            public int? PreviousAnim;
+            public BodyPoseClock? BodyClock;
             public (float x, float y, float z, float yaw)? Respawn;
             public CookedTimelineAbility? Ability;
             /// <summary>A Replay's recorded pose clock; World Snapshots never carry one.</summary>
