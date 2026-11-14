@@ -56,6 +56,8 @@ public static class FighterAppearanceSelfTest
         Require(SeatColours.For(0) == Color.white && SeatColours.For(-1) == Color.white &&
             SeatColours.For(int.MinValue) == Color.white, "Unassigned seats must have neutral colour.");
         Require(SeatColours.For(1) == (Color)new Color32(255, 204, 34, 255) &&
+            SeatColours.For(2) == (Color)new Color32(234, 88, 12, 255) &&
+            SeatColours.For(3) == (Color)new Color32(20, 184, 166, 255) &&
             SeatColours.For(4) == (Color)new Color32(167, 139, 250, 255) &&
             SeatColours.For(5) == SeatColours.For(1), "Assigned seat colours changed.");
         var go = new GameObject("Unassigned renderer fixture");
@@ -82,7 +84,7 @@ public static class FighterAppearanceSelfTest
             var renderer = go.AddComponent<PlayerRenderer>();
             bool configured = (bool)typeof(MatchBase).GetMethod("SetupRenderer", flags)
                 .Invoke(probe, new object[] { renderer, entry, null, 1UL, false });
-            Require(!configured && !probe.enabled &&
+            Require(!configured && !probe.enabled && (bool)typeof(MatchBase).GetField("_contentRejected", flags).GetValue(probe) &&
                 probe.ContentFailure == "Renderer configuration failed: Model not found at Resources/MissingRefusalFixture.",
                 "Renderer refusal must reject the Match with its configuration diagnostic.");
             Require(renderer.PlayerNumber == 0 && MatchVisualStyle.RimColorFor(renderer) == Color.white,

@@ -289,6 +289,7 @@ budget is 79,200 contact tests per tick. The contract suite covers peak and sust
 capability emitters and form changes, with all eight formerly skipped cases enabled.
 The web demo trusts only its embedded roster's exact pins. Editor trusted cooks require an
 application-owned first-party source folder as well as shipped roster membership.
+The owner approved the made-fighter limits in `src/Shared/CookedPackageLimits.cs` on 2026-11-14: "they sound reasonable, fine with me".
 See [cooked package admission](../systems/cooked-package-admission.md) for constants,
 measurements, diagnostics, and typed capability lifetime accounting.
 External admission remains internal or test-only until the subsequent roll-out units.

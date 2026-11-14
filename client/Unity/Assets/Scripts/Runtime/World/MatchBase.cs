@@ -271,8 +271,7 @@ namespace SlopArena.Client.World
         {
             if (renderer == null || entry == null)
             {
-                Debug.LogError($"[{GetType().Name}] Renderer and content entry are required.");
-                return false;
+                return RejectContent("Renderer and content entry are required.");
             }
 
             var appearance = FighterFor(entityId);
@@ -286,8 +285,7 @@ namespace SlopArena.Client.World
             if (entry.CookedCharacterPackage != null &&
                 !CookedCharacterClientAssetResolver.TryResolve(entry, out animationCatalog, out rig, out cookedWeaponConfig, out var error))
             {
-                Debug.LogError($"[{GetType().Name}] Cooked client assets failed for {entry.Identity.PackageId}: {error}");
-                return false;
+                return RejectContent($"Cooked client assets failed for {entry.Identity.PackageId}: {error}");
             }
 
             // A made fighter's model, clips and art stay alive while this Match draws it.
@@ -297,8 +295,7 @@ namespace SlopArena.Client.World
             if (!renderer.Configure(def, entry.BakedAnimation, animationCatalog,
                     rig ?? (local ? _playerModelPrefab : null), out var configurationError, animationOverride, entry.Identity.PackageId))
             {
-                Debug.LogError($"[{GetType().Name}] Renderer configuration failed: {configurationError}");
-                return false;
+                return RejectContent($"Renderer configuration failed: {configurationError}");
             }
 
             renderer.EntityId = entityId;
