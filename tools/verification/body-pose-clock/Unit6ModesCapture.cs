@@ -19,7 +19,9 @@ public sealed class Unit6ModesCapture : MonoBehaviour
     string output;
     readonly StringBuilder csv = new("fighter,form,phase,tick,state,anim,authAnim,renderFrame,authFrame,weight,point,currentMm,proposedMm\n");
     readonly StringBuilder trace = new("fighter,form,kind,renderFrame,simulationTick,elapsed,clipSeconds\n");
-    static readonly MethodInfo Resolve = typeof(ServerSimulation).GetMethod("ResolveBoneAnimFrame", BindingFlags.Instance | BindingFlags.NonPublic);
+    // The seven-parameter resolver; builds with the body pose clock add an overload that also reports looping.
+    static readonly MethodInfo Resolve = typeof(ServerSimulation).GetMethods(BindingFlags.Instance | BindingFlags.NonPublic)
+        .Single(m => m.Name == "ResolveBoneAnimFrame" && m.GetParameters().Length == 7);
     // The Shared body pose clock (option A) when this build has one; main's frame counter otherwise.
     static readonly MethodInfo BodyClock = typeof(ServerSimulation).GetMethod("GetBodyClock", BindingFlags.Instance | BindingFlags.Public);
     static readonly string[] Points = { "mixamorig:Head", "mixamorig:Hips", "mixamorig:Spine2", "mixamorig:LeftHand", "mixamorig:RightHand", "mixamorig:LeftFoot", "mixamorig:RightFoot" };
